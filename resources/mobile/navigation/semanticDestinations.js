@@ -37,6 +37,27 @@ const detailPaths = Object.freeze({
     const id = identifier(params.pension_id);
     return type && id ? `/retirement/pension/${type}/${id}` : null;
   },
+  goal_detail: (params) => {
+    const id = identifier(params.goal_id);
+    return id ? `/goals/${id}` : null;
+  },
+  property_detail: (params) => {
+    const id = identifier(params.property_id);
+    return id ? `/net-worth/property/${id}` : null;
+  },
+  mortgage_detail: (params) => {
+    const id = identifier(params.mortgage_id);
+    return id ? `/net-worth/mortgage/${id}` : null;
+  },
+  liability_detail: (params) => {
+    const id = identifier(params.liability_id);
+    return id ? `/net-worth/liability/${id}` : null;
+  },
+  income_detail: (params) => {
+    const owner = identifier(params.income_owner);
+    const source = identifier(params.income_source);
+    return owner && source ? `/income/${owner}/${source}` : null;
+  },
 });
 
 const legacyPaths = new Set([
@@ -64,6 +85,9 @@ function allowlistedLegacyPath(path) {
   if (/^\/savings\/account\/[^/]+$/.test(path)) return path;
   if (/^\/investment\/account\/[^/]+$/.test(path)) return path;
   if (/^\/retirement\/pension\/[^/]+\/[^/]+$/.test(path)) return path;
+  if (/^\/goals\/[^/]+$/.test(path)) return path;
+  if (/^\/net-worth\/(property|mortgage|liability)\/[^/]+$/.test(path)) return path;
+  if (/^\/income\/[^/]+\/[^/]+$/.test(path)) return path;
   if (/^\/net-worth\/[^/]+$/.test(path)) return path;
   return null;
 }

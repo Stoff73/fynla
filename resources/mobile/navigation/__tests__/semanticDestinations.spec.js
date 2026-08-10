@@ -54,6 +54,22 @@ describe('mobile semantic destinations', () => {
   });
 
   it.each([
+    ['goal_detail', { goal_id: 12 }, '/goals/12'],
+    ['property_detail', { property_id: 23 }, '/net-worth/property/23'],
+    ['mortgage_detail', { mortgage_id: 34 }, '/net-worth/mortgage/34'],
+    ['liability_detail', { liability_id: 45 }, '/net-worth/liability/45'],
+    [
+      'income_detail',
+      { income_owner: 'user', income_source: 'self employment' },
+      '/income/user/self%20employment',
+    ],
+  ])('resolves the canonical %s path', (screen, params, path) => {
+    expect(resolveMobileDestination({
+      destination: { screen, params, fallback: 'net_worth' },
+    })).toBe(path);
+  });
+
+  it.each([
     ['conversation_history', '/conversation-history'],
     ['personal_information', '/personal-information'],
     ['subscription', '/subscription'],

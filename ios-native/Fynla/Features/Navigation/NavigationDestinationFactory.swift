@@ -11,6 +11,7 @@ enum NavigationDestinationFactory {
         case .personalInformation: "Personal Information"
         case .subscription: "Subscription"
         case .income: "Income"
+        case .incomeDetail: "Income details"
         case .expenditure: "Expenditure"
         case let .netWorth(category):
             category.flatMap { NetWorthCategory(rawValue: $0) }?.title ?? "Net Worth"
@@ -21,6 +22,10 @@ enum NavigationDestinationFactory {
         case .retirement: "Retirement"
         case .estate: "Estate Planning"
         case .goals: "Goals"
+        case .goalDetail: "Goal details"
+        case .propertyDetail: "Property details"
+        case .mortgageDetail: "Mortgage details"
+        case .liabilityDetail: "Liability details"
         case .taxStrategy: "Tax Strategy"
         case .holisticPlan: "Holistic Plan"
         case .bugReport: "Report a problem"
@@ -87,6 +92,8 @@ enum NavigationDestinationFactory {
                 onOpenFyn: onOpenFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
+        case .incomeDetail, .goalDetail, .propertyDetail, .mortgageDetail, .liabilityDetail:
+            StagedNativeDestinationView(title: title(for: route))
         case .expenditure:
             ExpenditureView(
                 model: expenditureModel,

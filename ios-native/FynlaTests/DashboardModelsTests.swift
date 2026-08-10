@@ -189,6 +189,63 @@ struct DashboardModelsTests {
         )
     }
 
+    @Test(arguments: [
+        (
+            SemanticDestination(
+                screen: "goal_detail",
+                params: ["goal_id": .int(12)],
+                fallback: "goals"
+            ),
+            AppRoute.goalDetail(id: 12)
+        ),
+        (
+            SemanticDestination(
+                screen: "property_detail",
+                params: ["property_id": .int(23)],
+                fallback: "net_worth"
+            ),
+            AppRoute.propertyDetail(id: 23)
+        ),
+        (
+            SemanticDestination(
+                screen: "mortgage_detail",
+                params: ["mortgage_id": .int(34)],
+                fallback: "net_worth"
+            ),
+            AppRoute.mortgageDetail(id: 34)
+        ),
+        (
+            SemanticDestination(
+                screen: "liability_detail",
+                params: ["liability_id": .int(45)],
+                fallback: "net_worth"
+            ),
+            AppRoute.liabilityDetail(id: 45)
+        ),
+        (
+            SemanticDestination(
+                screen: "income_detail",
+                params: [
+                    "income_owner": .string("user"),
+                    "income_source": .string("self_employment"),
+                ],
+                fallback: "income"
+            ),
+            AppRoute.incomeDetail(owner: "user", source: "self_employment")
+        ),
+    ])
+    func resolvesCanonicalFinancialDetailDestination(
+        _ destination: SemanticDestination,
+        _ expected: AppRoute
+    ) {
+        #expect(
+            SemanticDestinationResolver.route(
+                for: destination,
+                legacyPath: nil
+            ) == expected
+        )
+    }
+
     private func decode(_ name: String) throws -> DashboardSnapshot {
         try JSONDecoder().decode(
             APIEnvelope<DashboardSnapshot>.self,
