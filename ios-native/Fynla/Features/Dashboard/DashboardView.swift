@@ -78,7 +78,12 @@ struct DashboardView: View {
                         onAction: { action in
                             switch action.action.kind {
                             case .navigate:
-                                onRoute(route(forPath: action.action.payload))
+                                onRoute(
+                                    SemanticDestinationResolver.route(
+                                        for: action.action.destination,
+                                        legacyPath: action.action.payload
+                                    )
+                                )
                             case .fynCapture:
                                 onOpenFyn(action.action.payload)
                             case .unknown:
@@ -90,7 +95,12 @@ struct DashboardView: View {
                             Task { await model.complete(action) }
                         },
                         onViewAll: { key in
-                            onRoute(route(forPath: key))
+                            onRoute(
+                                SemanticDestinationResolver.route(
+                                    for: nil,
+                                    legacyPath: key
+                                )
+                            )
                         },
                         onSeeAllActions: {
                             onRoute(.achievements)
@@ -263,24 +273,6 @@ struct DashboardView: View {
             return "We could not load your dashboard. Please try again."
         }
         return "We could not load your dashboard. Reference: \(requestID)"
-    }
-
-    private func route(forPath path: String) -> AppRoute {
-        switch path.trimmingCharacters(in: CharacterSet(charactersIn: "/")) {
-        case "income": .income
-        case "expenditure": .expenditure
-        case "net-worth": .netWorth(category: nil)
-        case "protection": .protection(policyType: nil, id: nil)
-        case "savings": .savings(accountID: nil)
-        case "investment": .investment(accountID: nil)
-        case "retirement": .retirement(pensionType: nil, id: nil)
-        case "estate": .estate
-        case "goals": .goals
-        case "tax", "tax-strategy": .taxStrategy
-        case "holistic-plan": .holisticPlan
-        case "achievements": .achievements
-        default: .dashboard
-        }
     }
 
     private func route(forMilestone route: String) -> AppRoute {

@@ -51,6 +51,21 @@ export async function apiGet(path, token) {
   return { ok: res.ok, status: res.status, data };
 }
 
+export async function apiPut(path, body, token = null) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PUT',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
 export async function apiDownload(path, token) {
   const res = await fetch(`${BASE}${path}`, {
     credentials: 'omit',

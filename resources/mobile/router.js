@@ -21,6 +21,10 @@ import MobileInvestmentAccountDetail from './views/modules/InvestmentAccountDeta
 import MobileEstate from './views/modules/Estate.vue';
 import MobileGoals from './views/modules/Goals.vue';
 import MobileBalanceHistory from './views/BalanceHistory.vue';
+import PersonalInformation from './views/PersonalInformation.vue';
+import Settings from './views/Settings.vue';
+import NotificationPreferences from './views/NotificationPreferences.vue';
+import Subscription from './views/Subscription.vue';
 
 // Inner SPA lives under /m/app — but on subdirectory deploys (csjones serves the
 // whole app at /fynla/) the actual URL is /fynla/m/app/. Derive from VITE_ROUTER_BASE
@@ -52,6 +56,10 @@ const router = createRouter({
     { path: '/investment/account/:id', name: 'm-investment-account', component: MobileInvestmentAccountDetail, meta: { auth: true } },
     { path: '/estate', name: 'm-estate', component: MobileEstate, meta: { auth: true } },
     { path: '/goals', name: 'm-goals', component: MobileGoals, meta: { auth: true } },
+    { path: '/personal-information', name: 'm-personal-information', component: PersonalInformation, meta: { auth: true } },
+    { path: '/settings', name: 'm-settings', component: Settings, meta: { auth: true } },
+    { path: '/notifications', name: 'm-notifications', component: NotificationPreferences, meta: { auth: true } },
+    { path: '/subscription', name: 'm-subscription', component: Subscription, meta: { auth: true } },
   ],
 });
 

@@ -116,7 +116,7 @@ enum NetWorthCategory: String, CaseIterable, Sendable {
         case .pensions: "Pensions"
         case .cash: "Cash & savings"
         case .business: "Business interests"
-        case .chattels: "Possessions"
+        case .chattels: "Valuables"
         case .liabilities: "Liabilities"
         }
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Pipeline\ClipApprovalActionController;
 use App\Http\Controllers\Pipeline\DriveWebhookController;
 use App\Http\Controllers\Pipeline\GoogleOAuthController;
 use App\Http\Controllers\Pipeline\SignedClipDownloadController;
+use App\Http\Controllers\WebHandoffController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -44,6 +45,10 @@ Route::middleware('signed')->prefix('lifecycle')->group(function () {
 Route::post('/lifecycle/feedback-text', [LifecycleActionController::class, 'submitFeedbackText'])
     ->name('lifecycle.feedback-text')
     ->middleware('signed');
+
+Route::get('/web-handoff/{token}', WebHandoffController::class)
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->name('web-handoff.consume');
 
 // Public RSS feeds. MUST be declared BEFORE the SPA catch-all so the
 // FeedController returns RSS XML instead of the Vue shell.

@@ -17,8 +17,14 @@ vi.mock('../../api.js', () => ({
   apiStream: vi.fn(() => Promise.resolve({ ok: true, status: 200, text: '' })),
 }));
 
+vi.mock('../../navigation/webHandoff.js', () => ({
+  issueWebHandoff: vi.fn(),
+}));
+
 import { apiStream } from '../../api.js';
+import { issueWebHandoff } from '../../navigation/webHandoff.js';
 import MobileChrome from '../MobileChrome.vue';
+import Dashboard from '../../views/Dashboard.vue';
 import { store } from '../../store.js';
 
 function mountChrome() {
@@ -36,7 +42,40 @@ describe('MobileChrome.vue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiStream.mockResolvedValue({ ok: true, status: 200, text: '' });
+    issueWebHandoff.mockResolvedValue();
     store.subscriptionStatus = { tier: 'free', payment_enabled: false };
+  });
+
+  describe('shared primary navigation', () => {
+    it('uses the same frozen navigation groups as the dashboard', () => {
+      const chromeSections = MobileChrome.computed.navSections.call({});
+      const dashboardSections = Dashboard.computed.navSections.call({});
+      const labels = chromeSections.flatMap((section) => section.links.map((link) => link.label));
+
+      expect(chromeSections).toBe(dashboardSections);
+      expect(Object.isFrozen(chromeSections)).toBe(true);
+      expect(labels).toEqual(expect.arrayContaining([
+        'Dashboard',
+        'Bank Accounts',
+        'Achievements',
+        'Personal Information',
+        'Subscription',
+        'Settings',
+      ]));
+    });
+  });
+
+  it('opens Admin through a single-use handoff without copying the bearer', async () => {
+    store.token = 'live-token';
+    store.user = { id: 1, is_admin: true, onboarding_completed: true };
+    const storageSpy = vi.spyOn(window.sessionStorage.__proto__, 'setItem');
+    const wrapper = mountChrome();
+
+    await wrapper.vm.gotoAdmin();
+
+    expect(issueWebHandoff).toHaveBeenCalledWith('admin');
+    expect(storageSpy).not.toHaveBeenCalled();
+    storageSpy.mockRestore();
   });
 
   describe('openFynWith() awaits openFyn() (adjacent D3: edit-details race)', () => {

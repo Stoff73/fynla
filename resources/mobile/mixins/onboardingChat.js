@@ -20,7 +20,6 @@ import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
 import { renderFynText } from '../utils/fynText.js';
 import {
   loadMobileSubscriptionStatus,
-  openSubscriptionOptions,
   shouldShowMobileUpgrade,
 } from './upgrade.js';
 
@@ -460,7 +459,7 @@ export default {
       if (bubble.id === 'subscription_options') {
         if (store.subscriptionStatus && !shouldShowMobileUpgrade(store.subscriptionStatus)) return;
         if (message && message.bubbles) message.bubbles = [];
-        openSubscriptionOptions();
+        this.$router.push('/subscription');
         return;
       }
       // Navigation bubble (e.g. the terminal "Take me to my tax strategy") —

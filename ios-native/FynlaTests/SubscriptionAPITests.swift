@@ -27,6 +27,10 @@ struct SubscriptionAPITests {
                 status: 200,
                 body: Data(#"{"success":true,"data":{"entitlement":{"tier":"premium","provider":"apple","status":"active","renews":true,"current_period_end":"2026-08-18T20:00:00Z"}}}"#.utf8)
             ),
+            .response(
+                status: 200,
+                body: Data(#"{"data":[{"tier":"free","display_name":"Free","price_monthly_pence":0,"features":[{"key":"dashboard","label":"Financial dashboard","included":true,"availability":"full"},{"key":"savings_account","label":"Up to 2 bank accounts","included":true,"availability":"limited"}]},{"tier":"premium","display_name":"Premium","price_monthly_pence":999999,"features":[{"key":"dashboard","label":"Financial dashboard","included":true,"availability":"full"},{"key":"savings_account","label":"Bank accounts","included":true,"availability":"full"}]}]}"#.utf8)
+            ),
         ])
         let client = APIClient(
             environment: try AppEnvironment.values([
@@ -61,15 +65,33 @@ struct SubscriptionAPITests {
         )
         #expect(acknowledged)
         try await api.reconcile(originalTransactionID: "40")
+        let plans = try await api.planComparison()
+        #expect(plans.map(\.tier) == ["free", "premium"])
+        #expect(plans.map(\.displayName) == ["Free", "Premium"])
+        #expect(plans[0].features == [
+            PlanFeature(
+                key: "dashboard",
+                label: "Financial dashboard",
+                included: true,
+                availability: "full"
+            ),
+            PlanFeature(
+                key: "savings_account",
+                label: "Up to 2 bank accounts",
+                included: true,
+                availability: "limited"
+            ),
+        ])
 
         let requests = await transport.requests()
-        #expect(requests.map { $0.httpMethod } == ["GET", "GET", "GET", "POST", "POST"])
+        #expect(requests.map { $0.httpMethod } == ["GET", "GET", "GET", "POST", "POST", "GET"])
         #expect(requests.map { $0.url?.path } == [
             "/fynla/api/v1/native/entitlement",
             "/fynla/api/v1/native/storekit/purchase-authorization",
             "/fynla/api/v1/native/storekit/account-token",
             "/fynla/api/v1/native/storekit/transactions",
             "/fynla/api/v1/native/storekit/reconcile",
+            "/fynla/api/pricing-config",
         ])
         #expect(
             requests[3].httpBody

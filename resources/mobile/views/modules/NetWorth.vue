@@ -88,7 +88,7 @@ const ASSET_LABELS = {
   pensions: 'Pensions',
   cash: 'Cash & savings',
   business: 'Business interests',
-  chattels: 'Possessions',
+  chattels: 'Valuables',
 };
 const ASSET_ORDER = ['property', 'investments', 'pensions', 'cash', 'business', 'chattels'];
 

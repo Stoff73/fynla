@@ -52,6 +52,7 @@ struct SubscriptionModelTests {
                 isPending: false
             )
         )
+        #expect(model.plans == .comparison)
     }
 
     @Test
@@ -86,6 +87,24 @@ struct SubscriptionModelTests {
                 locale: Locale(identifier: "en_GB")
             ) == "1 year"
         )
+    }
+
+    @Test
+    func comparisonFailureDoesNotHideStoreKitProductsOrReplacePurchasePrice() async {
+        let model = SubscriptionModel(
+            api: SubscriptionAPISpy(
+                entitlements: [.free],
+                planComparisonFails: true
+            ),
+            storeKit: StoreProductsSpy(products: [.monthly, .annual])
+        )
+
+        await model.load()
+
+        #expect(model.plans.isEmpty)
+        #expect(model.state.isFree)
+        #expect(model.selectedProduct?.displayPrice == "£6.99")
+        #expect(model.message == nil)
     }
 
     @Test
@@ -492,6 +511,8 @@ private actor SuspendedFirstEntitlementAPI: SubscriptionAPI {
         return response
     }
 
+    func planComparison() async throws -> [PlanComparison] { .comparison }
+
     func appAccountToken() async throws -> UUID { .testAccount }
 
     func authorizePurchase() async throws -> Bool { true }
@@ -564,6 +585,7 @@ private actor SubscriptionAPISpy: SubscriptionAPI {
     private let acknowledgement: Bool
     private let events: EventRecorder?
     private let purchaseAuthorized: Bool
+    private let planComparisonFails: Bool
     private var submittedJWS: [String] = []
     private var authorizationCount = 0
 
@@ -572,19 +594,28 @@ private actor SubscriptionAPISpy: SubscriptionAPI {
         loadGate: LoadGate? = nil,
         acknowledgement: Bool = true,
         events: EventRecorder? = nil,
-        purchaseAuthorized: Bool = true
+        purchaseAuthorized: Bool = true,
+        planComparisonFails: Bool = false
     ) {
         self.entitlements = entitlements
         self.loadGate = loadGate
         self.acknowledgement = acknowledgement
         self.events = events
         self.purchaseAuthorized = purchaseAuthorized
+        self.planComparisonFails = planComparisonFails
     }
 
     func entitlement() async throws -> NativeEntitlement {
         if let loadGate { await loadGate.arriveAndWait() }
         await events?.append("entitlement")
         return entitlements.removeFirst()
+    }
+
+    func planComparison() async throws -> [PlanComparison] {
+        if planComparisonFails {
+            throw SubscriptionComparisonTestError.unavailable
+        }
+        return .comparison
     }
 
     func appAccountToken() async throws -> UUID {
@@ -609,6 +640,39 @@ private actor SubscriptionAPISpy: SubscriptionAPI {
     func acknowledgedJWS() -> [String] { submittedJWS }
 
     func purchaseAuthorizationCount() -> Int { authorizationCount }
+}
+
+private enum SubscriptionComparisonTestError: Error {
+    case unavailable
+}
+
+private extension Array where Element == PlanComparison {
+    static let comparison = [
+        PlanComparison(
+            tier: "free",
+            displayName: "Free",
+            features: [
+                PlanFeature(
+                    key: "dashboard",
+                    label: "Financial dashboard",
+                    included: true,
+                    availability: "full"
+                ),
+            ]
+        ),
+        PlanComparison(
+            tier: "premium",
+            displayName: "Premium",
+            features: [
+                PlanFeature(
+                    key: "dashboard",
+                    label: "Financial dashboard",
+                    included: true,
+                    availability: "full"
+                ),
+            ]
+        ),
+    ]
 }
 
 private actor StoreProductsSpy: StoreKitClient {

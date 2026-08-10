@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { isAuthenticatedPublicUtilityPath } from './publicRoutePolicy.js';
+import { isTransferableMobileBearer } from '../mScaffoldBridge.js';
 import store from '@/store';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
@@ -1626,8 +1628,15 @@ router.beforeEach(async (to, from, next) => {
     // authenticated instead of bouncing to the mobile login. localStorage is
     // shared same-origin; both are the same Sanctum bearer token.
     const token = getTokenSync();
-    if (token) {
-      try { localStorage.setItem('m_scaffold_token', token); } catch { /* private mode */ }
+    if (isTransferableMobileBearer(token)) {
+      try {
+        // Preserve an existing rotated /m token. Copy only on the initial
+        // desktop-to-mobile handoff; mobile never copies its bearer back into
+        // desktop storage.
+        if (!localStorage.getItem('m_scaffold_token')) {
+          localStorage.setItem('m_scaffold_token', token);
+        }
+      } catch { /* private mode */ }
     }
     const mobileQuery = new URLSearchParams();
     if (typeof to.query.from === 'string' && to.query.from) {
@@ -1725,17 +1734,18 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Authenticated users never see the public marketing / landing pages — those
+  // Authenticated users do not see public marketing / landing pages — those
   // exist only to convert guests; the user lives behind the auth wall in the
-  // app. Bounce them to the dashboard. Preview personas are exempt so they can
-  // still reach the landing-page persona selector. Mirrors the server-side
-  // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
+  // app. Account-support and legal utilities remain reachable from Settings.
+  // Preview personas are exempt so they can still reach the landing-page
+  // persona selector. Mirrors `redirect.authed` on server-rendered pages.
   //
   // Exception: `?preview=true` is the admin draft-preview link (from the CMS
   // editor). Admins must be able to view the live article page while logged in,
   // so don't bounce them — draft visibility is still gated server-side (the
   // insights API only returns drafts to is_admin).
   if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode
+      && !isAuthenticatedPublicUtilityPath(to.path)
       && to.query.preview !== 'true') {
     next({ name: 'Dashboard' });
     return;

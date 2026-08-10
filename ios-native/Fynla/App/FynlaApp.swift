@@ -13,6 +13,7 @@ struct FynlaApp: App {
     @State private var subscriptionModel: SubscriptionModel
     @State private var dashboardModel: DashboardModel
     @State private var achievementsModel: AchievementsModel
+    @State private var personalInformationModel: PersonalInformationModel
     @State private var incomeModel: IncomeModel
     @State private var expenditureModel: ExpenditureModel
     @State private var netWorthModel: NetWorthModel
@@ -38,6 +39,7 @@ struct FynlaApp: App {
     private let appleSubscriptionManager: any AppleSubscriptionManaging
     private let legacyCapacitorCleanup: LegacyCapacitorCleanup
     private let shareClient: any ShareContentClient
+    private let webHandoffClient: any WebHandoffClient
 
     #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
@@ -192,6 +194,11 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        let personalInformationModel = PersonalInformationModel(
+            client: LivePersonalInformationClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
         let balanceHistoryModel = BalanceHistoryModel(
             client: LiveBalanceHistoryClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -301,6 +308,7 @@ struct FynlaApp: App {
                 surname: "User",
                 name: "Example User",
                 email: "example@example.test",
+                isAdmin: ProcessInfo.processInfo.arguments.contains("-fynla-admin"),
                 onboardingCompleted: !onboardingActive,
                 onboardingFynStep: onboardingActive ? "income" : nil
             )
@@ -430,6 +438,7 @@ struct FynlaApp: App {
         _subscriptionModel = State(initialValue: subscriptionModel)
         _dashboardModel = State(initialValue: dashboardModel)
         _achievementsModel = State(initialValue: achievementsModel)
+        _personalInformationModel = State(initialValue: personalInformationModel)
         _incomeModel = State(initialValue: incomeModel)
         _expenditureModel = State(initialValue: expenditureModel)
         _netWorthModel = State(initialValue: netWorthModel)
@@ -452,6 +461,10 @@ struct FynlaApp: App {
         _bugReportModel = State(initialValue: bugReportModel)
         shareClient = LiveShareContentClient(
             apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        webHandoffClient = LiveWebHandoffClient(
+            apiClient: authenticatedDependencies.makeAPIClient(),
+            trustedWebBaseURL: authenticatedDependencies.environment.webBaseURL
         )
     }
 
@@ -484,6 +497,7 @@ struct FynlaApp: App {
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,
+            personalInformationModel: personalInformationModel,
             incomeModel: incomeModel,
             expenditureModel: expenditureModel,
             netWorthModel: netWorthModel,
@@ -506,6 +520,7 @@ struct FynlaApp: App {
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
             shareClient: shareClient,
+            webHandoffClient: webHandoffClient,
             registrationActions: registrationActions,
             loginActions: loginActions,
             passwordResetActions: passwordResetActions,

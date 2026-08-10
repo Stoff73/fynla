@@ -76,7 +76,7 @@ const CONFIG = {
   pensions: { title: 'Pensions', sub: 'Accessible pension capital', source: 'detailed' },
   cash: { title: 'Cash & savings', sub: 'Savings accounts and cash', source: 'detailed' },
   business: { title: 'Business interests', sub: 'Your share of business holdings', source: 'detailed' },
-  chattels: { title: 'Possessions', sub: 'Valuable personal possessions', source: 'detailed' },
+  chattels: { title: 'Valuables', sub: 'Valuable personal possessions', source: 'detailed' },
   liabilities: { title: 'Liabilities', sub: 'Everything you owe', source: 'overview' },
 };
 

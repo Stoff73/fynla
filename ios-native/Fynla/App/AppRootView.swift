@@ -8,6 +8,7 @@ struct AppRootView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let personalInformationModel: PersonalInformationModel
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
     let netWorthModel: NetWorthModel
@@ -30,6 +31,7 @@ struct AppRootView: View {
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
     let shareClient: any ShareContentClient
+    let webHandoffClient: any WebHandoffClient
     private let webBaseURL: URL
     @State private var registrationModel: RegistrationModel
     @State private var loginModel: LoginModel
@@ -44,6 +46,7 @@ struct AppRootView: View {
         subscriptionModel: SubscriptionModel,
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
+        personalInformationModel: PersonalInformationModel,
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
         netWorthModel: NetWorthModel,
@@ -66,6 +69,7 @@ struct AppRootView: View {
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
         shareClient: any ShareContentClient,
+        webHandoffClient: any WebHandoffClient,
         registrationActions: RegistrationActions,
         loginActions: LoginActions,
         passwordResetActions: PasswordResetActions,
@@ -80,6 +84,7 @@ struct AppRootView: View {
         self.subscriptionModel = subscriptionModel
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
+        self.personalInformationModel = personalInformationModel
         self.incomeModel = incomeModel
         self.expenditureModel = expenditureModel
         self.netWorthModel = netWorthModel
@@ -102,6 +107,7 @@ struct AppRootView: View {
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
         self.shareClient = shareClient
+        self.webHandoffClient = webHandoffClient
         self.webBaseURL = webBaseURL
         _registrationModel = State(
             initialValue: RegistrationModel(
@@ -182,6 +188,7 @@ struct AppRootView: View {
                         subscriptionModel: subscriptionModel,
                         dashboardModel: dashboardModel,
                         achievementsModel: achievementsModel,
+                        personalInformationModel: personalInformationModel,
                         incomeModel: incomeModel,
                         expenditureModel: expenditureModel,
                         netWorthModel: netWorthModel,
@@ -203,7 +210,7 @@ struct AppRootView: View {
                         bugReportModel: bugReportModel,
                         appleSubscriptionManager: appleSubscriptionManager,
                         shareClient: shareClient,
-                        webBaseURL: webBaseURL
+                        webHandoffClient: webHandoffClient
                     )
                 case let .updateRequired(requirement, appStoreURL):
                     NativeUpdateRequiredView(
@@ -258,6 +265,7 @@ struct AppRootView: View {
                 subscriptionModel.stop()
                 dashboardModel.stop()
                 achievementsModel.stop()
+                personalInformationModel.stop()
                 incomeModel.stop()
                 expenditureModel.stop()
                 netWorthModel.stop()
@@ -339,6 +347,7 @@ private struct UnlockedView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let personalInformationModel: PersonalInformationModel
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
     let netWorthModel: NetWorthModel
@@ -360,7 +369,7 @@ private struct UnlockedView: View {
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
     let shareClient: any ShareContentClient
-    let webBaseURL: URL
+    let webHandoffClient: any WebHandoffClient
     @Environment(AppRouter.self) private var router
     @State private var isPresentingMenu = false
     @State private var isPresentingFyn = false
@@ -370,6 +379,9 @@ private struct UnlockedView: View {
     // /m nudge dismissals are session-scoped (Dashboard.vue data flags).
     @State private var nudgeDismissed = false
     @State private var unlockBubbleDismissed = false
+    @State private var browserItem: SafariSheetItem?
+    @State private var isOpeningAdmin = false
+    @State private var adminError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -380,6 +392,10 @@ private struct UnlockedView: View {
         .accessibilityIdentifier("app.unlocked")
         .fullScreenCover(isPresented: $isPresentingFyn) {
             fynCover
+        }
+        .sheet(item: $browserItem) { item in
+            SafariSheet(url: item.url)
+                .ignoresSafeArea()
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             fynDock
@@ -573,6 +589,7 @@ private struct UnlockedView: View {
                     for: route,
                     subscriptionModel: subscriptionModel,
                     achievementsModel: achievementsModel,
+                    personalInformationModel: personalInformationModel,
                     incomeModel: incomeModel,
                     expenditureModel: expenditureModel,
                     netWorthModel: netWorthModel,
@@ -640,6 +657,10 @@ private struct UnlockedView: View {
                     Task { await taxStrategyModel.refresh() }
                 case .holisticPlan:
                     Task { await holisticPlanModel.refresh() }
+                case .personalInformation:
+                    Task { await personalInformationModel.refresh() }
+                case .subscription:
+                    break
                 default:
                     break
                 }
@@ -722,12 +743,14 @@ private struct UnlockedView: View {
                     NavigationMenuView(
                         account: settingsModel.account,
                         activeRoute: router.path.last ?? .dashboard,
-                        adminURL: webBaseURL.appendingPathComponent("admin"),
                         shareClient: shareClient,
+                        isOpeningAdmin: isOpeningAdmin,
+                        adminError: adminError,
                         onSelect: { route in
                             closeMenu()
                             navigate(to: route)
                         },
+                        onOpenAdmin: openAdmin,
                         onLock: {
                             closeMenu()
                             settingsModel.lock()
@@ -751,6 +774,22 @@ private struct UnlockedView: View {
     private func closeMenu() {
         withAnimation(.easeInOut(duration: 0.28)) {
             isPresentingMenu = false
+        }
+    }
+
+    private func openAdmin() {
+        guard !isOpeningAdmin else { return }
+        isOpeningAdmin = true
+        adminError = nil
+        Task { @MainActor in
+            defer { isOpeningAdmin = false }
+            do {
+                let url = try await webHandoffClient.issue(.admin)
+                closeMenu()
+                browserItem = SafariSheetItem(url: url)
+            } catch {
+                adminError = "The Admin Panel could not be opened securely."
+            }
         }
     }
 
@@ -790,6 +829,8 @@ private struct UnlockedView: View {
     private func mobilePath(for route: AppRoute) -> String {
         switch route {
         case .dashboard: "/dashboard"
+        case .personalInformation: "/personal-information"
+        case .subscription: "/subscription"
         case .income: "/income"
         case .expenditure: "/expenditure"
         case .savings: "/savings"

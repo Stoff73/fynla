@@ -272,16 +272,10 @@
         </button>
       </div>
       <nav class="md-drawer__nav" aria-label="Primary navigation">
-        <div class="md-drawer__section">
-          <a href="#" class="md-drawer__link is-active" @click.prevent="goto('/dashboard')">
-            <span class="md-drawer__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg></span>
-            <span class="md-drawer__label">Dashboard</span>
-          </a>
-        </div>
         <div v-for="section in navSections" :key="section.group" class="md-drawer__section">
           <p class="md-drawer__group">{{ section.group }}</p>
-          <a v-for="link in section.links" :key="link.slug" href="#" class="md-drawer__link" @click.prevent="goto(link.route)">
-            <span class="md-drawer__icon" aria-hidden="true" v-html="link.icon"></span>
+          <a v-for="link in section.links" :key="link.slug" href="#" class="md-drawer__link" :class="{ 'is-active': link.route === '/dashboard' }" @click.prevent="goto(link.route)">
+            <span class="md-drawer__icon" aria-hidden="true" v-html="NAV_ICON[link.icon]"></span>
             <span class="md-drawer__label">{{ link.label }}</span>
           </a>
         </div>
@@ -372,6 +366,12 @@ import GamificationCelebration from '@m/components/GamificationCelebration.vue';
 // docked Fyn bar (MobileChrome) so the campaign verify flow can hand the chat
 // between screens. The dashboard keeps its own initFyn + pulseWheel.
 import onboardingChat from '../mixins/onboardingChat.js';
+import {
+  recordUnknownMobileDestination,
+  resolveMobileDestination,
+} from '../navigation/semanticDestinations.js';
+import { primaryNavigationSections } from '../navigation/navigationModel.js';
+import { issueWebHandoff } from '../navigation/webHandoff.js';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -414,6 +414,7 @@ export default {
     return {
       KEY_ICON,
       BULB_ICON,
+      NAV_ICON,
       loading: true,
       error: '',
       data: null,
@@ -505,27 +506,7 @@ export default {
     // that have a dedicated mobile view are linked (the web sidebar's other
     // items have no mobile screen yet). Labels match the web wording.
     navSections() {
-      return [
-        { group: 'Cash Management', links: [
-          { slug: 'income', label: 'Income', icon: NAV_ICON.income, route: '/income' },
-          { slug: 'expenditure', label: 'Expenditure', icon: NAV_ICON.expenditure, route: '/expenditure' },
-        ] },
-        { group: 'Finances', links: [
-          { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
-          { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
-          { slug: 'investment', label: 'Investments', icon: NAV_ICON.investment, route: '/investment' },
-          { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
-        ] },
-        { group: 'Family', links: [
-          { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
-          { slug: 'estate', label: 'Estate Planning', icon: NAV_ICON.estate, route: '/estate' },
-        ] },
-        { group: 'Planning', links: [
-          { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
-          { slug: 'tax', label: 'Tax Strategy', icon: NAV_ICON.tax, route: '/tax-strategy' },
-          { slug: 'holistic', label: 'Holistic Plan', icon: NAV_ICON.holistic, route: '/holistic-plan' },
-        ] },
-      ];
+      return primaryNavigationSections;
     },
     // Admin section — only for admin users (matches the web sidebar's gated
     // Admin section). The link opens the desktop Admin Panel, which has no
@@ -633,7 +614,7 @@ export default {
           caption: (prot.value || prot.total_coverage) > 0 ? 'Cover in place' : 'Add your cover',
         },
         {
-          key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card,
+          key: 'savings', label: 'Bank Accounts', tone: 'spring', icon: ICON.card,
           value: this.fmt(savValue), route: '/savings',
           viz: 'bar',
           barFill: efTarget > 0 ? Math.min(100, Math.round((efMonths / efTarget) * 100)) : 0,
@@ -778,9 +759,12 @@ export default {
       if (item.type === 'unlock') {
         // KYC gap → Fyn collects the missing details (the user's choice).
         this.openFynForCapture(item.module);
-      } else if (item.action && item.action.kind === 'navigate' && item.action.payload) {
+      } else if (item.action && item.action.kind === 'navigate') {
         // Recommendation → deep-link to the module screen where it's actioned.
-        this.goto(item.action.payload);
+        this.goto(resolveMobileDestination(
+          item.action,
+          recordUnknownMobileDestination,
+        ));
       }
     },
     dismissUnlockBubble() {
@@ -848,25 +832,14 @@ export default {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
     },
-    // Leave the /m mobile SPA for the desktop Admin Panel (no mobile equivalent).
-    // The desktop SPA reads its Sanctum token from sessionStorage('auth_token');
-    // the /m app holds it in localStorage('m_scaffold_token'). The reliable
-    // bridge is on the desktop side (mScaffoldBridge.js adopts the shared
-    // localStorage token at boot) — iOS partitions cross-context sessionStorage,
-    // so the seed below is only a best-effort fast-path for desktop browsers.
-    // Navigation must ALWAYS target the TOP window: navigating the iframe would
-    // load /admin inside the /m frame, where the in-frame guard bounces it back
-    // to /m/app.
-    gotoAdmin() {
+    // Leave /m for the existing Admin application using a single-use,
+    // server-authorised web session handoff. The mobile bearer never crosses
+    // into top-frame browser storage.
+    async gotoAdmin() {
       this.closeDrawer();
-      const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
       try {
-        const token = store.token || localStorage.getItem('m_scaffold_token');
-        if (token && window.top && window.top !== window) {
-          window.top.sessionStorage.setItem('auth_token', token);
-        }
-      } catch { /* iOS partitioned storage — the desktop boot bridge covers it */ }
-      (window.top || window).location.href = url;
+        await issueWebHandoff('admin');
+      } catch { /* keep the current authenticated surface available */ }
     },
     // Share via the native share sheet (navigator.share) with a clipboard
     // fallback. Content comes from /api/v1/mobile/share/{type} — generic,

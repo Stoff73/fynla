@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Mobile\MobileDashboardController;
 use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
+use App\Http\Controllers\Api\V1\Mobile\WebHandoffController;
 use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
 use App\Http\Controllers\Api\V1\Native\NativeEntitlementController;
 use App\Http\Controllers\Api\V1\Native\StoreKit\AppAccountTokenController;
@@ -119,6 +120,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/refresh-token', [TokenRefreshController::class, 'refresh'])
         ->middleware('throttle:device-registration')
         ->name('api.v1.auth.refresh-token');
+
+    Route::post('/mobile/web-handoffs', WebHandoffController::class)
+        ->middleware('throttle:sensitive')
+        ->name('api.v1.mobile.web-handoffs.store');
 
     // Mobile dashboard — aggregated summary of all modules
     Route::get('/mobile/dashboard', [MobileDashboardController::class, 'index'])

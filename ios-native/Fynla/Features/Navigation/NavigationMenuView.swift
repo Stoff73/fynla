@@ -16,14 +16,14 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
 
     var id: String { title ?? "Primary" }
 
-    // Transcribes /m's drawer navSections (MobileChrome.vue) exactly: the same
-    // groups, labels, order and routes. Native-only entries (Settings, Lock)
-    // live in the account section below, not here.
+    // Transcribes /m's shared primaryNavigationSections exactly: the same
+    // groups, labels, order and routes. Native-only actions remain below.
     static let mDrawer: [NavigationMenuSection] = [
         NavigationMenuSection(
-            title: nil,
+            title: "Overview",
             items: [
                 NavigationMenuItem(label: "Dashboard", icon: "house", route: .dashboard),
+                NavigationMenuItem(label: "Achievements", icon: "star.circle", route: .achievements),
             ]
         ),
         NavigationMenuSection(
@@ -37,7 +37,7 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
             title: "Finances",
             items: [
                 NavigationMenuItem(label: "Net Worth", icon: "chart.bar", route: .netWorth(category: nil)),
-                NavigationMenuItem(label: "Savings", icon: "creditcard", route: .savings(accountID: nil)),
+                NavigationMenuItem(label: "Bank Accounts", icon: "creditcard", route: .savings(accountID: nil)),
                 NavigationMenuItem(label: "Investments", icon: "chart.line.uptrend.xyaxis", route: .investment(accountID: nil)),
                 NavigationMenuItem(label: "Retirement", icon: "clock", route: .retirement(pensionType: nil, id: nil)),
             ]
@@ -57,6 +57,14 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
                 NavigationMenuItem(label: "Holistic Plan", icon: "square.stack.3d.up", route: .holisticPlan),
             ]
         ),
+        NavigationMenuSection(
+            title: "Account",
+            items: [
+                NavigationMenuItem(label: "Personal Information", icon: "person.text.rectangle", route: .personalInformation),
+                NavigationMenuItem(label: "Subscription", icon: "creditcard", route: .subscription),
+                NavigationMenuItem(label: "Settings", icon: "slider.horizontal.3", route: .settings),
+            ]
+        ),
     ]
 }
 
@@ -67,14 +75,15 @@ struct NavigationMenuSection: Equatable, Identifiable, Sendable {
 struct NavigationMenuView: View {
     let account: SettingsAccount?
     let activeRoute: AppRoute
-    let adminURL: URL
     let shareClient: any ShareContentClient
+    let isOpeningAdmin: Bool
+    let adminError: String?
     let onSelect: (AppRoute) -> Void
+    let onOpenAdmin: () -> Void
     let onLock: () -> Void
     let onSignOut: () -> Void
     let onDismiss: () -> Void
 
-    @Environment(\.openURL) private var openURL
     @State private var shareContent: ShareContent?
     @State private var isFetchingShare = false
 
@@ -141,13 +150,31 @@ struct NavigationMenuView: View {
                 if account?.isAdmin == true {
                     sectionDivider
                     groupLabel("Admin")
-                    // Opens the desktop Admin Panel (no native equivalent),
-                    // mirroring /m's gotoAdmin.
+                    // The desktop Admin Panel has no native equivalent. Its
+                    // callback obtains a one-time server handoff before the
+                    // shared Safari sheet is presented.
                     link(label: "Admin Panel", icon: "gearshape", isActive: false) {
-                        onDismiss()
-                        openURL(adminURL)
+                        onOpenAdmin()
                     }
+                    .disabled(isOpeningAdmin)
                     .accessibilityIdentifier("navigation.admin")
+                    if isOpeningAdmin {
+                        ProgressView("Opening Admin Panel…")
+                            .font(.system(size: 12))
+                            .padding(.horizontal, 12)
+                    }
+                    if let adminError {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(adminError)
+                                .font(.system(size: 12))
+                                .foregroundStyle(FynlaColor.Token.raspberry600.color)
+                            Button("Try again", action: onOpenAdmin)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(FynlaColor.Token.horizon500.color)
+                        }
+                        .padding(.horizontal, 12)
+                        .accessibilityIdentifier("navigation.admin.error")
+                    }
                 }
 
                 sectionDivider
@@ -178,7 +205,8 @@ struct NavigationMenuView: View {
     }
 
     // Share Fynla (server-provided referral copy, /m doShare('app_referral')),
-    // then the native-only Settings + Lock entries, then Sign out in raspberry.
+    // then native-only Lock and Sign out entries. Settings lives in the shared
+    // Account navigation group above.
     private var accountSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             link(label: "Share Fynla", icon: "square.and.arrow.up", isActive: false) {
@@ -186,11 +214,6 @@ struct NavigationMenuView: View {
             }
             .disabled(isFetchingShare)
             .accessibilityIdentifier("navigation.share")
-
-            link(label: "Settings", icon: "slider.horizontal.3", isActive: activeRoute == .settings) {
-                onSelect(.settings)
-            }
-            .accessibilityIdentifier("navigation.settings")
 
             link(label: "Lock", icon: "lock", isActive: false) {
                 onLock()

@@ -52,7 +52,12 @@ enum SettingsPlan: Sendable, Equatable {
 @MainActor
 @Observable
 final class SettingsModel {
-    private(set) var account: SettingsAccount?
+    // Derive the drawer identity directly from the authenticated coordinator.
+    // The drawer is reachable before SettingsView ever appears, so a stored
+    // value populated only by the settings refresh can hide admin navigation.
+    var account: SettingsAccount? {
+        userProvider().map(SettingsAccount.init(user:))
+    }
 
     // First name for the dashboard greeting, mirroring /m's store.user usage.
     var greetingFirstName: String? {
@@ -101,14 +106,48 @@ final class SettingsModel {
         self.userProvider = userProvider
         self.privacyLockController = privacyLockController
         self.beforeSignOut = beforeSignOut
-        privacyURL = webBaseURL.appending(path: "privacy")
-        termsURL = webBaseURL.appending(path: "terms")
-        supportURL = webBaseURL.appending(path: "contact")
+        privacyURL = Self.requiredPublicURL(path: "privacy", relativeTo: webBaseURL)
+        termsURL = Self.requiredPublicURL(path: "terms", relativeTo: webBaseURL)
+        supportURL = Self.requiredPublicURL(path: "help", relativeTo: webBaseURL)
         refreshSecurityState()
     }
 
+    nonisolated static func isTrustedPublicURL(
+        _ candidate: URL,
+        relativeTo baseURL: URL
+    ) -> Bool {
+        guard let candidateComponents = URLComponents(
+            url: candidate,
+            resolvingAgainstBaseURL: false
+        ),
+        let baseComponents = URLComponents(
+            url: baseURL,
+            resolvingAgainstBaseURL: false
+        )
+        else {
+            return false
+        }
+
+        return candidateComponents.scheme?.lowercased() == "https"
+            && candidateComponents.scheme?.lowercased() == baseComponents.scheme?.lowercased()
+            && candidateComponents.host?.lowercased() == baseComponents.host?.lowercased()
+            && candidateComponents.port == baseComponents.port
+            && candidateComponents.user == nil
+            && candidateComponents.password == nil
+    }
+
+    private nonisolated static func requiredPublicURL(
+        path: String,
+        relativeTo baseURL: URL
+    ) -> URL {
+        let candidate = baseURL.appending(path: path)
+        guard isTrustedPublicURL(candidate, relativeTo: baseURL) else {
+            preconditionFailure("Invalid trusted public web URL")
+        }
+        return candidate
+    }
+
     func refresh(subscription: SubscriptionUIState) {
-        account = userProvider().map(SettingsAccount.init(user:))
         plan = switch subscription {
         case .loading:
             .loading

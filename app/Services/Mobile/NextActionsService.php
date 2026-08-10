@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Constants\GateRoutes;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -318,6 +319,8 @@ class NextActionsService
         return array_map(function (array $rec): array {
             $benefit = is_numeric($rec['potential_benefit'] ?? null) ? (float) $rec['potential_benefit'] : null;
             $id = (string) ($rec['recommendation_id'] ?? uniqid('rec_'));
+            $screen = $this->moduleDestination((string) ($rec['module'] ?? 'general'));
+            $route = GateRoutes::resolve($screen);
 
             return [
                 'id' => $id,
@@ -333,25 +336,29 @@ class NextActionsService
                 'done' => false,
                 // Tapping a recommendation deep-links to the module screen where
                 // the user actions it (NOT a templated Fyn message).
-                'action' => ['kind' => 'navigate', 'payload' => $this->moduleRoute((string) ($rec['module'] ?? 'general'))],
+                'action' => [
+                    'kind' => 'navigate',
+                    'payload' => $route['mobile'] ?? $route['web'],
+                    'destination' => GateRoutes::destination($screen),
+                ],
             ];
         }, $all);
     }
 
     /**
-     * The in-app /m route for a module — where a recommendation is actioned.
+     * The platform-neutral screen where a recommendation is actioned.
      */
-    private function moduleRoute(string $module): string
+    private function moduleDestination(string $module): string
     {
         return match ($module) {
-            'protection' => '/protection',
-            'savings' => '/savings',
-            'investment' => '/investment',
-            'retirement' => '/retirement',
-            'estate' => '/estate',
-            'goals' => '/goals',
-            'tax' => '/tax-strategy',
-            default => '/net-worth',
+            'protection' => GateRoutes::PROTECTION,
+            'savings' => GateRoutes::SAVINGS,
+            'investment' => GateRoutes::INVESTMENT,
+            'retirement' => GateRoutes::RETIREMENT,
+            'estate' => GateRoutes::ESTATE,
+            'goals' => GateRoutes::GOALS,
+            'tax' => GateRoutes::TAX_STRATEGY,
+            default => GateRoutes::NET_WORTH,
         };
     }
 

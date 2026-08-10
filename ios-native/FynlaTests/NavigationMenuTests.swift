@@ -3,27 +3,27 @@ import Testing
 
 @Suite("Native navigation menu")
 struct NavigationMenuTests {
-    // The drawer transcribes /m's navSections (MobileChrome.vue) exactly:
-    // Dashboard, then Cash Management / Finances / Family / Planning. The
-    // native-only Share / Settings / Lock / Sign out entries live in the
-    // account section of the view, not in this data.
+    // The drawer transcribes /m's shared primaryNavigationSections exactly.
+    // Native-only Share / Lock / Sign out actions remain outside this data.
     @Test
     func mirrorsTheMobileDrawerGroupsAndLabels() {
         let sections = NavigationMenuSection.mDrawer
 
         #expect(sections.map(\.title) == [
-            nil,
+            "Overview",
             "Cash Management",
             "Finances",
             "Family",
             "Planning",
+            "Account",
         ])
         #expect(sections.flatMap(\.items).map(\.label) == [
             "Dashboard",
+            "Achievements",
             "Income",
             "Expenditure",
             "Net Worth",
-            "Savings",
+            "Bank Accounts",
             "Investments",
             "Retirement",
             "Protection",
@@ -31,9 +31,13 @@ struct NavigationMenuTests {
             "Goals",
             "Tax Strategy",
             "Holistic Plan",
+            "Personal Information",
+            "Subscription",
+            "Settings",
         ])
         #expect(sections.flatMap(\.items).map(\.route) == [
             .dashboard,
+            .achievements,
             .income,
             .expenditure,
             .netWorth(category: nil),
@@ -45,6 +49,9 @@ struct NavigationMenuTests {
             .goals,
             .taxStrategy,
             .holisticPlan,
+            .personalInformation,
+            .subscription,
+            .settings,
         ])
     }
 
@@ -53,6 +60,11 @@ struct NavigationMenuTests {
         for item in NavigationMenuSection.mDrawer.flatMap(\.items) {
             #expect(NavigationDestinationFactory.title(for: item.route) == item.label)
         }
+        #expect(
+            NavigationDestinationFactory.title(
+                for: .netWorth(category: "chattels")
+            ) == "Valuables"
+        )
     }
 
     @Test
@@ -80,5 +92,10 @@ struct NavigationMenuTests {
         #expect(routes.allSatisfy {
             !NavigationDestinationFactory.title(for: $0).isEmpty
         })
+    }
+
+    @Test
+    func everyPremiumGateRoutesDirectlyToSubscription() {
+        #expect(NavigationDestinationFactory.premiumGateRoute == .subscription)
     }
 }
