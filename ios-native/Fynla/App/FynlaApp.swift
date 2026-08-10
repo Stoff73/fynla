@@ -191,6 +191,22 @@ struct FynlaApp: App {
             )
         )
         #endif
+        #if FYNLA_UI_TESTING
+        let netWorthModel = uiTestMode == nil
+            ? NetWorthModel(
+                client: LiveNetWorthClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ProjectionParityUITestComposition.netWorthModel()
+        let netWorthForecastModel = uiTestMode == nil
+            ? NetWorthForecastModel(
+                client: LiveNetWorthForecastClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ProjectionParityUITestComposition.netWorthForecastModel()
+        #else
         let netWorthModel = NetWorthModel(
             client: LiveNetWorthClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -201,6 +217,7 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         #if FYNLA_UI_TESTING
         let personalInformationModel = uiTestMode == nil
             ? PersonalInformationModel(

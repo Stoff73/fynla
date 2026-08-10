@@ -3,6 +3,7 @@ import SwiftUI
 
 struct NetWorthForecastView: View {
     let model: NetWorthForecastModel
+    @FocusState private var focusedCategory: NetWorthForecastCategory?
 
     var body: some View {
         Group {
@@ -40,7 +41,13 @@ struct NetWorthForecastView: View {
             }
         }
         .task { await model.load() }
-        .accessibilityIdentifier("net-worth.forecast")
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedCategory = nil }
+                    .accessibilityIdentifier("net-worth.forecast.keyboard-done")
+            }
+        }
     }
 
     private func content(
@@ -102,6 +109,7 @@ struct NetWorthForecastView: View {
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
                 .foregroundStyle(FynlaColor.Token.neutral500.color)
+                .accessibilityIdentifier("net-worth.forecast")
             Text("A forward view using your recorded balances, contributions and disclosed assumptions.")
                 .font(.system(size: 13))
                 .foregroundStyle(FynlaColor.Token.neutral500.color)
@@ -158,6 +166,7 @@ struct NetWorthForecastView: View {
             Text("Forecast assumptions")
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(FynlaColor.Token.horizon500.color)
+                .accessibilityIdentifier("net-worth.forecast.assumptions")
             Text("Percentages are applied independently to each recorded category.")
                 .font(.system(size: 13))
                 .foregroundStyle(FynlaColor.Token.neutral500.color)
@@ -222,7 +231,6 @@ struct NetWorthForecastView: View {
             .disabled(disabled)
             .accessibilityIdentifier("net-worth.forecast.reset")
         }
-        .accessibilityIdentifier("net-worth.forecast.assumptions")
     }
 
     private func assumptionRow(
@@ -245,6 +253,7 @@ struct NetWorthForecastView: View {
                         )
                     )
                     .keyboardType(.numbersAndPunctuation)
+                    .focused($focusedCategory, equals: category)
                     .multilineTextAlignment(.trailing)
                     .frame(minWidth: 64, idealWidth: 72, maxWidth: 88)
                     .padding(.horizontal, 8)

@@ -26,8 +26,13 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop-chromium',
-      testIgnore: /mobile\.spec\.js$/,
+      testIgnore: [/mobile\.spec\.js$/, /10-projection-parity\.spec\.js$/],
       use: { ...devices['Desktop Chrome'], channel: chromeChannel },
+    },
+    {
+      name: 'mobile-chrome',
+      testMatch: /10-projection-parity\.spec\.js$/,
+      use: { ...devices['Pixel 7'], channel: chromeChannel },
     },
     {
       name: 'mobile-chromium',

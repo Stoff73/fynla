@@ -52,6 +52,16 @@ it('refuses unsafe E2E database names before invoking MySQL', function (string $
     'shell and SQL metacharacters' => 'laravel`;DROP_DATABASE_e2e',
 ]);
 
+it('recreates the validated isolated database before applying migrations', function (): void {
+    $contents = file_get_contents(dirname(__DIR__, 3).'/scripts/e2e/prepare.sh');
+    $drop = strpos($contents, 'DROP DATABASE IF EXISTS');
+    $create = strpos($contents, 'CREATE DATABASE');
+
+    expect($drop)->not->toBeFalse()
+        ->and($create)->not->toBeFalse()
+        ->and($drop)->toBeLessThan($create);
+});
+
 it('bypasses cached configuration and verifies Laravel database resolution', function (string $script): void {
     $contents = file_get_contents(dirname(__DIR__, 3).'/scripts/e2e/'.$script);
 
