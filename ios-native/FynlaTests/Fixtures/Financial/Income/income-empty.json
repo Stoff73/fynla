@@ -10,7 +10,9 @@
         "other": 0,
         "total": 0,
         "employer": null,
-        "occupation": null
+        "occupation": null,
+        "sources": [],
+        "tax_position": {"total_income":0,"adjusted_net_income":0,"personal_allowance":12570,"personal_allowance_label":"Standard personal allowance","pension_annual_allowance":60000,"pension_annual_allowance_label":"Standard pension annual allowance"}
       },
       "spouse": null
     }

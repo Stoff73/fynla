@@ -15,6 +15,20 @@ struct GoalsTests {
         #expect(snapshot.goals[0].progressPercentage == Decimal(60))
         #expect(snapshot.goals[0].isOnTrack)
         #expect(snapshot.goals[1].status == "completed")
+        #expect(snapshot.goals[0].detailRoute == .goalDetail(id: 61))
+    }
+
+    @Test
+    func decodesCanonicalGoalDetailWithoutRecalculatingServerValues() throws {
+        let detail = try decode(GoalDetailResponse.self, "goal-detail")
+
+        #expect(detail.goal.description == "Buy a family home near our support network.")
+        #expect(detail.goal.targetAmount == Decimal(50_000))
+        #expect(detail.goal.currentAmount == Decimal(30_000))
+        #expect(detail.goal.monthlyContribution == Decimal(750))
+        #expect(detail.goal.createdAt == "2025-02-03T10:00:00Z")
+        #expect(detail.milestones.count == 2)
+        #expect(FynContextualActions.goal(id: 61).request.currentDestination.screen == "goal_detail")
     }
 
     @Test
@@ -22,6 +36,7 @@ struct GoalsTests {
         let transport = TestHTTPTransport([
             .response(status: 200, body: try fixture("goals-list")),
             .response(status: 200, body: try fixture("goals-overview")),
+            .response(status: 200, body: try fixture("goal-detail")),
         ])
         let client = LiveGoalsClient(apiClient: APIClient(
             environment: try AppEnvironment.values([
@@ -38,10 +53,12 @@ struct GoalsTests {
 
         _ = try await client.loadGoals()
         _ = try await client.loadOverview()
+        _ = try await client.loadGoal(id: 61)
 
         #expect((await transport.requests()).map(\.url?.path) == [
             "/fynla/api/goals",
             "/fynla/api/goals/dashboard-overview",
+            "/fynla/api/goals/61",
         ])
     }
 
@@ -86,4 +103,7 @@ private struct GoalsClientStub: GoalsClient {
     let overview: GoalsOverview
     func loadGoals() async throws -> GoalListResponse { list }
     func loadOverview() async throws -> GoalsOverview { overview }
+    func loadGoal(id: Int) async throws -> GoalDetailResponse {
+        throw APIError.server(status: 404, requestID: nil)
+    }
 }

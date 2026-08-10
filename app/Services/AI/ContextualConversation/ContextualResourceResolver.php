@@ -7,13 +7,16 @@ namespace App\Services\AI\ContextualConversation;
 use App\Http\Requests\AI\CreateContextualConversationRequest;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DisabilityPolicy;
+use App\Models\Estate\Liability;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +27,7 @@ final class ContextualResourceResolver
     public function __construct(
         private readonly SavingsStore $savingsStore,
         private readonly PensionStore $pensionStore,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     public function referenceKey(string $resourceType, ?int $resourceId): string
@@ -45,6 +49,7 @@ final class ContextualResourceResolver
             'disability_policy',
             'sickness_illness_policy' => 'protection',
             'goals', 'goal' => 'goals',
+            'property', 'mortgage', 'liability' => 'net_worth',
             'income' => 'income',
             'expenditure' => 'expenditure',
             'net_worth' => 'net_worth',
@@ -74,6 +79,9 @@ final class ContextualResourceResolver
             'sickness_illness_policy' => 'Sickness and Illness Policy',
             'goals' => 'Goals',
             'goal' => 'Goal',
+            'property' => 'Property',
+            'mortgage' => 'Mortgage',
+            'liability' => 'Liability',
             'income' => 'Income',
             'expenditure' => 'Expenditure',
             'net_worth' => 'Net Worth',
@@ -195,6 +203,10 @@ final class ContextualResourceResolver
             );
         }
 
+        if ($resourceType === 'property') {
+            return $this->propertyStore->findMany($resourceIds, $user);
+        }
+
         [$modelClass] = $this->entityDefinition($resourceType);
 
         if ($modelClass === null) {
@@ -248,6 +260,24 @@ final class ContextualResourceResolver
                 ['goal_name'],
                 'goals',
                 ['goal_name', 'goal_type', 'description', 'target_amount', 'current_amount', 'target_date', 'status'],
+            ],
+            'property' => [
+                null,
+                ['address_line_1', 'postcode'],
+                'net_worth',
+                ['property_type', 'ownership_type', 'ownership_percentage', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode', 'purchase_date', 'purchase_price', 'current_value', 'valuation_date', 'outstanding_mortgage'],
+            ],
+            'mortgage' => [
+                Mortgage::class,
+                ['lender_name'],
+                'net_worth',
+                ['property_id', 'lender_name', 'mortgage_type', 'outstanding_balance', 'interest_rate', 'rate_type', 'monthly_payment', 'start_date', 'maturity_date', 'remaining_term_months', 'ownership_type', 'ownership_percentage'],
+            ],
+            'liability' => [
+                Liability::class,
+                ['liability_name'],
+                'net_worth',
+                ['liability_type', 'liability_name', 'ownership_type', 'ownership_percentage', 'current_balance', 'monthly_payment', 'interest_rate', 'maturity_date', 'secured_against', 'is_priority_debt', 'mortgage_type', 'fixed_until'],
             ],
             'life_insurance_policy' => [
                 LifeInsurancePolicy::class,

@@ -8,6 +8,7 @@ use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -327,6 +328,7 @@ class NetWorthService
 
         // Get property items
         $properties = $this->propertyStore->forUser($user)->where('user_id', $userId);
+        $properties->loadMissing('mortgages');
         $propertyItems = $properties->map(function ($property) {
             $name = $property->address_line_1 ?: $property->property_type;
 
@@ -336,8 +338,42 @@ class NetWorthService
                 'type' => $property->property_type,
                 'value' => (float) $property->current_value,
                 'ownership_type' => $property->ownership_type,
+                'outstanding_mortgage' => (float) $property->mortgages->sum('outstanding_balance'),
             ];
         })->toArray();
+
+        // Detail navigation requires record identifiers, not aggregate debt
+        // buckets. Mortgages and other liabilities remain distinct canonical
+        // resources even though the Net Worth overview totals them together.
+        $mortgageItems = Mortgage::query()
+            ->where('user_id', $userId)
+            ->get()
+            ->map(fn (Mortgage $mortgage): array => [
+                'id' => $mortgage->id,
+                'kind' => 'mortgage',
+                'name' => $mortgage->lender_name ?: 'Mortgage',
+                'value' => (float) $mortgage->outstanding_balance,
+                'property_id' => $mortgage->property_id,
+                'ownership_type' => $mortgage->ownership_type,
+            ])
+            ->values()
+            ->all();
+
+        $liabilityItems = Liability::query()
+            ->where('user_id', $userId)
+            ->get()
+            ->map(fn (Liability $liability): array => [
+                'id' => $liability->id,
+                'kind' => 'liability',
+                'name' => $liability->liability_name ?: str($liability->liability_type)->replace('_', ' ')->title()->toString(),
+                'value' => (float) $liability->current_balance,
+                'liability_type' => $liability->liability_type,
+                'ownership_type' => $liability->ownership_type,
+            ])
+            ->values()
+            ->all();
+
+        $debtItems = [...$mortgageItems, ...$liabilityItems];
 
         // Get investment items
         $investments = InvestmentAccount::where('user_id', $userId)->get();
@@ -452,6 +488,11 @@ class NetWorthService
                 'count' => count($chattelItems),
                 'total_value' => round($chattelTotal, 2),
                 'items' => $chattelItems,
+            ],
+            'liabilities' => [
+                'count' => count($debtItems),
+                'total_value' => round((float) array_sum(array_column($debtItems, 'value')), 2),
+                'items' => $debtItems,
             ],
         ];
     }

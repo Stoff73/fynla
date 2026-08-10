@@ -91,10 +91,60 @@ enum FynContextualActions {
         entity(
             resourceType: "goal",
             resourceID: id,
-            screen: "goals",
+            screen: "goal_detail",
             params: ["goal_id": .int(id)],
             fallback: "goals"
         )
+    }
+
+    static func property(id: Int) -> FynContextualAction {
+        entity(
+            resourceType: "property",
+            resourceID: id,
+            screen: "property_detail",
+            params: ["property_id": .int(id)],
+            fallback: "net_worth"
+        )
+    }
+
+    static func mortgage(id: Int) -> FynContextualAction {
+        entity(
+            resourceType: "mortgage",
+            resourceID: id,
+            screen: "mortgage_detail",
+            params: ["mortgage_id": .int(id)],
+            fallback: "net_worth"
+        )
+    }
+
+    static func liability(id: Int) -> FynContextualAction {
+        entity(
+            resourceType: "liability",
+            resourceID: id,
+            screen: "liability_detail",
+            params: ["liability_id": .int(id)],
+            fallback: "net_worth"
+        )
+    }
+
+    static func income(owner: String, source: String) -> FynContextualAction {
+        FynContextualAction(
+            action: .edit,
+            resourceType: "income",
+            currentDestination: SemanticDestination(
+                screen: "income_detail",
+                params: [
+                    "income_owner": .string(owner),
+                    "income_source": .string(source),
+                ],
+                fallback: "income"
+            ),
+            origin: FynContextualOrigin(kind: .surfaceAction)
+        )
+    }
+
+    static func expenditure() -> FynContextualAction {
+        overview(action: .edit, resourceType: "expenditure", screen: "expenditure")
     }
 
     private static func overview(

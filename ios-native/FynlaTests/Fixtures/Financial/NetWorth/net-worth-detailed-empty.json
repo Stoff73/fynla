@@ -6,6 +6,7 @@
     "investments": { "count": 0, "total_value": 0, "items": [] },
     "cash": { "count": 0, "total_value": 0, "items": [] },
     "business": { "count": 0, "total_value": 0, "items": [] },
-    "chattels": { "count": 0, "total_value": 0, "items": [] }
+    "chattels": { "count": 0, "total_value": 0, "items": [] },
+    "liabilities": { "count": 0, "total_value": 0, "items": [] }
   }
 }

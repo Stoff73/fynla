@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Transcribes /m's net-worth category sub-page (resources/mobile/views/
-// modules/NetWorthCategory.vue): gradient page hero, Back + Edit details
+// modules/NetWorthCategory.vue): gradient page hero, Back navigation
 // pills, category identity card, dark total hero with the item-count
 // sub-line, and the Items/Breakdown list with 15/700 rows (raspberry
 // liability values), horizon-200 hairlines and the 11/700 field chips.
@@ -9,7 +9,7 @@ import SwiftUI
 struct NetWorthCategoryView: View {
     let categoryKey: String
     let model: NetWorthModel
-    let onOpenFyn: (String) -> Void
+    let onRoute: (AppRoute) -> Void
     let onOpenSubscription: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -64,10 +64,7 @@ struct NetWorthCategoryView: View {
                     subtitle: "Everything you own, less what you owe"
                 )
 
-                MobilePageActions(
-                    onBack: { dismiss() },
-                    editDetails: { onOpenFyn("What would you like to update?") }
-                )
+                MobilePageActions(onBack: { dismiss() })
 
                 Group {
                     MobileDetailHeader(title: category.title, subtitle: category.subtitle)
@@ -117,7 +114,23 @@ struct NetWorthCategoryView: View {
                 .padding(.bottom, 4)
 
             if category == .liabilities {
-                if snapshot.liabilityRows.isEmpty {
+                if let debts = snapshot.detailed.liabilities?.items, !debts.isEmpty {
+                    ForEach(Array(debts.enumerated()), id: \.element.id) { index, debt in
+                        if let route = debt.detailRoute {
+                            Button { onRoute(route) } label: {
+                                itemRow(
+                                    name: debt.name,
+                                    value: debt.value,
+                                    fields: debt.liabilityType.map { [titleCase($0)] } ?? [],
+                                    outstandingMortgage: nil,
+                                    isDebt: true,
+                                    isLast: index == debts.count - 1
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                } else if snapshot.liabilityRows.isEmpty {
                     emptyMessage
                 } else {
                     ForEach(Array(snapshot.liabilityRows.enumerated()), id: \.offset) { index, row in
@@ -125,6 +138,7 @@ struct NetWorthCategoryView: View {
                             name: row.title,
                             value: row.value,
                             fields: [],
+                            outstandingMortgage: nil,
                             isDebt: true,
                             isLast: index == snapshot.liabilityRows.count - 1
                         )
@@ -134,13 +148,28 @@ struct NetWorthCategoryView: View {
                       !items.isEmpty
             {
                 ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                    itemRow(
-                        name: item.name,
-                        value: item.value,
-                        fields: fields(for: item, category: category),
-                        isDebt: false,
-                        isLast: index == items.count - 1
-                    )
+                    if let route = item.detailRoute(for: category) {
+                        Button { onRoute(route) } label: {
+                            itemRow(
+                                name: item.name,
+                                value: item.value,
+                                fields: fields(for: item, category: category),
+                                outstandingMortgage: item.outstandingMortgage,
+                                isDebt: false,
+                                isLast: index == items.count - 1
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        itemRow(
+                            name: item.name,
+                            value: item.value,
+                            fields: fields(for: item, category: category),
+                            outstandingMortgage: item.outstandingMortgage,
+                            isDebt: false,
+                            isLast: index == items.count - 1
+                        )
+                    }
                 }
             } else {
                 emptyMessage
@@ -157,6 +186,7 @@ struct NetWorthCategoryView: View {
         name: String,
         value: Decimal,
         fields: [String],
+        outstandingMortgage: Decimal?,
         isDebt: Bool,
         isLast: Bool
     ) -> some View {
@@ -177,6 +207,12 @@ struct NetWorthCategoryView: View {
             }
             if !fields.isEmpty {
                 FlowChips(fields: fields)
+                    .padding(.top, 6)
+            }
+            if let outstandingMortgage, outstandingMortgage > 0 {
+                Text("Mortgage \(MoneyFormatter.gbpWhole(outstandingMortgage))")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.raspberry500.color)
                     .padding(.top, 6)
             }
         }
@@ -210,7 +246,7 @@ struct NetWorthCategoryView: View {
         snapshot: NetWorthSnapshot
     ) -> Int {
         category == .liabilities
-            ? snapshot.liabilityRows.count
+            ? snapshot.detailed.liabilities?.items.count ?? snapshot.liabilityRows.count
             : snapshot.section(for: category)?.items.count ?? 0
     }
 

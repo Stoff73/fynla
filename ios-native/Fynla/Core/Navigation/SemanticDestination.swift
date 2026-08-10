@@ -107,8 +107,37 @@ enum SemanticDestinationResolver {
         case "savings_account_detail": savingsAccountRoute(params)
         case "investment_account_detail": investmentAccountRoute(params)
         case "pension_detail": pensionRoute(params)
+        case "goal_detail": integerDetailRoute(params, key: "goal_id", route: AppRoute.goalDetail)
+        case "property_detail": integerDetailRoute(params, key: "property_id", route: AppRoute.propertyDetail)
+        case "mortgage_detail": integerDetailRoute(params, key: "mortgage_id", route: AppRoute.mortgageDetail)
+        case "liability_detail": integerDetailRoute(params, key: "liability_id", route: AppRoute.liabilityDetail)
+        case "income_detail": incomeDetailRoute(params)
         default: nil
         }
+    }
+
+    private static func integerDetailRoute(
+        _ params: [String: SemanticParameter],
+        key: String,
+        route: (Int) -> AppRoute
+    ) -> AppRoute? {
+        guard let id = params[key]?.intValue, id > 0 else { return nil }
+        return route(id)
+    }
+
+    private static func incomeDetailRoute(
+        _ params: [String: SemanticParameter]
+    ) -> AppRoute? {
+        guard
+            let owner = params["income_owner"]?.stringValue,
+            let source = params["income_source"]?.stringValue,
+            !owner.isEmpty,
+            !source.isEmpty
+        else {
+            return nil
+        }
+
+        return .incomeDetail(owner: owner, source: source)
     }
 
     private static func protectionPolicyRoute(

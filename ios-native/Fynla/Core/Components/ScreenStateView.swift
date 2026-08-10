@@ -6,11 +6,12 @@ enum ScreenStatePresentation: Sendable, Equatable {
     case offline
     case unauthenticated
     case upgradeRequired(message: String)
+    case timedOut
     case failed(requestID: String?)
 
     var canRetry: Bool {
         switch self {
-        case .offline, .failed:
+        case .offline, .failed, .timedOut:
             true
         case .loading, .empty, .unauthenticated, .upgradeRequired:
             false
@@ -50,6 +51,11 @@ struct ScreenStateView: View {
                 )
             case let .upgradeRequired(message):
                 messageView(title: "Premium feature", message: message)
+            case .timedOut:
+                messageView(
+                    title: "This is taking longer than expected",
+                    message: "Please try again. Your saved information has not changed."
+                )
             case let .failed(requestID):
                 messageView(
                     title: "We couldn't load this screen",

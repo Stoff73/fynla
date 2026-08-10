@@ -8,10 +8,13 @@ use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\DisabilityPolicy;
+use App\Models\Estate\Liability;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
+use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\StatePension;
@@ -128,6 +131,30 @@ it('accepts identifier-only overview context without a resource id', function ()
         ],
     ])->assertCreated()
         ->assertJsonPath('data.conversation.metadata.resource_type', 'savings')
+        ->assertJsonPath('data.conversation.metadata.resource_id', null);
+});
+
+it('accepts an allowlisted income source detail without client-authored financial facts', function (): void {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->postJson('/api/ai-chat/contextual-conversations', [
+        'action' => 'edit',
+        'resource_type' => 'income',
+        'resource_id' => null,
+        'current_destination' => [
+            'screen' => 'income_detail',
+            'params' => [
+                'income_owner' => 'user',
+                'income_source' => 'self_employment',
+            ],
+            'fallback' => 'income',
+        ],
+        'origin' => [
+            'kind' => 'surface_action',
+            'recommendation_id' => null,
+        ],
+    ])->assertCreated()
+        ->assertJsonPath('data.conversation.metadata.resource_type', 'income')
         ->assertJsonPath('data.conversation.metadata.resource_id', null);
 });
 
@@ -403,6 +430,7 @@ it('resolves owned entity types using server records', function (
         'investment_account' => 'investment',
         'dc_pension', 'db_pension', 'state_pension' => 'retirement',
         'goal' => 'goals',
+        'property', 'mortgage', 'liability' => 'net_worth',
         default => 'protection',
     };
 
@@ -458,10 +486,31 @@ it('resolves owned entity types using server records', function (
     ],
     'goal' => [
         'goal',
-        'goals',
+        'goal_detail',
         'goal_id',
         Goal::class,
         ['goal_name' => 'Home deposit', 'target_amount' => 75000],
+    ],
+    'property' => [
+        'property',
+        'property_detail',
+        'property_id',
+        Property::class,
+        ['address_line_1' => '12 Example Road', 'current_value' => 425000],
+    ],
+    'mortgage' => [
+        'mortgage',
+        'mortgage_detail',
+        'mortgage_id',
+        Mortgage::class,
+        ['lender_name' => 'Example Bank', 'outstanding_balance' => 210000],
+    ],
+    'liability' => [
+        'liability',
+        'liability_detail',
+        'liability_id',
+        Liability::class,
+        ['liability_name' => 'Personal loan', 'current_balance' => 12000],
     ],
     'life policy' => [
         'life_insurance_policy',

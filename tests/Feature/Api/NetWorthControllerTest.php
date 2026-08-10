@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -116,6 +118,36 @@ it('returns counts and totals from assets summary endpoint', function () {
                 ],
             ],
         ]);
+});
+
+it('returns canonical property mortgage and liability identifiers for detail navigation', function () {
+    $property = Property::factory()->create([
+        'user_id' => $this->user->id,
+        'address_line_1' => '12 Example Road',
+        'current_value' => 400000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    $mortgage = Mortgage::factory()->create([
+        'user_id' => $this->user->id,
+        'property_id' => $property->id,
+        'lender_name' => 'Example Bank',
+        'outstanding_balance' => 180000,
+    ]);
+    $liability = Liability::factory()->create([
+        'user_id' => $this->user->id,
+        'liability_name' => 'Personal loan',
+        'current_balance' => 12000,
+    ]);
+
+    $this->getJson('/api/net-worth/assets-summary-detailed')
+        ->assertOk()
+        ->assertJsonPath('data.property.items.0.id', $property->id)
+        ->assertJsonPath('data.property.items.0.outstanding_mortgage', 180000)
+        ->assertJsonPath('data.liabilities.items.0.kind', 'mortgage')
+        ->assertJsonPath('data.liabilities.items.0.id', $mortgage->id)
+        ->assertJsonPath('data.liabilities.items.1.kind', 'liability')
+        ->assertJsonPath('data.liabilities.items.1.id', $liability->id);
 });
 
 it('returns only joint assets from joint assets endpoint', function () {

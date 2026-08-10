@@ -141,6 +141,35 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testPR3CanonicalIncomeExpenditureAndHolisticPlanJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.income", in: app)
+        XCTAssertTrue(element("income.screen", in: app).waitForExistence(timeout: 3))
+        let employment = app.buttons["income.destination.user.employment"]
+        assertReachable(employment, in: app)
+        employment.tap()
+        XCTAssertTrue(element("income.detail.user.employment", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("income-detail.heading", in: app).exists)
+        XCTAssertTrue(app.staticTexts["Taxable earned income"].exists)
+        XCTAssertTrue(app.buttons["Edit details"].exists)
+        attachAcceptance(app, name: "PR3-01-income-detail")
+
+        openDrawerItem("navigation.expenditure", in: app)
+        XCTAssertTrue(element("expenditure.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("expenditure.mode.category", in: app).exists)
+        XCTAssertTrue(app.staticTexts["Category entries plus financial commitments"].exists)
+        attachAcceptance(app, name: "PR3-02-expenditure-mode")
+
+        openDrawerItem("navigation.holistic-plan", in: app)
+        XCTAssertTrue(element("holistic-plan.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("holistic-plan.effective-surplus", in: app).exists)
+        XCTAssertTrue(element("page.heading", in: app).exists)
+        attachAcceptance(app, name: "PR3-03-holistic-plan")
+    }
+
+    @MainActor
     func testDashboardShowsFullRecommendationAndUsesSemanticDestination() throws {
         let app = app(mode: "unlocked")
         app.launch()

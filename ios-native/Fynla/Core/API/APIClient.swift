@@ -220,7 +220,7 @@ actor APIClient {
         switch response.statusCode {
         case 401:
             return .unauthenticated
-        case 403 where body?.error == "upgrade_required":
+        case 403 where ["upgrade_required", "capability_denied"].contains(body?.error):
             return .upgradeRequired(message: body?.message ?? "Upgrade required.")
         case 403:
             return .forbidden(message: body?.message)

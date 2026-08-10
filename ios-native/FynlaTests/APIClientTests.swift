@@ -67,6 +67,7 @@ struct APIClientTests {
             (401, #"{"success":false,"message":"Unauthenticated"}"#, .unauthenticated),
             (403, #"{"success":false,"message":"Access denied"}"#, .forbidden(message: "Access denied")),
             (403, #"{"error":"upgrade_required","message":"Premium is required."}"#, .upgradeRequired(message: "Premium is required.")),
+            (403, #"{"error":"capability_denied","message":"The Holistic Plan is part of Premium."}"#, .upgradeRequired(message: "The Holistic Plan is part of Premium.")),
             (409, #"{"success":false,"message":"The record changed."}"#, .conflict(message: "The record changed.")),
             (500, #"{"success":false,"message":"Internal server error"}"#, .server(status: 500, requestID: "server-request")),
         ]

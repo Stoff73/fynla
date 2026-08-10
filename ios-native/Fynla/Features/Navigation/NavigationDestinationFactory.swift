@@ -11,6 +11,7 @@ enum NavigationDestinationFactory {
         case .personalInformation: "Personal Information"
         case .subscription: "Subscription"
         case .income: "Income"
+        case .incomeDetail: "Income details"
         case .expenditure: "Expenditure"
         case let .netWorth(category):
             category.flatMap { NetWorthCategory(rawValue: $0) }?.title ?? "Net Worth"
@@ -21,6 +22,10 @@ enum NavigationDestinationFactory {
         case .retirement: "Retirement"
         case .estate: "Estate Planning"
         case .goals: "Goals"
+        case .goalDetail: "Goal details"
+        case .propertyDetail: "Property details"
+        case .mortgageDetail: "Mortgage details"
+        case .liabilityDetail: "Liability details"
         case .taxStrategy: "Tax Strategy"
         case .holisticPlan: "Holistic Plan"
         case .bugReport: "Report a problem"
@@ -84,13 +89,44 @@ enum NavigationDestinationFactory {
         case .income:
             IncomeView(
                 model: incomeModel,
-                onOpenFyn: onOpenFyn,
+                onRoute: onRoute,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .incomeDetail(owner, source):
+            IncomeDetailView(
+                owner: owner,
+                sourceKey: source,
+                model: incomeModel,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .propertyDetail(propertyID):
+            PropertyDetailView(
+                propertyID: propertyID,
+                model: netWorthModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .mortgageDetail(mortgageID):
+            MortgageDetailView(
+                mortgageID: mortgageID,
+                model: netWorthModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .liabilityDetail(liabilityID):
+            LiabilityDetailView(
+                liabilityID: liabilityID,
+                model: netWorthModel,
+                onOpenContextualFyn: onOpenContextualFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case .expenditure:
             ExpenditureView(
                 model: expenditureModel,
-                onOpenFyn: onOpenFyn,
+                onOpenContextualFyn: onOpenContextualFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case let .netWorth(category):
@@ -98,7 +134,7 @@ enum NavigationDestinationFactory {
                 NetWorthCategoryView(
                     categoryKey: category,
                     model: netWorthModel,
-                    onOpenFyn: onOpenFyn,
+                    onRoute: onRoute,
                     onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             } else {
@@ -185,6 +221,14 @@ enum NavigationDestinationFactory {
             )
         case .goals:
             GoalsView(
+                model: goalsModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .goalDetail(goalID):
+            GoalDetailView(
+                goalID: goalID,
                 model: goalsModel,
                 onOpenContextualFyn: onOpenContextualFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }

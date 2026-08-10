@@ -31,6 +31,7 @@
           "name": "12 Example Road",
           "type": "main_residence",
           "value": 400000,
+          "outstanding_mortgage": 180000,
           "ownership_type": "joint"
         }
       ]
@@ -100,6 +101,14 @@
           "registration_number": "EX72 MPL",
           "is_primary_owner": true
         }
+      ]
+    },
+    "liabilities": {
+      "count": 2,
+      "total_value": 192000,
+      "items": [
+        { "id": 91, "kind": "mortgage", "name": "Example Bank", "value": 180000, "property_id": 41, "ownership_type": "joint" },
+        { "id": 92, "kind": "liability", "name": "Personal loan", "value": 12000, "liability_type": "loan", "ownership_type": "individual" }
       ]
     }
   }

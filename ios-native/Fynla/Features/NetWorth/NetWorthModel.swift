@@ -4,9 +4,12 @@ import Observation
 @Observable
 final class NetWorthModel {
     private(set) var state: NetWorthViewState = .idle
+    private(set) var detailState: NetWorthDetailViewState = .idle
     private let client: any NetWorthClient
     private var lastSnapshot: NetWorthSnapshot?
     private var generation = 0
+    private var detailGeneration = 0
+    private var lastDetail: NetWorthCanonicalDetail?
 
     init(client: any NetWorthClient) {
         self.client = client
@@ -41,10 +44,25 @@ final class NetWorthModel {
         await load()
     }
 
+    func loadProperty(id: Int) async {
+        await loadDetail { .property(try await self.client.loadProperty(id: id).property) }
+    }
+
+    func loadMortgage(id: Int) async {
+        await loadDetail { .mortgage(try await self.client.loadMortgage(id: id).mortgage) }
+    }
+
+    func loadLiability(id: Int) async {
+        await loadDetail { .liability(try await self.client.loadLiability(id: id).liability) }
+    }
+
     func stop() {
         generation &+= 1
+        detailGeneration &+= 1
         lastSnapshot = nil
+        lastDetail = nil
         state = .idle
+        detailState = .idle
     }
 
     private func map(_ error: APIError, previous: NetWorthSnapshot?) {
@@ -59,6 +77,46 @@ final class NetWorthModel {
             state = .failed(requestID: requestID)
         case .validation, .forbidden, .nativeUpdateRequired, .rateLimited, .conflict:
             state = .failed(requestID: nil)
+        }
+    }
+
+    private func loadDetail(
+        operation: () async throws -> NetWorthCanonicalDetail
+    ) async {
+        detailGeneration &+= 1
+        let activeGeneration = detailGeneration
+        let previous = lastDetail
+        detailState = .loading
+
+        do {
+            let detail = try await operation()
+            guard activeGeneration == detailGeneration, !Task.isCancelled else { return }
+            lastDetail = detail
+            detailState = .loaded(detail)
+        } catch is CancellationError {
+            guard activeGeneration == detailGeneration, let previous else { return }
+            detailState = .loaded(previous)
+        } catch let error as APIError {
+            guard activeGeneration == detailGeneration, !Task.isCancelled else { return }
+            mapDetail(error, previous: previous)
+        } catch {
+            guard activeGeneration == detailGeneration, !Task.isCancelled else { return }
+            detailState = .failed(requestID: nil)
+        }
+    }
+
+    private func mapDetail(_ error: APIError, previous: NetWorthCanonicalDetail?) {
+        switch error {
+        case .offline:
+            detailState = .offline(previous: previous)
+        case .unauthenticated:
+            detailState = .unauthenticated
+        case let .upgradeRequired(message):
+            detailState = .upgradeRequired(message: message)
+        case let .server(_, requestID), let .decoding(requestID):
+            detailState = .failed(requestID: requestID)
+        case .validation, .forbidden, .nativeUpdateRequired, .rateLimited, .conflict:
+            detailState = .failed(requestID: nil)
         }
     }
 }

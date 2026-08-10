@@ -44,7 +44,7 @@
           You haven't set any goals yet.
         </p>
         <div v-else>
-          <div v-for="goal in goals" :key="goal.id" class="mg-goal">
+          <button v-for="goal in goals" :key="goal.id" type="button" class="mg-goal" :data-goal-id="goal.id" @click="openGoal(goal)">
             <div class="mg-goal__head">
               <div class="mg-goal__title-wrap">
                 <span class="mg-goal__name">{{ goal.name || goal.goal_name }}</span>
@@ -59,10 +59,7 @@
               <span class="mg-goal__amounts">{{ fmt(goal.current_amount) }} of {{ fmt(goal.target_amount) }}</span>
               <span class="mg-goal__remaining">{{ remainingLabel(goal) }}</span>
             </div>
-            <div v-if="canEditGoal(goal)" class="mg-goal__actions">
-              <button type="button" class="mg-action" @click="editGoal(goal)">Edit</button>
-            </div>
-          </div>
+          </button>
         </div>
       </div>
     </template>
@@ -111,6 +108,7 @@ export default {
   async created() { await this.load(); },
   methods: {
     fmt(v) { return formatCurrency(v); },
+    canEditGoal(goal) { return goal?.is_primary_owner !== false; },
     barWidth(goal) {
       const pct = Number(goal.progress_percentage) || 0;
       return `${Math.min(pct, 100)}%`;
@@ -134,21 +132,37 @@ export default {
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     goalRequest(action, goalId = null) {
+      const id = Number(goalId);
+      if (action === 'edit' && Number.isInteger(id) && id > 0) {
+        return buildContextualConversationRequest({
+          action,
+          resourceType: 'goal',
+          resourceId: id,
+          currentDestination: {
+            screen: 'goal_detail',
+            params: { goal_id: id },
+            fallback: 'goals',
+          },
+          origin: { kind: 'surface_action' },
+        });
+      }
       return buildContextualConversationRequest({
         action,
-        resourceType: goalId ? 'goal' : 'goals',
-        resourceId: goalId,
+        resourceType: 'goals',
+        resourceId: null,
         currentDestination: {
           screen: 'goals',
-          params: goalId ? { goal_id: goalId } : {},
-          fallback: goalId ? 'goals' : 'dashboard',
+          params: {},
+          fallback: 'dashboard',
         },
         origin: { kind: 'surface_action' },
       });
     },
-    canEditGoal(goal) { return goal?.is_primary_owner !== false; },
-    editGoal(goal) {
-      this.$refs.chrome?.openContextualFyn(this.goalRequest('edit', Number(goal.id)));
+    openGoal(goal) {
+      const id = Number(goal?.id);
+      if (Number.isInteger(id) && id > 0) {
+        this.$router.push({ name: 'm-goal', params: { id } });
+      }
     },
     async load() {
       this.loading = true;
@@ -200,11 +214,8 @@ export default {
 
 .mg-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .mg-head .m-section-label { margin: 0; }
-.mg-action { background: transparent; border: 0; padding: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--raspberry-500); cursor: pointer; }
-.mg-action:active { opacity: 0.7; }
-.mg-goal__actions { display: flex; justify-content: flex-end; margin-top: 8px; }
-
-.mg-goal { padding: 14px 0; border-bottom: 1px solid var(--light-gray); }
+.mg-goal { display: block; width: 100%; padding: 14px 0; border: 0; border-bottom: 1px solid var(--light-gray); background: transparent; text-align: left; cursor: pointer; }
+.mg-goal:active { opacity: 0.72; }
 .mg-goal:first-child { padding-top: 4px; }
 .mg-goal:last-child { border-bottom: 0; padding-bottom: 0; }
 .mg-goal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }

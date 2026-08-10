@@ -33,6 +33,9 @@ final class CreateContextualConversationRequest extends FormRequest
         'db_pension',
         'state_pension',
         'goal',
+        'property',
+        'mortgage',
+        'liability',
         'life_insurance_policy',
         'critical_illness_policy',
         'income_protection_policy',
@@ -57,6 +60,11 @@ final class CreateContextualConversationRequest extends FormRequest
         'policy_id',
         'policy_type',
         'goal_id',
+        'property_id',
+        'mortgage_id',
+        'liability_id',
+        'income_owner',
+        'income_source',
     ];
 
     /** @var list<string> */
@@ -72,6 +80,11 @@ final class CreateContextualConversationRequest extends FormRequest
         'protection',
         'protection_policy_detail',
         'goals',
+        'goal_detail',
+        'property_detail',
+        'mortgage_detail',
+        'liability_detail',
+        'income_detail',
         'income',
         'expenditure',
         'net_worth',
@@ -223,6 +236,9 @@ final class CreateContextualConversationRequest extends FormRequest
             'savings_account', 'investment_account' => 'account_id',
             'dc_pension', 'db_pension', 'state_pension' => 'pension_id',
             'goal' => 'goal_id',
+            'property' => 'property_id',
+            'mortgage' => 'mortgage_id',
+            'liability' => 'liability_id',
             default => 'policy_id',
         };
 
@@ -237,7 +253,10 @@ final class CreateContextualConversationRequest extends FormRequest
             'savings_account' => 'savings_account_detail',
             'investment_account' => 'investment_account_detail',
             'dc_pension', 'db_pension', 'state_pension' => 'pension_detail',
-            'goal' => 'goals',
+            'goal' => 'goal_detail',
+            'property' => 'property_detail',
+            'mortgage' => 'mortgage_detail',
+            'liability' => 'liability_detail',
             default => 'protection_policy_detail',
         };
         $expectedFallback = match ($resourceType) {
@@ -245,6 +264,7 @@ final class CreateContextualConversationRequest extends FormRequest
             'investment_account' => 'investment',
             'dc_pension', 'db_pension', 'state_pension' => 'retirement',
             'goal' => 'goals',
+            'property', 'mortgage', 'liability' => 'net_worth',
             default => 'protection',
         };
 
@@ -299,6 +319,13 @@ final class CreateContextualConversationRequest extends FormRequest
         if ($this->input('resource_id') !== null) {
             $validator->errors()->add('resource_id', 'Overview context must not include a resource identifier.');
         }
+
+        if ($resourceType === 'income' && $this->input('current_destination.screen') === 'income_detail') {
+            $this->validateIncomeDetailDestination($validator, $params);
+
+            return;
+        }
+
         if ($params !== []) {
             $validator->errors()->add(
                 'current_destination.params',
@@ -315,6 +342,49 @@ final class CreateContextualConversationRequest extends FormRequest
             $validator->errors()->add(
                 'current_destination.fallback',
                 'Overview context must fall back to the dashboard.',
+            );
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    private function validateIncomeDetailDestination(Validator $validator, array $params): void
+    {
+        if (! in_array($params['income_owner'] ?? null, ['user', 'spouse'], true)) {
+            $validator->errors()->add(
+                'current_destination.params.income_owner',
+                'Income owner must be user or spouse.',
+            );
+        }
+
+        if (! in_array($params['income_source'] ?? null, [
+            'employment',
+            'self_employment',
+            'dividend',
+            'interest',
+            'other',
+            'rental',
+            'trust',
+            'pension_income',
+        ], true)) {
+            $validator->errors()->add(
+                'current_destination.params.income_source',
+                'Income source is not allowlisted.',
+            );
+        }
+
+        foreach (array_diff(array_keys($params), ['income_owner', 'income_source']) as $unexpected) {
+            $validator->errors()->add(
+                'current_destination.params.'.$unexpected,
+                'This identifier is not valid for income detail.',
+            );
+        }
+
+        if ($this->input('current_destination.fallback') !== 'income') {
+            $validator->errors()->add(
+                'current_destination.fallback',
+                'Income detail must fall back to the income overview.',
             );
         }
     }

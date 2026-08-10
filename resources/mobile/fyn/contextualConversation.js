@@ -5,6 +5,11 @@ const DESTINATION_PARAMETER_KEYS = new Set([
   'policy_id',
   'policy_type',
   'goal_id',
+  'property_id',
+  'mortgage_id',
+  'liability_id',
+  'income_owner',
+  'income_source',
 ]);
 
 function identifierParameters(params = {}) {

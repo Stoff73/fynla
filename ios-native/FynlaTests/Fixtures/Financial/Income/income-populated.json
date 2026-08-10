@@ -10,7 +10,14 @@
         "other": 0,
         "total": 78300.75,
         "employer": "Northstar Ltd",
-        "occupation": "Product designer"
+        "occupation": "Product designer",
+        "sources": [
+          {"key":"employment","label":"Employment","amount":72500,"frequency":"annual","ownership":"user","ownership_label":"You","detail":"Northstar Ltd · Product designer","tax_position":"Taxable earned income"},
+          {"key":"self_employment","label":"Self-employment","amount":4250.50,"frequency":"annual","ownership":"user","ownership_label":"You","detail":null,"tax_position":"Taxable earned income"},
+          {"key":"dividend","label":"Dividends","amount":1200,"frequency":"annual","ownership":"user","ownership_label":"You","detail":null,"tax_position":"Dividend income"},
+          {"key":"interest","label":"Interest","amount":350.25,"frequency":"annual","ownership":"user","ownership_label":"You","detail":null,"tax_position":"Savings income"}
+        ],
+        "tax_position": {"total_income":78300.75,"adjusted_net_income":77300.75,"personal_allowance":12570,"personal_allowance_label":"Standard personal allowance","pension_annual_allowance":60000,"pension_annual_allowance_label":"Standard pension annual allowance"}
       },
       "spouse": {
         "employment": 48000,
@@ -20,7 +27,9 @@
         "other": 0,
         "total": 48000,
         "employer": null,
-        "occupation": null
+        "occupation": null,
+        "sources": [{"key":"employment","label":"Employment","amount":48000,"frequency":"annual","ownership":"spouse","ownership_label":"Your spouse","detail":null,"tax_position":"Taxable earned income"}],
+        "tax_position": {"total_income":48000,"adjusted_net_income":48000,"personal_allowance":12570,"personal_allowance_label":"Standard personal allowance","pension_annual_allowance":60000,"pension_annual_allowance_label":"Standard pension annual allowance"}
       }
     }
   }
