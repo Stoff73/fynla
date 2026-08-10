@@ -29,7 +29,7 @@ struct MortgageDetailView: View {
     private func content(_ mortgage: MortgageDetail, offline: Bool = false) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                MobilePageHero(title: mortgage.displayName, subtitle: "Mortgage details")
+                MobilePageHero(title: mortgage.displayName, subtitle: "Mortgage details", accessibilityID: "mortgage-detail.heading")
                 MobilePageActions(onBack: { dismiss() }, editDetails: mortgage.isPrimaryOwner == false ? nil : { onOpenContextualFyn(FynContextualActions.mortgage(id: mortgage.id)) })
                 Group {
                     if offline { Text("You're offline. Showing the last loaded mortgage.").font(.system(size: 13)) }
@@ -56,6 +56,6 @@ struct MortgageDetailView: View {
         }
     }
 
-    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View { ScrollView { VStack(alignment: .leading, spacing: 12) { MobilePageHero(title: "Mortgage details", subtitle: "Your mortgage"); content() } } }
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View { ScrollView { VStack(alignment: .leading, spacing: 12) { MobilePageHero(title: "Mortgage details", subtitle: "Your mortgage", accessibilityID: "mortgage-detail.heading"); content() } } }
     private func stateView(_ state: ScreenStatePresentation) -> some View { framed { ScreenStateView(state: state, retry: state.canRetry ? { Task { await model.loadMortgage(id: mortgageID) } } : nil, openSubscription: state.canUpgrade ? onOpenSubscription : nil) } }
 }

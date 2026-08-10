@@ -36,7 +36,7 @@ struct GoalDetailView: View {
         let goal = detail.goal
         return ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                MobilePageHero(title: "Goal details", subtitle: goal.displayName)
+                MobilePageHero(title: "Goal details", subtitle: goal.displayName, accessibilityID: "goal-detail.heading")
 
                 if goal.isPrimaryOwner != false {
                     MobilePageActions(editDetails: {
@@ -206,7 +206,7 @@ struct GoalDetailView: View {
     private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                MobilePageHero(title: "Goal details", subtitle: "Your financial milestone")
+                MobilePageHero(title: "Goal details", subtitle: "Your financial milestone", accessibilityID: "goal-detail.heading")
                 content()
                 Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }

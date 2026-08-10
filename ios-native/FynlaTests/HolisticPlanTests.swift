@@ -65,6 +65,30 @@ struct HolisticPlanTests {
         #expect(model.state == .loaded(plan))
     }
 
+    @Test @MainActor
+    func modelPublishesTheTypedSubscriptionGate() async {
+        let model = HolisticPlanModel(
+            client: FailingHolisticPlanClient(error: APIError.upgradeRequired(message: "The Holistic Plan is part of Premium."))
+        )
+
+        await model.load()
+
+        #expect(model.state == .upgradeRequired(message: "The Holistic Plan is part of Premium."))
+    }
+
+    @Test @MainActor
+    func modelTimesOutToABoundedRetryableState() async {
+        let model = HolisticPlanModel(
+            client: SlowHolisticPlanClient(),
+            clock: ImmediateHolisticPlanClock(),
+            timeout: .seconds(15)
+        )
+
+        await model.load()
+
+        #expect(model.state == .timedOut)
+    }
+
     private func fixture() throws -> Data {
         try Data(
             contentsOf: URL(fileURLWithPath: #filePath)
@@ -72,6 +96,22 @@ struct HolisticPlanTests {
                 .appending(path: "Fixtures/Financial/HolisticPlan/holistic-plan.json")
         )
     }
+}
+
+private struct FailingHolisticPlanClient: HolisticPlanClient {
+    let error: Error
+    func load() async throws -> HolisticPlan { throw error }
+}
+
+private struct SlowHolisticPlanClient: HolisticPlanClient {
+    func load() async throws -> HolisticPlan {
+        try await Task.sleep(for: .seconds(60))
+        throw CancellationError()
+    }
+}
+
+private struct ImmediateHolisticPlanClock: HolisticPlanClock {
+    func sleep(for duration: Duration) async throws {}
 }
 
 private struct HolisticPlanTokenProvider: AccessTokenProviding {

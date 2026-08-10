@@ -28,7 +28,7 @@ struct LiabilityDetailView: View {
     private func content(_ liability: LiabilityDetail, offline: Bool = false) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                MobilePageHero(title: liability.displayName, subtitle: "Liability details")
+                MobilePageHero(title: liability.displayName, subtitle: "Liability details", accessibilityID: "liability-detail.heading")
                 MobilePageActions(onBack: { dismiss() }, editDetails: liability.isPrimaryOwner == false ? nil : { onOpenContextualFyn(FynContextualActions.liability(id: liability.id)) })
                 Group {
                     if offline { Text("You're offline. Showing the last loaded liability.").font(.system(size: 13)) }
@@ -52,6 +52,6 @@ struct LiabilityDetailView: View {
         }
     }
 
-    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View { ScrollView { VStack(alignment: .leading, spacing: 12) { MobilePageHero(title: "Liability details", subtitle: "Your liability"); content() } } }
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View { ScrollView { VStack(alignment: .leading, spacing: 12) { MobilePageHero(title: "Liability details", subtitle: "Your liability", accessibilityID: "liability-detail.heading"); content() } } }
     private func stateView(_ state: ScreenStatePresentation) -> some View { framed { ScreenStateView(state: state, retry: state.canRetry ? { Task { await model.loadLiability(id: liabilityID) } } : nil, openSubscription: state.canUpgrade ? onOpenSubscription : nil) } }
 }

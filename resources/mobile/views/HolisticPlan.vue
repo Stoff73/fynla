@@ -106,11 +106,25 @@ const AFFORDABILITY_LABELS = {
   beyond_current_surplus: 'Beyond your current surplus',
 };
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+function withDeadline(request, timeoutMs) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = window.setTimeout(() => {
+      const error = new Error('request_timeout');
+      error.code = 'request_timeout';
+      reject(error);
+    }, timeoutMs);
+  });
+  return Promise.race([request, deadline]).finally(() => window.clearTimeout(timer));
+}
+
 export default {
   name: 'MobileHolisticPlan',
   components: { MobileChrome },
   mixins: [upgradeMixin],
-  data: () => ({ loading: true, error: '', upgradeLocked: false, plan: null }),
+  data: () => ({ loading: true, error: '', upgradeLocked: false, plan: null, timeoutMs: REQUEST_TIMEOUT_MS }),
   computed: {
     items() { return Array.isArray(this.plan?.items) ? this.plan.items : []; },
     locked() { return Array.isArray(this.plan?.locked) ? this.plan.locked : []; },
@@ -157,7 +171,10 @@ export default {
       this.upgradeLocked = false;
       this.plan = null;
       try {
-        const { ok, status, data } = await apiGet('/api/holistic/composite-plan', store.token);
+        const { ok, status, data } = await withDeadline(
+          apiGet('/api/holistic/composite-plan', store.token),
+          this.timeoutMs,
+        );
         if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) {
           this.plan = data?.data || {};
@@ -166,8 +183,10 @@ export default {
         } else {
           this.error = data?.message || 'We could not load your holistic plan.';
         }
-      } catch {
-        this.error = 'Network error. Please try again.';
+      } catch (error) {
+        this.error = error?.code === 'request_timeout'
+          ? 'Your holistic plan is taking longer than expected. Please try again.'
+          : 'Network error. Please try again.';
       } finally {
         this.loading = false;
       }

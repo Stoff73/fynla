@@ -53,6 +53,7 @@ struct MobileChromeGradientSlice: View {
 struct MobilePageHero: View {
     let title: String
     var subtitle: String?
+    var accessibilityID: String = "page.heading"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -72,6 +73,7 @@ struct MobilePageHero: View {
         .background { MobileChromeGradientSlice() }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+        .accessibilityIdentifier(accessibilityID)
     }
 }
 

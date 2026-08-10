@@ -39,7 +39,7 @@ struct PropertyDetailView: View {
     private func content(_ property: PropertyDetail, offline: Bool = false) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                MobilePageHero(title: property.displayName, subtitle: "Property details")
+                MobilePageHero(title: property.displayName, subtitle: "Property details", accessibilityID: "property-detail.heading")
                 MobilePageActions(
                     onBack: { dismiss() },
                     editDetails: property.isPrimaryOwner == false ? nil : {
@@ -83,6 +83,6 @@ struct PropertyDetailView: View {
     }
 
     private var offlineNotice: some View { Text("You're offline. Showing the last loaded property.").font(.system(size: 13)).foregroundStyle(FynlaColor.Token.horizon500.color) }
-    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View { ScrollView { VStack(alignment: .leading, spacing: 12) { MobilePageHero(title: "Property details", subtitle: "Your property"); content() } } }
+    private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View { ScrollView { VStack(alignment: .leading, spacing: 12) { MobilePageHero(title: "Property details", subtitle: "Your property", accessibilityID: "property-detail.heading"); content() } } }
     private func stateView(_ state: ScreenStatePresentation) -> some View { framed { ScreenStateView(state: state, retry: state.canRetry ? { Task { await model.loadProperty(id: propertyID) } } : nil, openSubscription: state.canUpgrade ? onOpenSubscription : nil) } }
 }

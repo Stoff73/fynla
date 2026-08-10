@@ -36,7 +36,7 @@ struct IncomeDetailView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                MobilePageHero(title: source?.label ?? "Income details", subtitle: "Canonical income source")
+                MobilePageHero(title: source?.label ?? "Income details", subtitle: "Canonical income source", accessibilityID: "income-detail.heading")
 
                 if let source, let ownerSummary {
                     MobilePageActions(editDetails: {
@@ -115,7 +115,7 @@ struct IncomeDetailView: View {
     private func framed<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                MobilePageHero(title: "Income details", subtitle: "Canonical income source")
+                MobilePageHero(title: "Income details", subtitle: "Canonical income source", accessibilityID: "income-detail.heading")
                 content()
                 Color.clear.frame(height: MobileChromeMetrics.bottomClearance)
             }
