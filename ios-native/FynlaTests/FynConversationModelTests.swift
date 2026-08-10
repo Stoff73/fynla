@@ -6,6 +6,68 @@ import Testing
 @Suite("Fyn conversation model")
 struct FynConversationModelTests {
     @Test
+    func contextualStartAlwaysCreatesFreshAndLoadsPersistedTranscript() async throws {
+        let old = try transcript(messages: [
+            (id: 1, role: "assistant", content: "Old conversation."),
+        ])
+        let first = try transcript(id: 501, messages: [
+            (id: 2, role: "assistant", content: "First trusted opening."),
+        ])
+        let second = try transcript(id: 502, messages: [
+            (id: 3, role: "assistant", content: "Second trusted opening."),
+        ])
+        let client = ScriptedFynClient(
+            transcripts: [old, first, second],
+            contextualConversationIDs: [501, 502]
+        )
+        let model = FynConversationModel(client: client, currentRoute: "/savings")
+        let action = contextualSavingsEdit()
+
+        await model.start(preferredID: "321")
+        await model.startContextual(action)
+        #expect(model.conversationID == "501")
+        #expect(model.messages.map(\.text) == ["First trusted opening."])
+
+        await model.startContextual(action)
+        #expect(model.conversationID == "502")
+        #expect(model.messages.map(\.text) == ["Second trusted opening."])
+        #expect(await client.contextualCreateCount() == 2)
+        #expect(await client.contextualRequestsRecorded() == [action.request, action.request])
+    }
+
+    @Test
+    func contextualFailureClearsStaleStateAndCanRetryWithoutLosingRouteContext() async throws {
+        let old = try transcript(messages: [
+            (id: 1, role: "assistant", content: "Old conversation."),
+        ])
+        let recovered = try transcript(id: 601, messages: [
+            (id: 2, role: "assistant", content: "Recovered trusted opening."),
+        ])
+        let client = ScriptedFynClient(
+            transcripts: [old, recovered],
+            contextualConversationIDs: [601],
+            createContextualFailure: .unexpectedStatus(503, requestID: "ctx-503")
+        )
+        let model = FynConversationModel(client: client, currentRoute: "/savings")
+        let action = contextualSavingsEdit()
+
+        await model.start(preferredID: "321")
+        model.draft = "stale draft"
+        await model.startContextual(action)
+
+        #expect(model.conversationID == nil)
+        #expect(model.messages.isEmpty)
+        #expect(model.draft.isEmpty)
+        #expect(model.currentRoute == "/savings")
+        #expect(model.phase == .failed("Fyn could not respond. Request ctx-503."))
+
+        await model.startContextual(action)
+        #expect(model.conversationID == "601")
+        #expect(model.messages.map(\.text) == ["Recovered trusted opening."])
+        #expect(model.currentRoute == "/savings")
+    }
+
+    @Test
     func queuedTurnRetriesBusyStreamAndKeepsReadingAfterDone() async throws {
         let client = ScriptedFynClient(
             transcripts: [try transcript(messages: [])],
@@ -281,7 +343,22 @@ struct FynConversationModelTests {
         }
     }
 
+    private func contextualSavingsEdit() -> FynContextualAction {
+        FynContextualAction(
+            action: .edit,
+            resourceType: "savings_account",
+            resourceID: 42,
+            currentDestination: SemanticDestination(
+                screen: "savings_account_detail",
+                params: ["account_id": .int(42)],
+                fallback: "savings"
+            ),
+            origin: FynContextualOrigin(kind: .surfaceAction)
+        )
+    }
+
     private func transcript(
+        id: Int = 321,
         messages: [(id: Int, role: String, content: String)]
     ) throws -> FynTranscript {
         let rows = messages.map {
@@ -291,7 +368,7 @@ struct FynConversationModelTests {
         }.joined(separator: ",")
         let data = Data(
             """
-            {"conversation":{"id":321,"title":"Fyn","message_count":\(messages.count),"status":"active"},"messages":[\(rows)]}
+            {"conversation":{"id":\(id),"title":"Fyn","message_count":\(messages.count),"status":"active"},"messages":[\(rows)]}
             """.utf8
         )
         return try JSONDecoder().decode(FynTranscript.self, from: data)
@@ -355,6 +432,9 @@ private actor ScriptedFynClient: FynClient {
     private var queuedStreams = 0
     private let inProgressConversationID: String?
     private var actions: [String] = []
+    private var contextualConversationIDs: [Int]
+    private var contextualRequests: [FynContextualConversationRequest] = []
+    private var createContextualFailure: FynClientError?
     /// F2: thrown once by the next `loadConversation` call, then cleared —
     /// lets a test drive a single transient failure through `open()`
     /// without needing a dedicated scripted-client failure mode per case.
@@ -365,13 +445,17 @@ private actor ScriptedFynClient: FynClient {
         sendOutcomes: [SendOutcome] = [],
         queuedOutcomes: [QueuedOutcome] = [],
         inProgressConversationID: String? = nil,
-        loadConversationFailure: FynClientError? = nil
+        loadConversationFailure: FynClientError? = nil,
+        contextualConversationIDs: [Int] = [],
+        createContextualFailure: FynClientError? = nil
     ) {
         self.transcripts = transcripts
         self.sendOutcomes = sendOutcomes
         self.queuedOutcomes = queuedOutcomes
         self.inProgressConversationID = inProgressConversationID
         self.loadConversationFailure = loadConversationFailure
+        self.contextualConversationIDs = contextualConversationIDs
+        self.createContextualFailure = createContextualFailure
     }
 
     func onboardingStatus() async throws -> FynOnboardingStatus {
@@ -390,6 +474,28 @@ private actor ScriptedFynClient: FynClient {
         try JSONDecoder().decode(
             FynConversationRecord.self,
             from: Data(#"{"id":321,"title":"Fyn","message_count":0,"status":"active"}"#.utf8)
+        )
+    }
+
+    func createContextualConversation(
+        _ request: FynContextualConversationRequest
+    ) async throws -> FynContextualConversationResponse {
+        contextualRequests.append(request)
+        if let failure = createContextualFailure {
+            createContextualFailure = nil
+            throw failure
+        }
+        guard !contextualConversationIDs.isEmpty else {
+            throw URLError(.badServerResponse)
+        }
+        let id = contextualConversationIDs.removeFirst()
+        return try JSONDecoder().decode(
+            FynContextualConversationResponse.self,
+            from: Data(
+                """
+                {"conversation":{"id":\(id),"title":"Edit Bank Account","message_count":1,"status":"active"},"opening_message":{"id":\(id + 1000),"role":"assistant","content":"Trusted opening.","metadata":null,"created_at":"2026-08-10T09:00:00Z"}}
+                """.utf8
+            )
         )
     }
 
@@ -453,6 +559,8 @@ private actor ScriptedFynClient: FynClient {
     func sendCount() -> Int { sends }
     func queuedCount() -> Int { queuedStreams }
     func actionsRecorded() -> [String] { actions }
+    func contextualCreateCount() -> Int { contextualRequests.count }
+    func contextualRequestsRecorded() -> [FynContextualConversationRequest] { contextualRequests }
 
     private nonisolated func stream(
         _ events: [FynEvent]

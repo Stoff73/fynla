@@ -93,6 +93,30 @@ final class FynConversationModel {
     var onboardingComplete: Bool { reduction.onboardingComplete }
     var unknownEventNames: [String] { reduction.unknownEventNames }
 
+    func start(preferredID: String? = nil) async {
+        await open(conversationID: preferredID)
+    }
+
+    func startContextual(_ action: FynContextualAction) async {
+        stop()
+        reduction = FynReductionState()
+        retryText = nil
+        retryID = nil
+        draft = ""
+        shouldCloseAndRefresh = false
+        phase = .loading
+
+        do {
+            let created = try await client.createContextualConversation(action.request)
+            try await load(created.conversation.id)
+            phase = .idle
+        } catch is CancellationError {
+            phase = .idle
+        } catch {
+            handle(error)
+        }
+    }
+
     func open(conversationID preferredID: String? = nil) async {
         // F2(a): re-entering from `.failed`/`.sessionExpired` (instead of
         // only `.idle`) is what makes the dock's `.task { open() }` self-heal

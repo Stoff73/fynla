@@ -44,6 +44,54 @@ struct FinancialPresentationTests {
     }
 
     @Test
+    func contextualRequestEncodingContainsIdentifiersButNoFinancialFactsOrLabels() throws {
+        let action = FynContextualAction(
+            action: .edit,
+            resourceType: "savings_account",
+            resourceID: 42,
+            currentDestination: SemanticDestination(
+                screen: "savings_account_detail",
+                params: ["account_id": .int(42)],
+                fallback: "savings"
+            ),
+            origin: FynContextualOrigin(kind: .surfaceAction)
+        )
+
+        let encoded = try JSONEncoder().encode(action.request)
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let text = try #require(String(data: encoded, encoding: .utf8))
+
+        #expect(object["action"] as? String == "edit")
+        #expect(object["resource_type"] as? String == "savings_account")
+        #expect(object["resource_id"] as? Int == 42)
+        #expect(text.contains("account_id"))
+        #expect(!text.localizedCaseInsensitiveContains("balance"))
+        #expect(!text.localizedCaseInsensitiveContains("value"))
+        #expect(!text.localizedCaseInsensitiveContains("name"))
+        #expect(!text.localizedCaseInsensitiveContains("prompt"))
+    }
+
+    @Test
+    func conversationHistoryDecodingIsAdditiveAndBackwardCompatible() throws {
+        let enriched = try JSONDecoder().decode(
+            FynConversationListItem.self,
+            from: Data(
+                #"{"id":42,"title":"Edit account","message_count":2,"mode":"contextual","purpose":"Edit Bank Account","related_entity":{"type":"savings_account","id":7,"label":"Rainy Day","available":true,"explanation":null},"status":"active","created_at":"2026-08-10T08:00:00Z","updated_at":"2026-08-10T09:00:00Z","last_message_at":"2026-08-10T09:00:00Z","last_message_summary":"Tell me what changed.","fallback_destination":{"screen":"savings","params":{},"fallback":"dashboard"}}"#.utf8
+            )
+        )
+        let legacy = try JSONDecoder().decode(
+            FynConversationListItem.self,
+            from: Data(#"{"id":41,"title":"Legacy"}"#.utf8)
+        )
+
+        #expect(enriched.mode == "contextual")
+        #expect(enriched.relatedEntity?.label == "Rainy Day")
+        #expect(enriched.fallbackDestination?.screen == "savings")
+        #expect(legacy.mode == nil)
+        #expect(legacy.relatedEntity == nil)
+    }
+
+    @Test
     func screenStateKeepsRetryAndUpgradeActionsExplicit() {
         #expect(ScreenStatePresentation.loading.canRetry == false)
         #expect(ScreenStatePresentation.offline.canRetry)

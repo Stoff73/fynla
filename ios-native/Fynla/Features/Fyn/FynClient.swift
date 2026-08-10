@@ -25,6 +25,9 @@ protocol FynClient: Sendable {
     func onboardingStatus() async throws -> FynOnboardingStatus
     func listConversations() async throws -> [FynConversationListItem]
     func createConversation(currentRoute: String) async throws -> FynConversationRecord
+    func createContextualConversation(
+        _ request: FynContextualConversationRequest
+    ) async throws -> FynContextualConversationResponse
     func loadConversation(id: String) async throws -> FynTranscript
     func startOnboarding(from: String?) async throws -> AsyncThrowingStream<FynEvent, Error>
     func sendMessage(
@@ -100,6 +103,18 @@ struct LiveFynClient: FynClient {
                 path: "api/ai-chat/conversations",
                 method: .post,
                 body: try JSONEncoder().encode(FynRouteBody(currentRoute: currentRoute))
+            )
+        )
+    }
+
+    func createContextualConversation(
+        _ request: FynContextualConversationRequest
+    ) async throws -> FynContextualConversationResponse {
+        try await apiClient.send(
+            APIRequest<FynContextualConversationResponse>(
+                path: "api/ai-chat/contextual-conversations",
+                method: .post,
+                body: try JSONEncoder().encode(request)
             )
         )
     }

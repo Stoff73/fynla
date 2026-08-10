@@ -23,6 +23,14 @@ private struct FynUITestClient: FynClient {
         try decode(#"{"id":321,"title":"Onboarding","message_count":1,"status":"active"}"#)
     }
 
+    func createContextualConversation(
+        _ request: FynContextualConversationRequest
+    ) async throws -> FynContextualConversationResponse {
+        try decode(
+            #"{"conversation":{"id":401,"title":"Edit Bank Account","message_count":1,"status":"active"},"opening_message":{"id":1401,"role":"assistant","content":"Tell me what has changed.","metadata":null,"created_at":"2026-08-10T09:00:00Z"}}"#
+        )
+    }
+
     func loadConversation(id: String) async throws -> FynTranscript {
         try decode(
             #"{"conversation":{"id":321,"title":"Onboarding","message_count":1,"status":"active"},"messages":[{"id":901,"role":"assistant","content":"What would you like to focus on first?","metadata":{"bubbles":[{"id":"savings","label":"Savings"},{"id":"retirement","label":"Retirement"}],"action_bubbles":false},"created_at":"2026-07-18T18:00:00Z"}]}"#

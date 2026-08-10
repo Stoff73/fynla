@@ -334,11 +334,11 @@ Run: `git add resources/mobile && git commit -m "feat: add mobile web conversati
 - Adds `FynClient.createContextualConversation(_:)`.
 - Adds `FynConversationModel.startContextual(_:)` and exact-ID `start(preferredID:)` history loading.
 
-- [ ] **Step 1: Write failing Swift model/client tests**
+- [x] **Step 1: Write failing Swift model/client tests**
 
 Decode server fixtures; assert encoded requests contain identifiers only and no financial values or entity labels; assert every contextual start calls create even when an old conversation ID exists; assert returned opening/transcript is loaded; assert failure clears pending state and exposes retry without losing route context; assert generic onboarding start behaviour is unchanged.
 
-- [ ] **Step 2: Run focused native tests and confirm RED**
+- [x] **Step 2: Run focused native tests and confirm RED**
 
 Run:
 
@@ -353,11 +353,11 @@ xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging \
 
 Expected: compile/test failure because typed models and client methods do not exist.
 
-- [ ] **Step 3: Implement Codable models, endpoint, and reset-before-create flow**
+- [x] **Step 3: Implement Codable models, endpoint, and reset-before-create flow**
 
 Keep decoding additive/tolerant for older history responses. Cancel active streaming before a contextual create, clear stale messages and draft, apply the returned ID, and load the persisted transcript. Do not manufacture an opening locally.
 
-- [ ] **Step 4: Run focused tests and a staging build**
+- [x] **Step 4: Run focused tests and a staging build**
 
 Run the test command above, then:
 
@@ -369,7 +369,7 @@ xcodebuild -project ios-native/Fynla.xcodeproj -scheme Fynla-Staging \
 
 Expected: PASS and build succeeds.
 
-- [ ] **Step 5: Commit the native contract**
+- [x] **Step 5: Commit the native contract**
 
 Run: `git add ios-native/Fynla/Features/Fyn ios-native/FynlaTests/FynConversationModelTests.swift ios-native/FynlaTests/FinancialPresentationTests.swift && git commit -m "feat: add native contextual Fyn client"`
 
