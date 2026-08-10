@@ -127,6 +127,26 @@ enum FynContextualActions {
         )
     }
 
+    static func income(owner: String, source: String) -> FynContextualAction {
+        FynContextualAction(
+            action: .edit,
+            resourceType: "income",
+            currentDestination: SemanticDestination(
+                screen: "income_detail",
+                params: [
+                    "income_owner": .string(owner),
+                    "income_source": .string(source),
+                ],
+                fallback: "income"
+            ),
+            origin: FynContextualOrigin(kind: .surfaceAction)
+        )
+    }
+
+    static func expenditure() -> FynContextualAction {
+        overview(action: .edit, resourceType: "expenditure", screen: "expenditure")
+    }
+
     private static func overview(
         action: FynContextualActionKind,
         resourceType: String,

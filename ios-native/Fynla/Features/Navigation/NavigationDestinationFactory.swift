@@ -89,11 +89,17 @@ enum NavigationDestinationFactory {
         case .income:
             IncomeView(
                 model: incomeModel,
-                onOpenFyn: onOpenFyn,
+                onRoute: onRoute,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
-        case .incomeDetail:
-            StagedNativeDestinationView(title: title(for: route))
+        case let .incomeDetail(owner, source):
+            IncomeDetailView(
+                owner: owner,
+                sourceKey: source,
+                model: incomeModel,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
         case let .propertyDetail(propertyID):
             PropertyDetailView(
                 propertyID: propertyID,
@@ -120,7 +126,7 @@ enum NavigationDestinationFactory {
         case .expenditure:
             ExpenditureView(
                 model: expenditureModel,
-                onOpenFyn: onOpenFyn,
+                onOpenContextualFyn: onOpenContextualFyn,
                 onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case let .netWorth(category):

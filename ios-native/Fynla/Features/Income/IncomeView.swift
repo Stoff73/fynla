@@ -6,7 +6,7 @@ import SwiftUI
 // amounts as /m's formatCurrency.
 struct IncomeView: View {
     let model: IncomeModel
-    let onOpenFyn: (String) -> Void
+    let onRoute: (AppRoute) -> Void
     let onOpenSubscription: () -> Void
 
     var body: some View {
@@ -42,10 +42,6 @@ struct IncomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 MobilePageHero(title: "Income", subtitle: "Your income")
-
-                MobilePageActions(editDetails: {
-                    onOpenFyn("What would you like to update?")
-                })
 
                 Group {
                     if offline {
@@ -104,10 +100,13 @@ struct IncomeView: View {
                     .padding(.vertical, 8)
             } else {
                 ForEach(sources.nonZeroSources) { row in
-                    incomeRow(
-                        row,
-                        isLast: row.id == sources.nonZeroSources.last?.id
-                    )
+                    Button {
+                        onRoute(.incomeDetail(owner: row.ownership, source: row.key))
+                    } label: {
+                        incomeRow(row, isLast: row.id == sources.nonZeroSources.last?.id)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("income.destination.\(row.ownership).\(row.key)")
                 }
             }
         }
@@ -143,7 +142,7 @@ struct IncomeView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("income.source.\(row.id.rawValue)")
+        .accessibilityIdentifier("income.source.\(row.key)")
     }
 
     private var offlineNotice: some View {

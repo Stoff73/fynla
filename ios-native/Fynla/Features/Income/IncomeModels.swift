@@ -22,6 +22,8 @@ struct IncomeSources: Decodable, Sendable, Equatable {
     let total: Decimal
     let employer: String?
     let occupation: String?
+    let sources: [IncomeSourceRow]
+    let taxPosition: IncomeTaxPosition
 
     private enum CodingKeys: String, CodingKey {
         case employment
@@ -32,6 +34,8 @@ struct IncomeSources: Decodable, Sendable, Equatable {
         case total
         case employer
         case occupation
+        case sources
+        case taxPosition = "tax_position"
     }
 
     var employmentDetail: String? {
@@ -45,32 +49,37 @@ struct IncomeSources: Decodable, Sendable, Equatable {
     }
 
     var nonZeroSources: [IncomeSourceRow] {
-        [
+        if !sources.isEmpty { return sources }
+        return [
             IncomeSourceRow(
-                id: .employment,
-                title: "Employment",
+                key: "employment",
+                label: "Employment",
                 amount: employment,
-                detail: employmentDetail
+                frequency: "annual",
+                ownership: "user",
+                ownershipLabel: "You",
+                detail: employmentDetail,
+                taxPosition: "Taxable earned income"
             ),
             IncomeSourceRow(
-                id: .selfEmployment,
-                title: "Self-employment",
-                amount: selfEmployment
+                key: "self_employment", label: "Self-employment", amount: selfEmployment,
+                frequency: "annual", ownership: "user", ownershipLabel: "You",
+                taxPosition: "Taxable earned income"
             ),
             IncomeSourceRow(
-                id: .dividend,
-                title: "Dividends",
-                amount: dividend
+                key: "dividend", label: "Dividends", amount: dividend,
+                frequency: "annual", ownership: "user", ownershipLabel: "You",
+                taxPosition: "Dividend income"
             ),
             IncomeSourceRow(
-                id: .interest,
-                title: "Interest",
-                amount: interest
+                key: "interest", label: "Interest", amount: interest,
+                frequency: "annual", ownership: "user", ownershipLabel: "You",
+                taxPosition: "Savings income"
             ),
             IncomeSourceRow(
-                id: .other,
-                title: "Other",
-                amount: other
+                key: "other", label: "Other", amount: other,
+                frequency: "annual", ownership: "user", ownershipLabel: "You",
+                taxPosition: "Other taxable income"
             ),
         ].filter { $0.amount > 0 }
     }
@@ -80,25 +89,61 @@ struct IncomeSources: Decodable, Sendable, Equatable {
     }
 }
 
-struct IncomeSourceRow: Identifiable, Sendable, Equatable {
-    enum ID: String, Sendable {
-        case employment
-        case selfEmployment
-        case dividend
-        case interest
-        case other
+struct IncomeSourceRow: Decodable, Identifiable, Sendable, Equatable {
+    let key: String
+    let label: String
+    let amount: Decimal
+    let frequency: String
+    let ownership: String
+    let ownershipLabel: String
+    let detail: String?
+    let taxPosition: String
+
+    var id: String { key }
+    var title: String { label }
+
+    init(
+        key: String,
+        label: String,
+        amount: Decimal,
+        frequency: String,
+        ownership: String,
+        ownershipLabel: String,
+        detail: String? = nil,
+        taxPosition: String
+    ) {
+        self.key = key
+        self.label = label
+        self.amount = amount
+        self.frequency = frequency
+        self.ownership = ownership
+        self.ownershipLabel = ownershipLabel
+        self.detail = detail
+        self.taxPosition = taxPosition
     }
 
-    let id: ID
-    let title: String
-    let amount: Decimal
-    let detail: String?
+    private enum CodingKeys: String, CodingKey {
+        case key, label, amount, frequency, ownership, detail
+        case ownershipLabel = "ownership_label"
+        case taxPosition = "tax_position"
+    }
+}
 
-    init(id: ID, title: String, amount: Decimal, detail: String? = nil) {
-        self.id = id
-        self.title = title
-        self.amount = amount
-        self.detail = detail
+struct IncomeTaxPosition: Decodable, Sendable, Equatable {
+    let totalIncome: Decimal
+    let adjustedNetIncome: Decimal?
+    let personalAllowance: Decimal?
+    let personalAllowanceLabel: String
+    let pensionAnnualAllowance: Decimal?
+    let pensionAnnualAllowanceLabel: String
+
+    private enum CodingKeys: String, CodingKey {
+        case totalIncome = "total_income"
+        case adjustedNetIncome = "adjusted_net_income"
+        case personalAllowance = "personal_allowance"
+        case personalAllowanceLabel = "personal_allowance_label"
+        case pensionAnnualAllowance = "pension_annual_allowance"
+        case pensionAnnualAllowanceLabel = "pension_annual_allowance_label"
     }
 }
 

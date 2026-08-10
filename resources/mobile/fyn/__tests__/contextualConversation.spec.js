@@ -68,4 +68,34 @@ describe('buildContextualConversationRequest', () => {
       },
     });
   });
+
+  it('keeps only approved canonical detail identifiers', () => {
+    const request = buildContextualConversationRequest({
+      action: 'edit',
+      resourceType: 'income',
+      currentDestination: {
+        screen: 'income_detail',
+        params: {
+          income_owner: 'user',
+          income_source: 'employment',
+          property_id: 12,
+          mortgage_id: 13,
+          liability_id: 14,
+          amount: 72000,
+          balance: 180000,
+        },
+        fallback: 'income',
+      },
+      origin: { kind: 'surface_action' },
+    });
+
+    expect(request.current_destination.params).toEqual({
+      income_owner: 'user',
+      income_source: 'employment',
+      property_id: 12,
+      mortgage_id: 13,
+      liability_id: 14,
+    });
+    expect(JSON.stringify(request)).not.toMatch(/72000|180000|amount|balance/);
+  });
 });

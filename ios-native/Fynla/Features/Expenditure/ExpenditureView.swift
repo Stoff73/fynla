@@ -5,7 +5,7 @@ import SwiftUI
 // line, per-category rows. Whole-pound amounts as /m's formatCurrency.
 struct ExpenditureView: View {
     let model: ExpenditureModel
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
 
     var body: some View {
@@ -46,7 +46,7 @@ struct ExpenditureView: View {
                 )
 
                 MobilePageActions(editDetails: {
-                    onOpenFyn("What would you like to update?")
+                    onOpenContextualFyn(FynContextualActions.expenditure())
                 })
 
                 Group {
@@ -55,6 +55,8 @@ struct ExpenditureView: View {
                     }
 
                     heroCard(summary)
+
+                    modeCard(summary.presentation)
 
                     if let rows = summary.categories?.nonZeroRows,
                        !rows.isEmpty
@@ -74,10 +76,32 @@ struct ExpenditureView: View {
     private func heroCard(_ summary: ExpenditureSummary) -> some View {
         MobileHeroCard(
             label: "Monthly expenditure",
-            metric: MoneyFormatter.gbpWhole(summary.monthly ?? 0),
-            sub: annualText(summary)
+            metric: MoneyFormatter.gbpWhole(summary.presentation.activeMonthlyTotal),
+            sub: "\(MoneyFormatter.gbpWhole(summary.presentation.activeAnnualTotal)) a year"
         )
         .accessibilityIdentifier("expenditure.monthly")
+    }
+
+    private func modeCard(_ presentation: ExpenditurePresentation) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(presentation.entryModeLabel.uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+            Text(presentation.totalBasis)
+                .font(.system(size: 14))
+                .foregroundStyle(FynlaColor.Token.neutral600.color)
+            if !presentation.detailAvailable, let reason = presentation.summaryOnlyReason {
+                Text(reason)
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.neutral600.color)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityIdentifier("expenditure.mode.\(presentation.entryMode)")
     }
 
     private func categoryCard(_ rows: [ExpenditureCategoryRow]) -> some View {
@@ -112,13 +136,6 @@ struct ExpenditureView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    // /m: "{annual} a year", falling back to monthly × 12 when the server
-    // omits the annual figure (Expenditure.vue's annual computed).
-    private func annualText(_ summary: ExpenditureSummary) -> String {
-        let value = summary.annual ?? (summary.monthly ?? 0) * 12
-        return "\(MoneyFormatter.gbpWhole(value)) a year"
     }
 
     private var offlineNotice: some View {

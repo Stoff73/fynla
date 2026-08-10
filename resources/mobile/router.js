@@ -5,6 +5,7 @@ import ModuleDetail from './views/ModuleDetail.vue';
 import TaxStrategy from './views/TaxStrategy.vue';
 import HolisticPlan from './views/HolisticPlan.vue';
 import Income from './views/Income.vue';
+import IncomeDetail from './views/IncomeDetail.vue';
 import Expenditure from './views/Expenditure.vue';
 import Achievements from './views/Achievements.vue';
 import ConversationHistory from './views/ConversationHistory.vue';
@@ -46,6 +47,7 @@ const router = createRouter({
     { path: '/tax-strategy', name: 'tax-strategy', component: TaxStrategy, meta: { auth: true } },
     { path: '/holistic-plan', name: 'holistic-plan', component: HolisticPlan, meta: { auth: true } },
     { path: '/income', name: 'm-income', component: Income, meta: { auth: true } },
+    { path: '/income/:owner/:source', name: 'm-income-detail', component: IncomeDetail, meta: { auth: true } },
     { path: '/expenditure', name: 'm-expenditure', component: Expenditure, meta: { auth: true } },
     { path: '/achievements', name: 'm-achievements', component: Achievements, meta: { auth: true } },
     { path: '/conversation-history', name: 'm-conversation-history', component: ConversationHistory, meta: { auth: true } },

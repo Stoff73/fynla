@@ -68,6 +68,11 @@ class UserProfileController extends Controller
         $profile = $this->userProfileService->getCompleteProfile($user);
         if (! $this->canUseDetailedExpenditure($user)) {
             unset($profile['expenditure']['categories']);
+            $profile['expenditure']['presentation']['detail_available'] = false;
+            if (($profile['expenditure']['presentation']['entry_mode'] ?? null) === 'category') {
+                $profile['expenditure']['presentation']['summary_only_reason'] =
+                    'Category details are not available on your current plan.';
+            }
         }
 
         return response()->json([
