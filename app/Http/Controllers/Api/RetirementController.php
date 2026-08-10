@@ -13,6 +13,7 @@ use App\Http\Requests\Retirement\StoreDCPensionRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
 use App\Http\Resources\DCPensionResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
@@ -49,6 +50,7 @@ use Illuminate\Support\Facades\DB;
 class RetirementController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly RetirementAgent $agent,
@@ -362,15 +364,11 @@ class RetirementController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pension limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Pension limit reached for your current plan.',
+                'retirement',
+            );
         }
 
         $this->invalidateRetirementCache($user->id);
@@ -503,15 +501,11 @@ class RetirementController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pension limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Pension limit reached for your current plan.',
+                'retirement',
+            );
         }
 
         $this->invalidateRetirementCache($user->id);

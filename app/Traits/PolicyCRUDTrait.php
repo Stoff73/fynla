@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use App\Http\Traits\TierLimitResponse;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +22,8 @@ use Illuminate\Http\JsonResponse;
  */
 trait PolicyCRUDTrait
 {
+    use TierLimitResponse;
+
     /**
      * Store a new policy.
      *
@@ -50,6 +54,12 @@ trait PolicyCRUDTrait
                 'message' => "{$policyTypeName} policy created successfully.",
                 'data' => $responseData,
             ], 201);
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResponse(
+                $e,
+                "{$policyTypeName} policy limit reached for your current plan.",
+                'protection',
+            );
         } catch (\Exception $e) {
             report($e);
 

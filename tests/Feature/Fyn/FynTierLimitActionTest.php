@@ -99,6 +99,11 @@ it('streams and persists the subscription action after the accurate Fyn reply', 
         'current_count' => 2,
         'limit' => 2,
         'tier' => 'free',
+        'destination' => [
+            'screen' => 'subscription',
+            'params' => [],
+            'fallback' => 'dashboard',
+        ],
     ])->and($actionIndex)->toBeGreaterThan($lastContentIndex);
 
     $assistant = $conversation->messages()->where('role', 'assistant')->latest('id')->firstOrFail();
@@ -108,6 +113,11 @@ it('streams and persists the subscription action after the accurate Fyn reply', 
         'entity_key' => 'goal',
         'limit' => 2,
         'tier' => 'free',
+        'destination' => [
+            'screen' => 'subscription',
+            'params' => [],
+            'fallback' => 'dashboard',
+        ],
     ]);
 });
 
@@ -128,6 +138,11 @@ it('returns a presentation-neutral subscription action when Fyn reaches a create
         'reason' => 'tier_limit_reached',
         'limit' => 2,
         'tier' => 'free',
+        'destination' => [
+            'screen' => 'subscription',
+            'params' => [],
+            'fallback' => 'dashboard',
+        ],
     ])->and($result['message'])->toContain('upgrade your plan');
 })->with([
     'Goal' => [

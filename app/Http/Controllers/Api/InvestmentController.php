@@ -19,6 +19,7 @@ use App\Http\Requests\UpdateInvestmentAccountRequest;
 use App\Http\Resources\HoldingResource;
 use App\Http\Resources\InvestmentAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Jobs\RunMonteCarloSimulation;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
@@ -61,6 +62,7 @@ class InvestmentController extends Controller
 {
     use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
@@ -442,15 +444,11 @@ class InvestmentController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Investment account limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Investment account limit reached for your current plan.',
+                'investment',
+            );
         }
 
         // Clear cache

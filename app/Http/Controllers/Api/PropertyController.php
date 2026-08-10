@@ -9,6 +9,7 @@ use App\Http\Requests\StorePropertyRequest;
 use App\Http\Requests\UpdatePropertyRequest;
 use App\Http\Resources\PropertyResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\JointAccountLog;
 use App\Models\Property;
 use App\Models\User;
@@ -39,6 +40,7 @@ class PropertyController extends Controller
 {
     use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly PropertyService $propertyService,
@@ -158,15 +160,11 @@ class PropertyController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Property limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Property limit reached for your current plan.',
+                'net_worth',
+            );
         }
 
         // Pass 4 routes Property creates through PropertyStore. The mortgage_*

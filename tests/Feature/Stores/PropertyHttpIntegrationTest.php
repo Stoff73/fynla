@@ -69,3 +69,25 @@ it('rejects updates from a non-owner', function () {
 
     $response->assertStatus(404);
 });
+
+it('returns the typed subscription destination when the free property cap is reached', function () {
+    $user = User::factory()->create(['tier' => 'free']);
+    Property::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)->postJson('/api/properties', [
+        'property_type' => 'buy_to_let',
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+        'address_line_1' => '6 Acacia Avenue',
+        'city' => 'Bristol',
+        'postcode' => 'BS1 1AB',
+        'current_value' => 250000,
+        'country' => 'United Kingdom',
+    ])->assertForbidden()
+        ->assertJsonPath('error', 'tier_limit_reached')
+        ->assertJsonPath('entity_key', 'property')
+        ->assertJsonPath('destination.screen', 'subscription')
+        ->assertJsonPath('destination.fallback', 'net_worth');
+
+    expect(Property::where('user_id', $user->id)->count())->toBe(1);
+});

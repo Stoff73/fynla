@@ -150,9 +150,9 @@ it('returns 403 with structured payload when free-tier mortgage cap is exceeded'
     $response->assertStatus(403)
         ->assertJson([
             'success' => false,
-            'error' => [
-                'entity_key' => 'mortgage',
-                'hard_limit' => 10,
-            ],
+            'error' => 'tier_limit_reached',
+            'entity_key' => 'mortgage',
+            'hard_limit' => 10,
+            'action' => 'subscription_options',
         ]);
 });

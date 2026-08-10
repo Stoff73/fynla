@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Documents\DocumentProcessor;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,4 +67,32 @@ it('DocumentProcessor::confirmExcel persists a savings extraction via SavingsSto
     expect($results['results'])->toHaveCount(1);
     expect($results['results'][0]['model_type'])->toBe('SavingsAccount');
     expect($results['results'][0]['model_id'])->toBe($account->id);
+});
+
+it('rejects an uploaded savings account at the authoritative free-tier cap', function () {
+    $user = User::factory()->create(['tier' => 'free']);
+    SavingsAccount::factory()->count(2)->create(['user_id' => $user->id]);
+    $document = Document::create([
+        'user_id' => $user->id,
+        'original_filename' => 'third-account.xlsx',
+        'stored_filename' => 'third-account.xlsx',
+        'disk' => 'local',
+        'path' => 'documents/third-account.xlsx',
+        'mime_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'file_size' => 1024,
+        'document_type' => Document::TYPE_SAVINGS_STATEMENT,
+        'status' => Document::STATUS_REVIEW_PENDING,
+    ]);
+
+    expect(fn () => app(DocumentProcessor::class)->confirmExcel($document, [[
+        'sheet_name' => 'Sheet1',
+        'category' => 'cash_savings',
+        'account' => [
+            'institution' => 'Third Bank',
+            'account_type' => 'easy_access',
+            'current_balance' => 1000,
+        ],
+    ]], $user))->toThrow(TierLimitExceededException::class);
+
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2);
 });
