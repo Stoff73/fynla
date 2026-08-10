@@ -13,6 +13,7 @@ use App\Models\Estate\Trust;
 use App\Models\SavingsAccount;
 use App\Models\SavingsAccountValueSnapshot;
 use App\Models\User;
+use App\Services\Savings\ISAContributionLedger;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Recalc\SavingsAccountDerivedColumnCalculator;
@@ -29,6 +30,7 @@ class SavingsStore
         private readonly TierGate $tierGate,
         private readonly SavingsAccountDerivedColumnCalculator $derivedCalc,
         private readonly SnapshotPolicies $snapshotPolicies,
+        private readonly ISAContributionLedger $isaContributionLedger,
     ) {}
 
     // ---------- Reads ----------
@@ -156,6 +158,7 @@ class SavingsStore
             $account = SavingsAccount::create($attributes);
 
             $this->recalculateDerived($account, $source, 'create');
+            $this->isaContributionLedger->syncSavingsAnnualSummary($account, $source);
 
             event(new SavingsAccountCreated($account, $user, $source));
 
@@ -185,6 +188,7 @@ class SavingsStore
             $fresh = $account->fresh();
 
             $this->recalculateDerived($fresh, $source, 'update');
+            $this->isaContributionLedger->syncSavingsAnnualSummary($fresh, $source);
 
             event(new SavingsAccountUpdated($fresh, $dirty, $user, $source));
 

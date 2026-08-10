@@ -80,11 +80,13 @@ struct NetWorthTests {
     @Test
     func clientLoadsBothExistingAuthenticatedEndpoints() async throws {
         let transport = TestHTTPTransport([
-            .response(
+            .responseForPath(
+                path: "/fynla/api/net-worth/overview",
                 status: 200,
                 body: try fixture("net-worth-overview-populated")
             ),
-            .response(
+            .responseForPath(
+                path: "/fynla/api/net-worth/assets-summary-detailed",
                 status: 200,
                 body: try fixture("net-worth-detailed-populated")
             ),

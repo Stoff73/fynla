@@ -13,6 +13,7 @@ use App\Http\Requests\Retirement\StoreDCPensionRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
 use App\Http\Resources\DCPensionResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
@@ -22,6 +23,7 @@ use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
+use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementIncomeService;
@@ -48,6 +50,7 @@ use Illuminate\Support\Facades\DB;
 class RetirementController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly RetirementAgent $agent,
@@ -63,6 +66,7 @@ class RetirementController extends Controller
         private readonly PensionStore $pensionStore,
         private readonly PensionNormaliser $pensionNormaliser,
         private readonly TierGate $tierGate,
+        private readonly PortfolioPresentationService $portfolioPresentation,
     ) {}
 
     /**
@@ -101,10 +105,23 @@ class RetirementController extends Controller
         }
 
         $pensions = $this->pensionStore->forUser($user);
+        $pensions['dc']->load('valueSnapshots');
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        $relevantPortfolioValue = (float) $pensions['dc']->flatMap->holdings->sum('current_value');
+        $dcPensions = $pensions['dc']->map(function (DCPension $pension) use ($riskProfile, $relevantPortfolioValue) {
+            $resourceData = (new DCPensionResource($pension))->toArray(request());
+            $resourceData['portfolio'] = $this->portfolioPresentation->forDCPension(
+                $pension,
+                $riskProfile,
+                $relevantPortfolioValue,
+            );
+
+            return $resourceData;
+        });
 
         $data = [
             'profile' => $profile,
-            'dc_pensions' => $pensions['dc'],
+            'dc_pensions' => $dcPensions,
             'db_pensions' => $pensions['db'],
             'state_pension' => $pensions['state'],
             // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the gate's
@@ -347,15 +364,11 @@ class RetirementController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pension limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Pension limit reached for your current plan.',
+                'retirement',
+            );
         }
 
         $this->invalidateRetirementCache($user->id);
@@ -488,15 +501,11 @@ class RetirementController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pension limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Pension limit reached for your current plan.',
+                'retirement',
+            );
         }
 
         $this->invalidateRetirementCache($user->id);
@@ -599,11 +608,27 @@ class RetirementController extends Controller
         }
 
         $analysis = $this->agent->analyzeDCPensionPortfolio($user->id, $dcPensionId);
+        $pensions = $this->pensionStore->forUserByType($user, 'dc')
+            ->when($dcPensionId !== null, fn ($items) => $items->where('id', $dcPensionId))
+            ->load(['holdings', 'valueSnapshots']);
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        $relevantPortfolioValue = (float) $pensions->flatMap->holdings->sum('current_value');
+        $canonicalPortfolios = $pensions
+            ->map(fn (DCPension $pension) => $this->portfolioPresentation->forDCPension(
+                $pension,
+                $riskProfile,
+                $relevantPortfolioValue,
+            ))
+            ->values()
+            ->all();
 
         return response()->json([
             'success' => true,
             'message' => 'DC pension portfolio analysis completed',
-            'data' => $analysis,
+            'data' => array_merge($analysis, [
+                'portfolio_contract_version' => PortfolioPresentationService::CONTRACT_VERSION,
+                'canonical_portfolios' => $canonicalPortfolios,
+            ]),
         ]);
     }
 

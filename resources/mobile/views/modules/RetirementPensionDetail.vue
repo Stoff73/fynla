@@ -101,6 +101,8 @@
         </div>
       </div>
 
+      <CanonicalPortfolio v-if="type === 'dc'" :portfolio="pension.portfolio" />
+
       <!-- DC projection -->
       <div v-if="type === 'dc'" class="m-card m-detail-rows">
         <p class="m-section-label" style="margin-top:0">Pension pot projection</p>
@@ -137,6 +139,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import CanonicalPortfolio from '../../components/CanonicalPortfolio.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
@@ -166,7 +169,7 @@ const DB_SCHEME_TYPES = {
 
 export default {
   name: 'MobileRetirementPensionDetail',
-  components: { MobileChrome },
+  components: { CanonicalPortfolio, MobileChrome },
   data: () => ({
     loading: true,
     error: '',

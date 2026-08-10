@@ -11,6 +11,7 @@ use App\Http\Requests\Goals\UpdateGoalRequest;
 use App\Http\Resources\GoalContributionResource;
 use App\Http\Resources\GoalResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\Goal;
 use App\Services\Goals\FinancialForecastService;
 use App\Services\Goals\GoalAffordabilityService;
@@ -33,6 +34,7 @@ use Illuminate\Http\Request;
 class GoalsController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly GoalsAgent $goalsAgent,
@@ -172,15 +174,11 @@ class GoalsController extends Controller
                 'data' => new GoalResource($goal),
             ], 201);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'tier_limit_reached',
-                'entity_key' => $e->entityKey,
-                'current_count' => $e->currentCount,
-                'hard_limit' => $e->hardLimit,
-                'required_tier' => 'premium',
-                'message' => 'Goal limit reached for your current plan.',
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Goal limit reached for your current plan.',
+                'goals',
+            );
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Create goal', 500, ['user_id' => $user->id]);
         }

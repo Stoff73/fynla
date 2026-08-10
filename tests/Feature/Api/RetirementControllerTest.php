@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\DCPensionValueSnapshot;
 use App\Models\Household;
+use App\Models\Investment\Holding;
+use App\Models\Investment\RiskProfile;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -63,6 +66,85 @@ describe('GET /api/retirement', function () {
         $response->assertStatus(200);
         expect($response->json('data.dc_pensions'))->toHaveCount(1);
         expect($response->json('data.db_pensions'))->toHaveCount(1);
+    });
+
+    it('uses the same canonical portfolio contract for a DC pension', function () {
+        RiskProfile::factory()->create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'medium',
+        ]);
+
+        $pension = DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'scheme_name' => 'Entered Pension Portfolio',
+            'current_fund_value' => 100000,
+            'entered_allocation_baseline' => ['equities' => 60, 'bonds' => 40],
+            'entered_allocation_source' => 'user_entered',
+            'entered_allocation_effective_at' => '2026-04-06',
+        ]);
+
+        Holding::factory()->create([
+            'holdable_id' => $pension->id,
+            'holdable_type' => DCPension::class,
+            'security_name' => 'Pension shares',
+            'asset_type' => 'equity',
+            'current_value' => 80000,
+            'cost_basis' => 60000,
+        ]);
+        Holding::factory()->create([
+            'holdable_id' => $pension->id,
+            'holdable_type' => DCPension::class,
+            'security_name' => 'Pension bonds',
+            'asset_type' => 'bond',
+            'current_value' => 20000,
+            'cost_basis' => 20000,
+        ]);
+
+        DCPensionValueSnapshot::create([
+            'dc_pension_id' => $pension->id,
+            'column_name' => 'current_fund_value',
+            'value' => 90000,
+            'currency' => 'GBP',
+            'value_gbp' => 90000,
+            'taken_at' => '2026-01-01 00:00:00',
+            'trigger_reason' => 'manual_update',
+            'ingest_source' => 'form',
+        ]);
+
+        $portfolio = $this->getJson('/api/retirement')
+            ->assertOk()
+            ->json('data.dc_pensions.0.portfolio');
+
+        expect($portfolio['contract_version'])->toBe('financial_portfolio_v1')
+            ->and($portfolio['wrapper_type'])->toBe('dc_pension')
+            ->and($portfolio['analysis']['coverage_percent'])->toBe(100)
+            ->and($portfolio['analysis']['comparisons']['entered']['drift_percentage_points']['equities'])->toBe(20)
+            ->and($portfolio['holdings'][0])->toHaveKeys([
+                'wrapper_percentage',
+                'whole_relevant_portfolio_percentage',
+                'classified_exposure',
+                'fees',
+                'performance',
+            ])
+            ->and($portfolio['performance_history']['points'])->toHaveCount(1);
+
+        $analysisPortfolio = $this->getJson("/api/retirement/portfolio-analysis/{$pension->id}")
+            ->assertOk()
+            ->json('data.canonical_portfolios.0');
+
+        expect($analysisPortfolio['contract_version'])->toBe('financial_portfolio_v1')
+            ->and($analysisPortfolio['wrapper_id'])->toBe($pension->id)
+            ->and($analysisPortfolio['analysis']['coverage_percent'])->toBe(100);
+    });
+});
+
+describe('GET /api/retirement/portfolio-analysis/{id}', function () {
+    it('does not expose another users pension portfolio', function () {
+        $other = User::factory()->create();
+        $pension = DCPension::factory()->create(['user_id' => $other->id]);
+
+        $this->getJson("/api/retirement/portfolio-analysis/{$pension->id}")
+            ->assertNotFound();
     });
 });
 

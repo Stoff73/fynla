@@ -171,6 +171,7 @@ enum NavigationDestinationFactory {
                 InvestmentAccountView(
                     accountID: accountID,
                     model: investmentModel,
+                    savingsModel: savingsModel,
                     onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {

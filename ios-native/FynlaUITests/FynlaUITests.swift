@@ -170,6 +170,63 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testPR4CanonicalFinancialDataJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.protection", in: app)
+        XCTAssertTrue(element("protection.screen", in: app).waitForExistence(timeout: 3))
+        let protectionGap = app.buttons["protection.gap.human_capital"]
+        assertReachable(protectionGap, in: app)
+        protectionGap.tap()
+        XCTAssertTrue(
+            app.staticTexts["This estimates capital needed to replace recorded earned income."]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["HIGH"].exists)
+        attachAcceptance(app, name: "PR4-01-protection-explanation")
+
+        openDrawerItem("navigation.bank-accounts", in: app)
+        XCTAssertTrue(element("savings.screen", in: app).waitForExistence(timeout: 3))
+        let contributionHistory = app.buttons["savings.isa-history.toggle"]
+        assertReachable(contributionHistory, in: app)
+        contributionHistory.tap()
+        XCTAssertTrue(element("isa-contribution-history", in: app).waitForExistence(timeout: 3))
+        let priorTaxYear = app.buttons["isa-tax-year.2025/26"]
+        assertReachable(priorTaxYear, in: app)
+        priorTaxYear.tap()
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '£2,500'"))
+                .firstMatch.waitForExistence(timeout: 3)
+        )
+        attachAcceptance(app, name: "PR4-02-isa-prior-year")
+
+        openDrawerItem("navigation.investments", in: app)
+        XCTAssertTrue(element("investment.screen", in: app).waitForExistence(timeout: 3))
+        let investmentAccount = app.buttons["investment.account.21"]
+        assertReachable(investmentAccount, in: app)
+        investmentAccount.tap()
+        XCTAssertTrue(element("investment.account.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.201", in: app).exists)
+        assertReachable(element("canonical-portfolio.comparison.entered-portfolio", in: app), in: app)
+        XCTAssertTrue(element("canonical-portfolio.comparison.recommended-portfolio", in: app).exists)
+        assertReachable(element("canonical-portfolio.history", in: app), in: app)
+        XCTAssertTrue(app.staticTexts["Recorded account-value snapshots only; no missing values are inferred."].exists)
+        attachAcceptance(app, name: "PR4-03-investment-portfolio")
+
+        openDrawerItem("navigation.retirement", in: app)
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+        let pension = app.buttons["retirement.pension.dc-31"]
+        assertReachable(pension, in: app)
+        pension.tap()
+        XCTAssertTrue(element("retirement.pension.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.301", in: app).exists)
+        assertReachable(element("canonical-portfolio.history", in: app), in: app)
+        XCTAssertTrue(app.staticTexts["Recorded performance history is unavailable."].exists)
+        attachAcceptance(app, name: "PR4-04-dc-pension-portfolio")
+    }
+
+    @MainActor
     func testDashboardShowsFullRecommendationAndUsesSemanticDestination() throws {
         let app = app(mode: "unlocked")
         app.launch()

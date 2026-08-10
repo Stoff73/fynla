@@ -238,7 +238,7 @@ describe('getAssetClassBreakdown', function () {
             ->and($breakdown['alternatives'])->toBe(5.0);
     });
 
-    it('defaults unknown types to equities', function () {
+    it('keeps unknown types explicitly unclassified', function () {
         $holdings = collect([
             new Holding(['asset_type' => 'unknown_type', 'current_value' => 5000]),
             new Holding(['asset_type' => 'bond', 'current_value' => 5000]),
@@ -246,8 +246,9 @@ describe('getAssetClassBreakdown', function () {
 
         $breakdown = $this->analyzer->getAssetClassBreakdown($holdings);
 
-        expect($breakdown['equities'])->toBe(50.0)
-            ->and($breakdown['bonds'])->toBe(50.0);
+        expect($breakdown['equities'])->toBe(0.0)
+            ->and($breakdown['bonds'])->toBe(50.0)
+            ->and($breakdown['unclassified'])->toBe(50.0);
     });
 });
 

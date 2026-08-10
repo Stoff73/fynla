@@ -179,6 +179,9 @@ describe('Savings Integration Tests', function () {
 
             $response->assertCreated();
 
+            $account = SavingsAccount::findOrFail($response->json('data.id'));
+            expect($account->isa_subscription_year)->toBe('2024/25');
+
             // Check ISA allowance
             $allowanceResponse = $this->actingAs($user, 'sanctum')->getJson('/api/savings/isa-allowance/2024-25');
             $allowanceResponse->assertOk();

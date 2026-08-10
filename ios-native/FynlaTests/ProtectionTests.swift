@@ -14,7 +14,12 @@ struct ProtectionTests {
         #expect(snapshot.policies.map(\.type) == [.life, .incomeProtection])
         #expect(snapshot.totalLumpSumCover == Decimal(250000))
         #expect(snapshot.annualIncomeCover == Decimal(30000))
-        #expect(snapshot.openGaps.map(\.id) == ["human-capital", "final-expenses", "income-protection"])
+        #expect(snapshot.openGaps.map(\.id) == ["human_capital", "final_expenses", "income_protection"])
+        #expect(snapshot.openGaps[0].severity == "high")
+        #expect(snapshot.openGaps[0].explanation.contains("recorded earned income"))
+        #expect(snapshot.openGaps[0].assumptions.first?.unit == "percent")
+        #expect(snapshot.openGaps[0].relevantPolicies.first?.provider == "Example Life")
+        #expect(snapshot.calculatedAt == "2026-08-10T12:00:00Z")
         #expect(snapshot.policy(type: .life, id: 41)?.provider == "Example Life")
         #expect(snapshot.policy(type: .life, id: 999) == nil)
     }

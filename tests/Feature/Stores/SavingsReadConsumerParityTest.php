@@ -1793,7 +1793,7 @@ it('CoordinatingAgent::handleListRecords savings_account (site 1467) returns BOT
     Model::preventLazyLoading();
 });
 
-it('ISATracker::getISAAllowanceStatus cash-ISA + LISA nested-OR predicates count BOTH the isa_type-matched and account_type-matched rows (sites 73 & 102)', function () {
+it('ISATracker::getISAAllowanceStatus keeps cash ISA and LISA usage isolated to the requested tax year', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
     $taxYear = app(TaxConfigService::class)->getTaxYear();
 
@@ -1843,8 +1843,8 @@ it('ISATracker::getISAAllowanceStatus cash-ISA + LISA nested-OR predicates count
 
     // Cash ISA: Row A (4000) + Row B (3000); Row C excluded (null amount) = 7000.
     expect($status['cash_isa_used'])->toBe(7000.0);
-    // LISA: Row D (2000) + Row E (1500) = 3500.
-    expect($status['lisa_used'])->toBe(3500.0);
+    // LISA: Row D (2000). Row E belongs to 2019/20 and must not leak into 2025/26.
+    expect($status['lisa_used'])->toBe(2000.0);
 });
 
 it('ISATracker::updateISAUsage cash & LISA flat-where reads identical to pre-refactor (sites 220 & 225); missing user → 0.0', function () {

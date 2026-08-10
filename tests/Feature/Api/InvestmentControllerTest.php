@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\Household;
+use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Investment\RiskProfile;
+use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -54,6 +57,80 @@ describe('GET /api/investment', function () {
 
         $response->assertStatus(200);
         expect($response->json('data.accounts'))->toBeEmpty();
+    });
+
+    it('returns the canonical holdings performance and drift contract for investments and stocks and shares ISAs', function () {
+        RiskProfile::factory()->create([
+            'user_id' => $this->user->id,
+            'risk_level' => 'medium',
+        ]);
+
+        $account = InvestmentAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'account_name' => 'Entered Portfolio ISA',
+            'account_type' => 'isa',
+            'isa_type' => 'stocks_and_shares',
+            'current_value' => 100000,
+            'entered_allocation_baseline' => ['equities' => 60, 'bonds' => 40],
+            'entered_allocation_source' => 'user_entered',
+            'entered_allocation_effective_at' => '2026-04-06',
+        ]);
+
+        Holding::factory()->forAccount($account)->create([
+            'security_name' => 'Global shares',
+            'asset_type' => 'equity',
+            'current_value' => 70000,
+            'cost_basis' => 50000,
+            'ocf_percent' => 0.20,
+        ]);
+        Holding::factory()->forAccount($account)->create([
+            'security_name' => 'UK gilts',
+            'asset_type' => 'bond',
+            'current_value' => 30000,
+            'cost_basis' => 30000,
+            'ocf_percent' => 0.10,
+        ]);
+
+        InvestmentAccountValueSnapshot::create([
+            'investment_account_id' => $account->id,
+            'column_name' => 'current_value',
+            'value' => 90000,
+            'currency' => 'GBP',
+            'value_gbp' => 90000,
+            'taken_at' => '2026-01-01 00:00:00',
+            'trigger_reason' => 'manual_update',
+            'ingest_source' => 'form',
+        ]);
+        InvestmentAccountValueSnapshot::create([
+            'investment_account_id' => $account->id,
+            'column_name' => 'current_value',
+            'value' => 100000,
+            'currency' => 'GBP',
+            'value_gbp' => 100000,
+            'taken_at' => '2026-08-01 00:00:00',
+            'trigger_reason' => 'manual_update',
+            'ingest_source' => 'form',
+        ]);
+
+        $portfolio = $this->getJson('/api/investment')
+            ->assertOk()
+            ->json('data.accounts.0.portfolio');
+
+        expect($portfolio['contract_version'])->toBe('financial_portfolio_v1')
+            ->and($portfolio['wrapper_type'])->toBe('stocks_and_shares_isa')
+            ->and($portfolio['analysis']['coverage_percent'])->toBe(100)
+            ->and($portfolio['analysis']['comparisons']['entered']['drift_percentage_points']['equities'])->toBe(10)
+            ->and($portfolio['analysis']['comparisons']['recommended']['source'])->toBe('fynla_recommended_asset_allocation')
+            ->and($portfolio['holdings'][0]['wrapper_percentage'])->toBe(70)
+            ->and($portfolio['holdings'][0]['whole_relevant_portfolio_percentage'])->toBe(70)
+            ->and($portfolio['holdings'][0]['performance'])->toMatchArray([
+                'available' => true,
+                'gain_loss' => 20000,
+                'gain_loss_percent' => 40,
+                'method' => 'recorded_cost_basis',
+            ])
+            ->and($portfolio['performance_history']['available'])->toBeTrue()
+            ->and($portfolio['performance_history']['points'])->toHaveCount(2);
     });
 });
 

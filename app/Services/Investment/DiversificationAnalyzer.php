@@ -160,10 +160,11 @@ class DiversificationAnalyzer
             'cash' => 0.0,
             'alternatives' => 0.0,
             'mixed' => 0.0,
+            'unclassified' => 0.0,
         ];
 
         foreach ($holdings as $holding) {
-            $assetClass = InvestmentDefaults::resolveAssetClass($holding->asset_type ?? 'equity', $holding->sub_type ?? null);
+            $assetClass = InvestmentDefaults::resolveAssetClass($holding->asset_type ?? 'unknown', $holding->sub_type ?? null);
             $percentage = (($holding->current_value ?? 0) / $totalValue) * 100;
             $breakdown[$assetClass] += $percentage;
         }

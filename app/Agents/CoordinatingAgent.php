@@ -2775,6 +2775,11 @@ class CoordinatingAgent extends BaseAgent
             'reason' => 'tier_limit_reached',
             'limit' => $exception->hardLimit,
             'tier' => $subscriptionStatus['tier'],
+            'destination' => [
+                'screen' => 'subscription',
+                'params' => [],
+                'fallback' => 'dashboard',
+            ],
         ]);
     }
 

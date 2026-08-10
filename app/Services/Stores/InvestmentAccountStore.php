@@ -13,6 +13,7 @@ use App\Models\AuditLog;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\User;
+use App\Services\Savings\ISAContributionLedger;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Snapshots\SnapshotPolicies;
@@ -36,6 +37,7 @@ class InvestmentAccountStore
     public function __construct(
         private readonly TierGate $tierGate,
         private readonly SnapshotPolicies $snapshotPolicies,
+        private readonly ISAContributionLedger $isaContributionLedger,
     ) {}
 
     // ─── READ METHODS ──────────────────────────────────────────────────────
@@ -96,6 +98,7 @@ class InvestmentAccountStore
             fn () => DB::transaction(function () use ($canonical, $source) {
                 $account = InvestmentAccount::create($canonical);
                 $this->writeValueSnapshot($account, null, $source, 'create');
+                $this->isaContributionLedger->syncInvestmentAnnualSummary($account, $source);
 
                 return $account;
             })
@@ -127,6 +130,7 @@ class InvestmentAccountStore
                 if (array_key_exists('current_value', $changes)) {
                     $this->writeValueSnapshot($account, $oldValue, $source, 'update');
                 }
+                $this->isaContributionLedger->syncInvestmentAnnualSummary($account, $source);
 
                 return ['fresh' => $account->fresh(), 'changes' => $changes];
             })

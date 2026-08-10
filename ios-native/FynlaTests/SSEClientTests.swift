@@ -186,9 +186,11 @@ struct SSEClientTests {
         let client = SSEClient(transport: transport, maximumBufferedEvents: 1)
         let stream = try requireStream(try await client.stream(request()))
 
-        for _ in 0..<100 {
-            await Task.yield()
-        }
+        // Give the producer a real scheduling window before the consumer
+        // starts. Repeated yields are only advisory and can keep selecting
+        // this test task on newer Swift runtimes, which makes the overflow
+        // assertion depend on scheduler luck.
+        try await Task.sleep(nanoseconds: 100_000_000)
 
         do {
             for try await _ in stream {}

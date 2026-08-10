@@ -10,6 +10,7 @@ struct ProtectionView: View {
     let onRoute: (AppRoute) -> Void
     let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
+    @State private var expandedGapID: String?
 
     var body: some View {
         Group {
@@ -59,7 +60,7 @@ struct ProtectionView: View {
                     }
 
                     heroCard(snapshot)
-                    gapsCard(snapshot.openGaps)
+                    gapsCard(snapshot)
                     policiesCard(snapshot.policies)
                 }
                 .padding(.horizontal, 16)
@@ -81,8 +82,9 @@ struct ProtectionView: View {
     }
 
     // mp-gap rows: label + severity tag head, raspberry shortfall + detail foot.
-    private func gapsCard(_ gaps: [ProtectionGapSummary]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private func gapsCard(_ snapshot: ProtectionSnapshot) -> some View {
+        let gaps = snapshot.openGaps
+        return VStack(alignment: .leading, spacing: 0) {
             Text("Coverage gaps".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
@@ -96,7 +98,11 @@ struct ProtectionView: View {
                     .padding(.vertical, 8)
             } else {
                 ForEach(gaps) { gap in
-                    gapRow(gap, showsDivider: gap.id != gaps.last?.id)
+                    gapRow(
+                        gap,
+                        calculatedAt: snapshot.calculatedAt,
+                        showsDivider: gap.id != gaps.last?.id
+                    )
                 }
             }
         }
@@ -108,42 +114,117 @@ struct ProtectionView: View {
 
     private func gapRow(
         _ gap: ProtectionGapSummary,
+        calculatedAt: String?,
         showsDivider: Bool
     ) -> some View {
-        let severity = severity(for: gap.shortfall)
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(gap.label)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(FynlaColor.Token.horizon500.color)
-                Spacer()
-                Text(severity.label.uppercased())
-                    .font(.system(size: 11, weight: .bold))
-                    .kerning(0.5)
-                    .foregroundStyle(severity.foreground)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(severity.background)
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        let severity = severityStyle(gap.severity)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                expandedGapID = expandedGapID == gap.id ? nil : gap.id
             }
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text("\(MoneyFormatter.gbpWhole(gap.shortfall))\(gap.perYear ? " a year" : "") short")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(FynlaColor.Token.raspberry500.color)
-                Spacer()
-                if let have = gap.have, let need = gap.need {
-                    Text("\(MoneyFormatter.gbpWhole(have)) of \(MoneyFormatter.gbpWhole(need))\(gap.perYear ? " p.a." : "")")
-                        .font(.system(size: 12))
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(gap.label)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    Spacer()
+                    Text(severity.label.uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(severity.foreground)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(severity.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    Image(systemName: expandedGapID == gap.id ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(FynlaColor.Token.neutral500.color)
                 }
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("\(MoneyFormatter.gbpWhole(gap.shortfall))\(gap.perYear ? " a year" : "") short")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
+                    Spacer()
+                    if let have = gap.have, let need = gap.need {
+                        Text("\(MoneyFormatter.gbpWhole(have)) of \(MoneyFormatter.gbpWhole(need))\(gap.perYear ? " p.a." : "")")
+                            .font(.system(size: 12))
+                            .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    }
+                }
+
+                if expandedGapID == gap.id {
+                    gapExplanation(gap, calculatedAt: calculatedAt)
+                        .padding(.top, 8)
+                }
             }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .padding(.vertical, 12)
         .overlay(alignment: .bottom) {
             if showsDivider {
                 FynlaColor.Token.horizon100.color.frame(height: 1)
             }
         }
+        .accessibilityIdentifier("protection.gap.\(gap.id)")
+    }
+
+    private func gapExplanation(
+        _ gap: ProtectionGapSummary,
+        calculatedAt: String?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !gap.explanation.isEmpty {
+                Text(gap.explanation)
+                    .font(.system(size: 13))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+            }
+
+            if !gap.inputs.isEmpty {
+                detailTitle("Inputs")
+                ForEach(gap.inputs.keys.sorted(), id: \.self) { key in
+                    detailRow(
+                        titleCase(key),
+                        displayValue(gap.inputs[key] ?? .null, key: key)
+                    )
+                }
+            }
+
+            if !gap.assumptions.isEmpty {
+                detailTitle("Assumptions")
+                ForEach(gap.assumptions, id: \.key) { assumption in
+                    detailRow(
+                        titleCase(assumption.key),
+                        displayValue(
+                            assumption.value,
+                            key: assumption.key,
+                            unit: assumption.unit
+                        )
+                    )
+                }
+            }
+
+            if !gap.relevantPolicies.isEmpty {
+                detailTitle("Related policies")
+                ForEach(gap.relevantPolicies) { policy in
+                    detailRow(
+                        policy.provider ?? policy.name ?? titleCase(policy.type),
+                        MoneyFormatter.gbpWhole(policy.cover)
+                    )
+                }
+            }
+
+            if let calculatedAt {
+                Text("Calculated \(dateTimeLabel(calculatedAt)) from your recorded financial information.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FynlaColor.Token.lightBlue100.color.opacity(0.55))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func policiesCard(_ policies: [ProtectionPolicyItem]) -> some View {
@@ -213,19 +294,91 @@ struct ProtectionView: View {
         .accessibilityIdentifier("protection.policy.\(item.id)")
     }
 
-    // /m's severity(): Low < £50k, Medium < £150k (violet on light blue),
-    // High otherwise (white on raspberry).
-    private func severity(
-        for shortfall: Decimal
+    // Severity is supplied by the canonical protection contract. The client
+    // maps labels to colours but never derives severity from the amount.
+    private func severityStyle(
+        _ value: String
     ) -> (label: String, foreground: Color, background: Color) {
-        let value = NSDecimalNumber(decimal: shortfall).doubleValue
-        if value < 50_000 {
-            return ("Low", FynlaColor.Token.violet500.color, FynlaColor.Token.lightBlue100.color)
-        }
-        if value < 150_000 {
+        switch value.lowercased() {
+        case "high", "critical":
+            return ("High", .white, FynlaColor.Token.raspberry500.color)
+        case "medium":
             return ("Medium", FynlaColor.Token.violet500.color, FynlaColor.Token.lightBlue100.color)
+        case "low":
+            return ("Low", FynlaColor.Token.spring600.color, FynlaColor.Token.spring500.color.opacity(0.12))
+        case "none", "covered":
+            return ("Covered", FynlaColor.Token.spring600.color, FynlaColor.Token.spring500.color.opacity(0.12))
+        default:
+            return ("Review", FynlaColor.Token.violet500.color, FynlaColor.Token.lightBlue100.color)
         }
-        return ("High", .white, FynlaColor.Token.raspberry500.color)
+    }
+
+    private func detailTitle(_ value: String) -> some View {
+        Text(value.uppercased())
+            .font(.system(size: 10, weight: .bold))
+            .kerning(0.4)
+            .foregroundStyle(FynlaColor.Token.neutral500.color)
+            .padding(.top, 2)
+    }
+
+    private func detailRow(_ key: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(key)
+                .font(.system(size: 12))
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(FynlaColor.Token.horizon500.color)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private func displayValue(
+        _ value: ProtectionJSONValue,
+        key: String,
+        unit: String? = nil
+    ) -> String {
+        switch value {
+        case let .string(value):
+            value
+        case let .number(value):
+            if unit?.lowercased() == "percent" {
+                MoneyFormatter.percentage(value)
+            } else if unit?.uppercased() == "GBP" || isMoneyInput(key) {
+                MoneyFormatter.gbpWhole(value)
+            } else {
+                NSDecimalNumber(decimal: value).stringValue
+            }
+        case let .bool(value):
+            value ? "Yes" : "No"
+        case let .array(values):
+            values.map { displayValue($0, key: key) }.joined(separator: ", ")
+        case let .object(values):
+            values.keys.sorted().map {
+                "\(titleCase($0)): \(displayValue(values[$0] ?? .null, key: $0))"
+            }.joined(separator: ", ")
+        case .null:
+            "Unavailable"
+        }
+    }
+
+    private func isMoneyInput(_ key: String) -> Bool {
+        ["income", "debt", "mortgage", "cover", "need", "expense", "capital"]
+            .contains { key.lowercased().contains($0) }
+    }
+
+    private func titleCase(_ value: String) -> String {
+        value.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+
+    private func dateTimeLabel(_ value: String) -> String {
+        guard let date = ISO8601DateFormatter().date(from: value) else { return value }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_GB")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     private func heroSubtitle(_ snapshot: ProtectionSnapshot) -> String {

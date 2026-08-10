@@ -10,6 +10,7 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -46,6 +47,9 @@ class DCPension extends Model
         'monthly_contribution_amount',
         'lump_sum_contribution',
         'investment_strategy',
+        'entered_allocation_baseline',
+        'entered_allocation_source',
+        'entered_allocation_effective_at',
         'platform_fee_percent',
         'platform_fee_type',
         'platform_fee_amount',
@@ -83,6 +87,8 @@ class DCPension extends Model
         'employer_matching_limit' => 'decimal:2',
         'monthly_contribution_amount' => 'decimal:2',
         'lump_sum_contribution' => 'decimal:2',
+        'entered_allocation_baseline' => 'array',
+        'entered_allocation_effective_at' => 'date',
         'platform_fee_percent' => 'decimal:4',
         'platform_fee_amount' => 'decimal:2',
         'advisor_fee_percent' => 'decimal:4',
@@ -135,5 +141,10 @@ class DCPension extends Model
     public function holdings(): MorphMany
     {
         return $this->morphMany(Holding::class, 'holdable');
+    }
+
+    public function valueSnapshots(): HasMany
+    {
+        return $this->hasMany(DCPensionValueSnapshot::class, 'dc_pension_id');
     }
 }

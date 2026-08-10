@@ -230,6 +230,29 @@ struct FynlaApp: App {
             )
         )
         #endif
+        #if FYNLA_UI_TESTING
+        let investmentModel = uiTestMode == nil
+            ? InvestmentModel(
+                client: LiveInvestmentClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : InvestmentUITestComposition.model()
+        let retirementModel = uiTestMode == nil
+            ? RetirementModel(
+                client: LiveRetirementClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : RetirementUITestComposition.model()
+        let protectionModel = uiTestMode == nil
+            ? ProtectionModel(
+                client: LiveProtectionClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ProtectionUITestComposition.model()
+        #else
         let investmentModel = InvestmentModel(
             client: LiveInvestmentClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -245,6 +268,7 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         let estateModel = EstateModel(
             client: LiveEstateClient(
                 apiClient: authenticatedDependencies.makeAPIClient()

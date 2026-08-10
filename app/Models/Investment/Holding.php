@@ -22,6 +22,9 @@ class Holding extends Model
         'holdable_type',
         'asset_type',
         'sub_type',
+        'look_through_allocation',
+        'look_through_source',
+        'look_through_effective_at',
         'allocation_percent',
         'security_name',
         'ticker',
@@ -46,6 +49,8 @@ class Holding extends Model
      */
     protected $casts = [
         'allocation_percent' => 'decimal:2',
+        'look_through_allocation' => 'array',
+        'look_through_effective_at' => 'date',
         'quantity' => 'decimal:6',
         'purchase_price' => 'decimal:4',
         'purchase_date' => 'date',

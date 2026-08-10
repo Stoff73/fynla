@@ -167,9 +167,9 @@ it('returns 403 with structured payload when free-tier investment cap is exceede
     $response->assertStatus(403)
         ->assertJson([
             'success' => false,
-            'error' => [
-                'entity_key' => 'investment',
-            ],
+            'error' => 'tier_limit_reached',
+            'entity_key' => 'investment',
+            'action' => 'subscription_options',
         ]);
 });
 

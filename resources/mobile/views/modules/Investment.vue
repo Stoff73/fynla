@@ -86,6 +86,7 @@ export default {
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     contextualRequest() {
+      if (this.atCap) return null;
       return buildContextualConversationRequest({
         action: 'add',
         resourceType: 'investment',
