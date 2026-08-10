@@ -76,10 +76,45 @@
         </div>
       </div>
 
-      <!-- Projections section -->
+      <!-- Server-owned product reconciliation and age-banded projection -->
       <div class="m-card m-detail-rows">
-        <p class="m-section-label" style="margin-top:0">Pension pot projection</p>
+        <p class="m-section-label" style="margin-top:0">Retirement income projection</p>
         <p v-if="projError" class="m-sub" style="margin-bottom:0">{{ projError }}</p>
+        <template v-else-if="planningProjection">
+          <p class="mr-proj-intro">
+            Planning projection at age {{ planningProjection.target_retirement_age }}:
+            <strong>{{ fmt(planningProjection.planning_total_at_target_age) }} a year</strong>
+          </p>
+
+          <p class="mr-proj-subhead">Income sources</p>
+          <div
+            v-for="product in planningProducts"
+            :key="`${product.resource_type}-${product.resource_id}`"
+            class="m-detail-row"
+          >
+            <span class="m-detail-key">{{ product.name }} from age {{ product.commencement_age }}</span>
+            <span class="m-detail-value">{{ fmt(product.annual_income) }} a year</span>
+          </div>
+
+          <p class="mr-proj-subhead">Income by age</p>
+          <div
+            v-for="band in planningAgeBands"
+            :key="`${band.start_age}-${band.end_age}`"
+            class="m-detail-row"
+          >
+            <span class="m-detail-key">Age {{ band.start_age }}–{{ band.end_age }}</span>
+            <span class="m-detail-value">{{ fmt(band.annual_income) }} a year</span>
+          </div>
+
+          <p class="mr-proj-note">
+            This planning projection uses a {{ planningAssumptions.sustainable_withdrawal_rate?.percent }}%
+            sustainable withdrawal rate for Defined Contribution pensions, {{ planningAssumptions.growth_rate_percent }}%
+            growth, {{ planningAssumptions.fee_rate_percent }}% fees ({{ planningAssumptions.net_growth_rate_percent }}%
+            net growth), {{ planningAssumptions.inflation_rate_percent }}% inflation, and the contributions recorded on
+            each pension. Figures are {{ planningAssumptions.basis || 'nominal' }}. Uncertainty ranges are separate from
+            this primary planning projection.
+          </p>
+        </template>
         <template v-else-if="pot">
           <div class="m-detail-row">
             <span class="m-detail-key">Current pot value</span>
@@ -89,20 +124,7 @@
             <span class="m-detail-key">Monthly contributions</span>
             <span class="m-detail-value">{{ fmt(pot.monthly_contribution) }}</span>
           </div>
-          <div class="m-detail-row">
-            <span class="m-detail-key">Projected at retirement</span>
-            <span class="m-detail-value">{{ fmt(pot.percentile_20_at_retirement) }}</span>
-          </div>
-          <div class="m-detail-row">
-            <span class="m-detail-key">Median projection</span>
-            <span class="m-detail-value">{{ fmt(pot.median_at_retirement) }}</span>
-          </div>
-          <p class="mr-proj-note">
-            Projected value at {{ projectionAgeLabel }} {{ pot.retirement_age }} based on {{ pot.years_to_retirement }} years to
-            retirement and an estimated {{ pot.expected_return }}% annual return. The projected figure is a
-            conservative estimate (80% likelihood of exceeding it).
-            <template v-if="currentAgeAssumption"> {{ currentAgeAssumption }}</template>
-          </p>
+          <p class="mr-proj-note">The reconciled planning projection is not available yet.</p>
         </template>
         <p v-else class="m-sub" style="margin-bottom:0">No projection available yet.</p>
       </div>
@@ -150,6 +172,7 @@ export default {
     analysisReady: false,
     pot: null,
     incomeDrawdown: null,
+    planningProjection: null,
     projError: '',
     loadGeneration: 0,
   }),
@@ -173,6 +196,8 @@ export default {
       });
     },
     projectedIncome() {
+      const planningTotal = this.planningProjection?.planning_total_at_target_age;
+      if (planningTotal != null && !isNaN(Number(planningTotal))) return Number(planningTotal);
       if (this.analysisReady) {
         const analyzed = this.analysis?.projected_income;
         return analyzed != null && !isNaN(Number(analyzed)) ? Number(analyzed) : null;
@@ -229,6 +254,9 @@ export default {
         ? `This projection uses an assumed current age of ${this.pot.current_age}.`
         : '';
     },
+    planningProducts() { return this.planningProjection?.products || []; },
+    planningAgeBands() { return this.planningProjection?.age_bands || []; },
+    planningAssumptions() { return this.planningProjection?.assumptions || {}; },
     recommendations() { return this.analysis?.recommendations || []; },
     gapNarrative() {
       if (!this.hasTargetIncome) return 'Add a target retirement income to see how your projection compares.';
@@ -296,6 +324,7 @@ export default {
       this.analysisReady = false;
       this.pot = null;
       this.incomeDrawdown = null;
+      this.planningProjection = null;
       this.projError = '';
       try {
         const [indexRes, analyzeRes] = await Promise.all([
@@ -331,6 +360,7 @@ export default {
           const payload = data?.data || data || {};
           this.pot = payload.pension_pot_projection || null;
           this.incomeDrawdown = payload.income_drawdown || null;
+          this.planningProjection = payload.planning_projection || null;
         } else {
           this.projError = 'Projections are not available right now.';
         }
@@ -364,6 +394,8 @@ export default {
 .mr-pension__view { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--raspberry-500); }
 
 .mr-proj-note { font-size: 12px; color: var(--neutral-500); line-height: 1.5; margin-top: 12px; }
+.mr-proj-intro { margin: 0 0 12px; font-size: 14px; color: var(--horizon-500); line-height: 1.5; }
+.mr-proj-subhead { margin: 14px 0 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--neutral-500); }
 
 .mr-rec { border: 1px solid var(--light-gray); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 10px; }
 .mr-rec:last-child { margin-bottom: 0; }

@@ -237,16 +237,43 @@ struct RetirementView: View {
     }
 
     private func projectionCard(_ projections: RetirementProjections?) -> some View {
-        detailCard("Pension pot projection") {
-            if let projection = projections?.pensionPotProjection {
-                detailRow("Current pot value", money(projection.currentValue))
-                detailRow("Monthly contributions", money(projection.monthlyContribution))
-                detailRow("Projected at retirement", money(projection.percentile20AtRetirement))
-                detailRow("Median projection", money(projection.medianAtRetirement), showsDivider: false)
-                Text(projectionNote(projection))
+        detailCard("Retirement income projection") {
+            if let planning = projections?.planningProjection {
+                Text("Planning projection at age \(planning.targetRetirementAge): \(MoneyFormatter.gbpWhole(planning.planningTotalAtTargetAge)) a year")
+                    .font(.system(size: 14))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                    .padding(.vertical, 8)
+
+                projectionSubheading("Income sources")
+                ForEach(planning.products) { product in
+                    detailRow(
+                        "\(product.name) from age \(product.commencementAge)",
+                        "\(MoneyFormatter.gbpWhole(product.annualIncome)) a year"
+                    )
+                    .accessibilityIdentifier("retirement.projection-product.\(product.id)")
+                }
+
+                projectionSubheading("Income by age")
+                ForEach(planning.ageBands) { band in
+                    detailRow(
+                        band.rangeLabel,
+                        "\(MoneyFormatter.gbpWhole(band.annualIncome)) a year"
+                    )
+                    .accessibilityIdentifier(band.accessibilityIdentifier)
+                }
+
+                Text(assumptionsNote(planning.assumptions))
                     .font(.system(size: 12))
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
                     .lineSpacing(3)
+                    .padding(.top, 12)
+                    .accessibilityIdentifier("retirement.projection.assumptions")
+            } else if let projection = projections?.pensionPotProjection {
+                detailRow("Current pot value", money(projection.currentValue))
+                detailRow("Monthly contributions", money(projection.monthlyContribution), showsDivider: false)
+                Text("The reconciled planning projection is not available yet.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(FynlaColor.Token.neutral500.color)
                     .padding(.top, 12)
             } else if projections == nil {
                 // The projections fetch failed — /m's copy for this state.
@@ -260,6 +287,19 @@ struct RetirementView: View {
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
         }
+    }
+
+    private func projectionSubheading(_ value: String) -> some View {
+        Text(value.uppercased())
+            .font(.system(size: 11, weight: .bold))
+            .kerning(0.5)
+            .foregroundStyle(FynlaColor.Token.neutral500.color)
+            .padding(.top, 12)
+            .padding(.bottom, 2)
+    }
+
+    private func assumptionsNote(_ assumptions: RetirementProjectionAssumptions) -> String {
+        "This planning projection uses a \(MoneyFormatter.percentage(assumptions.sustainableWithdrawalRate.percent)) sustainable withdrawal rate for Defined Contribution pensions, \(MoneyFormatter.percentage(assumptions.growthRatePercent)) growth, \(MoneyFormatter.percentage(assumptions.feeRatePercent)) fees (\(MoneyFormatter.percentage(assumptions.netGrowthRatePercent)) net growth), \(MoneyFormatter.percentage(assumptions.inflationRatePercent)) inflation, and the contributions recorded on each pension. Figures are \(assumptions.basis); uncertainty ranges are separate from this primary planning projection."
     }
 
     // mr-rec: bordered recommendation cards.
@@ -361,26 +401,6 @@ struct RetirementView: View {
 
     private func money(_ value: Decimal?) -> String {
         value.map(MoneyFormatter.gbpWhole) ?? "—"
-    }
-
-    // /m's projection note with the age-source phrasing and the assumed
-    // current-age sentence.
-    private func projectionNote(_ projection: RetirementPotProjection) -> String {
-        let ageLabel: String = switch projection.retirementAgeSource {
-        case "user_profile", "retirement_profile": "your target retirement age"
-        case "pension": "the retirement age recorded on your pension"
-        default: "an assumed retirement age"
-        }
-        let age = projection.retirementAge.map(String.init) ?? "—"
-        let years = projection.yearsToRetirement.map(String.init) ?? "—"
-        let expectedReturn = projection.expectedReturn
-            .map { NSDecimalNumber(decimal: $0).doubleValue }
-            .map { String(format: "%g", $0) } ?? "—"
-        var note = "Projected value at \(ageLabel) \(age) based on \(years) years to retirement and an estimated \(expectedReturn)% annual return. The projected figure is a conservative estimate (80% likelihood of exceeding it)."
-        if projection.currentAgeSource == "assumed", let currentAge = projection.currentAge {
-            note += " This projection uses an assumed current age of \(currentAge)."
-        }
-        return note
     }
 
     private var offlineNotice: some View {
