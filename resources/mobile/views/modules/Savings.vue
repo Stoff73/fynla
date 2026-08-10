@@ -103,8 +103,14 @@
 
       <!-- ISA allowance -->
       <div v-if="isaAllowance" class="m-card">
-        <p class="m-section-label" style="margin-top:0">ISA allowance this year</p>
-        <div class="mts-allow" style="border-bottom:0;padding-bottom:0">
+        <button
+          type="button"
+          class="mts-allow"
+          data-test="isa-allowance-card"
+          :aria-expanded="isaExpanded"
+          @click="isaExpanded = !isaExpanded"
+        >
+          <p class="m-section-label" style="margin-top:0">ISA allowance this year</p>
           <div class="mts-allow__head">
             <span class="mts-allow__label">ISA allowance used</span>
             <span class="mts-allow__cap">of {{ fmt(isaTotal) }}</span>
@@ -116,7 +122,9 @@
             <span class="mts-allow__remain" :class="`mts-allow__remain--${isaStatus}`">{{ isaRemainingLabel }}</span>
             <span class="mts-allow__used">{{ fmt(isaUsed) }} used</span>
           </div>
-        </div>
+          <span class="mts-allow__view">{{ isaExpanded ? 'Hide contributions' : 'View contributions' }}</span>
+        </button>
+        <ISAContributionHistory v-if="isaExpanded" :status="isaAllowance" />
       </div>
     </template>
   </MobileChrome>
@@ -127,6 +135,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
 
@@ -137,9 +146,9 @@ function formatCurrency(value) {
 
 export default {
   name: 'MobileSavings',
-  components: { MobileChrome },
+  components: { ISAContributionHistory, MobileChrome },
   mixins: [upgradeMixin],
-  data: () => ({ loading: true, error: '', payload: null }),
+  data: () => ({ loading: true, error: '', payload: null, isaExpanded: false }),
   computed: {
     accounts() { return this.payload?.accounts || []; },
     // CSJ: a Cash ISA is cash held in an ISA wrapper — it is NOT a bank account,
@@ -151,6 +160,7 @@ export default {
     accountLimit() { return this.payload?.account_limit ?? null; },
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     contextualRequest() {
+      if (this.atCap) return null;
       return buildContextualConversationRequest({
         action: 'add',
         resourceType: 'savings',
@@ -290,6 +300,8 @@ export default {
 .mts-allow__remain--violet { color: var(--violet-500); }
 .mts-allow__remain--raspberry { color: var(--raspberry-500); }
 .mts-allow__used { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
+.mts-allow { display: block; width: 100%; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.mts-allow__view { display: block; margin-top: 10px; color: var(--raspberry-500); font-size: 12px; font-weight: 700; }
 
 .ms-acct { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--light-gray); padding: 14px 0; cursor: pointer; }
 .ms-acct:last-child { border-bottom: 0; padding-bottom: 0; }
