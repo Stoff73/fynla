@@ -1210,10 +1210,19 @@ final class FynlaUITests: XCTestCase {
     ) {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         assertReachable(field, in: app)
-        field.tap()
-        let currentLength = ((field.value as? String)?.count ?? 0) + 4
-        field.typeText(String(repeating: "\u{8}", count: currentLength))
-        field.typeText(value)
+
+        for _ in 0..<3 {
+            // The forecast fields are right-aligned. A centre tap can put
+            // the insertion point before the existing value on compact CI
+            // simulators, making leading backspaces no-ops ("6.25" then
+            // became "6.253"). Double-tap selects the existing numeric
+            // token so typing replaces it without relying on caret position.
+            // Retry if XCTest drops an event while the keyboard is settling.
+            field.doubleTap()
+            field.typeText(value)
+            if field.value as? String == value { return }
+        }
+
         XCTAssertEqual(field.value as? String, value)
     }
 
