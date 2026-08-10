@@ -130,11 +130,11 @@ Run: `git add app/Http/Controllers/Api/AiChatController.php app/Models/AiConvers
 - Produces: `ConversationModeResolver::routesToOnboarding(AiConversation $conversation, User $user): bool`.
 - Produces: a `<surface_action>` context block containing server authority/provenance, action and identifiers, current canonical facts, and explicit proposed-fact/write-boundary instructions.
 
-- [ ] **Step 1: Write failing dispatch and prompt tests**
+- [x] **Step 1: Write failing dispatch and prompt tests**
 
 Prove a `surface_action` conversation uses `AdviceFyn` while `onboarding_completed=false`; the original `fyn_onboarding` conversation still uses `OnboardingChatDirector`; queued-stream and action endpoints make the same decision; legacy metadata falls back to the existing user predicate; changing a model value after conversation creation changes the next assembled context; cross-user/deleted resource context fails closed without leaking data.
 
-- [ ] **Step 2: Run the focused tests and confirm RED**
+- [x] **Step 2: Run the focused tests and confirm RED**
 
 Run:
 
@@ -144,15 +144,15 @@ Run:
 
 Expected: FAIL because dispatch is user-global and the trusted block is absent.
 
-- [ ] **Step 3: Implement immutable mode routing at all three controller seams**
+- [x] **Step 3: Implement immutable mode routing at all three controller seams**
 
 Replace direct calls to the current user predicate in message, queued-stream, and action handling. `metadata.source=surface_action` always resolves to advice/capture; `metadata.source=fyn_onboarding` always resolves to onboarding; only untyped legacy conversations use the historical predicate.
 
-- [ ] **Step 4: Inject freshly resolved canonical context**
+- [x] **Step 4: Inject freshly resolved canonical context**
 
 When `FynTurnContext::conversation` is contextual, reload the resource through the ownership-filtered resolver and render a sanitised `<surface_action>` sibling inside `<context>`. Include no request-supplied financial content. If the entity no longer resolves, render a safe unavailable-resource directive and canonical fallback rather than stale facts.
 
-- [ ] **Step 5: Run regression suites**
+- [x] **Step 5: Run regression suites**
 
 Run:
 
@@ -163,7 +163,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit mode isolation and rehydration**
+- [x] **Step 6: Commit mode isolation and rehydration**
 
 Run: `git add app/Http/Controllers/Api/AiChatController.php app/Services/AI/ContextualConversation app/Services/AI/Fyn/FynContextAssembler.php tests/Feature/AI/ContextualConversationDispatchTest.php tests/Unit/Services/AI/Fyn/ContextualResourceContextTest.php tests/Feature/AI/CampaignReentryDispatchTest.php && git commit -m "fix: isolate and rehydrate contextual Fyn turns"`
 

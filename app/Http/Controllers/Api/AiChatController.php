@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\ContextualConversation\ContextualConversationService;
+use App\Services\AI\ContextualConversation\ConversationModeResolver;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\AI\Loop\ResumptionService;
 use App\Services\Eval\EvalTraceCollector;
@@ -40,6 +41,7 @@ class AiChatController extends Controller
         private readonly ConsentService $consentService,
         private readonly ConcurrentTurnQueue $queue,
         private readonly ResumptionService $resumption,
+        private readonly ConversationModeResolver $conversationModes,
     ) {}
 
     /**
@@ -257,9 +259,9 @@ class AiChatController extends Controller
         //   signalled purely by active_campaign being non-null. A null
         //   onboarding_fyn_step (paused mid-campaign) falls back to advice so a
         //   paused user can still get answers without their step being lost.
-        //   The predicate is centralised in routesToOnboardingDirector() and
-        //   shared by streamQueuedMessage and action to keep all three in sync.
-        $inOnboarding = $this->routesToOnboardingDirector($user);
+        //   ConversationModeResolver keeps typed conversation modes immutable
+        //   and is shared by streamQueuedMessage and action.
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock) {
             try {
@@ -432,7 +434,7 @@ class AiChatController extends Controller
 
         $message = $queued->content;
         $currentRoute = $request->input('current_route');
-        $inOnboarding = $this->routesToOnboardingDirector($user);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued) {
             try {
@@ -785,9 +787,9 @@ class AiChatController extends Controller
             }
             $user->onboarding_fyn_step = $stepId;
             $startStateId = $stepId;
-            // Re-entry: stamp active_campaign so routesToOnboardingDirector routes
-            // subsequent messages from this completed user to the director while
-            // the campaign session is in progress.
+            // Re-entry: stamp active_campaign so legacy untyped conversations
+            // from this completed user still route to the director while the
+            // campaign session is in progress.
             if ($reentryCampaign !== null) {
                 $user->active_campaign = $matchedCampaign;
             }
@@ -912,7 +914,7 @@ class AiChatController extends Controller
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
         $action = $request->input('action');
 
-        $inOnboarding = $this->routesToOnboardingDirector($user);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
             try {
@@ -974,23 +976,5 @@ class AiChatController extends Controller
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
-    }
-
-    /**
-     * The Fyn dispatch predicate: does this user's message belong to the
-     * onboarding director (the one write state)? True mid-onboarding, and
-     * during campaign re-entry (active_campaign set by onboarding/start;
-     * cleared at campaign terminal and on the "Something else" pause).
-     * Canonical contract: April/April24Updates/spec/00-canonical.md.
-     *
-     * Used by sendMessage, streamQueuedMessage, and action — all three seams
-     * must honour the same predicate, so a single helper replaces the old
-     * sync-by-comment pattern.
-     */
-    private function routesToOnboardingDirector(User $user): bool
-    {
-        return ($user->onboarding_completed === false || $user->active_campaign !== null)
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
     }
 }
