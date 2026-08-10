@@ -152,7 +152,7 @@ export default {
     atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
     contextualRequest() {
       return buildContextualConversationRequest({
-        action: this.accounts.length ? 'edit' : 'add',
+        action: 'add',
         resourceType: 'savings',
         currentDestination: { screen: 'savings', params: {}, fallback: 'dashboard' },
         origin: { kind: 'surface_action' },

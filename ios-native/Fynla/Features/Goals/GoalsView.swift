@@ -44,7 +44,7 @@ struct GoalsView: View {
                     subtitle: "Your financial milestones and how they're tracking"
                 )
 
-                MobilePageActions(editDetails: {
+                MobilePageActions(actionTitle: "Add goal", editDetails: {
                     onOpenContextualFyn(
                         FynContextualActions.goalsOverview(
                             hasGoals: !snapshot.goals.isEmpty
@@ -130,16 +130,6 @@ struct GoalsView: View {
                     .font(.system(size: 12, weight: .bold))
                     .kerning(0.5)
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
-                Spacer()
-                Button {
-                    onOpenContextualFyn(FynContextualActions.addGoal())
-                } label: {
-                    Text("Add goal".uppercased())
-                        .font(.system(size: 12, weight: .bold))
-                        .kerning(0.5)
-                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
-                }
-                .accessibilityIdentifier("goals.add")
             }
             .padding(.bottom, 6)
 

@@ -45,7 +45,7 @@ struct InvestmentView: View {
                     subtitle: "Your investment accounts, holdings and allowances"
                 )
 
-                MobilePageActions(editDetails: {
+                MobilePageActions(actionTitle: "Add investment account", editDetails: {
                     onOpenContextualFyn(
                         FynContextualActions.investmentOverview(
                             hasAccounts: !snapshot.accounts.isEmpty

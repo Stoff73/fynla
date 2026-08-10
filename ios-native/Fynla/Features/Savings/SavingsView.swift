@@ -48,7 +48,7 @@ struct SavingsView: View {
                     subtitle: "Your cash, emergency-fund runway and ISA allowance"
                 )
 
-                MobilePageActions(editDetails: {
+                MobilePageActions(actionTitle: "Add bank account", editDetails: {
                     onOpenContextualFyn(
                         FynContextualActions.savingsOverview(
                             hasAccounts: !snapshot.accounts.isEmpty

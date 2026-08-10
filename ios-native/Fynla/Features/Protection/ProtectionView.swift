@@ -45,7 +45,7 @@ struct ProtectionView: View {
                     subtitle: "Your insurance cover and the gaps that remain"
                 )
 
-                MobilePageActions(editDetails: {
+                MobilePageActions(actionTitle: "Add policy", editDetails: {
                     onOpenContextualFyn(
                         FynContextualActions.protectionOverview(
                             hasPolicies: !snapshot.policies.isEmpty

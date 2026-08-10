@@ -10,7 +10,7 @@ enum FynContextualActions {
     }
 
     static func savingsOverview(hasAccounts: Bool) -> FynContextualAction {
-        overview(action: hasAccounts ? .edit : .add, resourceType: "savings", screen: "savings")
+        overview(action: .add, resourceType: "savings", screen: "savings")
     }
 
     static func savingsAccount(id: Int) -> FynContextualAction {
@@ -24,7 +24,7 @@ enum FynContextualActions {
     }
 
     static func investmentOverview(hasAccounts: Bool) -> FynContextualAction {
-        overview(action: hasAccounts ? .edit : .add, resourceType: "investment", screen: "investment")
+        overview(action: .add, resourceType: "investment", screen: "investment")
     }
 
     static func investmentAccount(id: Int) -> FynContextualAction {
@@ -38,7 +38,7 @@ enum FynContextualActions {
     }
 
     static func retirementOverview(hasPensions: Bool) -> FynContextualAction {
-        overview(action: hasPensions ? .edit : .add, resourceType: "retirement", screen: "retirement")
+        overview(action: .add, resourceType: "retirement", screen: "retirement")
     }
 
     static func pension(type: String, id: Int) -> FynContextualAction {
@@ -58,7 +58,7 @@ enum FynContextualActions {
     }
 
     static func protectionOverview(hasPolicies: Bool) -> FynContextualAction {
-        overview(action: hasPolicies ? .edit : .add, resourceType: "protection", screen: "protection")
+        overview(action: .add, resourceType: "protection", screen: "protection")
     }
 
     static func protectionPolicy(type: String, id: Int) -> FynContextualAction {
@@ -80,7 +80,7 @@ enum FynContextualActions {
     }
 
     static func goalsOverview(hasGoals: Bool) -> FynContextualAction {
-        overview(action: hasGoals ? .edit : .add, resourceType: "goals", screen: "goals")
+        overview(action: .add, resourceType: "goals", screen: "goals")
     }
 
     static func addGoal() -> FynContextualAction {

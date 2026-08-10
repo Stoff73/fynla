@@ -103,6 +103,8 @@ final class FynlaUITests: XCTestCase {
 
         openDrawerItem("navigation.bank-accounts", in: app)
         XCTAssertTrue(element("savings.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Add bank account"].exists)
+        XCTAssertFalse(app.buttons["Edit details"].exists)
         let account = app.buttons["savings.account.12"]
         assertReachable(account, in: app)
         account.tap()
