@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\Investment\InvestmentAccount;
 use App\Models\Estate\Liability;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;

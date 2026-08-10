@@ -30,7 +30,7 @@ beforeEach(function () {
     $taxConfigService = app(TaxConfigService::class);
     $this->taxCalculator = new UKTaxCalculator($taxConfigService);
     $this->childBenefitService = new ChildBenefitService($taxConfigService, new IncomeDefinitionsService($taxConfigService, app(PropertyStore::class)));
-    $this->service = new UserProfileService($this->assetAggregator, $this->taxCalculator, $this->childBenefitService, app(PropertyStore::class), app(MortgageStore::class), app(\App\Services\Tax\IncomeDefinitionsService::class));
+    $this->service = new UserProfileService($this->assetAggregator, $this->taxCalculator, $this->childBenefitService, app(PropertyStore::class), app(MortgageStore::class), app(IncomeDefinitionsService::class));
     $this->user = User::factory()->create();
 });
 
