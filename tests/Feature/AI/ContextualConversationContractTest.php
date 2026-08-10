@@ -50,6 +50,34 @@ it('requires authentication for contextual conversation creation', function (): 
         ->assertUnauthorized();
 });
 
+it('lets preview users create a real contextual conversation', function (): void {
+    $preview = User::factory()->create(['is_preview_user' => true]);
+    $token = $preview->createToken('preview-contextual-test')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/api/ai-chat/contextual-conversations', [
+            'action' => 'add',
+            'resource_type' => 'savings',
+            'resource_id' => null,
+            'current_destination' => [
+                'screen' => 'savings',
+                'params' => [],
+                'fallback' => 'dashboard',
+            ],
+            'origin' => [
+                'kind' => 'surface_action',
+                'recommendation_id' => null,
+            ],
+        ]);
+
+    $response->assertCreated()
+        ->assertJsonMissing(['preview_mode' => true])
+        ->assertJsonPath('data.conversation.user_id', $preview->id)
+        ->assertJsonPath('data.conversation.metadata.resource_type', 'savings');
+
+    expect(AiConversation::forUser($preview->id)->count())->toBe(1);
+});
+
 it('rejects actions outside the contextual allowlist', function (): void {
     Sanctum::actingAs(User::factory()->create());
 
