@@ -16,6 +16,12 @@ struct SavingsTests {
         #expect(snapshot.totalCash == Decimal(32500))
         #expect(snapshot.emergencyFundTarget.targetAmount == Decimal(18000))
         #expect(snapshot.isaAllowance?.remaining == Decimal(12000))
+        #expect(snapshot.isaAllowance?.taxYear == "2026/27")
+        #expect(snapshot.isaAllowance?.availableTaxYears == ["2026/27", "2025/26"])
+        #expect(snapshot.isaAllowance?.owners.first?.owner.name == "Alex Example")
+        #expect(snapshot.isaAllowance?.accountBreakdown.reduce(0) { $0 + $1.contributed } == Decimal(8000))
+        #expect(snapshot.isaAllowance?.accountBreakdown.map(\.isaType) == ["cash_isa", "stocks_and_shares_isa"])
+        #expect(snapshot.isaAllowance?.accountBreakdown[1].provenance == "legacy_current_year_summary")
     }
 
     @Test
@@ -38,6 +44,7 @@ struct SavingsTests {
         #expect(account.ownershipPercentage == Decimal(50))
         #expect(account.maturityDate == "2027-07-18")
         #expect(account.isISA)
+        #expect(account.ownerName == "Alex Example")
     }
 
     @Test
@@ -45,6 +52,7 @@ struct SavingsTests {
         let transport = TestHTTPTransport([
             .response(status: 200, body: try fixture("savings-populated")),
             .response(status: 200, body: try fixture("savings-account")),
+            .response(status: 200, body: try fixture("savings-prior-allowance")),
         ])
         let apiClient = APIClient(
             environment: try AppEnvironment.values([
@@ -62,11 +70,14 @@ struct SavingsTests {
 
         _ = try await client.load()
         let account = try await client.loadAccount(id: 12)
+        let prior = try await client.loadISAAllowance(taxYear: "2025/26")
 
         #expect(account.id == 12)
+        #expect(prior.taxYear == "2025/26")
         #expect((await transport.requests()).map(\.url?.path) == [
             "/fynla/api/savings",
             "/fynla/api/savings/accounts/12",
+            "/fynla/api/savings/isa-allowance/2025-26",
         ])
     }
 
@@ -74,14 +85,18 @@ struct SavingsTests {
     func modelLoadsSummaryAndExactDetailThenClears() async throws {
         let snapshot = try decode(SavingsSnapshot.self, "savings-populated")
         let account = try decode(SavingsAccount.self, "savings-account")
+        let prior = try decode(SavingsISAAllowance.self, "savings-prior-allowance")
         let model = SavingsModel(
-            client: SavingsClientStub(snapshot: snapshot, account: account)
+            client: SavingsClientStub(snapshot: snapshot, account: account, allowance: prior)
         )
 
         await model.load()
         #expect(model.state == .loaded(snapshot))
         await model.loadAccount(id: 12)
         #expect(model.accountState == .loaded(account))
+        #expect(model.isaAllowance?.taxYear == "2026/27")
+        await model.loadISAAllowance(taxYear: "2025/26")
+        #expect(model.isaAllowance == prior)
 
         model.stop()
         #expect(model.state == .idle)
@@ -114,7 +129,9 @@ private struct SavingsTokenProvider: AccessTokenProviding {
 private struct SavingsClientStub: SavingsClient {
     let snapshot: SavingsSnapshot
     let account: SavingsAccount
+    let allowance: SavingsISAAllowance
 
     func load() async throws -> SavingsSnapshot { snapshot }
     func loadAccount(id: Int) async throws -> SavingsAccount { account }
+    func loadISAAllowance(taxYear: String) async throws -> SavingsISAAllowance { allowance }
 }

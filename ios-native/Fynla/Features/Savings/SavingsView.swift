@@ -10,6 +10,7 @@ struct SavingsView: View {
     let onRoute: (AppRoute) -> Void
     let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
+    @State private var showsISAContributionHistory = false
 
     var body: some View {
         Group {
@@ -84,7 +85,7 @@ struct SavingsView: View {
                     emergencyFundCard(snapshot)
 
                     if let allowance = snapshot.isaAllowance {
-                        isaAllowanceCard(allowance)
+                        isaAllowanceCard(model.isaAllowance ?? allowance)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -263,11 +264,26 @@ struct SavingsView: View {
         let pct = NSDecimalNumber(decimal: allowance.percentageUsed).doubleValue
         let status: RunwayStatus = pct >= 100 ? .spring : (pct >= 80 ? .violet : .spring)
         return VStack(alignment: .leading, spacing: 6) {
-            Text("ISA allowance this year".uppercased())
-                .font(.system(size: 12, weight: .bold))
-                .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.neutral500.color)
-                .padding(.bottom, 4)
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showsISAContributionHistory.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Text("ISA allowance this year".uppercased())
+                        .font(.system(size: 12, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                    Spacer()
+                    Image(systemName: showsISAContributionHistory ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(FynlaColor.Token.violet500.color)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("savings.isa-history.toggle")
+            .padding(.bottom, 4)
 
             HStack(alignment: .firstTextBaseline) {
                 Text("ISA allowance used")
@@ -293,6 +309,20 @@ struct SavingsView: View {
                 Text("\(MoneyFormatter.gbpWhole(allowance.totalUsed)) used")
                     .font(.system(size: 12))
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
+            }
+
+            if showsISAContributionHistory {
+                Divider()
+                    .padding(.vertical, 8)
+                ISAContributionHistoryView(
+                    allowance: allowance,
+                    accountID: nil,
+                    accountKind: .all,
+                    isLoading: model.isLoadingISAAllowance,
+                    onSelectTaxYear: { taxYear in
+                        Task { await model.loadISAAllowance(taxYear: taxYear) }
+                    }
+                )
             }
         }
         .padding(16)

@@ -22,6 +22,10 @@ struct RetirementTests {
         #expect(snapshot.incomeGap == Decimal(4000))
         #expect(snapshot.isAtAccountLimit)
         #expect(index.dcPensions[0].monthlyContribution == Decimal(500))
+        #expect(index.dcPensions[0].portfolio?.contractVersion == "financial_portfolio_v1")
+        #expect(index.dcPensions[0].portfolio?.wrapperType == "dc_pension")
+        #expect(index.dcPensions[0].portfolio?.analysis.comparisons.entered?.source == "user_entered")
+        #expect(index.dcPensions[0].portfolio?.analysis.comparisons.recommended?.source == "fynla_recommended_asset_allocation")
     }
 
     @Test

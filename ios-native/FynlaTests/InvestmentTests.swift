@@ -13,8 +13,20 @@ struct InvestmentTests {
         #expect(snapshot.isAtAccountLimit)
         #expect(snapshot.riskLabel == "Moderately Adventurous")
         #expect(snapshot.accounts[0].isISA)
+        #expect(snapshot.accounts[0].ownerName == "Alex Example")
         #expect(snapshot.accounts[0].holdings.count == 2)
         #expect(snapshot.accounts[0].holdings[0].gainLoss == Decimal(6000))
+        #expect(snapshot.accounts[0].portfolio?.contractVersion == "financial_portfolio_v1")
+        #expect(snapshot.accounts[0].portfolio?.holdings[0].wrapperPercentage == Decimal(75))
+        #expect(snapshot.accounts[0].portfolio?.holdings[0].wholeRelevantPortfolioPercentage == Decimal(60))
+        #expect(snapshot.accounts[0].portfolio?.holdings[0].classifiedExposure.first?.holdingPercentage == Decimal(60))
+        #expect(snapshot.accounts[0].portfolio?.holdings[1].fees.available == false)
+        #expect(snapshot.accounts[0].portfolio?.holdings[0].performance.gainLoss == Decimal(6000))
+        #expect(snapshot.accounts[0].portfolio?.analysis.coveragePercent == Decimal(90))
+        #expect(snapshot.accounts[0].portfolio?.analysis.unclassifiedValue == Decimal(4800))
+        #expect(snapshot.accounts[0].portfolio?.analysis.comparisons.entered?.driftPercentagePoints?["equities"] == Decimal(5))
+        #expect(snapshot.accounts[0].portfolio?.analysis.comparisons.recommended?.driftPercentagePoints?["equities"] == Decimal(10))
+        #expect(snapshot.accounts[0].portfolio?.performanceHistory.method == "recorded_value_snapshots")
     }
 
     @Test

@@ -103,6 +103,7 @@ struct DCPension: Decodable, Sendable, Equatable, Identifiable {
     let annualSalary: Decimal?
     let monthlyContributionAmount: Decimal?
     let retirementAge: Int?
+    let portfolio: CanonicalPortfolio?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -116,6 +117,7 @@ struct DCPension: Decodable, Sendable, Equatable, Identifiable {
         case annualSalary = "annual_salary"
         case monthlyContributionAmount = "monthly_contribution_amount"
         case retirementAge = "retirement_age"
+        case portfolio
     }
 
     var displayName: String { schemeName ?? provider ?? "Defined Contribution Pension" }

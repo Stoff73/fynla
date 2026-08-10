@@ -6,6 +6,7 @@
         "id": 21,
         "account_name": "Main ISA",
         "account_type": "stocks_and_shares_isa",
+        "isa_type": "stocks_and_shares",
         "provider": "Example Investments",
         "platform": "Example Platform",
         "current_value": 48000,
@@ -14,6 +15,7 @@
         "ownership_type": "individual",
         "ownership_percentage": 100,
         "country": "UK",
+        "owner_name": "Alex Example",
         "isa_subscription_current_year": 6000,
         "holdings": [
           {
@@ -36,7 +38,71 @@
             "gain_loss": -500,
             "gain_loss_percent": -4
           }
-        ]
+        ],
+        "portfolio": {
+          "contract_version": "financial_portfolio_v1",
+          "wrapper_type": "stocks_and_shares_isa",
+          "wrapper_id": 21,
+          "wrapper_name": "Main ISA",
+          "recorded_wrapper_value": 48000,
+          "holdings": [
+            {
+              "id": 201,
+              "name": "Global Index Fund",
+              "ticker": "GLBL",
+              "asset_type": "fund",
+              "current_value": 36000,
+              "wrapper_percentage": 75,
+              "whole_relevant_portfolio_percentage": 60,
+              "classified_exposure": [
+                {"asset_class": "equities", "value": 21600, "holding_percentage": 60},
+                {"asset_class": "bonds", "value": 9600, "holding_percentage": 26.667},
+                {"asset_class": "unclassified", "value": 4800, "holding_percentage": 13.333}
+              ],
+              "classification": {"method": "recorded_look_through", "source": "provider_factsheet", "effective_at": "2026-07-31"},
+              "fees": {"available": true, "ocf_percent": 0.15, "estimated_annual_cost": 54, "method": "recorded_ocf"},
+              "performance": {"available": true, "gain_loss": 6000, "gain_loss_percent": 20, "method": "recorded_cost_basis"}
+            },
+            {
+              "id": 202,
+              "name": "UK Bond Fund",
+              "ticker": null,
+              "asset_type": "bonds",
+              "current_value": 12000,
+              "wrapper_percentage": 25,
+              "whole_relevant_portfolio_percentage": 20,
+              "classified_exposure": [{"asset_class": "bonds", "value": 12000, "holding_percentage": 100}],
+              "classification": {"method": "recorded_asset_type", "source": "holding_record", "effective_at": null},
+              "fees": {"available": false, "unavailable_reason": "recorded_holding_charge_unavailable"},
+              "performance": {"available": false, "unavailable_reason": "recorded_cost_basis_unavailable"}
+            }
+          ],
+          "analysis": {
+            "total_value": 48000,
+            "classified_value": 43200,
+            "unclassified_value": 4800,
+            "coverage_percent": 90,
+            "coverage_threshold_percent": 80,
+            "drift_available": true,
+            "allocation": [
+              {"asset_class": "equities", "value": 21600, "portfolio_percentage": 45, "classified_percentage": 50},
+              {"asset_class": "bonds", "value": 21600, "portfolio_percentage": 45, "classified_percentage": 50},
+              {"asset_class": "unclassified", "value": 4800, "portfolio_percentage": 10, "classified_percentage": null}
+            ],
+            "comparisons": {
+              "entered": {"source": "user_entered", "effective_at": "2026-04-06", "allocation": {"equities": 45, "bonds": 55}, "drift_percentage_points": {"equities": 5, "bonds": -5}, "unavailable_reason": null},
+              "recommended": {"source": "fynla_recommended_asset_allocation", "effective_at": "2026-08-01", "allocation": {"equities": 40, "bonds": 60}, "drift_percentage_points": {"equities": 10, "bonds": -10}, "unavailable_reason": null}
+            }
+          },
+          "performance_history": {
+            "available": true,
+            "method": "recorded_value_snapshots",
+            "points": [
+              {"date": "2026-01-01", "value": 42000, "currency": "GBP", "source": "form"},
+              {"date": "2026-07-01", "value": 48000, "currency": "GBP", "source": "form"}
+            ]
+          }
+        }
       },
       {
         "id": 22,

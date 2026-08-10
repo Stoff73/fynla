@@ -108,6 +108,10 @@ struct RetirementPensionView: View {
                 ("Retirement age", pension.retirementAge.map(String.init) ?? "—"),
             ])
 
+            if let portfolio = pension.portfolio {
+                CanonicalPortfolioView(portfolio: portfolio)
+            }
+
             projectionCard
         }
     }
