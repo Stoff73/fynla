@@ -6,22 +6,26 @@ namespace App\Services\AI\ContextualConversation;
 
 use App\Http\Requests\AI\CreateContextualConversationRequest;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\DisabilityPolicy;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
-use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\SavingsStore;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class ContextualResourceResolver
 {
+    public function __construct(
+        private readonly SavingsStore $savingsStore,
+        private readonly PensionStore $pensionStore,
+    ) {}
+
     public function referenceKey(string $resourceType, ?int $resourceId): string
     {
         return $resourceType.':'.($resourceId ?? 'overview');
@@ -121,15 +125,14 @@ final class ContextualResourceResolver
 
         foreach ($idsByType as $resourceType => $ids) {
             try {
-                [$modelClass] = $this->entityDefinition($resourceType);
+                $models = $this->modelsFor(
+                    $user,
+                    $resourceType,
+                    array_values(array_unique($ids)),
+                );
             } catch (ModelNotFoundException) {
                 continue;
             }
-
-            $models = $modelClass::query()
-                ->where('user_id', $user->id)
-                ->whereIn('id', array_values(array_unique($ids)))
-                ->get();
 
             foreach ($models as $model) {
                 $resource = $this->resourceFromModel($model, $resourceType);
@@ -157,24 +160,61 @@ final class ContextualResourceResolver
 
     private function resolveEntity(User $user, string $resourceType, int $resourceId): ContextualResource
     {
-        [$modelClass] = $this->entityDefinition($resourceType);
-
         /** @var Model $model */
-        $model = $modelClass::query()
-            ->where('user_id', $user->id)
-            ->findOrFail($resourceId);
+        $model = $this->modelsFor($user, $resourceType, [$resourceId])->first();
+
+        if (! $model instanceof Model) {
+            throw (new ModelNotFoundException)->setModel($resourceType, [$resourceId]);
+        }
 
         return $this->resourceFromModel($model, $resourceType);
     }
 
     /**
-     * @return array{class-string<Model>, list<string>, string, list<string>}
+     * Resolve entities through their canonical read stores where a store
+     * boundary exists, retaining one ownership-scoped query per resource type.
+     *
+     * @param  list<int>  $resourceIds
+     * @return Collection<int, Model>
+     */
+    private function modelsFor(User $user, string $resourceType, array $resourceIds): Collection
+    {
+        if ($resourceType === 'savings_account') {
+            return $this->savingsStore->findManyPrimary($resourceIds, $user);
+        }
+
+        if (in_array($resourceType, ['dc_pension', 'db_pension', 'state_pension'], true)) {
+            return $this->pensionStore->findMany(
+                $resourceIds,
+                match ($resourceType) {
+                    'dc_pension' => 'dc',
+                    'db_pension' => 'db',
+                    'state_pension' => 'state',
+                },
+                $user,
+            );
+        }
+
+        [$modelClass] = $this->entityDefinition($resourceType);
+
+        if ($modelClass === null) {
+            throw (new ModelNotFoundException)->setModel($resourceType);
+        }
+
+        return $modelClass::query()
+            ->where('user_id', $user->id)
+            ->whereIn('id', $resourceIds)
+            ->get();
+    }
+
+    /**
+     * @return array{class-string<Model>|null, list<string>, string, list<string>}
      */
     private function entityDefinition(string $resourceType): array
     {
         return match ($resourceType) {
             'savings_account' => [
-                SavingsAccount::class,
+                null,
                 ['account_name', 'institution'],
                 'savings',
                 ['account_name', 'account_type', 'institution', 'current_balance', 'interest_rate', 'is_isa', 'isa_type', 'ownership_type'],
@@ -186,19 +226,19 @@ final class ContextualResourceResolver
                 ['account_name', 'account_type', 'provider', 'current_value', 'contributions_ytd', 'ownership_type'],
             ],
             'dc_pension' => [
-                DCPension::class,
+                null,
                 ['scheme_name', 'provider'],
                 'retirement',
                 ['scheme_name', 'scheme_type', 'provider', 'current_fund_value', 'monthly_contribution_amount', 'retirement_age'],
             ],
             'db_pension' => [
-                DBPension::class,
+                null,
                 ['scheme_name'],
                 'retirement',
                 ['scheme_name', 'scheme_type', 'accrued_annual_pension', 'normal_retirement_age'],
             ],
             'state_pension' => [
-                StatePension::class,
+                null,
                 [],
                 'retirement',
                 ['ni_years_completed', 'ni_years_required', 'state_pension_forecast_annual', 'state_pension_age'],

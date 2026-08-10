@@ -104,6 +104,25 @@ class SavingsStore
     }
 
     /**
+     * User-scoped id-based read for primary-owner-only actions.
+     *
+     * Contextual Edit conversations must mirror the store's mutation
+     * authority: joint owners can view an account, but only the primary owner
+     * may start a workflow that can update it.
+     */
+    public function findManyPrimary(array $ids, User $user): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return SavingsAccount::query()
+            ->whereIn('id', $ids)
+            ->where('user_id', $user->id)
+            ->get();
+    }
+
+    /**
      * Gate-accurate count of the user's savings accounts: primary-owner rows
      * only, matching what canCreate enforces (joint-owned accounts don't count
      * toward the cap). Single source for both create() and the free-tier cap
