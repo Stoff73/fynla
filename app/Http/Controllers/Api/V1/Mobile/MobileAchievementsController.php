@@ -122,7 +122,7 @@ class MobileAchievementsController extends Controller
         try {
             $user = $request->user();
             $this->detectJourneySafely($user);
-            $milestones = $this->canonicalMilestones($user, 1);
+            $milestones = $this->canonicalMilestones($user);
 
             return response()->json([
                 'success' => true,
@@ -132,9 +132,8 @@ class MobileAchievementsController extends Controller
                     'completed_total' => $this->completedTotal($user),
                     'milestones' => $milestones['items'],
                     'milestones_total' => $milestones['total'],
-                    'page' => 1,
                     'per_page' => self::CANONICAL_MILESTONES_PER_PAGE,
-                    'next_page' => $milestones['next_page'],
+                    'next_cursor' => $milestones['next_cursor'],
                     'upcoming' => $this->upcomingMilestones($user),
                 ],
             ]);
@@ -145,23 +144,21 @@ class MobileAchievementsController extends Controller
 
     /**
      * Canonical earned-milestone continuation endpoint.
-     * GET /api/v1/mobile/achievements/v2/milestones?page=N
+     * GET /api/v1/mobile/achievements/v2/milestones?cursor=TOKEN
      */
     public function canonicalMilestonePage(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
-            $page = max(1, (int) $request->query('page', '1'));
-            $milestones = $this->canonicalMilestones($user, $page);
+            $milestones = $this->canonicalMilestones($user, $request->query('cursor'));
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'milestones' => $milestones['items'],
                     'milestones_total' => $milestones['total'],
-                    'page' => $page,
                     'per_page' => self::CANONICAL_MILESTONES_PER_PAGE,
-                    'next_page' => $milestones['next_page'],
+                    'next_cursor' => $milestones['next_cursor'],
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -237,21 +234,57 @@ class MobileAchievementsController extends Controller
         }
     }
 
-    /** @return array{items:array<int,array<string,mixed>>,total:int,next_page:?int} */
-    private function canonicalMilestones(User $user, int $page): array
+    /** @return array{items:array<int,array<string,mixed>>,total:int,next_cursor:?string} */
+    private function canonicalMilestones(User $user, ?string $cursor = null): array
     {
         $total = UserMilestone::where('user_id', $user->id)->count();
-        $items = UserMilestone::where('user_id', $user->id)
+        $query = UserMilestone::where('user_id', $user->id)
             ->orderByDesc('achieved_at')
-            ->orderByDesc('id')
-            ->forPage($page, self::CANONICAL_MILESTONES_PER_PAGE)
-            ->get();
+            ->orderByDesc('id');
+        if ($cursor !== null && $cursor !== '') {
+            $decoded = $this->decodeMilestoneCursor($cursor);
+            if ($decoded !== null) {
+                $query->where(function ($rows) use ($decoded): void {
+                    $rows->where('achieved_at', '<', $decoded['achieved_at'])
+                        ->orWhere(function ($sameTime) use ($decoded): void {
+                            $sameTime->where('achieved_at', $decoded['achieved_at'])->where('id', '<', $decoded['id']);
+                        });
+                });
+            }
+        }
+        $rows = $query->limit(self::CANONICAL_MILESTONES_PER_PAGE + 1)->get();
+        $hasMore = $rows->count() > self::CANONICAL_MILESTONES_PER_PAGE;
+        $items = $rows->take(self::CANONICAL_MILESTONES_PER_PAGE);
+        $last = $items->last();
 
         return [
             'items' => $this->presentMilestones($items, $user),
             'total' => $total,
-            'next_page' => $page * self::CANONICAL_MILESTONES_PER_PAGE < $total ? $page + 1 : null,
+            'next_cursor' => $hasMore && $last !== null ? $this->encodeMilestoneCursor($last) : null,
         ];
+    }
+
+    private function encodeMilestoneCursor(UserMilestone $milestone): string
+    {
+        return rtrim(strtr(base64_encode(json_encode([
+            'achieved_at' => $milestone->achieved_at?->toIso8601String(),
+            'id' => $milestone->id,
+        ], JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
+    }
+
+    /** @return array{achieved_at:string,id:int}|null */
+    private function decodeMilestoneCursor(string $cursor): ?array
+    {
+        try {
+            $padded = strtr($cursor, '-_', '+/').str_repeat('=', (4 - strlen($cursor) % 4) % 4);
+            $decoded = json_decode(base64_decode($padded, true) ?: '', true, 512, JSON_THROW_ON_ERROR);
+
+            return is_array($decoded) && is_string($decoded['achieved_at'] ?? null) && is_int($decoded['id'] ?? null)
+                ? ['achieved_at' => $decoded['achieved_at'], 'id' => $decoded['id']]
+                : null;
+        } catch (\JsonException) {
+            return null;
+        }
     }
 
     /** @param Collection<int,UserMilestone> $milestones @return array<int,array<string,mixed>> */

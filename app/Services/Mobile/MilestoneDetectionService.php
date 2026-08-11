@@ -37,8 +37,8 @@ class MilestoneDetectionService
 
     private const UPCOMING_MORTGAGE_LIMIT = 3;
 
-    /** Maximum finite catalogue rows needed to determine upcoming state. */
-    private const UPCOMING_EARNED_LIMIT = 128;
+    /** Exact predicates below need at most 69 rows (45 fixed + 12 goals + 12 mortgages). */
+    private const UPCOMING_EARNED_LIMIT = 80;
     /** Net-worth thresholds in GBP. */
     private const NET_WORTH_THRESHOLDS = [
         10000, 25000, 50000, 100000, 250000, 500000, 750000, 1000000, 2000000, 5000000,
@@ -246,6 +246,8 @@ class MilestoneDetectionService
      */
     public function upcoming(User $user, ?float $netWorth = null, ?float $pensionPot = null): array
     {
+        $taxYear = $this->taxConfig->getTaxYear();
+        $year = (int) substr($taxYear, 0, 4);
         $goals = Goal::forUserOrJoint($user->id)
             ->where('target_amount', '>', 0)
             ->whereColumn('current_amount', '<', 'target_amount')
@@ -254,11 +256,13 @@ class MilestoneDetectionService
             ->get(['id', 'goal_name', 'target_amount', 'current_amount']);
         $mortgages = Mortgage::query()
             ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+            ->where('original_loan_amount', '>', 0)
             ->orderBy('id')
             ->limit(self::UPCOMING_MORTGAGE_LIMIT)
             ->get(['id', 'original_loan_amount', 'outstanding_balance']);
         $earned = $this->earnedUpcomingMilestones(
             $user,
+            $year,
             $goals->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
             $mortgages->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
         );
@@ -294,28 +298,28 @@ class MilestoneDetectionService
         foreach ($goals as $goal) {
             $progress = (float) $goal->progress_percentage;
             foreach (self::GOAL_THRESHOLDS as $threshold) {
-                if ($progress < $threshold) {
-                    $name = (string) ($goal->goal_name ?? $goal->name ?? 'your goal');
-                    $target = (float) $goal->target_amount;
-                    $current = (float) $goal->current_amount;
-                    $needed = max(0.0, $target * ($threshold / 100) - $current);
-                    $upcoming[] = [
-                        'key' => "goal:{$goal->id}:{$threshold}",
-                        'group' => 'Goals',
-                        'title' => ($threshold >= 100 ? 'Reach ' : $threshold.'% of ').$name,
-                        'steps' => $needed > 0 && $target > 0
-                            ? 'Put £'.number_format((int) round($needed)).' more towards it.'
-                            : 'Keep contributing towards this goal.',
-                    ];
-                    break;
+                if ($has('goal', (int) $goal->id, (float) $threshold) || $progress >= $threshold) {
+                    continue;
                 }
+
+                $name = (string) ($goal->goal_name ?? $goal->name ?? 'your goal');
+                $target = (float) $goal->target_amount;
+                $current = (float) $goal->current_amount;
+                $needed = max(0.0, $target * ($threshold / 100) - $current);
+                $upcoming[] = [
+                    'key' => "goal:{$goal->id}:{$threshold}",
+                    'group' => 'Goals',
+                    'title' => ($threshold >= 100 ? 'Reach ' : $threshold.'% of ').$name,
+                    'steps' => $needed > 0 && $target > 0
+                        ? 'Put £'.number_format((int) round($needed)).' more towards it.'
+                        : 'Keep contributing towards this goal.',
+                ];
+                break;
             }
         }
 
         // ── Tax year: allowance usage repeats per tax year; actioned savings
         // climb a cumulative ladder.
-        $taxYear = $this->taxConfig->getTaxYear();
-        $year = (int) substr($taxYear, 0, 4);
         if ($year >= 2000) {
             if (! $has('isa_used', $year, 50.0)) {
                 $upcoming[] = [
@@ -610,17 +614,24 @@ class MilestoneDetectionService
      * @param  array<int,int>  $goalIds
      * @param  array<int,int>  $mortgageIds
      */
-    private function earnedUpcomingMilestones(User $user, array $goalIds, array $mortgageIds): \Illuminate\Support\Collection
+    private function earnedUpcomingMilestones(User $user, int $taxYear, array $goalIds, array $mortgageIds): \Illuminate\Support\Collection
     {
         return UserMilestone::query()
             ->where('user_id', $user->id)
-            ->where(function ($query) use ($goalIds, $mortgageIds): void {
-                $query->whereIn('milestone_type', [
-                    'net_worth', 'isa_used', 'pension_aa_used', 'tax_actioned',
-                    'emergency_fund', 'isa_first', 'pension_pot', 'retirement_on_track',
-                    'protection_adequate', 'will_in_place', 'lpa_in_place', 'campaign',
-                    'tax_savings', 'action', 'module_profile', 'household',
-                ]);
+            ->where(function ($query) use ($taxYear, $goalIds, $mortgageIds): void {
+                $query->where(function ($fixed): void {
+                    $fixed->where(fn ($q) => $q->where('milestone_type', 'net_worth')->whereIn('threshold', self::NET_WORTH_THRESHOLDS))
+                        ->orWhere(fn ($q) => $q->where('milestone_type', 'tax_actioned')->whereIn('threshold', array_merge([1], self::TAX_ACTIONED_THRESHOLDS)))
+                        ->orWhere(fn ($q) => $q->where('milestone_type', 'emergency_fund')->whereIn('threshold', self::EMERGENCY_FUND_MONTHS))
+                        ->orWhere(fn ($q) => $q->where('milestone_type', 'pension_pot')->whereIn('threshold', self::PENSION_POT_THRESHOLDS))
+                        ->orWhere(fn ($q) => $q->where('milestone_type', 'module_profile')->whereIn('reference_id', array_values(self::MODULE_IDS))->where('threshold', 1))
+                        ->orWhere(fn ($q) => $q->whereIn('milestone_type', ['isa_first', 'retirement_on_track', 'protection_adequate', 'will_in_place', 'lpa_in_place', 'campaign', 'tax_savings', 'action', 'household'])->where('threshold', 1));
+                });
+                $query->orWhere(function ($allowances) use ($taxYear): void {
+                    $allowances->whereIn('milestone_type', ['isa_used', 'pension_aa_used'])
+                        ->where('reference_id', $taxYear)
+                        ->whereIn('threshold', self::ALLOWANCE_USED_PERCENTS);
+                });
                 if ($goalIds !== []) {
                     $query->orWhere(function ($goals) use ($goalIds): void {
                         $goals->where('milestone_type', 'goal')->whereIn('reference_id', $goalIds);

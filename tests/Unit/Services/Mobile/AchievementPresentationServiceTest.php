@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\PointAward;
 use App\Models\User;
 use App\Models\UserGamification;
+use App\Models\UserLevelCrossing;
 use App\Services\Mobile\AchievementPresentationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -82,6 +83,12 @@ it('derives a level achievement timestamp from the immutable crossing award', fu
         'meta' => [],
     ]);
     $later->forceFill(['created_at' => $laterAt, 'updated_at' => $laterAt])->saveQuietly();
+    UserLevelCrossing::create([
+        'user_id' => $user->id,
+        'level' => 2,
+        'point_award_id' => $crossing->id,
+        'reached_at' => $crossedAt,
+    ]);
     UserGamification::create([
         'user_id' => $user->id,
         'total_points' => 65,
@@ -99,4 +106,42 @@ it('derives a level achievement timestamp from the immutable crossing award', fu
             'occurred_at' => $crossedAt->toIso8601String(),
         ],
     ]);
+});
+
+it('uses a single indexed level-crossing lookup instead of scanning the point-award ledger', function () {
+    $user = User::factory()->create();
+    $crossing = PointAward::create([
+        'user_id' => $user->id,
+        'source_type' => 'milestone',
+        'dedup_key' => 'milestone:crossing',
+        'points' => 50,
+    ]);
+    UserGamification::create(['user_id' => $user->id, 'total_points' => 250, 'level' => 4]);
+    UserLevelCrossing::create([
+        'user_id' => $user->id,
+        'level' => 4,
+        'point_award_id' => $crossing->id,
+        'reached_at' => $crossing->created_at,
+    ]);
+    foreach (range(1, 200) as $index) {
+        PointAward::create([
+            'user_id' => $user->id,
+            'source_type' => 'login',
+            'dedup_key' => "login:{$index}",
+            'points' => 1,
+            'meta' => [],
+        ]);
+    }
+    $queries = [];
+    \Illuminate\Support\Facades\DB::listen(function ($query) use (&$queries): void {
+        if (str_contains($query->sql, 'user_level_crossings') || str_contains($query->sql, 'point_awards')) {
+            $queries[] = $query->sql;
+        }
+    });
+
+    $level = collect(app(AchievementPresentationService::class)->badges($user))->firstWhere('key', 'level');
+
+    expect($level['provenance']['event'])->toBe('milestone:crossing')
+        ->and(collect($queries)->first(fn (string $sql): bool => str_contains($sql, 'user_level_crossings')))->toContain('limit 1')
+        ->and(collect($queries)->join(' '))->not->toContain('OVER (ORDER BY');
 });

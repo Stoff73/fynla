@@ -166,23 +166,56 @@ it('keeps legacy milestones complete while canonical milestones are paginated an
 
     $legacy = $this->getJson('/api/v1/mobile/achievements')->assertOk()->json('data');
     $canonical = $this->getJson('/api/v1/mobile/achievements/v2')->assertOk()->json('data');
-    $thirdPage = $this->getJson('/api/v1/mobile/achievements/v2/milestones?page=3')->assertOk()->json('data');
+    $secondPage = $this->getJson('/api/v1/mobile/achievements/v2/milestones?cursor='.urlencode($canonical['next_cursor']))->assertOk()->json('data');
+    $thirdPage = $this->getJson('/api/v1/mobile/achievements/v2/milestones?cursor='.urlencode($secondPage['next_cursor']))->assertOk()->json('data');
 
     expect($legacy['milestones'])->toHaveCount(105)
         ->and($canonical)->toMatchArray([
             'milestones_total' => 105,
-            'page' => 1,
             'per_page' => 50,
-            'next_page' => 2,
         ])
         ->and($canonical['milestones'])->toHaveCount(50)
+        ->and($canonical['next_cursor'])->not->toBeNull()
+        ->and($secondPage)->toMatchArray([
+            'milestones_total' => 105,
+            'per_page' => 50,
+        ])
+        ->and($secondPage['milestones'])->toHaveCount(50)
+        ->and($secondPage['next_cursor'])->not->toBeNull()
         ->and($thirdPage)->toMatchArray([
             'milestones_total' => 105,
-            'page' => 3,
             'per_page' => 50,
-            'next_page' => null,
         ])
-        ->and($thirdPage['milestones'])->toHaveCount(5);
+        ->and($thirdPage['milestones'])->toHaveCount(5)
+        ->and($thirdPage['next_cursor'])->toBeNull();
+});
+
+it('uses an achieved-at and id cursor so inserted milestones do not shift canonical continuation', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    Sanctum::actingAs($user);
+    foreach (range(1, 55) as $threshold) {
+        UserMilestone::create([
+            'user_id' => $user->id,
+            'milestone_type' => 'anniversary',
+            'reference_id' => null,
+            'threshold' => $threshold,
+            'achieved_at' => now()->subDays($threshold),
+        ]);
+    }
+
+    $first = $this->getJson('/api/v1/mobile/achievements/v2')->assertOk()->json('data');
+    UserMilestone::create([
+        'user_id' => $user->id,
+        'milestone_type' => 'anniversary',
+        'reference_id' => null,
+        'threshold' => 99,
+        'achieved_at' => now(),
+    ]);
+    $second = $this->getJson('/api/v1/mobile/achievements/v2/milestones?cursor='.urlencode($first['next_cursor']))->assertOk()->json('data');
+
+    expect($first['next_cursor'])->not->toBeNull()
+        ->and($second['milestones'])->toHaveCount(5)
+        ->and(array_intersect(array_column($first['milestones'], 'key'), array_column($second['milestones'], 'key')))->toBe([]);
 });
 
 it('uses a generic title when a goal milestone references another users goal', function () {

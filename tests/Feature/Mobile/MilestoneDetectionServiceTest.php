@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Models\Goal;
 use App\Models\Mortgage;
+use App\Services\TaxConfigService;
 use App\Models\UserMilestone;
 use App\Services\Mobile\MilestoneDetectionService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -203,5 +204,60 @@ it('uses database limits for high-cardinality upcoming candidates', function () 
 
     expect($candidateQueries)->toHaveCount(3)
         ->and(array_values(array_filter($candidateQueries, fn (string $sql): bool => str_contains($sql, 'from `goals`') || str_contains($sql, 'from `mortgages`'))))->each->toContain('limit 3')
-        ->and(collect($candidateQueries)->first(fn (string $sql): bool => str_contains($sql, 'from `user_milestones`')))->toContain('limit 128');
+        ->and(collect($candidateQueries)->first(fn (string $sql): bool => str_contains($sql, 'from `user_milestones`')))->toContain('limit 80');
+});
+
+it('keeps exact current and selected earned identities after irrelevant historic allowance rows', function () {
+    $user = User::factory()->create();
+    $year = (int) substr(app(TaxConfigService::class)->getTaxYear(), 0, 4);
+    foreach (range(1, 130) as $offset) {
+        UserMilestone::create([
+            'user_id' => $user->id,
+            'milestone_type' => 'isa_used',
+            'reference_id' => 1800 + $offset,
+            'threshold' => 50,
+            'achieved_at' => now()->subYears(2),
+        ]);
+    }
+    $goal = Goal::factory()->create(['user_id' => $user->id, 'target_amount' => 10000, 'current_amount' => 1000]);
+    $mortgage = Mortgage::factory()->create(['user_id' => $user->id, 'original_loan_amount' => 200000, 'outstanding_balance' => 180000]);
+    foreach ([
+        ['isa_used', $year, 50],
+        ['will_in_place', null, 1],
+        ['goal', $goal->id, 25],
+        ['mortgage_paid', $mortgage->id, 25],
+    ] as [$type, $referenceId, $threshold]) {
+        UserMilestone::create([
+            'user_id' => $user->id,
+            'milestone_type' => $type,
+            'reference_id' => $referenceId,
+            'threshold' => $threshold,
+            'achieved_at' => now(),
+        ]);
+    }
+
+    $keys = collect($this->service->upcoming($user))->pluck('key');
+
+    expect($keys)->not->toContain("isa_used:{$year}:50")
+        ->and($keys)->not->toContain('will_in_place:0:1')
+        ->and($keys)->not->toContain("goal:{$goal->id}:25")
+        ->and($keys)->not->toContain("mortgage_paid:{$mortgage->id}:25");
+});
+
+it('selects eligible mortgages before applying the bounded candidate limit', function () {
+    $user = User::factory()->create();
+    Mortgage::factory()->count(3)->create([
+        'user_id' => $user->id,
+        'original_loan_amount' => 0,
+        'outstanding_balance' => 0,
+    ]);
+    $valid = Mortgage::factory()->create([
+        'user_id' => $user->id,
+        'original_loan_amount' => 200000,
+        'outstanding_balance' => 180000,
+    ]);
+
+    $property = collect($this->service->upcoming($user))->firstWhere('key', "mortgage_paid:{$valid->id}:25");
+
+    expect($property)->not->toBeNull();
 });

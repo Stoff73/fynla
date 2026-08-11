@@ -156,27 +156,13 @@ class AchievementPresentationService
         ];
     }
 
-    /**
-     * Finds the immutable ledger event whose cumulative points first reached
-     * the current level's configured threshold. The database calculates the
-     * running total and returns at most one presentation row.
-     */
+    /** Finds the indexed immutable event persisted when the level was crossed. */
     private function levelCrossingAward(User $user, int $level): ?PointAward
     {
-        $threshold = (int) (config('gamification.levels')[$level]['min_points'] ?? 0);
-        if ($threshold <= 0) {
-            return null;
-        }
-
-        $ledger = PointAward::query()
-            ->select(['id', 'dedup_key', 'source_type', 'created_at'])
-            ->selectRaw('SUM(points) OVER (ORDER BY id) AS running_points')
-            ->where('user_id', $user->id);
-
         return PointAward::query()
-            ->fromSub($ledger, 'level_ledger')
-            ->where('running_points', '>=', $threshold)
-            ->orderBy('id')
-            ->first(['id', 'dedup_key', 'source_type', 'created_at']);
+            ->join('user_level_crossings', 'user_level_crossings.point_award_id', '=', 'point_awards.id')
+            ->where('user_level_crossings.user_id', $user->id)
+            ->where('user_level_crossings.level', $level)
+            ->first(['point_awards.id', 'point_awards.dedup_key', 'point_awards.source_type', 'point_awards.created_at']);
     }
 }
