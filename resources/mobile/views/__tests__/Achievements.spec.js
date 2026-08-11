@@ -78,6 +78,7 @@ describe('Mobile achievements', () => {
     expect(wrapper.text()).not.toContain('data:savings_account:first');
     expect(wrapper.html()).not.toContain('data:savings_account:first');
     await wrapper.get('[data-progress-tab="milestones"]').trigger('click');
+    expect(itemByTitle(wrapper, 'Milestone 1').text()).toContain('Reached on 09/08/2026');
     const card = itemByTitle(wrapper, 'Net worth £10,000');
     const progress = card.get('[role="progressbar"]');
     expect(progress.element.closest('button')).toBeNull();

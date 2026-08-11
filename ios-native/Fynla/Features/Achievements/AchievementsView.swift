@@ -150,7 +150,8 @@ struct AchievementsView: View {
                     badgeRow(
                         title: action.title,
                         status: datedLabel("Done", action.completedAt),
-                        earned: true
+                        earned: true,
+                        identifier: "achievements.completed.\(action.id)"
                     )
                 }
                 if content.summary.completed.count < content.summary.completedTotal {
@@ -176,7 +177,8 @@ struct AchievementsView: View {
                         title: badge.title,
                         description: badge.description,
                         status: presentation.status,
-                        earned: presentation.isEarned
+                        earned: presentation.isEarned,
+                        identifier: "achievements.badge.\(badge.key)"
                     )
                 }
             }
@@ -210,7 +212,8 @@ struct AchievementsView: View {
                     badgeRow(
                         title: milestone.title,
                         status: presentation.status,
-                        earned: presentation.isEarned
+                        earned: presentation.isEarned,
+                        identifier: "achievements.milestone.\(milestone.key)"
                     )
                 }
                 if content.summary.nextCursor != nil {
@@ -234,14 +237,18 @@ struct AchievementsView: View {
                 title: item.title,
                 description: item.steps,
                 status: upcomingStatus(item),
-                earned: false
+                earned: false,
+                identifier: "achievements.upcoming.\(item.key)"
             )
             if item.state == .inProgress, let progress = item.progress {
                 ProgressView(value: progress.percent, total: 100) {
                     Text(progress.label)
                 }
                 .accessibilityLabel(progress.label)
-                .accessibilityValue("\(progress.percent)%")
+                .accessibilityValue(
+                    "\(progress.percent.formatted(.number.precision(.fractionLength(0...2))))%"
+                )
+                .accessibilityIdentifier("achievements.upcoming.\(item.key).progress")
             }
             if let action = SemanticDestinationResolver.action(
                 label: item.nextAction?.label,
@@ -253,6 +260,7 @@ struct AchievementsView: View {
                         minWidth: FynlaSpacing.minimumInteractiveTarget,
                         minHeight: FynlaSpacing.minimumInteractiveTarget
                     )
+                    .accessibilityIdentifier("achievements.upcoming.\(item.key).action")
             }
         }
     }
@@ -336,13 +344,15 @@ struct AchievementsView: View {
         title: String,
         description: String? = nil,
         status: String?,
-        earned: Bool
+        earned: Bool,
+        identifier: String
     ) -> some View {
         badgeContent(
             title: title,
             description: description,
             status: status,
-            earned: earned
+            earned: earned,
+            identifier: identifier
         )
     }
 
@@ -350,7 +360,8 @@ struct AchievementsView: View {
         title: String,
         description: String?,
         status: String?,
-        earned: Bool
+        earned: Bool,
+        identifier: String
     ) -> some View {
         HStack(alignment: .top, spacing: 10) {
             if earned {
@@ -358,6 +369,7 @@ struct AchievementsView: View {
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(FynlaColor.Token.spring600.color)
                     .accessibilityLabel("Earned badge")
+                    .accessibilityIdentifier("\(identifier).emblem")
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -398,6 +410,7 @@ struct AchievementsView: View {
         )
         .opacity(earned ? 1 : 0.55)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(identifier)
     }
 
     // m-btn — full-width raspberry.

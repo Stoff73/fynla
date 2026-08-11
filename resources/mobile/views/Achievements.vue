@@ -151,7 +151,7 @@
               <span class="ma-badge__emblem" aria-hidden="true">Badge</span>
               <span class="ma-badge__title">{{ ms.title }}</span>
               <span class="ma-badge__status">{{ achievementStateLabel(ms) }}</span>
-              <span v-if="ms.state === 'earned' && provenanceLabel(ms)" class="ma-badge__provenance">{{ provenanceLabel(ms) }}</span>
+              <span v-if="ms.state === 'earned' && reachedProvenanceLabel(ms)" class="ma-badge__provenance">{{ reachedProvenanceLabel(ms) }}</span>
             </div>
           </div>
           <button
@@ -318,6 +318,12 @@ export default {
       if (!provenance?.occurred_at) return '';
       const date = this.formatDate(provenance.occurred_at);
       return date ? `Earned on ${date}` : 'Earned';
+    },
+    reachedProvenanceLabel(item) {
+      const provenance = item?.provenance;
+      if (!provenance?.occurred_at) return '';
+      const date = this.formatDate(provenance.occurred_at);
+      return date ? `Reached on ${date}` : 'Reached';
     },
     showsProgress(item) {
       return item?.state === 'in_progress' && item.progress !== null && typeof item.progress === 'object';
