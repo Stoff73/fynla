@@ -202,9 +202,10 @@ it('uses database limits for high-cardinality upcoming candidates', function () 
 
     $this->service->upcoming($user);
 
-    expect($candidateQueries)->toHaveCount(3)
+    expect($candidateQueries)->toHaveCount(4)
         ->and(array_values(array_filter($candidateQueries, fn (string $sql): bool => str_contains($sql, 'from `goals`') || str_contains($sql, 'from `mortgages`'))))->each->toContain('limit 3')
-        ->and(collect($candidateQueries)->first(fn (string $sql): bool => str_contains($sql, 'from `user_milestones`')))->toContain('limit 80');
+        ->and(collect($candidateQueries)->first(fn (string $sql): bool => str_starts_with($sql, 'select exists(') && str_contains($sql, 'from `user_milestones`')))->toStartWith('select exists(')
+        ->and(collect($candidateQueries)->first(fn (string $sql): bool => str_contains($sql, 'from `user_milestones`') && str_contains($sql, 'limit 80')))->toContain('limit 80');
 });
 
 it('keeps exact current and selected earned identities after irrelevant historic allowance rows', function () {
@@ -241,6 +242,44 @@ it('keeps exact current and selected earned identities after irrelevant historic
     expect($keys)->not->toContain("isa_used:{$year}:50")
         ->and($keys)->not->toContain('will_in_place:0:1')
         ->and($keys)->not->toContain("goal:{$goal->id}:25")
+        ->and($keys)->not->toContain("mortgage_paid:{$mortgage->id}:25");
+});
+
+it('treats any recorded tax saving as the earned first-saving identity', function () {
+    $user = User::factory()->create(['funnel_answers' => ['assets' => []]]);
+
+    $this->service->detectTaxSavingsIdentified($user, 500);
+
+    expect(collect($this->service->upcoming($user))->pluck('key'))
+        ->not->toContain('tax_savings:0:1');
+});
+
+it('does not let non-catalogue thresholds crowd valid selected goal and mortgage identities out of the bounded query', function () {
+    $user = User::factory()->create();
+    $goal = Goal::factory()->create(['user_id' => $user->id, 'target_amount' => 10000, 'current_amount' => 1000]);
+    $mortgage = Mortgage::factory()->create(['user_id' => $user->id, 'original_loan_amount' => 200000, 'outstanding_balance' => 180000]);
+    foreach (range(1000, 1079) as $irrelevantThreshold) {
+        UserMilestone::create([
+            'user_id' => $user->id,
+            'milestone_type' => 'goal',
+            'reference_id' => $goal->id,
+            'threshold' => $irrelevantThreshold,
+            'achieved_at' => now(),
+        ]);
+    }
+    foreach ([['goal', $goal->id], ['mortgage_paid', $mortgage->id]] as [$type, $referenceId]) {
+        UserMilestone::create([
+            'user_id' => $user->id,
+            'milestone_type' => $type,
+            'reference_id' => $referenceId,
+            'threshold' => 25,
+            'achieved_at' => now(),
+        ]);
+    }
+
+    $keys = collect($this->service->upcoming($user))->pluck('key');
+
+    expect($keys)->not->toContain("goal:{$goal->id}:25")
         ->and($keys)->not->toContain("mortgage_paid:{$mortgage->id}:25");
 });
 

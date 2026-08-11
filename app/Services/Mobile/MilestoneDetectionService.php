@@ -260,6 +260,10 @@ class MilestoneDetectionService
             ->orderBy('id')
             ->limit(self::UPCOMING_MORTGAGE_LIMIT)
             ->get(['id', 'original_loan_amount', 'outstanding_balance']);
+        $hasTaxSaving = UserMilestone::query()
+            ->where('user_id', $user->id)
+            ->where('milestone_type', 'tax_savings')
+            ->exists();
         $earned = $this->earnedUpcomingMilestones(
             $user,
             $year,
@@ -486,7 +490,7 @@ class MilestoneDetectionService
                     'steps' => 'Finish your chat with Fyn — a few questions to go.',
                 ];
             }
-            if (! $has('tax_savings')) {
+            if (! $hasTaxSaving) {
                 $upcoming[] = [
                     'key' => 'tax_savings:0:1',
                     'group' => 'Journey',
@@ -625,7 +629,7 @@ class MilestoneDetectionService
                         ->orWhere(fn ($q) => $q->where('milestone_type', 'emergency_fund')->whereIn('threshold', self::EMERGENCY_FUND_MONTHS))
                         ->orWhere(fn ($q) => $q->where('milestone_type', 'pension_pot')->whereIn('threshold', self::PENSION_POT_THRESHOLDS))
                         ->orWhere(fn ($q) => $q->where('milestone_type', 'module_profile')->whereIn('reference_id', array_values(self::MODULE_IDS))->where('threshold', 1))
-                        ->orWhere(fn ($q) => $q->whereIn('milestone_type', ['isa_first', 'retirement_on_track', 'protection_adequate', 'will_in_place', 'lpa_in_place', 'campaign', 'tax_savings', 'action', 'household'])->where('threshold', 1));
+                        ->orWhere(fn ($q) => $q->whereIn('milestone_type', ['isa_first', 'retirement_on_track', 'protection_adequate', 'will_in_place', 'lpa_in_place', 'campaign', 'action', 'household'])->where('threshold', 1));
                 });
                 $query->orWhere(function ($allowances) use ($taxYear): void {
                     $allowances->whereIn('milestone_type', ['isa_used', 'pension_aa_used'])
@@ -634,12 +638,16 @@ class MilestoneDetectionService
                 });
                 if ($goalIds !== []) {
                     $query->orWhere(function ($goals) use ($goalIds): void {
-                        $goals->where('milestone_type', 'goal')->whereIn('reference_id', $goalIds);
+                        $goals->where('milestone_type', 'goal')
+                            ->whereIn('reference_id', $goalIds)
+                            ->whereIn('threshold', self::GOAL_THRESHOLDS);
                     });
                 }
                 if ($mortgageIds !== []) {
                     $query->orWhere(function ($mortgages) use ($mortgageIds): void {
-                        $mortgages->where('milestone_type', 'mortgage_paid')->whereIn('reference_id', $mortgageIds);
+                        $mortgages->where('milestone_type', 'mortgage_paid')
+                            ->whereIn('reference_id', $mortgageIds)
+                            ->whereIn('threshold', self::MORTGAGE_PAID_PERCENTS);
                     });
                 }
             })

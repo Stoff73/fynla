@@ -218,6 +218,25 @@ it('uses an achieved-at and id cursor so inserted milestones do not shift canoni
         ->and(array_intersect(array_column($first['milestones'], 'key'), array_column($second['milestones'], 'key')))->toBe([]);
 });
 
+it('rejects malformed, array, tampered, and foreign-user canonical cursors', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $otherUser = User::factory()->create(['is_preview_user' => false]);
+    foreach (range(1, 51) as $threshold) {
+        UserMilestone::create(['user_id' => $user->id, 'milestone_type' => 'anniversary', 'threshold' => $threshold, 'achieved_at' => now()->subDays($threshold)]);
+        UserMilestone::create(['user_id' => $otherUser->id, 'milestone_type' => 'anniversary', 'threshold' => $threshold, 'achieved_at' => now()->subDays($threshold)]);
+    }
+    Sanctum::actingAs($user);
+    $cursor = $this->getJson('/api/v1/mobile/achievements/v2')->assertOk()->json('data.next_cursor');
+    Sanctum::actingAs($otherUser);
+    $foreignCursor = $this->getJson('/api/v1/mobile/achievements/v2')->assertOk()->json('data.next_cursor');
+    Sanctum::actingAs($user);
+
+    foreach (['broken', ['not-a-string'], substr($cursor, 0, -1).'x', $foreignCursor] as $invalid) {
+        $this->getJson('/api/v1/mobile/achievements/v2/milestones?'.http_build_query(['cursor' => $invalid]))
+            ->assertUnprocessable();
+    }
+});
+
 it('uses a generic title when a goal milestone references another users goal', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
     $otherUser = User::factory()->create(['is_preview_user' => false]);

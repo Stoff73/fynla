@@ -13,9 +13,11 @@ use App\Models\UserMilestone;
 use App\Services\Mobile\AchievementPresentationService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\NetWorth\NetWorthService;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 
 class MobileAchievementsController extends Controller
 {
@@ -150,7 +152,15 @@ class MobileAchievementsController extends Controller
     {
         try {
             $user = $request->user();
-            $milestones = $this->canonicalMilestones($user, $request->query('cursor'));
+            $rawCursor = $request->query('cursor');
+            if (! is_string($rawCursor) || $rawCursor === '') {
+                return $this->invalidMilestoneCursorResponse();
+            }
+            $cursor = $this->decodeMilestoneCursor($user, $rawCursor);
+            if ($cursor === null) {
+                return $this->invalidMilestoneCursorResponse();
+            }
+            $milestones = $this->canonicalMilestones($user, $cursor);
 
             return response()->json([
                 'success' => true,
@@ -234,23 +244,23 @@ class MobileAchievementsController extends Controller
         }
     }
 
-    /** @return array{items:array<int,array<string,mixed>>,total:int,next_cursor:?string} */
-    private function canonicalMilestones(User $user, ?string $cursor = null): array
+    /**
+     * @param array{achieved_at:\DateTimeImmutable,id:int}|null $cursor
+     * @return array{items:array<int,array<string,mixed>>,total:int,next_cursor:?string}
+     */
+    private function canonicalMilestones(User $user, ?array $cursor = null): array
     {
         $total = UserMilestone::where('user_id', $user->id)->count();
         $query = UserMilestone::where('user_id', $user->id)
             ->orderByDesc('achieved_at')
             ->orderByDesc('id');
-        if ($cursor !== null && $cursor !== '') {
-            $decoded = $this->decodeMilestoneCursor($cursor);
-            if ($decoded !== null) {
-                $query->where(function ($rows) use ($decoded): void {
-                    $rows->where('achieved_at', '<', $decoded['achieved_at'])
-                        ->orWhere(function ($sameTime) use ($decoded): void {
-                            $sameTime->where('achieved_at', $decoded['achieved_at'])->where('id', '<', $decoded['id']);
-                        });
-                });
-            }
+        if ($cursor !== null) {
+            $query->where(function ($rows) use ($cursor): void {
+                $rows->where('achieved_at', '<', $cursor['achieved_at'])
+                    ->orWhere(function ($sameTime) use ($cursor): void {
+                        $sameTime->where('achieved_at', $cursor['achieved_at'])->where('id', '<', $cursor['id']);
+                    });
+            });
         }
         $rows = $query->limit(self::CANONICAL_MILESTONES_PER_PAGE + 1)->get();
         $hasMore = $rows->count() > self::CANONICAL_MILESTONES_PER_PAGE;
@@ -260,31 +270,61 @@ class MobileAchievementsController extends Controller
         return [
             'items' => $this->presentMilestones($items, $user),
             'total' => $total,
-            'next_cursor' => $hasMore && $last !== null ? $this->encodeMilestoneCursor($last) : null,
+            'next_cursor' => $hasMore && $last !== null ? $this->encodeMilestoneCursor($user, $last) : null,
         ];
     }
 
-    private function encodeMilestoneCursor(UserMilestone $milestone): string
+    private function encodeMilestoneCursor(User $user, UserMilestone $milestone): string
     {
-        return rtrim(strtr(base64_encode(json_encode([
-            'achieved_at' => $milestone->achieved_at?->toIso8601String(),
+        return Crypt::encryptString(json_encode([
+            'v' => 1,
+            'user_id' => $user->id,
+            'achieved_at' => $milestone->achieved_at?->utc()->format('Y-m-d\TH:i:s.u\Z'),
             'id' => $milestone->id,
-        ], JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
+        ], JSON_THROW_ON_ERROR));
     }
 
-    /** @return array{achieved_at:string,id:int}|null */
-    private function decodeMilestoneCursor(string $cursor): ?array
+    /** @return array{achieved_at:\DateTimeImmutable,id:int}|null */
+    private function decodeMilestoneCursor(User $user, string $cursor): ?array
     {
-        try {
-            $padded = strtr($cursor, '-_', '+/').str_repeat('=', (4 - strlen($cursor) % 4) % 4);
-            $decoded = json_decode(base64_decode($padded, true) ?: '', true, 512, JSON_THROW_ON_ERROR);
-
-            return is_array($decoded) && is_string($decoded['achieved_at'] ?? null) && is_int($decoded['id'] ?? null)
-                ? ['achieved_at' => $decoded['achieved_at'], 'id' => $decoded['id']]
-                : null;
-        } catch (\JsonException) {
+        if (strlen($cursor) < 32 || strlen($cursor) > 2048) {
             return null;
         }
+
+        try {
+            $decoded = json_decode(Crypt::decryptString($cursor), true, 16, JSON_THROW_ON_ERROR);
+        } catch (DecryptException|\JsonException) {
+            return null;
+        }
+
+        if (! is_array($decoded)
+            || ($decoded['v'] ?? null) !== 1
+            || ($decoded['user_id'] ?? null) !== $user->id
+            || ! is_string($decoded['achieved_at'] ?? null)
+            || ! is_int($decoded['id'] ?? null)
+            || $decoded['id'] < 1) {
+            return null;
+        }
+
+        $timestamp = \DateTimeImmutable::createFromFormat(
+            '!Y-m-d\TH:i:s.u\Z',
+            $decoded['achieved_at'],
+            new \DateTimeZone('UTC'),
+        );
+        if ($timestamp === false || $timestamp->format('Y-m-d\TH:i:s.u\Z') !== $decoded['achieved_at']) {
+            return null;
+        }
+
+        return ['achieved_at' => $timestamp, 'id' => $decoded['id']];
+    }
+
+    private function invalidMilestoneCursorResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'The milestone cursor is invalid.',
+            'errors' => ['cursor' => ['Use the continuation token returned by the achievements endpoint.']],
+        ], 422);
     }
 
     /** @param Collection<int,UserMilestone> $milestones @return array<int,array<string,mixed>> */

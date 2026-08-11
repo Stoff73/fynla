@@ -13,16 +13,25 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasIndex('point_awards', 'point_awards_user_id_id_unique')) {
+            Schema::table('point_awards', function (Blueprint $table): void {
+                $table->unique(['user_id', 'id'], 'point_awards_user_id_id_unique');
+            });
+        }
+
         if (! Schema::hasTable('user_level_crossings')) {
             Schema::create('user_level_crossings', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained()->cascadeOnDelete();
                 $table->unsignedTinyInteger('level');
-                $table->foreignId('point_award_id')->constrained('point_awards')->cascadeOnDelete();
+                $table->unsignedBigInteger('point_award_id');
                 $table->timestamp('reached_at');
                 $table->timestamps();
                 $table->unique(['user_id', 'level']);
-                $table->index(['user_id', 'level']);
+                $table->foreign(['user_id', 'point_award_id'], 'user_level_crossings_owner_award_fk')
+                    ->references(['user_id', 'id'])
+                    ->on('point_awards')
+                    ->cascadeOnDelete();
             });
         }
 
@@ -62,5 +71,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('user_level_crossings');
+        if (Schema::hasTable('point_awards') && Schema::hasIndex('point_awards', 'point_awards_user_id_id_unique')) {
+            Schema::table('point_awards', function (Blueprint $table): void {
+                $table->dropUnique('point_awards_user_id_id_unique');
+            });
+        }
     }
 };

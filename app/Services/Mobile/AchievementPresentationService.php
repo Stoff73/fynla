@@ -162,6 +162,7 @@ class AchievementPresentationService
         return PointAward::query()
             ->join('user_level_crossings', 'user_level_crossings.point_award_id', '=', 'point_awards.id')
             ->where('user_level_crossings.user_id', $user->id)
+            ->where('point_awards.user_id', $user->id)
             ->where('user_level_crossings.level', $level)
             ->first(['point_awards.id', 'point_awards.dedup_key', 'point_awards.source_type', 'point_awards.created_at']);
     }

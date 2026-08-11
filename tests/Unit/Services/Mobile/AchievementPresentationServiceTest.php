@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Models\UserGamification;
 use App\Models\UserLevelCrossing;
 use App\Services\Mobile\AchievementPresentationService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -144,4 +146,71 @@ it('uses a single indexed level-crossing lookup instead of scanning the point-aw
     expect($level['provenance']['event'])->toBe('milestone:crossing')
         ->and(collect($queries)->first(fn (string $sql): bool => str_contains($sql, 'user_level_crossings')))->toContain('limit 1')
         ->and(collect($queries)->join(' '))->not->toContain('OVER (ORDER BY');
+});
+
+it('does not expose a foreign users point-award as level provenance', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $foreignAward = PointAward::create([
+        'user_id' => $otherUser->id,
+        'source_type' => 'milestone',
+        'dedup_key' => 'foreign:award',
+        'points' => 50,
+        'meta' => [],
+    ]);
+    UserGamification::create(['user_id' => $user->id, 'total_points' => 50, 'level' => 2]);
+    expect(fn () => UserLevelCrossing::create([
+        'user_id' => $user->id,
+        'level' => 2,
+        'point_award_id' => $foreignAward->id,
+        'reached_at' => $foreignAward->created_at,
+    ]))->toThrow(QueryException::class);
+
+    // Simulate a damaged legacy/import row to prove presentation also
+    // enforces ownership if database integrity has been bypassed.
+    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+    try {
+        UserLevelCrossing::create([
+            'user_id' => $user->id,
+            'level' => 2,
+            'point_award_id' => $foreignAward->id,
+            'reached_at' => $foreignAward->created_at,
+        ]);
+    } finally {
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    }
+
+    $level = collect(app(AchievementPresentationService::class)->badges($user))->firstWhere('key', 'level');
+
+    expect($level['earned'])->toBeTrue()
+        ->and($level['provenance'])->toBeNull();
+});
+
+it('backfills every historical crossing per user and remains idempotent', function () {
+    $first = User::factory()->create();
+    $second = User::factory()->create();
+    UserGamification::create(['user_id' => $first->id, 'total_points' => 130, 'level' => 3]);
+    UserGamification::create(['user_id' => $second->id, 'total_points' => 220, 'level' => 4]);
+    PointAward::create(['user_id' => $first->id, 'source_type' => 'data', 'dedup_key' => 'first:a', 'points' => 40, 'meta' => []]);
+    $firstB = PointAward::create(['user_id' => $first->id, 'source_type' => 'data', 'dedup_key' => 'first:b', 'points' => 90, 'meta' => []]);
+    $secondA = PointAward::create(['user_id' => $second->id, 'source_type' => 'data', 'dedup_key' => 'second:a', 'points' => 220, 'meta' => []]);
+    $firstCrossedAt = Carbon::parse('2026-07-01 10:00:00');
+    $secondCrossedAt = Carbon::parse('2026-07-02 11:00:00');
+    $firstB->forceFill(['created_at' => $firstCrossedAt, 'updated_at' => $firstCrossedAt])->saveQuietly();
+    $secondA->forceFill(['created_at' => $secondCrossedAt, 'updated_at' => $secondCrossedAt])->saveQuietly();
+
+    $migration = require base_path('database/migrations/2026_08_11_090000_create_user_level_crossings_table.php');
+    $migration->up();
+    $migration->up();
+
+    expect(UserLevelCrossing::orderBy('user_id')->orderBy('level')->get(['user_id', 'level', 'point_award_id'])->map(fn ($row) => $row->only(['user_id', 'level', 'point_award_id']))->all())
+        ->toBe([
+            ['user_id' => $first->id, 'level' => 2, 'point_award_id' => $firstB->id],
+            ['user_id' => $first->id, 'level' => 3, 'point_award_id' => $firstB->id],
+            ['user_id' => $second->id, 'level' => 2, 'point_award_id' => $secondA->id],
+            ['user_id' => $second->id, 'level' => 3, 'point_award_id' => $secondA->id],
+            ['user_id' => $second->id, 'level' => 4, 'point_award_id' => $secondA->id],
+        ])
+        ->and(UserLevelCrossing::where('user_id', $first->id)->pluck('reached_at')->every(fn ($at) => $at->equalTo($firstCrossedAt)))->toBeTrue()
+        ->and(UserLevelCrossing::where('user_id', $second->id)->pluck('reached_at')->every(fn ($at) => $at->equalTo($secondCrossedAt)))->toBeTrue();
 });
