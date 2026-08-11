@@ -196,20 +196,7 @@ struct AchievementsView: View {
                         .foregroundStyle(FynlaColor.Token.neutral500.color)
                         .padding(.top, 4)
                     ForEach(section.items) { item in
-                        // ma-badge--link — tappable, muted (not yet earned).
-                        Button {
-                            if let route = appRoute(for: item.route) {
-                                onRoute(route)
-                            }
-                        } label: {
-                            badgeContent(
-                                title: item.title,
-                                description: item.steps,
-                                status: nil,
-                                earned: false
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        upcomingRow(item)
                     }
                 }
             }
@@ -228,7 +215,61 @@ struct AchievementsView: View {
                         earned: milestone.achieved
                     )
                 }
+                if content.summary.nextCursor != nil {
+                    fullWidthButton(model.isLoadingMoreMilestones ? "Loading…" : "Load more milestones") {
+                        Task { await model.loadMoreMilestones() }
+                    }
+                    .disabled(model.isLoadingMoreMilestones)
+                    .accessibilityIdentifier("achievements.milestones.more")
+                }
             }
+        }
+    }
+
+    private func upcomingRow(_ item: AchievementUpcoming) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            badgeContent(title: item.title, description: item.steps, status: upcomingStatus(item), earned: false)
+            if item.state == .inProgress, let progress = item.progress {
+                ProgressView(value: progress.percent, total: 100) {
+                    Text(progress.label)
+                }
+                .accessibilityLabel(progress.label)
+                .accessibilityValue("\(progress.percent)%")
+            }
+            if let action = item.nextAction {
+                Button(action.label) {
+                    onRoute(
+                        SemanticDestinationResolver.route(
+                            for: action.destination,
+                            legacyPath: item.route
+                        )
+                    )
+                }
+                .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
+            } else if item.route != nil {
+                Button("View details") {
+                    onRoute(
+                        SemanticDestinationResolver.route(
+                            for: nil,
+                            legacyPath: item.route
+                        )
+                    )
+                }
+                .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
+            }
+        }
+    }
+
+    private func upcomingStatus(_ item: AchievementUpcoming) -> String? {
+        switch item.state {
+        case .inProgress:
+            "In progress"
+        case .locked:
+            "Locked"
+        case .inapplicable:
+            "Not applicable"
+        case .earned:
+            nil
         }
     }
 
@@ -314,23 +355,31 @@ struct AchievementsView: View {
         status: String?,
         earned: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(FynlaColor.Token.horizon500.color)
-            if let description, !description.isEmpty {
-                Text(description)
-                    .font(.system(size: 13))
-                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+        HStack(alignment: .top, spacing: 10) {
+            if earned {
+                Image(systemName: "seal.fill")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(FynlaColor.Token.spring600.color)
+                    .accessibilityLabel("Earned badge")
             }
-            if let status, !status.isEmpty {
-                Text(status)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(
-                        earned
-                            ? FynlaColor.Token.spring600.color
-                            : FynlaColor.Token.neutral500.color
-                    )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                if let description, !description.isEmpty {
+                    Text(description)
+                        .font(.system(size: 13))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                }
+                if let status, !status.isEmpty {
+                    Text(status)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(
+                            earned
+                                ? FynlaColor.Token.spring600.color
+                                : FynlaColor.Token.neutral500.color
+                        )
+                }
             }
         }
         .padding(14)
@@ -351,6 +400,7 @@ struct AchievementsView: View {
                 )
         )
         .opacity(earned ? 1 : 0.55)
+        .accessibilityElement(children: .combine)
     }
 
     // m-btn — full-width raspberry.
@@ -381,24 +431,6 @@ struct AchievementsView: View {
             } else {
                 groups.append((group: item.group, items: [item]))
             }
-        }
-    }
-
-    private func appRoute(for mobileRoute: String) -> AppRoute? {
-        switch mobileRoute {
-        case "dashboard": .dashboard
-        case "m-income": .income
-        case "m-expenditure": .expenditure
-        case "m-net-worth": .netWorth(category: nil)
-        case "m-protection": .protection(policyType: nil, id: nil)
-        case "m-savings": .savings(accountID: nil)
-        case "m-investment": .investment(accountID: nil)
-        case "m-retirement": .retirement(pensionType: nil, id: nil)
-        case "m-estate": .estate
-        case "m-goals": .goals
-        case "tax-strategy": .taxStrategy
-        case "holistic-plan": .holisticPlan
-        default: nil
         }
     }
 

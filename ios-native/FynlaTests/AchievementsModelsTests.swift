@@ -5,7 +5,7 @@ import Testing
 @Suite("Achievements contracts")
 struct AchievementsModelsTests {
     @Test
-    func decodesTheExistingMobileAchievementsContractWithoutReordering() throws {
+    func decodesTheCanonicalMobileAchievementsContractWithoutReordering() throws {
         let snapshot = try fixture(
             "summary",
             as: APIEnvelope<AchievementsSnapshot>.self
@@ -15,7 +15,17 @@ struct AchievementsModelsTests {
         #expect(snapshot.completed.map(\.id) == ["action-2", "action-1"])
         #expect(snapshot.completedTotal == 3)
         #expect(snapshot.milestones.map(\.key) == ["action:0:1"])
-        #expect(snapshot.upcoming.map(\.route) == ["m-savings"])
+        #expect(snapshot.milestonesTotal == 2)
+        #expect(snapshot.perPage == 1)
+        #expect(snapshot.nextCursor == "eyJ2IjoxLCJjdXJzb3IiOiJub25jZSJ9")
+        #expect(snapshot.achievements[0].state == .earned)
+        #expect(snapshot.achievements[0].provenance?.kind == "point_award")
+        #expect(snapshot.upcoming.map(\.state) == [.inProgress, .locked, .inapplicable])
+        #expect(snapshot.upcoming[0].progress?.percent == 50)
+        #expect(snapshot.upcoming[0].nextAction?.destination.screen == "savings")
+        #expect(snapshot.upcoming[1].progress == nil)
+        #expect(snapshot.upcoming[2].progress == nil)
+        #expect(SemanticDestinationResolver.route(for: snapshot.upcoming[1].nextAction?.destination, legacyPath: snapshot.upcoming[1].route) == .estate)
     }
 
     @Test

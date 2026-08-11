@@ -90,6 +90,24 @@ struct AchievementsModelTests {
         #expect(model.paginationMessage != nil)
     }
 
+    @Test @MainActor
+    func appendsDeduplicatedMilestonesFromTheOpaqueCursorPage() async throws {
+        let client = AchievementsClientStub(
+            summary: try summaryFixture(),
+            completedPages: [],
+            activityPages: [try fixture("activity-page-1", as: AchievementsActivityPage.self)],
+            status: GamificationStatus(pendingCelebration: nil)
+        )
+        let model = AchievementsModel(client: client)
+
+        await model.load()
+        await model.loadMoreMilestones()
+
+        #expect(model.content?.summary.milestones.map(\.key) == ["action:0:1", "action:0:2"])
+        #expect(model.content?.summary.milestonesTotal == 2)
+        #expect(model.content?.summary.nextCursor == nil)
+    }
+
     private func summaryFixture() throws -> AchievementsSnapshot {
         try fixture(
             "summary",
@@ -135,6 +153,32 @@ private actor AchievementsClientStub: AchievementsClient {
     }
 
     func loadAchievements() async throws -> AchievementsSnapshot { summary }
+
+    func loadMilestones(cursor: String) async throws -> AchievementsMilestonePage {
+        AchievementsMilestonePage(
+            milestones: [
+                summary.milestones[0],
+                summary.milestones[0],
+                AchievementMilestone(
+                    key: "action:0:2",
+                    title: "You completed another action.",
+                    achieved: true,
+                    achievedAt: "2026-07-17T10:00:00Z",
+                    state: .earned,
+                    provenance: AchievementProvenance(
+                        kind: "user_milestone",
+                        event: "action:0:2",
+                        occurredAt: "2026-07-17T10:00:00Z"
+                    ),
+                    progress: nil,
+                    nextAction: nil
+                ),
+            ],
+            milestonesTotal: 2,
+            perPage: summary.perPage,
+            nextCursor: nil
+        )
+    }
 
     func loadCompleted(page: Int) async throws -> AchievementsCompletedPage {
         guard !completedPages.isEmpty else { throw APIError.server(status: 500, requestID: nil) }

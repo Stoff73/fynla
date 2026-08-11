@@ -2,6 +2,7 @@ import Foundation
 
 protocol AchievementsClient: Sendable {
     func loadAchievements() async throws -> AchievementsSnapshot
+    func loadMilestones(cursor: String) async throws -> AchievementsMilestonePage
     func loadCompleted(page: Int) async throws -> AchievementsCompletedPage
     func loadActivity(before: Int?) async throws -> AchievementsActivityPage
     func loadStatus() async throws -> GamificationStatus
@@ -18,11 +19,20 @@ struct LiveAchievementsClient: AchievementsClient {
     func loadAchievements() async throws -> AchievementsSnapshot {
         try await apiClient.send(
             APIRequest<AchievementsSnapshot>(
-                path: "api/v1/mobile/achievements",
+                path: "api/v1/mobile/achievements/v2",
                 method: .get,
                 headers: ["Cache-Control": "no-cache"]
             )
         )
+    }
+
+    func loadMilestones(cursor: String) async throws -> AchievementsMilestonePage {
+        try await apiClient.send(APIRequest<AchievementsMilestonePage>(
+            path: "api/v1/mobile/achievements/v2/milestones",
+            method: .get,
+            queryItems: [URLQueryItem(name: "cursor", value: cursor)],
+            headers: ["Cache-Control": "no-cache"]
+        ))
     }
 
     func loadCompleted(page: Int) async throws -> AchievementsCompletedPage {

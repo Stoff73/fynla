@@ -17,7 +17,11 @@ private struct AchievementsUITestClient: AchievementsClient {
                     title: "Reached Builder",
                     description: "Your current planning level.",
                     earned: true,
-                    earnedAt: "2026-07-18T10:00:00Z"
+                    earnedAt: "2026-07-18T10:00:00Z",
+                    state: .earned,
+                    provenance: nil,
+                    progress: nil,
+                    nextAction: nil
                 ),
             ],
             completed: [
@@ -34,9 +38,16 @@ private struct AchievementsUITestClient: AchievementsClient {
                     key: "action:0:1",
                     title: "You completed your first action.",
                     achieved: true,
-                    achievedAt: "2026-07-18T10:00:00Z"
+                    achievedAt: "2026-07-18T10:00:00Z",
+                    state: .earned,
+                    provenance: nil,
+                    progress: nil,
+                    nextAction: nil
                 ),
             ],
+            milestonesTotal: 1,
+            perPage: 50,
+            nextCursor: nil,
             upcoming: []
         )
     }
@@ -48,6 +59,11 @@ private struct AchievementsUITestClient: AchievementsClient {
             page: page,
             perPage: 25
         )
+    }
+
+    func loadMilestones(cursor: String) async throws -> AchievementsMilestonePage {
+        let data = Data(#"{"milestones":[],"milestones_total":1,"per_page":50,"next_cursor":null}"#.utf8)
+        return try JSONDecoder().decode(AchievementsMilestonePage.self, from: data)
     }
 
     func loadActivity(before: Int?) async throws -> AchievementsActivityPage {

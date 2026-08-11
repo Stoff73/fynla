@@ -5,6 +5,24 @@ import Testing
 @Suite("API client")
 struct APIClientTests {
     @Test
+    func preservesOpaqueQueryValuesWithoutFormEncodingPlusSigns() throws {
+        let request = try APIRequest<TestValue>(
+            path: "api/v1/mobile/achievements/v2/milestones",
+            method: .get,
+            queryItems: [URLQueryItem(name: "cursor", value: "opaque+/= &cursor")]
+        ).urlRequest(
+            baseURL: URL(string: "https://csjones.co/fynla")!,
+            clientName: "ios",
+            version: "1.2.3",
+            build: "45",
+            requestID: "request-123",
+            accessToken: nil
+        )
+
+        #expect(request.url?.query == "cursor=opaque%2B/%3D%20%26cursor")
+    }
+
+    @Test
     func decodesASuccessEnvelopeAndAddsNativeHeaders() async throws {
         let transport = TestHTTPTransport([
             .response(status: 200, body: json(#"{"success":true,"data":{"value":"ready"}}"#)),

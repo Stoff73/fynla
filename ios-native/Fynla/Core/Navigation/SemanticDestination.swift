@@ -193,13 +193,13 @@ enum SemanticDestinationResolver {
         case "conversation-history": .conversationHistory
         case "income": .income
         case "expenditure": .expenditure
-        case "net-worth": .netWorth(category: nil)
-        case "protection": .protection(policyType: nil, id: nil)
-        case "savings": .savings(accountID: nil)
-        case "investment": .investment(accountID: nil)
-        case "retirement": .retirement(pensionType: nil, id: nil)
-        case "estate": .estate
-        case "goals": .goals
+        case "net-worth", "m-net-worth": .netWorth(category: nil)
+        case "protection", "m-protection": .protection(policyType: nil, id: nil)
+        case "savings", "m-savings": .savings(accountID: nil)
+        case "investment", "m-investment": .investment(accountID: nil)
+        case "retirement", "m-retirement": .retirement(pensionType: nil, id: nil)
+        case "estate", "m-estate": .estate
+        case "goals", "m-goals": .goals
         case "tax", "tax-strategy": .taxStrategy
         case "holistic-plan": .holisticPlan
         case "settings": .settings
