@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\PointAward;
 use App\Models\User;
 use App\Models\UserGamification;
+use App\Models\UserLevelCrossing;
 use App\Services\Gamification\LevelUpCollector;
 use App\Services\Gamification\PointsService;
 
@@ -41,6 +42,17 @@ it('flags a level-up, sets pending celebration, and records on the collector', f
     expect($r->newLevelName)->toBe('Saver');
     expect(UserGamification::where('user_id', $this->user->id)->value('pending_celebration_level'))->toBe(2);
     expect($collector->highest())->toMatchArray(['level' => 2]);
+});
+
+it('persists every level crossed against the immutable award in the same transaction', function () {
+    $result = $this->svc->award($this->user, 'milestone', 'milestone:large-crossing', 600);
+    $awardId = PointAward::where('user_id', $this->user->id)->value('id');
+
+    expect($result->newLevel)->toBe(6)
+        ->and(UserLevelCrossing::where('user_id', $this->user->id)->orderBy('level')->get(['level', 'point_award_id']))
+        ->toHaveCount(5)
+        ->and(UserLevelCrossing::where('user_id', $this->user->id)->orderBy('level')->pluck('level')->all())->toBe([2, 3, 4, 5, 6])
+        ->and(UserLevelCrossing::where('user_id', $this->user->id)->pluck('point_award_id')->unique()->all())->toBe([$awardId]);
 });
 
 it('never awards to preview users', function () {

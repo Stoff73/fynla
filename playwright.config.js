@@ -31,8 +31,15 @@ export default defineConfig({
     },
     {
       name: 'mobile-chrome',
-      testMatch: /10-projection-parity\.spec\.js$/,
-      use: { ...devices['Pixel 7'], channel: chromeChannel },
+      testMatch: [
+        /10-projection-parity\.spec\.js$/,
+        /mobile\/.*\.spec\.js$/,
+      ],
+      use: {
+        ...devices['Pixel 7'],
+        channel: chromeChannel,
+        viewport: { width: 390, height: 844 },
+      },
     },
     {
       name: 'mobile-chromium',

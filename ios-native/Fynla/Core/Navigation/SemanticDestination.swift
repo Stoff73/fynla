@@ -58,6 +58,11 @@ struct SemanticDestination: Codable, Sendable, Equatable {
     let fallback: String
 }
 
+struct SemanticActionDescriptor: Sendable, Equatable {
+    let label: String
+    let route: AppRoute
+}
+
 enum SemanticDestinationResolver {
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "org.fynla.app",
@@ -80,6 +85,39 @@ enum SemanticDestinationResolver {
         onUnknown(destination.screen)
         return route(forScreen: destination.fallback, params: [:]) ?? .dashboard
     }
+
+    static func action(
+        label: String?,
+        destination: SemanticDestination?,
+        legacyPath: String?
+    ) -> SemanticActionDescriptor? {
+        if let label = label?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !label.isEmpty,
+           let destination
+        {
+            return SemanticActionDescriptor(
+                label: label,
+                route: route(for: destination, legacyPath: legacyPath)
+            )
+        }
+        guard let legacyPath, let label = legacyActionLabels[legacyPath]
+        else { return nil }
+        return SemanticActionDescriptor(
+            label: label,
+            route: route(for: nil, legacyPath: legacyPath)
+        )
+    }
+
+    private static let legacyActionLabels = [
+        "dashboard": "Go to dashboard",
+        "m-net-worth": "Review net worth",
+        "m-goals": "Review goals",
+        "m-estate": "Review estate plan",
+        "m-savings": "Review savings",
+        "m-retirement": "Review retirement",
+        "m-protection": "Review protection",
+        "tax-strategy": "Review tax strategy",
+    ]
 
     private static func route(
         forScreen screen: String,
@@ -193,13 +231,13 @@ enum SemanticDestinationResolver {
         case "conversation-history": .conversationHistory
         case "income": .income
         case "expenditure": .expenditure
-        case "net-worth": .netWorth(category: nil)
-        case "protection": .protection(policyType: nil, id: nil)
-        case "savings": .savings(accountID: nil)
-        case "investment": .investment(accountID: nil)
-        case "retirement": .retirement(pensionType: nil, id: nil)
-        case "estate": .estate
-        case "goals": .goals
+        case "net-worth", "m-net-worth": .netWorth(category: nil)
+        case "protection", "m-protection": .protection(policyType: nil, id: nil)
+        case "savings", "m-savings": .savings(accountID: nil)
+        case "investment", "m-investment": .investment(accountID: nil)
+        case "retirement", "m-retirement": .retirement(pensionType: nil, id: nil)
+        case "estate", "m-estate": .estate
+        case "goals", "m-goals": .goals
         case "tax", "tax-strategy": .taxStrategy
         case "holistic-plan": .holisticPlan
         case "settings": .settings

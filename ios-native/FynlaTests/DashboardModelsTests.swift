@@ -4,6 +4,92 @@ import Testing
 
 @Suite("Dashboard contract")
 struct DashboardModelsTests {
+    @Test
+    func resolvesOnlySafeAchievementActionsAndPrefersSemanticDestination() {
+        let semantic = SemanticDestination(
+            screen: "savings",
+            params: [:],
+            fallback: "dashboard"
+        )
+
+        #expect(
+            SemanticDestinationResolver.action(
+                label: "  Review savings  ",
+                destination: semantic,
+                legacyPath: "m-estate"
+            ) == SemanticActionDescriptor(
+                label: "Review savings",
+                route: .savings(accountID: nil)
+            )
+        )
+        #expect(
+            SemanticDestinationResolver.action(
+                label: " \n ",
+                destination: semantic,
+                legacyPath: "m-estate"
+            ) == SemanticActionDescriptor(label: "Review estate plan", route: .estate)
+        )
+        #expect(
+            SemanticDestinationResolver.action(
+                label: " ",
+                destination: semantic,
+                legacyPath: "evil-route"
+            ) == nil
+        )
+    }
+
+    @Test(arguments: [
+        ("dashboard", "Go to dashboard", AppRoute.dashboard),
+        ("m-net-worth", "Review net worth", AppRoute.netWorth(category: nil)),
+        ("m-goals", "Review goals", AppRoute.goals),
+        ("m-estate", "Review estate plan", AppRoute.estate),
+        ("m-savings", "Review savings", AppRoute.savings(accountID: nil)),
+        (
+            "m-retirement",
+            "Review retirement",
+            AppRoute.retirement(pensionType: nil, id: nil)
+        ),
+        (
+            "m-protection",
+            "Review protection",
+            AppRoute.protection(policyType: nil, id: nil)
+        ),
+        ("tax-strategy", "Review tax strategy", AppRoute.taxStrategy),
+    ])
+    func allowsOnlyTheExactLegacyAchievementActionContract(
+        _ legacyPath: String,
+        _ expectedLabel: String,
+        _ expectedRoute: AppRoute
+    ) {
+        #expect(
+            SemanticDestinationResolver.action(
+                label: nil,
+                destination: nil,
+                legacyPath: legacyPath
+            ) == SemanticActionDescriptor(
+                label: expectedLabel,
+                route: expectedRoute
+            )
+        )
+    }
+
+    @Test(arguments: [
+        "evil-route",
+        "constructor",
+        "__proto__",
+        "/m-savings",
+        " m-savings ",
+    ])
+    func rejectsUnsafeOrInexactLegacyAchievementActions(_ legacyPath: String) {
+        #expect(
+            SemanticDestinationResolver.action(
+                label: nil,
+                destination: nil,
+                legacyPath: legacyPath
+            ) == nil
+        )
+    }
+
     // Unknown server strings must degrade, never kill a screen decode
     // (mirrors /m's tolerance of new payload values).
     @Test

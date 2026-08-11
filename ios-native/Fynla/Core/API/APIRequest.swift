@@ -59,7 +59,12 @@ struct APIRequest<Response: Decodable & Sendable>: Sendable {
             guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
                 throw URLError(.badURL)
             }
-            components.queryItems = queryItems
+            components.percentEncodedQueryItems = queryItems.map { item in
+                URLQueryItem(
+                    name: item.name.addingPercentEncoding(withAllowedCharacters: .apiQueryItemAllowed) ?? item.name,
+                    value: item.value?.addingPercentEncoding(withAllowedCharacters: .apiQueryItemAllowed)
+                )
+            }
             guard let queryURL = components.url else {
                 throw URLError(.badURL)
             }
@@ -94,4 +99,9 @@ struct APIRequest<Response: Decodable & Sendable>: Sendable {
 
         return request
     }
+}
+
+private extension CharacterSet {
+    static let apiQueryItemAllowed = CharacterSet.alphanumerics
+        .union(CharacterSet(charactersIn: "-._~/"))
 }

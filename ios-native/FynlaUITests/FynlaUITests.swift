@@ -339,6 +339,84 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testPR6PersonalisedAchievementsJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let level = app.buttons["dashboard.level"]
+        XCTAssertTrue(level.waitForExistence(timeout: 3))
+        level.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+        XCTAssertTrue(element("achievements.screen", in: app).waitForExistence(timeout: 3))
+
+        let savingsBadge = element(
+            "achievements.badge.data_savings_account",
+            in: app
+        )
+        assertReachable(savingsBadge, in: app)
+        XCTAssertTrue(savingsBadge.label.contains("Added savings details"))
+        XCTAssertTrue(
+            savingsBadge.label.contains("You started building your savings picture.")
+        )
+        XCTAssertTrue(savingsBadge.label.contains("Earned 01/08/2026"))
+        XCTAssertEqual(
+            element("achievements.badge.data_savings_account.emblem", in: app).label,
+            "Earned badge"
+        )
+        XCTAssertFalse(savingsBadge.label.contains("data:savings_account:first"))
+
+        app.buttons["achievements.tab.milestones"].tap()
+
+        let reached = element(
+            "achievements.milestone.emergency_fund:0:1",
+            in: app
+        )
+        assertReachable(reached, in: app)
+        XCTAssertTrue(
+            reached.label.contains("Your emergency fund covers a month of your spending.")
+        )
+        XCTAssertTrue(reached.label.contains("Reached 02/08/2026"))
+        XCTAssertFalse(reached.label.contains("emergency_fund:0:1"))
+
+        let inProgress = element(
+            "achievements.upcoming.net_worth:0:10000",
+            in: app
+        )
+        assertReachable(inProgress, in: app)
+        XCTAssertTrue(inProgress.label.contains("Net worth £10,000"))
+        XCTAssertTrue(inProgress.label.contains("In progress"))
+
+        let progress = element(
+            "achievements.upcoming.net_worth:0:10000.progress",
+            in: app
+        )
+        XCTAssertTrue(progress.exists)
+        XCTAssertEqual(progress.value as? String, "40%")
+        XCTAssertEqual(progress.label, "£4,000 of £10,000")
+
+        let inapplicable = element(
+            "achievements.upcoming.retirement_on_track:0:1",
+            in: app
+        )
+        assertReachable(inapplicable, in: app)
+        XCTAssertTrue(inapplicable.label.contains("On track for retirement"))
+        XCTAssertTrue(inapplicable.label.contains("Not applicable"))
+        XCTAssertFalse(
+            element(
+                "achievements.upcoming.retirement_on_track:0:1.progress",
+                in: app
+            ).exists
+        )
+
+        let action = app.buttons[
+            "achievements.upcoming.net_worth:0:10000.action"
+        ]
+        assertReachable(action, in: app)
+        XCTAssertEqual(action.label, "Review your net worth")
+        action.tap()
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testNativeFynOpensThePersistedConversationAndSendsAReply() throws {
         let app = app(mode: "unlocked")
         app.launch()

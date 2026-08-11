@@ -15,10 +15,13 @@ use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\LifeEvent;
 use App\Models\Mortgage;
 use App\Models\PendingRegistration;
+use App\Models\PointAward;
 use App\Models\RetirementProfile;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Models\UserGamification;
+use App\Models\UserMilestone;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Stores\IngestSource;
@@ -28,6 +31,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -135,6 +139,7 @@ class E2EController extends Controller
             'with_balance_history' => ['sometimes', 'boolean'],
             'with_freemium_caps' => ['sometimes', 'boolean'],
             'with_projection_parity' => ['sometimes', 'boolean'],
+            'with_achievement_personalisation' => ['sometimes', 'boolean'],
         ]);
 
         $userAttributes = [
@@ -298,6 +303,52 @@ class E2EController extends Controller
                 'state_pension_forecast_annual' => 11502,
                 'state_pension_age' => 67,
             ], $user, IngestSource::FORM);
+        }
+
+        if ($validated['with_achievement_personalisation'] ?? false) {
+            $account = $savingsStore->create([
+                'account_name' => 'Emergency savings',
+                'account_type' => 'easy_access',
+                'institution' => 'Personalisation Bank',
+                'current_balance' => 4000,
+                'interest_rate' => 2,
+                'is_emergency_fund' => true,
+                'is_isa' => false,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+            ], $user, IngestSource::FORM);
+
+            $earnedAt = Carbon::parse('2026-08-01 10:00:00', 'UTC');
+            $award = PointAward::query()->firstOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'dedup_key' => 'data:savings_account:first',
+                ],
+                [
+                    'source_type' => 'data',
+                    'points' => 20,
+                    'meta' => [
+                        'category' => 'savings_account',
+                        'record_id' => $account->id,
+                    ],
+                ],
+            );
+            $award->forceFill([
+                'created_at' => $earnedAt,
+                'updated_at' => $earnedAt,
+            ])->saveQuietly();
+
+            UserGamification::query()->firstOrCreate(
+                ['user_id' => $user->id],
+                ['total_points' => 20, 'level' => 1],
+            );
+            UserMilestone::query()->create([
+                'user_id' => $user->id,
+                'milestone_type' => 'emergency_fund',
+                'reference_id' => null,
+                'threshold' => 1,
+                'achieved_at' => Carbon::parse('2026-08-02 10:00:00', 'UTC'),
+            ]);
         }
 
         $token = $user->createToken('e2e-active-user', ['mfa_verified'])->plainTextToken;
