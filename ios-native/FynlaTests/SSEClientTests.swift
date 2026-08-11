@@ -127,10 +127,7 @@ struct SSEClientTests {
             Issue.record("Unexpected error: \(error)")
         }
 
-        for _ in 0..<100 where !(await cancellation.wasCancelled()) {
-            await Task.yield()
-        }
-        #expect(await cancellation.wasCancelled())
+        #expect(await cancellation.waitUntilCancelled())
     }
 
     @Test
@@ -171,10 +168,7 @@ struct SSEClientTests {
         consumer.cancel()
         _ = try? await consumer.value
 
-        for _ in 0..<100 where !(await cancellation.wasCancelled()) {
-            await Task.yield()
-        }
-        #expect(await cancellation.wasCancelled())
+        #expect(await cancellation.waitUntilCancelled())
     }
 
     @Test
@@ -379,6 +373,21 @@ private actor CancellationProbe {
 
     func wasCancelled() -> Bool {
         cancelled
+    }
+
+    func waitUntilCancelled() async -> Bool {
+        // Task.yield() is advisory and can immediately reschedule the polling
+        // test task on a busy CI runner. Give the detached stream producer a
+        // real, bounded scheduling window while retaining a strict failure if
+        // downstream cancellation never reaches the transport.
+        for _ in 0..<100 {
+            if cancelled {
+                return true
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        return cancelled
     }
 }
 

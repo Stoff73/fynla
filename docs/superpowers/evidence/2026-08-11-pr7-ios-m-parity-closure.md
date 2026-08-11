@@ -123,6 +123,17 @@ runs the full native UI suite and a dedicated PR7 rerun at
 bundles on failure, and retains the existing Production build gate. PR7 cannot
 merge until those CI jobs pass.
 
+The first GitHub Actions attempt was run 31519635973. Its fresh simulator
+booted and executed 393 tests across 64 suites, but the unsigned-unit gate
+reported one failure in
+`SSEClientTests.downstreamCancellationCancelsTheUpstreamByteStream`: the test's
+100 advisory `Task.yield()` polls did not give the detached stream producer a
+real scheduling interval on the busy runner. The production cancellation path
+was unchanged; both affected cancellation assertions now use a strict,
+test-only wait capped at one second. The focused SSE test target then compiled
+and linked locally with warnings as errors (`** TEST BUILD SUCCEEDED **`). The
+ledger remains `pending-ci` until the complete replacement run is green.
+
 ## Contract and regression gates
 
 | Gate | Result |
