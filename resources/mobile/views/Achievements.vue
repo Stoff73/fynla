@@ -155,7 +155,7 @@
             </div>
           </div>
           <button
-            v-if="milestoneCursor"
+            v-if="milestoneCursor && !milestoneLoadError"
             type="button"
             class="m-btn ma-more"
             :disabled="loadingMoreMilestones"
@@ -210,6 +210,10 @@ const legacyMilestoneActions = Object.freeze({
   'm-protection': 'Review protection',
   'tax-strategy': 'Review tax strategy',
 });
+
+function validMilestoneCursor(cursor) {
+  return cursor === null || (typeof cursor === 'string' && cursor.length > 0);
+}
 
 export default {
   name: 'MobileAchievements',
@@ -290,8 +294,8 @@ export default {
       return Object.hasOwn(legacyMilestoneActions, route);
     },
     upcomingActionLabel(item) {
-      if (item?.next_action?.label) return item.next_action.label;
-      return legacyMilestoneActions[item?.route] || '';
+      if (typeof item?.next_action?.label === 'string' && item.next_action.label.trim()) return item.next_action.label;
+      return this.legacyMilestoneRoute(item?.route) ? legacyMilestoneActions[item.route] : '';
     },
     formatDate(iso) {
       if (!iso) return '';
@@ -345,7 +349,7 @@ export default {
         this.completedTotal = Number(d.completed_total) || this.completed.length;
         this.completedPage = 1;
         this.milestones = this.mergeMilestones([], d.milestones);
-        this.milestoneCursor = d.next_cursor ?? null;
+        this.milestoneCursor = validMilestoneCursor(d.next_cursor) ? d.next_cursor : null;
         this.upcoming = Array.isArray(d.upcoming) ? d.upcoming : [];
         this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
         this.activityCursor = act.ok ? (act.data?.next_cursor ?? null) : null;
@@ -364,7 +368,7 @@ export default {
         const res = await apiGet(`/api/v1/mobile/achievements/v2/milestones?cursor=${encodeURIComponent(cursor)}`, store.token);
         if (handleAuthExpiry(res, this.$router)) return;
         const data = res.data?.data;
-        if (!res.ok || !Array.isArray(data?.milestones) || !Object.hasOwn(data, 'next_cursor')) throw new Error('continuation_failed');
+        if (!res.ok || !Array.isArray(data?.milestones) || !Object.hasOwn(data, 'next_cursor') || !validMilestoneCursor(data.next_cursor)) throw new Error('continuation_failed');
         this.milestones = this.mergeMilestones(this.milestones, data.milestones);
         this.milestoneCursor = data.next_cursor;
       } catch {
@@ -495,12 +499,15 @@ export default {
 .ma-badge__action--button {
   align-self: flex-start;
   border: 0;
-  padding: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
   background: transparent;
   font-family: inherit;
   cursor: pointer;
   text-decoration: underline;
 }
+.ma-badge__action--button:focus-visible { outline: 3px solid var(--horizon-500); outline-offset: 2px; }
 .ma-progress { display: flex; flex-direction: column; gap: 5px; }
 .ma-progress__label { font-size: 12px; color: var(--neutral-500); }
 .ma-progress__track { display: block; overflow: hidden; height: 7px; border-radius: 999px; background: var(--horizon-100); }

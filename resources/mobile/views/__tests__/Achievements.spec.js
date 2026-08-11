@@ -12,7 +12,7 @@ const cursor = 'eyJpdiI6IjEyMzQ1Njc4OTAxMjM0NTYifQ==';
 const nextCursor = 'eyJpdiI6Ijk4NzY1NDMyMTA5ODc2NTQifQ==';
 
 const milestone = (number, key = `goal:${number}:50`) => ({
-  key, title: `Milestone ${number}`, state: 'earned', progress: null, next_action: null,
+  key, title: `Milestone ${number}`, achieved: true, achieved_at: '2026-08-09T12:00:00Z', state: 'earned', progress: null, next_action: null,
   provenance: { kind: 'user_milestone', event: key, occurred_at: '2026-08-09T12:00:00Z' },
 });
 
@@ -105,6 +105,7 @@ describe('Mobile achievements', () => {
       { key: 'precedence:0:1', group: 'Journey', title: 'Semantic wins', steps: 'Server step.', state: 'in_progress', progress: null, route: 'm-net-worth', next_action: { label: 'Go to savings', destination: { screen: 'savings', params: {}, fallback: 'dashboard' } } },
       { key: 'legacy:0:1', group: 'Journey', title: 'Legacy allowed', steps: 'Server step.', state: 'locked', progress: null, route: 'm-estate', next_action: null },
       { key: 'bad:0:1', group: 'Journey', title: 'Legacy rejected', steps: 'Server step.', state: 'locked', progress: null, route: 'not-a-route', next_action: null },
+      ...['toString', 'constructor', '__proto__'].map((route) => ({ key: `bad:${route}`, group: 'Journey', title: `Inherited ${route}`, steps: 'Server step.', state: 'locked', progress: null, route, next_action: null })),
     ] });
     mockCanonical(page); const wrapper = mountView(); await flushPromises(); await wrapper.get('[data-progress-tab="milestones"]').trigger('click');
     await itemByTitle(wrapper, 'Semantic wins').get('button').trigger('click');
@@ -112,6 +113,7 @@ describe('Mobile achievements', () => {
     expect(wrapper.vm.$router.push).toHaveBeenNthCalledWith(1, '/savings');
     expect(wrapper.vm.$router.push).toHaveBeenNthCalledWith(2, { name: 'm-estate' });
     expect(itemByTitle(wrapper, 'Legacy rejected').find('button').exists()).toBe(false);
+    for (const route of ['toString', 'constructor', '__proto__']) expect(itemByTitle(wrapper, `Inherited ${route}`).find('button').exists()).toBe(false);
   });
 
   it('deduplicates initial and continuation keys while advancing the successful opaque cursor', async () => {
@@ -130,7 +132,8 @@ describe('Mobile achievements', () => {
     await wrapper.get('[data-load-more-milestones]').trigger('click');
     expect(wrapper.get('[data-milestone-load-error]').attributes('aria-live')).toBe('polite');
     expect(wrapper.findAll('[data-reached-milestone]')).toHaveLength(50);
-    expect(wrapper.get('[data-load-more-milestones]').exists()).toBe(true);
+    expect(wrapper.find('[data-load-more-milestones]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-retry-milestones]')).toHaveLength(1);
     await wrapper.get('[data-retry-milestones]').trigger('click');
     expect(wrapper.findAll('[data-reached-milestone]')).toHaveLength(51);
     expect(wrapper.find('[data-milestone-load-error]').exists()).toBe(false);
@@ -146,5 +149,43 @@ describe('Mobile achievements', () => {
     expect(logout).toHaveBeenCalledOnce(); expect(wrapper.vm.$router.push).toHaveBeenCalledWith('/login');
     mockCanonical(canonicalPage(), [() => Promise.reject(new Error('offline'))]); const rejected = mountView(); await flushPromises(); await rejected.get('[data-progress-tab="milestones"]').trigger('click'); await rejected.get('[data-load-more-milestones]').trigger('click');
     expect(rejected.get('[data-milestone-load-error]').text()).toContain('Could not load more reached milestones');
+  });
+
+  it('adopts exact valid cursors, including overlap-only pages, and uses them unchanged on the next request', async () => {
+    mockCanonical(canonicalPage(), [
+      Promise.resolve({ ok: true, status: 200, data: { data: { milestones: [milestone(1)], milestones_total: 53, per_page: 50, next_cursor: nextCursor } } }),
+      Promise.resolve({ ok: true, status: 200, data: { data: { milestones: [], milestones_total: 53, per_page: 50, next_cursor: null } } }),
+    ]);
+    const wrapper = mountView(); await flushPromises(); await wrapper.get('[data-progress-tab="milestones"]').trigger('click');
+    await wrapper.get('[data-load-more-milestones]').trigger('click');
+    expect(wrapper.vm.milestoneCursor).toBe(nextCursor);
+    expect(wrapper.findAll('[data-reached-milestone]')).toHaveLength(50);
+    await wrapper.get('[data-load-more-milestones]').trigger('click');
+    expect(apiGet).toHaveBeenCalledWith(`/api/v1/mobile/achievements/v2/milestones?cursor=${encodeURIComponent(nextCursor)}`, 'live-token');
+    expect(wrapper.vm.milestoneCursor).toBeNull();
+    expect(wrapper.find('[data-load-more-milestones]').exists()).toBe(false);
+  });
+
+  it.each([{}, 7, '', undefined])('preserves the opaque cursor when continuation returns malformed cursor %j', async (badCursor) => {
+    const data = { milestones: [milestone(51)], milestones_total: 53, per_page: 50 };
+    if (badCursor !== undefined) data.next_cursor = badCursor;
+    mockCanonical(canonicalPage(), [
+      Promise.resolve({ ok: true, status: 200, data: { data } }),
+      Promise.resolve({ ok: false, status: 500, data: {} }),
+    ]);
+    const wrapper = mountView(); await flushPromises(); await wrapper.get('[data-progress-tab="milestones"]').trigger('click');
+    await wrapper.get('[data-load-more-milestones]').trigger('click');
+    expect(wrapper.vm.milestoneCursor).toBe(cursor);
+    expect(wrapper.findAll('[data-reached-milestone]')).toHaveLength(50);
+    expect(wrapper.get('[data-milestone-load-error]').exists()).toBe(true);
+    await wrapper.get('[data-retry-milestones]').trigger('click');
+    expect(apiGet).toHaveBeenLastCalledWith(`/api/v1/mobile/achievements/v2/milestones?cursor=${encodeURIComponent(cursor)}`, 'live-token');
+  });
+
+  it.each([{}, 7, ''])('rejects malformed initial cursor %j without manufacturing a continuation request', async (badCursor) => {
+    mockCanonical(canonicalPage({ next_cursor: badCursor }));
+    const wrapper = mountView(); await flushPromises();
+    expect(wrapper.vm.milestoneCursor).toBeNull();
+    expect(wrapper.find('[data-load-more-milestones]').exists()).toBe(false);
   });
 });
