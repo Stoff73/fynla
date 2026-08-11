@@ -25,7 +25,7 @@ The platform will centralise and govern:
 - configuration releases, synchronisation, drift detection and rollback;
 - job state, approvals, audit evidence, monitoring and cost controls.
 
-The public control plane and dashboard will run at `mcp.fynla.org` on the existing SiteGround subscription. SiteGround will receive Slack and MCP requests, authenticate users, apply policy, maintain operational state and dispatch work. GitHub Actions will execute long-running indexing, reasoning, Codex, Claude Code, build and test jobs. An external managed PostgreSQL/pgvector service may hold the derived semantic index. Git remains the canonical store for version-controlled platform content.
+The public control plane and dashboard will run at `mcp.fynla.org` on the existing SiteGround subscription. SiteGround will receive Slack and MCP requests, authenticate users, apply policy, maintain operational state and dispatch work. One dedicated SiteGround MySQL/MariaDB database will hold both control-plane state and the rebuildable, permission-filtered full-text knowledge index. GitHub Actions will execute long-running indexing, reasoning, Codex, Claude Code, build and test jobs. Git remains the canonical store for version-controlled platform content.
 
 Routine, low-risk coding fixes may run automatically to an isolated branch and tested draft pull request. The platform will never automatically merge or deploy them. Medium- and high-risk work remains approval-gated, and prohibited production actions remain unavailable to coding agents.
 
@@ -100,7 +100,7 @@ This is logical and credential isolation, not physical resource isolation. The c
 
 ### 4.3 Canonical versus derived state
 
-Canonical content remains in GitHub, Google Shared Drive, the approved Markdown vault and other explicitly approved systems. SiteGround MySQL stores identity, assignments, jobs, approvals, release pointers and audit metadata. PostgreSQL/pgvector stores a rebuildable search index. Neither operational database becomes an undocumented source of truth for prompts, SOPs or skills.
+Canonical content remains in GitHub, Google Shared Drive, the approved Markdown vault and other explicitly approved systems. One dedicated SiteGround MySQL/MariaDB database stores identity, assignments, jobs, approvals, release pointers, audit metadata and a rebuildable full-text search index. Separate table groups and application services preserve the operational-versus-derived boundary even though they share the same SQL database. The database does not become an undocumented source of truth for prompts, SOPs, skills or company documents.
 
 ## 5. Architecture
 
@@ -119,7 +119,8 @@ Slack, dashboard, Codex, Claude Code and approved MCP clients
         └──────────────────────┬───────────────────────┘
                                │
                                ▼
-                    SiteGround MySQL control data
+               SiteGround MySQL/MariaDB database
+                control data + full-text index
                                │
                         signed job dispatch
                                ▼
@@ -131,16 +132,16 @@ Slack, dashboard, Codex, Claude Code and approved MCP clients
         │ Codex and Claude Code execution             │
         │ isolated branches, tests and draft PRs      │
         │ synchronisation and recovery                │
-        └──────────────┬──────────────┬────────────────┘
-                       │              │
-                       ▼              ▼
-             Fynla canonical Git   Managed pgvector
-             and knowledge sources derived search index
-                       │              │
-                       └──── signed callbacks ───► SiteGround
-                                                     │
-                                                     ▼
-                                              Slack/dashboard
+        └──────────────────────┬───────────────────────┘
+                               │
+                               ▼
+                  Fynla canonical Git and
+                  approved knowledge sources
+                               │
+                               └── signed callbacks ──► SiteGround
+                                                          │
+                                                          ▼
+                                                   Slack/dashboard
 ```
 
 ### 5.1 Component responsibilities
@@ -148,10 +149,9 @@ Slack, dashboard, Codex, Claude Code and approved MCP clients
 | Component | Responsibility | Must not do |
 |---|---|---|
 | SiteGround control plane | Authentication, policy, dashboard, MCP, Slack ingress, job state, approvals, audit and dispatch | Run long coding agents, builds or persistent WebSocket workers |
-| SiteGround MySQL | Operational identities, assignments, jobs, approvals, release pointers and audit metadata | Store canonical SOPs, prompts or company documents |
+| SiteGround MySQL/MariaDB | Operational identities, assignments, jobs, approvals, release pointers, audit metadata and a permission-tagged derived full-text index | Become the canonical store for SOPs, prompts, skills or company documents |
 | `Fynla/fynla-control` | Canonical versioned policies, SOPs, assets, schemas, tests and release inputs | Store secrets or runtime customer data |
 | GitHub Actions workers | Bounded asynchronous indexing, reasoning, Codex/Claude work, tests and draft PRs | Merge, deploy, broaden permissions or use unapproved repositories |
-| Managed PostgreSQL/pgvector | Permission-tagged, derived full-text and vector retrieval index | Become the only copy of a source document |
 | Developer synchronisation client | Compile and install the user's permitted local configuration | Overwrite uncommitted work or store shared secrets |
 | Slack app | Conversation, notification, approval and job steering | Decide permissions independently of the control plane |
 
@@ -175,11 +175,10 @@ Model selection is configured through capability aliases rather than commercial 
 
 - `answer-fast`;
 - `answer-primary`;
-- `embedding-v1`;
 - `coding-codex`;
 - `coding-claude`.
 
-The SiteGround gateway and GitHub workers resolve aliases from the pinned configuration release. Changing an answer or coding deployment is a validated configuration change. Changing an embedding deployment builds and evaluates a parallel index before activation because vector dimensions and spaces may differ. Provider keys remain in SiteGround environment configuration or GitHub encrypted secrets and never enter the registry, task envelope, Slack or logs.
+The SiteGround gateway and GitHub workers resolve aliases from the pinned configuration release. Changing an answer or coding deployment is a validated configuration change. Embedding models and an `embedding-v1` alias are not required for the pilot because initial retrieval uses SiteGround SQL full-text search. If a later approved design adds vector retrieval, changing its embedding deployment must build and evaluate a parallel index before activation because vector dimensions and spaces may differ. Provider keys remain in SiteGround environment configuration or GitHub encrypted secrets and never enter the registry, task envelope, Slack or logs.
 
 ### 5.4 Core operational records
 
@@ -580,7 +579,7 @@ Developers may use the same UI to register their machines and edit schema-allowl
 ### 13.2 Sources of truth
 
 - Permission definitions, role templates and protected policy live in `fynla-control` and publish through releases.
-- User-to-role, repository and temporary assignments live in SiteGround MySQL for immediate operational enforcement.
+- User-to-role, repository and temporary assignments live in the dedicated SiteGround MySQL/MariaDB database for immediate operational enforcement.
 - The dashboard manages both and creates registry revisions automatically when a version-controlled definition changes.
 
 ### 13.3 Safety controls
@@ -774,7 +773,7 @@ The integrated platform retains the founder-platform knowledge capability. Appro
 
 The index records canonical link, source version, timestamp, classification, audience, outbound-model policy and deletion state. Permission filtering occurs before retrieval. Every factual answer includes canonical links and visible freshness. The model may not fabricate citations.
 
-The preferred retrieval implementation combines full-text and pgvector similarity behind a provider-neutral `KnowledgeIndex` interface. Keyword and metadata search remain available if the semantic service is degraded. Derived indexes can be rebuilt from canonical sources.
+The pilot `KnowledgeIndex` implementation uses SiteGround MySQL/MariaDB full-text search, structured metadata filters, source authority and freshness weighting. Indexed documents are stored as permission-tagged derived chunks in the dedicated control-plane database and can be rebuilt from canonical sources. Vector or embedding search is explicitly outside the pilot; it may be proposed later only if the full-text acceptance results demonstrate a material need.
 
 Slack direct messages and non-allowlisted channels are excluded from shared indexing. Adding a source, repository, Drive folder or channel is a security-policy change.
 
@@ -833,7 +832,7 @@ Worker payloads contain signed identifiers rather than interpolated Slack text. 
 | GitHub Actions unavailable or quota exhausted | Job stays queued with visible reason; no false success or duplicate dispatch |
 | Selected model unavailable | Use an approved fallback only when envelope policy permits and disclose the provider/assistant actually used |
 | All models unavailable | Fail transparently and preserve retryable state |
-| Semantic index degraded | Use permission-filtered keyword/metadata fallback and label degraded freshness |
+| Full-text knowledge index degraded | Use permission-filtered canonical metadata and direct-source lookup, label the degraded state and block unsupported claims |
 | Slack unavailable | Retain result in dashboard and retry thread delivery |
 | Callback duplicated | Idempotency returns the prior result without repeating the action |
 | Worker abandoned | Lease expires and recovery decides whether a safe retry is possible |
@@ -888,7 +887,7 @@ Founders can independently disable:
 - all automatic green jobs;
 - Codex jobs;
 - Claude jobs;
-- semantic retrieval;
+- knowledge retrieval;
 - new worker dispatch;
 - individual repositories or integrations.
 
@@ -896,7 +895,7 @@ Disabling automation does not disable audit, dashboard access or existing-result
 
 ### 21.3 Backups and recovery
 
-- SiteGround operational data receives encrypted off-site backups at least every six hours and a nightly retained snapshot.
+- The dedicated SiteGround SQL database receives encrypted off-site backups at least every six hours and a nightly retained snapshot.
 - Retention is 30 daily and 12 monthly backups.
 - Git repositories provide additional content history but do not replace database backups.
 - The derived search index may be rebuilt.
@@ -924,13 +923,13 @@ The pilot reuses the existing SiteGround subscription, so its incremental SiteGr
 | Item | Pilot estimate |
 |---|---:|
 | Existing SiteGround subscription | $0 incremental |
-| Managed PostgreSQL/pgvector | $15–30 |
+| SiteGround MySQL/MariaDB database | $0 incremental |
 | GitHub Actions overage | $0–10 initially |
 | Off-site monitoring/backup overhead | $0–10 |
 | AI model usage cap | $100–250 |
-| **Expected incremental total** | **$115–300** |
+| **Expected incremental total** | **$100–270** |
 
-The fixed non-AI infrastructure target is approximately $15–40 per month. Vendor taxes and currency conversion are excluded. The dashboard exposes daily, monthly, user, repository, assistant and workflow cost. Hard budget controls may stop non-critical automation before a monthly cap is exceeded.
+The fixed non-AI infrastructure target is approximately $0–20 per month while existing SiteGround and GitHub allowances remain sufficient. Vendor taxes and currency conversion are excluded. The dashboard exposes daily, monthly, user, repository, assistant and workflow cost. Hard budget controls may stop non-critical automation before a monthly cap is exceeded.
 
 ## 24. Verification strategy
 
@@ -951,6 +950,7 @@ All behavioural implementation follows test-driven development.
 - unsafe shell, path, branch, prompt-injection and secret payloads;
 - release validation, atomic activation and rollback;
 - source freshness, deletion reconciliation and provider fallback;
+- SiteGround SQL full-text relevance, permission filters, indexing limits and rebuild behaviour;
 - People Lifecycle onboarding, role change, scheduled revocation and offboarding;
 - deployment artifact and secret-exclusion checks.
 
@@ -1068,6 +1068,10 @@ Rejected because Codex and Claude Code expose different native configuration and
 ### 26.7 Relying on developers to remember `/session-start`
 
 Rejected because an optional instruction cannot enforce freshness. The skill remains available, but native hooks and worker bootstrap provide deterministic enforcement.
+
+### 26.8 External PostgreSQL/pgvector during the pilot
+
+Deferred at Chris's direction. The initial control plane and derived knowledge index use the dedicated SiteGround MySQL/MariaDB database. A separate vector database adds cost and operational complexity before the full-text quality gates demonstrate that it is needed. It may be reconsidered through a later approved design without changing canonical sources or the `KnowledgeIndex` contract.
 
 ## 27. Authoritative references
 
