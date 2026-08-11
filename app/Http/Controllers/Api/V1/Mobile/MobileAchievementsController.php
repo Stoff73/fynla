@@ -15,10 +15,14 @@ use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\NetWorth\NetWorthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class MobileAchievementsController extends Controller
 {
     use SanitizedErrorResponse;
+
+    /** Canonical v2 earned-milestone page size. */
+    private const CANONICAL_MILESTONES_PER_PAGE = 50;
 
     public function __construct(
         private readonly AchievementPresentationService $presentation,
@@ -107,6 +111,65 @@ class MobileAchievementsController extends Controller
     }
 
     /**
+     * Versioned canonical achievements contract for native clients.
+     *
+     * Legacy `/mobile/achievements` intentionally continues to return its
+     * complete `milestones` collection. Native clients must consume this
+     * bounded v2 first page and the continuation endpoint below.
+     */
+    public function canonical(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $this->detectJourneySafely($user);
+            $milestones = $this->canonicalMilestones($user, 1);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'achievements' => $this->achievements($user),
+                    'completed' => $this->completedActions($user),
+                    'completed_total' => $this->completedTotal($user),
+                    'milestones' => $milestones['items'],
+                    'milestones_total' => $milestones['total'],
+                    'page' => 1,
+                    'per_page' => self::CANONICAL_MILESTONES_PER_PAGE,
+                    'next_page' => $milestones['next_page'],
+                    'upcoming' => $this->upcomingMilestones($user),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Fetching canonical achievements');
+        }
+    }
+
+    /**
+     * Canonical earned-milestone continuation endpoint.
+     * GET /api/v1/mobile/achievements/v2/milestones?page=N
+     */
+    public function canonicalMilestonePage(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $page = max(1, (int) $request->query('page', '1'));
+            $milestones = $this->canonicalMilestones($user, $page);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'milestones' => $milestones['items'],
+                    'milestones_total' => $milestones['total'],
+                    'page' => $page,
+                    'per_page' => self::CANONICAL_MILESTONES_PER_PAGE,
+                    'next_page' => $milestones['next_page'],
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Fetching canonical milestones');
+        }
+    }
+
+    /**
      * WP-2 — the user's completed actions (recommendation_tracking rows),
      * newest first, in the same lean shape the Next list uses so the /m
      * template renders both with one card style. WP-5c-ii: paginated
@@ -157,21 +220,54 @@ class MobileAchievementsController extends Controller
         // read, so a user who never opened it saw an empty milestones page.
         // The journey flavours are cheap; net-worth/goal detection still runs
         // on the dashboard read where the aggregates are already computed.
+        $this->detectJourneySafely($user);
+
+        return $this->presentMilestones(UserMilestone::where('user_id', $user->id)
+            ->orderByDesc('achieved_at')
+            ->orderByDesc('id')
+            ->get(), $user);
+    }
+
+    private function detectJourneySafely(User $user): void
+    {
         try {
             app(MilestoneDetectionService::class)->detectJourney($user);
         } catch (\Throwable $e) {
             // Never let detection break the page.
         }
+    }
 
-        return UserMilestone::where('user_id', $user->id)
+    /** @return array{items:array<int,array<string,mixed>>,total:int,next_page:?int} */
+    private function canonicalMilestones(User $user, int $page): array
+    {
+        $total = UserMilestone::where('user_id', $user->id)->count();
+        $items = UserMilestone::where('user_id', $user->id)
             ->orderByDesc('achieved_at')
-            ->limit(100)
-            ->get()
-            ->map(fn (UserMilestone $m) => $this->presentation->milestone($m, $this->milestoneTitle($user, $m)))
+            ->orderByDesc('id')
+            ->forPage($page, self::CANONICAL_MILESTONES_PER_PAGE)
+            ->get();
+
+        return [
+            'items' => $this->presentMilestones($items, $user),
+            'total' => $total,
+            'next_page' => $page * self::CANONICAL_MILESTONES_PER_PAGE < $total ? $page + 1 : null,
+        ];
+    }
+
+    /** @param Collection<int,UserMilestone> $milestones @return array<int,array<string,mixed>> */
+    private function presentMilestones(Collection $milestones, User $user): array
+    {
+        $goalTitles = Goal::forUserOrJoint($user->id)
+            ->whereIn('id', $milestones->where('milestone_type', 'goal')->pluck('reference_id')->filter()->unique())
+            ->pluck('goal_name', 'id');
+
+        return $milestones
+            ->map(fn (UserMilestone $m) => $this->presentation->milestone($m, $this->milestoneTitle($m, $goalTitles)))
             ->all();
     }
 
-    private function milestoneTitle(User $user, UserMilestone $m): string
+    /** @param Collection<int,string> $goalTitles */
+    private function milestoneTitle(UserMilestone $m, Collection $goalTitles): string
     {
         $threshold = (float) $m->threshold;
 
@@ -192,8 +288,7 @@ class MobileAchievementsController extends Controller
         }
 
         if ($m->milestone_type === 'goal') {
-            $goal = Goal::forUserOrJoint($user->id)->whereKey($m->reference_id)->first();
-            $goalName = $goal?->goal_name ?? 'your goal';
+            $goalName = $goalTitles->get($m->reference_id, 'your goal');
 
             return $threshold >= 100
                 ? sprintf("You've reached your goal: %s.", $goalName)

@@ -33,6 +33,12 @@ use Illuminate\Support\Carbon;
  */
 class MilestoneDetectionService
 {
+    private const UPCOMING_GOAL_LIMIT = 3;
+
+    private const UPCOMING_MORTGAGE_LIMIT = 3;
+
+    /** Maximum finite catalogue rows needed to determine upcoming state. */
+    private const UPCOMING_EARNED_LIMIT = 128;
     /** Net-worth thresholds in GBP. */
     private const NET_WORTH_THRESHOLDS = [
         10000, 25000, 50000, 100000, 250000, 500000, 750000, 1000000, 2000000, 5000000,
@@ -240,8 +246,22 @@ class MilestoneDetectionService
      */
     public function upcoming(User $user, ?float $netWorth = null, ?float $pensionPot = null): array
     {
-        $earned = UserMilestone::where('user_id', $user->id)
-            ->get(['milestone_type', 'reference_id', 'threshold']);
+        $goals = Goal::forUserOrJoint($user->id)
+            ->where('target_amount', '>', 0)
+            ->whereColumn('current_amount', '<', 'target_amount')
+            ->orderByRaw('(current_amount / NULLIF(target_amount, 0)) DESC')
+            ->limit(self::UPCOMING_GOAL_LIMIT)
+            ->get(['id', 'goal_name', 'target_amount', 'current_amount']);
+        $mortgages = Mortgage::query()
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+            ->orderBy('id')
+            ->limit(self::UPCOMING_MORTGAGE_LIMIT)
+            ->get(['id', 'original_loan_amount', 'outstanding_balance']);
+        $earned = $this->earnedUpcomingMilestones(
+            $user,
+            $goals->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
+            $mortgages->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
+        );
 
         $has = static fn (string $type, ?int $ref = null, ?float $threshold = null): bool => $earned->contains(
             static fn (UserMilestone $m): bool => $m->milestone_type === $type
@@ -258,7 +278,7 @@ class MilestoneDetectionService
                 continue;
             }
             $upcoming[] = [
-                'key' => "net_worth:{$threshold}",
+                'key' => "net_worth:0:{$threshold}",
                 'group' => 'Wealth',
                 'title' => 'Net worth £'.number_format($threshold),
                 'steps' => $netWorth !== null
@@ -271,11 +291,6 @@ class MilestoneDetectionService
         }
 
         // ── Goals: next progress step per active goal (top 3 by progress).
-        $goals = Goal::forUserOrJoint($user->id)
-            ->get()
-            ->filter(fn (Goal $g): bool => (float) $g->progress_percentage < 100)
-            ->sortByDesc(fn (Goal $g): float => (float) $g->progress_percentage)
-            ->take(3);
         foreach ($goals as $goal) {
             $progress = (float) $goal->progress_percentage;
             foreach (self::GOAL_THRESHOLDS as $threshold) {
@@ -285,6 +300,7 @@ class MilestoneDetectionService
                     $current = (float) $goal->current_amount;
                     $needed = max(0.0, $target * ($threshold / 100) - $current);
                     $upcoming[] = [
+                        'key' => "goal:{$goal->id}:{$threshold}",
                         'group' => 'Goals',
                         'title' => ($threshold >= 100 ? 'Reach ' : $threshold.'% of ').$name,
                         'steps' => $needed > 0 && $target > 0
@@ -303,12 +319,14 @@ class MilestoneDetectionService
         if ($year >= 2000) {
             if (! $has('isa_used', $year, 50.0)) {
                 $upcoming[] = [
+                    'key' => "isa_used:{$year}:50",
                     'group' => 'Tax year',
                     'title' => "Use half your ISA allowance ({$taxYear})",
                     'steps' => 'Pay into an ISA — contributions this tax year count towards it.',
                 ];
             } elseif (! $has('isa_used', $year, 100.0)) {
                 $upcoming[] = [
+                    'key' => "isa_used:{$year}:100",
                     'group' => 'Tax year',
                     'title' => "Use your full ISA allowance ({$taxYear})",
                     'steps' => 'Top up your ISA before 5 April.',
@@ -317,12 +335,14 @@ class MilestoneDetectionService
 
             if (! $has('pension_aa_used', $year, 50.0)) {
                 $upcoming[] = [
+                    'key' => "pension_aa_used:{$year}:50",
                     'group' => 'Tax year',
                     'title' => "Use half your pension Annual Allowance ({$taxYear})",
                     'steps' => 'Add to your pension contributions this tax year.',
                 ];
             } elseif (! $has('pension_aa_used', $year, 100.0)) {
                 $upcoming[] = [
+                    'key' => "pension_aa_used:{$year}:100",
                     'group' => 'Tax year',
                     'title' => "Use your full pension Annual Allowance ({$taxYear})",
                     'steps' => 'Add to your pension contributions this tax year.',
@@ -332,6 +352,7 @@ class MilestoneDetectionService
 
         if (! $has('tax_actioned', null, 1.0)) {
             $upcoming[] = [
+                'key' => 'tax_actioned:0:1',
                 'group' => 'Tax year',
                 'title' => 'Action your first tax saving',
                 'steps' => 'Mark a tax-plan action as done once you\'ve completed it.',
@@ -340,6 +361,7 @@ class MilestoneDetectionService
             foreach (self::TAX_ACTIONED_THRESHOLDS as $threshold) {
                 if (! $has('tax_actioned', null, (float) $threshold)) {
                     $upcoming[] = [
+                        'key' => "tax_actioned:0:{$threshold}",
                         'group' => 'Tax year',
                         'title' => '£'.number_format($threshold).' a year of tax savings actioned',
                         'steps' => 'Complete more of the actions in your tax plan.',
@@ -353,6 +375,7 @@ class MilestoneDetectionService
         foreach (self::EMERGENCY_FUND_MONTHS as $months) {
             if (! $has('emergency_fund', null, (float) $months)) {
                 $upcoming[] = [
+                    'key' => "emergency_fund:0:{$months}",
                     'group' => 'Savings',
                     'title' => $months === 1
                         ? 'Emergency fund covering a month of spending'
@@ -364,6 +387,7 @@ class MilestoneDetectionService
         }
         if (! $has('isa_first')) {
             $upcoming[] = [
+                'key' => 'isa_first:0:1',
                 'group' => 'Savings',
                 'title' => 'Open your first ISA',
                 'steps' => 'Interest and gains inside an ISA stay tax-free.',
@@ -376,7 +400,7 @@ class MilestoneDetectionService
                 continue;
             }
             $upcoming[] = [
-                'key' => "pension_pot:{$threshold}",
+                'key' => "pension_pot:0:{$threshold}",
                 'group' => 'Retirement',
                 'title' => 'Pension savings £'.number_format($threshold),
                 'steps' => $pensionPot !== null && $pensionPot > 0
@@ -389,7 +413,7 @@ class MilestoneDetectionService
         }
         if (! $has('retirement_on_track')) {
             $upcoming[] = [
-                'key' => 'retirement:on_track',
+                'key' => 'retirement_on_track:0:1',
                 'group' => 'Retirement',
                 'title' => 'On track for retirement',
                 'steps' => 'Add your pensions and set your retirement target so we can check.',
@@ -400,6 +424,7 @@ class MilestoneDetectionService
         // ── Protection & estate.
         if (! $has('protection_adequate')) {
             $upcoming[] = [
+                'key' => 'protection_adequate:0:1',
                 'group' => 'Protection & estate',
                 'title' => 'Cover your protection needs',
                 'steps' => 'Close the gaps shown in your protection section.',
@@ -407,6 +432,7 @@ class MilestoneDetectionService
         }
         if (! $has('will_in_place')) {
             $upcoming[] = [
+                'key' => 'will_in_place:0:1',
                 'group' => 'Protection & estate',
                 'title' => 'Put your will in place',
                 'steps' => 'Record your will in the estate section — or make one if you haven\'t.',
@@ -414,6 +440,7 @@ class MilestoneDetectionService
         }
         if (! $has('lpa_in_place')) {
             $upcoming[] = [
+                'key' => 'lpa_in_place:0:1',
                 'group' => 'Protection & estate',
                 'title' => 'Put a Lasting Power of Attorney in place',
                 'steps' => 'Register a Lasting Power of Attorney and record it in the estate section.',
@@ -421,9 +448,6 @@ class MilestoneDetectionService
         }
 
         // ── Property: next paydown step per mortgage, with the £ to get there.
-        $mortgages = Mortgage::query()
-            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
-            ->get(['id', 'original_loan_amount', 'outstanding_balance']);
         foreach ($mortgages as $mortgage) {
             $original = (float) $mortgage->original_loan_amount;
             if ($original <= 0) {
@@ -436,6 +460,7 @@ class MilestoneDetectionService
                 }
                 $toGo = max(0.0, $balance - $original * (1 - $pct / 100));
                 $upcoming[] = [
+                    'key' => "mortgage_paid:{$mortgage->id}:{$pct}",
                     'group' => 'Property',
                     'title' => $pct >= 100 ? 'Pay off your mortgage' : "Pay off {$pct}% of your mortgage",
                     'steps' => $toGo > 0
@@ -451,6 +476,7 @@ class MilestoneDetectionService
         if (! empty($user->funnel_answers)) {
             if (! (bool) $user->onboarding_completed && ! $has('campaign')) {
                 $upcoming[] = [
+                    'key' => 'campaign:0:1',
                     'group' => 'Journey',
                     'title' => 'Complete your tax profile',
                     'steps' => 'Finish your chat with Fyn — a few questions to go.',
@@ -458,6 +484,7 @@ class MilestoneDetectionService
             }
             if (! $has('tax_savings')) {
                 $upcoming[] = [
+                    'key' => 'tax_savings:0:1',
                     'group' => 'Journey',
                     'title' => 'Find your first tax saving',
                     'steps' => 'Add your accounts and pension details so your tax plan can quantify a saving.',
@@ -467,6 +494,7 @@ class MilestoneDetectionService
 
         if (! $has('action')) {
             $upcoming[] = [
+                'key' => 'action:0:1',
                 'group' => 'Journey',
                 'title' => 'Complete your first action',
                 'steps' => 'Mark any recommended action on your dashboard as done.',
@@ -479,6 +507,7 @@ class MilestoneDetectionService
         ));
         if ($remainingModules !== []) {
             $upcoming[] = [
+                'key' => 'module_profile:0:1',
                 'group' => 'Journey',
                 'title' => 'Complete your remaining profiles',
                 'steps' => 'Still to complete: '.implode(', ', $remainingModules).'.',
@@ -487,6 +516,7 @@ class MilestoneDetectionService
 
         if ($user->spouse_id && ! $has('household')) {
             $upcoming[] = [
+                'key' => 'household:0:1',
                 'group' => 'Journey',
                 'title' => 'Link your household',
                 'steps' => 'Ask your spouse to link their account with yours.',
@@ -519,7 +549,6 @@ class MilestoneDetectionService
             $destination = GateRoutes::destination($this->destinationForRoute($route));
 
             return $item + [
-                'key' => $this->fallbackUpcomingKey($item),
                 'state' => 'in_progress',
                 'progress' => null,
                 'next_action' => [
@@ -535,8 +564,7 @@ class MilestoneDetectionService
     /** @return array{current:float,target:float,percent:float,label:string} */
     private function currencyProgress(float $current, float $target): array
     {
-        $current = max(0.0, $current);
-        $percent = $target > 0 ? min(100.0, round(($current / $target) * 100, 2)) : 0.0;
+        $percent = $target > 0 ? max(0.0, min(100.0, round(($current / $target) * 100, 2))) : 0.0;
 
         return [
             'current' => $current,
@@ -574,9 +602,39 @@ class MilestoneDetectionService
         };
     }
 
-    private function fallbackUpcomingKey(array $item): string
+    /**
+     * Fetch only the earned rows that can affect this bounded catalogue.
+     * Anniversaries, strategy celebrations and other historic-only families
+     * cannot change an upcoming item, so they are intentionally excluded.
+     *
+     * @param  array<int,int>  $goalIds
+     * @param  array<int,int>  $mortgageIds
+     */
+    private function earnedUpcomingMilestones(User $user, array $goalIds, array $mortgageIds): \Illuminate\Support\Collection
     {
-        return strtolower((string) preg_replace('/[^a-z0-9]+/i', '_', ($item['group'] ?? 'milestone').':'.($item['title'] ?? 'next')));
+        return UserMilestone::query()
+            ->where('user_id', $user->id)
+            ->where(function ($query) use ($goalIds, $mortgageIds): void {
+                $query->whereIn('milestone_type', [
+                    'net_worth', 'isa_used', 'pension_aa_used', 'tax_actioned',
+                    'emergency_fund', 'isa_first', 'pension_pot', 'retirement_on_track',
+                    'protection_adequate', 'will_in_place', 'lpa_in_place', 'campaign',
+                    'tax_savings', 'action', 'module_profile', 'household',
+                ]);
+                if ($goalIds !== []) {
+                    $query->orWhere(function ($goals) use ($goalIds): void {
+                        $goals->where('milestone_type', 'goal')->whereIn('reference_id', $goalIds);
+                    });
+                }
+                if ($mortgageIds !== []) {
+                    $query->orWhere(function ($mortgages) use ($mortgageIds): void {
+                        $mortgages->where('milestone_type', 'mortgage_paid')->whereIn('reference_id', $mortgageIds);
+                    });
+                }
+            })
+            ->orderBy('id')
+            ->limit(self::UPCOMING_EARNED_LIMIT)
+            ->get(['milestone_type', 'reference_id', 'threshold']);
     }
 
     /**

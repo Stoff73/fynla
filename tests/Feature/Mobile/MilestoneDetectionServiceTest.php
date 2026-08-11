@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Models\Goal;
+use App\Models\Mortgage;
 use App\Models\UserMilestone;
 use App\Services\Mobile\MilestoneDetectionService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -70,8 +73,8 @@ it('presents verified milestone progress and semantic next actions without finan
     $user = User::factory()->create();
 
     $withAggregates = collect($this->service->upcoming($user, 5000.0, 1000.0));
-    $netWorth = $withAggregates->firstWhere('key', 'net_worth:10000');
-    $retirement = $withAggregates->firstWhere('key', 'retirement:on_track');
+    $netWorth = $withAggregates->firstWhere('key', 'net_worth:0:10000');
+    $retirement = $withAggregates->firstWhere('key', 'retirement_on_track:0:1');
 
     expect($netWorth)->toMatchArray([
         'state' => 'in_progress',
@@ -97,9 +100,108 @@ it('presents verified milestone progress and semantic next actions without finan
         ]);
 
     $withoutAggregates = collect($this->service->upcoming($user));
-    $lockedNetWorth = $withoutAggregates->firstWhere('key', 'net_worth:10000');
+    $lockedNetWorth = $withoutAggregates->firstWhere('key', 'net_worth:0:10000');
 
     expect($lockedNetWorth['state'])->toBe('locked')
         ->and($lockedNetWorth['progress'])->toBeNull()
         ->and($lockedNetWorth['next_action']['destination']['params'])->toBe([]);
+});
+
+it('preserves negative canonical progress while clamping only its percentage', function () {
+    $user = User::factory()->create();
+
+    $netWorth = collect($this->service->upcoming($user, -5000.0))->firstWhere('key', 'net_worth:0:10000');
+
+    expect($netWorth['progress'])->toMatchArray([
+        'current' => -5000.0,
+        'target' => 10000.0,
+        'percent' => 0.0,
+        'label' => '£-5,000 of £10,000',
+    ])
+        ->and($netWorth['steps'])->toContain('£15,000 away');
+});
+
+it('gives same-named goals and mortgages unique stable event keys', function () {
+    $user = User::factory()->create();
+    $firstGoal = Goal::factory()->create([
+        'user_id' => $user->id,
+        'goal_name' => 'Home',
+        'target_amount' => 10000,
+        'current_amount' => 1000,
+    ]);
+    $secondGoal = Goal::factory()->create([
+        'user_id' => $user->id,
+        'goal_name' => 'Home',
+        'target_amount' => 10000,
+        'current_amount' => 1000,
+    ]);
+    $firstMortgage = Mortgage::factory()->create([
+        'user_id' => $user->id,
+        'original_loan_amount' => 200000,
+        'outstanding_balance' => 180000,
+    ]);
+    $secondMortgage = Mortgage::factory()->create([
+        'user_id' => $user->id,
+        'original_loan_amount' => 200000,
+        'outstanding_balance' => 180000,
+    ]);
+
+    $first = collect($this->service->upcoming($user));
+    $firstGoalKey = $first->firstWhere('key', 'goal:'.$firstGoal->id.':25')['key'];
+    $secondGoalKey = $first->firstWhere('key', 'goal:'.$secondGoal->id.':25')['key'];
+    $firstMortgageKey = $first->firstWhere('key', 'mortgage_paid:'.$firstMortgage->id.':25')['key'];
+    $secondMortgageKey = $first->firstWhere('key', 'mortgage_paid:'.$secondMortgage->id.':25')['key'];
+
+    $firstGoal->update(['goal_name' => 'Renamed home']);
+    $renamed = collect($this->service->upcoming($user));
+
+    expect([$firstGoalKey, $secondGoalKey, $firstMortgageKey, $secondMortgageKey])
+        ->toHaveCount(4)
+        ->and(array_unique([$firstGoalKey, $secondGoalKey, $firstMortgageKey, $secondMortgageKey]))->toHaveCount(4)
+        ->and($renamed->firstWhere('key', $firstGoalKey))->not->toBeNull();
+});
+
+it('bounds high-cardinality upcoming goal and mortgage candidates', function () {
+    $user = User::factory()->create();
+    Goal::factory()->count(8)->create([
+        'user_id' => $user->id,
+        'target_amount' => 10000,
+        'current_amount' => 1000,
+    ]);
+    Mortgage::factory()->count(8)->create([
+        'user_id' => $user->id,
+        'original_loan_amount' => 200000,
+        'outstanding_balance' => 180000,
+    ]);
+
+    $upcoming = collect($this->service->upcoming($user));
+
+    expect($upcoming->where('group', 'Goals'))->toHaveCount(3)
+        ->and($upcoming->where('group', 'Property'))->toHaveCount(3);
+});
+
+it('uses database limits for high-cardinality upcoming candidates', function () {
+    $user = User::factory()->create();
+    Goal::factory()->count(8)->create([
+        'user_id' => $user->id,
+        'target_amount' => 10000,
+        'current_amount' => 1000,
+    ]);
+    Mortgage::factory()->count(8)->create([
+        'user_id' => $user->id,
+        'original_loan_amount' => 200000,
+        'outstanding_balance' => 180000,
+    ]);
+    $candidateQueries = [];
+    DB::listen(function ($query) use (&$candidateQueries): void {
+        if (str_contains($query->sql, 'from `goals`') || str_contains($query->sql, 'from `mortgages`') || str_contains($query->sql, 'from `user_milestones`')) {
+            $candidateQueries[] = $query->sql;
+        }
+    });
+
+    $this->service->upcoming($user);
+
+    expect($candidateQueries)->toHaveCount(3)
+        ->and(array_values(array_filter($candidateQueries, fn (string $sql): bool => str_contains($sql, 'from `goals`') || str_contains($sql, 'from `mortgages`'))))->each->toContain('limit 3')
+        ->and(collect($candidateQueries)->first(fn (string $sql): bool => str_contains($sql, 'from `user_milestones`')))->toContain('limit 128');
 });

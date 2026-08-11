@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Models\PointAward;
+use App\Models\Goal;
 use App\Models\User;
 use App\Models\UserMilestone;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -146,4 +148,85 @@ it('presents only the authenticated user ledger with provenance and legacy field
             'next_action' => null,
         ])
         ->and(collect($data['milestones'])->pluck('key')->all())->not->toContain('net_worth:0:25000');
+});
+
+it('keeps legacy milestones complete while canonical milestones are paginated and retrievable', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    Sanctum::actingAs($user);
+
+    foreach (range(1, 105) as $threshold) {
+        UserMilestone::create([
+            'user_id' => $user->id,
+            'milestone_type' => 'anniversary',
+            'reference_id' => null,
+            'threshold' => $threshold,
+            'achieved_at' => now()->subDays($threshold),
+        ]);
+    }
+
+    $legacy = $this->getJson('/api/v1/mobile/achievements')->assertOk()->json('data');
+    $canonical = $this->getJson('/api/v1/mobile/achievements/v2')->assertOk()->json('data');
+    $thirdPage = $this->getJson('/api/v1/mobile/achievements/v2/milestones?page=3')->assertOk()->json('data');
+
+    expect($legacy['milestones'])->toHaveCount(105)
+        ->and($canonical)->toMatchArray([
+            'milestones_total' => 105,
+            'page' => 1,
+            'per_page' => 50,
+            'next_page' => 2,
+        ])
+        ->and($canonical['milestones'])->toHaveCount(50)
+        ->and($thirdPage)->toMatchArray([
+            'milestones_total' => 105,
+            'page' => 3,
+            'per_page' => 50,
+            'next_page' => null,
+        ])
+        ->and($thirdPage['milestones'])->toHaveCount(5);
+});
+
+it('uses a generic title when a goal milestone references another users goal', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $otherUser = User::factory()->create(['is_preview_user' => false]);
+    $privateGoal = Goal::factory()->create(['user_id' => $otherUser->id, 'goal_name' => 'Private retirement plan']);
+    UserMilestone::create([
+        'user_id' => $user->id,
+        'milestone_type' => 'goal',
+        'reference_id' => $privateGoal->id,
+        'threshold' => 25,
+        'achieved_at' => now(),
+    ]);
+    Sanctum::actingAs($user);
+
+    $milestone = collect($this->getJson('/api/v1/mobile/achievements')->assertOk()->json('data.milestones'))->firstWhere('key', 'goal:'.$privateGoal->id.':25');
+
+    expect($milestone['title'])->toContain('your goal')
+        ->and($milestone['title'])->not->toContain('Private retirement plan');
+});
+
+it('batch-loads canonical goal milestone titles instead of querying each milestone', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    foreach (range(1, 50) as $index) {
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'goal_name' => "Goal {$index}"]);
+        UserMilestone::create([
+            'user_id' => $user->id,
+            'milestone_type' => 'goal',
+            'reference_id' => $goal->id,
+            'threshold' => 25,
+            'achieved_at' => now()->subSeconds($index),
+        ]);
+    }
+    Sanctum::actingAs($user);
+    $goalQueries = [];
+    DB::listen(function ($query) use (&$goalQueries): void {
+        if (str_contains($query->sql, 'from `goals`')) {
+            $goalQueries[] = $query->sql;
+        }
+    });
+
+    $data = $this->getJson('/api/v1/mobile/achievements/v2')->assertOk()->json('data');
+
+    expect($data['milestones'])->toHaveCount(50)
+        ->and($goalQueries)->toHaveCount(2)
+        ->and($data['milestones'][0]['title'])->not->toContain('your goal');
 });

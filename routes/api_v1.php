@@ -135,6 +135,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.achievements');
 
+    // Canonical, bounded achievements contract for native clients. The legacy
+    // endpoint above intentionally retains its complete milestone collection.
+    Route::get('/mobile/achievements/v2', [MobileAchievementsController::class, 'canonical'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements.v2');
+    Route::get('/mobile/achievements/v2/milestones', [MobileAchievementsController::class, 'canonicalMilestonePage'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements.v2.milestones');
+
     // WP-5c-ii — load-more pages of completed actions (25/page)
     Route::get('/mobile/achievements/completed', [MobileAchievementsController::class, 'completed'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])

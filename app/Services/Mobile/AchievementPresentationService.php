@@ -56,17 +56,15 @@ class AchievementPresentationService
             ->oldest('id')
             ->first(['id', 'dedup_key', 'source_type', 'created_at']);
 
+        $levelCrossingAward = $level > 1 ? $this->levelCrossingAward($user, $level) : null;
+
         $badges = [
             $this->badge(
                 key: 'level',
                 title: 'Reached '.$this->levels->levelName($level),
                 description: 'Your current planning level.',
                 earned: $level > 1,
-                provenance: $level > 1 ? [
-                    'kind' => 'user_gamification',
-                    'event' => "level:{$level}",
-                    'occurred_at' => $gamification?->updated_at?->toIso8601String(),
-                ] : null,
+                provenance: $this->awardProvenance($levelCrossingAward),
             ),
         ];
 
@@ -156,5 +154,29 @@ class AchievementPresentationService
             'event' => $award->dedup_key,
             'occurred_at' => $award->created_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Finds the immutable ledger event whose cumulative points first reached
+     * the current level's configured threshold. The database calculates the
+     * running total and returns at most one presentation row.
+     */
+    private function levelCrossingAward(User $user, int $level): ?PointAward
+    {
+        $threshold = (int) (config('gamification.levels')[$level]['min_points'] ?? 0);
+        if ($threshold <= 0) {
+            return null;
+        }
+
+        $ledger = PointAward::query()
+            ->select(['id', 'dedup_key', 'source_type', 'created_at'])
+            ->selectRaw('SUM(points) OVER (ORDER BY id) AS running_points')
+            ->where('user_id', $user->id);
+
+        return PointAward::query()
+            ->fromSub($ledger, 'level_ledger')
+            ->where('running_points', '>=', $threshold)
+            ->orderBy('id')
+            ->first(['id', 'dedup_key', 'source_type', 'created_at']);
     }
 }
