@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
 use App\Models\Goal;
 use App\Models\Mortgage;
-use App\Services\TaxConfigService;
+use App\Models\User;
 use App\Models\UserMilestone;
 use App\Services\Mobile\MilestoneDetectionService;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

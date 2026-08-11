@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\PointAward;
 use App\Models\Goal;
+use App\Models\PointAward;
 use App\Models\User;
 use App\Models\UserMilestone;
 use Database\Seeders\TaxConfigurationSeeder;

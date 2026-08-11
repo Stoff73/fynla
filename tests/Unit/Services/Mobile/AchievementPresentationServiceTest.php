@@ -135,7 +135,7 @@ it('uses a single indexed level-crossing lookup instead of scanning the point-aw
         ]);
     }
     $queries = [];
-    \Illuminate\Support\Facades\DB::listen(function ($query) use (&$queries): void {
+    DB::listen(function ($query) use (&$queries): void {
         if (str_contains($query->sql, 'user_level_crossings') || str_contains($query->sql, 'point_awards')) {
             $queries[] = $query->sql;
         }

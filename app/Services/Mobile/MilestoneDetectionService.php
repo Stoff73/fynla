@@ -18,6 +18,7 @@ use App\Services\Gamification\PointsService;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Detects financial milestones a user has newly crossed and records them once.
@@ -39,6 +40,7 @@ class MilestoneDetectionService
 
     /** Exact predicates below need at most 69 rows (45 fixed + 12 goals + 12 mortgages). */
     private const UPCOMING_EARNED_LIMIT = 80;
+
     /** Net-worth thresholds in GBP. */
     private const NET_WORTH_THRESHOLDS = [
         10000, 25000, 50000, 100000, 250000, 500000, 750000, 1000000, 2000000, 5000000,
@@ -618,7 +620,7 @@ class MilestoneDetectionService
      * @param  array<int,int>  $goalIds
      * @param  array<int,int>  $mortgageIds
      */
-    private function earnedUpcomingMilestones(User $user, int $taxYear, array $goalIds, array $mortgageIds): \Illuminate\Support\Collection
+    private function earnedUpcomingMilestones(User $user, int $taxYear, array $goalIds, array $mortgageIds): Collection
     {
         return UserMilestone::query()
             ->where('user_id', $user->id)

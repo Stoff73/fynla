@@ -245,7 +245,7 @@ class MobileAchievementsController extends Controller
     }
 
     /**
-     * @param array{achieved_at:\DateTimeImmutable,id:int}|null $cursor
+     * @param  array{achieved_at:\DateTimeImmutable,id:int}|null  $cursor
      * @return array{items:array<int,array<string,mixed>>,total:int,next_cursor:?string}
      */
     private function canonicalMilestones(User $user, ?array $cursor = null): array
