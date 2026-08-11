@@ -7,12 +7,10 @@ namespace App\Http\Controllers\Api\V1\Mobile;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
-use App\Models\PointAward;
 use App\Models\RecommendationTracking;
 use App\Models\User;
-use App\Models\UserGamification;
 use App\Models\UserMilestone;
-use App\Services\Gamification\LevelService;
+use App\Services\Mobile\AchievementPresentationService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\NetWorth\NetWorthService;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +21,7 @@ class MobileAchievementsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly LevelService $levels,
+        private readonly AchievementPresentationService $presentation,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -144,70 +142,7 @@ class MobileAchievementsController extends Controller
      */
     private function achievements(User $user): array
     {
-        $g = UserGamification::where('user_id', $user->id)->first();
-        $level = $g?->level ?? 1;
-        $awards = PointAward::where('user_id', $user->id)->get();
-
-        $out = [];
-
-        $out[] = [
-            'key' => 'level',
-            'title' => 'Reached '.$this->levels->levelName($level),
-            'description' => 'Your current planning level.',
-            'earned' => $level > 1,
-            'earned_at' => null,
-        ];
-
-        $dataBadges = [
-            'protection_policy' => 'protection',
-            'savings_account' => 'savings',
-            'investment_account' => 'investment',
-            'pension' => 'retirement',
-            'estate' => 'estate',
-            'goal' => 'goals',
-        ];
-        foreach ($dataBadges as $category => $label) {
-            $award = $awards->first(fn ($a) => $a->dedup_key === "data:{$category}:first");
-            $out[] = [
-                'key' => 'data_'.$category,
-                'title' => 'Added '.$label.' details',
-                'description' => 'You started building your '.$label.' picture.',
-                'earned' => $award !== null,
-                'earned_at' => $award?->created_at?->toIso8601String(),
-            ];
-        }
-
-        // WP-4 — a badge is a fixed goal, not a live counter. "Actioned 0
-        // recommendations" read as broken; the badge is now "First action
-        // completed", stamped with the first recommendation award's date.
-        $firstRecAward = $awards
-            ->where('source_type', 'recommendation')
-            ->sortBy('id')
-            ->first();
-        $out[] = [
-            'key' => 'recs_actioned',
-            'title' => 'First action completed',
-            'description' => 'You completed your first recommended action.',
-            'earned' => $firstRecAward !== null,
-            'earned_at' => $firstRecAward?->created_at?->toIso8601String(),
-        ];
-
-        // WP-4 — earned off the PERSISTED streak award, not the live counter:
-        // login_streak_days resets when a run breaks, which un-earned the
-        // badge, and "1-day check-in streak — Not yet earned" read as broken.
-        $streakAward = $awards
-            ->filter(fn ($a) => str_starts_with($a->dedup_key, 'streak:'))
-            ->sortBy('id')
-            ->first();
-        $out[] = [
-            'key' => 'streak',
-            'title' => '3-day check-in streak',
-            'description' => 'Check in three days in a row.',
-            'earned' => $streakAward !== null,
-            'earned_at' => $streakAward?->created_at?->toIso8601String(),
-        ];
-
-        return $out;
+        return $this->presentation->badges($user);
     }
 
     /**
@@ -230,17 +165,13 @@ class MobileAchievementsController extends Controller
 
         return UserMilestone::where('user_id', $user->id)
             ->orderByDesc('achieved_at')
+            ->limit(100)
             ->get()
-            ->map(fn (UserMilestone $m) => [
-                'key' => $m->milestone_type.':'.($m->reference_id ?? 0).':'.(int) $m->threshold,
-                'title' => $this->milestoneTitle($m),
-                'achieved' => true,
-                'achieved_at' => $m->achieved_at?->toIso8601String(),
-            ])
+            ->map(fn (UserMilestone $m) => $this->presentation->milestone($m, $this->milestoneTitle($user, $m)))
             ->all();
     }
 
-    private function milestoneTitle(UserMilestone $m): string
+    private function milestoneTitle(User $user, UserMilestone $m): string
     {
         $threshold = (float) $m->threshold;
 
@@ -261,7 +192,7 @@ class MobileAchievementsController extends Controller
         }
 
         if ($m->milestone_type === 'goal') {
-            $goal = Goal::find($m->reference_id);
+            $goal = Goal::forUserOrJoint($user->id)->whereKey($m->reference_id)->first();
             $goalName = $goal?->goal_name ?? 'your goal';
 
             return $threshold >= 100

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Constants\GateRoutes;
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
 use App\Models\Goal;
@@ -257,11 +258,14 @@ class MilestoneDetectionService
                 continue;
             }
             $upcoming[] = [
+                'key' => "net_worth:{$threshold}",
                 'group' => 'Wealth',
                 'title' => 'Net worth £'.number_format($threshold),
                 'steps' => $netWorth !== null
                     ? 'Add to your savings, investments or pension — you\'re £'.number_format((int) round($threshold - $netWorth)).' away.'
                     : 'Add to your savings, investments or pension.',
+                'state' => $netWorth === null ? 'locked' : 'in_progress',
+                'progress' => $netWorth === null ? null : $this->currencyProgress($netWorth, (float) $threshold),
             ];
             break;
         }
@@ -372,19 +376,24 @@ class MilestoneDetectionService
                 continue;
             }
             $upcoming[] = [
+                'key' => "pension_pot:{$threshold}",
                 'group' => 'Retirement',
                 'title' => 'Pension savings £'.number_format($threshold),
                 'steps' => $pensionPot !== null && $pensionPot > 0
                     ? 'Add to your pension — you\'re £'.number_format((int) round($threshold - $pensionPot)).' away.'
                     : 'Add to your pension, or record one you already have.',
+                'state' => $pensionPot === null ? 'locked' : 'in_progress',
+                'progress' => $pensionPot === null ? null : $this->currencyProgress($pensionPot, (float) $threshold),
             ];
             break;
         }
         if (! $has('retirement_on_track')) {
             $upcoming[] = [
+                'key' => 'retirement:on_track',
                 'group' => 'Retirement',
                 'title' => 'On track for retirement',
                 'steps' => 'Add your pensions and set your retirement target so we can check.',
+                'state' => 'inapplicable',
             ];
         }
 
@@ -505,10 +514,69 @@ class MilestoneDetectionService
             };
         };
 
-        return array_map(
-            static fn (array $item): array => $item + ['route' => $routeFor($item)],
-            $upcoming,
-        );
+        return array_map(function (array $item) use ($routeFor): array {
+            $route = $routeFor($item);
+            $destination = GateRoutes::destination($this->destinationForRoute($route));
+
+            return $item + [
+                'key' => $this->fallbackUpcomingKey($item),
+                'state' => 'in_progress',
+                'progress' => null,
+                'next_action' => [
+                    'label' => $this->nextActionLabel($route),
+                    'destination' => $destination,
+                ],
+                // Legacy mobile Vue route name.
+                'route' => $route,
+            ];
+        }, $upcoming);
+    }
+
+    /** @return array{current:float,target:float,percent:float,label:string} */
+    private function currencyProgress(float $current, float $target): array
+    {
+        $current = max(0.0, $current);
+        $percent = $target > 0 ? min(100.0, round(($current / $target) * 100, 2)) : 0.0;
+
+        return [
+            'current' => $current,
+            'target' => $target,
+            'percent' => $percent,
+            'label' => '£'.number_format((int) round($current)).' of £'.number_format((int) round($target)),
+        ];
+    }
+
+    private function destinationForRoute(string $route): string
+    {
+        return match ($route) {
+            'm-net-worth' => GateRoutes::NET_WORTH,
+            'm-goals' => GateRoutes::GOALS,
+            'tax-strategy' => GateRoutes::TAX_STRATEGY,
+            'm-savings' => GateRoutes::SAVINGS,
+            'm-retirement' => GateRoutes::RETIREMENT,
+            'm-protection' => GateRoutes::PROTECTION,
+            'm-estate' => GateRoutes::ESTATE,
+            default => GateRoutes::DASHBOARD,
+        };
+    }
+
+    private function nextActionLabel(string $route): string
+    {
+        return match ($route) {
+            'm-net-worth' => 'Review your net worth',
+            'm-goals' => 'Review your goals',
+            'tax-strategy' => 'Review your tax strategy',
+            'm-savings' => 'Review your savings',
+            'm-retirement' => 'Review your retirement plan',
+            'm-protection' => 'Review your protection',
+            'm-estate' => 'Review your estate plan',
+            default => 'Open your dashboard',
+        };
+    }
+
+    private function fallbackUpcomingKey(array $item): string
+    {
+        return strtolower((string) preg_replace('/[^a-z0-9]+/i', '_', ($item['group'] ?? 'milestone').':'.($item['title'] ?? 'next')));
     }
 
     /**

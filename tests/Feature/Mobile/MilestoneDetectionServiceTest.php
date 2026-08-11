@@ -5,11 +5,13 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Models\UserMilestone;
 use App\Services\Mobile\MilestoneDetectionService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     $this->service = app(MilestoneDetectionService::class);
 });
 
@@ -62,4 +64,42 @@ it('keeps goal milestones independent per goal', function () {
 
     expect(collect($new)->pluck('threshold')->all())->toBe([25, 50]);
     expect(UserMilestone::where('user_id', $user->id)->where('milestone_type', 'goal')->count())->toBe(4);
+});
+
+it('presents verified milestone progress and semantic next actions without financial destination parameters', function () {
+    $user = User::factory()->create();
+
+    $withAggregates = collect($this->service->upcoming($user, 5000.0, 1000.0));
+    $netWorth = $withAggregates->firstWhere('key', 'net_worth:10000');
+    $retirement = $withAggregates->firstWhere('key', 'retirement:on_track');
+
+    expect($netWorth)->toMatchArray([
+        'state' => 'in_progress',
+        'progress' => [
+            'current' => 5000.0,
+            'target' => 10000.0,
+            'percent' => 50.0,
+            'label' => '£5,000 of £10,000',
+        ],
+        'next_action' => [
+            'label' => 'Review your net worth',
+            'destination' => [
+                'screen' => 'net_worth',
+                'params' => [],
+                'fallback' => 'dashboard',
+            ],
+        ],
+        'route' => 'm-net-worth',
+    ])
+        ->and($retirement)->toMatchArray([
+            'state' => 'inapplicable',
+            'progress' => null,
+        ]);
+
+    $withoutAggregates = collect($this->service->upcoming($user));
+    $lockedNetWorth = $withoutAggregates->firstWhere('key', 'net_worth:10000');
+
+    expect($lockedNetWorth['state'])->toBe('locked')
+        ->and($lockedNetWorth['progress'])->toBeNull()
+        ->and($lockedNetWorth['next_action']['destination']['params'])->toBe([]);
 });
