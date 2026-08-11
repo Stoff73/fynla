@@ -2,13 +2,12 @@
 
 ## Current status
 
-The `/m` closure journey is green in the user's installed Google Chrome. The
-native closure target compiles and links with Swift warnings as errors, but the
-local CoreSimulator host failed before Fynla launched on both a clean current
-runtime and a previously known-good runtime. M-01–M-34 therefore remain
-`pending-ci`; they may become `green` only after the fresh macOS CI host passes
-the full native UI suite, the dedicated PR7 journey at the largest Dynamic Type
-size, and the Production build.
+M-01–M-34 are green across Laravel, `/m`, and native iOS. The `/m` closure
+journey passed in the user's installed Google Chrome. GitHub Actions run
+31521120892 passed the fresh native unit suite, full serial UI suite, dedicated
+PR7 journey at the largest Dynamic Type size, and unsigned Production build.
+The earlier local CoreSimulator transport failure remains documented below as
+host evidence; it is superseded by the successful fresh macOS CI execution.
 
 ## Closure contract
 
@@ -120,8 +119,7 @@ This is explicitly a local CoreSimulator host block, not a native green result
 and not a Fynla assertion failure. `.github/workflows/ios-native.yml` therefore
 runs the full native UI suite and a dedicated PR7 rerun at
 `accessibility-extra-extra-extra-large`, restores `large`, uploads both result
-bundles on failure, and retains the existing Production build gate. PR7 cannot
-merge until those CI jobs pass.
+bundles on failure, and retains the existing Production build gate.
 
 The first GitHub Actions attempt was run 31519635973. Its fresh simulator
 booted and executed 393 tests across 64 suites, but the unsigned-unit gate
@@ -131,8 +129,17 @@ reported one failure in
 real scheduling interval on the busy runner. The production cancellation path
 was unchanged; both affected cancellation assertions now use a strict,
 test-only wait capped at one second. The focused SSE test target then compiled
-and linked locally with warnings as errors (`** TEST BUILD SUCCEEDED **`). The
-ledger remains `pending-ci` until the complete replacement run is green.
+and linked locally with warnings as errors (`** TEST BUILD SUCCEEDED **`).
+
+Replacement run 31521120892 then passed every required native gate: simulator
+creation, 393 unit tests, the full serial UI suite, the PR7 closure journey at
+`accessibility-extra-extra-extra-large`, and the unsigned Production build. It
+completed in 44m28s. Because that left only 32 seconds beneath the previous
+45-minute job limit, the workflow now has a 60-minute bound before the final
+ledger-evidence rerun; this preserves a timeout while allowing normal
+hosted-runner variance.
+
+IOS-CI-GREEN: https://github.com/Stoff73/fynla/actions/runs/31521120892 — full UI + PR7 XXXL + Production green.
 
 ## Contract and regression gates
 
@@ -157,8 +164,6 @@ ledger records focused production and test evidence for every individual M-ID
 rather than treating a route visit as proof of a financial calculation.
 
 No product-code defect was found during PR7. The repaired failures were
-closure-test orchestration or deterministic E2E-fixture defects. Native runtime
-execution remains pending on a healthy simulator CI host and must be recorded
-below before the ledger can be finalised.
-
-<!-- The native CI success marker is added only after the required GitHub Actions run succeeds. -->
+closure-test orchestration or deterministic E2E-fixture defects. Fresh native
+runtime execution is green on the GitHub-hosted simulator, including the normal
+and largest-accessibility closure journeys.

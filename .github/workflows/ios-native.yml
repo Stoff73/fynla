@@ -34,7 +34,10 @@ concurrency:
 jobs:
   test-and-build:
     runs-on: macos-26
-    timeout-minutes: 45
+    # PR7 adds a second accessibility-sized closure journey after the full
+    # serial UI suite. The first green run completed in 44m28s, so retain a
+    # meaningful failure bound without making normal runner variance a red.
+    timeout-minutes: 60
     env:
       # Xcode 26.4 and 26.5 do not synchronise command-line StoreKit test
       # configurations (FB22237318). GitHub's macOS 26 image retains 26.3.
