@@ -171,13 +171,12 @@ struct AchievementsView: View {
                 emptyText("No achievements yet — keep building your plan to earn your first.")
             } else {
                 ForEach(content.summary.achievements) { badge in
+                    let presentation = AchievementPresentation.badge(badge)
                     badgeRow(
                         title: badge.title,
                         description: badge.description,
-                        status: badge.earned
-                            ? datedLabel("Earned", badge.earnedAt)
-                            : "Not yet earned",
-                        earned: badge.earned
+                        status: presentation.status,
+                        earned: presentation.isEarned
                     )
                 }
             }
@@ -207,16 +206,19 @@ struct AchievementsView: View {
                 emptyText("No milestones reached yet — keep building your plan.")
             } else {
                 ForEach(content.summary.milestones) { milestone in
+                    let presentation = AchievementPresentation.milestone(milestone)
                     badgeRow(
                         title: milestone.title,
-                        status: milestone.achieved
-                            ? datedLabel("Reached", milestone.achievedAt)
-                            : "Not yet reached",
-                        earned: milestone.achieved
+                        status: presentation.status,
+                        earned: presentation.isEarned
                     )
                 }
                 if content.summary.nextCursor != nil {
-                    fullWidthButton(model.isLoadingMoreMilestones ? "Loading…" : "Load more milestones") {
+                    fullWidthButton(
+                        model.isLoadingMoreMilestones
+                            ? "Loading…"
+                            : "Load more milestones"
+                    ) {
                         Task { await model.loadMoreMilestones() }
                     }
                     .disabled(model.isLoadingMoreMilestones)
@@ -228,7 +230,12 @@ struct AchievementsView: View {
 
     private func upcomingRow(_ item: AchievementUpcoming) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            badgeContent(title: item.title, description: item.steps, status: upcomingStatus(item), earned: false)
+            badgeContent(
+                title: item.title,
+                description: item.steps,
+                status: upcomingStatus(item),
+                earned: false
+            )
             if item.state == .inProgress, let progress = item.progress {
                 ProgressView(value: progress.percent, total: 100) {
                     Text(progress.label)
@@ -236,26 +243,16 @@ struct AchievementsView: View {
                 .accessibilityLabel(progress.label)
                 .accessibilityValue("\(progress.percent)%")
             }
-            if let action = item.nextAction {
-                Button(action.label) {
-                    onRoute(
-                        SemanticDestinationResolver.route(
-                            for: action.destination,
-                            legacyPath: item.route
-                        )
+            if let action = SemanticDestinationResolver.action(
+                label: item.nextAction?.label,
+                destination: item.nextAction?.destination,
+                legacyPath: item.route
+            ) {
+                Button(action.label) { onRoute(action.route) }
+                    .frame(
+                        minWidth: FynlaSpacing.minimumInteractiveTarget,
+                        minHeight: FynlaSpacing.minimumInteractiveTarget
                     )
-                }
-                .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
-            } else if item.route != nil {
-                Button("View details") {
-                    onRoute(
-                        SemanticDestinationResolver.route(
-                            for: nil,
-                            legacyPath: item.route
-                        )
-                    )
-                }
-                .frame(minHeight: FynlaSpacing.minimumInteractiveTarget)
             }
         }
     }

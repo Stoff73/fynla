@@ -1,3 +1,5 @@
+import Foundation
+
 enum AchievementState: String, Decodable, Equatable, Sendable {
     case earned
     case inProgress = "in_progress"
@@ -76,6 +78,86 @@ struct AchievementMilestone: Decodable, Equatable, Identifiable, Sendable {
         case key, title, achieved, state, provenance, progress
         case achievedAt = "achieved_at"
         case nextAction = "next_action"
+    }
+}
+
+struct AchievementStatusPresentation: Equatable, Sendable {
+    let status: String
+    let isEarned: Bool
+}
+
+enum AchievementPresentation {
+    static func badge(
+        _ badge: AchievementBadge
+    ) -> AchievementStatusPresentation {
+        status(
+            state: badge.state,
+            canonicalDate: badge.provenance?.occurredAt,
+            legacyDate: badge.earnedAt,
+            earnedLabel: "Earned"
+        )
+    }
+
+    static func milestone(
+        _ milestone: AchievementMilestone
+    ) -> AchievementStatusPresentation {
+        status(
+            state: milestone.state,
+            canonicalDate: milestone.provenance?.occurredAt,
+            legacyDate: milestone.achievedAt,
+            earnedLabel: "Reached"
+        )
+    }
+
+    private static func status(
+        state: AchievementState,
+        canonicalDate: String?,
+        legacyDate: String?,
+        earnedLabel: String
+    ) -> AchievementStatusPresentation {
+        switch state {
+        case .earned:
+            let dateLabel = formattedDate(canonicalDate ?? legacyDate)
+            return AchievementStatusPresentation(
+                status: dateLabel.isEmpty
+                    ? earnedLabel
+                    : "\(earnedLabel) \(dateLabel)",
+                isEarned: true
+            )
+        case .inProgress:
+            return AchievementStatusPresentation(
+                status: "In progress",
+                isEarned: false
+            )
+        case .locked:
+            return AchievementStatusPresentation(
+                status: "Locked",
+                isEarned: false
+            )
+        case .inapplicable:
+            return AchievementStatusPresentation(
+                status: "Not applicable",
+                isEarned: false
+            )
+        }
+    }
+
+    private static func formattedDate(_ value: String?) -> String {
+        guard let value else { return "" }
+        let plain = ISO8601DateFormatter()
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [
+            .withInternetDateTime,
+            .withFractionalSeconds,
+        ]
+        guard let date = plain.date(from: value) ?? fractional.date(from: value)
+        else { return "" }
+
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "en_GB")
+        output.timeZone = TimeZone(secondsFromGMT: 0)
+        output.dateFormat = "dd/MM/yyyy"
+        return output.string(from: date)
     }
 }
 

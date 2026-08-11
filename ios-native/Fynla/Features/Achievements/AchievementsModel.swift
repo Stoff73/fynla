@@ -115,22 +115,48 @@ final class AchievementsModel {
     }
 
     func loadMoreMilestones() async {
-        guard var current = content, let cursor = current.summary.nextCursor, !isLoadingMoreMilestones else { return }
+        guard let cursor = content?.summary.nextCursor,
+              !isLoadingMoreMilestones
+        else { return }
+
+        let activeGeneration = generation
         isLoadingMoreMilestones = true
         paginationMessage = nil
         defer { isLoadingMoreMilestones = false }
+
         do {
             let page = try await client.loadMilestones(cursor: cursor)
-            current.summary.milestones = mergeMilestones(current.summary.milestones, with: page.milestones)
+            guard activeGeneration == generation,
+                  var current = content,
+                  current.summary.nextCursor == cursor
+            else { return }
+
+            current.summary.milestones = mergeMilestones(
+                current.summary.milestones,
+                with: page.milestones
+            )
             current.summary.milestonesTotal = page.milestonesTotal
             current.summary.perPage = page.perPage
             current.summary.nextCursor = page.nextCursor
             content = current
-        } catch is CancellationError { return
+        } catch is CancellationError {
+            return
         } catch let error as APIError {
-            if case .unauthenticated = error { map(error) }
-            else { paginationMessage = "We could not load more milestones. Please try again." }
-        } catch { paginationMessage = "We could not load more milestones. Please try again." }
+            guard activeGeneration == generation,
+                  content?.summary.nextCursor == cursor
+            else { return }
+
+            if case .unauthenticated = error {
+                map(error)
+            } else {
+                paginationMessage = "We could not load more milestones. Please try again."
+            }
+        } catch {
+            guard activeGeneration == generation,
+                  content?.summary.nextCursor == cursor
+            else { return }
+            paginationMessage = "We could not load more milestones. Please try again."
+        }
     }
 
     // /m's store.fetchStatus() equivalent for the dashboard shell — missed

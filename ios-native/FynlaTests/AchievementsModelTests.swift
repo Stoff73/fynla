@@ -95,7 +95,12 @@ struct AchievementsModelTests {
         let client = AchievementsClientStub(
             summary: try summaryFixture(),
             completedPages: [],
-            activityPages: [try fixture("activity-page-1", as: AchievementsActivityPage.self)],
+            activityPages: [
+                try fixture(
+                    "activity-page-1",
+                    as: AchievementsActivityPage.self
+                ),
+            ],
             status: GamificationStatus(pendingCelebration: nil)
         )
         let model = AchievementsModel(client: client)
@@ -103,9 +108,157 @@ struct AchievementsModelTests {
         await model.load()
         await model.loadMoreMilestones()
 
-        #expect(model.content?.summary.milestones.map(\.key) == ["action:0:1", "action:0:2"])
+        #expect(
+            model.content?.summary.milestones.map(\.key)
+                == ["action:0:1", "action:0:2"]
+        )
         #expect(model.content?.summary.milestonesTotal == 2)
         #expect(model.content?.summary.nextCursor == nil)
+    }
+
+    @Test @MainActor
+    func retriesTheSameMilestoneCursorAfterFailureThenAdvancesOnSuccess() async throws {
+        let summary = try summaryFixture()
+        let originalKeys = summary.milestones.map(\.key)
+        let originalCursor = try #require(summary.nextCursor)
+        let advancedCursor = "next opaque +/= cursor"
+        let client = AchievementsClientStub(
+            summary: summary,
+            completedPages: [],
+            activityPages: [
+                try fixture(
+                    "activity-page-1",
+                    as: AchievementsActivityPage.self
+                ),
+            ],
+            status: GamificationStatus(pendingCelebration: nil),
+            milestoneResults: [
+                .failure(APIError.offline),
+                .success(
+                    milestoneContinuationPage(
+                        summary: summary,
+                        nextCursor: advancedCursor
+                    )
+                ),
+            ]
+        )
+        let model = AchievementsModel(client: client)
+
+        await model.load()
+        await model.loadMoreMilestones()
+
+        #expect(model.content?.summary.milestones.map(\.key) == originalKeys)
+        #expect(model.content?.summary.nextCursor == originalCursor)
+        #expect(
+            model.paginationMessage
+                == "We could not load more milestones. Please try again."
+        )
+
+        await model.loadMoreMilestones()
+
+        #expect(
+            await client.recordedMilestoneCursors()
+                == [originalCursor, originalCursor]
+        )
+        #expect(
+            model.content?.summary.milestones.map(\.key)
+                == ["action:0:1", "action:0:2"]
+        )
+        #expect(model.content?.summary.nextCursor == advancedCursor)
+        #expect(model.paginationMessage == nil)
+    }
+
+    @Test @MainActor
+    func staleMilestoneContinuationCannotOverwriteACompletedRefresh() async throws {
+        let initial = try summaryFixture()
+        var refreshed = initial
+        refreshed.achievements = []
+        refreshed.nextCursor = "refreshed-cursor"
+        let gate = MilestoneRequestGate()
+        let client = AchievementsClientStub(
+            summary: initial,
+            achievementSummaries: [initial, refreshed],
+            completedPages: [],
+            activityPages: [
+                try fixture(
+                    "activity-page-1",
+                    as: AchievementsActivityPage.self
+                ),
+                try fixture(
+                    "activity-page-1",
+                    as: AchievementsActivityPage.self
+                ),
+            ],
+            status: GamificationStatus(pendingCelebration: nil),
+            milestoneResults: [
+                .success(
+                    milestoneContinuationPage(
+                        summary: initial,
+                        nextCursor: nil
+                    )
+                ),
+            ],
+            milestoneGate: gate
+        )
+        let model = AchievementsModel(client: client)
+
+        await model.load()
+        let continuation = Task { @MainActor in
+            await model.loadMoreMilestones()
+        }
+        await gate.waitUntilStarted()
+        await model.refresh()
+
+        #expect(model.content?.summary.achievements.isEmpty == true)
+        #expect(model.content?.summary.nextCursor == "refreshed-cursor")
+
+        await gate.release()
+        await continuation.value
+
+        #expect(model.content?.summary.achievements.isEmpty == true)
+        #expect(model.content?.summary.nextCursor == "refreshed-cursor")
+        #expect(model.paginationMessage == nil)
+    }
+
+    @Test @MainActor
+    func staleMilestoneContinuationCannotResurrectContentAfterStop() async throws {
+        let summary = try summaryFixture()
+        let gate = MilestoneRequestGate()
+        let client = AchievementsClientStub(
+            summary: summary,
+            completedPages: [],
+            activityPages: [
+                try fixture(
+                    "activity-page-1",
+                    as: AchievementsActivityPage.self
+                ),
+            ],
+            status: GamificationStatus(pendingCelebration: nil),
+            milestoneResults: [
+                .success(
+                    milestoneContinuationPage(
+                        summary: summary,
+                        nextCursor: nil
+                    )
+                ),
+            ],
+            milestoneGate: gate
+        )
+        let model = AchievementsModel(client: client)
+
+        await model.load()
+        let continuation = Task { @MainActor in
+            await model.loadMoreMilestones()
+        }
+        await gate.waitUntilStarted()
+        model.stop()
+        await gate.release()
+        await continuation.value
+
+        #expect(model.state == .idle)
+        #expect(model.content == nil)
+        #expect(model.paginationMessage == nil)
+        #expect(!model.isLoadingMoreMilestones)
     }
 
     private func summaryFixture() throws -> AchievementsSnapshot {
@@ -129,56 +282,63 @@ struct AchievementsModelTests {
 }
 
 private actor AchievementsClientStub: AchievementsClient {
-    private let summary: AchievementsSnapshot
+    private var achievementSummaries: [AchievementsSnapshot]
     private var completedPages: [AchievementsCompletedPage]
     private var activityPages: [AchievementsActivityPage]
     private let status: GamificationStatus
     private var acknowledgementResults: [Result<Void, Error>]
     private let activityFailure: Error?
+    private var milestoneResults: [Result<AchievementsMilestonePage, Error>]
+    private let milestoneGate: MilestoneRequestGate?
+    private var milestoneCursors: [String] = []
 
     init(
         summary: AchievementsSnapshot,
+        achievementSummaries: [AchievementsSnapshot]? = nil,
         completedPages: [AchievementsCompletedPage],
         activityPages: [AchievementsActivityPage],
         status: GamificationStatus,
         acknowledgementResults: [Result<Void, Error>] = [.success(())],
-        activityFailure: Error? = nil
+        activityFailure: Error? = nil,
+        milestoneResults: [Result<AchievementsMilestonePage, Error>]? = nil,
+        milestoneGate: MilestoneRequestGate? = nil
     ) {
-        self.summary = summary
+        self.achievementSummaries = achievementSummaries ?? [summary]
         self.completedPages = completedPages
         self.activityPages = activityPages
         self.status = status
         self.acknowledgementResults = acknowledgementResults
         self.activityFailure = activityFailure
+        self.milestoneResults = milestoneResults ?? [
+            .success(
+                milestoneContinuationPage(
+                    summary: summary,
+                    nextCursor: nil
+                )
+            ),
+        ]
+        self.milestoneGate = milestoneGate
     }
 
-    func loadAchievements() async throws -> AchievementsSnapshot { summary }
+    func loadAchievements() async throws -> AchievementsSnapshot {
+        guard !achievementSummaries.isEmpty else {
+            throw APIError.server(status: 500, requestID: nil)
+        }
+        return achievementSummaries.removeFirst()
+    }
 
     func loadMilestones(cursor: String) async throws -> AchievementsMilestonePage {
-        AchievementsMilestonePage(
-            milestones: [
-                summary.milestones[0],
-                summary.milestones[0],
-                AchievementMilestone(
-                    key: "action:0:2",
-                    title: "You completed another action.",
-                    achieved: true,
-                    achievedAt: "2026-07-17T10:00:00Z",
-                    state: .earned,
-                    provenance: AchievementProvenance(
-                        kind: "user_milestone",
-                        event: "action:0:2",
-                        occurredAt: "2026-07-17T10:00:00Z"
-                    ),
-                    progress: nil,
-                    nextAction: nil
-                ),
-            ],
-            milestonesTotal: 2,
-            perPage: summary.perPage,
-            nextCursor: nil
-        )
+        milestoneCursors.append(cursor)
+        if let milestoneGate {
+            await milestoneGate.arriveAndWait()
+        }
+        guard !milestoneResults.isEmpty else {
+            throw APIError.server(status: 500, requestID: nil)
+        }
+        return try milestoneResults.removeFirst().get()
     }
+
+    func recordedMilestoneCursors() -> [String] { milestoneCursors }
 
     func loadCompleted(page: Int) async throws -> AchievementsCompletedPage {
         guard !completedPages.isEmpty else { throw APIError.server(status: 500, requestID: nil) }
@@ -197,4 +357,60 @@ private actor AchievementsClientStub: AchievementsClient {
         guard !acknowledgementResults.isEmpty else { return }
         try acknowledgementResults.removeFirst().get()
     }
+}
+
+private actor MilestoneRequestGate {
+    private var hasStarted = false
+    private var startWaiter: CheckedContinuation<Void, Never>?
+    private var releaseWaiter: CheckedContinuation<Void, Never>?
+
+    func arriveAndWait() async {
+        hasStarted = true
+        startWaiter?.resume()
+        startWaiter = nil
+        await withCheckedContinuation { continuation in
+            releaseWaiter = continuation
+        }
+    }
+
+    func waitUntilStarted() async {
+        guard !hasStarted else { return }
+        await withCheckedContinuation { continuation in
+            startWaiter = continuation
+        }
+    }
+
+    func release() {
+        releaseWaiter?.resume()
+        releaseWaiter = nil
+    }
+}
+
+private func milestoneContinuationPage(
+    summary: AchievementsSnapshot,
+    nextCursor: String?
+) -> AchievementsMilestonePage {
+    AchievementsMilestonePage(
+        milestones: [
+            summary.milestones[0],
+            summary.milestones[0],
+            AchievementMilestone(
+                key: "action:0:2",
+                title: "You completed another action.",
+                achieved: true,
+                achievedAt: "2026-07-17T10:00:00Z",
+                state: .earned,
+                provenance: AchievementProvenance(
+                    kind: "user_milestone",
+                    event: "action:0:2",
+                    occurredAt: "2026-07-17T10:00:00Z"
+                ),
+                progress: nil,
+                nextAction: nil
+            ),
+        ],
+        milestonesTotal: 2,
+        perPage: summary.perPage,
+        nextCursor: nextCursor
+    )
 }
