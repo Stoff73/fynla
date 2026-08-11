@@ -122,6 +122,31 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             COMPILER_INDEX_STORE_ENABLE=NO
 
+      - name: Run PR7 closure at the largest accessibility text size
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          restore_content_size() {
+            xcrun simctl ui '${{ steps.simulator.outputs.udid }}' \
+              content_size large || true
+          }
+          trap restore_content_size EXIT
+
+          xcrun simctl ui '${{ steps.simulator.outputs.udid }}' \
+            content_size accessibility-extra-extra-extra-large
+          xcodebuild \
+            -project ios-native/Fynla.xcodeproj \
+            -scheme Fynla-Staging \
+            -destination '${{ steps.simulator.outputs.destination }}' \
+            -resultBundlePath '${{ runner.temp }}/FynlaPR7Accessibility.xcresult' \
+            -only-testing:FynlaUITests/FynlaUITests/testPR7ParityClosureJourney \
+            -parallel-testing-enabled NO \
+            test \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
       - name: Build the production scheme unsigned
         run: |
           xcodebuild \
@@ -176,6 +201,7 @@ jobs:
           path: |
             ${{ runner.temp }}/FynlaUnitTests.xcresult
             ${{ runner.temp }}/FynlaUITests.xcresult
+            ${{ runner.temp }}/FynlaPR7Accessibility.xcresult
             ${{ runner.temp }}/FynlaHealth.xcresult
           if-no-files-found: ignore
           retention-days: 7

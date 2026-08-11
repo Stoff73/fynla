@@ -417,6 +417,184 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testPR7ParityClosureJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        // Exercise the complete shared drawer in the same grouped order as
+        // /m. Each destination must expose a stable screen identity after a
+        // user-visible navigation action; this catches route, loading and
+        // accessibility regressions without treating a direct deep link as
+        // equivalent evidence.
+        let sharedDestinations = [
+            ("navigation.dashboard", "dashboard.screen"),
+            ("navigation.achievements", "achievements.screen"),
+            ("navigation.conversation-history", "conversation-history.screen"),
+            ("navigation.income", "income.screen"),
+            ("navigation.expenditure", "expenditure.screen"),
+            ("navigation.net-worth", "net-worth.screen"),
+            ("navigation.bank-accounts", "savings.screen"),
+            ("navigation.investments", "investment.screen"),
+            ("navigation.retirement", "retirement.screen"),
+            ("navigation.protection", "protection.screen"),
+            ("navigation.estate-planning", "estate.screen"),
+            ("navigation.goals", "goals.screen"),
+            ("navigation.tax-strategy", "tax-strategy.screen"),
+            ("navigation.holistic-plan", "holistic-plan.screen"),
+            ("navigation.personal-information", "personal-information.screen"),
+            ("navigation.subscription", "subscription.screen"),
+            ("navigation.settings", "settings.screen"),
+        ]
+
+        for (navigationIdentifier, screenIdentifier) in sharedDestinations {
+            openDrawerItem(navigationIdentifier, in: app)
+            XCTAssertTrue(
+                element(screenIdentifier, in: app).waitForExistence(timeout: 5),
+                "\(navigationIdentifier) did not open \(screenIdentifier)"
+            )
+        }
+
+        // Route identity alone is not sufficient closure evidence. Reconcile
+        // the same server-shaped high-risk contracts exercised by PR2–PR6 in
+        // one current persona before reporting the drawer green.
+        openDrawerItem("navigation.dashboard", in: app)
+        let recommendation = element("dashboard.action.retirement-1.open", in: app)
+        assertReachable(recommendation, in: app)
+        XCTAssertTrue(recommendation.label.contains("workplace pension contributions"))
+        recommendation.tap()
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+
+        openDrawerItem("navigation.bank-accounts", in: app)
+        let account = app.buttons["savings.account.12"]
+        assertReachable(account, in: app)
+        account.tap()
+        XCTAssertTrue(element("savings.account.screen", in: app).waitForExistence(timeout: 3))
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        app.buttons["fyn.close"].tap()
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 402."].waitForExistence(timeout: 3))
+        app.buttons["fyn.close"].tap()
+        openDrawerItem("navigation.conversation-history", in: app)
+        let firstConversation = app.buttons["conversation-history.open.401"]
+        assertReachable(firstConversation, in: app)
+        firstConversation.tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["Trusted contextual opening 402."].exists)
+        app.buttons["fyn.close"].tap()
+
+        openDrawerItem("navigation.achievements", in: app)
+        let savingsBadge = element("achievements.badge.data_savings_account", in: app)
+        assertReachable(savingsBadge, in: app)
+        XCTAssertTrue(savingsBadge.label.contains("Added savings details"))
+        XCTAssertTrue(savingsBadge.label.contains("Earned 01/08/2026"))
+        app.buttons["achievements.tab.milestones"].tap()
+        let inProgress = element(
+            "achievements.upcoming.net_worth:0:10000",
+            in: app
+        )
+        assertReachable(inProgress, in: app)
+        let progress = element(
+            "achievements.upcoming.net_worth:0:10000.progress",
+            in: app
+        )
+        XCTAssertTrue(progress.exists)
+        XCTAssertEqual(progress.value as? String, "40%")
+        XCTAssertFalse(
+            element(
+                "achievements.upcoming.retirement_on_track:0:1.progress",
+                in: app
+            ).exists
+        )
+        let achievementAction = app.buttons[
+            "achievements.upcoming.net_worth:0:10000.action"
+        ]
+        assertReachable(achievementAction, in: app)
+        achievementAction.tap()
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+
+        openDrawerItem("navigation.investments", in: app)
+        let investment = app.buttons["investment.account.21"]
+        assertReachable(investment, in: app)
+        investment.tap()
+        XCTAssertTrue(element("investment.account.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.201", in: app).exists)
+        assertReachable(
+            element("canonical-portfolio.comparison.entered-portfolio", in: app),
+            in: app
+        )
+        XCTAssertTrue(
+            element("canonical-portfolio.comparison.recommended-portfolio", in: app).exists
+        )
+        assertReachable(element("canonical-portfolio.history", in: app), in: app)
+
+        openDrawerItem("navigation.retirement", in: app)
+        for label in ["Age 65–66", "Age 67–69", "Age 70–100"] {
+            let band = app.staticTexts.matching(
+                NSPredicate(format: "label == %@", label)
+            ).firstMatch
+            assertReachable(band, in: app)
+        }
+        let retirementAssumptions = element("retirement.projection.assumptions", in: app)
+        assertReachable(retirementAssumptions, in: app)
+        XCTAssertTrue(retirementAssumptions.label.contains("4.7%"))
+        XCTAssertFalse(app.staticTexts["Median projection"].exists)
+        let pension = app.buttons["retirement.pension.dc-31"]
+        assertReachable(pension, in: app)
+        pension.tap()
+        XCTAssertTrue(element("retirement.pension.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.301", in: app).exists)
+
+        openDrawerItem("navigation.net-worth", in: app)
+        XCTAssertTrue(app.staticTexts["Recorded balance history"].exists)
+        let forecast = element("net-worth.forecast", in: app)
+        assertReachable(forecast, in: app)
+        XCTAssertTrue(app.staticTexts["PROJECTED NET WORTH"].exists)
+        let propertyRate = app.textFields["net-worth.forecast.rate.property"]
+        replaceText(in: propertyRate, with: "6.25", app: app)
+        app.buttons["net-worth.forecast.keyboard-done"].tap()
+        let save = app.buttons["net-worth.forecast.save"]
+        assertReachable(save, in: app)
+        save.tap()
+        XCTAssertTrue(
+            element("net-worth.forecast.feedback", in: app)
+                .waitForExistence(timeout: 3)
+        )
+        openDrawerItem("navigation.retirement", in: app)
+        openDrawerItem("navigation.net-worth", in: app)
+        let persistedRate = app.textFields["net-worth.forecast.rate.property"]
+        assertReachable(persistedRate, in: app)
+        XCTAssertEqual(persistedRate.value as? String, "6.25")
+        let reset = app.buttons["net-worth.forecast.reset"]
+        assertReachable(reset, in: app)
+        reset.tap()
+        XCTAssertTrue(
+            app.staticTexts["Assumptions reset to Fynla defaults."]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertEqual(persistedRate.value as? String, "3")
+
+        openDrawerItem("navigation.subscription", in: app)
+        XCTAssertTrue(
+            element("subscription.unavailable", in: app).waitForExistence(timeout: 3)
+        )
+
+        // The native-only reporting workflow intentionally lives in Fyn's
+        // header while /m exposes the equivalent privacy-safe report sheet as
+        // a floating control. It must remain reachable after the complete
+        // shared-route walk.
+        let openFyn = app.buttons["fyn.open"]
+        assertReachable(openFyn, in: app)
+        openFyn.tap()
+        let reportProblem = app.buttons["fyn.report"]
+        XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
+        reportProblem.tap()
+        XCTAssertTrue(element("bug-report.screen", in: app).waitForExistence(timeout: 3))
+
+        attachAcceptance(app, name: "PR7-01-complete-route-and-report-closure")
+    }
+
+    @MainActor
     func testNativeFynOpensThePersistedConversationAndSendsAReply() throws {
         let app = app(mode: "unlocked")
         app.launch()

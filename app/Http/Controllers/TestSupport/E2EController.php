@@ -157,6 +157,8 @@ class E2EController extends Controller
         if ($validated['with_projection_parity'] ?? false) {
             $userAttributes['date_of_birth'] = '1981-08-10';
             $userAttributes['target_retirement_age'] = 65;
+            $userAttributes['annual_employment_income'] = 60000;
+            $userAttributes['monthly_expenditure'] = 2500;
         }
         $user = User::factory()->create($userAttributes);
 
@@ -234,6 +236,7 @@ class E2EController extends Controller
                 'current_age' => 45,
                 'target_retirement_age' => 65,
                 'target_retirement_income' => 42000,
+                'current_annual_salary' => 60000,
             ]);
             $property = $propertyStore->create([
                 'property_type' => 'main_residence',
