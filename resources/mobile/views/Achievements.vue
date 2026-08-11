@@ -81,8 +81,7 @@
               :key="badge.key"
               class="ma-badge"
               :class="{ 'is-earned': badge.state === 'earned' }"
-              :data-achievement-key="badge.key"
-              :aria-label="accessibilityLabel(badge)"
+              data-achievement-item
             >
               <span class="ma-badge__emblem" aria-hidden="true">Badge</span>
               <span class="ma-badge__title">{{ badge.title }}</span>
@@ -100,36 +99,37 @@
              grouped, each with the step that gets there (WP-5b + WP-5c-ii). -->
         <div v-if="upcoming.length" class="m-card">
           <p class="m-section-label" style="margin-top:0">Next up</p>
-          <template v-for="section in groupedUpcoming" :key="'grp-' + section.group">
+          <template v-for="(section, sectionIndex) in groupedUpcoming" :key="'grp-' + section.group">
             <p class="ma-group">{{ section.group }}</p>
             <div class="ma-badges">
-              <!-- WP-5c-iii — each step deep-links to the surface where the
-                   user acts on it. -->
-              <button
+              <div
                 v-for="(up, i) in section.items"
                 :key="section.group + '-' + i"
-                type="button"
-                class="ma-badge ma-badge--link"
-                :data-achievement-key="up.key"
-                :data-next-action="up.next_action?.label ? up.key : null"
-                :aria-label="accessibilityLabel(up)"
-                @click="goToUpcoming(up)"
+                class="ma-badge"
+                data-achievement-item
               >
-                <span class="ma-badge__title">{{ up.title }}</span>
+                <span :id="`upcoming-title-${sectionIndex}-${i}`" class="ma-badge__title">{{ up.title }}</span>
                 <span class="ma-badge__desc">{{ up.steps }}</span>
+                <span class="ma-badge__status">{{ achievementStateLabel(up) }}</span>
                 <span v-if="showsProgress(up)" class="ma-progress">
                   <span class="ma-progress__label">{{ up.progress.label }}</span>
                   <span
                     class="ma-progress__track"
                     role="progressbar"
-                    :aria-label="up.progress.label"
+                    :aria-labelledby="`upcoming-title-${sectionIndex}-${i}`"
                     :aria-valuemin="0"
                     :aria-valuemax="100"
                     :aria-valuenow="up.progress.percent"
+                    :aria-valuetext="up.progress.label"
                   ><span class="ma-progress__fill" :style="{ width: `${up.progress.percent}%` }"></span></span>
                 </span>
-                <span v-if="up.next_action?.label" class="ma-badge__action">{{ up.next_action.label }}</span>
-              </button>
+                <button
+                  v-if="upcomingActionLabel(up)"
+                  type="button"
+                  class="ma-badge__action ma-badge__action--button"
+                  @click="goToUpcoming(up)"
+                >{{ upcomingActionLabel(up) }}</button>
+              </div>
             </div>
           </template>
         </div>
@@ -145,9 +145,8 @@
               :key="ms.key"
               class="ma-badge"
               :class="{ 'is-earned': ms.state === 'earned' }"
-              :data-achievement-key="ms.key"
+              data-achievement-item
               data-reached-milestone
-              :aria-label="accessibilityLabel(ms)"
             >
               <span class="ma-badge__emblem" aria-hidden="true">Badge</span>
               <span class="ma-badge__title">{{ ms.title }}</span>
@@ -163,6 +162,10 @@
             data-load-more-milestones
             @click="loadMoreMilestones"
           >{{ loadingMoreMilestones ? 'Loading…' : 'Load more reached milestones' }}</button>
+          <div v-if="milestoneLoadError" class="m-state ma-load-error" aria-live="polite" data-milestone-load-error>
+            <p class="m-err">{{ milestoneLoadError }}</p>
+            <button type="button" class="m-btn" data-retry-milestones @click="loadMoreMilestones">Try again</button>
+          </div>
         </div>
       </template>
 
@@ -197,9 +200,16 @@ import { handleAuthExpiry } from '../authExpiry.js';
 import { resolveMobileDestination } from '../navigation/semanticDestinations.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
-const legacyMilestoneRoutes = new Set([
-  'dashboard', 'm-net-worth', 'm-goals', 'm-estate', 'm-savings', 'm-retirement', 'm-protection', 'tax-strategy',
-]);
+const legacyMilestoneActions = Object.freeze({
+  dashboard: 'Go to dashboard',
+  'm-net-worth': 'Review net worth',
+  'm-goals': 'Review goals',
+  'm-estate': 'Review estate plan',
+  'm-savings': 'Review savings',
+  'm-retirement': 'Review retirement',
+  'm-protection': 'Review protection',
+  'tax-strategy': 'Review tax strategy',
+});
 
 export default {
   name: 'MobileAchievements',
@@ -217,6 +227,7 @@ export default {
       milestones: [],
       milestoneCursor: null,
       loadingMoreMilestones: false,
+      milestoneLoadError: '',
       upcoming: [],
       activity: [],
       activityCursor: null,
@@ -266,17 +277,21 @@ export default {
     // WP-5c-iii — an upcoming milestone deep-links to where the user acts.
     goToUpcoming(up) {
       if (!up) return;
-      const destination = up.next_action ? resolveMobileDestination(up.next_action) : null;
+      const destination = up.next_action?.label ? resolveMobileDestination(up.next_action) : null;
       if (destination) {
         const navigation = this.$router.push(destination);
         if (navigation?.catch) navigation.catch(() => {});
-      } else if (this.legacyMilestoneRoute(up.route)) {
+      } else if (this.upcomingActionLabel(up) && this.legacyMilestoneRoute(up.route)) {
         const navigation = this.$router.push({ name: up.route });
         if (navigation?.catch) navigation.catch(() => {});
       }
     },
     legacyMilestoneRoute(route) {
-      return legacyMilestoneRoutes.has(route);
+      return Object.hasOwn(legacyMilestoneActions, route);
+    },
+    upcomingActionLabel(item) {
+      if (item?.next_action?.label) return item.next_action.label;
+      return legacyMilestoneActions[item?.route] || '';
     },
     formatDate(iso) {
       if (!iso) return '';
@@ -293,12 +308,6 @@ export default {
       if (item?.state === 'in_progress') return 'In progress';
       if (item?.state === 'inapplicable') return 'Not applicable';
       return 'Locked';
-    },
-    accessibilityLabel(item) {
-      const parts = [item?.title, this.achievementStateLabel(item)];
-      if (this.showsProgress(item) && item.progress.label) parts.push(item.progress.label);
-      if (item?.next_action?.label) parts.push(item.next_action.label);
-      return parts.filter(Boolean).join('. ');
     },
     provenanceLabel(item) {
       const provenance = item?.provenance;
@@ -335,7 +344,7 @@ export default {
         this.completed = Array.isArray(d.completed) ? d.completed : [];
         this.completedTotal = Number(d.completed_total) || this.completed.length;
         this.completedPage = 1;
-        this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
+        this.milestones = this.mergeMilestones([], d.milestones);
         this.milestoneCursor = d.next_cursor ?? null;
         this.upcoming = Array.isArray(d.upcoming) ? d.upcoming : [];
         this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
@@ -349,18 +358,30 @@ export default {
     async loadMoreMilestones() {
       if (this.loadingMoreMilestones || !this.milestoneCursor) return;
       this.loadingMoreMilestones = true;
+      this.milestoneLoadError = '';
       try {
         const cursor = this.milestoneCursor;
         const res = await apiGet(`/api/v1/mobile/achievements/v2/milestones?cursor=${encodeURIComponent(cursor)}`, store.token);
-        if (res.ok) {
-          const page = Array.isArray(res.data?.data?.milestones) ? res.data.data.milestones : [];
-          const existing = new Set(this.milestones.map((milestone) => milestone.key));
-          this.milestones = this.milestones.concat(page.filter((milestone) => !existing.has(milestone.key)));
-          this.milestoneCursor = res.data?.data?.next_cursor ?? null;
-        }
+        if (handleAuthExpiry(res, this.$router)) return;
+        const data = res.data?.data;
+        if (!res.ok || !Array.isArray(data?.milestones) || !Object.hasOwn(data, 'next_cursor')) throw new Error('continuation_failed');
+        this.milestones = this.mergeMilestones(this.milestones, data.milestones);
+        this.milestoneCursor = data.next_cursor;
+      } catch {
+        this.milestoneLoadError = 'Could not load more reached milestones. Please try again.';
       } finally {
         this.loadingMoreMilestones = false;
       }
+    },
+    mergeMilestones(existing, incoming) {
+      const merged = [];
+      const keys = new Set();
+      for (const milestone of [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]) {
+        if (typeof milestone?.key !== 'string' || keys.has(milestone.key)) continue;
+        keys.add(milestone.key);
+        merged.push(milestone);
+      }
+      return merged;
     },
     // WP-5c-ii — next page of completed actions, appended.
     async loadMoreCompleted() {
@@ -471,6 +492,15 @@ export default {
 .ma-badge.is-earned .ma-badge__emblem { background: var(--spring-500); color: var(--white); }
 .ma-badge__provenance { font-size: 12px; color: var(--neutral-500); }
 .ma-badge__action { font-size: 13px; font-weight: 700; color: var(--horizon-500); }
+.ma-badge__action--button {
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
 .ma-progress { display: flex; flex-direction: column; gap: 5px; }
 .ma-progress__label { font-size: 12px; color: var(--neutral-500); }
 .ma-progress__track { display: block; overflow: hidden; height: 7px; border-radius: 999px; background: var(--horizon-100); }
@@ -499,6 +529,7 @@ export default {
 .ma-group:first-of-type { margin-top: 8px; }
 .ma-more { width: 100%; margin-top: 12px; }
 .ma-sentinel { min-height: 24px; text-align: center; padding: 6px 0; }
+.ma-load-error { margin-top: 12px; }
 
 /* WP-3 — activity history rows. */
 .ma-history { display: flex; flex-direction: column; }
