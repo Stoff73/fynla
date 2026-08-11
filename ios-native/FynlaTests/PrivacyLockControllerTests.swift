@@ -176,7 +176,7 @@ struct PrivacyLockControllerTests {
         let signOut = Task { await harness.controller.signOut() }
         await waitForSessionState(.signedOut, in: harness.session)
         await waitForEvent("keychain.delete", in: harness.events)
-        #expect(!(await harness.preference.isFaceIDEnabled()))
+        await waitForFaceIDPreference(false, in: harness.preference)
         try await harness.coordinator.login(
             email: "second@example.test",
             password: "Example1!",
@@ -678,6 +678,17 @@ struct PrivacyLockControllerTests {
             try? await Task.sleep(for: .milliseconds(1))
         }
         Issue.record("Timed out waiting for \(expected)")
+    }
+
+    private func waitForFaceIDPreference(
+        _ expected: Bool,
+        in preference: Task8FaceIDPreference
+    ) async {
+        for _ in 0..<100 {
+            if await preference.isFaceIDEnabled() == expected { return }
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        Issue.record("Timed out waiting for Face ID preference \(expected)")
     }
 
     @MainActor
