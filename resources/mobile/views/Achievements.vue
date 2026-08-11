@@ -26,6 +26,7 @@
           :class="{ 'is-active': tab === 'milestones' }"
           role="tab"
           :aria-selected="tab === 'milestones' ? 'true' : 'false'"
+          data-progress-tab="milestones"
           @click="tab = 'milestones'"
         >Milestones</button>
         <button
@@ -79,11 +80,15 @@
               v-for="badge in achievements"
               :key="badge.key"
               class="ma-badge"
-              :class="{ 'is-earned': badge.earned }"
+              :class="{ 'is-earned': badge.state === 'earned' }"
+              :data-achievement-key="badge.key"
+              :aria-label="accessibilityLabel(badge)"
             >
+              <span class="ma-badge__emblem" aria-hidden="true">Badge</span>
               <span class="ma-badge__title">{{ badge.title }}</span>
               <span class="ma-badge__desc">{{ badge.description }}</span>
-              <span class="ma-badge__status">{{ badge.earned ? earnedLabel(badge) : 'Not yet earned' }}</span>
+              <span class="ma-badge__status">{{ achievementStateLabel(badge) }}</span>
+              <span v-if="badge.state === 'earned' && provenanceLabel(badge)" class="ma-badge__provenance">{{ provenanceLabel(badge) }}</span>
             </div>
           </div>
         </div>
@@ -105,10 +110,25 @@
                 :key="section.group + '-' + i"
                 type="button"
                 class="ma-badge ma-badge--link"
+                :data-achievement-key="up.key"
+                :data-next-action="up.next_action?.label ? up.key : null"
+                :aria-label="accessibilityLabel(up)"
                 @click="goToUpcoming(up)"
               >
                 <span class="ma-badge__title">{{ up.title }}</span>
                 <span class="ma-badge__desc">{{ up.steps }}</span>
+                <span v-if="showsProgress(up)" class="ma-progress">
+                  <span class="ma-progress__label">{{ up.progress.label }}</span>
+                  <span
+                    class="ma-progress__track"
+                    role="progressbar"
+                    :aria-label="up.progress.label"
+                    :aria-valuemin="0"
+                    :aria-valuemax="100"
+                    :aria-valuenow="up.progress.percent"
+                  ><span class="ma-progress__fill" :style="{ width: `${up.progress.percent}%` }"></span></span>
+                </span>
+                <span v-if="up.next_action?.label" class="ma-badge__action">{{ up.next_action.label }}</span>
               </button>
             </div>
           </template>
@@ -124,12 +144,25 @@
               v-for="ms in milestones"
               :key="ms.key"
               class="ma-badge"
-              :class="{ 'is-earned': ms.achieved }"
+              :class="{ 'is-earned': ms.state === 'earned' }"
+              :data-achievement-key="ms.key"
+              data-reached-milestone
+              :aria-label="accessibilityLabel(ms)"
             >
+              <span class="ma-badge__emblem" aria-hidden="true">Badge</span>
               <span class="ma-badge__title">{{ ms.title }}</span>
-              <span class="ma-badge__status">{{ ms.achieved ? achievedLabel(ms) : 'Not yet reached' }}</span>
+              <span class="ma-badge__status">{{ achievementStateLabel(ms) }}</span>
+              <span v-if="ms.state === 'earned' && provenanceLabel(ms)" class="ma-badge__provenance">{{ provenanceLabel(ms) }}</span>
             </div>
           </div>
+          <button
+            v-if="milestoneCursor"
+            type="button"
+            class="m-btn ma-more"
+            :disabled="loadingMoreMilestones"
+            data-load-more-milestones
+            @click="loadMoreMilestones"
+          >{{ loadingMoreMilestones ? 'Loading…' : 'Load more reached milestones' }}</button>
         </div>
       </template>
 
@@ -161,7 +194,12 @@
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
+import { resolveMobileDestination } from '../navigation/semanticDestinations.js';
 import MobileChrome from '../components/MobileChrome.vue';
+
+const legacyMilestoneRoutes = new Set([
+  'dashboard', 'm-net-worth', 'm-goals', 'm-estate', 'm-savings', 'm-retirement', 'm-protection', 'tax-strategy',
+]);
 
 export default {
   name: 'MobileAchievements',
@@ -177,6 +215,8 @@ export default {
       completedPage: 1,
       loadingMoreCompleted: false,
       milestones: [],
+      milestoneCursor: null,
+      loadingMoreMilestones: false,
       upcoming: [],
       activity: [],
       activityCursor: null,
@@ -225,9 +265,18 @@ export default {
     },
     // WP-5c-iii — an upcoming milestone deep-links to where the user acts.
     goToUpcoming(up) {
-      if (up && up.route) {
-        this.$router.push({ name: up.route }).catch(() => {});
+      if (!up) return;
+      const destination = up.next_action ? resolveMobileDestination(up.next_action) : null;
+      if (destination) {
+        const navigation = this.$router.push(destination);
+        if (navigation?.catch) navigation.catch(() => {});
+      } else if (this.legacyMilestoneRoute(up.route)) {
+        const navigation = this.$router.push({ name: up.route });
+        if (navigation?.catch) navigation.catch(() => {});
       }
+    },
+    legacyMilestoneRoute(route) {
+      return legacyMilestoneRoutes.has(route);
     },
     formatDate(iso) {
       if (!iso) return '';
@@ -238,6 +287,27 @@ export default {
     earnedLabel(badge) {
       const date = this.formatDate(badge.earned_at);
       return date ? `Earned ${date}` : 'Earned';
+    },
+    achievementStateLabel(item) {
+      if (item?.state === 'earned') return 'Earned';
+      if (item?.state === 'in_progress') return 'In progress';
+      if (item?.state === 'inapplicable') return 'Not applicable';
+      return 'Locked';
+    },
+    accessibilityLabel(item) {
+      const parts = [item?.title, this.achievementStateLabel(item)];
+      if (this.showsProgress(item) && item.progress.label) parts.push(item.progress.label);
+      if (item?.next_action?.label) parts.push(item.next_action.label);
+      return parts.filter(Boolean).join('. ');
+    },
+    provenanceLabel(item) {
+      const provenance = item?.provenance;
+      if (!provenance?.occurred_at) return '';
+      const date = this.formatDate(provenance.occurred_at);
+      return date ? `Earned on ${date}` : 'Earned';
+    },
+    showsProgress(item) {
+      return item?.state === 'in_progress' && item.progress !== null && typeof item.progress === 'object';
     },
     achievedLabel(ms) {
       const date = this.formatDate(ms.achieved_at);
@@ -252,7 +322,7 @@ export default {
       this.error = '';
       try {
         const [res, act] = await Promise.all([
-          apiGet('/api/v1/mobile/achievements', store.token),
+          apiGet('/api/v1/mobile/achievements/v2', store.token),
           apiGet('/api/gamification/activity', store.token),
         ]);
         if (handleAuthExpiry(res, this.$router)) return;
@@ -266,6 +336,7 @@ export default {
         this.completedTotal = Number(d.completed_total) || this.completed.length;
         this.completedPage = 1;
         this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
+        this.milestoneCursor = d.next_cursor ?? null;
         this.upcoming = Array.isArray(d.upcoming) ? d.upcoming : [];
         this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
         this.activityCursor = act.ok ? (act.data?.next_cursor ?? null) : null;
@@ -273,6 +344,22 @@ export default {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
+      }
+    },
+    async loadMoreMilestones() {
+      if (this.loadingMoreMilestones || !this.milestoneCursor) return;
+      this.loadingMoreMilestones = true;
+      try {
+        const cursor = this.milestoneCursor;
+        const res = await apiGet(`/api/v1/mobile/achievements/v2/milestones?cursor=${encodeURIComponent(cursor)}`, store.token);
+        if (res.ok) {
+          const page = Array.isArray(res.data?.data?.milestones) ? res.data.data.milestones : [];
+          const existing = new Set(this.milestones.map((milestone) => milestone.key));
+          this.milestones = this.milestones.concat(page.filter((milestone) => !existing.has(milestone.key)));
+          this.milestoneCursor = res.data?.data?.next_cursor ?? null;
+        }
+      } finally {
+        this.loadingMoreMilestones = false;
       }
     },
     // WP-5c-ii — next page of completed actions, appended.
@@ -370,6 +457,24 @@ export default {
 .ma-badge__desc { font-size: 13px; color: var(--neutral-500); line-height: 1.4; }
 .ma-badge__status { font-size: 12px; font-weight: 700; color: var(--neutral-500); }
 .ma-badge.is-earned .ma-badge__status { color: var(--spring-600); }
+.ma-badge__emblem {
+  align-self: flex-start;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--horizon-100);
+  color: var(--horizon-500);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ma-badge.is-earned .ma-badge__emblem { background: var(--spring-500); color: var(--white); }
+.ma-badge__provenance { font-size: 12px; color: var(--neutral-500); }
+.ma-badge__action { font-size: 13px; font-weight: 700; color: var(--horizon-500); }
+.ma-progress { display: flex; flex-direction: column; gap: 5px; }
+.ma-progress__label { font-size: 12px; color: var(--neutral-500); }
+.ma-progress__track { display: block; overflow: hidden; height: 7px; border-radius: 999px; background: var(--horizon-100); }
+.ma-progress__fill { display: block; height: 100%; background: var(--horizon-500); }
 
 /* WP-5c-iii — upcoming steps are tappable deep-links. */
 .ma-badge--link {
