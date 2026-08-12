@@ -86,6 +86,15 @@ it('builds an allowlisted semantic destination with an explicit fallback', funct
     ]);
 });
 
+it('serializes empty semantic destination parameters as a JSON object', function (): void {
+    $json = json_encode(
+        GateRoutes::destination(GateRoutes::TAX_STRATEGY),
+        JSON_THROW_ON_ERROR,
+    );
+
+    expect($json)->toContain('"params":{}');
+});
+
 it('rejects an unknown semantic fallback', function (): void {
     GateRoutes::destination(GateRoutes::RETIREMENT, [], 'tax-by-accident');
 })->throws(InvalidArgumentException::class);

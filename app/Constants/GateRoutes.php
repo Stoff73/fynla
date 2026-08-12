@@ -157,7 +157,7 @@ final class GateRoutes
      * values remain server-owned presentation data and never belong here.
      *
      * @param  array<string, int|string>  $params
-     * @return array{screen: string, params: array<string, int|string>, fallback: string}
+     * @return array{screen: string, params: array<string, int|string>|object, fallback: string}
      */
     public static function destination(
         string $screen,
@@ -176,7 +176,9 @@ final class GateRoutes
 
         return [
             'screen' => $screen,
-            'params' => $params,
+            // PHP's empty array serializes as `[]`, but semantic parameters are
+            // a named JSON map. Preserve that contract even when the map is empty.
+            'params' => $params === [] ? (object) [] : $params,
             'fallback' => $resolvedFallback,
         ];
     }
