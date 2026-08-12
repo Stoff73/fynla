@@ -43,6 +43,9 @@ struct RetirementSnapshot: Sendable, Equatable {
         index.dcPensions.reduce(0) { $0 + $1.currentFundValue }
     }
     var projectedIncome: Decimal? {
+        if let planning = projections?.planningProjection {
+            return planning.planningTotalAtTargetAge
+        }
         if let analysis { return analysis.projectedIncome }
         return projections?.incomeDrawdown?.yearlyIncome.first?.totalIncome
     }
@@ -103,6 +106,7 @@ struct DCPension: Decodable, Sendable, Equatable, Identifiable {
     let annualSalary: Decimal?
     let monthlyContributionAmount: Decimal?
     let retirementAge: Int?
+    let portfolio: CanonicalPortfolio?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -116,6 +120,7 @@ struct DCPension: Decodable, Sendable, Equatable, Identifiable {
         case annualSalary = "annual_salary"
         case monthlyContributionAmount = "monthly_contribution_amount"
         case retirementAge = "retirement_age"
+        case portfolio
     }
 
     var displayName: String { schemeName ?? provider ?? "Defined Contribution Pension" }
@@ -213,11 +218,109 @@ struct RetirementRecommendation: Decodable, Sendable, Equatable {
 struct RetirementProjections: Decodable, Sendable, Equatable {
     let pensionPotProjection: RetirementPotProjection?
     let incomeDrawdown: RetirementIncomeDrawdown?
+    let planningProjection: RetirementPlanningProjection?
 
     private enum CodingKeys: String, CodingKey {
         case pensionPotProjection = "pension_pot_projection"
         case incomeDrawdown = "income_drawdown"
+        case planningProjection = "planning_projection"
     }
+}
+
+struct RetirementPlanningProjection: Decodable, Sendable, Equatable {
+    let contractVersion: String
+    let asOf: String
+    let targetRetirementAge: Int
+    let projectionEndAge: Int
+    let planningTotalAtTargetAge: Decimal
+    let products: [RetirementProjectionProduct]
+    let ageBands: [RetirementIncomeBand]
+    let assumptions: RetirementProjectionAssumptions
+    let warnings: [String]
+
+    private enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version"
+        case asOf = "as_of"
+        case targetRetirementAge = "target_retirement_age"
+        case projectionEndAge = "projection_end_age"
+        case planningTotalAtTargetAge = "planning_total_at_target_age"
+        case products
+        case ageBands = "age_bands"
+        case assumptions
+        case warnings
+    }
+}
+
+struct RetirementProjectionProduct: Decodable, Sendable, Equatable, Identifiable {
+    let resourceType: String
+    let resourceID: Int
+    let name: String
+    let commencementAge: Int
+    let currentValue: Decimal?
+    let monthlyContribution: Decimal?
+    let projectedValue: Decimal?
+    let annualIncome: Decimal
+    let incomeMethod: String
+
+    var id: String { "\(resourceType):\(resourceID)" }
+
+    private enum CodingKeys: String, CodingKey {
+        case resourceType = "resource_type"
+        case resourceID = "resource_id"
+        case name
+        case commencementAge = "commencement_age"
+        case currentValue = "current_value"
+        case monthlyContribution = "monthly_contribution"
+        case projectedValue = "projected_value"
+        case annualIncome = "annual_income"
+        case incomeMethod = "income_method"
+    }
+}
+
+struct RetirementIncomeBand: Decodable, Sendable, Equatable, Identifiable {
+    let startAge: Int
+    let endAge: Int
+    let annualIncome: Decimal
+    let sourceIDs: [String]
+
+    var id: String { "\(startAge)-\(endAge)" }
+    var rangeLabel: String { "Age \(startAge)–\(endAge)" }
+    var accessibilityIdentifier: String { "retirement.age-band.\(startAge)-\(endAge)" }
+
+    private enum CodingKeys: String, CodingKey {
+        case startAge = "start_age"
+        case endAge = "end_age"
+        case annualIncome = "annual_income"
+        case sourceIDs = "source_ids"
+    }
+}
+
+struct RetirementProjectionAssumptions: Decodable, Sendable, Equatable {
+    let sustainableWithdrawalRate: RetirementWithdrawalRateAssumption
+    let growthRatePercent: Decimal
+    let netGrowthRatePercent: Decimal
+    let inflationRatePercent: Decimal
+    let feeRatePercent: Decimal
+    let compoundPeriods: Int
+    let basis: String
+    let hasUserOverrides: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case sustainableWithdrawalRate = "sustainable_withdrawal_rate"
+        case growthRatePercent = "growth_rate_percent"
+        case netGrowthRatePercent = "net_growth_rate_percent"
+        case inflationRatePercent = "inflation_rate_percent"
+        case feeRatePercent = "fee_rate_percent"
+        case compoundPeriods = "compound_periods"
+        case basis
+        case hasUserOverrides = "has_user_overrides"
+    }
+}
+
+struct RetirementWithdrawalRateAssumption: Decodable, Sendable, Equatable {
+    let decimal: Decimal
+    let percent: Decimal
+    let source: String
 }
 
 struct RetirementPotProjection: Decodable, Sendable, Equatable {

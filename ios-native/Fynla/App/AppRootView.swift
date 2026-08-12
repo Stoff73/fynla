@@ -8,9 +8,12 @@ struct AppRootView: View {
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let conversationHistoryModel: ConversationHistoryModel
+    let personalInformationModel: PersonalInformationModel
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
     let netWorthModel: NetWorthModel
+    let netWorthForecastModel: NetWorthForecastModel
     let balanceHistoryModel: BalanceHistoryModel
     let savingsModel: SavingsModel
     let investmentModel: InvestmentModel
@@ -30,6 +33,7 @@ struct AppRootView: View {
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
     let shareClient: any ShareContentClient
+    let webHandoffClient: any WebHandoffClient
     private let webBaseURL: URL
     @State private var registrationModel: RegistrationModel
     @State private var loginModel: LoginModel
@@ -44,9 +48,12 @@ struct AppRootView: View {
         subscriptionModel: SubscriptionModel,
         dashboardModel: DashboardModel,
         achievementsModel: AchievementsModel,
+        conversationHistoryModel: ConversationHistoryModel,
+        personalInformationModel: PersonalInformationModel,
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
         netWorthModel: NetWorthModel,
+        netWorthForecastModel: NetWorthForecastModel,
         balanceHistoryModel: BalanceHistoryModel,
         savingsModel: SavingsModel,
         investmentModel: InvestmentModel,
@@ -66,6 +73,7 @@ struct AppRootView: View {
         bugReportModel: BugReportModel,
         appleSubscriptionManager: any AppleSubscriptionManaging,
         shareClient: any ShareContentClient,
+        webHandoffClient: any WebHandoffClient,
         registrationActions: RegistrationActions,
         loginActions: LoginActions,
         passwordResetActions: PasswordResetActions,
@@ -80,9 +88,12 @@ struct AppRootView: View {
         self.subscriptionModel = subscriptionModel
         self.dashboardModel = dashboardModel
         self.achievementsModel = achievementsModel
+        self.conversationHistoryModel = conversationHistoryModel
+        self.personalInformationModel = personalInformationModel
         self.incomeModel = incomeModel
         self.expenditureModel = expenditureModel
         self.netWorthModel = netWorthModel
+        self.netWorthForecastModel = netWorthForecastModel
         self.balanceHistoryModel = balanceHistoryModel
         self.savingsModel = savingsModel
         self.investmentModel = investmentModel
@@ -102,6 +113,7 @@ struct AppRootView: View {
         self.bugReportModel = bugReportModel
         self.appleSubscriptionManager = appleSubscriptionManager
         self.shareClient = shareClient
+        self.webHandoffClient = webHandoffClient
         self.webBaseURL = webBaseURL
         _registrationModel = State(
             initialValue: RegistrationModel(
@@ -182,9 +194,12 @@ struct AppRootView: View {
                         subscriptionModel: subscriptionModel,
                         dashboardModel: dashboardModel,
                         achievementsModel: achievementsModel,
+                        conversationHistoryModel: conversationHistoryModel,
+                        personalInformationModel: personalInformationModel,
                         incomeModel: incomeModel,
                         expenditureModel: expenditureModel,
                         netWorthModel: netWorthModel,
+                        netWorthForecastModel: netWorthForecastModel,
                         balanceHistoryModel: balanceHistoryModel,
                         savingsModel: savingsModel,
                         investmentModel: investmentModel,
@@ -203,7 +218,7 @@ struct AppRootView: View {
                         bugReportModel: bugReportModel,
                         appleSubscriptionManager: appleSubscriptionManager,
                         shareClient: shareClient,
-                        webBaseURL: webBaseURL
+                        webHandoffClient: webHandoffClient
                     )
                 case let .updateRequired(requirement, appStoreURL):
                     NativeUpdateRequiredView(
@@ -258,9 +273,11 @@ struct AppRootView: View {
                 subscriptionModel.stop()
                 dashboardModel.stop()
                 achievementsModel.stop()
+                personalInformationModel.stop()
                 incomeModel.stop()
                 expenditureModel.stop()
                 netWorthModel.stop()
+                netWorthForecastModel.stop()
                 balanceHistoryModel.stop()
                 savingsModel.stop()
                 investmentModel.stop()
@@ -334,14 +351,23 @@ private struct LaunchingView: View {
     }
 }
 
+private enum FynLaunchRequest {
+    case generic
+    case contextual(FynContextualAction)
+    case conversation(String)
+}
+
 private struct UnlockedView: View {
     let privacyLockController: PrivacyLockController?
     let subscriptionModel: SubscriptionModel
     let dashboardModel: DashboardModel
     let achievementsModel: AchievementsModel
+    let conversationHistoryModel: ConversationHistoryModel
+    let personalInformationModel: PersonalInformationModel
     let incomeModel: IncomeModel
     let expenditureModel: ExpenditureModel
     let netWorthModel: NetWorthModel
+    let netWorthForecastModel: NetWorthForecastModel
     let balanceHistoryModel: BalanceHistoryModel
     let savingsModel: SavingsModel
     let investmentModel: InvestmentModel
@@ -360,16 +386,20 @@ private struct UnlockedView: View {
     let bugReportModel: BugReportModel
     let appleSubscriptionManager: any AppleSubscriptionManaging
     let shareClient: any ShareContentClient
-    let webBaseURL: URL
+    let webHandoffClient: any WebHandoffClient
     @Environment(AppRouter.self) private var router
     @State private var isPresentingMenu = false
     @State private var isPresentingFyn = false
+    @State private var fynLaunchRequest: FynLaunchRequest = .generic
     // Route requested from inside the Fyn cover — applied only once the cover
     // has fully dismissed, so the push never races the dismissal transaction.
     @State private var pendingFynRoute: AppRoute?
     // /m nudge dismissals are session-scoped (Dashboard.vue data flags).
     @State private var nudgeDismissed = false
     @State private var unlockBubbleDismissed = false
+    @State private var browserItem: SafariSheetItem?
+    @State private var isOpeningAdmin = false
+    @State private var adminError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -380,6 +410,10 @@ private struct UnlockedView: View {
         .accessibilityIdentifier("app.unlocked")
         .fullScreenCover(isPresented: $isPresentingFyn) {
             fynCover
+        }
+        .sheet(item: $browserItem) { item in
+            SafariSheet(url: item.url)
+                .ignoresSafeArea()
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             fynDock
@@ -573,9 +607,12 @@ private struct UnlockedView: View {
                     for: route,
                     subscriptionModel: subscriptionModel,
                     achievementsModel: achievementsModel,
+                    conversationHistoryModel: conversationHistoryModel,
+                    personalInformationModel: personalInformationModel,
                     incomeModel: incomeModel,
                     expenditureModel: expenditureModel,
                     netWorthModel: netWorthModel,
+                    netWorthForecastModel: netWorthForecastModel,
                     balanceHistoryModel: balanceHistoryModel,
                     savingsModel: savingsModel,
                     investmentModel: investmentModel,
@@ -595,6 +632,9 @@ private struct UnlockedView: View {
                     onOpenFyn: { prompt in
                         presentFyn(prompt: prompt)
                     },
+                    onOpenContextualFyn: presentContextualFyn,
+                    onOpenConversation: presentConversation,
+                    onOpenRoute: openTopLevel,
                     onRoute: navigate
                 )
                 // /m has no system navigation bar anywhere — the shell header
@@ -607,6 +647,16 @@ private struct UnlockedView: View {
     private var fynCover: some View {
         FynView(
             model: fynModel,
+            onStart: {
+                switch fynLaunchRequest {
+                case .generic:
+                    await fynModel.open()
+                case let .contextual(action):
+                    await fynModel.startContextual(action)
+                case let .conversation(id):
+                    await fynModel.start(preferredID: id)
+                }
+            },
             onClose: { isPresentingFyn = false },
             onRoute: { route in
                 pendingFynRoute = route
@@ -640,6 +690,12 @@ private struct UnlockedView: View {
                     Task { await taxStrategyModel.refresh() }
                 case .holisticPlan:
                     Task { await holisticPlanModel.refresh() }
+                case .personalInformation:
+                    Task { await personalInformationModel.refresh() }
+                case .subscription:
+                    break
+                case .conversationHistory:
+                    Task { await conversationHistoryModel.load() }
                 default:
                     break
                 }
@@ -722,12 +778,14 @@ private struct UnlockedView: View {
                     NavigationMenuView(
                         account: settingsModel.account,
                         activeRoute: router.path.last ?? .dashboard,
-                        adminURL: webBaseURL.appendingPathComponent("admin"),
                         shareClient: shareClient,
+                        isOpeningAdmin: isOpeningAdmin,
+                        adminError: adminError,
                         onSelect: { route in
                             closeMenu()
                             navigate(to: route)
                         },
+                        onOpenAdmin: openAdmin,
                         onLock: {
                             closeMenu()
                             settingsModel.lock()
@@ -754,6 +812,22 @@ private struct UnlockedView: View {
         }
     }
 
+    private func openAdmin() {
+        guard !isOpeningAdmin else { return }
+        isOpeningAdmin = true
+        adminError = nil
+        Task { @MainActor in
+            defer { isOpeningAdmin = false }
+            do {
+                let url = try await webHandoffClient.issue(.admin)
+                closeMenu()
+                browserItem = SafariSheetItem(url: url)
+            } catch {
+                adminError = "The Admin Panel could not be opened securely."
+            }
+        }
+    }
+
     private var navigationPath: Binding<[AppRoute]> {
         Binding(
             get: { router.path },
@@ -766,7 +840,7 @@ private struct UnlockedView: View {
     private func navigate(to route: AppRoute) {
         if route == .bugReport {
             bugReportModel.updateContext(
-                route: mobilePath(for: router.path.last ?? .dashboard),
+                route: (router.path.last ?? .dashboard).mobilePath,
                 conversationID: fynModel.conversationID
             )
         }
@@ -777,8 +851,13 @@ private struct UnlockedView: View {
         }
     }
 
+    private func openTopLevel(_ route: AppRoute) {
+        _ = router.open(route)
+    }
+
     private func presentFyn(prompt: String? = nil) {
-        fynModel.currentRoute = mobilePath(for: router.path.last ?? .dashboard)
+        fynModel.currentRoute = (router.path.last ?? .dashboard).mobilePath
+        fynLaunchRequest = .generic
         if let prompt,
            !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         {
@@ -787,24 +866,17 @@ private struct UnlockedView: View {
         isPresentingFyn = true
     }
 
-    private func mobilePath(for route: AppRoute) -> String {
-        switch route {
-        case .dashboard: "/dashboard"
-        case .income: "/income"
-        case .expenditure: "/expenditure"
-        case .savings: "/savings"
-        case .investment: "/investment"
-        case .retirement: "/retirement"
-        case .taxStrategy: "/tax-strategy"
-        case .achievements: "/achievements"
-        case .netWorth: "/net-worth"
-        case .balanceHistory: "/net-worth/history"
-        case .protection: "/protection"
-        case .estate: "/estate"
-        case .goals: "/goals"
-        case .holisticPlan: "/holistic-plan"
-        case .bugReport: "/report-a-problem"
-        case .settings: "/settings"
-        }
+    private func presentContextualFyn(_ action: FynContextualAction) {
+        fynModel.currentRoute = (router.path.last ?? .dashboard).mobilePath
+        fynModel.draft = ""
+        fynLaunchRequest = .contextual(action)
+        isPresentingFyn = true
+    }
+
+    private func presentConversation(_ id: String) {
+        fynModel.currentRoute = AppRoute.conversationHistory.mobilePath
+        fynModel.draft = ""
+        fynLaunchRequest = .conversation(id)
+        isPresentingFyn = true
     }
 }

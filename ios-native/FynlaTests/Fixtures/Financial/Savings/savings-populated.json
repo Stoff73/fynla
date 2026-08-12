@@ -52,13 +52,74 @@
       "total_annual_expenditure": 36000
     },
     "isa_allowance": {
+      "tax_year": "2026/27",
+      "current_tax_year": "2026/27",
+      "prior_tax_year": "2025/26",
+      "available_tax_years": ["2026/27", "2025/26"],
       "cash_isa_used": 5000,
       "stocks_shares_isa_used": 3000,
       "lisa_used": 0,
       "total_used": 8000,
       "total_allowance": 20000,
       "remaining": 12000,
-      "percentage_used": 40
+      "percentage_used": 40,
+      "account_breakdown": [
+        {
+          "account_id": 12,
+          "account_type": "App\\Models\\SavingsAccount",
+          "account_name": "Cash ISA",
+          "isa_type": "cash_isa",
+          "owner": {"id": 1, "relationship": "self", "label": "You", "name": "Alex Example"},
+          "contributed": 5000,
+          "provenance": "recorded_ledger",
+          "contributions": [
+            {"id": 71, "date": "2026-05-12", "amount": 5000, "entry_type": "subscription", "source": "form", "provenance": "recorded_ledger"}
+          ]
+        },
+        {
+          "account_id": 21,
+          "account_type": "App\\Models\\Investment\\InvestmentAccount",
+          "account_name": "Main ISA",
+          "isa_type": "stocks_and_shares_isa",
+          "owner": {"id": 1, "relationship": "self", "label": "You", "name": "Alex Example"},
+          "contributed": 3000,
+          "provenance": "legacy_current_year_summary",
+          "contributions": [
+            {"id": null, "date": null, "amount": 3000, "entry_type": "annual_summary", "source": "legacy_account_record", "provenance": "legacy_current_year_summary"}
+          ]
+        }
+      ],
+      "owners": [
+        {
+          "owner": {"id": 1, "relationship": "self", "label": "You", "name": "Alex Example"},
+          "cash_isa_used": 5000,
+          "stocks_shares_isa_used": 3000,
+          "lisa_used": 0,
+          "total_used": 8000,
+          "account_breakdown": [
+            {
+              "account_id": 12,
+              "account_type": "App\\Models\\SavingsAccount",
+              "account_name": "Cash ISA",
+              "isa_type": "cash_isa",
+              "owner": {"id": 1, "relationship": "self", "label": "You", "name": "Alex Example"},
+              "contributed": 5000,
+              "provenance": "recorded_ledger",
+              "contributions": [{"id": 71, "date": "2026-05-12", "amount": 5000, "entry_type": "subscription", "source": "form", "provenance": "recorded_ledger"}]
+            },
+            {
+              "account_id": 21,
+              "account_type": "App\\Models\\Investment\\InvestmentAccount",
+              "account_name": "Main ISA",
+              "isa_type": "stocks_and_shares_isa",
+              "owner": {"id": 1, "relationship": "self", "label": "You", "name": "Alex Example"},
+              "contributed": 3000,
+              "provenance": "legacy_current_year_summary",
+              "contributions": [{"id": null, "date": null, "amount": 3000, "entry_type": "annual_summary", "source": "legacy_account_record", "provenance": "legacy_current_year_summary"}]
+            }
+          ]
+        }
+      ]
     },
     "emergency_fund_target": {
       "target_months": 6,

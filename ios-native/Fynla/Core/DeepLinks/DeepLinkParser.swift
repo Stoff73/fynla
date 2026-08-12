@@ -49,6 +49,8 @@ struct DeepLinkParser: Sendable {
         let simpleRoutes: [String: AppRoute] = [
             "/dashboard": .dashboard,
             "/achievements": .achievements,
+            "/personal-information": .personalInformation,
+            "/subscription": .subscription,
             "/income": .income,
             "/expenditure": .expenditure,
             "/net-worth": .netWorth(category: nil),

@@ -37,7 +37,7 @@ MYSQL_PWD="${DB_PASSWORD:-}" mysql \
   -h "${DB_HOST:-127.0.0.1}" \
   -P "${DB_PORT:-3306}" \
   -u "${DB_USERNAME:-root}" \
-  -e "CREATE DATABASE IF NOT EXISTS \`$name\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+  -e "DROP DATABASE IF EXISTS \`$name\`; CREATE DATABASE \`$name\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 
 APP_ENV=e2e DB_DATABASE="$name" APP_CONFIG_CACHE="$config_cache" php artisan migrate --force
 APP_ENV=e2e DB_DATABASE="$name" APP_CONFIG_CACHE="$config_cache" php artisan db:seed --force

@@ -1,20 +1,31 @@
 import SwiftUI
 
 enum NavigationDestinationFactory {
+    static let premiumGateRoute = AppRoute.subscription
+
     static func title(for route: AppRoute) -> String {
         switch route {
         case .dashboard: "Dashboard"
         case .achievements: "Achievements"
+        case .conversationHistory: "Conversation History"
+        case .personalInformation: "Personal Information"
+        case .subscription: "Subscription"
         case .income: "Income"
+        case .incomeDetail: "Income details"
         case .expenditure: "Expenditure"
-        case .netWorth: "Net Worth"
+        case let .netWorth(category):
+            category.flatMap { NetWorthCategory(rawValue: $0) }?.title ?? "Net Worth"
         case .balanceHistory: "Balance History"
         case .protection: "Protection"
-        case .savings: "Savings"
+        case .savings: "Bank Accounts"
         case .investment: "Investments"
         case .retirement: "Retirement"
         case .estate: "Estate Planning"
         case .goals: "Goals"
+        case .goalDetail: "Goal details"
+        case .propertyDetail: "Property details"
+        case .mortgageDetail: "Mortgage details"
+        case .liabilityDetail: "Liability details"
         case .taxStrategy: "Tax Strategy"
         case .holisticPlan: "Holistic Plan"
         case .bugReport: "Report a problem"
@@ -27,9 +38,12 @@ enum NavigationDestinationFactory {
         for route: AppRoute,
         subscriptionModel: SubscriptionModel,
         achievementsModel: AchievementsModel,
+        conversationHistoryModel: ConversationHistoryModel,
+        personalInformationModel: PersonalInformationModel,
         incomeModel: IncomeModel,
         expenditureModel: ExpenditureModel,
         netWorthModel: NetWorthModel,
+        netWorthForecastModel: NetWorthForecastModel,
         balanceHistoryModel: BalanceHistoryModel,
         savingsModel: SavingsModel,
         investmentModel: InvestmentModel,
@@ -47,60 +61,111 @@ enum NavigationDestinationFactory {
         bugReportModel: BugReportModel,
         appleManager: any AppleSubscriptionManaging,
         onOpenFyn: @escaping (String) -> Void,
+        onOpenContextualFyn: @escaping (FynContextualAction) -> Void,
+        onOpenConversation: @escaping (String) -> Void,
+        onOpenRoute: @escaping (AppRoute) -> Void,
         onRoute: @escaping (AppRoute) -> Void
     ) -> some View {
         switch route {
         case .achievements:
             AchievementsView(model: achievementsModel, onRoute: onRoute)
+        case .conversationHistory:
+            ConversationHistoryView(
+                model: conversationHistoryModel,
+                onOpenConversation: onOpenConversation,
+                onRoute: onOpenRoute
+            )
+        case .personalInformation:
+            PersonalInformationView(
+                model: personalInformationModel,
+                onOpenContextualFyn: onOpenContextualFyn
+            )
+        case .subscription:
+            SubscriptionView(
+                model: subscriptionModel,
+                appleManager: appleManager
+            )
         case .bugReport:
             BugReportView(model: bugReportModel)
         case .income:
             IncomeView(
                 model: incomeModel,
-                onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(.settings) }
+                onRoute: onRoute,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .incomeDetail(owner, source):
+            IncomeDetailView(
+                owner: owner,
+                sourceKey: source,
+                model: incomeModel,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .propertyDetail(propertyID):
+            PropertyDetailView(
+                propertyID: propertyID,
+                model: netWorthModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .mortgageDetail(mortgageID):
+            MortgageDetailView(
+                mortgageID: mortgageID,
+                model: netWorthModel,
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .liabilityDetail(liabilityID):
+            LiabilityDetailView(
+                liabilityID: liabilityID,
+                model: netWorthModel,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case .expenditure:
             ExpenditureView(
                 model: expenditureModel,
-                onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(.settings) }
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case let .netWorth(category):
             if let category {
                 NetWorthCategoryView(
                     categoryKey: category,
                     model: netWorthModel,
-                    onOpenFyn: onOpenFyn,
-                    onOpenSubscription: { onRoute(.settings) }
+                    onRoute: onRoute,
+                    onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             } else {
                 NetWorthView(
                     model: netWorthModel,
+                    forecastModel: netWorthForecastModel,
                     onRoute: onRoute,
                     onOpenFyn: onOpenFyn,
-                    onOpenSubscription: { onRoute(.settings) }
+                    onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
         case .balanceHistory:
             BalanceHistoryView(
                 model: balanceHistoryModel,
                 onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(.settings) }
+                onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case let .savings(accountID):
             if let accountID {
                 SavingsAccountView(
                     accountID: accountID,
                     model: savingsModel,
-                    onOpenFyn: onOpenFyn
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 SavingsView(
                     model: savingsModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
-                    onOpenSubscription: { onRoute(.settings) }
+                    onOpenContextualFyn: onOpenContextualFyn,
+                    onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
         case let .investment(accountID):
@@ -108,14 +173,15 @@ enum NavigationDestinationFactory {
                 InvestmentAccountView(
                     accountID: accountID,
                     model: investmentModel,
-                    onOpenFyn: onOpenFyn
+                    savingsModel: savingsModel,
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 InvestmentView(
                     model: investmentModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
-                    onOpenSubscription: { onRoute(.settings) }
+                    onOpenContextualFyn: onOpenContextualFyn,
+                    onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
         case let .retirement(pensionType, pensionID):
@@ -124,14 +190,14 @@ enum NavigationDestinationFactory {
                     pensionType: pensionType,
                     pensionID: pensionID,
                     model: retirementModel,
-                    onOpenFyn: onOpenFyn
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 RetirementView(
                     model: retirementModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
-                    onOpenSubscription: { onRoute(.settings) }
+                    onOpenContextualFyn: onOpenContextualFyn,
+                    onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
         case let .protection(policyType, policyID):
@@ -140,27 +206,35 @@ enum NavigationDestinationFactory {
                     policyTypeKey: policyType,
                     policyID: policyID,
                     model: protectionModel,
-                    onOpenFyn: onOpenFyn
+                    onOpenContextualFyn: onOpenContextualFyn
                 )
             } else {
                 ProtectionView(
                     model: protectionModel,
                     onRoute: onRoute,
-                    onOpenFyn: onOpenFyn,
-                    onOpenSubscription: { onRoute(.settings) }
+                    onOpenContextualFyn: onOpenContextualFyn,
+                    onOpenSubscription: { onRoute(premiumGateRoute) }
                 )
             }
         case .estate:
             EstateView(
                 model: estateModel,
                 onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(.settings) }
+                onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case .goals:
             GoalsView(
                 model: goalsModel,
-                onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(.settings) }
+                onRoute: onRoute,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
+            )
+        case let .goalDetail(goalID):
+            GoalDetailView(
+                goalID: goalID,
+                model: goalsModel,
+                onOpenContextualFyn: onOpenContextualFyn,
+                onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case .taxStrategy:
             TaxStrategyView(
@@ -169,13 +243,13 @@ enum NavigationDestinationFactory {
                 onboardingCompleted: settingsModel.onboardingCompleted,
                 onRoute: onRoute,
                 onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(.settings) }
+                onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case .holisticPlan:
             HolisticPlanView(
                 model: holisticPlanModel,
                 onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(.settings) }
+                onOpenSubscription: { onRoute(premiumGateRoute) }
             )
         case .settings:
             SettingsView(

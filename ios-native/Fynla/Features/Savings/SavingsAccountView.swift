@@ -8,7 +8,7 @@ import SwiftUI
 struct SavingsAccountView: View {
     let accountID: Int
     let model: SavingsModel
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -31,7 +31,10 @@ struct SavingsAccountView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .task(id: accountID) { await model.loadAccount(id: accountID) }
+        .task(id: accountID) {
+            await model.loadAccount(id: accountID)
+            await model.load()
+        }
         .accessibilityIdentifier("savings.account.screen")
     }
 
@@ -45,7 +48,11 @@ struct SavingsAccountView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: { onOpenFyn("What would you like to update?") }
+                    editDetails: account.isPrimaryOwner == false
+                        ? nil
+                        : {
+                            onOpenContextualFyn(FynContextualActions.savingsAccount(id: accountID))
+                        }
                 )
 
                 Group {
@@ -60,6 +67,9 @@ struct SavingsAccountView: View {
                     MobileDetailCard(title: "Account information", rows: infoRows(account))
                     if account.isISA {
                         MobileDetailCard(title: "ISA details", rows: isaRows(account))
+                        if let allowance = model.isaAllowance {
+                            contributionHistoryCard(allowance)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -145,24 +155,35 @@ struct SavingsAccountView: View {
         if let country = account.country, !country.isEmpty {
             rows.append(("Country", country))
         }
-        if let ownership = account.ownershipType {
+        if account.isISA {
+            rows.append(("Owner", account.ownerName ?? "Owner unavailable"))
+        } else if let ownership = account.ownershipType {
             rows.append(("Ownership", ownershipLabel(ownership)))
         }
         return rows
     }
 
     private func isaRows(_ account: SavingsAccount) -> [(key: String, value: String)] {
-        var rows: [(key: String, value: String)] = [
+        [
             ("ISA type", isaTypeLabel(account.isaType)),
+            ("Interest", "Tax-free"),
         ]
-        if let year = account.isaSubscriptionYear, !year.isEmpty {
-            rows.append(("Subscription year", year))
-        }
-        if let amount = account.isaSubscriptionAmount {
-            rows.append(("Subscribed this year", MoneyFormatter.gbpWhole(amount)))
-        }
-        rows.append(("Interest", "Tax-free"))
-        return rows
+    }
+
+    private func contributionHistoryCard(_ allowance: SavingsISAAllowance) -> some View {
+        ISAContributionHistoryView(
+            allowance: allowance,
+            accountID: accountID,
+            accountKind: .savings,
+            isLoading: model.isLoadingISAAllowance,
+            onSelectTaxYear: { taxYear in
+                Task { await model.loadISAAllowance(taxYear: taxYear) }
+            }
+        )
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     // /m userShare: explicit user_share, else joint split, else full balance.

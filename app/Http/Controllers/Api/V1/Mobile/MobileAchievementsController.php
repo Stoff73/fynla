@@ -7,23 +7,27 @@ namespace App\Http\Controllers\Api\V1\Mobile;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
-use App\Models\PointAward;
 use App\Models\RecommendationTracking;
 use App\Models\User;
-use App\Models\UserGamification;
 use App\Models\UserMilestone;
-use App\Services\Gamification\LevelService;
+use App\Services\Mobile\AchievementPresentationService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\NetWorth\NetWorthService;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 
 class MobileAchievementsController extends Controller
 {
     use SanitizedErrorResponse;
 
+    /** Canonical v2 earned-milestone page size. */
+    private const CANONICAL_MILESTONES_PER_PAGE = 50;
+
     public function __construct(
-        private readonly LevelService $levels,
+        private readonly AchievementPresentationService $presentation,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -109,6 +113,70 @@ class MobileAchievementsController extends Controller
     }
 
     /**
+     * Versioned canonical achievements contract for native clients.
+     *
+     * Legacy `/mobile/achievements` intentionally continues to return its
+     * complete `milestones` collection. Native clients must consume this
+     * bounded v2 first page and the continuation endpoint below.
+     */
+    public function canonical(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $this->detectJourneySafely($user);
+            $milestones = $this->canonicalMilestones($user);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'achievements' => $this->achievements($user),
+                    'completed' => $this->completedActions($user),
+                    'completed_total' => $this->completedTotal($user),
+                    'milestones' => $milestones['items'],
+                    'milestones_total' => $milestones['total'],
+                    'per_page' => self::CANONICAL_MILESTONES_PER_PAGE,
+                    'next_cursor' => $milestones['next_cursor'],
+                    'upcoming' => $this->upcomingMilestones($user),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Fetching canonical achievements');
+        }
+    }
+
+    /**
+     * Canonical earned-milestone continuation endpoint.
+     * GET /api/v1/mobile/achievements/v2/milestones?cursor=TOKEN
+     */
+    public function canonicalMilestonePage(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $rawCursor = $request->query('cursor');
+            if (! is_string($rawCursor) || $rawCursor === '') {
+                return $this->invalidMilestoneCursorResponse();
+            }
+            $cursor = $this->decodeMilestoneCursor($user, $rawCursor);
+            if ($cursor === null) {
+                return $this->invalidMilestoneCursorResponse();
+            }
+            $milestones = $this->canonicalMilestones($user, $cursor);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'milestones' => $milestones['items'],
+                    'milestones_total' => $milestones['total'],
+                    'per_page' => self::CANONICAL_MILESTONES_PER_PAGE,
+                    'next_cursor' => $milestones['next_cursor'],
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Fetching canonical milestones');
+        }
+    }
+
+    /**
      * WP-2 — the user's completed actions (recommendation_tracking rows),
      * newest first, in the same lean shape the Next list uses so the /m
      * template renders both with one card style. WP-5c-ii: paginated
@@ -144,70 +212,7 @@ class MobileAchievementsController extends Controller
      */
     private function achievements(User $user): array
     {
-        $g = UserGamification::where('user_id', $user->id)->first();
-        $level = $g?->level ?? 1;
-        $awards = PointAward::where('user_id', $user->id)->get();
-
-        $out = [];
-
-        $out[] = [
-            'key' => 'level',
-            'title' => 'Reached '.$this->levels->levelName($level),
-            'description' => 'Your current planning level.',
-            'earned' => $level > 1,
-            'earned_at' => null,
-        ];
-
-        $dataBadges = [
-            'protection_policy' => 'protection',
-            'savings_account' => 'savings',
-            'investment_account' => 'investment',
-            'pension' => 'retirement',
-            'estate' => 'estate',
-            'goal' => 'goals',
-        ];
-        foreach ($dataBadges as $category => $label) {
-            $award = $awards->first(fn ($a) => $a->dedup_key === "data:{$category}:first");
-            $out[] = [
-                'key' => 'data_'.$category,
-                'title' => 'Added '.$label.' details',
-                'description' => 'You started building your '.$label.' picture.',
-                'earned' => $award !== null,
-                'earned_at' => $award?->created_at?->toIso8601String(),
-            ];
-        }
-
-        // WP-4 — a badge is a fixed goal, not a live counter. "Actioned 0
-        // recommendations" read as broken; the badge is now "First action
-        // completed", stamped with the first recommendation award's date.
-        $firstRecAward = $awards
-            ->where('source_type', 'recommendation')
-            ->sortBy('id')
-            ->first();
-        $out[] = [
-            'key' => 'recs_actioned',
-            'title' => 'First action completed',
-            'description' => 'You completed your first recommended action.',
-            'earned' => $firstRecAward !== null,
-            'earned_at' => $firstRecAward?->created_at?->toIso8601String(),
-        ];
-
-        // WP-4 — earned off the PERSISTED streak award, not the live counter:
-        // login_streak_days resets when a run breaks, which un-earned the
-        // badge, and "1-day check-in streak — Not yet earned" read as broken.
-        $streakAward = $awards
-            ->filter(fn ($a) => str_starts_with($a->dedup_key, 'streak:'))
-            ->sortBy('id')
-            ->first();
-        $out[] = [
-            'key' => 'streak',
-            'title' => '3-day check-in streak',
-            'description' => 'Check in three days in a row.',
-            'earned' => $streakAward !== null,
-            'earned_at' => $streakAward?->created_at?->toIso8601String(),
-        ];
-
-        return $out;
+        return $this->presentation->badges($user);
     }
 
     /**
@@ -222,25 +227,120 @@ class MobileAchievementsController extends Controller
         // read, so a user who never opened it saw an empty milestones page.
         // The journey flavours are cheap; net-worth/goal detection still runs
         // on the dashboard read where the aggregates are already computed.
+        $this->detectJourneySafely($user);
+
+        return $this->presentMilestones(UserMilestone::where('user_id', $user->id)
+            ->orderByDesc('achieved_at')
+            ->orderByDesc('id')
+            ->get(), $user);
+    }
+
+    private function detectJourneySafely(User $user): void
+    {
         try {
             app(MilestoneDetectionService::class)->detectJourney($user);
         } catch (\Throwable $e) {
             // Never let detection break the page.
         }
+    }
 
-        return UserMilestone::where('user_id', $user->id)
+    /**
+     * @param  array{achieved_at:\DateTimeImmutable,id:int}|null  $cursor
+     * @return array{items:array<int,array<string,mixed>>,total:int,next_cursor:?string}
+     */
+    private function canonicalMilestones(User $user, ?array $cursor = null): array
+    {
+        $total = UserMilestone::where('user_id', $user->id)->count();
+        $query = UserMilestone::where('user_id', $user->id)
             ->orderByDesc('achieved_at')
-            ->get()
-            ->map(fn (UserMilestone $m) => [
-                'key' => $m->milestone_type.':'.($m->reference_id ?? 0).':'.(int) $m->threshold,
-                'title' => $this->milestoneTitle($m),
-                'achieved' => true,
-                'achieved_at' => $m->achieved_at?->toIso8601String(),
-            ])
+            ->orderByDesc('id');
+        if ($cursor !== null) {
+            $query->where(function ($rows) use ($cursor): void {
+                $rows->where('achieved_at', '<', $cursor['achieved_at'])
+                    ->orWhere(function ($sameTime) use ($cursor): void {
+                        $sameTime->where('achieved_at', $cursor['achieved_at'])->where('id', '<', $cursor['id']);
+                    });
+            });
+        }
+        $rows = $query->limit(self::CANONICAL_MILESTONES_PER_PAGE + 1)->get();
+        $hasMore = $rows->count() > self::CANONICAL_MILESTONES_PER_PAGE;
+        $items = $rows->take(self::CANONICAL_MILESTONES_PER_PAGE);
+        $last = $items->last();
+
+        return [
+            'items' => $this->presentMilestones($items, $user),
+            'total' => $total,
+            'next_cursor' => $hasMore && $last !== null ? $this->encodeMilestoneCursor($user, $last) : null,
+        ];
+    }
+
+    private function encodeMilestoneCursor(User $user, UserMilestone $milestone): string
+    {
+        return Crypt::encryptString(json_encode([
+            'v' => 1,
+            'user_id' => $user->id,
+            'achieved_at' => $milestone->achieved_at?->utc()->format('Y-m-d\TH:i:s.u\Z'),
+            'id' => $milestone->id,
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /** @return array{achieved_at:\DateTimeImmutable,id:int}|null */
+    private function decodeMilestoneCursor(User $user, string $cursor): ?array
+    {
+        if (strlen($cursor) < 32 || strlen($cursor) > 2048) {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode(Crypt::decryptString($cursor), true, 16, JSON_THROW_ON_ERROR);
+        } catch (DecryptException|\JsonException) {
+            return null;
+        }
+
+        if (! is_array($decoded)
+            || ($decoded['v'] ?? null) !== 1
+            || ($decoded['user_id'] ?? null) !== $user->id
+            || ! is_string($decoded['achieved_at'] ?? null)
+            || ! is_int($decoded['id'] ?? null)
+            || $decoded['id'] < 1) {
+            return null;
+        }
+
+        $timestamp = \DateTimeImmutable::createFromFormat(
+            '!Y-m-d\TH:i:s.u\Z',
+            $decoded['achieved_at'],
+            new \DateTimeZone('UTC'),
+        );
+        if ($timestamp === false || $timestamp->format('Y-m-d\TH:i:s.u\Z') !== $decoded['achieved_at']) {
+            return null;
+        }
+
+        return ['achieved_at' => $timestamp, 'id' => $decoded['id']];
+    }
+
+    private function invalidMilestoneCursorResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'The milestone cursor is invalid.',
+            'errors' => ['cursor' => ['Use the continuation token returned by the achievements endpoint.']],
+        ], 422);
+    }
+
+    /** @param Collection<int,UserMilestone> $milestones @return array<int,array<string,mixed>> */
+    private function presentMilestones(Collection $milestones, User $user): array
+    {
+        $goalTitles = Goal::forUserOrJoint($user->id)
+            ->whereIn('id', $milestones->where('milestone_type', 'goal')->pluck('reference_id')->filter()->unique())
+            ->pluck('goal_name', 'id');
+
+        return $milestones
+            ->map(fn (UserMilestone $m) => $this->presentation->milestone($m, $this->milestoneTitle($m, $goalTitles)))
             ->all();
     }
 
-    private function milestoneTitle(UserMilestone $m): string
+    /** @param Collection<int,string> $goalTitles */
+    private function milestoneTitle(UserMilestone $m, Collection $goalTitles): string
     {
         $threshold = (float) $m->threshold;
 
@@ -261,8 +361,7 @@ class MobileAchievementsController extends Controller
         }
 
         if ($m->milestone_type === 'goal') {
-            $goal = Goal::find($m->reference_id);
-            $goalName = $goal?->goal_name ?? 'your goal';
+            $goalName = $goalTitles->get($m->reference_id, 'your goal');
 
             return $threshold >= 100
                 ? sprintf("You've reached your goal: %s.", $goalName)

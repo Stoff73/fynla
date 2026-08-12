@@ -28,6 +28,8 @@ struct HolisticPlanView: View {
                 stateView(.unauthenticated)
             case let .upgradeRequired(message):
                 stateView(.upgradeRequired(message: message))
+            case .timedOut:
+                stateView(.timedOut)
             case let .failed(requestID):
                 stateView(.failed(requestID: requestID))
             }

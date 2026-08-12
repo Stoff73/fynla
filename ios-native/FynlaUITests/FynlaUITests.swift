@@ -68,6 +68,257 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testDashboardFirstDrawerShowsAdminForAnAuthenticatedAdmin() throws {
+        let app = app(mode: "unlocked", additionalArguments: ["-fynla-admin"])
+        app.launch()
+
+        XCTAssertTrue(app.buttons["navigation.open"].waitForExistence(timeout: 3))
+        app.buttons["navigation.open"].tap()
+        let admin = app.buttons["navigation.admin"]
+        assertReachable(admin, in: app)
+        XCTAssertTrue(admin.exists)
+    }
+
+    @MainActor
+    func testDrawerOpensPersonalInformationWithTrustedContextualEdit() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        XCTAssertTrue(app.buttons["navigation.open"].waitForExistence(timeout: 3))
+        app.buttons["navigation.open"].tap()
+        let personalInformation = app.buttons["navigation.personal-information"]
+        assertReachable(personalInformation, in: app)
+        personalInformation.tap()
+
+        XCTAssertTrue(
+            element("personal-information.screen", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.buttons["Edit details"].exists)
+    }
+
+    @MainActor
+    func testContextualEditCreatesFreshConversationsAndHistoryReopensExactID() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.bank-accounts", in: app)
+        XCTAssertTrue(element("savings.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Add bank account"].exists)
+        XCTAssertFalse(app.buttons["Edit details"].exists)
+        let account = app.buttons["savings.account.12"]
+        assertReachable(account, in: app)
+        account.tap()
+        XCTAssertTrue(element("savings.account.screen", in: app).waitForExistence(timeout: 3))
+
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        attachAcceptance(app, name: "PR2-01-contextual-edit-first")
+        app.buttons["fyn.close"].tap()
+        XCTAssertTrue(element("savings.account.screen", in: app).waitForExistence(timeout: 3))
+
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 402."].waitForExistence(timeout: 3))
+        attachAcceptance(app, name: "PR2-02-contextual-edit-fresh")
+        app.buttons["fyn.close"].tap()
+
+        openDrawerItem("navigation.conversation-history", in: app)
+        XCTAssertTrue(element("conversation-history.screen", in: app).waitForExistence(timeout: 3))
+        attachAcceptance(app, name: "PR2-03-conversation-history")
+        XCTAssertFalse(app.buttons["conversation-history.open.499"].exists)
+        let firstConversation = app.buttons["conversation-history.open.401"]
+        assertReachable(firstConversation, in: app)
+        firstConversation.tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["Trusted contextual opening 402."].exists)
+        attachAcceptance(app, name: "PR2-04-history-exact-transcript")
+        app.buttons["fyn.close"].tap()
+
+        let fallback = app.buttons["conversation-history.fallback.499"]
+        assertReachable(fallback, in: app)
+        fallback.tap()
+        XCTAssertTrue(element("savings.screen", in: app).waitForExistence(timeout: 3))
+        attachAcceptance(app, name: "PR2-05-unavailable-resource-fallback")
+    }
+
+    @MainActor
+    func testPR3CanonicalIncomeExpenditureAndHolisticPlanJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.income", in: app)
+        XCTAssertTrue(element("income.screen", in: app).waitForExistence(timeout: 3))
+        let employment = app.buttons["income.destination.user.employment"]
+        assertReachable(employment, in: app)
+        employment.tap()
+        XCTAssertTrue(element("income.detail.user.employment", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("income-detail.heading", in: app).exists)
+        XCTAssertTrue(app.staticTexts["Taxable earned income"].exists)
+        XCTAssertTrue(app.buttons["Edit details"].exists)
+        attachAcceptance(app, name: "PR3-01-income-detail")
+
+        openDrawerItem("navigation.expenditure", in: app)
+        XCTAssertTrue(element("expenditure.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("expenditure.mode.category", in: app).exists)
+        XCTAssertTrue(app.staticTexts["Category entries plus financial commitments"].exists)
+        attachAcceptance(app, name: "PR3-02-expenditure-mode")
+
+        openDrawerItem("navigation.holistic-plan", in: app)
+        XCTAssertTrue(element("holistic-plan.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("holistic-plan.effective-surplus", in: app).exists)
+        XCTAssertTrue(element("page.heading", in: app).exists)
+        attachAcceptance(app, name: "PR3-03-holistic-plan")
+    }
+
+    @MainActor
+    func testPR4CanonicalFinancialDataJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.protection", in: app)
+        XCTAssertTrue(element("protection.screen", in: app).waitForExistence(timeout: 3))
+        let protectionGap = app.buttons["protection.gap.human_capital"]
+        assertReachable(protectionGap, in: app)
+        protectionGap.tap()
+        XCTAssertTrue(
+            app.staticTexts["This estimates capital needed to replace recorded earned income."]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["HIGH"].exists)
+        attachAcceptance(app, name: "PR4-01-protection-explanation")
+
+        openDrawerItem("navigation.bank-accounts", in: app)
+        XCTAssertTrue(element("savings.screen", in: app).waitForExistence(timeout: 3))
+        let contributionHistory = app.buttons["savings.isa-history.toggle"]
+        assertReachable(contributionHistory, in: app)
+        contributionHistory.tap()
+        XCTAssertTrue(element("isa-contribution-history", in: app).waitForExistence(timeout: 3))
+        let priorTaxYear = app.buttons["isa-tax-year.2025/26"]
+        assertReachable(priorTaxYear, in: app)
+        priorTaxYear.tap()
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '£2,500'"))
+                .firstMatch.waitForExistence(timeout: 3)
+        )
+        attachAcceptance(app, name: "PR4-02-isa-prior-year")
+
+        openDrawerItem("navigation.investments", in: app)
+        XCTAssertTrue(element("investment.screen", in: app).waitForExistence(timeout: 3))
+        let investmentAccount = app.buttons["investment.account.21"]
+        assertReachable(investmentAccount, in: app)
+        investmentAccount.tap()
+        XCTAssertTrue(element("investment.account.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.201", in: app).exists)
+        assertReachable(element("canonical-portfolio.comparison.entered-portfolio", in: app), in: app)
+        XCTAssertTrue(element("canonical-portfolio.comparison.recommended-portfolio", in: app).exists)
+        assertReachable(element("canonical-portfolio.history", in: app), in: app)
+        XCTAssertTrue(app.staticTexts["Recorded account-value snapshots only; no missing values are inferred."].exists)
+        attachAcceptance(app, name: "PR4-03-investment-portfolio")
+
+        openDrawerItem("navigation.retirement", in: app)
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+        let pension = app.buttons["retirement.pension.dc-31"]
+        assertReachable(pension, in: app)
+        pension.tap()
+        XCTAssertTrue(element("retirement.pension.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.301", in: app).exists)
+        assertReachable(element("canonical-portfolio.history", in: app), in: app)
+        XCTAssertTrue(app.staticTexts["Recorded performance history is unavailable."].exists)
+        attachAcceptance(app, name: "PR4-04-dc-pension-portfolio")
+    }
+
+    @MainActor
+    func testPR5ProjectionParityJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        openDrawerItem("navigation.retirement", in: app)
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+
+        for label in [
+            "Age 65–66",
+            "Age 67–69",
+            "Age 70–100",
+        ] {
+            let band = app.staticTexts.matching(
+                NSPredicate(format: "label == %@", label)
+            ).firstMatch
+            assertReachable(band, in: app)
+            XCTAssertTrue(band.exists)
+        }
+
+        let retirementAssumptions = element("retirement.projection.assumptions", in: app)
+        assertReachable(retirementAssumptions, in: app)
+        XCTAssertTrue(retirementAssumptions.label.contains("4.7%"))
+        XCTAssertFalse(app.staticTexts["Median projection"].exists)
+        attachAcceptance(app, name: "PR5-01-retirement-reconciliation")
+
+        openDrawerItem("navigation.net-worth", in: app)
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Recorded balance history"].exists)
+
+        let forecast = element("net-worth.forecast", in: app)
+        assertReachable(forecast, in: app)
+        XCTAssertTrue(app.staticTexts["PROJECTED NET WORTH"].exists)
+
+        let propertyRate = app.textFields["net-worth.forecast.rate.property"]
+        assertReachable(propertyRate, in: app)
+        replaceText(in: propertyRate, with: "6.25", app: app)
+        app.buttons["net-worth.forecast.keyboard-done"].tap()
+
+        let save = app.buttons["net-worth.forecast.save"]
+        assertReachable(save, in: app)
+        save.tap()
+        XCTAssertTrue(
+            element("net-worth.forecast.feedback", in: app)
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertEqual(propertyRate.value as? String, "6.25")
+        attachAcceptance(app, name: "PR5-02-net-worth-saved-assumption")
+
+        openDrawerItem("navigation.retirement", in: app)
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+        openDrawerItem("navigation.net-worth", in: app)
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+
+        let persistedPropertyRate = app.textFields["net-worth.forecast.rate.property"]
+        assertReachable(persistedPropertyRate, in: app)
+        XCTAssertEqual(persistedPropertyRate.value as? String, "6.25")
+
+        let reset = app.buttons["net-worth.forecast.reset"]
+        assertReachable(reset, in: app)
+        reset.tap()
+        XCTAssertTrue(app.staticTexts["Assumptions reset to Fynla defaults."].waitForExistence(timeout: 3))
+        XCTAssertEqual(persistedPropertyRate.value as? String, "3")
+        attachAcceptance(app, name: "PR5-03-net-worth-reset-assumption")
+    }
+
+    @MainActor
+    func testDashboardShowsFullRecommendationAndUsesSemanticDestination() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let action = element("dashboard.action.retirement-1.open", in: app)
+        // The recommendation sits below the level and milestone cards on an
+        // iPhone-sized screen. Exercise the same scroll a user needs before
+        // asserting the row's complete accessible label.
+        for _ in 0..<4 where !action.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(action.waitForExistence(timeout: 3))
+        XCTAssertTrue(action.label.contains(
+            "Review whether increasing your workplace pension contributions could improve your retirement outcome"
+        ))
+        XCTAssertTrue(action.label.contains(
+            "This explanation must remain readable across multiple lines on a narrow mobile screen."
+        ))
+
+        action.tap()
+
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertFalse(element("tax-strategy.screen", in: app).exists)
+    }
+
+    @MainActor
     func testLevelWheelOpensAchievementsWithoutLeavingTheApp() throws {
         // Mirrors /m: achievements open from the level wheel — the drawer has
         // no Achievements entry.
@@ -85,6 +336,262 @@ final class FynlaUITests: XCTestCase {
         )
         // /m titles this page "Your progress" (Achievements.vue).
         XCTAssertTrue(app.staticTexts["Your progress"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testPR6PersonalisedAchievementsJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        let level = app.buttons["dashboard.level"]
+        XCTAssertTrue(level.waitForExistence(timeout: 3))
+        level.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+        XCTAssertTrue(element("achievements.screen", in: app).waitForExistence(timeout: 3))
+
+        let savingsBadge = element(
+            "achievements.badge.data_savings_account",
+            in: app
+        )
+        assertReachable(savingsBadge, in: app)
+        XCTAssertTrue(savingsBadge.label.contains("Added savings details"))
+        XCTAssertTrue(
+            savingsBadge.label.contains("You started building your savings picture.")
+        )
+        XCTAssertTrue(savingsBadge.label.contains("Earned 01/08/2026"))
+        XCTAssertEqual(
+            element("achievements.badge.data_savings_account.emblem", in: app).label,
+            "Earned badge"
+        )
+        XCTAssertFalse(savingsBadge.label.contains("data:savings_account:first"))
+
+        app.buttons["achievements.tab.milestones"].tap()
+
+        let reached = element(
+            "achievements.milestone.emergency_fund:0:1",
+            in: app
+        )
+        assertReachable(reached, in: app)
+        XCTAssertTrue(
+            reached.label.contains("Your emergency fund covers a month of your spending.")
+        )
+        XCTAssertTrue(reached.label.contains("Reached 02/08/2026"))
+        XCTAssertFalse(reached.label.contains("emergency_fund:0:1"))
+
+        let inProgress = element(
+            "achievements.upcoming.net_worth:0:10000",
+            in: app
+        )
+        assertReachable(inProgress, in: app)
+        XCTAssertTrue(inProgress.label.contains("Net worth £10,000"))
+        XCTAssertTrue(inProgress.label.contains("In progress"))
+
+        let progress = element(
+            "achievements.upcoming.net_worth:0:10000.progress",
+            in: app
+        )
+        XCTAssertTrue(progress.exists)
+        XCTAssertEqual(progress.value as? String, "40%")
+        XCTAssertEqual(progress.label, "£4,000 of £10,000")
+
+        let inapplicable = element(
+            "achievements.upcoming.retirement_on_track:0:1",
+            in: app
+        )
+        assertReachable(inapplicable, in: app)
+        XCTAssertTrue(inapplicable.label.contains("On track for retirement"))
+        XCTAssertTrue(inapplicable.label.contains("Not applicable"))
+        XCTAssertFalse(
+            element(
+                "achievements.upcoming.retirement_on_track:0:1.progress",
+                in: app
+            ).exists
+        )
+
+        let action = app.buttons[
+            "achievements.upcoming.net_worth:0:10000.action"
+        ]
+        assertReachable(action, in: app)
+        XCTAssertEqual(action.label, "Review your net worth")
+        action.tap()
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testPR7ParityClosureJourney() throws {
+        let app = app(mode: "unlocked")
+        app.launch()
+
+        // Exercise the complete shared drawer in the same grouped order as
+        // /m. Each destination must expose a stable screen identity after a
+        // user-visible navigation action; this catches route, loading and
+        // accessibility regressions without treating a direct deep link as
+        // equivalent evidence.
+        let sharedDestinations = [
+            ("navigation.dashboard", "dashboard.screen"),
+            ("navigation.achievements", "achievements.screen"),
+            ("navigation.conversation-history", "conversation-history.screen"),
+            ("navigation.income", "income.screen"),
+            ("navigation.expenditure", "expenditure.screen"),
+            ("navigation.net-worth", "net-worth.screen"),
+            ("navigation.bank-accounts", "savings.screen"),
+            ("navigation.investments", "investment.screen"),
+            ("navigation.retirement", "retirement.screen"),
+            ("navigation.protection", "protection.screen"),
+            ("navigation.estate-planning", "estate.screen"),
+            ("navigation.goals", "goals.screen"),
+            ("navigation.tax-strategy", "tax-strategy.screen"),
+            ("navigation.holistic-plan", "holistic-plan.screen"),
+            ("navigation.personal-information", "personal-information.screen"),
+            ("navigation.subscription", "subscription.screen"),
+            ("navigation.settings", "settings.screen"),
+        ]
+
+        for (navigationIdentifier, screenIdentifier) in sharedDestinations {
+            openDrawerItem(navigationIdentifier, in: app)
+            XCTAssertTrue(
+                element(screenIdentifier, in: app).waitForExistence(timeout: 5),
+                "\(navigationIdentifier) did not open \(screenIdentifier)"
+            )
+        }
+
+        // Route identity alone is not sufficient closure evidence. Reconcile
+        // the same server-shaped high-risk contracts exercised by PR2–PR6 in
+        // one current persona before reporting the drawer green.
+        openDrawerItem("navigation.dashboard", in: app)
+        let recommendation = element("dashboard.action.retirement-1.open", in: app)
+        assertReachable(recommendation, in: app)
+        XCTAssertTrue(recommendation.label.contains("workplace pension contributions"))
+        recommendation.tap()
+        XCTAssertTrue(element("retirement.screen", in: app).waitForExistence(timeout: 3))
+
+        openDrawerItem("navigation.bank-accounts", in: app)
+        let account = app.buttons["savings.account.12"]
+        assertReachable(account, in: app)
+        account.tap()
+        XCTAssertTrue(element("savings.account.screen", in: app).waitForExistence(timeout: 3))
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        app.buttons["fyn.close"].tap()
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 402."].waitForExistence(timeout: 3))
+        app.buttons["fyn.close"].tap()
+        openDrawerItem("navigation.conversation-history", in: app)
+        let firstConversation = app.buttons["conversation-history.open.401"]
+        assertReachable(firstConversation, in: app)
+        firstConversation.tap()
+        XCTAssertTrue(app.staticTexts["Trusted contextual opening 401."].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["Trusted contextual opening 402."].exists)
+        app.buttons["fyn.close"].tap()
+
+        openDrawerItem("navigation.achievements", in: app)
+        let savingsBadge = element("achievements.badge.data_savings_account", in: app)
+        assertReachable(savingsBadge, in: app)
+        XCTAssertTrue(savingsBadge.label.contains("Added savings details"))
+        XCTAssertTrue(savingsBadge.label.contains("Earned 01/08/2026"))
+        app.buttons["achievements.tab.milestones"].tap()
+        let inProgress = element(
+            "achievements.upcoming.net_worth:0:10000",
+            in: app
+        )
+        assertReachable(inProgress, in: app)
+        let progress = element(
+            "achievements.upcoming.net_worth:0:10000.progress",
+            in: app
+        )
+        XCTAssertTrue(progress.exists)
+        XCTAssertEqual(progress.value as? String, "40%")
+        XCTAssertFalse(
+            element(
+                "achievements.upcoming.retirement_on_track:0:1.progress",
+                in: app
+            ).exists
+        )
+        let achievementAction = app.buttons[
+            "achievements.upcoming.net_worth:0:10000.action"
+        ]
+        assertReachable(achievementAction, in: app)
+        achievementAction.tap()
+        XCTAssertTrue(element("net-worth.screen", in: app).waitForExistence(timeout: 3))
+
+        openDrawerItem("navigation.investments", in: app)
+        let investment = app.buttons["investment.account.21"]
+        assertReachable(investment, in: app)
+        investment.tap()
+        XCTAssertTrue(element("investment.account.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.201", in: app).exists)
+        assertReachable(
+            element("canonical-portfolio.comparison.entered-portfolio", in: app),
+            in: app
+        )
+        XCTAssertTrue(
+            element("canonical-portfolio.comparison.recommended-portfolio", in: app).exists
+        )
+        assertReachable(element("canonical-portfolio.history", in: app), in: app)
+
+        openDrawerItem("navigation.retirement", in: app)
+        for label in ["Age 65–66", "Age 67–69", "Age 70–100"] {
+            let band = app.staticTexts.matching(
+                NSPredicate(format: "label == %@", label)
+            ).firstMatch
+            assertReachable(band, in: app)
+        }
+        let retirementAssumptions = element("retirement.projection.assumptions", in: app)
+        assertReachable(retirementAssumptions, in: app)
+        XCTAssertTrue(retirementAssumptions.label.contains("4.7%"))
+        XCTAssertFalse(app.staticTexts["Median projection"].exists)
+        let pension = app.buttons["retirement.pension.dc-31"]
+        assertReachable(pension, in: app)
+        pension.tap()
+        XCTAssertTrue(element("retirement.pension.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("canonical-portfolio.holding.301", in: app).exists)
+
+        openDrawerItem("navigation.net-worth", in: app)
+        XCTAssertTrue(app.staticTexts["Recorded balance history"].exists)
+        let forecast = element("net-worth.forecast", in: app)
+        assertReachable(forecast, in: app)
+        XCTAssertTrue(app.staticTexts["PROJECTED NET WORTH"].exists)
+        let propertyRate = app.textFields["net-worth.forecast.rate.property"]
+        replaceText(in: propertyRate, with: "6.25", app: app)
+        app.buttons["net-worth.forecast.keyboard-done"].tap()
+        let save = app.buttons["net-worth.forecast.save"]
+        assertReachable(save, in: app)
+        save.tap()
+        XCTAssertTrue(
+            element("net-worth.forecast.feedback", in: app)
+                .waitForExistence(timeout: 3)
+        )
+        openDrawerItem("navigation.retirement", in: app)
+        openDrawerItem("navigation.net-worth", in: app)
+        let persistedRate = app.textFields["net-worth.forecast.rate.property"]
+        assertReachable(persistedRate, in: app)
+        XCTAssertEqual(persistedRate.value as? String, "6.25")
+        let reset = app.buttons["net-worth.forecast.reset"]
+        assertReachable(reset, in: app)
+        reset.tap()
+        XCTAssertTrue(
+            app.staticTexts["Assumptions reset to Fynla defaults."]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertEqual(persistedRate.value as? String, "3")
+
+        openDrawerItem("navigation.subscription", in: app)
+        XCTAssertTrue(
+            element("subscription.unavailable", in: app).waitForExistence(timeout: 3)
+        )
+
+        // The native-only reporting workflow intentionally lives in Fyn's
+        // header while /m exposes the equivalent privacy-safe report sheet as
+        // a floating control. It must remain reachable after the complete
+        // shared-route walk.
+        let openFyn = app.buttons["fyn.open"]
+        assertReachable(openFyn, in: app)
+        openFyn.tap()
+        let reportProblem = app.buttons["fyn.report"]
+        XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
+        reportProblem.tap()
+        XCTAssertTrue(element("bug-report.screen", in: app).waitForExistence(timeout: 3))
+
+        attachAcceptance(app, name: "PR7-01-complete-route-and-report-closure")
     }
 
     @MainActor
@@ -120,13 +627,16 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(reportProblem.waitForExistence(timeout: 3))
         reportProblem.tap()
 
-        // Reporting a problem chains two sequential animated transitions —
-        // the Fyn fullScreenCover dismisses, then (only once .onDisappear
-        // fires) the bug report screen is pushed onto the navigation stack.
-        // That chain comfortably finishes within 3s on local hardware but
-        // can exceed it on the CI simulator under load.
-        let description = app.textViews["bug-report.description"]
-        XCTAssertTrue(description.waitForExistence(timeout: 8))
+        let fynScreen = element("fyn.screen", in: app)
+        let bugReportScreen = element("bug-report.screen", in: app)
+        XCTAssertTrue(bugReportScreen.waitForExistence(timeout: 3))
+        XCTAssertFalse(fynScreen.exists)
+        XCTAssertFalse(reportProblem.exists)
+
+        // A vertical-axis SwiftUI TextField is exposed by XCTest as a
+        // TextField on the supported iOS 18.6 simulator, not a TextView.
+        let description = app.textFields["bug-report.description"]
+        XCTAssertTrue(description.waitForExistence(timeout: 3))
         description.tap()
         description.typeText("The native dashboard did not refresh.")
         // Dismiss the keyboard (it covers the review button on small devices).
@@ -155,13 +665,23 @@ final class FynlaUITests: XCTestCase {
     func testFreeSubscriptionShowsLocalizedStoreKitChoicesAndRestore() throws {
         let app = openSubscription(mode: "subscription-free")
 
+        XCTAssertTrue(
+            element("subscription.comparison", in: app).waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(element("subscription.plan.free", in: app).exists)
+        XCTAssertTrue(element("subscription.plan.premium", in: app).exists)
+        XCTAssertTrue(
+            element("subscription.feature.free.savings_account", in: app)
+                .label.contains("Up to 2 bank accounts")
+        )
         XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("£6.99"))
         XCTAssertTrue(app.buttons["subscription.product.monthly"].label.contains("1 month"))
         XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("£59.99"))
         XCTAssertTrue(app.buttons["subscription.product.annual"].label.contains("1 year"))
-        XCTAssertTrue(app.buttons["subscription.purchase"].isHittable)
-        XCTAssertTrue(app.buttons["subscription.restore"].isHittable)
+
+        assertReachable(app.buttons["subscription.purchase"], in: app)
+        assertReachable(app.buttons["subscription.restore"], in: app)
     }
 
     @MainActor
@@ -171,7 +691,7 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(
             element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
         )
-        XCTAssertTrue(app.buttons["subscription.manage-apple"].isHittable)
+        assertReachable(app.buttons["subscription.manage-apple"], in: app)
         XCTAssertFalse(app.buttons["subscription.purchase"].exists)
         XCTAssertFalse(app.buttons["subscription.restore"].exists)
     }
@@ -195,14 +715,16 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(
             element("subscription.unavailable", in: app).waitForExistence(timeout: 3)
         )
-        XCTAssertTrue(app.buttons["Try again"].isHittable)
+        assertReachable(app.buttons["Try again"], in: app)
     }
 
     @MainActor
     func testPendingPurchaseDoesNotOfferAnotherPurchaseTap() throws {
         let app = openSubscription(mode: "subscription-purchase-pending")
 
-        app.buttons["subscription.purchase"].tap()
+        let purchase = app.buttons["subscription.purchase"]
+        assertReachable(purchase, in: app)
+        purchase.tap()
         XCTAssertTrue(
             element("subscription.pending", in: app).waitForExistence(timeout: 3)
         )
@@ -214,7 +736,9 @@ final class FynlaUITests: XCTestCase {
     func testVerifiedPurchaseBecomesApplePremiumOnlyAfterServerAck() throws {
         let app = openSubscription(mode: "subscription-purchase-success")
 
-        app.buttons["subscription.purchase"].tap()
+        let purchase = app.buttons["subscription.purchase"]
+        assertReachable(purchase, in: app)
+        purchase.tap()
         XCTAssertTrue(
             element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
         )
@@ -225,7 +749,9 @@ final class FynlaUITests: XCTestCase {
     func testCancelledPurchaseRemainsFreeWithoutAnError() throws {
         let app = openSubscription(mode: "subscription-purchase-cancelled")
 
-        app.buttons["subscription.purchase"].tap()
+        let purchase = app.buttons["subscription.purchase"]
+        assertReachable(purchase, in: app)
+        purchase.tap()
         XCTAssertTrue(element("subscription.free", in: app).waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["subscription.message"].exists)
     }
@@ -234,7 +760,9 @@ final class FynlaUITests: XCTestCase {
     func testRestoreReconcilesAndLoadsApplePremium() throws {
         let app = openSubscription(mode: "subscription-restore-success")
 
-        app.buttons["subscription.restore"].tap()
+        let restore = app.buttons["subscription.restore"]
+        assertReachable(restore, in: app)
+        restore.tap()
         XCTAssertTrue(
             element("subscription.apple-premium", in: app).waitForExistence(timeout: 3)
         )
@@ -290,7 +818,9 @@ final class FynlaUITests: XCTestCase {
         let app = openSettings(mode: "subscription-unavailable")
 
         XCTAssertEqual(app.staticTexts["settings.plan.title"].label, "Unavailable")
-        app.buttons["app.unlocked.sign-out"].tap()
+        let signOut = app.buttons["app.unlocked.sign-out"]
+        assertReachable(signOut, in: app)
+        signOut.tap()
         XCTAssertTrue(app.textFields["login.email"].waitForExistence(timeout: 3))
     }
 
@@ -392,8 +922,12 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(secondaryButton.waitForExistence(timeout: 3))
         XCTAssertTrue(destructiveButton.waitForExistence(timeout: 3))
 
-        XCTAssertEqual(window.frame.width, 414, accuracy: 1)
-        XCTAssertEqual(window.frame.height, 896, accuracy: 1)
+        // Layout reachability must hold on every supported iPhone rather
+        // than encoding the dimensions of the former iPhone 11 runner.
+        for button in [primaryButton, secondaryButton, destructiveButton] {
+            XCTAssertGreaterThanOrEqual(button.frame.minX, window.frame.minX)
+            XCTAssertLessThanOrEqual(button.frame.maxX, window.frame.maxX)
+        }
         XCTAssertGreaterThanOrEqual(primaryButton.frame.width, 44)
         XCTAssertGreaterThan(primaryButton.frame.height, 44)
         XCTAssertGreaterThan(primaryButton.frame.height, secondaryButton.frame.height)
@@ -727,10 +1261,25 @@ final class FynlaUITests: XCTestCase {
 
     @MainActor
     private func assertReachable(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<6 where !element.isHittable {
-            app.swipeUp()
+        let viewport = app.windows.firstMatch.frame
+        for _ in 0..<8 where !element.isHittable {
+            if element.frame.midY < viewport.midY {
+                app.swipeDown()
+            } else {
+                app.swipeUp()
+            }
         }
         XCTAssertTrue(element.isHittable)
+    }
+
+    @MainActor
+    private func openDrawerItem(_ identifier: String, in app: XCUIApplication) {
+        let menu = app.buttons["navigation.open"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3))
+        menu.tap()
+        let item = app.buttons[identifier]
+        assertReachable(item, in: app)
+        item.tap()
     }
 
     @MainActor
@@ -868,7 +1417,10 @@ final class FynlaUITests: XCTestCase {
         var focused = false
         for attempt in 0..<5 where !focused {
             if attempt > 0 {
-                app.swipeUp()
+                let keyboard = app.keyboards.firstMatch
+                if keyboard.exists, field.frame.intersects(keyboard.frame) {
+                    app.swipeUp()
+                }
             }
             assertReachable(field, in: app)
             field.tap()
@@ -907,11 +1459,43 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    private func replaceText(
+        in field: XCUIElement,
+        with value: String,
+        app: XCUIApplication
+    ) {
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        assertReachable(field, in: app)
+
+        for _ in 0..<3 {
+            // The forecast fields are right-aligned. A centre tap can put
+            // the insertion point before the existing value on compact CI
+            // simulators, making leading backspaces no-ops ("6.25" then
+            // became "6.253"). Double-tap selects the existing numeric
+            // token so typing replaces it without relying on caret position.
+            // Retry if XCTest drops an event while the keyboard is settling.
+            field.doubleTap()
+            field.typeText(value)
+            if field.value as? String == value { return }
+        }
+
+        XCTAssertEqual(field.value as? String, value)
+    }
+
+    @MainActor
     private func element(
         _ identifier: String,
         in app: XCUIApplication
     ) -> XCUIElement {
         app.descendants(matching: .any)[identifier]
+    }
+
+    @MainActor
+    private func attachAcceptance(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     @MainActor

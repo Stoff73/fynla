@@ -202,3 +202,37 @@ it('SavingsStore calls tierGate->canCreate() before persisting a new account', f
         'SavingsStore must call $this->tierGate->canCreate() before persisting. The gate seam has been removed.'
     );
 });
+
+it('capped financial records can only be created inside their canonical stores', function () use ($projectRoot) {
+    $allowedFiles = [
+        realpath($projectRoot.'/app/Services/Stores/SavingsStore.php'),
+        realpath($projectRoot.'/app/Services/Stores/InvestmentAccountStore.php'),
+        realpath($projectRoot.'/app/Services/Stores/PensionStore.php'),
+    ];
+    $patterns = [
+        '/\bSavingsAccount::(?:create|firstOrCreate|updateOrCreate)\s*\(/',
+        '/\bInvestmentAccount::(?:create|firstOrCreate|updateOrCreate)\s*\(/',
+        '/\b(?:DC|DB)Pension::(?:create|firstOrCreate|updateOrCreate)\s*\(/',
+        '/->(?:savingsAccounts|investmentAccounts|dcPensions|dbPensions)\(\)->create\s*\(/',
+    ];
+    $violations = [];
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($projectRoot.'/app', FilesystemIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $file) {
+        if ($file->getExtension() !== 'php' || in_array($file->getRealPath(), $allowedFiles, true)) {
+            continue;
+        }
+
+        $source = file_get_contents($file->getPathname());
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $source) === 1) {
+                $violations[] = str_replace($projectRoot.'/', '', $file->getPathname());
+                break;
+            }
+        }
+    }
+
+    expect($violations)->toBe([], 'Capped records must be created through SavingsStore, InvestmentAccountStore, or PensionStore so every form, import, onboarding, and Fyn path reaches TierGate.');
+});

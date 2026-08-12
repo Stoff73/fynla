@@ -46,6 +46,17 @@ class SavingsAccountNormaliser
             $data['country'] = 'United Kingdom';
         }
 
+        // Tax-year labels are stored canonically as YYYY/YY. The public API
+        // continues to accept the legacy YYYY-YY form used by older clients,
+        // but normalises it before both the account and ISA ledger are written.
+        if (isset($data['isa_subscription_year']) && is_string($data['isa_subscription_year'])) {
+            $data['isa_subscription_year'] = preg_replace(
+                '/^(\d{4})-(\d{2})$/',
+                '$1/$2',
+                $data['isa_subscription_year'],
+            ) ?? $data['isa_subscription_year'];
+        }
+
         return $data;
     }
 

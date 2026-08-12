@@ -857,6 +857,11 @@ trait HasAiChat
                                 'current_count' => $toolResult['current_count'] ?? null,
                                 'limit' => $toolResult['limit'] ?? $toolResult['hard_limit'] ?? null,
                                 'tier' => $toolResult['tier'] ?? null,
+                                'destination' => $toolResult['destination'] ?? [
+                                    'screen' => 'subscription',
+                                    'params' => [],
+                                    'fallback' => 'dashboard',
+                                ],
                             ];
                             $presentationActionKey = implode(':', [
                                 $presentationAction['action'],

@@ -53,8 +53,12 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
     let ownershipType: String?
     let ownershipPercentage: Decimal?
     let country: String?
+    let isaType: String?
     let isaSubscriptionCurrentYear: Decimal?
+    let isPrimaryOwner: Bool?
+    let ownerName: String?
     let holdings: [InvestmentHolding]
+    let portfolio: CanonicalPortfolio?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -69,14 +73,18 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
         case ownershipType = "ownership_type"
         case ownershipPercentage = "ownership_percentage"
         case country
+        case isaType = "isa_type"
         case isaSubscriptionCurrentYear = "isa_subscription_current_year"
+        case isPrimaryOwner = "is_primary_owner"
+        case ownerName = "owner_name"
         case holdings
+        case portfolio
     }
 
     var displayName: String {
         provider ?? platform ?? accountName ?? "Investment account"
     }
-    var isISA: Bool { accountType?.contains("isa") == true }
+    var isISA: Bool { accountType?.contains("isa") == true || isaType != nil }
     var accountTypeLabel: String {
         if accountType == "other", let accountTypeOther, !accountTypeOther.isEmpty {
             return accountTypeOther
@@ -98,6 +106,11 @@ struct InvestmentAccount: Decodable, Sendable, Equatable, Identifiable {
             "employee_share_scheme": "Employee Share Scheme",
         ]
         guard let accountType else { return "Investment account" }
+        if accountType == "isa" {
+            return isaType == "lifetime" || isaType == "lifetime_isa"
+                ? "Lifetime ISA"
+                : "Stocks & Shares ISA"
+        }
         return labels[accountType]
             ?? accountType.replacingOccurrences(of: "_", with: " ").capitalized
     }

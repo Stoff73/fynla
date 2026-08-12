@@ -40,7 +40,9 @@ class SecurityHeaders
         // The framing decision varies by Sec-Fetch-Dest, so cacheable public
         // pages (homepage/savetax are public, max-age=300) must not serve a
         // cached DENY into the frame, nor a cached SAMEORIGIN top-level.
-        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        if (! $response->headers->has('Referrer-Policy')) {
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        }
         $existingVary = (string) $response->headers->get('Vary');
         $response->headers->set(
             'Vary',

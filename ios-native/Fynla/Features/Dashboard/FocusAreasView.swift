@@ -356,10 +356,11 @@ struct FocusAreasView: View {
                                         : FynlaColor.Token.horizon600.color)
                             )
                             .strikethrough(action.done)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(action.meta)
                             .font(.system(size: 12))
                             .foregroundStyle(FynlaColor.Token.horizon400.color)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -372,11 +373,18 @@ struct FocusAreasView: View {
                 .padding(.vertical, 14)
             }
             .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                action.meta.isEmpty
+                    ? action.title
+                    : "\(action.title). \(action.meta)"
+            )
             .accessibilityHint(
                 action.action.kind == .fynCapture
                     ? "Opens Fyn to collect these details"
                     : "Opens the relevant financial screen"
             )
+            .accessibilityIdentifier("dashboard.action.\(action.id).open")
 
             if action.type == .recommendation {
                 FynlaColor.Token.lightPink100.color.frame(width: 1)

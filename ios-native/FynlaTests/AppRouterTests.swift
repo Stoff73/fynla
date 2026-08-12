@@ -101,10 +101,23 @@ struct AppRouterTests {
         #expect(lockedRouter.path == [.settings])
     }
 
+    @Test @MainActor
+    func openingAHistoryFallbackReplacesTheScrolledHistoryStack() {
+        let session = AppSession(state: .authenticatedUnlocked)
+        let router = AppRouter(session: session)
+
+        #expect(router.navigate(to: .conversationHistory))
+        #expect(router.open(.savings(accountID: nil)))
+
+        #expect(router.path == [.savings(accountID: nil)])
+    }
+
     private var financialRoutes: [AppRoute] {
         [
             .dashboard,
             .achievements,
+            .personalInformation,
+            .subscription,
             .income,
             .expenditure,
             .netWorth(category: "property"),

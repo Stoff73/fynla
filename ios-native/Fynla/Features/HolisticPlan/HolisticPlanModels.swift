@@ -78,5 +78,6 @@ enum HolisticPlanViewState: Sendable, Equatable {
     case offline(previous: HolisticPlan?)
     case unauthenticated
     case upgradeRequired(message: String)
+    case timedOut
     case failed(requestID: String?)
 }

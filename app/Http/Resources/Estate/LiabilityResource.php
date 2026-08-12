@@ -16,6 +16,7 @@ class LiabilityResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'ownership_type' => $this->ownership_type,
+            'ownership_percentage' => $this->ownership_percentage,
             'joint_owner_id' => $this->joint_owner_id,
             'joint_owner_deactivated' => $this->joint_owner_id
                 ? User::withTrashed()->where('id', $this->joint_owner_id)->whereNotNull('deleted_at')->exists()
@@ -35,6 +36,7 @@ class LiabilityResource extends JsonResource
             'notes' => $this->notes,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'is_primary_owner' => $request->user()?->id === $this->user_id,
         ];
     }
 }

@@ -1,30 +1,34 @@
 /**
  * /m → desktop auth bridge.
  *
- * The web app and the `/m` mobile app are two same-origin SPAs that keep the
- * Sanctum bearer token in different places:
- *   - desktop SPA: sessionStorage('auth_token') — read SYNCHRONOUSLY when the
- *     Vuex auth store module is first evaluated (state.token = getTokenSync()).
- *   - `/m` mobile SPA: localStorage('m_scaffold_token').
- *
- * When a user taps "Admin Panel" in the `/m` drawer (the admin panel has no
- * mobile screen) the top window navigates to /admin and the desktop SPA boots
- * with an empty sessionStorage, so isAuthenticated is false and the router
- * bounces to login. Seeding sessionStorage from the mobile frame fails on iOS
- * (cross-context sessionStorage is partitioned), but localStorage is reliably
- * shared same-origin — so adopt the mobile token here.
+ * A consumed server-issued handoff creates a normal Laravel web session and
+ * leaves a short-lived, non-secret marker cookie. The desktop Vuex store still
+ * needs a synchronous truthy value while it verifies that session, so this
+ * module translates only that marker into the fixed `web-session` sentinel.
+ * It must never read or copy `/m`'s bearer token into the desktop SPA.
  *
  * MUST be imported before the Vuex store (which reads the token on module eval),
- * hence this is the very first import in app.js. Copy (not move) so returning to
- * /m still finds m_scaffold_token; clearAuth() removes it on logout.
+ * hence this is the very first import in app.js.
  */
 try {
-  if (!sessionStorage.getItem('auth_token')) {
-    const mToken = localStorage.getItem('m_scaffold_token');
-    if (mToken) {
-      sessionStorage.setItem('auth_token', mToken);
-    }
+  const hasWebSessionMarker = document.cookie
+    .split(';')
+    .some(cookie => cookie.trim().startsWith('fynla_web_session='));
+
+  if (hasWebSessionMarker) {
+    // The server handoff may have authenticated a different user from the
+    // bearer already held by this tab. Always discard that bearer so an
+    // expired web session can never fall back to the previous account.
+    sessionStorage.setItem('auth_token', 'web-session');
   }
-} catch (e) {
+
+  if (hasWebSessionMarker) {
+    document.cookie = 'fynla_web_session=; Max-Age=0; path=/; SameSite=Lax';
+  }
+} catch {
   /* private mode / storage disabled — nothing to bridge */
+}
+
+export function isTransferableMobileBearer(token) {
+  return typeof token === 'string' && token.length > 0 && token !== 'web-session';
 }

@@ -8,6 +8,7 @@ use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -326,22 +327,66 @@ class NetWorthService
         }
 
         // Get property items
-        $properties = $this->propertyStore->forUser($user)->where('user_id', $userId);
-        $propertyItems = $properties->map(function ($property) {
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
+        $properties->loadMissing('mortgages');
+        $propertyItems = $properties->map(function ($property) use ($userId) {
             $name = $property->address_line_1 ?: $property->property_type;
 
             return [
                 'id' => $property->id,
                 'name' => $name,
                 'type' => $property->property_type,
-                'value' => (float) $property->current_value,
+                'value' => $this->calculateUserShare($property, $userId),
+                'full_value' => (float) $property->current_value,
                 'ownership_type' => $property->ownership_type,
+                'ownership_percentage' => (float) ($property->ownership_percentage ?? 100),
+                'is_primary_owner' => $property->user_id === $userId,
+                'outstanding_mortgage' => (float) $property->mortgages
+                    ->sum(fn (Mortgage $mortgage): float => $this->calculateUserMortgageShare($mortgage, $userId)),
+                'full_outstanding_mortgage' => (float) $property->mortgages->sum('outstanding_balance'),
             ];
         })->toArray();
 
+        // Detail navigation requires record identifiers, not aggregate debt
+        // buckets. Mortgages and other liabilities remain distinct canonical
+        // resources even though the Net Worth overview totals them together.
+        $mortgageItems = $this->assetAggregator
+            ->getMortgages($userId)
+            ->map(fn (Mortgage $mortgage): array => [
+                'id' => $mortgage->id,
+                'kind' => 'mortgage',
+                'name' => $mortgage->lender_name ?: 'Mortgage',
+                'value' => $this->calculateUserMortgageShare($mortgage, $userId),
+                'full_value' => (float) $mortgage->outstanding_balance,
+                'property_id' => $mortgage->property_id,
+                'ownership_type' => $mortgage->ownership_type,
+                'ownership_percentage' => (float) ($mortgage->ownership_percentage ?? 100),
+                'is_primary_owner' => $mortgage->user_id === $userId,
+            ])
+            ->filter(fn (array $mortgage): bool => $mortgage['value'] > 0)
+            ->values()
+            ->all();
+
+        $liabilityItems = Liability::query()
+            ->where('user_id', $userId)
+            ->get()
+            ->map(fn (Liability $liability): array => [
+                'id' => $liability->id,
+                'kind' => 'liability',
+                'name' => $liability->liability_name ?: str($liability->liability_type)->replace('_', ' ')->title()->toString(),
+                'value' => (float) $liability->current_balance,
+                'full_value' => (float) $liability->current_balance,
+                'liability_type' => $liability->liability_type,
+                'ownership_type' => $liability->ownership_type,
+            ])
+            ->values()
+            ->all();
+
+        $debtItems = [...$mortgageItems, ...$liabilityItems];
+
         // Get investment items
-        $investments = InvestmentAccount::where('user_id', $userId)->get();
-        $investmentItems = $investments->map(function ($investment) {
+        $investments = InvestmentAccount::forUserOrJoint($userId)->get();
+        $investmentItems = $investments->map(function ($investment) use ($userId) {
             $name = $investment->provider;
             if ($investment->account_type) {
                 $name .= ' - '.ucwords(str_replace('_', ' ', $investment->account_type));
@@ -352,14 +397,17 @@ class NetWorthService
                 'name' => $name,
                 'account_type' => $investment->account_type,
                 'provider' => $investment->provider,
-                'value' => (float) $investment->current_value,
+                'value' => $this->calculateUserShare($investment, $userId),
+                'full_value' => (float) $investment->current_value,
                 'ownership_type' => $investment->ownership_type,
+                'ownership_percentage' => (float) ($investment->ownership_percentage ?? 100),
+                'is_primary_owner' => $investment->user_id === $userId,
             ];
         })->toArray();
 
         // Get cash/savings items
-        $savingsAccounts = SavingsAccount::where('user_id', $userId)->get();
-        $cashItems = $savingsAccounts->map(function ($account) {
+        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
+        $cashItems = $savingsAccounts->map(function ($account) use ($userId) {
             $name = $account->institution;
             if ($account->account_type) {
                 $name .= ' - '.ucwords(str_replace('_', ' ', $account->account_type));
@@ -370,7 +418,11 @@ class NetWorthService
                 'name' => $name,
                 'account_type' => $account->account_type,
                 'institution' => $account->institution,
-                'value' => (float) $account->current_balance,
+                'value' => $this->calculateUserShare($account, $userId),
+                'full_value' => (float) $account->current_balance,
+                'ownership_type' => $account->ownership_type,
+                'ownership_percentage' => (float) ($account->ownership_percentage ?? 100),
+                'is_primary_owner' => $account->user_id === $userId,
                 'is_isa' => $account->is_isa,
                 'is_emergency_fund' => $account->is_emergency_fund,
             ];
@@ -452,6 +504,11 @@ class NetWorthService
                 'count' => count($chattelItems),
                 'total_value' => round($chattelTotal, 2),
                 'items' => $chattelItems,
+            ],
+            'liabilities' => [
+                'count' => count($debtItems),
+                'total_value' => round((float) array_sum(array_column($debtItems, 'value')), 2),
+                'items' => $debtItems,
             ],
         ];
     }

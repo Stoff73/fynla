@@ -150,7 +150,8 @@ struct AchievementsView: View {
                     badgeRow(
                         title: action.title,
                         status: datedLabel("Done", action.completedAt),
-                        earned: true
+                        earned: true,
+                        identifier: "achievements.completed.\(action.id)"
                     )
                 }
                 if content.summary.completed.count < content.summary.completedTotal {
@@ -171,13 +172,13 @@ struct AchievementsView: View {
                 emptyText("No achievements yet — keep building your plan to earn your first.")
             } else {
                 ForEach(content.summary.achievements) { badge in
+                    let presentation = AchievementPresentation.badge(badge)
                     badgeRow(
                         title: badge.title,
                         description: badge.description,
-                        status: badge.earned
-                            ? datedLabel("Earned", badge.earnedAt)
-                            : "Not yet earned",
-                        earned: badge.earned
+                        status: presentation.status,
+                        earned: presentation.isEarned,
+                        identifier: "achievements.badge.\(badge.key)"
                     )
                 }
             }
@@ -196,20 +197,7 @@ struct AchievementsView: View {
                         .foregroundStyle(FynlaColor.Token.neutral500.color)
                         .padding(.top, 4)
                     ForEach(section.items) { item in
-                        // ma-badge--link — tappable, muted (not yet earned).
-                        Button {
-                            if let route = appRoute(for: item.route) {
-                                onRoute(route)
-                            }
-                        } label: {
-                            badgeContent(
-                                title: item.title,
-                                description: item.steps,
-                                status: nil,
-                                earned: false
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        upcomingRow(item)
                     }
                 }
             }
@@ -220,15 +208,73 @@ struct AchievementsView: View {
                 emptyText("No milestones reached yet — keep building your plan.")
             } else {
                 ForEach(content.summary.milestones) { milestone in
+                    let presentation = AchievementPresentation.milestone(milestone)
                     badgeRow(
                         title: milestone.title,
-                        status: milestone.achieved
-                            ? datedLabel("Reached", milestone.achievedAt)
-                            : "Not yet reached",
-                        earned: milestone.achieved
+                        status: presentation.status,
+                        earned: presentation.isEarned,
+                        identifier: "achievements.milestone.\(milestone.key)"
                     )
                 }
+                if content.summary.nextCursor != nil {
+                    fullWidthButton(
+                        model.isLoadingMoreMilestones
+                            ? "Loading…"
+                            : "Load more milestones"
+                    ) {
+                        Task { await model.loadMoreMilestones() }
+                    }
+                    .disabled(model.isLoadingMoreMilestones)
+                    .accessibilityIdentifier("achievements.milestones.more")
+                }
             }
+        }
+    }
+
+    private func upcomingRow(_ item: AchievementUpcoming) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            badgeContent(
+                title: item.title,
+                description: item.steps,
+                status: upcomingStatus(item),
+                earned: false,
+                identifier: "achievements.upcoming.\(item.key)"
+            )
+            if item.state == .inProgress, let progress = item.progress {
+                ProgressView(value: progress.percent, total: 100) {
+                    Text(progress.label)
+                }
+                .accessibilityLabel(progress.label)
+                .accessibilityValue(
+                    "\(progress.percent.formatted(.number.precision(.fractionLength(0...2))))%"
+                )
+                .accessibilityIdentifier("achievements.upcoming.\(item.key).progress")
+            }
+            if let action = SemanticDestinationResolver.action(
+                label: item.nextAction?.label,
+                destination: item.nextAction?.destination,
+                legacyPath: item.route
+            ) {
+                Button(action.label) { onRoute(action.route) }
+                    .frame(
+                        minWidth: FynlaSpacing.minimumInteractiveTarget,
+                        minHeight: FynlaSpacing.minimumInteractiveTarget
+                    )
+                    .accessibilityIdentifier("achievements.upcoming.\(item.key).action")
+            }
+        }
+    }
+
+    private func upcomingStatus(_ item: AchievementUpcoming) -> String? {
+        switch item.state {
+        case .inProgress:
+            "In progress"
+        case .locked:
+            "Locked"
+        case .inapplicable:
+            "Not applicable"
+        case .earned:
+            nil
         }
     }
 
@@ -298,13 +344,15 @@ struct AchievementsView: View {
         title: String,
         description: String? = nil,
         status: String?,
-        earned: Bool
+        earned: Bool,
+        identifier: String
     ) -> some View {
         badgeContent(
             title: title,
             description: description,
             status: status,
-            earned: earned
+            earned: earned,
+            identifier: identifier
         )
     }
 
@@ -312,25 +360,35 @@ struct AchievementsView: View {
         title: String,
         description: String?,
         status: String?,
-        earned: Bool
+        earned: Bool,
+        identifier: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(FynlaColor.Token.horizon500.color)
-            if let description, !description.isEmpty {
-                Text(description)
-                    .font(.system(size: 13))
-                    .foregroundStyle(FynlaColor.Token.neutral500.color)
+        HStack(alignment: .top, spacing: 10) {
+            if earned {
+                Image(systemName: "seal.fill")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(FynlaColor.Token.spring600.color)
+                    .accessibilityLabel("Earned badge")
+                    .accessibilityIdentifier("\(identifier).emblem")
             }
-            if let status, !status.isEmpty {
-                Text(status)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(
-                        earned
-                            ? FynlaColor.Token.spring600.color
-                            : FynlaColor.Token.neutral500.color
-                    )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FynlaColor.Token.horizon500.color)
+                if let description, !description.isEmpty {
+                    Text(description)
+                        .font(.system(size: 13))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                }
+                if let status, !status.isEmpty {
+                    Text(status)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(
+                            earned
+                                ? FynlaColor.Token.spring600.color
+                                : FynlaColor.Token.neutral500.color
+                        )
+                }
             }
         }
         .padding(14)
@@ -351,6 +409,8 @@ struct AchievementsView: View {
                 )
         )
         .opacity(earned ? 1 : 0.55)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(identifier)
     }
 
     // m-btn — full-width raspberry.
@@ -381,24 +441,6 @@ struct AchievementsView: View {
             } else {
                 groups.append((group: item.group, items: [item]))
             }
-        }
-    }
-
-    private func appRoute(for mobileRoute: String) -> AppRoute? {
-        switch mobileRoute {
-        case "dashboard": .dashboard
-        case "m-income": .income
-        case "m-expenditure": .expenditure
-        case "m-net-worth": .netWorth(category: nil)
-        case "m-protection": .protection(policyType: nil, id: nil)
-        case "m-savings": .savings(accountID: nil)
-        case "m-investment": .investment(accountID: nil)
-        case "m-retirement": .retirement(pensionType: nil, id: nil)
-        case "m-estate": .estate
-        case "m-goals": .goals
-        case "tax-strategy": .taxStrategy
-        case "holistic-plan": .holisticPlan
-        default: nil
         }
     }
 

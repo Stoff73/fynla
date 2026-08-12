@@ -17,11 +17,22 @@ struct RetirementTests {
 
         #expect(snapshot.pensions.count == 3)
         #expect(snapshot.totalDCPensionWealth == Decimal(180000))
-        #expect(snapshot.projectedIncome == Decimal(38000))
+        #expect(snapshot.projectedIncome == Decimal(string: "24457.70"))
         #expect(snapshot.targetIncome == Decimal(42000))
-        #expect(snapshot.incomeGap == Decimal(4000))
+        #expect(snapshot.incomeGap == Decimal(string: "17542.30"))
         #expect(snapshot.isAtAccountLimit)
         #expect(index.dcPensions[0].monthlyContribution == Decimal(500))
+        #expect(index.dcPensions[0].portfolio?.contractVersion == "financial_portfolio_v1")
+        #expect(index.dcPensions[0].portfolio?.wrapperType == "dc_pension")
+        #expect(index.dcPensions[0].portfolio?.analysis.comparisons.entered?.source == "user_entered")
+        #expect(index.dcPensions[0].portfolio?.analysis.comparisons.recommended?.source == "fynla_recommended_asset_allocation")
+        #expect(projections.planningProjection?.contractVersion == "retirement_projection_v1")
+        #expect(projections.planningProjection?.planningTotalAtTargetAge == Decimal(string: "24457.70"))
+        #expect(projections.planningProjection?.products.count == 3)
+        #expect(projections.planningProjection?.ageBands.count == 2)
+        #expect(projections.planningProjection?.ageBands[0].rangeLabel == "Age 65–66")
+        #expect(projections.planningProjection?.ageBands[0].accessibilityIdentifier == "retirement.age-band.65-66")
+        #expect(projections.planningProjection?.assumptions.sustainableWithdrawalRate.percent == Decimal(string: "4.7"))
     }
 
     @Test

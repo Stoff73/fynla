@@ -8,8 +8,10 @@ struct ExpenditureTests {
     func decodesTheExistingMobileProfileExpenditureShape() throws {
         let profile = try decodedProfile("expenditure-populated")
 
-        #expect(profile.expenditure.monthly == Decimal(string: "3250.50"))
-        #expect(profile.expenditure.annual == Decimal(39006))
+        #expect(profile.expenditure.presentation.activeMonthlyTotal == Decimal(string: "1530.50"))
+        #expect(profile.expenditure.presentation.activeAnnualTotal == Decimal(18366))
+        #expect(profile.expenditure.presentation.entryModeLabel == "Category detail")
+        #expect(profile.expenditure.presentation.detailAvailable)
         #expect(profile.expenditure.categories?.nonZeroRows.map(\.title) == [
             "Food & groceries",
             "Transport & fuel",
@@ -26,14 +28,17 @@ struct ExpenditureTests {
         #expect(expenditure.monthly == Decimal(1800))
         #expect(expenditure.annual == Decimal(21600))
         #expect(expenditure.categories == nil)
+        #expect(expenditure.presentation.entryMode == "summary")
+        #expect(expenditure.presentation.activeMonthlyTotal == Decimal(1800))
+        #expect(expenditure.presentation.summaryOnlyReason?.contains("Only a monthly summary") == true)
     }
 
     @Test
     func zeroExpenditureHasNoCategoryRows() throws {
         let expenditure = try decodedProfile("expenditure-empty").expenditure
 
-        #expect(expenditure.monthly == 0)
-        #expect(expenditure.annual == 0)
+        #expect(expenditure.presentation.activeMonthlyTotal == 0)
+        #expect(expenditure.presentation.activeAnnualTotal == 0)
         #expect(expenditure.categories?.nonZeroRows.isEmpty == true)
     }
 
@@ -60,7 +65,7 @@ struct ExpenditureTests {
 
         let profile = try await LiveExpenditureClient(apiClient: apiClient).load()
 
-        #expect(profile.expenditure.monthly == Decimal(string: "3250.50"))
+        #expect(profile.expenditure.presentation.activeMonthlyTotal == Decimal(string: "1530.50"))
         let request = try #require(await transport.requests().first)
         #expect(request.httpMethod == "GET")
         #expect(request.url?.path == "/fynla/api/user/profile")

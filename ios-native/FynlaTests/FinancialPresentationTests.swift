@@ -26,21 +26,92 @@ struct FinancialPresentationTests {
     }
 
     @Test
-    func fynEditIntentMatchesTheExistingMobileWording() {
-        #expect(
-            FynEditIntent.message(
-                updateScope: "savings",
-                addPhrase: "I'd like to add savings.",
-                names: [nil, " ", "Cash ISA", "Emergency fund"]
-            ) == "I'd like to update my savings. I currently have: Cash ISA, Emergency fund."
+    func contextualOverviewActionsAlwaysAddWithoutClientAuthoredFacts() {
+        let actions = [
+            FynContextualActions.savingsOverview(hasAccounts: true),
+            FynContextualActions.investmentOverview(hasAccounts: true),
+            FynContextualActions.retirementOverview(hasPensions: true),
+            FynContextualActions.protectionOverview(hasPolicies: true),
+            FynContextualActions.goalsOverview(hasGoals: true),
+        ]
+
+        #expect(actions.allSatisfy { $0.request.action == .add })
+        #expect(actions.map(\.request.resourceType) == [
+            "savings",
+            "investment",
+            "retirement",
+            "protection",
+            "goals",
+        ])
+        #expect(actions.allSatisfy { $0.request.resourceID == nil })
+        #expect(actions.allSatisfy { $0.request.currentDestination.params.isEmpty })
+    }
+
+    @Test
+    func contextualRequestEncodingContainsIdentifiersButNoFinancialFactsOrLabels() throws {
+        let action = FynContextualAction(
+            action: .edit,
+            resourceType: "savings_account",
+            resourceID: 42,
+            currentDestination: SemanticDestination(
+                screen: "savings_account_detail",
+                params: ["account_id": .int(42)],
+                fallback: "savings"
+            ),
+            origin: FynContextualOrigin(kind: .surfaceAction)
         )
-        #expect(
-            FynEditIntent.message(
-                updateScope: "savings",
-                addPhrase: "I'd like to add savings.",
-                names: [nil, " "]
-            ) == "I'd like to add savings."
+
+        let encoded = try JSONEncoder().encode(action.request)
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let text = try #require(String(data: encoded, encoding: .utf8))
+
+        #expect(object["action"] as? String == "edit")
+        #expect(object["resource_type"] as? String == "savings_account")
+        #expect(object["resource_id"] as? Int == 42)
+        #expect(text.contains("account_id"))
+        #expect(!text.localizedCaseInsensitiveContains("balance"))
+        #expect(!text.localizedCaseInsensitiveContains("value"))
+        #expect(!text.localizedCaseInsensitiveContains("name"))
+        #expect(!text.localizedCaseInsensitiveContains("prompt"))
+    }
+
+    @Test
+    func conversationHistoryDecodingIsAdditiveAndBackwardCompatible() throws {
+        let enriched = try JSONDecoder().decode(
+            FynConversationListItem.self,
+            from: Data(
+                #"{"id":42,"title":"Edit account","message_count":2,"mode":"contextual","purpose":"Edit Bank Account","related_entity":{"type":"savings_account","id":7,"label":"Rainy Day","available":true,"explanation":null},"status":"active","created_at":"2026-08-10T08:00:00Z","updated_at":"2026-08-10T09:00:00Z","last_message_at":"2026-08-10T09:00:00Z","last_message_summary":"Tell me what changed.","fallback_destination":{"screen":"savings","params":{},"fallback":"dashboard"}}"#.utf8
+            )
         )
+        let legacy = try JSONDecoder().decode(
+            FynConversationListItem.self,
+            from: Data(#"{"id":41,"title":"Legacy"}"#.utf8)
+        )
+
+        #expect(enriched.mode == "contextual")
+        #expect(enriched.relatedEntity?.label == "Rainy Day")
+        #expect(enriched.fallbackDestination?.screen == "savings")
+        #expect(legacy.mode == nil)
+        #expect(legacy.relatedEntity == nil)
+    }
+
+    @Test
+    func jointOwnedEntitiesDecodeAsReadOnlyForContextualEditSurfaces() throws {
+        let investment = try JSONDecoder().decode(
+            InvestmentAccount.self,
+            from: Data(
+                #"{"id":42,"current_value":"1000.00","holdings":[],"is_primary_owner":false}"#.utf8
+            )
+        )
+        let goal = try JSONDecoder().decode(
+            FinancialGoal.self,
+            from: Data(
+                #"{"id":43,"target_amount":"5000.00","current_amount":"1000.00","progress_percentage":"20.00","is_on_track":true,"is_primary_owner":false}"#.utf8
+            )
+        )
+
+        #expect(investment.isPrimaryOwner == false)
+        #expect(goal.isPrimaryOwner == false)
     }
 
     @Test

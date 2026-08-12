@@ -126,7 +126,7 @@ struct FinancePanel: Identifiable {
             ),
             FinancePanel(
                 id: "savings",
-                label: "Savings",
+                label: "Bank Accounts",
                 icon: "creditcard",
                 tone: .spring,
                 value: money(savings.totalSavings),

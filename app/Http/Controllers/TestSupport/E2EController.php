@@ -13,10 +13,15 @@ use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\InvestmentAccountValueSnapshot;
 use App\Models\LifeEvent;
+use App\Models\Mortgage;
 use App\Models\PendingRegistration;
+use App\Models\PointAward;
+use App\Models\RetirementProfile;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Models\UserGamification;
+use App\Models\UserMilestone;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
 use App\Services\Stores\IngestSource;
@@ -26,6 +31,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -132,9 +138,11 @@ class E2EController extends Controller
             'tier' => ['sometimes', 'string', 'in:free,premium'],
             'with_balance_history' => ['sometimes', 'boolean'],
             'with_freemium_caps' => ['sometimes', 'boolean'],
+            'with_projection_parity' => ['sometimes', 'boolean'],
+            'with_achievement_personalisation' => ['sometimes', 'boolean'],
         ]);
 
-        $user = User::factory()->create([
+        $userAttributes = [
             'first_name' => 'Existing',
             'surname' => 'Campaign',
             'email' => $validated['email'],
@@ -145,7 +153,14 @@ class E2EController extends Controller
             'tier' => $validated['tier'] ?? 'free',
             'onboarding_completed' => true,
             'onboarding_fyn_step' => null,
-        ]);
+        ];
+        if ($validated['with_projection_parity'] ?? false) {
+            $userAttributes['date_of_birth'] = '1981-08-10';
+            $userAttributes['target_retirement_age'] = 65;
+            $userAttributes['annual_employment_income'] = 60000;
+            $userAttributes['monthly_expenditure'] = 2500;
+        }
+        $user = User::factory()->create($userAttributes);
 
         if (($validated['tier'] ?? 'free') === 'premium') {
             Subscription::query()->create([
@@ -213,6 +228,130 @@ class E2EController extends Controller
             ], $user, IngestSource::FORM);
             Goal::factory()->count(2)->create(['user_id' => $user->id]);
             LifeEvent::factory()->create(['user_id' => $user->id]);
+        }
+
+        if ($validated['with_projection_parity'] ?? false) {
+            RetirementProfile::query()->create([
+                'user_id' => $user->id,
+                'current_age' => 45,
+                'target_retirement_age' => 65,
+                'target_retirement_income' => 42000,
+                'current_annual_salary' => 60000,
+            ]);
+            $property = $propertyStore->create([
+                'property_type' => 'main_residence',
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'address_line_1' => '10 Projection Way',
+                'current_value' => 420000,
+                'valuation_date' => now()->toDateString(),
+            ], $user, IngestSource::FORM);
+            Mortgage::query()->create([
+                'user_id' => $user->id,
+                'property_id' => $property->id,
+                'lender_name' => 'Projection Bank',
+                'mortgage_type' => 'repayment',
+                'outstanding_balance' => 210000,
+                'interest_rate' => 4.5,
+                'monthly_payment' => 1400,
+                'monthly_interest_portion' => 787.50,
+                'remaining_term_months' => 240,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+            ]);
+            $investmentAccountStore->create([
+                'account_name' => 'Projection ISA',
+                'account_type' => 'isa',
+                'isa_type' => 'stocks_and_shares',
+                'provider' => 'Projection Investments',
+                'current_value' => 60000,
+                'monthly_contribution_amount' => 500,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+            ], $user, IngestSource::FORM);
+            $savingsStore->create([
+                'account_name' => 'Projection cash',
+                'account_type' => 'easy_access',
+                'institution' => 'Projection Bank',
+                'current_balance' => 30000,
+                'interest_rate' => 2,
+                'regular_contribution_amount' => 250,
+                'contribution_frequency' => 'monthly',
+                'is_isa' => false,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+            ], $user, IngestSource::FORM);
+            $pensionStore->createDc([
+                'scheme_name' => 'Workplace Pension',
+                'scheme_type' => 'workplace',
+                'pension_type' => 'occupational',
+                'provider' => 'Projection Pensions',
+                'current_fund_value' => 180000,
+                'annual_salary' => 60000,
+                'employee_contribution_percent' => 5,
+                'employer_contribution_percent' => 5,
+                'monthly_contribution_amount' => 500,
+                'retirement_age' => 70,
+            ], $user, IngestSource::FORM);
+            $pensionStore->createDb([
+                'scheme_name' => 'Career Average Pension',
+                'scheme_type' => 'career_average',
+                'accrued_annual_pension' => 12000,
+                'projected_annual_pension_at_nra_gbp' => 12000,
+                'normal_retirement_age' => 65,
+            ], $user, IngestSource::FORM);
+            $pensionStore->upsertState([
+                'ni_years_completed' => 35,
+                'ni_years_required' => 35,
+                'state_pension_forecast_annual' => 11502,
+                'state_pension_age' => 67,
+            ], $user, IngestSource::FORM);
+        }
+
+        if ($validated['with_achievement_personalisation'] ?? false) {
+            $account = $savingsStore->create([
+                'account_name' => 'Emergency savings',
+                'account_type' => 'easy_access',
+                'institution' => 'Personalisation Bank',
+                'current_balance' => 4000,
+                'interest_rate' => 2,
+                'is_emergency_fund' => true,
+                'is_isa' => false,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+            ], $user, IngestSource::FORM);
+
+            $earnedAt = Carbon::parse('2026-08-01 10:00:00', 'UTC');
+            $award = PointAward::query()->firstOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'dedup_key' => 'data:savings_account:first',
+                ],
+                [
+                    'source_type' => 'data',
+                    'points' => 20,
+                    'meta' => [
+                        'category' => 'savings_account',
+                        'record_id' => $account->id,
+                    ],
+                ],
+            );
+            $award->forceFill([
+                'created_at' => $earnedAt,
+                'updated_at' => $earnedAt,
+            ])->saveQuietly();
+
+            UserGamification::query()->firstOrCreate(
+                ['user_id' => $user->id],
+                ['total_points' => 20, 'level' => 1],
+            );
+            UserMilestone::query()->create([
+                'user_id' => $user->id,
+                'milestone_type' => 'emergency_fund',
+                'reference_id' => null,
+                'threshold' => 1,
+                'achieved_at' => Carbon::parse('2026-08-02 10:00:00', 'UTC'),
+            ]);
         }
 
         $token = $user->createToken('e2e-active-user', ['mfa_verified'])->plainTextToken;

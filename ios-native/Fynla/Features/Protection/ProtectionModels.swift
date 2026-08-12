@@ -14,9 +14,23 @@ struct ProtectionSnapshot: Sendable, Equatable {
         return result
     }
 
-    var totalLumpSumCover: Decimal? { analysis?.coverage.totalCoverage }
-    var annualIncomeCover: Decimal? { analysis?.coverage.totalIncomeCoverage }
-    var openGaps: [ProtectionGapSummary] { analysis?.gapSummaries ?? [] }
+    var totalLumpSumCover: Decimal? {
+        index.coverageGaps?.totals.cover ?? analysis?.coverage.totalCoverage
+    }
+    var annualIncomeCover: Decimal? {
+        index.coverageGaps?.categories
+            .first { $0.key == "income_protection" }?.cover
+            ?? analysis?.coverage.totalIncomeCoverage
+    }
+    var openGaps: [ProtectionGapSummary] {
+        if let coverageGaps = index.coverageGaps {
+            return coverageGaps.categories
+                .filter { $0.status == "gap" && $0.shortfall > 0 }
+                .map(ProtectionGapSummary.init)
+        }
+        return analysis?.gapSummaries ?? []
+    }
+    var calculatedAt: String? { index.coverageGaps?.calculatedAt }
 
     func policy(type: ProtectionPolicyType, id: Int) -> ProtectionPolicy? {
         policies.first { $0.type == type && $0.policy.id == id }?.policy
@@ -26,6 +40,101 @@ struct ProtectionSnapshot: Sendable, Equatable {
 struct ProtectionIndex: Decodable, Sendable, Equatable {
     let profile: ProtectionProfile
     let policies: ProtectionPolicyGroups
+    let coverageGaps: ProtectionGapPresentation?
+
+    private enum CodingKeys: String, CodingKey {
+        case profile, policies
+        case coverageGaps = "coverage_gaps"
+    }
+}
+
+struct ProtectionGapPresentation: Decodable, Sendable, Equatable {
+    let contractVersion: String
+    let totals: ProtectionGapTotals
+    let categories: [ProtectionGapCategory]
+    let calculatedAt: String
+
+    private enum CodingKeys: String, CodingKey {
+        case contractVersion = "contract_version"
+        case totals, categories
+        case calculatedAt = "calculated_at"
+    }
+}
+
+struct ProtectionGapTotals: Decodable, Sendable, Equatable {
+    let need: Decimal
+    let cover: Decimal
+    let shortfall: Decimal
+    let coveragePercentage: Decimal
+
+    private enum CodingKeys: String, CodingKey {
+        case need, cover, shortfall
+        case coveragePercentage = "coverage_percentage"
+    }
+}
+
+struct ProtectionGapCategory: Decodable, Sendable, Equatable {
+    let key: String
+    let label: String
+    let need: Decimal
+    let cover: Decimal
+    let shortfall: Decimal
+    let status: String
+    let severity: String
+    let inputs: [String: ProtectionJSONValue]
+    let assumptions: [ProtectionGapAssumption]
+    let explanation: String
+    let relevantPolicies: [ProtectionGapPolicyReference]
+
+    private enum CodingKeys: String, CodingKey {
+        case key, label, need, cover, shortfall, status, severity, inputs, assumptions, explanation
+        case relevantPolicies = "relevant_policies"
+    }
+}
+
+struct ProtectionGapAssumption: Decodable, Sendable, Equatable {
+    let key: String
+    let value: ProtectionJSONValue
+    let unit: String?
+}
+
+struct ProtectionGapPolicyReference: Decodable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let type: String
+    let provider: String?
+    let name: String?
+    let cover: Decimal
+}
+
+enum ProtectionJSONValue: Decodable, Sendable, Equatable {
+    case string(String)
+    case number(Decimal)
+    case bool(Bool)
+    case array([ProtectionJSONValue])
+    case object([String: ProtectionJSONValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+        } else if let value = try? container.decode(Decimal.self) {
+            self = .number(value)
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode([ProtectionJSONValue].self) {
+            self = .array(value)
+        } else if let value = try? container.decode([String: ProtectionJSONValue].self) {
+            self = .object(value)
+        } else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported protection presentation value"
+            )
+        }
+    }
 }
 
 struct ProtectionProfile: Decodable, Sendable, Equatable {
@@ -338,6 +447,53 @@ struct ProtectionGapSummary: Identifiable, Sendable, Equatable {
     let have: Decimal?
     let need: Decimal?
     let perYear: Bool
+    let severity: String
+    let explanation: String
+    let inputs: [String: ProtectionJSONValue]
+    let assumptions: [ProtectionGapAssumption]
+    let relevantPolicies: [ProtectionGapPolicyReference]
+
+    init(
+        id: String,
+        label: String,
+        shortfall: Decimal,
+        have: Decimal?,
+        need: Decimal?,
+        perYear: Bool,
+        severity: String = "unknown",
+        explanation: String = "",
+        inputs: [String: ProtectionJSONValue] = [:],
+        assumptions: [ProtectionGapAssumption] = [],
+        relevantPolicies: [ProtectionGapPolicyReference] = []
+    ) {
+        self.id = id
+        self.label = label
+        self.shortfall = shortfall
+        self.have = have
+        self.need = need
+        self.perYear = perYear
+        self.severity = severity
+        self.explanation = explanation
+        self.inputs = inputs
+        self.assumptions = assumptions
+        self.relevantPolicies = relevantPolicies
+    }
+
+    init(_ category: ProtectionGapCategory) {
+        self.init(
+            id: category.key,
+            label: category.label,
+            shortfall: category.shortfall,
+            have: category.cover,
+            need: category.need,
+            perYear: category.key == "income_protection",
+            severity: category.severity,
+            explanation: category.explanation,
+            inputs: category.inputs,
+            assumptions: category.assumptions,
+            relevantPolicies: category.relevantPolicies
+        )
+    }
 }
 
 enum ProtectionViewState: Sendable, Equatable {

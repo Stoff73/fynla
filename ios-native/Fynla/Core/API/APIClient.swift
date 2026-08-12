@@ -122,11 +122,31 @@ actor APIClient {
     ) async throws -> APIRawResponse {
         let correlationID = requestID()
         let accessToken = await tokenProvider.accessToken()
-        let result = try await perform(
+        var result = try await perform(
             request,
             accessToken: accessToken,
             correlationID: correlationID
         )
+
+        if result.response.statusCode == 401,
+           request.method.permitsAuthenticationReplay,
+           accessToken != nil,
+           let tokenRefresher,
+           let refreshedToken = try await tokenRefresher.refreshAccessToken()
+        {
+            result = try await perform(
+                request,
+                accessToken: refreshedToken,
+                correlationID: correlationID
+            )
+        } else if result.response.statusCode == 401,
+                  !request.method.permitsAuthenticationReplay,
+                  accessToken != nil,
+                  let tokenRefresher
+        {
+            _ = try? await tokenRefresher.refreshAccessToken()
+        }
+
         return APIRawResponse(
             statusCode: result.response.statusCode,
             data: result.data,
@@ -200,7 +220,7 @@ actor APIClient {
         switch response.statusCode {
         case 401:
             return .unauthenticated
-        case 403 where body?.error == "upgrade_required":
+        case 403 where ["upgrade_required", "capability_denied"].contains(body?.error):
             return .upgradeRequired(message: body?.message ?? "Upgrade required.")
         case 403:
             return .forbidden(message: body?.message)

@@ -7,6 +7,7 @@ final class AchievementsModel {
     private(set) var content: AchievementsContent?
     private(set) var isLoadingMoreCompleted = false
     private(set) var isLoadingMoreActivity = false
+    private(set) var isLoadingMoreMilestones = false
     private(set) var paginationMessage: String?
     // Shell-level fireworks takeover source (mirrors /m's
     // store.pendingCelebration): set by load()/refreshCelebration(), cleared
@@ -34,8 +35,10 @@ final class AchievementsModel {
             let activityPage = await activity
             let gamificationStatus = await status
             guard activeGeneration == generation, !Task.isCancelled else { return }
+            var deduplicated = summary
+            deduplicated.milestones = mergeMilestones([], with: summary.milestones)
             content = AchievementsContent(
-                summary: summary,
+                summary: deduplicated,
                 completedPage: 1,
                 activity: activityPage?.events ?? [],
                 activityNextCursor: activityPage?.nextCursor
@@ -111,6 +114,51 @@ final class AchievementsModel {
         }
     }
 
+    func loadMoreMilestones() async {
+        guard let cursor = content?.summary.nextCursor,
+              !isLoadingMoreMilestones
+        else { return }
+
+        let activeGeneration = generation
+        isLoadingMoreMilestones = true
+        paginationMessage = nil
+        defer { isLoadingMoreMilestones = false }
+
+        do {
+            let page = try await client.loadMilestones(cursor: cursor)
+            guard activeGeneration == generation,
+                  var current = content,
+                  current.summary.nextCursor == cursor
+            else { return }
+
+            current.summary.milestones = mergeMilestones(
+                current.summary.milestones,
+                with: page.milestones
+            )
+            current.summary.milestonesTotal = page.milestonesTotal
+            current.summary.perPage = page.perPage
+            current.summary.nextCursor = page.nextCursor
+            content = current
+        } catch is CancellationError {
+            return
+        } catch let error as APIError {
+            guard activeGeneration == generation,
+                  content?.summary.nextCursor == cursor
+            else { return }
+
+            if case .unauthenticated = error {
+                map(error)
+            } else {
+                paginationMessage = "We could not load more milestones. Please try again."
+            }
+        } catch {
+            guard activeGeneration == generation,
+                  content?.summary.nextCursor == cursor
+            else { return }
+            paginationMessage = "We could not load more milestones. Please try again."
+        }
+    }
+
     // /m's store.fetchStatus() equivalent for the dashboard shell — missed
     // celebrations are delivered on open, without loading the full page.
     func refreshCelebration() async {
@@ -140,6 +188,14 @@ final class AchievementsModel {
 
     private func optionalStatus() async -> GamificationStatus? {
         try? await client.loadStatus()
+    }
+
+    private func mergeMilestones(
+        _ existing: [AchievementMilestone],
+        with incoming: [AchievementMilestone]
+    ) -> [AchievementMilestone] {
+        var keys = Set<String>()
+        return (existing + incoming).filter { keys.insert($0.key).inserted }
     }
 
     private func map(_ error: APIError) {

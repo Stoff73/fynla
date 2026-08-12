@@ -373,6 +373,9 @@ Route::middleware('auth:sanctum')->prefix('tax-strategy')->group(function () {
 
 // Net Worth routes (Phase 3)
 Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
+    Route::get('/forecast', [NetWorthController::class, 'getForecast']);
+    Route::put('/forecast/assumptions', [NetWorthController::class, 'updateForecastAssumptions']);
+    Route::delete('/forecast/assumptions', [NetWorthController::class, 'resetForecastAssumptions']);
     Route::get('/overview', [NetWorthController::class, 'getOverview']);
     Route::get('/breakdown', [NetWorthController::class, 'getBreakdown']);
     Route::get('/assets-summary', [NetWorthController::class, 'getAssetsSummary']);
@@ -880,6 +883,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 // Liabilities is a Free-tier module (capability_matrix: liabilities=full),
 // surfaced under Net Worth. Not count-gated.
 Route::middleware(['auth:sanctum'])->prefix('estate/liabilities')->group(function () {
+    Route::get('/{id}', [EstateController::class, 'showLiability']);
     Route::post('/', [EstateController::class, 'storeLiability']);
     Route::put('/{id}', [EstateController::class, 'updateLiability']);
     Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
@@ -1479,6 +1483,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('ai-chat')->group(f
     Route::get('/token-usage', [AiChatController::class, 'tokenUsage']);
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
+    Route::post('/contextual-conversations', [AiChatController::class, 'createContextual']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])

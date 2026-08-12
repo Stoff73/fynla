@@ -1,82 +1,103 @@
-# Client Parity Ledger
+# iOS and `/m` client parity ledger
 
-This ledger is the release evidence record for desktop web, the `/m` mobile-web pathway and the native SwiftUI client. It records development and csjones staging evidence only. Production verification is deferred to the later batch production promotion and is not part of the current native implementation programme.
+This is the release-blocking traceability record for the approved iOS and
+`/m` debugging programme. It supersedes the July native-migration package
+ledger. Historical PR evidence remains in `docs/testing` and
+`docs/superpowers/evidence`; this matrix records the current contract and the
+fresh PR7 closure gate.
 
-## Status vocabulary
+## Authority invariants
 
-- `required`: release-blocking evidence is still required on this surface.
-- `not-landed`: the planned native slice has not landed yet.
-- `not-applicable`: the capability does not apply to this surface and its platform boundary is documented.
-- `green`: automated and manual evidence are both recorded in this row.
+- Laravel rehydrates existing financial facts from canonical records after
+  authenticating and authorising the requesting user.
+- Clients send identifiers and proposed changes, never authoritative balances
+  or financial facts as conversation context.
+- One canonical portfolio exposure and drift method serves DC pensions,
+  investments and Stocks & Shares ISAs. It compares actual look-through
+  exposure with both an entered portfolio and, when available, a recommended
+  allocation, and reports unclassified exposure and provenance.
+- Recorded history never contains projected values. Forecasts are separately
+  labelled, use server-owned assumptions and persist through the canonical API.
+- Semantic destinations are allowlisted. Unknown or unauthorised resources
+  fail safely without leaking another user's facts.
 
-A row must not use `green` while either evidence cell is blank. User journeys require browser evidence for desktop and `/m`, and simulator or physical-device evidence for native where the package plan requires it.
+## Closure status
 
-## Capability matrix
+M-01–M-34 are `green`. GitHub Actions run 31521120892 passed the fresh native
+unit suite, full serial UI suite, dedicated PR7 journey at the largest Dynamic
+Type size, and unsigned Production build. The installed-Google-Chrome journey
+and all Laravel, `/m`, and native contract gates are also green.
 
-| Capability | Desktop | `/m` | Native | Native package | Backend owner | Automated evidence | Manual evidence | Last verified | Approving person |
-|---|---|---|---|---|---|---|---|---|---|
-| Register and verify | green | green | required | Package 3 | AuthController | ClientCompatibilityContractTest registration/verification contract; Package 3 exact-source Swift and backend auth gates | csjones verified Free Chrome dashboard and `/m` journey; native signed-out shell launched on iPhone 16 Pro Max; physical iPhone 11 registration/verification remains required | 2026-07-17 | Pending CSJ |
-| Login, verification and multi-factor authentication | required | required | required | Package 3 | AuthController/MFAController | Package 3 backend auth gate 345 tests/1,261 assertions; Swift host gate 176 tests/21 suites; clean Xcode 26.5 iPhone 11 gate 183 unit tests/23 suites and 28 UI tests/0 failures | Native signed-out shell launched on iPhone 16 Pro Max; current Chrome `/m` acceptance and physical-device branches remain required | 2026-07-17 | Pending CSJ |
-| Free/Premium entitlement | green | green | required | Package 4 | TierResolver/entitlement resolver | `AppleTransactionSubmissionApiTest` verifies before persistence; `NativeEntitlementApiTest` returns Apple billing management; `CanonicalPremiumSurfacesTest` proves one user's Apple Premium across auth, subscription status and mobile dashboard | Verified Free account returned no Subscription row/trial; native StoreKit purchase and cross-surface manual acceptance remain required | 2026-07-18 | Pending CSJ |
-| Dashboard and gamification | green | green | not-landed | Package 5 | MobileDashboardAggregator | ClientCompatibilityContractTest dashboard contract; frontend additive-field test | Actual Chrome desktop dashboard and authenticated `/m` dashboard at 390×844 | 2026-07-16 | Pending CSJ |
-| Fyn onboarding/advice/write handoff | required | green | not-landed | Package 5 | AiChatController | ClientCompatibilityContractTest Fyn envelopes; ConcurrentTurnQueueGateTest | Same verified Free account opened Fyn onboarding in `/m` with no failed Fynla response | 2026-07-16 | Pending CSJ |
-| Income/expenditure/net worth | required | required | required | Package 6 Wave A | existing module APIs | Native endpoint fixtures and model/client tests; Xcode `Fynla-Staging` build-for-testing compiles app, unit-test and UI-test targets | iPhone 16 simulator route acceptance and physical-device evidence remain required | 2026-07-18 | Pending CSJ |
-| Savings/investment | required | required | required | Package 6 Wave B | existing module APIs | Exact-account endpoint/ID fixture tests and native state tests; Xcode `Fynla-Staging` build-for-testing compiles app, unit-test and UI-test targets | iPhone 16 simulator route acceptance and physical-device evidence remain required | 2026-07-18 | Pending CSJ |
-| Retirement/protection | required | required | required | Package 6 Wave C | existing module APIs | Returned-projection and exact-policy fixture tests; no-score assertions; Xcode `Fynla-Staging` build-for-testing compiles app, unit-test and UI-test targets | iPhone 16 simulator route acceptance and physical-device evidence remain required | 2026-07-18 | Pending CSJ |
-| Estate/goals | required | required | required | Package 6 Wave D | existing module APIs | Estate teaser/full and server-progress fixture tests; Xcode `Fynla-Staging` build-for-testing compiles app, unit-test and UI-test targets | iPhone 16 simulator route acceptance and physical-device evidence remain required | 2026-07-18 | Pending CSJ |
-| Tax Strategy/Holistic Plan | required | required | required | Package 6 Wave E | existing plan APIs | Server-order, allowance, recommendation-completion and composite-plan fixture tests; Xcode `Fynla-Staging` build-for-testing compiles app, unit-test and UI-test targets | iPhone 16 simulator route acceptance and physical-device evidence remain required | 2026-07-18 | Pending CSJ |
-| Face ID | not-applicable | not-applicable | required | Package 3 | native session service | PrivacyLockController, Keychain and biometric suites; revoked-family refresh proves signed-out state and complete local credential clearing | Xcode-built native shell launched on iPhone 16 Pro Max; physical Face ID, 60-second relock and Keychain-item inspection remain required | 2026-07-17 | Pending CSJ |
-| StoreKit purchase | not-applicable | not-applicable | required | Package 4 | Apple billing adapter | `SubscriptionModelTests` proves acknowledgement-before-finish, update recovery and unfinished-transaction relaunch recovery; `AppleNotificationProcessorTest` proves same-ID refund/reversal ordering | App Store sandbox purchase and restore remain required on a physical iPhone | 2026-07-18 | Pending CSJ |
-| Account deletion outcome | required | required | not-landed | Package 7 | GDPRController |  |  |  |  |
+`pending-ci` remains the only permitted pre-release status when durable surface
+coverage is complete but the fresh native simulator gate is outstanding.
+Platform-specific behavior is called out explicitly in each evidence cell.
 
-## Current Package 4 Apple billing evidence
+## Machine evidence registry
 
-- Native submission boundary: iOS submits the verified StoreKit signed representation only to Laravel's authenticated native transaction route. Laravel verifies it through the local official-library bridge and alone writes the provider-neutral entitlement and its evidence hash.
-- Finish boundary: `SubscriptionModelTests.verifiedPurchaseAcknowledgesBeforeFinishThenReloadsCanonicalEntitlement` proves Laravel acknowledgement precedes StoreKit finish. `SubscriptionModelTests.relaunchRecoversAnUnfinishedTransactionEmittedBeforeSubscription` proves an update emitted before subscription is recovered from StoreKit's unfinished sequence after relaunch and uses the same acknowledgement-before-finish path.
-- Lifecycle boundary: `AppleNotificationProcessorTest.projects same transaction active refund and refund reversal from newer signed evidence` proves one transaction ID can advance through active, refunded and refund-reversed signed evidence. The stale-evidence companion test proves an older refund cannot downgrade the recovered grant.
-- Shared-surface boundary: `CanonicalPremiumSurfacesTest.shows one Apple Premium entitlement and matching capabilities on every shared surface outside the dashboard cache` proves the same user's canonical Apple grant is returned by desktop auth, desktop subscription status and `/api/v1/mobile/dashboard`; `NativeEntitlementApiTest.returns apple canonical entitlement and apple billing management` covers the native read.
-- Runtime gate: `apple-store:bridge-health --json` locally reported Python, bridge contract `1`, official library `3.1.2` and the checked-in root certificate healthy. The quality workflow installs the Python 3.12 lock with `--require-hashes`, runs Python and PHP bridge suites, then runs the same health command. This is development/CI evidence only; no production host or credential was accessed.
-- Privacy evidence: durable tests and this ledger identify only test names, versions and synthetic IDs. Signed representations, certificate chains and environment values are not recorded here.
+| Key | Surface | Existing path |
+|---|---|---|
+| L-AUTH | Laravel authority | `tests/Feature/AI/ContextualConversationContractTest.php` |
+| L-CONTRACTS | Laravel client contracts | `tests/Feature/Contracts` |
+| L-HISTORY | Laravel history | `tests/Feature/History/BalanceHistoryEntitlementTest.php` |
+| L-MOBILE | Laravel mobile presentation | `tests/Feature/Mobile/MobileAchievementsTest.php` |
+| L-PORTFOLIO | Laravel exposure and drift | `tests/Unit/Services/Investment/PortfolioExposureServiceTest.php` |
+| L-PROJECTION | Laravel projections | `tests/Unit/RetirementProjectionContractServiceTest.php` |
+| M-NAV | `/m` navigation | `resources/mobile/navigation/__tests__/semanticDestinations.spec.js` |
+| M-PROJECTION | `/m` projections | `tests/frontend/mobile/NetWorthForecast.test.js` |
+| M-VIEWS | `/m` presentation | `resources/mobile/views/__tests__` |
+| I-UNIT | iOS models and services | `ios-native/FynlaTests` |
+| I-UI | iOS user journeys | `ios-native/FynlaUITests/FynlaUITests.swift` |
+| U-CHROME | Installed-Chrome closure | `tests/E2E/mobile/parity-closure.spec.js` |
+| U-NATIVE | Native closure | `ios-native/FynlaUITests/FynlaUITests.swift` |
+| E-PR7 | PR7 execution record | `docs/superpowers/evidence/2026-08-11-pr7-ios-m-parity-closure.md` |
 
-## Current Package 3 authentication evidence
+<!-- PARITY-CLOSURE-START -->
 
-- Native boundary: in-app registration, login, email verification, multi-factor authentication, recovery codes, password reset and account restoration now converge through one server-authoritative native session exchange before financial routes unlock.
-- Session security: native access tokens are memory-only; one-time refresh credentials rotate inside a 90-day absolute family; replay, expiry, logout and explicit server revocation invalidate the family through stable errors.
-- Local protection: only the refresh credential, expiry values and session UUID are encoded for service `org.fynla.app.native-session`; Xcode-compiled Security framework calls set `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`, `.biometryCurrentSet` and `kSecAttrSynchronizable=false`.
-- Face ID boundary: opt-in is offered only after complete authentication on Face ID hardware. Cold unlock, cancel, failed recognition, lockout, protected-item invalidation, app-switcher privacy, 60-second relock, Lock and Sign out have deterministic coverage without treating Face ID as a password replacement.
-- Automated evidence: the full backend authentication/native-session/mobile gate passed 345 tests with 1,261 assertions. The exact-source Swift 6 host suite passed 176 tests across 21 suites; the bearer-gated staging health test skipped honestly because no credential was supplied. Project verification passed, and real Xcode compiled the app, unit-test and UI-test targets for generic physical arm64 iOS with Swift warnings treated as errors. Clean macOS 26/Xcode 26.5 run `29618403316` passed 183 unit tests across 23 suites and all 28 UI tests with zero failures on an iPhone 11 simulator, emitted `TEST SUCCEEDED`, and completed the unsigned Production-scheme build with `BUILD SUCCEEDED`.
-- Revocation evidence: backend coverage proves revoked refresh credentials return the same stable 401 as unknown credentials. The native controller test proves the next such refresh enters signed-out state, clears access and refresh memory, deletes the protected Keychain item and disables the Face ID preference.
-- Log evidence: the Laravel test log contained no known native fixture secrets, bearer values or financial JSON bodies. Native diagnostic tests accept only allowlisted scalar metadata and redact arbitrary credential names and financial JSON before the OSLog sink.
-- Simulator evidence: Xcode built, installed and visibly launched the deterministic native signed-out shell on an iPhone 16 Pro Max. The local iOS 26.3 test-manager still stalls waiting for workers, but the Task 9 simulator gate is complete through clean Xcode 26.5 run `29618403316`: 183 unit tests across 23 suites and all 28 iPhone 11 UI tests passed with zero failures, followed by a successful Production-scheme build.
-- Remaining evidence: the paired physical iPhone 11 is currently unavailable to Xcode developer services, and the Google Chrome control connection is unavailable despite healthy extension/native-host installation. Physical Face ID/registration/Keychain inspection, an exported device diagnostic bundle and current `/m` Chrome acceptance remain required. No Chromium substitute is permitted.
+| ID | Requirement | Laravel authority | `/m` automated evidence | iOS automated evidence | PR7 user-loop evidence | Evidence keys | Status |
+|---|---|---|---|---|---|---|---|
+| M-01 | Admin access | Admin handoff and authorization feature contracts | navigation model and Settings route specs | admin drawer and web-handoff UI tests | drawer audit; admin remains an authorized web handoff | L-CONTRACTS M-NAV I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-02 | Personal Information | canonical profile presentation and contextual ownership contracts | `PersonalInformation.spec.js` | `PersonalInformationTests` and drawer UI test | shared drawer route and stable screen identity | L-AUTH M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-03 | Subscription | canonical entitlement and billing-management APIs | `Subscription.spec.js` | subscription API/model/UI tests | shared drawer route and bounded entitlement state | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-04 | Help, privacy, terms and legal | allowlisted handoff contract | Settings navigation specs | settings and web-handoff tests | settings audit; external legal pages use secure handoff | L-CONTRACTS M-NAV I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-05 | Preferences | notification and account settings APIs | `Settings.spec.js` | Settings, privacy and push suites | Settings route and controls remain reachable | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-06 | Dashboard text | `MobileDashboardAggregator` presentation contract | `Dashboard.spec.js` | dashboard model and UI suites | current dashboard heading, level and recommendation | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-07 | Recommendation routing | server-authored semantic destination contract | semantic destination and dashboard specs | router and recommendation UI tests | retirement recommendation opens Retirement | L-CONTRACTS M-NAV I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-08 | Overview Add and canonical detail Edit | contextual resource ownership and rehydration contracts | overview/detail contextual-authority specs | contextual edit and canonical detail UI journeys | overview/detail action audit across financial routes | L-AUTH M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-09 | Protection gaps and explanations | protection presentation service/API tests | `FinancialDataParity.spec.js` | protection model and PR4 UI journey | Protection route plus canonical explanation regression | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-10 | Canonical detail headings | module detail APIs expose canonical labels | canonical detail component specs | detail model/UI and heading regressions | detail-route screen identity audit | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-11 | Fresh contextual Fyn conversations | contextual creation, retry and rehydration contracts | contextual conversation specs | contextual/history UI journey | fresh IDs and exact transcript reopen retained | L-AUTH M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-12 | Retirement holdings, allocation, performance, drift, projections and income | retirement presentation, projection and portfolio services | financial-data and projection suites | retirement, investment and projection suites | age bands, 4.7% assumption and portfolio states | L-PORTFOLIO L-PROJECTION M-PROJECTION M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-13 | Bank Accounts naming and route | savings API and navigation contract | router, navigation and savings specs | navigation menu and savings suites | shared `Bank Accounts` drawer label/route | L-CONTRACTS M-NAV M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-14 | Bank account editing behavior | savings ownership and contextual-write boundary | overview/detail authority specs | savings detail contextual UI journey | Add remains overview-only; Edit remains detail-only | L-AUTH M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-15 | Freemium enforcement | canonical stores and `TierGate` write boundaries | typed limit presentation specs | API error and subscription routing suites | route audit plus server negative regressions | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-16 | ISA type and ownership | owner-aware savings/investment presentation contracts | financial-data parity specs | savings and investment model/UI suites | canonical ISA labels and ownership contract | L-PORTFOLIO M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-17 | Current and prior ISA contributions | canonical ISA contribution ledger | financial-data parity specs | PR4 prior-year contribution journey | current/prior tax-year contract retained | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-18 | ISA allowance breakdown | server-owned allowance tracker and normalized tax year | financial-data parity specs | savings allowance model/UI tests | contribution and allowance reconciliation regression | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-19 | Goals overview, details and actions | canonical goal APIs and ownership-scoped contextual actions | goals overview/detail specs | goals model and canonical detail tests | shared Goals route and stable detail contract | L-AUTH L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-20 | Holistic Plan | composite-plan API, ranking and entitlement gate | `HolisticPlan.spec.js` | `HolisticPlanTests` and PR3 UI journey | shared route and bounded server-authored plan state | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-21 | Personalised achievements | v2 achievement presentation service | `Achievements.spec.js` and installed-Chrome E2E | achievement model/client and PR6 UI journey | earned/reached/progress/inapplicable/action states | L-MOBILE M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-22 | Net Worth heading | canonical Net Worth presentation API | Net Worth component/navigation specs | Net Worth model/UI tests | exact `Net Worth` shared route and heading | L-CONTRACTS M-NAV M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-23 | Recorded and projected Net Worth | history and forecast services keep separate contracts | projection and balance-history specs | balance-history and forecast suites | recorded/projected copy plus save/reload/reset | L-HISTORY L-PROJECTION M-PROJECTION I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-24 | Net Worth editing | contextual action and forecast-assumption APIs | contextual and forecast specs | Net Worth UI and forecast tests | identifier-only Fyn action and canonical assumption write | L-AUTH L-PROJECTION M-PROJECTION I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-25 | Property detail and mortgage amount | joint-aware property/mortgage read stores | Net Worth detail navigation specs | property/mortgage model and PR3 journeys | canonical linked detail contract retained | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-26 | Net Worth links reuse canonical details | semantic detail destination contract | Net Worth detail navigation specs | AppRouter and canonical detail UI tests | reused Property, Mortgage and Liability destinations | L-CONTRACTS M-NAV M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-27 | Valuables | canonical chattel category and detail contract | module and Net Worth category specs | Net Worth category model/UI tests | `Valuables` route/copy audit | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-28 | Liabilities and mortgage reuse | joint-aware liability/mortgage read contracts | Net Worth detail navigation specs | mortgage/liability detail suites | shared canonical debt destinations | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-29 | Income details and tax position | profile income presentation and server-owned tax calculation | income detail specs | income model and PR3 UI journey | canonical Income route/detail contract | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-30 | Expenditure reconciliation and prompt | reconciled active-total presentation service | expenditure detail specs | expenditure model and PR3 UI journey | canonical mode/basis and contextual action contract | L-AUTH L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-31 | Contextual action context | strict identifier/destination validation and server rehydration | contextual authority specs | contextual Fyn models and UI journey | clients transmit action/resource/navigation identifiers only | L-AUTH M-NAV M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-32 | Conversation History | ownership-authorized summary/transcript APIs | `ConversationHistory.spec.js` | conversation history model/UI suites | exact conversation reopen and safe unavailable fallback | L-AUTH M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-33 | Bug reporting | authenticated diagnostic submission and redaction contract | `BugReportSheet.spec.js` | bug report model and UI tests | report control is reachable with privacy-safe diagnostics | L-CONTRACTS M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
+| M-34 | One allocation and drift algorithm across DC pensions, investments and S&S ISAs | canonical portfolio exposure/presentation services and look-through tests | shared `CanonicalPortfolio` rendering suite | investment/retirement model and PR4 UI journey | entered/recommended comparisons, coverage and provenance | L-PORTFOLIO M-VIEWS I-UNIT I-UI U-CHROME U-NATIVE E-PR7 | green |
 
-## Current Package 2 foundation evidence
+<!-- PARITY-CLOSURE-END -->
 
-- Foundation boundary: native SwiftUI environment, session/router shell, typed API and server-sent events transports, privacy-safe diagnostics, accessible design primitives, deterministic app composition and iOS CI through Task 8.
-- Composition evidence: one `AppDependencies` value owns the validated environment, ephemeral HTTP transport, redacting diagnostics, access-token provider, clock, request-ID factory and typed `FeatureClients` extension point.
-- Deterministic shell evidence: the staging scheme's dedicated `UITesting` TestAction alone compiles `-fynla-ui-test-mode`, accepting only `signed-out`, `unlocked` and `design-system`. Those modes use a fixed dependency graph whose transport fails every data or byte-stream request; ordinary Debug/Staging launches and Release/Production builds do not compile or inspect the parser or test doubles.
-- CI evidence: `.github/workflows/ios-native.yml` uses the public `macos-26` runner, selects an installed available iOS runtime, creates and boots an iPhone 11, runs signing-disabled tests by simulator UDID, and uploads the result bundle only when the job fails.
-- Authenticated staging evidence: `StagingHealthIntegrationTests` calls the compiled `https://csjones.co/fynla/api/v1/native/health` endpoint only when `FYNLA_STAGING_BEARER_TOKEN` is supplied at runtime. It accepts no base-URL override, does not log the credential, and reports an honest skip while the token is absent.
-- Automated evidence: the final exact-source Swift 6 host suite passed 70 tests across 11 suites; the authenticated staging health test compiled and skipped honestly because its runtime token was absent. Coverage includes bounded and ordered live-byte handoff, typed overflow with producer cancellation, the no-decorative-symbol source rule and exhaustive non-emoji multibyte UTF-8 splits. The UI-smoke shell helper parses and the workflow YAML is syntactically valid.
-- Build evidence: an unsigned, no-assets Staging `build-for-testing` compiled the app, unit-test and UI-test targets under `UITesting`, and an unsigned, no-assets Production-scheme Release build also exited 0. Asset catalogues were excluded only to isolate unrelated quarantined asset-service work.
-- Clean-runner evidence: `macos-26` run `29535226609` completed the full asset-enabled build, passed 69 Swift tests across 11 suites with one honest credential-gated health skip, passed all four iPhone 11 UI tests, emitted `** TEST SUCCEEDED **`, and completed the unsigned Production-scheme build with `** BUILD SUCCEEDED **`.
-- Evidence status: automated Package 2 gates are green. Manual CSJ shell approval remains required before Package 3 expands account UI, so no user-capability row is promoted to `green` yet.
-- Exclusions: no production deployment, production host request, production smoke check, legacy Capacitor surface, `/m` client or existing `ios/App/` project was changed or exercised.
+## Evidence packages
 
-## Current Package 1 handoff
-
-- Package: iOS Package 1, Economic Contract and API Readiness
-- Commit/PR: PR #630 merged to dev as `95d08410ca8c18b61cd72e820959c163f0a19180`; csjones runs that exact commit
-- Backend tests: freemium remediation full suite green before dev deployment; Package 1 Task 2 architecture test 1 passed with 72 assertions; Task 3 auth and entitlement suite 37 passed with 177 assertions; Task 4 Mobile, AI and client contracts 487 passed with 1851 assertions and 3 intentional capture-only skips; Task 5 Native and Mobile regression 94 passed with 337 assertions; consolidated Package 1 gate 333 passed with 1,410 assertions
-- Client JavaScript tests: 54 files and 727 tests passed; `tests/frontend/mobile/Dashboard.test.js` includes unknown additive response-field tolerance
-- Build evidence: desktop Vite build and `/m` Vite build both exited 0; no Package 1 changes under `ios/App/`, `resources/mobile/` or `deploy/mobile/build-ios.sh`
-- Swift tests: not applicable until Package 2
-- Deployment evidence: tier-collapse audit returned `safe_to_collapse=true` with zero active paid subscriptions/users, live provider agreements, retired tier rows and duplicate financial identifiers; no migrations were pending; required reseed and cache/autoload rebuild completed
-- Native boundary evidence: authenticated valid native headers returned 200/v1, authenticated invalid client headers returned 400/`invalid_native_client`, and the unauthenticated request returned 401 before native-header validation
-- Desktop browser evidence: actual Google Chrome at 1280×900 on csjones dev `95d08410`; a disposable registration completed verification, resolved to permanent Free with no Subscription row or trial field, and reached `/fynla/dashboard` with no retired trial presentation, application-console error, page error or failed API response; screenshot `codex/evidence/ios-package1/csjones-package1-desktop-verified-free-chrome.png`
-- `/m` browser evidence: the same verified Free account used actual Google Chrome at 390×844 on csjones dev `95d08410`; `/fynla/m/app/dashboard`, Fyn onboarding and `/fynla/m/app/savings` were green with no Fynla console error, page error, failed resource or failed API response; screenshots `codex/evidence/ios-package1/csjones-package1-mobile-dashboard-chrome.png`, `codex/evidence/ios-package1/csjones-package1-mobile-fyn-chrome.png`, `codex/evidence/ios-package1/csjones-package1-mobile-savings-chrome.png`
-- Test-data restoration: the disposable verified account was force-deleted (`withTrashed` count 0), all seeders reran, the application cache was cleared and csjones returned live
-- Simulator evidence: not applicable until Package 2
-- Physical-device evidence: not applicable until Package 3
-- Known exclusions: production and App Store release work are deferred; no production checks are part of this ledger entry. The host-wide `https://csjones.co/favicon.ico` returns 404 outside the Fynla `/fynla` application and is not a Fynla console failure.
-- CSJ approval: Package 1 technical gate is green; explicit pre-StoreKit approval remains pending before Package 4
+- PR1 foundations: `docs/testing/2026-08-09-ios-m-parity-pr1-evidence.md`
+- PR2 contextual Fyn/history: `docs/testing/2026-08-10-contextual-fyn-conversation-history-evidence.md`
+- PR3 canonical details: `docs/testing/2026-08-10-canonical-details-ios-m-evidence.md`
+- PR4 financial parity: `docs/testing/2026-08-10-financial-data-parity-evidence.md`
+- PR5 projections: `docs/testing/2026-08-10-projection-parity-evidence.md`
+- PR6 achievements: `docs/superpowers/evidence/2026-08-11-pr6-personalised-achievements.md`
+- PR7 final closure: `docs/superpowers/evidence/2026-08-11-pr7-ios-m-parity-closure.md`

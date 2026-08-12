@@ -48,11 +48,11 @@ struct DashboardClientTests {
         #expect(completion.httpMethod == "POST")
         #expect(
             completion.url?.path
-                == "/fynla/api/recommendations/saving-1/mark-done"
+                == "/fynla/api/recommendations/retirement-1/mark-done"
         )
         #expect(
             completion.httpBody
-                == Data(#"{"module":"savings","recommendation_text":"Build your emergency fund"}"#.utf8)
+                == Data(#"{"module":"retirement","recommendation_text":"Review whether increasing your workplace pension contributions could improve your retirement outcome"}"#.utf8)
         )
     }
 }

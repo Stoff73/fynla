@@ -19,6 +19,7 @@ use App\Http\Requests\UpdateInvestmentAccountRequest;
 use App\Http\Resources\HoldingResource;
 use App\Http\Resources\InvestmentAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Jobs\RunMonteCarloSimulation;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
@@ -30,6 +31,7 @@ use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
+use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Investment\ReturnCalculationService;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
@@ -60,6 +62,7 @@ class InvestmentController extends Controller
 {
     use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
@@ -70,6 +73,7 @@ class InvestmentController extends Controller
         private readonly GoalStrategyService $goalStrategy,
         private readonly InvestmentAccountStore $investmentAccountStore,
         private readonly TierGate $tierGate,
+        private readonly PortfolioPresentationService $portfolioPresentation,
     ) {}
 
     /**
@@ -86,11 +90,14 @@ class InvestmentController extends Controller
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = InvestmentAccount::forUserOrJoint($user->id)
-            ->with(['holdings', 'user', 'jointOwner'])
+            ->with(['holdings', 'valueSnapshots', 'user', 'jointOwner'])
             ->get();
 
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        $relevantPortfolioValue = (float) $accounts->flatMap->holdings->sum('current_value');
+
         // Transform accounts using resource and add calculated fields
-        $accountsData = $accounts->map(function ($account) use ($user) {
+        $accountsData = $accounts->map(function ($account) use ($user, $riskProfile, $relevantPortfolioValue) {
             $resourceData = (new InvestmentAccountResource($account))->toArray(request());
 
             // Add user-specific calculated fields
@@ -107,13 +114,16 @@ class InvestmentController extends Controller
             $jointOwner = $account->jointOwner;
             $resourceData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
             $resourceData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
+            $resourceData['portfolio'] = $this->portfolioPresentation->forInvestmentAccount(
+                $account,
+                $riskProfile,
+                $relevantPortfolioValue,
+            );
 
             return $resourceData;
         });
 
         $goals = InvestmentGoal::where('user_id', $user->id)->get();
-        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
-
         // Get life events and goal strategies relevant to investments
         try {
             $lifeEvents = $this->lifeEventIntegration->getEventsForModule($user->id, 'investment');
@@ -434,15 +444,11 @@ class InvestmentController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Investment account limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Investment account limit reached for your current plan.',
+                'investment',
+            );
         }
 
         // Clear cache
