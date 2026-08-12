@@ -49,7 +49,11 @@ async function openSharedDestination(page, runtimeErrors, label, path, heading) 
   // Wait until the page-level loader and all route requests settle before
   // measuring layout or moving away, otherwise late 5xx/overflow failures can
   // be hidden by the next navigation.
-  await expect(page.locator('.md-loader')).toHaveCount(0);
+  // The local E2E server is intentionally the single-process PHP development
+  // server. On the supported 2014 Intel verification machine, route requests
+  // are queued rather than served concurrently; preserve the assertions but
+  // allow that hardware enough time to finish the real responses.
+  await expect(page.locator('.md-loader')).toHaveCount(0, { timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 10_000 });
   await page.evaluate(() => new Promise((resolve) => {
     window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
@@ -68,7 +72,7 @@ test('installed Chrome closes the complete shared /m parity route and projection
   runtimeErrors,
 }) => {
   test.setTimeout(300_000);
-  page.setDefaultTimeout(10_000);
+  page.setDefaultTimeout(30_000);
 
   const email = `parity.closure.${Date.now()}.${Math.random().toString(16).slice(2)}@example.com`;
   const setup = await request.post('/__e2e/active-user', {
