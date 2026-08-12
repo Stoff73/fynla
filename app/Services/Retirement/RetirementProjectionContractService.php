@@ -22,7 +22,10 @@ final class RetirementProjectionContractService
      */
     public function build(User $user): array
     {
-        $user->loadMissing(['dcPensions', 'dbPensions', 'statePension']);
+        $user->loadMissing(['dcPensions', 'dbPensions', 'statePension', 'retirementProfile']);
+
+        $targetRetirementAge = $user->target_retirement_age
+            ?? $user->retirementProfile?->target_retirement_age;
 
         $withdrawalRate = (float) $this->taxConfig->get(
             'retirement.withdrawal_rates.sustainable',
@@ -43,9 +46,9 @@ final class RetirementProjectionContractService
                 (int) $pension->id,
                 (int) $user->id,
             );
-            $commencementAge = (int) ($pension->retirement_age
+            $commencementAge = (int) ($targetRetirementAge
+                ?? $pension->retirement_age
                 ?? $projection['retirement_age']
-                ?? $user->target_retirement_age
                 ?? 67);
             // The legacy Monte Carlo service intentionally projects for at least one year.
             // The planning contract must not grow an already-commenced pension, so derive
@@ -118,9 +121,9 @@ final class RetirementProjectionContractService
         });
 
         $firstCommencementAge = $products === []
-            ? (int) ($user->target_retirement_age ?? 67)
+            ? (int) ($targetRetirementAge ?? 67)
             : min(array_column($products, 'commencement_age'));
-        $targetAge = (int) ($user->target_retirement_age ?? $firstCommencementAge);
+        $targetAge = (int) ($targetRetirementAge ?? $firstCommencementAge);
         $planningTotalAtTargetAge = array_sum(array_column(array_filter(
             $products,
             static fn (array $product): bool => $product['commencement_age'] <= $targetAge,

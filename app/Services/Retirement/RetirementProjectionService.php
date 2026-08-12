@@ -159,7 +159,7 @@ class RetirementProjectionService
         $pension = $user->dcPensions()->findOrFail($pensionId);
 
         $currentAge = $user->date_of_birth?->age ?? 40;
-        $retirementAge = $pension->retirement_age ?? $this->getRetirementAge($user);
+        $retirementAge = $this->getRetirementAge($user);
         $yearsToRetirement = max(1, $retirementAge - $currentAge);
 
         $currentValue = (float) ($pension->current_fund_value ?? 0);
