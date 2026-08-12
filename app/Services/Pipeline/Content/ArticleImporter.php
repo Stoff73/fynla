@@ -6,7 +6,9 @@ namespace App\Services\Pipeline\Content;
 
 use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
+use App\Models\Insights\InsightArticleRevision;
 use App\Models\Pipeline\ArticleSyncLog;
+use App\Observers\InsightArticleObserver;
 use App\Services\Pipeline\Google\GoogleDriveService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -80,50 +82,56 @@ class ArticleImporter
             return ['article' => $existing, 'action' => 'unchanged'];
         }
 
-        $result = DB::transaction(function () use ($existing, $file, $parsed) {
-            $title = $this->titleFromParse($parsed['blocks']) ?? $this->titleFromFilename($file['name']);
-            $slug = $existing?->slug ?? $this->slugFromFilename($file['name']);
-            $summary = $this->summaryFromParse($parsed['blocks']);
-            $now = now();
+        // Overwriting an article that marketing may have edited in the CMS, so
+        // the write is attributed to the import and versioned like any other
+        // change — otherwise there is nothing to revert to.
+        $result = InsightArticleObserver::actingAsSystem(
+            InsightArticleRevision::SOURCE_DRIVE_IMPORT,
+            fn () => DB::transaction(function () use ($existing, $file, $parsed) {
+                $title = $this->titleFromParse($parsed['blocks']) ?? $this->titleFromFilename($file['name']);
+                $slug = $existing?->slug ?? $this->slugFromFilename($file['name']);
+                $summary = $this->summaryFromParse($parsed['blocks']);
+                $now = now();
 
-            $payload = [
-                'slug' => $slug,
-                'title' => $title,
-                'summary' => $summary ?? substr(strip_tags($title), 0, 300),
-                'body_blocks' => $parsed['blocks'],
-                'source_docx_drive_file_id' => $file['id'],
-                'source_docx_drive_url' => $file['webViewLink'] ?? ('https://drive.google.com/file/d/'.$file['id'].'/view'),
-                'source_docx_hash' => $parsed['hash'],
-                'source_docx_imported_at' => $now,
-            ];
+                $payload = [
+                    'slug' => $slug,
+                    'title' => $title,
+                    'summary' => $summary ?? substr(strip_tags($title), 0, 300),
+                    'body_blocks' => $parsed['blocks'],
+                    'source_docx_drive_file_id' => $file['id'],
+                    'source_docx_drive_url' => $file['webViewLink'] ?? ('https://drive.google.com/file/d/'.$file['id'].'/view'),
+                    'source_docx_hash' => $parsed['hash'],
+                    'source_docx_imported_at' => $now,
+                ];
 
-            if ($existing === null) {
-                $payload['status'] = 'draft';
-                $payload['category'] = 'financial-planning';
-                $article = InsightArticle::create($payload);
-                $action = 'created';
-            } else {
-                $existing->update($payload);
-                $article = $existing->fresh();
-                $action = 'updated';
-            }
+                if ($existing === null) {
+                    $payload['status'] = 'draft';
+                    $payload['category'] = 'financial-planning';
+                    $article = InsightArticle::create($payload);
+                    $action = 'created';
+                } else {
+                    $existing->update($payload);
+                    $article = $existing->fresh();
+                    $action = 'updated';
+                }
 
-            ArticleSyncLog::create([
-                'insight_article_id' => $article->id,
-                'target_env' => 'local',
-                'action' => $action === 'created' ? 'sync' : 'reimport',
-                'status' => 'success',
-                'payload_hash' => $parsed['hash'],
-                'metadata' => [
-                    'drive_file_id' => $file['id'],
-                    'drive_file_name' => $file['name'],
-                    'block_count' => count($parsed['blocks']),
-                    'image_count' => $parsed['image_count'] ?? 0,
-                ],
-            ]);
+                ArticleSyncLog::create([
+                    'insight_article_id' => $article->id,
+                    'target_env' => 'local',
+                    'action' => $action === 'created' ? 'sync' : 'reimport',
+                    'status' => 'success',
+                    'payload_hash' => $parsed['hash'],
+                    'metadata' => [
+                        'drive_file_id' => $file['id'],
+                        'drive_file_name' => $file['name'],
+                        'block_count' => count($parsed['blocks']),
+                        'image_count' => $parsed['image_count'] ?? 0,
+                    ],
+                ]);
 
-            return ['article' => $article, 'action' => $action];
-        });
+                return ['article' => $article, 'action' => $action];
+            })
+        );
 
         Log::channel('pipeline')->info('ArticleImporter: '.$result['action'].' article from Word doc.', [
             'insight_article_id' => $result['article']->id,

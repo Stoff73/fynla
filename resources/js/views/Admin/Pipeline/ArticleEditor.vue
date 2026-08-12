@@ -133,6 +133,8 @@
               You don't have permission to push to live. Ask an admin to add you at /admin/pipeline/publishers.
             </p>
           </div>
+
+          <ArticleVersionHistory v-if="!article.is_bespoke" :article-id="article.id" @restored="refresh" />
         </div>
       </div>
     </div>
@@ -141,11 +143,12 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
+import ArticleVersionHistory from '@/components/Admin/Insights/ArticleVersionHistory.vue';
 import pipelineArticlesService from '@/services/pipelineArticlesService';
 
 export default {
   name: 'ArticleEditor',
-  components: { AppLayout },
+  components: { AppLayout, ArticleVersionHistory },
   data() {
     return {
       article: null,

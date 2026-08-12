@@ -96,8 +96,13 @@ class InsightArticleController extends Controller
 
     public function revisions(InsightArticle $article): JsonResponse
     {
+        // Older revisions stay in the table as an audit trail; only the most
+        // recent few are offered for restore.
         return response()->json([
-            'data' => $article->revisions()->with('savedBy:id,first_name,surname')->get(),
+            'data' => $article->revisions()
+                ->with('savedBy:id,first_name,surname')
+                ->limit(InsightArticleRevision::HISTORY_LIMIT)
+                ->get(),
         ]);
     }
 
