@@ -16,6 +16,18 @@ class InsightArticleRevision extends Model
 
     public $timestamps = false;
 
+    /** A person saved this in the CMS. */
+    public const SOURCE_CMS = 'cms';
+
+    /** An automated import from the Google Drive Articles folder wrote this. */
+    public const SOURCE_DRIVE_IMPORT = 'drive-import';
+
+    /**
+     * How many versions the admin revert panel offers. Older rows are kept —
+     * the table is an append-only audit trail — they are simply not offered.
+     */
+    public const HISTORY_LIMIT = 5;
+
     protected $fillable = [
         'article_id',
         'title',
@@ -23,6 +35,7 @@ class InsightArticleRevision extends Model
         'summary',
         'body_blocks',
         'saved_by',
+        'source',
         'saved_at',
     ];
 

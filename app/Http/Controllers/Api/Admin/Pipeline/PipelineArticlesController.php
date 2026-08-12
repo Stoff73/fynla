@@ -247,6 +247,10 @@ class PipelineArticlesController extends Controller
             'meta_title' => $article->meta_title,
             'meta_description' => $article->meta_description,
             'is_featured' => (bool) $article->is_featured,
+            // Bespoke articles render from a Vue component rather than body
+            // blocks, so they are not versioned — the editor hides the version
+            // history panel for them rather than promise something untrue.
+            'is_bespoke' => (bool) $article->is_bespoke,
             'status' => $article->status,
             'published_at' => optional($article->published_at)->toIso8601String(),
             'updated_at' => optional($article->updated_at)->toIso8601String(),

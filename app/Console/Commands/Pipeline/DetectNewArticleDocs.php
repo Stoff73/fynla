@@ -15,7 +15,8 @@ use Throwable;
  * Stage 5 auto-ingest. Polls Marketing Automation ▸ Articles for .docx
  * files and native Google Docs, imports each into InsightArticle as a
  * draft. Content-hash cached in source_docx_hash so unchanged files are
- * skipped.
+ * skipped, and any file whose slug is already taken is skipped too — the
+ * crawl fills in what's missing, it never creates a second copy of a story.
  *
  * Runs daily at 06:45 (before the video-detect at 07:30 so any new
  * articles are draft-ready when marketing next opens the CMS).
@@ -64,7 +65,7 @@ class DetectNewArticleDocs extends Command
 
         $this->info(sprintf('Found %d file(s).', count($files)));
 
-        $counts = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'failed' => 0];
+        $counts = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'failed' => 0];
 
         foreach ($files as $file) {
             $label = $file['name'].' ('.($file['mimeType'] === self::NATIVE_GOOGLE_DOC_MIME ? 'Google Doc' : '.docx').')';
@@ -78,6 +79,13 @@ class DetectNewArticleDocs extends Command
             try {
                 $result = $importer->import($file);
                 $counts[$result['action']]++;
+
+                if ($result['action'] === 'skipped') {
+                    $this->line("  · <fg=yellow>skipped</> — {$label}: {$result['reason']}");
+
+                    continue;
+                }
+
                 $verb = match ($result['action']) {
                     'created' => '<fg=green>new</>',
                     'updated' => '<fg=cyan>updated</>',
@@ -96,10 +104,11 @@ class DetectNewArticleDocs extends Command
 
         $this->newLine();
         $this->info(sprintf(
-            'Done. Created %d · Updated %d · Unchanged %d · Failed %d.',
+            'Done. Created %d · Updated %d · Unchanged %d · Skipped %d · Failed %d.',
             $counts['created'],
             $counts['updated'],
             $counts['unchanged'],
+            $counts['skipped'],
             $counts['failed'],
         ));
 

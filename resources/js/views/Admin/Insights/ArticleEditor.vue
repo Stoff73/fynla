@@ -154,6 +154,12 @@
               </div>
             </div>
           </details>
+
+          <ArticleVersionHistory
+            v-if="form.id && !form.is_bespoke"
+            :article-id="form.id"
+            @restored="reloadAfterRestore"
+          />
         </section>
 
         <!-- Canvas -->
@@ -286,6 +292,7 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
+import ArticleVersionHistory from '@/components/Admin/Insights/ArticleVersionHistory.vue';
 import BespokeArticleNotice from '@/components/Admin/Insights/BespokeArticleNotice.vue';
 import BlockPickerModal from '@/components/Admin/Insights/BlockPickerModal.vue';
 import insightsService from '@/services/insightsService';
@@ -319,7 +326,7 @@ const EDITOR_MAP = {
 
 export default {
   name: 'ArticleEditor',
-  components: { AppLayout, BespokeArticleNotice, BlockPickerModal },
+  components: { AppLayout, ArticleVersionHistory, BespokeArticleNotice, BlockPickerModal },
   data() {
     return {
       form: {
@@ -378,6 +385,14 @@ export default {
   },
   methods: {
     ...mapActions('insights', ['fetchTemplates', 'saveAsTemplate']),
+
+    // A restore rewrites title, subtitle, summary and body on the server, so
+    // pull the article back down rather than leaving stale values in the form.
+    async reloadAfterRestore() {
+      if (!this.articleId) return;
+      const res = await insightsService.adminGet(this.articleId);
+      this.form = { ...this.form, ...res.data };
+    },
     editorForType(type) { return EDITOR_MAP[type] || null; },
     startBlank() {
       this.form.body_blocks = [];
