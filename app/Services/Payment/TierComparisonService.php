@@ -11,7 +11,7 @@ class TierComparisonService
      *
      * @var array<string, array{label: string, cap_key?: string}>
      */
-    private const array FEATURES = [
+    private const FEATURES = [
         'dashboard' => ['label' => 'Financial dashboard'],
         'income' => ['label' => 'Income tracking'],
         'expenditure' => ['label' => 'Expenditure tracking'],

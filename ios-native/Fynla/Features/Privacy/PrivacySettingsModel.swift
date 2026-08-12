@@ -7,6 +7,7 @@ final class PrivacySettingsModel {
     private(set) var updatingType: String?
     private(set) var updateFailed = false
     private(set) var history: [ConsentHistoryEntry] = []
+    private(set) var marketingConsented = false
     private let client: any PrivacyClient
     private var lastSnapshot: ConsentSnapshot?
     private var generation = 0
@@ -26,6 +27,7 @@ final class PrivacySettingsModel {
             let loadedHistory = await historyResult
             guard active == generation, !Task.isCancelled else { return }
             lastSnapshot = snapshot
+            marketingConsented = snapshot.consents["marketing"]?.consented == true
             history = loadedHistory?.history ?? []
             state = .loaded(snapshot)
         } catch let error as APIError {
@@ -52,6 +54,7 @@ final class PrivacySettingsModel {
         do {
             let snapshot = try await client.updateConsents([type: consented])
             lastSnapshot = snapshot
+            marketingConsented = snapshot.consents["marketing"]?.consented == true
             state = .loaded(snapshot)
         } catch {
             updateFailed = true
@@ -64,5 +67,6 @@ final class PrivacySettingsModel {
         state = .idle
         updatingType = nil
         updateFailed = false
+        marketingConsented = false
     }
 }

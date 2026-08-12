@@ -83,6 +83,26 @@ struct FynEventReducerTests {
     }
 
     @Test
+    func journeyVerifyDestinationsResolve() {
+        // 2026-07-24: the journey path verifies every data entry — the
+        // protection/estate/goals screens must accept the navigate, matching
+        // /m's ONBOARDING_NAV_ROUTES.
+        var state = FynReductionState()
+        var reducer = FynEventReducer()
+
+        reducer.reduce(.navigation(path: "/protection", section: "protection"), into: &state)
+        #expect(state.pendingNavigation == FynNavigation(route: .protection(policyType: nil, id: nil), section: "protection"))
+
+        state.pendingNavigation = nil
+        reducer.reduce(.navigation(path: "/estate", section: nil), into: &state)
+        #expect(state.pendingNavigation == FynNavigation(route: .estate, section: nil))
+
+        state.pendingNavigation = nil
+        reducer.reduce(.navigation(path: "/goals", section: nil), into: &state)
+        #expect(state.pendingNavigation == FynNavigation(route: .goals, section: nil))
+    }
+
+    @Test
     func unknownFramesDoNotTerminateSubsequentText() {
         var state = FynReductionState()
         var reducer = FynEventReducer()

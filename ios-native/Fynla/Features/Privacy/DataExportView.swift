@@ -10,6 +10,7 @@ struct DataExportView: View {
             Text("Data export")
                 .font(FynlaTypography.pageTitle)
                 .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityIdentifier("privacy.export.screen")
             Text("Fynla prepares a JSON copy of your account data. The temporary copy on this iPhone is removed after sharing.")
                 .font(FynlaTypography.body)
                 .foregroundStyle(FynlaColor.secondaryText)
@@ -27,12 +28,12 @@ struct DataExportView: View {
         }) {
             if let url = model.shareURL {
                 ExportShareSheet(url: url)
+                    .accessibilityIdentifier("privacy.export.share")
             }
         }
         .onChange(of: model.shareURL) { _, url in
             presentsShare = url != nil
         }
-        .accessibilityIdentifier("privacy.export.screen")
     }
 
     @ViewBuilder

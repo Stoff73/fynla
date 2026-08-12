@@ -144,11 +144,22 @@ struct FynlaApp: App {
         let nativeVersionPolicyModel = NativeVersionPolicyModel(
             client: nativeVersionPolicyClient
         )
+        #if FYNLA_UI_TESTING
+        let systemPushClient: any SystemPushClient = uiTestMode == nil
+            ? LiveSystemPushClient()
+            : PrivacyAndSettingsUITestComposition.systemPushClient()
+        let pushClient: any PushClient = uiTestMode == nil
+            ? LivePushClient(apiClient: authenticatedDependencies.makeAPIClient())
+            : PrivacyAndSettingsUITestComposition.pushClient()
+        #else
+        let systemPushClient: any SystemPushClient = LiveSystemPushClient()
+        let pushClient: any PushClient = LivePushClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        #endif
         let pushCoordinator = PushRegistrationCoordinator(
-            system: LiveSystemPushClient(),
-            client: LivePushClient(
-                apiClient: authenticatedDependencies.makeAPIClient()
-            ),
+            system: systemPushClient,
+            client: pushClient,
             session: session,
             router: router,
             nativeSessionID: { coordinator.credentials?.sessionID },
@@ -392,9 +403,15 @@ struct FynlaApp: App {
             webBaseURL: dependencies.environment.webBaseURL,
             beforeSignOut: { await pushCoordinator.unregister() }
         )
-        let privacyClient = LivePrivacyClient(
+        #if FYNLA_UI_TESTING
+        let privacyClient: any PrivacyClient = uiTestMode == nil
+            ? LivePrivacyClient(apiClient: authenticatedDependencies.makeAPIClient())
+            : PrivacyAndSettingsUITestComposition.privacyClient()
+        #else
+        let privacyClient: any PrivacyClient = LivePrivacyClient(
             apiClient: authenticatedDependencies.makeAPIClient()
         )
+        #endif
         let privacySettingsModel = PrivacySettingsModel(client: privacyClient)
         let exportStore = TemporaryExportStore()
         let dataExportModel = DataExportModel(
@@ -404,11 +421,21 @@ struct FynlaApp: App {
         let accountDeletionSubscriptionAPI = LiveSubscriptionAPI(
             apiClient: authenticatedDependencies.makeAPIClient()
         )
+        #if FYNLA_UI_TESTING
+        let accountDeletionClient: any AccountDeletionClient = uiTestMode == nil
+            ? LiveAccountDeletionClient(apiClient: authenticatedDependencies.makeAPIClient())
+            : PrivacyAndSettingsUITestComposition.accountDeletionClient()
+        #else
+        let accountDeletionClient: any AccountDeletionClient = LiveAccountDeletionClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        #endif
         let accountDeletionModel = AccountDeletionModel(
-            client: LiveAccountDeletionClient(
-                apiClient: authenticatedDependencies.makeAPIClient()
-            ),
+            client: accountDeletionClient,
             loadBillingState: {
+                #if FYNLA_UI_TESTING
+                if uiTestMode != nil { return .webPremium }
+                #endif
                 do {
                     let entitlement = try await accountDeletionSubscriptionAPI.entitlement()
                     return switch (entitlement.tier, entitlement.billingManagement) {
