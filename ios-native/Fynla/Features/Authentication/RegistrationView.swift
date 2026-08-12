@@ -288,13 +288,13 @@ extension View {
     @ViewBuilder
     func fynlaNewPasswordInput() -> some View {
         #if os(iOS) && FYNLA_UI_TESTING
-        // Omitting a content type is not enough on iOS 18.6: the simulator
-        // infers a new-password pair from the adjacent secure fields and
-        // inserts an "Automatic Strong Password" cover view that intercepts
-        // XCUITest input. Mark the fields as existing-password inputs only in
-        // the UI-test build so the system overlay stays out of the test path.
-        // Shipping builds continue to advertise `.newPassword` below.
-        self.textContentType(.password)
+        // Omitting a content type (and even `.password`) is not enough on the
+        // iOS 18.6 simulator: it still infers a new-password pair from the
+        // adjacent secure fields and inserts an "Automatic Strong Password"
+        // cover view that intercepts XCUITest input. `.oneTimeCode` suppresses
+        // password AutoFill while preserving secure-entry rendering in the
+        // UI-test build. Shipping builds still advertise `.newPassword` below.
+        self.textContentType(.oneTimeCode)
         #elseif os(iOS)
         // Simulator (not real devices) covers `.newPassword` secure fields
         // with its own "Automatic Strong Password" suggestion view during

@@ -5,6 +5,7 @@ struct PrivacySettingsView: View {
     let dataExportModel: DataExportModel
     let accountDeletionModel: AccountDeletionModel
     let appleManager: any AppleSubscriptionManaging
+    @State private var displayedMarketingConsent = false
 
     var body: some View {
         Group {
@@ -98,17 +99,7 @@ struct PrivacySettingsView: View {
             }
 
             Toggle(
-                isOn: Binding(
-                    get: { snapshot.consents["marketing"]?.consented == true },
-                    set: { value in
-                        Task {
-                            await model.setConsent(
-                                type: "marketing",
-                                consented: value
-                            )
-                        }
-                    }
-                )
+                isOn: $displayedMarketingConsent
             ) {
                 VStack(alignment: .leading, spacing: FynlaSpacing.micro) {
                     Text("Marketing messages")
@@ -121,6 +112,25 @@ struct PrivacySettingsView: View {
             }
             .tint(FynlaColor.focus)
             .disabled(model.updatingType != nil)
+            // Keep the visual switch in local presentation state, but only
+            // change that state when the server-authoritative model publishes
+            // its acknowledgement. A rejected update therefore never appears
+            // to have been saved.
+            .onChange(of: model.marketingConsented, initial: true) { _, acknowledged in
+                displayedMarketingConsent = acknowledged
+            }
+            .onChange(of: displayedMarketingConsent) { _, requested in
+                guard requested != model.marketingConsented,
+                      model.updatingType == nil
+                else { return }
+                Task {
+                    await model.setConsent(
+                        type: "marketing",
+                        consented: requested
+                    )
+                    displayedMarketingConsent = model.marketingConsented
+                }
+            }
             .accessibilityIdentifier("privacy.consent.marketing")
 
             if model.updateFailed {
@@ -157,6 +167,7 @@ struct PrivacySettingsView: View {
             Text("Account deletion")
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityIdentifier("privacy.deletion")
             Text("Deletion is completed in this app with verification and clear retention information.")
                 .font(FynlaTypography.body)
                 .foregroundStyle(FynlaColor.secondaryText)
@@ -172,7 +183,6 @@ struct PrivacySettingsView: View {
             .accessibilityIdentifier("privacy.deletion.open")
         }
         .privacyCard()
-        .accessibilityIdentifier("privacy.deletion")
     }
 
     private func stateView(_ state: ScreenStatePresentation) -> some View {
