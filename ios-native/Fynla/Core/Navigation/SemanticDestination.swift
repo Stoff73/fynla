@@ -56,6 +56,45 @@ struct SemanticDestination: Codable, Sendable, Equatable {
     let screen: String
     let params: [String: SemanticParameter]
     let fallback: String
+
+    private enum CodingKeys: String, CodingKey {
+        case screen
+        case params
+        case fallback
+    }
+
+    init(screen: String, params: [String: SemanticParameter], fallback: String) {
+        self.screen = screen
+        self.params = params
+        self.fallback = fallback
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        screen = try container.decode(String.self, forKey: .screen)
+        fallback = try container.decode(String.self, forKey: .fallback)
+
+        do {
+            params = try container.decode(
+                [String: SemanticParameter].self,
+                forKey: .params
+            )
+        } catch {
+            // Build 5 exposed a legacy server shape where an empty PHP map was
+            // encoded as `[]`. Accept only that empty-array representation;
+            // malformed or populated arrays still fail closed.
+            guard
+                let legacyParams = try? container.decode(
+                    [SemanticParameter].self,
+                    forKey: .params
+                ),
+                legacyParams.isEmpty
+            else {
+                throw error
+            }
+            params = [:]
+        }
+    }
 }
 
 struct SemanticActionDescriptor: Sendable, Equatable {
