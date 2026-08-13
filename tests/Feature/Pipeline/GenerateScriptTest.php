@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Jobs\Pipeline\ProcessInsightArticleJob;
 use App\Mail\Pipeline\ScriptReadyForReviewMail;
 use App\Models\Insights\InsightArticle;
-use App\Models\Pipeline\OAuthCredential;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
 use App\Services\Pipeline\Google\GoogleDriveService;
@@ -21,10 +20,25 @@ use Illuminate\Support\Facades\Mail;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    putenv('RANDFILE='.sys_get_temp_dir().'/fynla-openssl-random-state');
+
+    $key = openssl_pkey_new([
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($key, $privateKey);
+    $this->googleCredentialsPath = tempnam(sys_get_temp_dir(), 'fynla-pipeline-google-');
+    file_put_contents($this->googleCredentialsPath, json_encode([
+        'type' => 'service_account',
+        'project_id' => 'fynla-marketing-test',
+        'private_key_id' => 'test-key-id',
+        'private_key' => $privateKey,
+        'client_email' => 'pipeline@fynla-marketing-test.iam.gserviceaccount.com',
+        'token_uri' => 'https://oauth2.googleapis.com/token',
+    ], JSON_THROW_ON_ERROR));
+
     Config::set('pipeline.enabled', true);
-    Config::set('pipeline.google.oauth_client_id', 'test-client-id');
-    Config::set('pipeline.google.oauth_client_secret', 'test-client-secret');
-    Config::set('pipeline.google.oauth_redirect_uri', 'http://localhost:8000/pipeline/oauth/google/callback');
+    Config::set('pipeline.google.service_account_credentials', $this->googleCredentialsPath);
     Config::set('pipeline.google.drive_folder_id', 'FOLDER123');
     Config::set('pipeline.google.tracker_sheet_id', 'SHEET123');
     Config::set('pipeline.anthropic.api_key', 'test-anthropic-key');
@@ -37,16 +51,11 @@ beforeEach(function () {
     // don't need to fake the Drive folder lookup/create round-trip.
     Cache::put('pipeline.google.drive.scripts_folder_id', 'SCRIPTS_FOLDER_ID', 3600);
 
-    OAuthCredential::create([
-        'provider' => 'google',
-        'account_email' => 'test@fynla.org',
-        'access_token' => 'test-access-token',
-        'refresh_token' => 'test-refresh-token',
-        'expires_at' => now()->addHour(),
-        'scopes' => ['https://www.googleapis.com/auth/drive.file'],
-    ]);
-
     Mail::fake();
+});
+
+afterEach(function () {
+    @unlink($this->googleCredentialsPath);
 });
 
 function fakeAnthropicScriptJson(): string
@@ -83,6 +92,11 @@ function fakeAnthropicResponse(?string $bodyJson = null): array
 it('runs the full happy path: script → drive → sheet → email', function () {
     Http::fake([
         'api.anthropic.com/*' => Http::response(fakeAnthropicResponse(), 200),
+        'oauth2.googleapis.com/token' => Http::response([
+            'access_token' => 'test-access-token',
+            'expires_in' => 3600,
+            'token_type' => 'Bearer',
+        ], 200),
         'googleapis.com/upload/drive/v3/files*' => Http::response([
             'id' => 'DOC_ID_123',
             'name' => 'Script — Test',
