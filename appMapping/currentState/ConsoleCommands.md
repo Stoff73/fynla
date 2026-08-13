@@ -334,15 +334,15 @@ Runs five verification checks and reports pass/fail for each:
 **Valid persona IDs:**
 - `young_family`
 - `peak_earners`
-- `widow`
 - `entrepreneur`
-
-**Note:** The constant only lists 4 of the 6 total personas defined in the system. The `young_saver` and `retired_couple` personas are NOT included in this command.
+- `young_saver`
+- `retired_couple`
+- `student`
 
 **What it does, step by step:**
 
 1. Validates the persona argument against the allowed list. Fails if invalid.
-2. If no persona specified, processes all four valid personas.
+2. If no persona specified, processes all six valid personas.
 3. For each persona:
    - Finds the primary preview user by `is_preview_user = true` AND `preview_persona_id = {personaId}`.
    - Finds the spouse user (if any) by `preview_persona_id = "{personaId}_spouse"`.
@@ -493,7 +493,6 @@ php artisan preview:reset
 # Reset a specific persona
 php artisan preview:reset young_family
 php artisan preview:reset peak_earners
-php artisan preview:reset widow
 php artisan preview:reset entrepreneur
 ```
 
@@ -519,7 +518,6 @@ php artisan schedule:list
 ### Data Safety Concerns
 
 - **`preview:reset`** permanently deletes all financial data for the target persona(s) before re-seeding. There is no confirmation prompt. This is safe because preview users are test data only, but care must be taken to never run it against real user data.
-- **`preview:reset`** only covers 4 of 6 personas (`young_family`, `peak_earners`, `widow`, `entrepreneur`). The `young_saver` and `retired_couple` personas are not supported by this command and must be reset manually via the seeder.
 - **`data:encrypt`** re-saves records to trigger encryption casts. If encryption is misconfigured (wrong `APP_KEY`), data could become unreadable. Always test with `--dry-run` first.
 - **`data:encrypt`** detection of already-encrypted values relies on checking for the `eyJ` prefix (base64 JSON). If a raw numeric value happens to start with `eyJ` (extremely unlikely for financial data), it would be incorrectly skipped.
 - **`audit:purge`** permanently deletes audit log records. The `--days` flag only overrides the standard retention period, not the GDPR retention (which is always loaded from config). Use `--dry-run` to preview before purging.

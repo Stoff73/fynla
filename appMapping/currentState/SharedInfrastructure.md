@@ -1359,7 +1359,7 @@ The main orchestrator that runs all seeders in the correct order. Divided into t
 2. `TaxProductReferenceSeeder` -- ISA/GIA/Bond tax treatment info
 3. `ActuarialLifeTablesSeeder` -- Life expectancy data for estate/retirement projections
 4. `AdminUserSeeder` -- Admin account
-5. `PreviewUserSeeder` -- Preview personas (young_family, peak_earners, widow, entrepreneur, young_saver, retired_couple)
+5. `PreviewUserSeeder` -- Preview personas (young_family, peak_earners, entrepreneur, young_saver, retired_couple, student)
 
 **Phase 2 -- Optional Data (local/development/staging only):**
 6. `HouseholdSeeder` -- Test households for multi-user testing

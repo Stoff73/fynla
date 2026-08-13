@@ -906,7 +906,6 @@ The seeder creates estate data for preview personas via dedicated methods:
 
 **Key Personas with Estate Data:**
 - **peak_earners (David & Sarah Mitchell):** Multiple properties, significant estate, full IHT planning
-- **widow (Margaret Thompson):** Transferred NRB from deceased spouse, estate planning focus
 - **retired_couple (Robert & Patricia Williams):** Decumulation, estate planning focus
 - **entrepreneur (Alex Chen):** Business interests with BPR
 

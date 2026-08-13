@@ -59,18 +59,6 @@ class AdvisorClientSeeder extends Seeder
                     ['type' => 'meeting', 'summary' => 'NHS pension transfer analysis discussion', 'date' => '2026-01-20'],
                 ],
             ],
-            'widow' => [
-                'avatar_colour' => 'spring-500',
-                'assigned_date' => '2025-04-15',
-                'last_review_date' => '2026-02-05',
-                'next_review_due' => '2026-08-05',
-                'review_frequency_months' => 6,
-                'activities' => [
-                    ['type' => 'suitability_report', 'summary' => 'Estate suitability review', 'date' => '2026-02-05', 'report_type' => 'estate_review', 'report_sent_date' => '2026-02-05'],
-                    ['type' => 'meeting', 'summary' => 'Full estate planning review meeting', 'date' => '2026-02-05'],
-                    ['type' => 'email', 'summary' => 'Trust structure documentation sent', 'date' => '2026-01-15'],
-                ],
-            ],
             'entrepreneur' => [
                 'avatar_colour' => 'savannah-500',
                 'assigned_date' => '2025-02-01',

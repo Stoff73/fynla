@@ -1279,7 +1279,6 @@ Preview users (`is_preview_user = true`) are seeded test personas that demonstra
 |------------|-------|-------|
 | `young_family` | James & Emily Carter | Mortgage, workplace pensions |
 | `peak_earners` | David & Sarah Mitchell | Multiple properties, SIPP + NHS pension |
-| `widow` | Margaret Thompson | Estate planning |
 | `entrepreneur` | Alex Chen | SIPP, business interests |
 | `young_saver` | John Morgan | Emergency fund, first-time savings |
 | `retired_couple` | Robert & Patricia Williams | Decumulation, estate planning |
