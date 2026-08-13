@@ -47,6 +47,10 @@ return [
 
     'queue' => env('PIPELINE_QUEUE', 'pipeline'),
 
+    // Identifies this deployment to the pipeline preflight check so only one
+    // environment is allowed to run the shared marketing automation pipeline.
+    'runner_name' => env('PIPELINE_RUNNER_NAME', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Google (Drive + Sheets)
@@ -64,7 +68,7 @@ return [
         'oauth_client_id' => env('GOOGLE_OAUTH_CLIENT_ID'),
         'oauth_client_secret' => env('GOOGLE_OAUTH_CLIENT_SECRET'),
         'oauth_redirect_uri' => env('GOOGLE_OAUTH_REDIRECT_URI'),
-        'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID', '1HR5oTck5ZQuAviTvAMdJEoNpPIcd-75P'),
+        'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID'),
         'tracker_sheet_id' => env('PIPELINE_GOOGLE_TRACKER_SHEET_ID'),
     ],
 
