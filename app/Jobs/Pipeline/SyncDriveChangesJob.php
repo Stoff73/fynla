@@ -41,6 +41,10 @@ class SyncDriveChangesJob implements ShouldQueue
 
     public function handle(GoogleDriveService $drive, DriveChangeRouter $router): void
     {
+        // The cache entry only coalesces work waiting in the queue. Once this
+        // job starts, the existing stream lock serialises any new pings.
+        Cache::forget('pipeline:drive-changes:pending');
+
         $channel = DriveWatchChannel::active();
         if ($channel === null) {
             return;
