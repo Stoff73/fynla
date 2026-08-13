@@ -1,8 +1,8 @@
 # Google Drive Marketing Automation Readiness Implementation Plan
 
-**Goal:** Make the existing Fynla marketing automation safe and straightforward to commission against the existing `Marketing automation` Shared Drive without changing its folder architecture.
+**Goal:** Make the existing Fynla marketing automation safe and straightforward to commission against the existing `Marketing Automation` Shared Drive without changing its folder architecture.
 
-**Base:** `origin/dev` at pull request 690 merge commit `9c9d2aa5f08e6d2a78f99f5094d6fd13abf2935a`.
+**Base:** `origin/dev` at the pull request 690 merge commit (record the approved deployment commit in release evidence, not this plan).
 
 ## Global Constraints
 
@@ -129,12 +129,12 @@ When the configured tracker is an Excel workbook, the command must explain that 
 **Content requirements:**
 
 1. Use plain language and define technical terms.
-2. Name the existing `Marketing automation` Shared Drive and its `Articles`, `Scripts`, and `Videos` folders without proposing a refactor.
+2. Name the existing `Marketing Automation` Shared Drive and its `Articles`, `Scripts`, and `Videos` folders without proposing a refactor.
 3. Explain the one-runner rule and recommend `csjones-development` initially.
 4. Archive, never delete, the legacy Excel tracker and old test assets.
 5. State the exact article/video filename matching rules, including that `.mov_` is invalid.
 6. Describe Word Heading 1 as the title and Heading 2/3 as sections; document links, bold, italic, bullets, and numbered lists.
-7. Include Google permission setup, callback addresses, safe server settings, authorisation, native tracker creation, dry runs, controlled article/script/video tests, polling-first activation, webhook activation after hardening, monitoring, and emergency stop.
+7. Include service-account permission setup, safe server settings, native tracker creation, dry runs, controlled article/script/video tests, polling-first activation, optional public-HTTPS webhook activation after hardening, monitoring, and emergency stop. State that service-account authentication needs no Google sign-in, OAuth callback, browser authorisation, refresh token, or recurring reauthorisation.
 8. Correct stale daily schedules to the configurable polling interval, default five minutes.
 9. Include pull request 690 deployment requirements: local front-end build, database backup, `php artisan migrate --force`, migration status, and the approved cache commands. Warn against `php artisan optimize` and `php artisan route:cache`.
 10. Keep production disabled during initial commissioning and social publishing in safe mode.

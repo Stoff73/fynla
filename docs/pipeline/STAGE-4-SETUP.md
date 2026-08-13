@@ -15,7 +15,7 @@ Governed by the `.claude/skills/social-media-posts/SKILL.md` skill.
 | Buffer account with Instagram, Facebook, TikTok profiles connected | https://publish.buffer.com/ |
 | Buffer **Personal Key** (Bearer token for the GraphQL API) | https://publish.buffer.com/developers/api |
 | Buffer channel IDs (one per platform) | GraphQL query — see below (Buffer calls them "channels" in v2, they were "profiles" in v1) |
-| GA4 Property ID | analytics.google.com → Admin → Property Settings (looks like `530097849`) |
+| GA4 Property ID | analytics.google.com → Admin → Property Settings (numeric identifier) |
 | Service account has Viewer access to GA4 | analytics.google.com → Admin → Property access management |
 
 ---
@@ -92,7 +92,7 @@ schedules the post. This means:
 Paste your GA4 property ID (numeric, no `properties/` prefix):
 
 ```
-PIPELINE_GA_PROPERTY_ID=530097849
+PIPELINE_GA_PROPERTY_ID=<GA4-property-ID>
 ```
 
 Then `php artisan config:clear`.
@@ -124,14 +124,18 @@ Then `php artisan config:clear`.
 
 ---
 
-## Daily/weekly flow (production)
+## Polling/weekly flow (production)
 
-The Kernel schedule now runs:
+The four detector commands poll every `PIPELINE_POLL_FREQUENCY_MINUTES`
+(default five minutes). The optional Drive webhook is renewed daily at 05:00;
+that daily renewal is not detector polling.
 
-| Time | Command | Purpose |
+| Interval | Command | Purpose |
 |---|---|---|
-| 07:00 daily | `pipeline:detect-new-articles` | Stage 1 |
-| 07:30 daily | `pipeline:detect-new-videos` | Stage 3 |
+| Configurable; default every 5 minutes | `pipeline:detect-new-article-docs` | Stage 5 import |
+| Configurable; default every 5 minutes | `pipeline:detect-new-articles` | Stage 1 |
+| Configurable; default every 5 minutes | `pipeline:detect-new-document-articles` | CMS article detection |
+| Configurable; default every 5 minutes | `pipeline:detect-new-videos` | Stage 3 |
 | Every hour | `pipeline:schedule-ready-posts` | Stage 4 — push approved posts to Buffer |
 | Monday 06:00 | `pipeline:recalculate-optimal-times` | Stage 4 — refresh best_times from GA |
 | Monday 09:00 | `pipeline:weekly-social-report` | Stage 4 — email marketing@ |

@@ -13,7 +13,7 @@ Prerequisites: **Stages 1 + 2 already set up** (see `STAGE-2-SETUP.md`).
 | FFmpeg on PATH | `winget install Gyan.FFmpeg` |
 | Python 3.10+ on PATH | `winget install Python.Python.3.12` |
 | `whisper` CLI on PATH | `pip install openai-whisper` (~1.5 GB with torch) |
-| A "Videos" subfolder in your Marketing Automation Drive folder | Create it manually in Drive |
+| The existing `Videos` direct child of the Marketing Automation Shared Drive | Do not rename, replace, or recreate it |
 
 The `whisper` CLI downloads its model (~500 MB for `small`) on first invocation. That first run adds ~2 min of one-off delay.
 
@@ -28,6 +28,8 @@ For the pipeline to produce good clips, source videos should:
 3. **Filename must match the article slug exactly.** For an article at `/insights/isa-allowance-2025-26`, the file must be `isa-allowance-2025-26.mp4`.
 4. **Length**: 2–20 minutes ideal. ≤75 sec videos are posted whole. >20 min is fine but transcription slows.
 5. **Upload to**: `Marketing Automation ▸ Videos ▸ {slug}.mp4` in Drive.
+   `.mov` is also accepted, but the name must end exactly in `.mp4` or `.mov`:
+   `{slug}.mov_` is invalid.
 
 The video should have already had a script generated for it (Stage 2), meaning the InsightArticle is in the `scripted` pipeline state. If it isn't, the detect command skips it.
 
@@ -54,14 +56,16 @@ The video should have already had a script generated for it (Stage 2), meaning t
 
 ---
 
-## Daily flow (production)
+## Polling flow (production)
 
-The Kernel schedule now runs:
+The detector commands run every `PIPELINE_POLL_FREQUENCY_MINUTES` (default
+five minutes), not once per day. The webhook is optional; polling remains the
+fallback.
 
-| Time | Command | Purpose |
+| Interval | Command | Purpose |
 |---|---|---|
-| 07:00 | `pipeline:detect-new-articles` | Stage 1 — find new published Insight articles |
-| 07:30 | `pipeline:detect-new-videos` | Stage 3 — find new videos in Drive, dispatch processing |
+| Configurable; default every 5 minutes | `pipeline:detect-new-articles` | Stage 1 — find new published Insight articles |
+| Configurable; default every 5 minutes | `pipeline:detect-new-videos` | Stage 3 — find new videos in Drive, dispatch processing |
 | 08:00 on the 1st of Jan/Apr/Jul/Oct | `pipeline:audit-social-videos` | Quarterly retention nudge (>1 year old files) |
 
 The pipeline queue processes jobs one at a time by default. On SiteGround shared hosting, you'll want a cron entry every 5 min:

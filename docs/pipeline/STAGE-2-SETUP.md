@@ -16,18 +16,19 @@ This file walks through the one-time setup. All the code exists on the
 | Google Cloud project + service account | Google Cloud Console | Google Cloud |
 | Downloaded service-account JSON key | Google Cloud → Service Accounts → Keys | Private server file; never Git |
 | Anthropic API key with Opus access | console.anthropic.com | `.env` |
-| Marketing Automation Drive folder ID | Drive URL — `/folders/<id>` | already in defaults |
+| Marketing Automation Shared Drive root ID | Drive administrator | `.env` (never source-code defaults) |
 | Tracker sheet ID | Created by `pipeline:setup-tracker` | `.env` (paste after step 3) |
 
 ---
 
 ## Step 1 — Store the service-account key
 
-Create a private folder outside the public web root and upload the downloaded
-JSON key there. A recommended server location is:
+Create the private `storage/app/private/google/` folder outside the public web
+root and upload the downloaded JSON key there. Use a non-identifying filename;
+the key never belongs in Git.
 
 ```
-storage/app/private/google/fynlaautomarketing.json
+storage/app/private/google/<service-account-key>.json
 ```
 
 Restrict the file so only the server account can read it. Do not put it in
@@ -37,7 +38,7 @@ commit it to Git.
 Open `.env` and add the absolute path plus the Anthropic settings:
 
 ```
-GOOGLE_SERVICE_ACCOUNT_CREDENTIALS=/absolute/server/path/storage/app/private/google/fynlaautomarketing.json
+GOOGLE_SERVICE_ACCOUNT_CREDENTIALS=<absolute path to storage/app/private/google/<service-account-key>.json>
 
 ANTHROPIC_API_KEY=<sk-ant-...>
 ANTHROPIC_OPUS_MODEL=claude-opus-4-7
@@ -53,8 +54,9 @@ php artisan config:clear
 
 ## Step 2 — Give the service account Shared Drive access
 
-Open the JSON key and copy its `client_email` value. In Google Drive, add that
-email address as a **Content manager** of the Marketing Automation Shared Drive.
+Open the JSON key only to obtain its service-account email address. In Google
+Drive, add that address as a **Content manager** of the Marketing Automation
+Shared Drive.
 The pipeline then authenticates automatically; there is no browser login,
 callback URL, refresh token, or recurring reauthorisation.
 
@@ -62,7 +64,11 @@ Run `php artisan config:clear` after changing the key path.
 
 ---
 
-## Step 3 — Create the tracker Sheet
+## Step 3 — Archive the old tracker and create the native tracker Sheet
+
+Archive the legacy Excel tracker; never delete it. Confirm
+`PIPELINE_ENABLED=false` in production before continuing. Do not use `--force`
+when commissioning because it creates a duplicate tracker.
 
 ```bash
 php artisan pipeline:setup-tracker
@@ -90,9 +96,22 @@ php artisan config:clear
 
 ---
 
-## Step 4 — Enable the pipeline + smoke test
+## Step 4 — Preflight, then enable the development runner + smoke test
 
-Flip the master switch in `.env`:
+Before enabling the pipeline, set `PIPELINE_RUNNER_NAME=csjones-development`,
+keep production disabled, and use these social safety settings:
+
+```
+PIPELINE_COMPOSE_AFTER_RENDER=false
+PIPELINE_SOCIAL_DRY_RUN=true
+```
+
+Run `php artisan pipeline:google-preflight` after the tracker identifier is in
+`.env`; it is read-only and must pass before a smoke test. See
+`GOOGLE-DRIVE-SETUP-RUNBOOK.md` for the complete safe commissioning sequence.
+
+On the development runner only, flip the master switch in `.env`. Production
+must remain disabled:
 
 ```
 PIPELINE_ENABLED=true
