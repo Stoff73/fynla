@@ -30,31 +30,42 @@ class SyncDriveChangesJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public int $tries = 1;
+    public const PENDING_CLAIM_CACHE_KEY = 'pipeline:drive-changes:pending';
+
+    public int $tries = 3;
 
     public int $timeout = 180;
 
-    public function __construct()
+    public function __construct(private readonly string $claimToken)
     {
         $this->onQueue(config('pipeline.queue', 'pipeline'));
     }
 
+    public static function releasePendingClaim(string $claimToken): void
+    {
+        if (hash_equals((string) Cache::get(self::PENDING_CLAIM_CACHE_KEY, ''), $claimToken)) {
+            Cache::forget(self::PENDING_CLAIM_CACHE_KEY);
+        }
+    }
+
     public function handle(GoogleDriveService $drive, DriveChangeRouter $router): void
     {
-        // The cache entry only coalesces work waiting in the queue. Once this
-        // job starts, the existing stream lock serialises any new pings.
-        Cache::forget('pipeline:drive-changes:pending');
-
         $channel = DriveWatchChannel::active();
         if ($channel === null) {
+            self::releasePendingClaim($this->claimToken);
+
             return;
         }
 
         $lock = Cache::lock('pipeline:drive-changes', 120);
         if (! $lock->get()) {
-            // Another ping is already draining the stream; it will pick up ours.
+            // Retain the owned pending claim until this retry drains the stream.
+            $this->release(5);
+
             return;
         }
+
+        self::releasePendingClaim($this->claimToken);
 
         try {
             $pageToken = (string) $channel->page_token;
@@ -98,8 +109,15 @@ class SyncDriveChangesJob implements ShouldQueue
             Log::channel('pipeline')->error('Drive change sync failed.', [
                 'error' => $e->getMessage(),
             ]);
+
+            throw $e;
         } finally {
             $lock->release();
         }
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        self::releasePendingClaim($this->claimToken);
     }
 }

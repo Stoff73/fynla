@@ -6,7 +6,11 @@ use App\Jobs\Pipeline\SyncDriveChangesJob;
 use App\Models\Pipeline\DriveWatchChannel;
 use App\Services\Pipeline\Google\ArticlesFolderLocator;
 use App\Services\Pipeline\Google\DriveChangeRouter;
+use App\Services\Pipeline\Google\GoogleDriveService;
 use App\Services\Pipeline\Google\VideosFolderLocator;
+use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Contracts\Bus\QueueingDispatcher;
+use Illuminate\Contracts\Queue\Job as QueueJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
@@ -37,6 +41,11 @@ function validDriveWebhookHeaders(array $headers = []): array
         'X-Goog-Resource-ID' => 'active-resource',
         'X-Goog-Resource-State' => 'change',
     ], $headers);
+}
+
+function pendingDriveSyncClaim(): mixed
+{
+    return Cache::get(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY);
 }
 
 it('rejects a ping with a missing channel token', function () {
@@ -145,6 +154,86 @@ it('coalesces repeated valid notifications while change sync work is pending', f
         ->assertOk();
 
     Bus::assertDispatchedTimes(SyncDriveChangesJob::class, 1);
+});
+
+it('releases its pending claim when dispatch fails so Google can retry', function () {
+    activeDriveWatchChannel();
+
+    $dispatcher = Mockery::mock(QueueingDispatcher::class);
+    $dispatcher->shouldReceive('dispatch')
+        ->once()
+        ->andThrow(new RuntimeException('Queue is unavailable.'));
+    app()->instance(Dispatcher::class, $dispatcher);
+
+    $this->withHeaders(validDriveWebhookHeaders())
+        ->post('/pipeline/drive/webhook')
+        ->assertStatus(503);
+
+    expect(pendingDriveSyncClaim())->toBeNull();
+
+    Bus::fake();
+
+    $this->withHeaders(validDriveWebhookHeaders())
+        ->post('/pipeline/drive/webhook')
+        ->assertOk();
+
+    Bus::assertDispatched(SyncDriveChangesJob::class);
+});
+
+it('releases itself for retry and retains its pending claim when the stream lock is busy', function () {
+    activeDriveWatchChannel();
+    Cache::put(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 'claim-owner', 180);
+    $streamLock = Cache::lock('pipeline:drive-changes', 120);
+    $streamLock->get();
+
+    $queueJob = Mockery::mock(QueueJob::class);
+    $queueJob->shouldReceive('release')->once()->with(5);
+
+    (new SyncDriveChangesJob('claim-owner'))
+        ->setJob($queueJob)
+        ->handle(
+            Mockery::mock(GoogleDriveService::class),
+            Mockery::mock(DriveChangeRouter::class),
+        );
+
+    expect(pendingDriveSyncClaim())->toBe('claim-owner');
+
+    $streamLock->release();
+});
+
+it('clears its owned pending claim after acquiring the stream lock so later changes queue work', function () {
+    Bus::fake();
+    activeDriveWatchChannel();
+    Cache::put(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 'claim-owner', 180);
+
+    $drive = Mockery::mock(GoogleDriveService::class);
+    $drive->shouldReceive('listChanges')->once()->with('page-token')->andReturn([
+        'changes' => [],
+        'newStartPageToken' => 'next-page-token',
+    ]);
+    $router = Mockery::mock(DriveChangeRouter::class);
+    $router->shouldReceive('classify')->once()->with([])->andReturn([
+        'articles' => false,
+        'videos' => false,
+    ]);
+
+    (new SyncDriveChangesJob('claim-owner'))->handle($drive, $router);
+
+    expect(pendingDriveSyncClaim())->toBeNull();
+
+    $this->withHeaders(validDriveWebhookHeaders())
+        ->post('/pipeline/drive/webhook')
+        ->assertOk();
+
+    Bus::assertDispatched(SyncDriveChangesJob::class);
+});
+
+it('does not clear another pending claim when it fails permanently', function () {
+    Cache::put(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 'another-owner', 180);
+
+    (new SyncDriveChangesJob('claim-owner'))->failed(new RuntimeException('Permanent failure.'));
+
+    expect(pendingDriveSyncClaim())->toBe('another-owner');
 });
 
 it('routes a new .docx in Articles and a new .mp4 in Videos to the right detectors', function () {

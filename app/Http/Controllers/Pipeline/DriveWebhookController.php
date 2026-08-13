@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Pipeline;
 use App\Http\Controllers\Controller;
 use App\Jobs\Pipeline\SyncDriveChangesJob;
 use App\Models\Pipeline\DriveWatchChannel;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
@@ -21,11 +22,9 @@ use Illuminate\Support\Facades\Log;
  */
 class DriveWebhookController extends Controller
 {
-    private const PENDING_SYNC_CACHE_KEY = 'pipeline:drive-changes:pending';
-
     private const PENDING_SYNC_TTL_SECONDS = 180;
 
-    public function handle(Request $request): Response
+    public function handle(Request $request, Dispatcher $dispatcher): Response
     {
         $expected = (string) config('pipeline.drive.webhook_token');
         $provided = (string) $request->header('X-Goog-Channel-Token', '');
@@ -51,8 +50,18 @@ class DriveWebhookController extends Controller
         // The first ping after registering a channel is a "sync" handshake with
         // no real change — acknowledge it and do nothing.
         $state = (string) $request->header('X-Goog-Resource-State', '');
-        if ($state !== 'sync' && Cache::add(self::PENDING_SYNC_CACHE_KEY, true, self::PENDING_SYNC_TTL_SECONDS)) {
-            SyncDriveChangesJob::dispatch();
+        if ($state !== 'sync') {
+            $claimToken = bin2hex(random_bytes(32));
+
+            if (Cache::add(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, $claimToken, self::PENDING_SYNC_TTL_SECONDS)) {
+                try {
+                    $dispatcher->dispatch(new SyncDriveChangesJob($claimToken));
+                } catch (\Throwable) {
+                    SyncDriveChangesJob::releasePendingClaim($claimToken);
+
+                    return response('', 503);
+                }
+            }
         }
 
         return response('', 200);
