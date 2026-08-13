@@ -25,12 +25,13 @@ class GoogleServiceAccountClient
 
     public function accessToken(): string
     {
+        $credentials = $this->credentials();
+
         $cached = Cache::get(self::CACHE_KEY);
         if (is_string($cached) && $cached !== '') {
             return $cached;
         }
 
-        $credentials = $this->credentials();
         $tokenUri = $credentials['token_uri'];
 
         $response = Http::asForm()

@@ -212,9 +212,20 @@ it('fails safely when the service account cannot obtain an access token', functi
 });
 
 it('fails when the configured root folder cannot be read', function () {
-    Http::fake([
-        'googleapis.com/drive/v3/files/ROOT_FOLDER*' => Http::response([], 404),
-    ]);
+    Http::fake(function (Request $request) {
+        if ($request->url() === 'https://oauth2.googleapis.com/token') {
+            return Http::response([
+                'access_token' => 'preflight-service-account-access-token',
+                'expires_in' => 3600,
+            ]);
+        }
+
+        if (str_contains($request->url(), '/drive/v3/files/ROOT_FOLDER')) {
+            return Http::response([], 404);
+        }
+
+        return Http::response([], 404);
+    });
 
     $this->artisan('pipeline:google-preflight')
         ->expectsOutputToContain('FAIL Root folder could not be accessed.')

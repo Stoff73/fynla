@@ -97,6 +97,23 @@ it('reuses the cached access token until shortly before it expires', function ()
     Http::assertSentCount(1);
 });
 
+it('validates configured credentials before returning a cached access token', function () {
+    Http::fake([
+        'oauth2.googleapis.com/token' => Http::response([
+            'access_token' => 'cached-service-account-token',
+            'expires_in' => 3600,
+            'token_type' => 'Bearer',
+        ]),
+    ]);
+
+    $client = new GoogleServiceAccountClient;
+    expect($client->accessToken())->toBe('cached-service-account-token');
+
+    file_put_contents($this->credentialsPath, 'not-json');
+
+    $client->accessToken();
+})->throws(RuntimeException::class, 'Google service-account credentials file is not valid JSON.');
+
 it('fails clearly when the credentials path is not configured', function () {
     Config::set('pipeline.google.service_account_credentials');
 
