@@ -127,7 +127,14 @@ commissioning sequence.
    ```bash
    php artisan pipeline:schedule-ready-posts
    ```
-7. Check Buffer's queue at https://publish.buffer.com — should see your scheduled post
+7. With `PIPELINE_SOCIAL_DRY_RUN=true`, verify locally that the approved post
+   is now recorded as scheduled with a `scheduled_at` time and a
+   `buffer_update_id` of `DRY_RUN_<post-id>`. Check the pipeline log for
+   `Social schedule MOCKED (dry-run — NOT posted to Buffer)`.
+
+   No post appears in Buffer while dry-run is enabled. Verify Buffer's queue
+   only in a separately approved non-dry-run release after the commissioning
+   safeguards have been reviewed.
 
 ---
 
