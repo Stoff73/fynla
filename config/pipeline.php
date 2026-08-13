@@ -267,12 +267,12 @@ return [
 
         'variant_count' => 2,
 
-        'compose_after_render' => (bool) env('PIPELINE_COMPOSE_AFTER_RENDER', true),
+        'compose_after_render' => (bool) env('PIPELINE_COMPOSE_AFTER_RENDER', false),
 
         // Dry-run: SchedulePostJob records the intended schedule but never calls
         // Buffer, so nothing is posted to social media. For testing the video +
         // scheduling flow without publishing.
-        'dry_run' => (bool) env('PIPELINE_SOCIAL_DRY_RUN', false),
+        'dry_run' => (bool) env('PIPELINE_SOCIAL_DRY_RUN', true),
 
     ],
 

@@ -15,6 +15,11 @@ it('exposes an empty runner name until a deployment assigns one', function () {
     expect(config('pipeline.runner_name'))->toBe('');
 });
 
+it('defaults social commissioning to manual composition and dry-run delivery', function () {
+    expect(config('pipeline.social.compose_after_render'))->toBeFalse()
+        ->and(config('pipeline.social.dry_run'))->toBeTrue();
+});
+
 it('keeps the real root-folder configuration unset and rejects a cached folder', function () {
     expect(config('pipeline.google.drive_folder_id'))->toBeNull();
 

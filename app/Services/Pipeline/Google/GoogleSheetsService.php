@@ -145,6 +145,36 @@ class GoogleSheetsService
         return array_map('strval', $response->json('values.0', []));
     }
 
+    /**
+     * Read the allowed values from the Status validation rule without changing the tracker.
+     *
+     * @return list<string>
+     */
+    public function statusOptions(string $spreadsheetId, string $sheetTitle): array
+    {
+        $response = Http::withToken($this->auth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/'.$spreadsheetId, [
+                'ranges' => $sheetTitle.'!E2',
+                'includeGridData' => 'true',
+                'fields' => 'sheets(data(rowData(values(dataValidation(condition(type,values))))))',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Google Sheets Status validation read failed: HTTP '.$response->status());
+        }
+
+        $condition = $response->json('sheets.0.data.0.rowData.0.values.0.dataValidation.condition', []);
+        if (($condition['type'] ?? null) !== 'ONE_OF_LIST') {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn (array $value): string => (string) ($value['userEnteredValue'] ?? ''),
+            $condition['values'] ?? [],
+        ));
+    }
+
     private function writeHeaders(string $token, string $spreadsheetId): void
     {
         $response = Http::withToken($token)

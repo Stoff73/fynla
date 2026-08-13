@@ -19,6 +19,8 @@ class GooglePreflight extends Command
     /** @var list<string> */
     private const REQUIRED_FOLDERS = ['Articles', 'Scripts', 'Videos'];
 
+    private const COMMISSIONING_RUNNER = 'csjones-development';
+
     public function handle(GoogleServiceAccountClient $auth, GoogleDriveService $drive, GoogleSheetsService $sheets): int
     {
         if (! $this->configured('pipeline.google.drive_folder_id')) {
@@ -26,6 +28,16 @@ class GooglePreflight extends Command
         }
         if (! $this->configured('pipeline.google.tracker_sheet_id')) {
             return $this->fail('Tracker spreadsheet ID is not configured.');
+        }
+
+        if (config('pipeline.runner_name') !== self::COMMISSIONING_RUNNER) {
+            return $this->fail('Runner must be csjones-development for initial commissioning.');
+        }
+        if (config('pipeline.social.compose_after_render')) {
+            return $this->fail('Automatic social composition after render must be disabled for commissioning.');
+        }
+        if (! config('pipeline.social.dry_run')) {
+            return $this->fail('Social publishing dry-run must be enabled for commissioning.');
         }
 
         try {
@@ -36,8 +48,7 @@ class GooglePreflight extends Command
             return $this->fail('Google service-account authentication failed. Check GOOGLE_SERVICE_ACCOUNT_CREDENTIALS and the service-account key.');
         }
 
-        $runner = (string) config('pipeline.runner_name');
-        $this->pass('Runner: '.($runner !== '' ? $runner : 'not named').'; pipeline is '.(config('pipeline.enabled') ? 'enabled' : 'disabled').'.');
+        $this->pass('Runner: '.self::COMMISSIONING_RUNNER.'; pipeline is '.(config('pipeline.enabled') ? 'enabled' : 'disabled').'.');
 
         $rootId = (string) config('pipeline.google.drive_folder_id');
         try {
@@ -45,7 +56,10 @@ class GooglePreflight extends Command
             if ($root['mimeType'] !== 'application/vnd.google-apps.folder') {
                 return $this->fail('Root folder is not a Google Drive folder.');
             }
-            $this->pass('Root folder: '.$root['name'].' is accessible.');
+            if ($root['driveId'] === null || $root['id'] !== $root['driveId'] || $root['parents'] !== []) {
+                return $this->fail('Configured Marketing Automation folder must be the Shared Drive root, not an ordinary or nested folder.');
+            }
+            $this->pass('Shared Drive root: '.$root['name'].' is accessible.');
 
             $children = $drive->listChildFolders($rootId);
             $names = array_flip(array_column($children, 'name'));
@@ -97,10 +111,20 @@ class GooglePreflight extends Command
         }
         $this->pass('Tracker headers are in the required order.');
 
+        try {
+            $statusOptions = $sheets->statusOptions($trackerId, 'Pipeline');
+        } catch (Throwable) {
+            return $this->fail('Tracker Status dropdown could not be read.');
+        }
+        if ($statusOptions !== GoogleSheetsService::STATUS_OPTIONS) {
+            return $this->fail('Tracker Status dropdown must contain: '.implode(', ', GoogleSheetsService::STATUS_OPTIONS).'.');
+        }
+        $this->pass('Tracker Status dropdown contains the supported options.');
+
         $recipient = (string) config('pipeline.notifications.script_ready_to');
         $this->safe('Notifications will go to '.($recipient !== '' ? $recipient : 'no configured address').'.');
-        $this->safe('Social publishing '.(config('pipeline.social.compose_after_render') ? 'waits for rendered video.' : 'can start before rendered video.'));
-        $this->safe('Social publishing dry-run is '.(config('pipeline.social.dry_run') ? 'enabled.' : 'disabled.'));
+        $this->safe('Automatic social composition after render is disabled.');
+        $this->safe('Social publishing dry-run is enabled.');
         $this->safe($this->configured('pipeline.drive.webhook_url') ? 'Drive webhook is configured.' : 'Drive webhook is not configured; polling remains available.');
 
         return self::SUCCESS;

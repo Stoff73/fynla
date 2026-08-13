@@ -175,14 +175,14 @@ class GoogleDriveService
     /**
      * Read a Drive file or folder's basic metadata.
      *
-     * @return array{id:string,name:string,mimeType:string}
+     * @return array{id:string,name:string,mimeType:string,driveId:?string,parents:list<string>}
      */
     public function metadata(string $fileId): array
     {
         $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->get(self::API_ROOT.'/files/'.$fileId, [
-                'fields' => 'id,name,mimeType',
+                'fields' => 'id,name,mimeType,driveId,parents',
                 'supportsAllDrives' => 'true',
             ]);
 
@@ -194,6 +194,8 @@ class GoogleDriveService
             'id' => (string) $response->json('id'),
             'name' => (string) $response->json('name'),
             'mimeType' => (string) $response->json('mimeType'),
+            'driveId' => is_string($response->json('driveId')) ? $response->json('driveId') : null,
+            'parents' => array_values($response->json('parents', [])),
         ];
     }
 
