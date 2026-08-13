@@ -52,8 +52,13 @@ class DriveWebhookController extends Controller
         $state = (string) $request->header('X-Goog-Resource-State', '');
         if ($state !== 'sync') {
             $claimToken = bin2hex(random_bytes(32));
+            $claimLock = Cache::lock(
+                SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY,
+                self::PENDING_SYNC_TTL_SECONDS,
+                $claimToken,
+            );
 
-            if (Cache::add(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, $claimToken, self::PENDING_SYNC_TTL_SECONDS)) {
+            if ($claimLock->get()) {
                 try {
                     $dispatcher->dispatch(new SyncDriveChangesJob($claimToken));
                 } catch (\Throwable) {

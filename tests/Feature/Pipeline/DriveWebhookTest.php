@@ -20,7 +20,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.drive.webhook_token', 'secret-token');
-    Cache::forget('pipeline:drive-changes:pending');
+    Cache::lock(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY)->forceRelease();
 });
 
 function activeDriveWatchChannel(array $attributes = []): DriveWatchChannel
@@ -43,9 +43,22 @@ function validDriveWebhookHeaders(array $headers = []): array
     ], $headers);
 }
 
-function pendingDriveSyncClaim(): mixed
+function pendingDriveSyncClaimIsAvailable(): bool
 {
-    return Cache::get(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY);
+    $lock = Cache::lock(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 180, 'test-owner');
+    $acquired = $lock->get();
+
+    if ($acquired) {
+        $lock->release();
+    }
+
+    return $acquired;
+}
+
+function pendingDriveSyncClaimIsOwnedBy(string $owner): bool
+{
+    return Cache::restoreLock(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, $owner)
+        ->isOwnedByCurrentProcess();
 }
 
 it('rejects a ping with a missing channel token', function () {
@@ -169,7 +182,7 @@ it('releases its pending claim when dispatch fails so Google can retry', functio
         ->post('/pipeline/drive/webhook')
         ->assertStatus(503);
 
-    expect(pendingDriveSyncClaim())->toBeNull();
+    expect(pendingDriveSyncClaimIsAvailable())->toBeTrue();
 
     Bus::fake();
 
@@ -182,7 +195,7 @@ it('releases its pending claim when dispatch fails so Google can retry', functio
 
 it('releases itself for retry and retains its pending claim when the stream lock is busy', function () {
     activeDriveWatchChannel();
-    Cache::put(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 'claim-owner', 180);
+    Cache::lock(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 180, 'claim-owner')->get();
     $streamLock = Cache::lock('pipeline:drive-changes', 120);
     $streamLock->get();
 
@@ -196,7 +209,7 @@ it('releases itself for retry and retains its pending claim when the stream lock
             Mockery::mock(DriveChangeRouter::class),
         );
 
-    expect(pendingDriveSyncClaim())->toBe('claim-owner');
+    expect(pendingDriveSyncClaimIsOwnedBy('claim-owner'))->toBeTrue();
 
     $streamLock->release();
 });
@@ -204,7 +217,7 @@ it('releases itself for retry and retains its pending claim when the stream lock
 it('clears its owned pending claim after acquiring the stream lock so later changes queue work', function () {
     Bus::fake();
     activeDriveWatchChannel();
-    Cache::put(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 'claim-owner', 180);
+    Cache::lock(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 180, 'claim-owner')->get();
 
     $drive = Mockery::mock(GoogleDriveService::class);
     $drive->shouldReceive('listChanges')->once()->with('page-token')->andReturn([
@@ -219,7 +232,7 @@ it('clears its owned pending claim after acquiring the stream lock so later chan
 
     (new SyncDriveChangesJob('claim-owner'))->handle($drive, $router);
 
-    expect(pendingDriveSyncClaim())->toBeNull();
+    expect(pendingDriveSyncClaimIsAvailable())->toBeTrue();
 
     $this->withHeaders(validDriveWebhookHeaders())
         ->post('/pipeline/drive/webhook')
@@ -229,11 +242,55 @@ it('clears its owned pending claim after acquiring the stream lock so later chan
 });
 
 it('does not clear another pending claim when it fails permanently', function () {
-    Cache::put(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 'another-owner', 180);
+    Cache::lock(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 180, 'another-owner')->get();
 
     (new SyncDriveChangesJob('claim-owner'))->failed(new RuntimeException('Permanent failure.'));
 
-    expect(pendingDriveSyncClaim())->toBe('another-owner');
+    expect(pendingDriveSyncClaimIsOwnedBy('another-owner'))->toBeTrue();
+});
+
+it('retains its pending owner through 120 seconds of stream-lock contention before handing off', function () {
+    Bus::fake();
+    activeDriveWatchChannel();
+    Cache::lock(SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY, 180, 'claim-owner')->get();
+    $streamLock = Cache::lock('pipeline:drive-changes', 120);
+    $streamLock->get();
+
+    $queueJob = Mockery::mock(QueueJob::class);
+    $queueJob->shouldReceive('release')->times(24)->with(5);
+    $job = (new SyncDriveChangesJob('claim-owner'))->setJob($queueJob);
+
+    for ($attempt = 0; $attempt < 24; $attempt++) {
+        $job->handle(
+            Mockery::mock(GoogleDriveService::class),
+            Mockery::mock(DriveChangeRouter::class),
+        );
+
+        expect(pendingDriveSyncClaimIsOwnedBy('claim-owner'))->toBeTrue();
+    }
+
+    $streamLock->release();
+
+    $drive = Mockery::mock(GoogleDriveService::class);
+    $drive->shouldReceive('listChanges')->once()->with('page-token')->andReturn([
+        'changes' => [],
+        'newStartPageToken' => 'next-page-token',
+    ]);
+    $router = Mockery::mock(DriveChangeRouter::class);
+    $router->shouldReceive('classify')->once()->with([])->andReturn([
+        'articles' => false,
+        'videos' => false,
+    ]);
+
+    $job->handle($drive, $router);
+
+    expect(pendingDriveSyncClaimIsAvailable())->toBeTrue();
+
+    $this->withHeaders(validDriveWebhookHeaders())
+        ->post('/pipeline/drive/webhook')
+        ->assertOk();
+
+    Bus::assertDispatched(SyncDriveChangesJob::class);
 });
 
 it('routes a new .docx in Articles and a new .mp4 in Videos to the right detectors', function () {

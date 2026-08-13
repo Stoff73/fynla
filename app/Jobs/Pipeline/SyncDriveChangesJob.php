@@ -32,7 +32,9 @@ class SyncDriveChangesJob implements ShouldQueue
 
     public const PENDING_CLAIM_CACHE_KEY = 'pipeline:drive-changes:pending';
 
-    public int $tries = 3;
+    public int $tries = 30;
+
+    public int $backoff = 5;
 
     public int $timeout = 180;
 
@@ -43,9 +45,7 @@ class SyncDriveChangesJob implements ShouldQueue
 
     public static function releasePendingClaim(string $claimToken): void
     {
-        if (hash_equals((string) Cache::get(self::PENDING_CLAIM_CACHE_KEY, ''), $claimToken)) {
-            Cache::forget(self::PENDING_CLAIM_CACHE_KEY);
-        }
+        Cache::restoreLock(self::PENDING_CLAIM_CACHE_KEY, $claimToken)->release();
     }
 
     public function handle(GoogleDriveService $drive, DriveChangeRouter $router): void
