@@ -97,6 +97,70 @@ it('reuses the cached access token until shortly before it expires', function ()
     Http::assertSentCount(1);
 });
 
+it('does not reuse a cached access token after a valid private key rotation', function () {
+    Http::fakeSequence('oauth2.googleapis.com/token')
+        ->push([
+            'access_token' => 'original-service-account-token',
+            'expires_in' => 3600,
+            'token_type' => 'Bearer',
+        ])
+        ->push([
+            'access_token' => 'rotated-service-account-token',
+            'expires_in' => 3600,
+            'token_type' => 'Bearer',
+        ]);
+
+    $client = new GoogleServiceAccountClient;
+    expect($client->accessToken())->toBe('original-service-account-token');
+
+    $credentials = json_decode(file_get_contents($this->credentialsPath), true, flags: JSON_THROW_ON_ERROR);
+    $credentials['private_key_id'] = 'rotated-test-key-id';
+    $credentials['private_key'] = generateGoogleServiceAccountPrivateKeyForTest();
+    file_put_contents($this->credentialsPath, json_encode($credentials, JSON_THROW_ON_ERROR));
+
+    expect($client->accessToken())->toBe('rotated-service-account-token');
+
+    Http::assertSentCount(2);
+});
+
+it('reports a rotated key token rejection without exposing credentials or cached tokens', function () {
+    $tokenRequests = 0;
+    Http::fake(function () use (&$tokenRequests) {
+        $tokenRequests++;
+
+        return $tokenRequests === 1
+            ? Http::response([
+                'access_token' => 'original-secret-access-token',
+                'expires_in' => 3600,
+                'token_type' => 'Bearer',
+            ])
+            : Http::response(['error' => 'invalid_grant'], 401);
+    });
+
+    $client = new GoogleServiceAccountClient;
+    expect($client->accessToken())->toBe('original-secret-access-token');
+
+    $credentials = json_decode(file_get_contents($this->credentialsPath), true, flags: JSON_THROW_ON_ERROR);
+    $credentials['private_key_id'] = 'revoked-secret-key-id';
+    $credentials['private_key'] = generateGoogleServiceAccountPrivateKeyForTest();
+    file_put_contents($this->credentialsPath, json_encode($credentials, JSON_THROW_ON_ERROR));
+
+    try {
+        $client->accessToken();
+        $this->fail('Expected the rotated service-account key to be checked at the token endpoint.');
+    } catch (RuntimeException $exception) {
+        expect($exception->getMessage())
+            ->toBe('Google service-account token request failed: HTTP 401')
+            ->not->toContain(
+                'original-secret-access-token',
+                'revoked-secret-key-id',
+                $credentials['client_email'],
+                $credentials['private_key'],
+            );
+    }
+
+});
+
 it('validates configured credentials before returning a cached access token', function () {
     Http::fake([
         'oauth2.googleapis.com/token' => Http::response([
@@ -193,4 +257,15 @@ function base64UrlDecodeForTest(string $value): string
     $padding = (4 - strlen($value) % 4) % 4;
 
     return (string) base64_decode(strtr($value.str_repeat('=', $padding), '-_', '+/'), true);
+}
+
+function generateGoogleServiceAccountPrivateKeyForTest(): string
+{
+    $key = openssl_pkey_new([
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($key, $privateKey);
+
+    return $privateKey;
 }

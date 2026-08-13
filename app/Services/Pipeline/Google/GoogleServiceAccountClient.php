@@ -15,7 +15,7 @@ use RuntimeException;
  */
 class GoogleServiceAccountClient
 {
-    private const CACHE_KEY = 'pipeline.google.service_account_access_token';
+    private const CACHE_KEY_PREFIX = 'pipeline.google.service_account_access_token.';
 
     /** @var list<string> */
     private const SCOPES = [
@@ -28,8 +28,9 @@ class GoogleServiceAccountClient
     {
         $credentials = $this->credentials();
         $privateKey = $this->privateKey($credentials['private_key']);
+        $cacheKey = $this->cacheKey($credentials, $privateKey);
 
-        $cached = Cache::get(self::CACHE_KEY);
+        $cached = Cache::get($cacheKey);
         if (is_string($cached) && $cached !== '') {
             return $cached;
         }
@@ -54,7 +55,7 @@ class GoogleServiceAccountClient
         }
 
         $expiresIn = max(60, (int) $response->json('expires_in', 3600));
-        Cache::put(self::CACHE_KEY, $token, now()->addSeconds($expiresIn - 60));
+        Cache::put($cacheKey, $token, now()->addSeconds($expiresIn - 60));
 
         return $token;
     }
@@ -133,6 +134,26 @@ class GoogleServiceAccountClient
         }
 
         return $privateKey;
+    }
+
+    /**
+     * @param  array{client_email:string,private_key:string,private_key_id?:string,token_uri:string}  $credentials
+     */
+    private function cacheKey(array $credentials, OpenSSLAsymmetricKey $privateKey): string
+    {
+        $keyDetails = openssl_pkey_get_details($privateKey);
+        if ($keyDetails === false) {
+            throw new RuntimeException('Google service-account private key is not a valid RSA key.');
+        }
+
+        $identity = implode("\0", [
+            $credentials['client_email'],
+            $credentials['token_uri'],
+            $credentials['private_key_id'] ?? '',
+            $keyDetails['key'],
+        ]);
+
+        return self::CACHE_KEY_PREFIX.hash('sha256', $identity);
     }
 
     private function base64UrlEncode(string $value): string
