@@ -50,22 +50,29 @@ class DriveWebhookController extends Controller
         // The first ping after registering a channel is a "sync" handshake with
         // no real change — acknowledge it and do nothing.
         $state = (string) $request->header('X-Goog-Resource-State', '');
-        if ($state !== 'sync') {
-            $claimToken = bin2hex(random_bytes(32));
-            $claimLock = Cache::lock(
-                SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY,
-                self::PENDING_SYNC_TTL_SECONDS,
-                $claimToken,
-            );
+        if ($state === 'sync') {
+            return response('', 200);
+        }
+        if ($state !== 'change') {
+            Log::channel('pipeline')->warning('Drive webhook rejected — unsupported resource state.');
 
-            if ($claimLock->get()) {
-                try {
-                    $dispatcher->dispatch(new SyncDriveChangesJob($claimToken));
-                } catch (\Throwable) {
-                    SyncDriveChangesJob::releasePendingClaim($claimToken);
+            return response('', 400);
+        }
 
-                    return response('', 503);
-                }
+        $claimToken = bin2hex(random_bytes(32));
+        $claimLock = Cache::lock(
+            SyncDriveChangesJob::PENDING_CLAIM_CACHE_KEY,
+            self::PENDING_SYNC_TTL_SECONDS,
+            $claimToken,
+        );
+
+        if ($claimLock->get()) {
+            try {
+                $dispatcher->dispatch(new SyncDriveChangesJob($claimToken));
+            } catch (\Throwable) {
+                SyncDriveChangesJob::releasePendingClaim($claimToken);
+
+                return response('', 503);
             }
         }
 

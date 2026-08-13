@@ -57,7 +57,7 @@ class SyncDriveChangesJob implements ShouldQueue
             return;
         }
 
-        $lock = Cache::lock('pipeline:drive-changes', 120);
+        $lock = Cache::lock('pipeline:drive-changes', 240);
         if (! $lock->get()) {
             // Retain the owned pending claim until this retry drains the stream.
             $this->release(5);

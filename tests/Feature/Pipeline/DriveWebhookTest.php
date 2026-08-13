@@ -143,6 +143,24 @@ it('acks the initial sync handshake without dispatching work', function () {
     Bus::assertNotDispatched(SyncDriveChangesJob::class);
 });
 
+it('rejects missing or unknown resource states without dispatching work', function (array $headers) {
+    Bus::fake();
+    activeDriveWatchChannel();
+
+    $this->withHeaders($headers)
+        ->post('/pipeline/drive/webhook')
+        ->assertStatus(400);
+
+    Bus::assertNotDispatched(SyncDriveChangesJob::class);
+})->with([
+    'missing state' => [[
+        'X-Goog-Channel-Token' => 'secret-token',
+        'X-Goog-Channel-ID' => 'active-channel',
+        'X-Goog-Resource-ID' => 'active-resource',
+    ]],
+    'unknown state' => [validDriveWebhookHeaders(['X-Goog-Resource-State' => 'unknown'])],
+]);
+
 it('dispatches the sync job on a real change ping with a valid token', function () {
     Bus::fake();
     activeDriveWatchChannel();
@@ -239,6 +257,36 @@ it('clears its owned pending claim after acquiring the stream lock so later chan
         ->assertOk();
 
     Bus::assertDispatched(SyncDriveChangesJob::class);
+});
+
+it('keeps the change stream serialized beyond the job timeout boundary', function () {
+    activeDriveWatchChannel();
+
+    $secondWorkerEntered = null;
+    $drive = Mockery::mock(GoogleDriveService::class);
+    $drive->shouldReceive('listChanges')->once()->with('page-token')->andReturnUsing(function () use (&$secondWorkerEntered): array {
+        $this->travel(181)->seconds();
+
+        $contender = Cache::lock('pipeline:drive-changes', 120, 'second-worker');
+        $secondWorkerEntered = $contender->get();
+        if ($secondWorkerEntered) {
+            $contender->release();
+        }
+
+        return [
+            'changes' => [],
+            'newStartPageToken' => 'next-page-token',
+        ];
+    });
+    $router = Mockery::mock(DriveChangeRouter::class);
+    $router->shouldReceive('classify')->once()->with([])->andReturn([
+        'articles' => false,
+        'videos' => false,
+    ]);
+
+    (new SyncDriveChangesJob('claim-owner'))->handle($drive, $router);
+
+    expect($secondWorkerEntered)->toBeFalse();
 });
 
 it('does not clear another pending claim when it fails permanently', function () {
