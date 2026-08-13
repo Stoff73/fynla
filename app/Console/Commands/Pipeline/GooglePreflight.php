@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Pipeline;
 
 use App\Services\Pipeline\Google\GoogleDriveService;
-use App\Services\Pipeline\Google\GoogleOAuthClient;
+use App\Services\Pipeline\Google\GoogleServiceAccountClient;
 use App\Services\Pipeline\Google\GoogleSheetsService;
 use Illuminate\Console\Command;
 use Throwable;
@@ -19,16 +19,8 @@ class GooglePreflight extends Command
     /** @var list<string> */
     private const REQUIRED_FOLDERS = ['Articles', 'Scripts', 'Videos'];
 
-    public function handle(GoogleOAuthClient $oauth, GoogleDriveService $drive, GoogleSheetsService $sheets): int
+    public function handle(GoogleServiceAccountClient $auth, GoogleDriveService $drive, GoogleSheetsService $sheets): int
     {
-        if (! $this->configured('pipeline.google.oauth_client_id')) {
-            return $this->fail('Google OAuth client ID is not configured.');
-        }
-        if (! $this->configured('pipeline.google.oauth_client_secret')) {
-            return $this->fail('Google OAuth client secret is not configured.');
-        }
-        $this->pass('Google client settings are configured.');
-
         if (! $this->configured('pipeline.google.drive_folder_id')) {
             return $this->fail('Marketing Automation root folder ID is not configured.');
         }
@@ -37,11 +29,11 @@ class GooglePreflight extends Command
         }
 
         try {
-            $oauth->credential();
-            $oauth->accessToken();
-            $this->pass('Google connection is available.');
+            $auth->accessToken();
+            $this->pass('Google service-account credentials are configured.');
+            $this->pass('Google service-account authentication is available.');
         } catch (Throwable) {
-            return $this->fail('Google connection is missing. Run `php artisan pipeline:authorise-google` first.');
+            return $this->fail('Google service-account authentication failed. Check GOOGLE_SERVICE_ACCOUNT_CREDENTIALS and the service-account key.');
         }
 
         $runner = (string) config('pipeline.runner_name');

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Jobs\Pipeline\ProcessVideoJob;
 use App\Models\Insights\InsightArticle;
-use App\Models\Pipeline\OAuthCredential;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
 use App\Services\Pipeline\Google\GoogleDriveService;
@@ -23,23 +22,11 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Config::set('pipeline.enabled', true);
-    Config::set('pipeline.google.oauth_client_id', 'test-client-id');
-    Config::set('pipeline.google.oauth_client_secret', 'test-client-secret');
-    Config::set('pipeline.google.oauth_redirect_uri', 'http://localhost:8000/pipeline/oauth/google/callback');
     Config::set('pipeline.google.drive_folder_id', 'FOLDER123');
     Config::set('pipeline.google.tracker_sheet_id', 'SHEET123');
     Config::set('pipeline.anthropic.api_key', 'test-anthropic-key');
     Config::set('pipeline.cost.per_day_gbp', 1.00);
     Cache::flush();
-
-    OAuthCredential::create([
-        'provider' => 'google',
-        'account_email' => 'test@fynla.org',
-        'access_token' => 'test-access-token',
-        'refresh_token' => 'test-refresh-token',
-        'expires_at' => now()->addHour(),
-        'scopes' => ['https://www.googleapis.com/auth/drive.file'],
-    ]);
 
     Mail::fake();
 });

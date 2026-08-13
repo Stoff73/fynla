@@ -10,7 +10,7 @@
 - Never commit Google secrets, access tokens, webhook tokens, server credentials, or database credentials.
 - Do not keep an environment-specific Drive folder identifier as a source-code default. Each environment must configure its root explicitly.
 - Exactly one website may run the shared pipeline. Development (`csjones-development`) is the recommended initial runner; production remains disabled during commissioning.
-- The preflight command must be read-only for Drive content and business data: it may not create, move, rename, update, or delete Drive files, spreadsheets, or business records. It may perform the normal encrypted access-token refresh required to authenticate an otherwise valid stored Google connection, but it may not create, replace, or delete the stored Google authorisation.
+- The preflight command must be read-only for Drive content and business data: it may not create, move, rename, update, or delete Drive files, spreadsheets, or business records. It may exchange a signed service-account assertion for a short-lived access token, but it may not mutate Drive content, business records, or the service-account credential file.
 - The native tracker must be a Google spreadsheet containing a `Pipeline` sheet and these headers in order: `Timestamp`, `Article slug`, `Article title`, `Script link`, `Status`, `Video link`, `Notes`, `Assignee`.
 - Excel workbooks stored in Drive are not valid trackers and must receive a clear remediation message.
 - Shared Drive requests must retain `supportsAllDrives=true` and, for list operations, `includeItemsFromAllDrives=true`.
@@ -62,8 +62,8 @@ php artisan pipeline:google-preflight
 
 **Behavior:**
 
-1. Check that Google client settings are configured.
-2. Check that an encrypted Google connection exists and can be used, without printing the token.
+1. Check that the service-account credential path is configured.
+2. Check that the service-account key can obtain an access token, without printing the credential contents, private key, or token.
 3. Report the configured runner name and whether the pipeline is enabled.
 4. Read the configured root folder metadata and confirm it is accessible.
 5. Find `Articles`, `Scripts`, and `Videos` as direct children using read-only list operations. Do not use a find-or-create method.

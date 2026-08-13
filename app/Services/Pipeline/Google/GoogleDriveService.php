@@ -14,7 +14,7 @@ use RuntimeException;
  * string as a native Google Doc into a specific folder, returning the file
  * ID and shareable link.
  *
- * Uses OAuth (via GoogleOAuthClient) — access tokens are refreshed on demand.
+ * Uses the pipeline service account; short-lived access tokens are refreshed on demand.
  */
 class GoogleDriveService
 {
@@ -22,7 +22,7 @@ class GoogleDriveService
 
     private const UPLOAD_ROOT = 'https://www.googleapis.com/upload/drive/v3';
 
-    public function __construct(private readonly GoogleOAuthClient $oauth) {}
+    public function __construct(private readonly GoogleServiceAccountClient $auth) {}
 
     /**
      * Upload the given Markdown content as a Google Doc in the target folder.
@@ -33,7 +33,7 @@ class GoogleDriveService
     public function uploadMarkdownAsGoogleDoc(string $title, string $markdown, ?string $folderId = null): array
     {
         $folderId ??= $this->requireFolderId();
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
         $metadata = [
             'name' => $title,
@@ -74,45 +74,33 @@ class GoogleDriveService
     }
 
     /**
-     * Move a Drive file into the target folder (used to place a newly-created
-     * spreadsheet inside Marketing Automation).
+     * Create a native Google Sheet directly inside a Shared Drive folder.
      */
-    public function moveToFolder(string $fileId, string $folderId): void
+    public function createSpreadsheet(string $title, string $folderId): string
     {
-        $token = $this->oauth->accessToken();
-
-        $current = Http::withToken($token)
+        $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
-            ->get(self::API_ROOT.'/files/'.$fileId, [
-                'fields' => 'parents',
-                'supportsAllDrives' => 'true',
+            ->post(self::API_ROOT.'/files?supportsAllDrives=true&fields=id,name,webViewLink', [
+                'name' => $title,
+                'mimeType' => 'application/vnd.google-apps.spreadsheet',
+                'parents' => [$folderId],
             ]);
-
-        if (! $current->successful()) {
-            throw new RuntimeException('Failed to fetch Drive file parents: HTTP '.$current->status());
-        }
-
-        $existingParents = $current->json('parents', []);
-        $removeParents = implode(',', array_filter($existingParents));
-
-        $response = Http::withToken($token)
-            ->timeout(30)
-            ->patch(self::API_ROOT.'/files/'.$fileId.'?'.http_build_query([
-                'addParents' => $folderId,
-                'removeParents' => $removeParents,
-                'supportsAllDrives' => 'true',
-                'fields' => 'id,parents',
-            ]));
 
         if (! $response->successful()) {
-            Log::channel('pipeline')->error('Drive moveToFolder failed.', [
+            Log::channel('pipeline')->error('Drive spreadsheet creation failed.', [
                 'status' => $response->status(),
                 'body' => $response->body(),
-                'file_id' => $fileId,
                 'folder_id' => $folderId,
             ]);
-            throw new RuntimeException('Google Drive move failed: HTTP '.$response->status());
+            throw new RuntimeException('Google Drive spreadsheet creation failed: HTTP '.$response->status());
         }
+
+        $spreadsheetId = $response->json('id');
+        if (! is_string($spreadsheetId) || $spreadsheetId === '') {
+            throw new RuntimeException('Google Drive returned no spreadsheet ID.');
+        }
+
+        return $spreadsheetId;
     }
 
     /**
@@ -123,7 +111,7 @@ class GoogleDriveService
      */
     public function listFiles(string $folderId, ?string $mimeType = null, int $pageSize = 100): array
     {
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
         $query = "'{$folderId}' in parents and trashed=false";
         if ($mimeType !== null) {
@@ -160,7 +148,7 @@ class GoogleDriveService
      */
     public function findSubfolder(string $parentFolderId, string $name): ?string
     {
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
         $q = "'{$parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' "
             ."and name='".addslashes($name)."' and trashed=false";
@@ -191,7 +179,7 @@ class GoogleDriveService
      */
     public function metadata(string $fileId): array
     {
-        $response = Http::withToken($this->oauth->accessToken())
+        $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->get(self::API_ROOT.'/files/'.$fileId, [
                 'fields' => 'id,name,mimeType',
@@ -216,7 +204,7 @@ class GoogleDriveService
      */
     public function listChildFolders(string $parentFolderId): array
     {
-        $response = Http::withToken($this->oauth->accessToken())
+        $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->get(self::API_ROOT.'/files', [
                 'q' => "'{$parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
@@ -245,7 +233,7 @@ class GoogleDriveService
             return $existing;
         }
 
-        $response = Http::withToken($this->oauth->accessToken())
+        $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->post(self::API_ROOT.'/files?supportsAllDrives=true&fields=id', [
                 'name' => $name,
@@ -273,7 +261,7 @@ class GoogleDriveService
      */
     public function getStartPageToken(): string
     {
-        $response = Http::withToken($this->oauth->accessToken())
+        $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->get(self::API_ROOT.'/changes/startPageToken', [
                 'supportsAllDrives' => 'true',
@@ -295,7 +283,7 @@ class GoogleDriveService
      */
     public function watchChanges(string $channelId, string $pageToken, string $address, string $token, int $ttlSeconds = 604800): array
     {
-        $response = Http::withToken($this->oauth->accessToken())
+        $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->post(self::API_ROOT.'/changes/watch?'.http_build_query([
                 'pageToken' => $pageToken,
@@ -332,7 +320,7 @@ class GoogleDriveService
      */
     public function listChanges(string $pageToken): array
     {
-        $response = Http::withToken($this->oauth->accessToken())
+        $response = Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->get(self::API_ROOT.'/changes', [
                 'pageToken' => $pageToken,
@@ -358,7 +346,7 @@ class GoogleDriveService
      */
     public function stopChannel(string $channelId, string $resourceId): void
     {
-        Http::withToken($this->oauth->accessToken())
+        Http::withToken($this->auth->accessToken())
             ->timeout(30)
             ->post(self::API_ROOT.'/channels/stop', [
                 'id' => $channelId,
@@ -372,7 +360,7 @@ class GoogleDriveService
      */
     public function downloadFile(string $fileId, string $localPath): void
     {
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
         $dir = dirname($localPath);
         if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {

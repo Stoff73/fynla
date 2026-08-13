@@ -14,20 +14,16 @@ Governed by `fynlaDesignGuide.md` (CMS UI colours + typography). No new external
 |---|---|---|
 | `Articles` subfolder in the Marketing Automation Drive folder | Create it manually in Drive alongside the existing `Videos` subfolder | The `ArticlesFolderLocator` finds it by name |
 | PhpOffice/PhpWord | `composer require phpoffice/phpword` (already added) | Parses `.docx` |
-| Fresh Google OAuth grant | `php artisan pipeline:authorise-google` | Analytics readonly scope was added — re-consent required (only once) |
+| Service account with Shared Drive access | See `STAGE-2-SETUP.md` | No browser authorisation required |
 | Shared sync token | Generate a random 40-char string with `php artisan tinker --execute="echo Str::random(48);"` | Same value goes into local .env and each target env's .env |
 
 ---
 
-## 1. Re-consent Google OAuth (Analytics scope was added)
+## 1. Confirm service-account access
 
-Same command as before:
-
-```bash
-php artisan pipeline:authorise-google
-```
-
-Sign in as `marketing@fynla.org`, Advanced → Go anyway → Allow. Note the new "See Google Analytics data" permission on the consent screen.
+Confirm the service-account `client_email` is still a Content manager of the
+Marketing Automation Shared Drive. The same unattended credentials are used
+for Drive, Docs, Sheets and Analytics; no additional login is required.
 
 ## 2. Create the `Articles` subfolder in Drive
 

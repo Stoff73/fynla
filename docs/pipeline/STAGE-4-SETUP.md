@@ -16,21 +16,21 @@ Governed by the `.claude/skills/social-media-posts/SKILL.md` skill.
 | Buffer **Personal Key** (Bearer token for the GraphQL API) | https://publish.buffer.com/developers/api |
 | Buffer channel IDs (one per platform) | GraphQL query — see below (Buffer calls them "channels" in v2, they were "profiles" in v1) |
 | GA4 Property ID | analytics.google.com → Admin → Property Settings (looks like `530097849`) |
-| Re-consent Google OAuth | Analytics readonly scope was added — see below |
+| Service account has Viewer access to GA4 | analytics.google.com → Admin → Property access management |
 
 ---
 
-## 1. Re-consent Google OAuth (adds Analytics scope)
+## 1. Give the service account Analytics access
 
-Stage 4 adds `https://www.googleapis.com/auth/analytics.readonly` to the OAuth grant so we can read GA4. Re-run:
+The service account automatically requests the Analytics read-only scope. Copy
+the `client_email` value from the private service-account JSON key, then add
+that email address as a **Viewer** on the GA4 property:
 
-```bash
-php artisan pipeline:authorise-google
-```
+1. Open Google Analytics → **Admin**.
+2. Open **Property access management** for the configured property.
+3. Add the service-account email with the **Viewer** role.
 
-Visit the URL, sign in as `marketing@fynla.org` (or whichever account owns the GA property), click **Advanced → Go to Fynla Marketing Pipeline (unsafe)** if you see the "unverified app" warning, then **Allow**. Google will show the new scopes list including "See Google Analytics data".
-
-The refresh token is stored encrypted in `pipeline_oauth_credentials` — replaces the previous grant.
+No browser consent or refresh-token step is required.
 
 ---
 
@@ -196,7 +196,7 @@ Reviewer picks a campaign at approval time — the UtmLinkBuilder switches the d
 |---|---|
 | Approval email arrives but /admin/pipeline/posts is empty | Check status filter (default shows `awaiting_approval` only) |
 | `BUFFER_ACCESS_TOKEN is not set` | Missing / typo in `.env`; `config:clear` after fixing |
-| `GA4 report failed: HTTP 403` | Re-run `pipeline:authorise-google` to re-consent with the analytics.readonly scope |
+| `GA4 report failed: HTTP 403` | Confirm the service-account email has Viewer access to the configured GA4 property |
 | `Pipeline daily cost cap reached` | Expected at £1/day — waits until midnight |
 | `Public API tokens are not accepted for REST API access` (401) | Personal Key hitting the legacy `api.bufferapp.com/1/*` endpoint — you're on an old `BufferClient`; pull latest |
 | Buffer schedule 401 | Personal Key expired or revoked; regenerate at publish.buffer.com/developers/api |

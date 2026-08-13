@@ -2,21 +2,33 @@
 
 declare(strict_types=1);
 
-use App\Models\Pipeline\OAuthCredential;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
+    Cache::flush();
+    putenv('RANDFILE='.sys_get_temp_dir().'/fynla-openssl-random-state');
+
+    $key = openssl_pkey_new([
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($key, $this->privateKey);
+    $this->credentialsPath = tempnam(sys_get_temp_dir(), 'fynla-google-preflight-');
+    file_put_contents($this->credentialsPath, json_encode([
+        'type' => 'service_account',
+        'private_key_id' => 'preflight-test-key-id',
+        'private_key' => $this->privateKey,
+        'client_email' => 'pipeline@fynla-marketing-test.iam.gserviceaccount.com',
+        'token_uri' => 'https://oauth2.googleapis.com/token',
+    ], JSON_THROW_ON_ERROR));
+
     Config::set('pipeline.enabled', true);
     Config::set('pipeline.runner_name', 'production-marketing-runner');
-    Config::set('pipeline.google.oauth_client_id', 'google-client-id');
-    Config::set('pipeline.google.oauth_client_secret', 'google-client-secret');
-    Config::set('pipeline.google.oauth_redirect_uri', 'https://app.fynla.org/pipeline/oauth/google/callback');
+    Config::set('pipeline.google.service_account_credentials', $this->credentialsPath);
     Config::set('pipeline.google.drive_folder_id', 'ROOT_FOLDER');
     Config::set('pipeline.google.tracker_sheet_id', 'TRACKER_SHEET');
     Config::set('pipeline.notifications.script_ready_to', 'marketing@fynla.org');
@@ -24,15 +36,10 @@ beforeEach(function () {
     Config::set('pipeline.social.dry_run', true);
     Config::set('pipeline.drive.webhook_url', null);
     Config::set('pipeline.drive.webhook_token', 'webhook-secret');
+});
 
-    OAuthCredential::create([
-        'provider' => 'google',
-        'account_email' => 'marketing@fynla.org',
-        'access_token' => 'stored-access-token',
-        'refresh_token' => 'stored-refresh-token',
-        'expires_at' => now()->addHour(),
-        'scopes' => ['https://www.googleapis.com/auth/drive'],
-    ]);
+afterEach(function () {
+    @unlink($this->credentialsPath);
 });
 
 function googlePreflightHttpFakes(string $trackerMimeType = 'application/vnd.google-apps.spreadsheet', array $folders = ['Articles', 'Scripts', 'Videos'], array $headers = [
@@ -41,6 +48,13 @@ function googlePreflightHttpFakes(string $trackerMimeType = 'application/vnd.goo
 {
     Http::fake(function (Request $request) use ($trackerMimeType, $folders, $headers) {
         $url = $request->url();
+
+        if ($url === 'https://oauth2.googleapis.com/token') {
+            return Http::response([
+                'access_token' => 'preflight-service-account-access-token',
+                'expires_in' => 3600,
+            ]);
+        }
 
         if (str_contains($url, '/drive/v3/files/ROOT_FOLDER')) {
             return Http::response([
@@ -80,13 +94,13 @@ function googlePreflightHttpFakes(string $trackerMimeType = 'application/vnd.goo
     });
 }
 
-it('reports a fully configured native tracker without leaking credentials or mutating Google', function () {
+it('reports a fully configured native tracker without leaking credentials or mutating Drive or Sheets', function () {
     googlePreflightHttpFakes();
     Log::spy();
 
     $this->artisan('pipeline:google-preflight')
-        ->expectsOutputToContain('PASS Google client settings are configured.')
-        ->expectsOutputToContain('PASS Google connection is available.')
+        ->expectsOutputToContain('PASS Google service-account credentials are configured.')
+        ->expectsOutputToContain('PASS Google service-account authentication is available.')
         ->expectsOutputToContain('PASS Runner: production-marketing-runner; pipeline is enabled.')
         ->expectsOutputToContain('PASS Root folder: Marketing Automation is accessible.')
         ->expectsOutputToContain('PASS Required Drive folders found: Articles, Scripts, Videos.')
@@ -99,7 +113,9 @@ it('reports a fully configured native tracker without leaking credentials or mut
         ->expectsOutputToContain('SAFE Drive webhook is not configured; polling remains available.')
         ->assertExitCode(0);
 
-    Http::assertSentCount(5);
+    Http::assertSentCount(6);
+    Http::assertSent(fn (Request $request) => $request->method() === 'POST'
+        && $request->url() === 'https://oauth2.googleapis.com/token');
     Http::assertSent(function (Request $request) {
         return $request->method() === 'GET'
             && str_contains($request->url(), '/drive/v3/files/ROOT_FOLDER')
@@ -111,7 +127,8 @@ it('reports a fully configured native tracker without leaking credentials or mut
             && str_contains($request->url(), 'supportsAllDrives=true')
             && str_contains($request->url(), 'includeItemsFromAllDrives=true');
     });
-    Http::assertNotSent(fn (Request $request) => $request->method() !== 'GET');
+    Http::assertNotSent(fn (Request $request) => $request->url() !== 'https://oauth2.googleapis.com/token'
+        && $request->method() !== 'GET');
     Log::shouldNotHaveReceived('error');
 });
 
@@ -123,15 +140,15 @@ it('explains how to replace an Excel tracker without leaking secrets', function 
         ->expectsOutputToContain('FAIL Tracker is an Excel workbook, not a native Google spreadsheet.')
         ->expectsOutputToContain('Archive the Excel workbook, then run `php artisan pipeline:setup-tracker` to create the required native spreadsheet.')
         ->doesntExpectOutputToContain('google-client-secret')
-        ->doesntExpectOutputToContain('stored-access-token')
-        ->doesntExpectOutputToContain('stored-refresh-token')
+        ->doesntExpectOutputToContain($this->privateKey)
+        ->doesntExpectOutputToContain('preflight-service-account-access-token')
         ->doesntExpectOutputToContain('webhook-secret')
         ->assertExitCode(1);
 
     Log::shouldNotHaveReceived('error');
 });
 
-it('fails with actionable configuration guidance before making Google requests', function (string $key, string $expected) {
+it('fails with actionable non-secret configuration guidance before making Google requests', function (string $key, string $expected) {
     Config::set($key, null);
     Http::fake();
 
@@ -141,21 +158,57 @@ it('fails with actionable configuration guidance before making Google requests',
 
     Http::assertNothingSent();
 })->with([
-    'client id' => ['pipeline.google.oauth_client_id', 'FAIL Google OAuth client ID is not configured.'],
-    'client secret' => ['pipeline.google.oauth_client_secret', 'FAIL Google OAuth client secret is not configured.'],
+    'service-account credentials path' => ['pipeline.google.service_account_credentials', 'FAIL Google service-account authentication failed. Check GOOGLE_SERVICE_ACCOUNT_CREDENTIALS and the service-account key.'],
     'root folder id' => ['pipeline.google.drive_folder_id', 'FAIL Marketing Automation root folder ID is not configured.'],
     'tracker id' => ['pipeline.google.tracker_sheet_id', 'FAIL Tracker spreadsheet ID is not configured.'],
 ]);
 
-it('fails with authorisation guidance when no encrypted Google connection exists', function () {
-    OAuthCredential::query()->delete();
+it('fails safely when the service-account credentials path is unreadable', function () {
+    $unreadablePath = '/private/not-for-console-output/google-service-account.json';
+    Config::set('pipeline.google.service_account_credentials', $unreadablePath);
     Http::fake();
+    Log::spy();
 
     $this->artisan('pipeline:google-preflight')
-        ->expectsOutputToContain('FAIL Google connection is missing. Run `php artisan pipeline:authorise-google` first.')
+        ->expectsOutputToContain('FAIL Google service-account authentication failed. Check GOOGLE_SERVICE_ACCOUNT_CREDENTIALS and the service-account key.')
+        ->doesntExpectOutputToContain($unreadablePath)
         ->assertExitCode(1);
 
     Http::assertNothingSent();
+    Log::shouldNotHaveReceived('error');
+});
+
+it('fails safely when the service-account credentials file is malformed', function () {
+    $credentialJson = '{"private_key":"do-not-print-this-private-key"}';
+    file_put_contents($this->credentialsPath, $credentialJson);
+    Http::fake();
+    Log::spy();
+
+    $this->artisan('pipeline:google-preflight')
+        ->expectsOutputToContain('FAIL Google service-account authentication failed. Check GOOGLE_SERVICE_ACCOUNT_CREDENTIALS and the service-account key.')
+        ->doesntExpectOutputToContain('do-not-print-this-private-key')
+        ->doesntExpectOutputToContain($credentialJson)
+        ->assertExitCode(1);
+
+    Http::assertNothingSent();
+    Log::shouldNotHaveReceived('error');
+});
+
+it('fails safely when the service account cannot obtain an access token', function () {
+    Http::fake([
+        'oauth2.googleapis.com/token' => Http::response(['error' => 'invalid_grant'], 401),
+    ]);
+    Log::spy();
+
+    $this->artisan('pipeline:google-preflight')
+        ->expectsOutputToContain('FAIL Google service-account authentication failed. Check GOOGLE_SERVICE_ACCOUNT_CREDENTIALS and the service-account key.')
+        ->doesntExpectOutputToContain($this->privateKey)
+        ->doesntExpectOutputToContain('invalid_grant')
+        ->assertExitCode(1);
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'POST'
+        && $request->url() === 'https://oauth2.googleapis.com/token');
+    Log::shouldNotHaveReceived('error');
 });
 
 it('fails when the configured root folder cannot be read', function () {

@@ -56,18 +56,16 @@ return [
     | Google (Drive + Sheets)
     |--------------------------------------------------------------------------
     |
-    | OAuth client credentials from the Fynla Marketing Pipeline GCP project.
-    | folder_id is the Marketing Automation Drive folder; scripts are uploaded
-    | there and the tracker sheet is created inside it.
+    | The service-account JSON key stays outside Git and the public web root;
+    | only its absolute path is configured here. folder_id is the Marketing
+    | Automation Shared Drive folder; scripts and the tracker are created there.
     | tracker_sheet_id is set once by `pipeline:setup-tracker` and pasted back
     | into .env.
     |
     */
 
     'google' => [
-        'oauth_client_id' => env('GOOGLE_OAUTH_CLIENT_ID'),
-        'oauth_client_secret' => env('GOOGLE_OAUTH_CLIENT_SECRET'),
-        'oauth_redirect_uri' => env('GOOGLE_OAUTH_REDIRECT_URI'),
+        'service_account_credentials' => env('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS'),
         'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID'),
         'tracker_sheet_id' => env('PIPELINE_GOOGLE_TRACKER_SHEET_ID'),
     ],
@@ -304,9 +302,8 @@ return [
     | Google Analytics (Stage 4 — weekly report + optimal-time recalculator)
     |--------------------------------------------------------------------------
     |
-    | Reuses the existing Google OAuth grant with the analytics.readonly
-    | scope added. After changing scopes, users must re-run
-    | pipeline:authorise-google to re-consent.
+    | The service account requests analytics.readonly automatically. Add its
+    | email address as a Viewer on the configured GA4 property.
     |
     */
 

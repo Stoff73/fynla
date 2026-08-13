@@ -51,7 +51,7 @@ class SetupTracker extends Command
         $this->info('Creating tracker sheet...');
 
         try {
-            $spreadsheetId = $sheets->createTrackerSheet($title);
+            $spreadsheetId = $drive->createSpreadsheet($title, $folderId);
         } catch (Throwable $e) {
             $this->error('Sheet creation failed: '.$e->getMessage());
 
@@ -60,12 +60,12 @@ class SetupTracker extends Command
 
         $this->line('  Created sheet '.$spreadsheetId.'.');
 
-        $this->info('Moving into the Marketing Automation folder...');
+        $this->info('Applying tracker layout...');
 
         try {
-            $drive->moveToFolder($spreadsheetId, $folderId);
+            $sheets->initialiseTrackerSheet($spreadsheetId);
         } catch (Throwable $e) {
-            $this->error('Move failed (sheet was created but is still in Drive root): '.$e->getMessage());
+            $this->error('Tracker layout failed (the native Sheet was created in the shared folder): '.$e->getMessage());
             $this->line('  Sheet ID: '.$spreadsheetId);
 
             return self::FAILURE;
