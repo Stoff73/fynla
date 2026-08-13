@@ -126,10 +126,13 @@ do not confuse a warning with a failed build.
 
 ```bash
 php artisan down
-php artisan queue:restart
+php artisan tinker --execute="echo 'queue_connection='.(string) config('queue.default').PHP_EOL;"
 ```
 
-Wait for the existing worker to finish its current job. Confirm through the
+Record the non-secret queue mode. If it is `sync`, jobs run inside the command
+that dispatches them and there is no queue worker to drain. Do not create one.
+For any asynchronous mode, such as `database`, run `php artisan queue:restart`,
+wait for the existing worker to finish its current job, and confirm through the
 host's worker control panel or process view that no pre-deployment pipeline job
 is still running. Keep the application in maintenance mode until deployment,
 migrations, cache rebuilding, preflight, and detector dry runs are complete.
@@ -282,14 +285,21 @@ identifier or credential value. A `FAIL` result blocks activation.
    `pipeline:detect-new-article-docs`, `pipeline:detect-new-articles`,
    `pipeline:detect-new-document-articles`, and
    `pipeline:detect-new-videos`.
-3. Confirm the dedicated `pipeline` queue worker is healthy and no new failed
-   job appeared during deployment.
+3. Confirm the queue mode without showing environment secrets:
+
+   ```bash
+   php artisan tinker --execute="echo 'queue_connection='.(string) config('queue.default').PHP_EOL;"
+   ```
+
+   For `sync`, record that jobs execute inline and no queue worker is expected.
+   For an asynchronous mode, confirm exactly one worker serving the `pipeline`
+   queue is healthy and that no new failed job appeared during deployment.
 4. Confirm the application can write its daily pipeline log under
    `storage/logs/pipeline*.log`. Record only times, status, and redacted error
    summaries.
 
-Do not create a second scheduler or queue worker on production or another
-development deployment.
+Do not create a second scheduler or, for an asynchronous queue, a second
+pipeline worker on production or another development deployment.
 
 ## 11. Commission polling with controlled assets
 
@@ -323,16 +333,50 @@ maintenance mode so the normal scheduler cannot race the dry runs.
    copy, incorrectly named file, or unexpected article is a candidate, use the
    emergency stop immediately and resolve the Drive contents without deleting
    originals.
-5. If a mutating controlled test is approved, run only the detector relevant
-   to that named test and let the dedicated queue process it. Check the tracker
-   and Drive after each stage before continuing. Social delivery stays in dry
-   run and automatic composition remains off.
-6. Return the application to service with `php artisan up`, restore the single
-   development scheduler and normal queue worker, and observe one polling
-   interval. Confirm only the named asset is detected and each expected job is
-   processed once.
+5. Read the recorded `queue_connection` and use only its matching controlled
+   test path. Do not mix the two paths:
+
+   - **`sync`:** keep maintenance mode on and run only the detector relevant to
+     the named approved test. Dispatched jobs execute inline within that command;
+     no queue worker is expected or required. Check the tracker and Drive when
+     the command returns.
+   - **Asynchronous mode:** keep automatic polling paused by disabling the one
+     development scheduler entry before bringing the application up. Keep all
+     pipeline and social safety settings unchanged. Run `php artisan up`, then
+     resume exactly one existing host-managed worker serving the `pipeline`
+     queue. If the host has no persistent worker, run the following as the sole
+     worker in a separate administrator terminal, without `--force`:
+
+     ```bash
+     php artisan queue:work --queue=pipeline --sleep=1 --tries=3
+     ```
+
+     Only after that one worker is ready, run the detector relevant to the named
+     approved test in the original terminal. Do not re-enable the scheduler yet.
+     Check the tracker, Drive, worker result, and failed-job state after each
+     stage, then stop the temporary worker if one was used.
+
+   In either path, run exactly one approved detector command, not the complete
+   list:
+
+   ```text
+   Approved article document:  php artisan pipeline:detect-new-article-docs
+   Approved Insight article:   php artisan pipeline:detect-new-articles
+   Approved document article:  php artisan pipeline:detect-new-document-articles
+   Approved matching video:    php artisan pipeline:detect-new-videos
+   ```
+
+   Social delivery stays in dry run and automatic composition remains off on
+   both paths.
+6. For `sync`, return the application to service with `php artisan up`. For an
+   asynchronous mode it is already up. Restore the single development scheduler
+   only after the controlled command has completed, leave exactly one normal
+   pipeline worker only when that queue mode requires it, and observe one
+   polling interval. Confirm only the named asset is detected and each expected
+   job is processed once.
 7. Leave development enabled only when all evidence below is green. Otherwise
-   set it back to false and keep polling stopped while investigating.
+   set it back to false, pause the scheduler, and keep polling stopped while
+   investigating.
 
 ## 12. Evidence checklist
 
@@ -357,8 +401,10 @@ unless marked optional:
 - [ ] The invalid `.mov_` legacy file is excluded from the controlled video
       test.
 - [ ] Detector dry runs list only approved candidates.
-- [ ] Exactly one development scheduler and the dedicated pipeline queue worker
-      are healthy; no unexpected failed job is present.
+- [ ] Queue mode is recorded. `sync` has no worker; an asynchronous mode has
+      exactly one healthy development worker serving the `pipeline` queue. The
+      single development scheduler is healthy and no unexpected failed job is
+      present.
 - [ ] `storage/logs/pipeline*.log` contains no new unexplained error.
 - [ ] The controlled polling result and tracker/Drive changes match the named
       test; no duplicate work is visible.
@@ -381,12 +427,12 @@ Disable dispatch before doing anything else:
    ```bash
    php artisan config:clear
    php artisan config:cache
-   php artisan queue:restart
    ```
 
-3. Pause the host-managed pipeline worker and, if necessary, the single
-   development scheduler. Wait for any current job to stop at its normal safe
-   boundary.
+3. Pause the single development scheduler. For an asynchronous queue, also run
+   `php artisan queue:restart`, pause its one host-managed pipeline worker, and
+   wait for any current job to stop at its normal safe boundary. A `sync` queue
+   has no worker to restart or pause.
 4. Confirm the disabled state without exposing other environment values:
 
    ```bash
