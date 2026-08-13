@@ -47,6 +47,10 @@ return [
 
     'queue' => env('PIPELINE_QUEUE', 'pipeline'),
 
+    // Identifies this deployment to the pipeline preflight check so only one
+    // environment is allowed to run the shared marketing automation pipeline.
+    'runner_name' => env('PIPELINE_RUNNER_NAME', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Google (Drive + Sheets)
@@ -62,7 +66,7 @@ return [
 
     'google' => [
         'service_account_credentials' => env('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS'),
-        'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID', '1HR5oTck5ZQuAviTvAMdJEoNpPIcd-75P'),
+        'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID'),
         'tracker_sheet_id' => env('PIPELINE_GOOGLE_TRACKER_SHEET_ID'),
     ],
 
@@ -263,12 +267,12 @@ return [
 
         'variant_count' => 2,
 
-        'compose_after_render' => (bool) env('PIPELINE_COMPOSE_AFTER_RENDER', true),
+        'compose_after_render' => (bool) env('PIPELINE_COMPOSE_AFTER_RENDER', false),
 
         // Dry-run: SchedulePostJob records the intended schedule but never calls
         // Buffer, so nothing is posted to social media. For testing the video +
         // scheduling flow without publishing.
-        'dry_run' => (bool) env('PIPELINE_SOCIAL_DRY_RUN', false),
+        'dry_run' => (bool) env('PIPELINE_SOCIAL_DRY_RUN', true),
 
     ],
 

@@ -173,6 +173,57 @@ class GoogleDriveService
     }
 
     /**
+     * Read a Drive file or folder's basic metadata.
+     *
+     * @return array{id:string,name:string,mimeType:string,driveId:?string,parents:list<string>}
+     */
+    public function metadata(string $fileId): array
+    {
+        $response = Http::withToken($this->auth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/files/'.$fileId, [
+                'fields' => 'id,name,mimeType,driveId,parents',
+                'supportsAllDrives' => 'true',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Google Drive metadata failed: HTTP '.$response->status());
+        }
+
+        return [
+            'id' => (string) $response->json('id'),
+            'name' => (string) $response->json('name'),
+            'mimeType' => (string) $response->json('mimeType'),
+            'driveId' => is_string($response->json('driveId')) ? $response->json('driveId') : null,
+            'parents' => array_values($response->json('parents', [])),
+        ];
+    }
+
+    /**
+     * List direct child folders without creating or caching anything.
+     *
+     * @return list<array{id:string,name:string}>
+     */
+    public function listChildFolders(string $parentFolderId): array
+    {
+        $response = Http::withToken($this->auth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/files', [
+                'q' => "'{$parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                'fields' => 'files(id,name)',
+                'pageSize' => 100,
+                'supportsAllDrives' => 'true',
+                'includeItemsFromAllDrives' => 'true',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Google Drive child folder list failed: HTTP '.$response->status());
+        }
+
+        return array_values($response->json('files', []));
+    }
+
+    /**
      * Find a subfolder by name, creating it if it doesn't exist yet. Used for
      * pipeline output folders (e.g. "Scripts") so a fresh environment doesn't
      * need the folder hand-made in Drive first.

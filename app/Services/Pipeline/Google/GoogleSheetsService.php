@@ -100,6 +100,81 @@ class GoogleSheetsService
         return (int) ($m[1] ?? 0);
     }
 
+    /**
+     * Read spreadsheet metadata without changing its contents.
+     *
+     * @return array{spreadsheetId:string,title:string,sheets:list<array{id:int,title:string}>}
+     */
+    public function metadata(string $spreadsheetId): array
+    {
+        $response = Http::withToken($this->auth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/'.$spreadsheetId, [
+                'fields' => 'spreadsheetId,properties(title),sheets(properties(sheetId,title))',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Google Sheets metadata failed: HTTP '.$response->status());
+        }
+
+        return [
+            'spreadsheetId' => (string) $response->json('spreadsheetId'),
+            'title' => (string) $response->json('properties.title'),
+            'sheets' => array_map(static fn (array $sheet): array => [
+                'id' => (int) data_get($sheet, 'properties.sheetId'),
+                'title' => (string) data_get($sheet, 'properties.title'),
+            ], $response->json('sheets', [])),
+        ];
+    }
+
+    /**
+     * Read the first row of a sheet without changing it.
+     *
+     * @return list<string>
+     */
+    public function firstRow(string $spreadsheetId, string $sheetTitle): array
+    {
+        $response = Http::withToken($this->auth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/'.$spreadsheetId.'/values/'.rawurlencode($sheetTitle.'!1:1'));
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Google Sheets header read failed: HTTP '.$response->status());
+        }
+
+        return array_map('strval', $response->json('values.0', []));
+    }
+
+    /**
+     * Read the allowed values from the Status validation rule without changing the tracker.
+     *
+     * @return list<string>
+     */
+    public function statusOptions(string $spreadsheetId, string $sheetTitle): array
+    {
+        $response = Http::withToken($this->auth->accessToken())
+            ->timeout(30)
+            ->get(self::API_ROOT.'/'.$spreadsheetId, [
+                'ranges' => $sheetTitle.'!E2',
+                'includeGridData' => 'true',
+                'fields' => 'sheets(data(rowData(values(dataValidation(condition(type,values))))))',
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Google Sheets Status validation read failed: HTTP '.$response->status());
+        }
+
+        $condition = $response->json('sheets.0.data.0.rowData.0.values.0.dataValidation.condition', []);
+        if (($condition['type'] ?? null) !== 'ONE_OF_LIST') {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn (array $value): string => (string) ($value['userEnteredValue'] ?? ''),
+            $condition['values'] ?? [],
+        ));
+    }
+
     private function writeHeaders(string $token, string $spreadsheetId): void
     {
         $response = Http::withToken($token)
