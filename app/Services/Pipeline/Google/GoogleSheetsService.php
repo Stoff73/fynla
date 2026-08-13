@@ -38,47 +38,32 @@ class GoogleSheetsService
         'Rejected',
     ];
 
-    public function __construct(private readonly GoogleOAuthClient $oauth) {}
+    public function __construct(private readonly GoogleServiceAccountClient $auth) {}
 
     /**
-     * Create a spreadsheet with the marketing pipeline tracker layout. Returns
-     * the new spreadsheet's ID. Caller should move it into the target folder
-     * using GoogleDriveService::moveToFolder().
+     * Apply the marketing tracker layout to an existing native Google Sheet.
      */
-    public function createTrackerSheet(string $title): string
+    public function initialiseTrackerSheet(string $spreadsheetId): void
     {
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
-        $create = Http::withToken($token)
+        $details = Http::withToken($token)
             ->timeout(30)
-            ->post(self::API_ROOT, [
-                'properties' => ['title' => $title],
-                'sheets' => [[
-                    'properties' => [
-                        'title' => 'Pipeline',
-                        'gridProperties' => [
-                            'frozenRowCount' => 1,
-                            'columnCount' => count(self::HEADERS),
-                        ],
-                    ],
-                ]],
+            ->get(self::API_ROOT.'/'.$spreadsheetId, [
+                'fields' => 'sheets(properties(sheetId,title))',
             ]);
 
-        if (! $create->successful()) {
-            Log::channel('pipeline')->error('Sheets create failed.', [
-                'status' => $create->status(),
-                'body' => $create->body(),
-            ]);
-            throw new RuntimeException('Google Sheets create failed: HTTP '.$create->status());
+        if (! $details->successful()) {
+            throw new RuntimeException('Sheets metadata lookup failed: HTTP '.$details->status());
         }
 
-        $spreadsheetId = $create->json('spreadsheetId');
-        $sheetId = $create->json('sheets.0.properties.sheetId');
+        $sheetId = $details->json('sheets.0.properties.sheetId');
+        if (! is_int($sheetId)) {
+            throw new RuntimeException('Google Sheets returned no worksheet ID.');
+        }
 
+        $this->applyFormatting($token, $spreadsheetId, $sheetId);
         $this->writeHeaders($token, $spreadsheetId);
-        $this->applyFormatting($token, $spreadsheetId, (int) $sheetId);
-
-        return $spreadsheetId;
     }
 
     /**
@@ -89,7 +74,7 @@ class GoogleSheetsService
      */
     public function appendRow(string $spreadsheetId, array $values): int
     {
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
         $response = Http::withToken($token)
             ->timeout(30)
@@ -131,6 +116,19 @@ class GoogleSheetsService
     private function applyFormatting(string $token, string $spreadsheetId, int $sheetId): void
     {
         $requests = [
+            [
+                'updateSheetProperties' => [
+                    'properties' => [
+                        'sheetId' => $sheetId,
+                        'title' => 'Pipeline',
+                        'gridProperties' => [
+                            'frozenRowCount' => 1,
+                            'columnCount' => count(self::HEADERS),
+                        ],
+                    ],
+                    'fields' => 'title,gridProperties(frozenRowCount,columnCount)',
+                ],
+            ],
             [
                 'repeatCell' => [
                     'range' => [

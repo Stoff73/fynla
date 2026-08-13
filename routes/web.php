@@ -5,7 +5,6 @@ use App\Http\Controllers\Lifecycle\LifecycleActionController;
 use App\Http\Controllers\NewsletterActionController;
 use App\Http\Controllers\Pipeline\ClipApprovalActionController;
 use App\Http\Controllers\Pipeline\DriveWebhookController;
-use App\Http\Controllers\Pipeline\GoogleOAuthController;
 use App\Http\Controllers\Pipeline\SignedClipDownloadController;
 use App\Http\Controllers\WebHandoffController;
 use Illuminate\Support\Facades\Route;
@@ -748,11 +747,6 @@ Route::get('/mockup/dashboard', function () {
 
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8']);
 });
-
-// Marketing pipeline — Google OAuth callback (one-time, from `pipeline:authorise-google`).
-// MUST be before the SPA catch-all so the redirect renders the confirmation page.
-Route::get('/pipeline/oauth/google/callback', [GoogleOAuthController::class, 'callback'])
-    ->name('pipeline.oauth.google.callback');
 
 // Marketing pipeline — Google Drive change webhook (real-time trigger).
 // Google POSTs here on any Drive change; the X-Goog-Channel-Token header is the

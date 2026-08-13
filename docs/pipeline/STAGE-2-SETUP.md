@@ -13,30 +13,31 @@ This file walks through the one-time setup. All the code exists on the
 
 | Item | Where you get it | Storage |
 |---|---|---|
-| Google Cloud project + OAuth client | Google Cloud Console (see below) | `.env` |
-| Client ID + Secret | Google Cloud → Credentials | `.env` |
+| Google Cloud project + service account | Google Cloud Console | Google Cloud |
+| Downloaded service-account JSON key | Google Cloud → Service Accounts → Keys | Private server file; never Git |
 | Anthropic API key with Opus access | console.anthropic.com | `.env` |
 | Marketing Automation Drive folder ID | Drive URL — `/folders/<id>` | already in defaults |
-| Tracker sheet ID | Created by `pipeline:setup-tracker` | `.env` (paste after step 4) |
-
-Redirect URI on the OAuth client MUST be exactly:
-
-```
-http://localhost:8000/pipeline/oauth/google/callback
-```
-
-(For production later, add another OAuth client with `https://fynla.org/pipeline/oauth/google/callback`.)
+| Tracker sheet ID | Created by `pipeline:setup-tracker` | `.env` (paste after step 3) |
 
 ---
 
-## Step 1 — Paste the Google + Anthropic keys into `.env`
+## Step 1 — Store the service-account key
 
-Open `.env` and fill in these five values (leave others as-is):
+Create a private folder outside the public web root and upload the downloaded
+JSON key there. A recommended server location is:
 
 ```
-GOOGLE_OAUTH_CLIENT_ID=<the *.apps.googleusercontent.com string>
-GOOGLE_OAUTH_CLIENT_SECRET=<the GOCSPX-... string>
-GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8000/pipeline/oauth/google/callback
+storage/app/private/google/fynlaautomarketing.json
+```
+
+Restrict the file so only the server account can read it. Do not put it in
+`vendor/` because dependency deployments may replace that directory. Do not
+commit it to Git.
+
+Open `.env` and add the absolute path plus the Anthropic settings:
+
+```
+GOOGLE_SERVICE_ACCOUNT_CREDENTIALS=/absolute/server/path/storage/app/private/google/fynlaautomarketing.json
 
 ANTHROPIC_API_KEY=<sk-ant-...>
 ANTHROPIC_OPUS_MODEL=claude-opus-4-7
@@ -50,28 +51,14 @@ php artisan config:clear
 
 ---
 
-## Step 2 — Authorise Google
+## Step 2 — Give the service account Shared Drive access
 
-Make sure the dev server is running (`.\dev.ps1`). Then:
+Open the JSON key and copy its `client_email` value. In Google Drive, add that
+email address as a **Content manager** of the Marketing Automation Shared Drive.
+The pipeline then authenticates automatically; there is no browser login,
+callback URL, refresh token, or recurring reauthorisation.
 
-```bash
-php artisan pipeline:authorise-google
-```
-
-It prints a URL. Open it in a browser signed in as **the account that owns
-the Marketing Automation folder** (e.g. chris@fynla.org). Click **Allow**.
-The browser redirects to `http://localhost:8000/pipeline/oauth/google/callback`
-and shows a confirmation page. Back in the terminal you'll see:
-
-```
-✓ Authorised as chris@fynla.org
-```
-
-Refresh token is now stored encrypted in `pipeline_oauth_credentials`.
-
-**Not required again** unless you revoke the app at
-[myaccount.google.com/permissions](https://myaccount.google.com/permissions)
-or the token goes unused for 6+ months.
+Run `php artisan config:clear` after changing the key path.
 
 ---
 
@@ -81,7 +68,8 @@ or the token goes unused for 6+ months.
 php artisan pipeline:setup-tracker
 ```
 
-Creates a new Google Sheet inside the Marketing Automation folder with:
+Creates a native Google Sheet directly inside the Marketing Automation Shared
+Drive folder with:
 
 - Header row (Timestamp, Article slug, Article title, Script link, Status,
   Video link, Notes, Assignee) — bold, frozen
@@ -153,11 +141,8 @@ moves to `failed` state. Re-run tomorrow.
 Set `PIPELINE_ENABLED=false` in `.env` and clear config. The scheduler
 entry becomes a no-op. Existing rows in `pipeline_articles` are untouched.
 
-To fully remove the OAuth grant, go to
-[myaccount.google.com/permissions](https://myaccount.google.com/permissions),
-find "Fynla Marketing Pipeline", click Remove Access. Also delete the row
-from `pipeline_oauth_credentials` if you want to invalidate the stored
-refresh token.
+To remove Google access, set `PIPELINE_ENABLED=false`, remove the service
+account from the Shared Drive, and delete its private JSON key from the server.
 
 ---
 
@@ -165,11 +150,11 @@ refresh token.
 
 | Symptom | Fix |
 |---|---|
-| `RuntimeException: No Google OAuth credential stored` | Re-run `pipeline:authorise-google` |
-| `RuntimeException: Google did not return a refresh token` | Revoke at myaccount.google.com/permissions, re-run authorise |
+| `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS is not set` | Add the absolute JSON-key path to `.env`, then run `config:clear` |
+| Credentials file is not readable | Confirm the path and file permissions for the server account |
 | `RuntimeException: Pipeline daily cost cap reached` | Expected once you hit £2/day — wait for tomorrow |
 | `RuntimeException: ANTHROPIC_API_KEY is not set` | Missing / typo in `.env`; check + `config:clear` |
-| Google returns 403 on Drive upload | Confirm the OAuth account has Editor access to the Marketing Automation folder |
+| Google returns 403 on Drive upload | Add the service-account `client_email` as a Content manager of the Shared Drive |
 | Email doesn't arrive at marketing@fynla.org | Check `storage/logs/pipeline*.log`; queue worker running? |
 
 Logs live at `storage/logs/pipeline-YYYY-MM-DD.log` (30-day retention).
