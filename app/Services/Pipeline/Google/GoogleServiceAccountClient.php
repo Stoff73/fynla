@@ -7,6 +7,7 @@ namespace App\Services\Pipeline\Google;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use JsonException;
+use OpenSSLAsymmetricKey;
 use RuntimeException;
 
 /**
@@ -26,6 +27,7 @@ class GoogleServiceAccountClient
     public function accessToken(): string
     {
         $credentials = $this->credentials();
+        $privateKey = $this->privateKey($credentials['private_key']);
 
         $cached = Cache::get(self::CACHE_KEY);
         if (is_string($cached) && $cached !== '') {
@@ -39,7 +41,7 @@ class GoogleServiceAccountClient
             ->retry(2, 500, throw: false)
             ->post($tokenUri, [
                 'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-                'assertion' => $this->signedAssertion($credentials),
+                'assertion' => $this->signedAssertion($credentials, $privateKey),
             ]);
 
         if (! $response->successful()) {
@@ -93,7 +95,7 @@ class GoogleServiceAccountClient
     /**
      * @param  array{client_email:string,private_key:string,private_key_id?:string,token_uri:string}  $credentials
      */
-    private function signedAssertion(array $credentials): string
+    private function signedAssertion(array $credentials, OpenSSLAsymmetricKey $privateKey): string
     {
         $issuedAt = time();
         $header = [
@@ -115,17 +117,22 @@ class GoogleServiceAccountClient
         $unsigned = $this->base64UrlEncode(json_encode($header, JSON_THROW_ON_ERROR))
             .'.'.$this->base64UrlEncode(json_encode($claims, JSON_THROW_ON_ERROR));
 
-        $privateKey = @openssl_pkey_get_private($credentials['private_key']);
-        $keyDetails = $privateKey === false ? false : openssl_pkey_get_details($privateKey);
-        if ($privateKey === false || $keyDetails === false || $keyDetails['type'] !== OPENSSL_KEYTYPE_RSA) {
-            throw new RuntimeException('Google service-account private key is not a valid RSA key.');
-        }
-
         if (! openssl_sign($unsigned, $signature, $privateKey, OPENSSL_ALGO_SHA256)) {
             throw new RuntimeException('Could not sign the Google service-account assertion.');
         }
 
         return $unsigned.'.'.$this->base64UrlEncode($signature);
+    }
+
+    private function privateKey(string $value): OpenSSLAsymmetricKey
+    {
+        $privateKey = @openssl_pkey_get_private($value);
+        $keyDetails = $privateKey === false ? false : openssl_pkey_get_details($privateKey);
+        if ($privateKey === false || $keyDetails === false || $keyDetails['type'] !== OPENSSL_KEYTYPE_RSA) {
+            throw new RuntimeException('Google service-account private key is not a valid RSA key.');
+        }
+
+        return $privateKey;
     }
 
     private function base64UrlEncode(string $value): string

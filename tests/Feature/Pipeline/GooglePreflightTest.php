@@ -242,6 +242,13 @@ it('fails when a required Drive child folder is absent', function () {
 
 it('fails when the Pipeline sheet or its required header order is absent', function (array $sheets, array $headers, string $expected) {
     Http::fake(function (Request $request) use ($sheets, $headers) {
+        if ($request->url() === 'https://oauth2.googleapis.com/token') {
+            return Http::response([
+                'access_token' => 'preflight-service-account-access-token',
+                'expires_in' => 3600,
+            ]);
+        }
+
         if (str_contains($request->url(), '/drive/v3/files/ROOT_FOLDER')) {
             return Http::response(['id' => 'ROOT_FOLDER', 'name' => 'Marketing Automation', 'mimeType' => 'application/vnd.google-apps.folder']);
         }

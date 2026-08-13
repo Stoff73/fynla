@@ -114,6 +114,25 @@ it('validates configured credentials before returning a cached access token', fu
     $client->accessToken();
 })->throws(RuntimeException::class, 'Google service-account credentials file is not valid JSON.');
 
+it('validates a cached credential private key before returning a cached access token', function () {
+    Http::fake([
+        'oauth2.googleapis.com/token' => Http::response([
+            'access_token' => 'cached-service-account-token',
+            'expires_in' => 3600,
+            'token_type' => 'Bearer',
+        ]),
+    ]);
+
+    $client = new GoogleServiceAccountClient;
+    expect($client->accessToken())->toBe('cached-service-account-token');
+
+    $credentials = json_decode(file_get_contents($this->credentialsPath), true, flags: JSON_THROW_ON_ERROR);
+    $credentials['private_key'] = 'not-a-private-key';
+    file_put_contents($this->credentialsPath, json_encode($credentials, JSON_THROW_ON_ERROR));
+
+    $client->accessToken();
+})->throws(RuntimeException::class, 'Google service-account private key is not a valid RSA key.');
+
 it('fails clearly when the credentials path is not configured', function () {
     Config::set('pipeline.google.service_account_credentials');
 
