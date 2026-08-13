@@ -101,7 +101,14 @@ Then `php artisan config:clear`.
 
 ## 4. First-time smoke test
 
-1. `PIPELINE_ENABLED=true` in `.env`, `config:clear`
+Before enabling anything, confirm this is the one development runner named
+`csjones-development`, production still has `PIPELINE_ENABLED=false`, and
+development retains `PIPELINE_COMPOSE_AFTER_RENDER=false` and
+`PIPELINE_SOCIAL_DRY_RUN=true`. If any condition is not confirmed, stop and do
+not run this smoke test. See `GOOGLE-DRIVE-SETUP-RUNBOOK.md` for the full
+commissioning sequence.
+
+1. On that development runner only, set `PIPELINE_ENABLED=true` in `.env`, then run `php artisan config:clear`.
 2. Confirm at least one InsightArticle has been through Stages 1–3 (has clips in `storage/app/social/video/{slug}/`)
 3. Manually trigger the composer:
    ```bash

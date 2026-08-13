@@ -60,7 +60,15 @@ PIPELINE_SYNC_TOKEN=<value that matches what the local sends>
 
 ## 4. Turn on the pipeline
 
-`PIPELINE_ENABLED=true` in local `.env` + `config:clear`.
+Before enabling anything, confirm this is the one development runner named
+`csjones-development`, production still has `PIPELINE_ENABLED=false`, and
+development retains `PIPELINE_COMPOSE_AFTER_RENDER=false` and
+`PIPELINE_SOCIAL_DRY_RUN=true`. If any condition is not confirmed, stop and do
+not run the smoke test. See `GOOGLE-DRIVE-SETUP-RUNBOOK.md` for the full
+commissioning sequence.
+
+On that development runner only, set `PIPELINE_ENABLED=true` in local `.env`,
+then run `php artisan config:clear`.
 
 ### 4a. Turn on the public `/insights/{slug}` route
 

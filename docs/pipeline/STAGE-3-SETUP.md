@@ -37,7 +37,14 @@ The video should have already had a script generated for it (Stage 2), meaning t
 
 ## First-time smoke test
 
-1. Set `PIPELINE_ENABLED=true` in `.env`, `php artisan config:clear`
+Before enabling anything, confirm this is the one development runner named
+`csjones-development`, production still has `PIPELINE_ENABLED=false`, and
+development retains `PIPELINE_COMPOSE_AFTER_RENDER=false` and
+`PIPELINE_SOCIAL_DRY_RUN=true`. If any condition is not confirmed, stop and do
+not run this smoke test. See `GOOGLE-DRIVE-SETUP-RUNBOOK.md` for the full
+commissioning sequence.
+
+1. On that development runner only, set `PIPELINE_ENABLED=true` in `.env`, then run `php artisan config:clear`.
 2. Upload a short landscape MP4 named `{some-published-article-slug}.mp4` to Marketing Automation ▸ Videos
 3. Run:
    ```

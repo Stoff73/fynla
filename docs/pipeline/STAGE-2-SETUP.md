@@ -106,6 +106,7 @@ PIPELINE_COMPOSE_AFTER_RENDER=false
 PIPELINE_SOCIAL_DRY_RUN=true
 ```
 
+If those conditions are not confirmed, stop and do not run the smoke test.
 Run `php artisan pipeline:google-preflight` after the tracker identifier is in
 `.env`; it is read-only and must pass before a smoke test. See
 `GOOGLE-DRIVE-SETUP-RUNBOOK.md` for the complete safe commissioning sequence.
