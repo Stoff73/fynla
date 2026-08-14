@@ -94,7 +94,7 @@ and still true: the `vite.config.js` iOS rules (183–185) and `auth/mobileLogou
 | `Architecture/` 8 files | **39** | 4.9× |
 | `Integration/` 3 files | 4 | +1 |
 | "1,600+ `it()` cases" | **6,601 `it()` + 110 `test()`** | 4.1× |
-| "64 factories" | **55** | −9 (over-claim) |
+| "64 factories" | **76** | +12 (55 top-level + 21 in subdirectories) |
 | `Browser/` | **absent from the doc** — 27 files, 24 BS-NN scenarios | — |
 | `Eval` suite | **absent** — declared in `phpunit.xml` | — |
 
@@ -107,7 +107,7 @@ doc doesn't acknowledge the directory exists.
 | Claim | Actual |
 |---|---|
 | "23 seeder classes" | **29** (6 undocumented) |
-| "64 factories" | **55** |
+| "64 factories" | **76** |
 | Phase 1/2 ordered list (22 named) | 6 seeders unaccounted for |
 
 ---
@@ -194,3 +194,18 @@ by September. Delete them, or generate them in CI — nothing in between.
 Every number above came from a direct count on this tree
 (`find`/`grep`/`git ls-files`), not from reading prose. The "not found" rows in
 §1 were each confirmed by a repo-wide `find` before being listed.
+
+**Correction (2026-08-14, after vault-sync cross-check).** Two counts in the
+first version of this report were themselves wrong, both because the original
+`find` was too narrow:
+
+- **Factories: 76, not 55.** The first pass used `ls database/factories/*.php`,
+  which misses 21 factories in subdirectories. The docs' "64" was therefore an
+  *under*-count, not the over-claim this report first called it.
+- **Vue components: 700, not 679.** The first pass counted `resources/js` only,
+  which excludes `resources/mobile/` — the very directory §1 is about.
+
+Neither wrong number reached a `CLAUDE.md`: the recommendation was to delete the
+counts, not restate them, and that is what was applied. The irony is the point —
+a hand-maintained count is wrong even when someone is actively auditing it,
+which is the case for not having them.
