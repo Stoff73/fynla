@@ -99,3 +99,6 @@ March/*/CSJTODO.md
 mcp-servers/
 fynlaBrain/
 .smoke-evidence/
+
+# Workforce runtime logs (append-only, machine-local)
+workforce/ops/log/*.log
