@@ -1,0 +1,13 @@
+deny	Bash	command	rmdir /Users/CSJ/Desktop/fynla/.claude/hooks/
+deny	Bash	command	git rm .github/CODEOWNERS
+deny	Bash	command	ln -sf /dev/null ./CLAUDE.md
+deny	Bash	command	find .claude/hooks -name guard.sh -delete
+deny	Bash	command	cp /tmp/x ./CLAUDE.md
+deny	Bash	command	git checkout -- CLAUDE.md
+deny	Bash	command	python3 -c open('CLAUDE.md','w')
+allow	Bash	command	rmdir /tmp/emptydir
+allow	Bash	command	git rm app/Models/Old.php
+allow	Bash	command	find app -name '*.php' -delete
+allow	Bash	command	ls .claude/hooks/
+allow	Bash	command	git log -- CLAUDE.md
+allow	Bash	command	./vendor/bin/pest tests/Unit

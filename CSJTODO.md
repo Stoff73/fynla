@@ -1,5 +1,31 @@
 # CSJTODO — Fynla
 
+*Last updated: 2026-08-14 — end-of-day wrap, session 1. Docs/tooling day:
+CLAUDE.md audit + repair (4 commits, pushed to `fix/widow-persona-cleanup`),
+iOS TestFlight login closed as user error, worktrees 13→4 (~2.2 GB), guard
+consolidation proposed but NOT installed. Handover:
+August/Aug15Updates/handover-2026-08-15-session-1.md.*
+
+## 2026-08-14 — docs, guards, worktrees
+
+- [ ] **Install the guard consolidation** — `workforce/ops/proposed-guard.sh` replaces all five PreToolUse guards; 59/59 regression suite passes. Founder-gated, so CSJ applies: `mv` into `.claude/hooks/guard.sh`, `chmod +x`, delete the five originals, collapse the `PreToolUse` block to one entry (matcher `Write|Edit|Bash|mcp__ssh-fynla__ssh_exec`). Re-run the suite against the installed path after.
+- [x] **Guard test cases rescued** into `.claude/hooks/tests/` (59 cases). Note: the proposed guard widens `PROTECTED` to the `.claude/hooks` prefix, which would gate this tests dir too — an agent could no longer add a regression case unaided. Probably right (guard changes are gated anyway), but decide deliberately.
+- [ ] **Revisit GATE-0001.** Its premise is falsified: `main` and `dev` both have `required_approving_review_count: 0`, `require_code_owner_reviews: false`, no required status checks, `enforce_admins: false`. Nothing mechanically stops `claude.yml` self-merging to dev.
+- [ ] **Root sweep (scoped, not started)** — 297 entries at repo root, 173 loose `.png` (gitignored but re-accumulating). Also `create_trial.php`, a ProjectionLab JSON with CSJ's email in the filename, `addepar.md`/`addeparIntegrate.pdf`. Nothing verified safe to delete yet.
+- [ ] **`.worktrees/` holds 14 clones of OTHER repos** (FynlaMCP ×9, fynla-agents, fynla-control, fynlaBrain) — ~250 MB, all clean. Relocate?
+- [ ] **`fynla-marketing-review` worktree** has 10 modified tracked files + 2 new tests uncommitted (pipeline controllers, `ClipApprovalService`, `routes/web.php`). Commit or discard.
+- [ ] **Upgrade git** — currently 2.10.1 (2016). No `worktree remove`, `branch --show-current`, or `stash push -- <path>`.
+- [ ] Hook commands use absolute paths in tracked `settings.json` — `$CLAUDE_PROJECT_DIR` fixes it. Gated.
+- [ ] 19 agent definitions with overlapping remits and no routing rule (`product-manager` vs `product-lead`; `design-lead` vs `premium-ui-designer` vs `ux-writing-expert`).
+- [ ] `enabledPlugins.github` contradicts between `settings.json` (true) and `settings.local.json` (false).
+- [ ] Rebase `fix/widow-persona-cleanup` on `origin/dev` (10 ahead, 161 behind) before opening a PR.
+- [x] CLAUDE.md audit + repair across all 6 files — DONE (`705bf9b`). Report: August/Aug14Updates/claude-context-audit-2026-08-14.md.
+- [x] New `ios-native/CLAUDE.md` — DONE. 240 Swift files previously undocumented.
+- [x] iOS TestFlight login failure — DIAGNOSED, user error. TestFlight build is `Fynla-Staging` → csjones DB; testers must register on csjones.co/fynla, not fynla.org. Now in root CLAUDE.md + memory.
+- [x] Worktrees 13→4, ~2.2 GB reclaimed, 7 stale CLAUDE.md copies gone — DONE.
+- [x] Production SSH passphrase found in plaintext in `settings.local.json` — removed; key rotated by CSJ.
+- [x] Allow-list carried standing permission to `rmdir .claude/hooks/` — removed.
+
 *Last updated: 2026-07-24 — end-of-day wrap (evening). Merge train complete:
 #670 (E2E loop fixes) + #671 (journey verify loop — every data entry) + #672
 (PSA joint-interest share) all admin-merged to dev per CSJ; csjones on dev
