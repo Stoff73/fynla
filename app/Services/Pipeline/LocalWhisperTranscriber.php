@@ -12,8 +12,8 @@ use Symfony\Component\Process\Process;
  * Runs local `whisper` (openai-whisper Python package) as a subprocess to
  * generate a segment-level transcript from a video. Free — no API calls.
  *
- * Requires:
- *   pip install openai-whisper
+ * Requires the openai-whisper package. PIPELINE_WHISPER_BINARY may point to a
+ * private virtual-environment executable when `whisper` is not on PATH.
  *
  * Model choice tuned for cost/quality of highlight-selection transcripts,
  * not for perfect captions: `small` runs in ~1× realtime on modern laptops
@@ -38,11 +38,12 @@ class LocalWhisperTranscriber
         }
 
         $outputDir = dirname($videoPath);
+        $binary = (string) config('pipeline.whisper.binary', 'whisper');
         $model = (string) config('pipeline.whisper.model', 'small');
         $language = (string) config('pipeline.whisper.language', 'en');
 
         $process = new Process([
-            'whisper',
+            $binary,
             $videoPath,
             '--model', $model,
             '--language', $language,
