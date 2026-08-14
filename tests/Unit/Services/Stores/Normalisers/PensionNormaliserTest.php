@@ -173,7 +173,7 @@ it('carries salary_sacrifice through fromFynPension — false is a fact, not an 
     // salary_sacrifice=false, and the normaliser dropped it — the row
     // persisted NULL (unknown) and downstream salary-sacrifice advice
     // could re-ask or mis-target.
-    $normaliser = new \App\Services\Stores\Normalisers\PensionNormaliser;
+    $normaliser = new PensionNormaliser;
 
     $denied = $normaliser->fromFynPension([
         'pension_category' => 'dc',

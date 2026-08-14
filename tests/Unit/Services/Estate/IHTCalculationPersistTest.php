@@ -22,7 +22,6 @@ beforeEach(function () {
  * flows (dashboards, advice queries, chat tool calls). Persistence is
  * now opt-in via `persist: true`.
  */
-
 it('does NOT write to iht_calculations on the default read-only path', function () {
     $user = User::factory()->create();
 

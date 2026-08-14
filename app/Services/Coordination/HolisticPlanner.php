@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
-use App\Services\Plans\PlanConfigService;
 use App\Constants\SignificanceThresholds;
+use App\Services\Plans\PlanConfigService;
 
 /**
  * HolisticPlanner
