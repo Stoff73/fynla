@@ -180,6 +180,7 @@ return [
 
     'video' => [
         'detect_schedule' => env('PIPELINE_VIDEO_DETECT_SCHEDULE', '07:30'),
+        'encoder' => env('PIPELINE_VIDEO_ENCODER', 'libx264'),
         'audit_older_than_days' => env('PIPELINE_VIDEO_AUDIT_DAYS', 365),
         'signed_url_ttl_days' => env('PIPELINE_SIGNED_URL_TTL_DAYS', 30),
 
