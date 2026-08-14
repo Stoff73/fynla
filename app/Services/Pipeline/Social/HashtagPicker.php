@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline\Social;
 
-use App\Services\Pipeline\AnthropicOpusClient;
+use App\Services\Pipeline\PipelineAiClient;
 use RuntimeException;
 
 /**
@@ -21,7 +21,7 @@ use RuntimeException;
 class HashtagPicker
 {
     public function __construct(
-        private readonly AnthropicOpusClient $anthropic,
+        private readonly PipelineAiClient $ai,
     ) {}
 
     /**
@@ -43,7 +43,7 @@ class HashtagPicker
         $tags = null;
         $lastError = null;
         for ($attempt = 1; $attempt <= 2; $attempt++) {
-            $completion = $this->anthropic->complete($system, [[
+            $completion = $this->ai->complete($system, [[
                 'role' => 'user',
                 'content' => $user,
             ]]);

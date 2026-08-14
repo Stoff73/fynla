@@ -12,7 +12,7 @@ use RuntimeException;
 
 /**
  * Generates a structured 60-second video script from a published
- * InsightArticle by prompting Anthropic Opus and validating the JSON output
+ * InsightArticle by prompting the configured AI provider and validating the JSON output
  * against ScriptOutputSchema.
  *
  * Returns both the parsed data and the metadata needed to record the run
@@ -21,7 +21,7 @@ use RuntimeException;
 class VideoScriptGeneratorService
 {
     public function __construct(
-        private readonly AnthropicOpusClient $anthropic,
+        private readonly PipelineAiClient $ai,
         private readonly BrandVoicePrompt $prompt,
     ) {}
 
@@ -53,7 +53,7 @@ class VideoScriptGeneratorService
     {
         $userMessage = $this->buildUserMessage($title, $publishedAt, $bodyText);
 
-        $completion = $this->anthropic->complete(
+        $completion = $this->ai->complete(
             $this->prompt->systemBlocks(),
             [
                 ['role' => 'user', 'content' => $userMessage],
@@ -71,7 +71,7 @@ class VideoScriptGeneratorService
 
         return [
             'data' => $data,
-            'model' => (string) config('pipeline.anthropic.model', 'claude-opus-4-7'),
+            'model' => $completion['model'],
             'prompt_version' => BrandVoicePrompt::VERSION,
             'cost_gbp' => $completion['gbp'],
             'usage' => $completion['usage'],

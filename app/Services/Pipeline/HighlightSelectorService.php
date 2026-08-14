@@ -17,7 +17,7 @@ use RuntimeException;
 class HighlightSelectorService
 {
     public function __construct(
-        private readonly AnthropicOpusClient $anthropic,
+        private readonly PipelineAiClient $ai,
     ) {}
 
     /**
@@ -29,7 +29,7 @@ class HighlightSelectorService
      */
     public function select(string $articleTitle, ?string $articleSummary, array $transcript, int $maxHighlights = 3, array $avoidRanges = [], ?string $feedback = null): array
     {
-        $completion = $this->anthropic->complete(
+        $completion = $this->ai->complete(
             $this->systemBlocks(),
             [[
                 'role' => 'user',

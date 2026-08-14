@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Services\Pipeline\AnthropicOpusClient;
+use App\Services\Pipeline\PipelineAiClient;
 use App\Services\Pipeline\Social\HashtagPicker;
 use Tests\TestCase;
 
@@ -15,9 +15,9 @@ beforeEach(function () {
     config()->set('pipeline.social.banned_hashtags', ['#finance', '#money', '#fyp', '#uk']);
 });
 
-function fakeAnthropic(string $responseText): AnthropicOpusClient
+function fakePipelineAi(string $responseText): PipelineAiClient
 {
-    $mock = Mockery::mock(AnthropicOpusClient::class);
+    $mock = Mockery::mock(PipelineAiClient::class);
     $mock->shouldReceive('complete')->andReturn([
         'text' => $responseText,
         'usage' => [],
@@ -32,8 +32,8 @@ afterEach(function () {
 });
 
 it('returns 2 to 5 hashtags with a leading #', function () {
-    $anthropic = fakeAnthropic(json_encode(['#ISAallowance', '#UKtax', '#personalfinance']));
-    $tags = (new HashtagPicker($anthropic))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
+    $ai = fakePipelineAi(json_encode(['#ISAallowance', '#UKtax', '#personalfinance']));
+    $tags = (new HashtagPicker($ai))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
 
     expect($tags)->toHaveCount(3)
         ->and($tags[0])->toStartWith('#')
@@ -41,8 +41,8 @@ it('returns 2 to 5 hashtags with a leading #', function () {
 });
 
 it('strips banned hashtags', function () {
-    $anthropic = fakeAnthropic(json_encode(['#ISAallowance', '#finance', '#UKtax', '#money']));
-    $tags = (new HashtagPicker($anthropic))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
+    $ai = fakePipelineAi(json_encode(['#ISAallowance', '#finance', '#UKtax', '#money']));
+    $tags = (new HashtagPicker($ai))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
 
     expect($tags)->not->toContain('#finance')
         ->and($tags)->not->toContain('#money')
@@ -51,23 +51,23 @@ it('strips banned hashtags', function () {
 });
 
 it('adds missing leading # and dedupes case-insensitively', function () {
-    $anthropic = fakeAnthropic(json_encode(['ISAallowance', '#isaallowance', '#UKtax', '#uktax']));
-    $tags = (new HashtagPicker($anthropic))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
+    $ai = fakePipelineAi(json_encode(['ISAallowance', '#isaallowance', '#UKtax', '#uktax']));
+    $tags = (new HashtagPicker($ai))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
 
     expect($tags)->toHaveCount(2)
         ->and($tags[0])->toStartWith('#');
 });
 
 it('throws when fewer than 2 usable hashtags survive filtering', function () {
-    $anthropic = fakeAnthropic(json_encode(['#finance', '#money']));
-    expect(fn () => (new HashtagPicker($anthropic))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram'))
+    $ai = fakePipelineAi(json_encode(['#finance', '#money']));
+    expect(fn () => (new HashtagPicker($ai))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram'))
         ->toThrow(RuntimeException::class);
 });
 
 it('caps at hashtag_max', function () {
     config()->set('pipeline.social.hashtag_max', 3);
-    $anthropic = fakeAnthropic(json_encode(['#a1', '#a2', '#a3', '#a4', '#a5']));
-    $tags = (new HashtagPicker($anthropic))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
+    $ai = fakePipelineAi(json_encode(['#a1', '#a2', '#a3', '#a4', '#a5']));
+    $tags = (new HashtagPicker($ai))->pick('Your ISA allowance', 'How the ISA allowance works.', 'instagram');
 
     expect($tags)->toHaveCount(3);
 });

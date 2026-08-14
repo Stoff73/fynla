@@ -11,9 +11,9 @@ return [
     |
     | Master switch for the marketing pipeline. When false, the
     | `pipeline:detect-new-articles` command exits without dispatching any
-    | work and the daily scheduler entry is a no-op. Set to true only after
-    | Google Drive credentials, Anthropic Opus, and downstream stages are
-    | wired up.
+    | work and scheduled polling is a no-op. Set to true only after Google
+    | Drive credentials, the configured AI provider, and downstream stages
+    | are wired up.
     |
     */
 
@@ -24,7 +24,7 @@ return [
     | Detect New Articles — Schedule
     |--------------------------------------------------------------------------
     |
-    | Time of day (HH:MM, server timezone) the daily detect command runs.
+    | Legacy daily detection time retained for backwards compatibility.
     |
     */
 
@@ -148,7 +148,8 @@ return [
     | Local Whisper (Stage 3 — transcription)
     |--------------------------------------------------------------------------
     |
-    | Model choice for the whisper CLI. Trade-off:
+    | The binary may be an absolute path when Whisper is installed in a private
+    | virtual environment. Model choice trade-off:
     |   tiny  (75 MB, fastest)
     |   base  (150 MB)
     |   small (500 MB) — recommended default
@@ -159,6 +160,7 @@ return [
     */
 
     'whisper' => [
+        'binary' => env('PIPELINE_WHISPER_BINARY', 'whisper'),
         'model' => env('PIPELINE_WHISPER_MODEL', 'small'),
         'language' => env('PIPELINE_WHISPER_LANGUAGE', 'en'),
     ],
