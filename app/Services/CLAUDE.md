@@ -6,7 +6,7 @@ This file supplements the root `CLAUDE.md` with backend service-specific pattern
 
 ## Agent Pattern
 
-All 9 module agents extend `BaseAgent` and implement three required methods:
+Every module agent extends `BaseAgent` and implements three required methods:
 
 ```php
 abstract public function analyze(int $userId): array;
@@ -59,7 +59,7 @@ $personalAllowance = $taxConfig->get('income_tax.personal_allowance');
 $nrb = $taxConfig->getInheritanceTax()['nil_rate_band'];
 $isaAllowances = $taxConfig->getISAAllowances();
 $pensionLimits = $taxConfig->getPensionAllowances();
-$taxYear = $taxConfig->getTaxYear();  // '2025/26'
+$taxYear = $taxConfig->getTaxYear();  // '2026/27' (the active year; never hardcode it)
 ```
 
 Loads active `TaxConfiguration` model (where `is_active = true`). Request-scoped singleton.
@@ -93,7 +93,7 @@ Loads active `TaxConfiguration` model (where `is_active = true`). Request-scoped
 
 Risk recalculation observers extend `RiskRecalculationObserver` and auto-trigger when relevant model fields change. They use **debouncing** (5-second cache window) to batch rapid changes before dispatching `RecalculateRiskProfileJob`.
 
-Observers exist for: User, Property, InvestmentAccount, SavingsAccount, DCPension, FamilyMember (risk), InvestmentAccountGoal, SavingsAccountGoal (goal tracking), LifeEventMonteCarlo (Monte Carlo triggers).
+Observers cover risk recalculation (User, Property, InvestmentAccount, SavingsAccount, DCPension, FamilyMember), goal tracking (InvestmentAccountGoal, SavingsAccountGoal) and Monte Carlo triggers (LifeEventMonteCarlo). See `app/Observers/` for the full set.
 
 ## Exception Handling
 
