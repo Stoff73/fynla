@@ -1,193 +1,208 @@
 ---
 id: BUG-01
 raised: 2026-08-17
-surface: web (reproduced) · native + /m implicated, not yet reproduced
+surface: web (root-caused) · /m (root-caused, separate cause) · native (not reproduced)
 severity: blocker
-status: open — root cause NOT fully isolated, see §5
+status: root cause found — not yet fixed
 fixed_in: null
 testflight_build: null
 ---
 
-# BUG-01 — Subscription / upgrade does nothing
+# BUG-01 — Subscription upgrade fails at the payment engine
 
 CSJ: *"the subscription service and upgrade process is not working, it does not
 show correctly, link through to the payment engine, or actually do anything
 useful."*
 
-No fix applied. This is the diagnosis only, as asked.
+No fix applied yet.
 
-## 1. Verdict up front
+## 0. Correction to my first report
 
-**The backend is healthy. The failure is in the web front end.** The upgrade
-journey dies at the very first step: the only control on the page does nothing,
-so the payment engine is never reached — there is nothing wrong with the payment
-engine itself that this bug proves either way.
+My earlier report said the web **"Compare plans" button does nothing** and called
+that the blocker. **That was wrong.** The button works.
 
-I have **not** isolated the final root cause of the dead click. §5 states exactly
-what is unconfirmed and the one experiment that settles it. I am not guessing at
-a fix on top of that gap.
+What actually happened: the browser automation tool had stopped delivering mouse
+events to the page. Proven by a control test — clicking the "General" settings tab
+did nothing either, and instrumented listeners on `document` in capture phase
+recorded **zero** `pointerdown`/`mousedown`/`click` events for either click. A
+synthetic `.click()` on the same element in the same tab opens the modal
+immediately. So the dead click was my instrument, not the app.
 
-## 2. Reproduction (confirmed, live)
+Everything below is verified through paths that do not depend on that tool:
+synthetic clicks, direct controller invocation, the database, and the Laravel log.
 
-Local, `john@example.com`, logged in through the browser with a real MFA code.
+## 1. The upgrade journey actually works right up to the payment engine
 
-1. Go to `/settings/subscription`.
-2. The page renders a single card: heading **"Free"**, body *"Your Free plan
-   includes Fynla's core financial planning features."*, and one button,
-   **"Compare plans"**.
-3. Click "Compare plans" → **nothing happens.** No modal, no navigation, no
-   network request, no console error. URL unchanged.
+Walked end to end:
 
-Reproduced twice: once by coordinate click, once by clicking the resolved
-element reference, to rule out a mis-aimed click.
+1. `/settings/subscription` → "Free" card + "Compare plans". ✅
+2. "Compare plans" → **modal opens**: "Upgrade Your Plan", Monthly/Yearly toggle,
+   Premium **£59.99/year**, "Save 28% vs monthly", all 10 features from the API. ✅
+3. "Choose Plan" → routes to `/checkout?plan=premium&cycle=yearly`. ✅
+4. Checkout renders a correct Order Summary — Premium / Yearly / **£59.99** —
+   plus a "Have a discount code?" link. ✅
+5. **Payment Method panel fails.** ❌
 
-Evidence: `screenshots/2026-08/` (subscription page before and after the click —
-visually identical).
+So it *does* show, and it *does* link through. It dies inside the payment step.
 
-## 3. Confirmed findings
+## 2. The failure, exactly
 
-### 3.1 The click never reaches its handler — BLOCKER
-
-`SubscriptionManagement.vue:42`
-
-```vue
-<button v-if="showUpgradeEntry" @click="showPlanModal = true" class="btn-primary w-full text-center block">
-  Compare plans
-</button>
-```
-
-The button *renders*, so `showUpgradeEntry` is true and
-`presentation.state === 'free'`. The handler only sets a boolean. Yet the modal
-never appears, and `PlanSelectionModal`'s root element carries **no `v-if` of its
-own** (`PlanSelectionModal.vue:2` — `<div class="fixed inset-0 z-[70]">`), so if
-`showPlanModal` were ever true the modal would be visible. It is therefore never
-becoming true.
-
-Ruled out by direct inspection:
-
-| Candidate | Ruled out because |
-|---|---|
-| Component missing | `resources/js/components/Payment/PlanSelectionModal.vue` exists |
-| Not imported/registered | imported `:414`, registered `:422` |
-| Mis-scoped template block | modal at `:315` is a sibling *after* the `</template>` at `:312`, correctly outside the `v-else` |
-| Implicit form submit | the button has no `type="button"`, but there is **no `<form>`** in the component, the view, the tab bar, or `AppLayout` |
-| Preview-mode blocking | `john@example.com` has `is_preview_user = false`; no `v-preview-disabled` anywhere in the component |
-| Prop-type crash in the modal | all four props are optional with defaults (`PlanSelectionModal.vue:12-33`) |
-| Wrong component on screen | `SubscriptionSettings.vue` renders `<SubscriptionManagement />` directly (29-line file, read in full) |
-| Backend failure | see 3.4 — backend returns 200 with real data |
-
-### 3.2 `/api/payment/plans` is never called — BLOCKER (consequence of 3.1)
-
-Across the whole session, the only payment request the page makes is
-`subscription-status`. `plans` is fetched by the modal (`PlanSelectionModal.vue`
-imports `@/services/api` and loads into `plans: []`), so it never fires. This is
-independent corroboration that **the modal never mounts** — not that it mounts
-and renders blank.
-
-### 3.3 `/api/payment/subscription-status` is called 5× — DEFECT
-
-Five identical `GET`s, all 200, for one page view. At minimum wasteful. It may
-also be the mechanism behind 3.1 — see §5.
-
-### 3.4 The backend is fine — NOT the bug
-
-`PaymentController::plans()` invoked directly as John:
+Two errors on screen simultaneously:
 
 ```
-status 200
-{"plans":[{"slug":"premium","name":"Premium","monthly_price":699,
-  "yearly_price":5999, ... 10 features ...}]}
+Your previous checkout is still being reconciled. Please try again shortly.   [Try again]
+
+Payment Method
+  Failed to load
+  The provided order is not valid                                            [Try again]
 ```
 
-`subscriptionStatus()` returns 200 with `tier: free`, `status: free`, a full
-capability matrix and limits. Both correct. £6.99/mo and £59.99/yr also match the
-StoreKit prices, so pricing is consistent across surfaces.
+`"still being reconciled"` is ours — `PaymentController.php:598`.
+`"The provided order is not valid"` appears **nowhere in the codebase**; it is the
+Revolut widget rejecting the order id it was handed.
 
-### 3.5 The page promises three things it never shows — DEFECT
+## 3. Root cause — verified from the log and the database
 
-`SubscriptionSettings.vue:6-8` subtitle: *"Manage your plan, billing, invoices,
-and discount codes"*. In the `free` state the body renders **none** of billing,
-invoices, or discount codes — only the plan card. Discount codes exist inside the
-unreachable modal; `billingHistory` is declared (`:440`) and an
-`/api/payment/billing-history` endpoint exists, but nothing renders it in this
-state. Even with 3.1 fixed, the page does not deliver what its own heading
-promises.
+`storage/logs/laravel.log`, 11:54:48:
 
-### 3.6 Revolut is pointed at PRODUCTION locally — RISK, needs your call
+```
+local.ERROR: Revolut createOrderWithCustomer failed
+  {"status":400,"revolut_error_code":"validation","amount":5999,
+   "customer_id":"aa76d34b-373e-41bf-9577-0536e5ac1da8"}
 
-`config('services.revolut.sandbox')` resolves to **`false`**. `config/services.php:64`
-defaults it to `true`, so this is an explicit `REVOLUT_SANDBOX` value in `.env`
-overriding that. Per the deployment section, dev/staging is supposed to use the
-**Revolut sandbox**. A live upgrade attempt from a dev machine would hit the
-production payment API. I have **not** changed `.env`. Flagging for your decision.
+local.ERROR: Creating tier payment order failed
+  HTTP request returned status code 400
+  #1 RevolutService.php(232): Response->throw()
+  #2 PaymentController.php(515): createOrderWithCustomer(5999,'GBP','Premium — Yea…',
+                                  'http://localhos…','aa76d34b…','payment_1',
+                                  'john@example.co…', false)
+```
 
-## 4. Native / StoreKit — related, separate, unverified
+### 3.1 Why Revolut rejects it — the app is talking to PRODUCTION Revolut
 
-Not reproduced (I still cannot sign in on the simulator), but found while tracing:
+`RevolutService.php:21-24`
 
-- **`SystemStoreKitClient.swift:63-67`** throws rather than degrading:
-  ```swift
-  let products = try await Product.products(for: productIDs)
-  guard products.allSatisfy({ productIDs.contains($0.id) }) else { throw ... }
-  guard Set(products.map(\.id)) == productIDs else { throw ... }
-  ```
-  If StoreKit returns **zero** products the set comparison fails and it throws
-  `productUnavailable`. There is no partial-availability path: one missing product
-  takes the whole paywall down.
-- **Product IDs match** between `StoreKit/Fynla.storekit` and
-  `StoreKitModels.swift:4-5` (`org.fynla.premium.monthly` / `.annual`), so the
-  6 red StoreKit tests are **not** an ID mismatch — they are zero products loaded.
-- **The 6 red tests may not be as benign as the docs say.** They are recorded as
-  "red locally, green in CI", and the scheme *does* wire the config
-  (`Fynla-Staging.xcscheme:22,35`). But the same failure mode — zero products →
-  throw → no paywall — is exactly the symptom you are reporting. Worth not
-  dismissing.
-- **UNVERIFIED and important:** whether `org.fynla.premium.monthly` / `.annual`
-  actually exist as in-app purchases on the `Fynla Dev` App Store Connect record
-  (ID 6793193337). If they do not, the paywall is broken on TestFlight for this
-  reason regardless of anything in 3.1. `altool` cannot list IAPs; this needs an
-  App Store Connect API call.
+```php
+$sandbox = config('services.revolut.sandbox');
+$this->apiUrl = $sandbox
+    ? 'https://sandbox-merchant.revolut.com/api'
+    : 'https://merchant.revolut.com/api';
+```
 
-## 5. What I could NOT determine, and the test that settles it
+`config('services.revolut.sandbox')` resolves to **`false`** — so this local
+machine posts orders to **`https://merchant.revolut.com`**, the live endpoint.
+`config/services.php:64` defaults it to `true`; an explicit `REVOLUT_SANDBOX`
+value in `.env` overrides that.
 
-**Unconfirmed:** *why* the click does not set the flag.
+Production Revolut then returns `400 validation`. Two candidates, both consistent
+with "validation" and not yet separated:
 
-**Leading hypothesis — the component re-mounts on click.** `showPlanModal` is
-`ref(false)` in `setup()` (`:434`). If the component re-mounts, the flag resets to
-`false` in the same tick it was set, and the modal never paints. The five
-`subscription-status` fetches for one page view are consistent with repeated
-mounting. This would explain every observation: flag set, no modal, no error, no
-`plans` fetch.
+- `redirect_url` is `http://localhost:8000/…` — production Revolut will not accept
+  a non-public, non-HTTPS redirect URL.
+- The API key in `.env` is a sandbox key, invalid against the live endpoint.
 
-**The experiment that decides it:** load
-`/settings/subscription?openPricing=1`. `openPricingFromQuery()` (`:447-451`) sets
-the *same* flag by a different route:
+*(Correcting myself: the trailing `false` in the stack trace is
+`savePaymentMethod` — signature at `RevolutService.php:187-196` — not the sandbox
+flag. The sandbox evidence is the config read above.)*
+
+### 3.2 The serious defect — a failed order permanently bricks checkout
+
+This one is **environment-independent and would hit real users on production.**
+
+The `Payment` row is written **before** the remote call succeeds, with a
+placeholder id, and is **not cleaned up when Revolut fails**:
+
+```sql
+SELECT id, status, revolut_order_id, plan_slug, billing_cycle, amount FROM payments …
+```
+```
+id: 1  status: pending  revolut_order_id: pending_45e9eda9-d8f6-4ff3-9a3d-bf8b95eab938
+plan: premium  cycle: yearly  amount: 5999.00
+```
+
+`id: 1` — the **first payment row ever created in this database**. So a single
+failed first attempt from a clean state produced it.
+
+Now the guard at `PaymentController.php:583-600` runs on every later attempt:
+
+```php
+if (str_starts_with($pendingPayment->revolut_order_id, 'pending_')) {
+    try { $reconciledOrder = $this->revolutService->findOrderByMerchantReference("payment_{$pendingPayment->id}"); }
+    catch (\Throwable) { $reconciledOrder = null; }
+
+    if ($reconciledOrder === null) {
+        return response()->json([... 'Your previous checkout is still being reconciled…'], 409);
+    }
+```
+
+The order does not exist remotely — it never got created. So
+`findOrderByMerchantReference` returns null (or throws, and the `catch` flattens
+that to null), and the method returns **409 forever**. There is no expiry, no
+cleanup, no escape path.
+
+**The "Try again" button can never succeed.** Any transient Revolut failure — a
+timeout, a 5xx, a blip — permanently locks that user out of checkout until
+someone deletes the row by hand. That is the bug worth fixing regardless of the
+sandbox misconfiguration.
+
+Note also `catch (\Throwable) { $reconciledOrder = null; }` silently converts a
+network or auth error into "still reconciling", so the logs blame reconciliation
+for what may be an authentication failure.
+
+## 4. `/m` fails for a completely different reason — also confirmed
+
+`resources/mobile/views/Subscription.vue:104-108`
 
 ```js
-if (!route.query.openPricing) return;
-if (showUpgradeEntry.value) showPlanModal.value = true;
+canUpgrade()         { return this.status?.tier === 'free' && this.status?.payment_enabled === true; },
+paymentUnavailable() { return this.status?.tier === 'free' && this.status?.payment_enabled !== true; },
 ```
 
-- Modal **opens** → the flag and modal are fine; the fault is in the click
-  binding.
-- Modal **does not open** → the flag is being reset or the render path is broken;
-  the re-mount hypothesis moves to front.
+`GET /api/payment/subscription-status` (`PaymentController::subscriptionStatus`)
+**does not emit `payment_enabled`** — verified with `array_key_exists`, genuinely
+absent, not null. But `SubscriptionStatusService.php:86` *does* emit it, and
+`config('app.payment_enabled')` is **`true`**.
 
-I could not run it: the browser tab stopped responding (`navigate`, `screenshot`
-and `javascript_tool` all timed out — `javascript_tool` failed twice before that,
-which usually means a pending permission prompt in the extension side panel).
-Needs a fresh tab, and possibly for you to clear that prompt.
+So payments are enabled, the server knows, a service says so — and `/m` shows
+**"Upgrades are temporarily unavailable"** permanently, because it reads the one
+producer that omits the field. Two producers of one payload; Rule 20.
 
-## 6. Fix order once §5 is resolved
+`/m` never even reaches the checkout, so it never sees §3 at all.
 
-Not started. Proposed sequence, smallest first:
+## 5. Native — still not reproduced
 
-1. Fix the dead click (root cause per §5), with a failing frontend test first.
-2. Fix the 5× `subscription-status` fetch — likely the same root cause.
-3. Decide on 3.5: either deliver billing/invoices/discount codes in the free
-   state, or correct the subtitle. A heading that promises absent features is its
-   own bug.
-4. Your call on 3.6 (`REVOLUT_SANDBOX`).
-5. Native: verify the ASC in-app purchase products exist, then decide whether
-   `SystemStoreKitClient` should degrade gracefully instead of throwing when a
-   product is missing.
+No sign-in yet. Code-level concerns unchanged: `SystemStoreKitClient.swift:63-67`
+throws `productUnavailable` if the product set does not match exactly, so zero
+products takes the whole paywall down with no partial-availability path. Product
+IDs do match the `.storekit` config, so the six red StoreKit tests mean *zero
+products loaded*. Whether `org.fynla.premium.monthly` / `.annual` exist as in-app
+purchases on the `Fynla Dev` ASC record (6793193337) is **still unverified**.
+
+## 6. Lesser findings
+
+- `/api/payment/subscription-status` is fetched **5×** per page view.
+- `SubscriptionSettings.vue:6-8` promises "plan, billing, invoices, and discount
+  codes"; the free state shows only the plan card. Discount codes do exist in the
+  modal and at checkout, so this is a heading-vs-free-state mismatch rather than a
+  missing feature.
+- Backend `plans()` and `subscriptionStatus()` both return 200 with correct data —
+  £6.99/£59.99, matching the StoreKit prices.
+
+## 7. Fix order
+
+1. **`PaymentController` — never leave an unrecoverable `pending_` row.** Either
+   create the row only after Revolut confirms, or make the guard self-healing
+   (expire/void placeholder rows past a short TTL, and distinguish "remote error"
+   from "genuinely still reconciling" instead of `catch (\Throwable) → null`).
+   Highest priority: this is a production dead-end.
+2. **Decide `REVOLUT_SANDBOX` locally** (CSJ's call — `.env` untouched). Sandbox
+   would also fix the `http://localhost` redirect_url issue.
+3. **`payment_enabled` — one producer.** Add it to
+   `PaymentController::subscriptionStatus`, or point `/m` at
+   `SubscriptionStatusService`. Then have the server state upgrade eligibility
+   rather than `/m` deriving it.
+4. Clear the orphaned row for John (`payments.id = 1`) so local checkout is
+   testable again — with CSJ's agreement, since it is a data delete.
+5. The 5× fetch, then the §6 heading mismatch.
+6. Native: verify the ASC in-app purchase products exist before touching
+   `SystemStoreKitClient`.
