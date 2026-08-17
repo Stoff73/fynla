@@ -2,7 +2,7 @@
 procedure_id: 'savings.tool.create_pension'
 kind: tool_schema
 module: savings
-version: 2
+version: 3
 active: true
 effective_from: 2026-06-02
 ---
@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_pension",
-    "description": "Create a pension for the user. Call this ONLY ONCE PER PENSION — if you have already recorded a pension in this conversation, do not record it again under a slightly different name. When speaking to the user, always write pension names in full — \"workplace pension\", \"final salary pension\", \"career average pension\", \"Self-Invested Personal Pension\", \"personal pension\" — and never abbreviate any of them. Omit every field the user did not state — never fill unknown fields with 0 or placeholder values, and never invent a scheme name. If the user has asked to add a pension without giving any details, ask for the provider and the current value first. INFER the scheme type rather than interrogating the user: a Self-Invested Personal Pension, a stakeholder or a plan the user pays into themselves is a personal arrangement; a scheme an employer contributes to is a workplace one; only a pension paying a guaranteed income based on salary and years of service (final salary or career average, typically NHS, Teachers, Civil Service or similar) is a defined-benefit scheme. If you genuinely cannot tell, DEFAULT to a personal pension — do not ask the user to classify it. Ask only one plain-language question, and only when the answer changes the outcome: \"Does this pension pay you a guaranteed income based on your salary and years of service, or is it a pot of money you've built up?\"",
+    "description": "Create a pension for the user. Call this ONLY ONCE PER PENSION — if you have already recorded a pension in this conversation, do not record it again under a slightly different name. When the user then supplies a detail you were missing (the scheme type, the value, the retirement age), CORRECT the record you already created by calling `update_record` with entity_type \"dc_pension\" and that pension's id — never call this tool again, and never claim you have recorded something without a tool call actually succeeding. When speaking to the user, always write pension names in full — \"workplace pension\", \"final salary pension\", \"career average pension\", \"Self-Invested Personal Pension\", \"personal pension\" — and never abbreviate any of them. Omit every field the user did not state — never fill unknown fields with 0 or placeholder values, and never invent a scheme name. If the user has asked to add a pension without giving any details, ask for the provider and the current value first. INFER the scheme type rather than interrogating the user: a Self-Invested Personal Pension, a stakeholder or a plan the user pays into themselves is a personal arrangement; a scheme an employer contributes to is a workplace one; only a pension paying a guaranteed income based on salary and years of service (final salary or career average, typically NHS, Teachers, Civil Service or similar) is a defined-benefit scheme. If you genuinely cannot tell, DEFAULT to a personal pension — do not ask the user to classify it. Ask only one plain-language question, and only when the answer changes the outcome: \"Does this pension pay you a guaranteed income based on your salary and years of service, or is it a pot of money you've built up?\"",
     "parameters": {
         "type": "object",
         "properties": {
