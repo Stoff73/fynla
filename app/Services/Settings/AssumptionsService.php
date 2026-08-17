@@ -288,7 +288,14 @@ class AssumptionsService
         $weightedAdvisoryFee = 0.0;
         $hasAdvisoryFees = false;
 
+        // BUG-02 (2026-08-17): both loops below read `->holdings` per record. Left
+        // lazy, that threw LazyLoadingViolationException outside production — so
+        // /api/retirement/projections returned 500 for any user with two funded
+        // pensions and the native app rendered a £0 projected income. Production
+        // hid it as an N+1. Eager-load once here rather than per record.
         if ($type === 'pensions') {
+            $user->loadMissing('dcPensions.holdings');
+
             foreach ($user->dcPensions as $pension) {
                 $value = (float) ($pension->current_fund_value ?? 0);
                 if ($value <= 0) {
@@ -304,6 +311,8 @@ class AssumptionsService
                 $weightedOcf += $value * $holdingsOcf;
             }
         } else {
+            $user->loadMissing('investmentAccounts.holdings');
+
             foreach ($user->investmentAccounts as $account) {
                 $value = (float) ($account->current_value ?? 0);
                 if ($value <= 0) {
