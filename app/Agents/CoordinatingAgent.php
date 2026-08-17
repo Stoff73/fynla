@@ -2459,6 +2459,10 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'success' => true,
+            'created' => true,
+            'entity_type' => 'what_if_scenario',
+            'entity_id' => $result['scenario_id'],
+            'name' => $input['name'],
             'scenario_id' => $result['scenario_id'],
             'comparison' => $result,
             'action' => 'navigate',
@@ -4024,8 +4028,11 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            'created' => true,
             'entity_type' => 'will',
+            'entity_id' => $will->id,
             'id' => $will->id,
+            'name' => 'Will',
             'message' => 'Recorded your will details.',
         ];
     }
@@ -4083,8 +4090,11 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            'updated' => true,
             'entity_type' => 'will',
+            'entity_id' => $will->id,
             'id' => $will->id,
+            'name' => 'Will',
             'message' => 'Updated your will details.',
         ];
     }
@@ -4157,9 +4167,12 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            'created' => true,
             'entity_type' => 'lasting_power_of_attorney',
+            'entity_id' => $lpa->id,
             'id' => $lpa->id,
-            'message' => "Recorded your {$typeLabel} LPA.",
+            'name' => $typeLabel,
+            'message' => "Recorded your {$typeLabel} Lasting Power of Attorney.",
         ];
     }
 
@@ -4187,7 +4200,7 @@ class CoordinatingAgent extends BaseAgent
             return [
                 'error' => true,
                 'error_type' => 'not_found',
-                'message' => 'No LPA with that ID found for this user.',
+                'message' => 'No Lasting Power of Attorney with that reference was found on your record.',
             ];
         }
 
@@ -4243,9 +4256,12 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            'updated' => true,
             'entity_type' => 'lasting_power_of_attorney',
+            'entity_id' => $lpa->id,
             'id' => $lpa->id,
-            'message' => 'Updated your LPA.',
+            'name' => 'Lasting Power of Attorney',
+            'message' => 'Updated your Lasting Power of Attorney.',
         ];
     }
 
