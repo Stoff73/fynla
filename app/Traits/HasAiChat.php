@@ -15,6 +15,7 @@ use Anthropic\Messages\RawMessageStartEvent;
 use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
@@ -64,6 +65,16 @@ use Illuminate\Support\Facades\Log;
  */
 trait HasAiChat
 {
+    /**
+     * The write flag a handler returns => the event the clients listen for.
+     * SPEC-crud-handler-contract §5.3.
+     */
+    private const ENTITY_EVENTS = [
+        'created' => 'entity_created',
+        'updated' => 'entity_updated',
+        'deleted' => 'entity_deleted',
+    ];
+
     /**
      * Default tool-call cap when no engine-level signal is available.
      * Used by code paths outside AdviceFyn (e.g. onboarding asset_capture
@@ -911,13 +922,33 @@ trait HasAiChat
                             }
                         }
 
-                        // Handle entity creation results
-                        if (isset($toolResult['created']) && $toolResult['created'] === true) {
+                        // Entity write results. `entity_created` used to be the
+                        // only one of these in the whole application, so an edit
+                        // or a delete had no event to carry a confirmation —
+                        // SPEC-crud-handler-contract §4.2. One loop, so a fourth
+                        // never grows its own copy of this block.
+                        foreach (self::ENTITY_EVENTS as $flag => $eventType) {
+                            // Some results flag a write with nothing to name —
+                            // update_profile edits the user, not a record. No
+                            // identity, no event.
+                            if (($toolResult[$flag] ?? false) !== true
+                                || ! isset($toolResult['entity_type'], $toolResult['entity_id'])) {
+                                continue;
+                            }
+
+                            // The page showing the record, resolved once on the
+                            // server so all three clients link to the same place
+                            // (§5.4). Null for an entity with no page.
+                            $page = GateRoutes::forEntityType((string) ($toolResult['entity_type'] ?? ''));
+
                             yield [
-                                'type' => 'entity_created',
+                                'type' => $eventType,
                                 'entity_type' => $toolResult['entity_type'],
                                 'entity_id' => $toolResult['entity_id'],
                                 'name' => $toolResult['name'] ?? '',
+                                'route' => $page['web'] ?? null,
+                                'mobile_route' => $page['mobile'] ?? null,
+                                'label' => $page['label'] ?? null,
                             ];
                         }
 

@@ -5756,6 +5756,7 @@ class CoordinatingAgent extends BaseAgent
 
             return [
                 'success' => true,
+                'updated' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $pension->id,
                 'fields_updated' => array_keys($fields),
@@ -5783,6 +5784,7 @@ class CoordinatingAgent extends BaseAgent
 
             return array_filter([
                 'success' => true,
+                'updated' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $record->id,
                 'fields_updated' => array_keys($fields),
@@ -5803,6 +5805,7 @@ class CoordinatingAgent extends BaseAgent
 
             return array_filter([
                 'success' => true,
+                'updated' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $model->id,
                 'fields_updated' => array_keys($fields),

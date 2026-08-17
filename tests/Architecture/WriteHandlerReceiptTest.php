@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+use App\Constants\GateRoutes;
+use App\Services\AI\Fyn\RecaptureGuard;
 
 /**
  * SPEC-crud-handler-contract C1 + §6 acceptance 1 — every write handler returns a
@@ -48,4 +50,24 @@ it('returns an identifying receipt from every write handler', function (): void 
         'These handlers return no entity_type/entity_id, so no client can link to '
         .'what they wrote and HasAiChat cannot emit an entity event for them.',
     );
+});
+
+/**
+ * SPEC-crud-handler-contract §5.4 + §7.3 (CSJ) — the link points at the module
+ * page listing the record. An entity Fyn can write with no page has a
+ * confirmation the user cannot act on, so the two maps must stay in step.
+ */
+it('gives every entity Fyn writes a page to link to', function (): void {
+    $entities = (new ReflectionClass(RecaptureGuard::class))->getConstant('ENTITIES');
+
+    // A what-if scenario is not a record on a module page — its handler already
+    // navigates to the scenario it just built (/planning/what-if/{id}).
+    $expected = array_diff(array_keys($entities), ['what_if_scenario']);
+
+    $unrouted = array_values(array_filter(
+        $expected,
+        fn (string $entityType): bool => GateRoutes::forEntityType($entityType) === null,
+    ));
+
+    expect($unrouted)->toBe([], 'Add these to GateRoutes::ENTITY_DESTINATIONS, or the confirmation has no link.');
 });

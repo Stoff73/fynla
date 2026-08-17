@@ -177,7 +177,7 @@
         <div
           v-for="(msg, idx) in messages"
           :key="msg.id ?? idx"
-          v-show="msg.role !== 'entity_created'"
+          v-show="!isEntityWriteRole(msg.role)"
         >
           <!-- Quick-reply bubbles (Fyn onboarding tool output) -->
           <FynQuickReplies
@@ -896,46 +896,23 @@ export default {
          * Phase 13 — record-card "View" button. Navigates to the relevant
          * module page for the captured record.
          */
+        isEntityWriteRole(role) {
+            // entity_created / entity_updated / entity_deleted. These carry the
+            // confirmation data; the visible card is capture_complete.
+            return typeof role === 'string' && role.startsWith('entity_');
+        },
+
         handleRecordView(record) {
-            // Each entity type the create_* handlers emit needs an explicit
-            // entry — falling back to /dashboard makes the View link feel
-            // broken. Aliases keep both the historical short keys
-            // ("life_insurance") AND the canonical long keys the protection
-            // handler emits ("life_insurance_policy") working.
-            const routeMap = {
-                savings_account: '/net-worth/cash',
-                investment_account: '/net-worth/investments',
-                holding: '/net-worth/investments',
-                dc_pension: '/net-worth/retirement',
-                db_pension: '/net-worth/retirement',
-                pension: '/net-worth/retirement',
-                property: '/net-worth/property',
-                mortgage: '/net-worth/property',
-                life_insurance: '/protection',
-                life_insurance_policy: '/protection',
-                critical_illness: '/protection',
-                critical_illness_policy: '/protection',
-                income_protection: '/protection',
-                income_protection_policy: '/protection',
-                protection_policy: '/protection',
-                trust: '/trusts',
-                business_interest: '/net-worth/business',
-                chattel: '/net-worth/chattels',
-                liability: '/net-worth/liabilities',
-                estate_liability: '/net-worth/liabilities',
-                asset: '/net-worth/wealth-summary',
-                estate_asset: '/net-worth/wealth-summary',
-                estate_gift: '/estate',
-                family_member: '/profile?section=family',
-                will: '/estate/will-builder',
-                power_of_attorney: '/estate/power-of-attorney',
-                lasting_power_of_attorney: '/estate/power-of-attorney',
-                goal: '/goals',
-                life_event: '/goals?tab=events',
-                what_if_scenario: '/planning/what-if',
-            };
-            const route = routeMap[record.type] || '/dashboard';
-            this.$router.push(route);
+            // The server resolves the page (GateRoutes::forEntityType) and sends
+            // it on the record row, so every surface links to the same place.
+            // This component kept its own copy of that table until 2026-08-17 —
+            // a fourth one, and the reason routes drifted per surface (Rule 20,
+            // SPEC-crud-handler-contract §5.4).
+            //
+            // The historical short keys it also carried ("life_insurance",
+            // "asset", "pension") are gone: the write handlers emit the canonical
+            // long keys, which is what the server maps.
+            this.$router.push(record.route || '/dashboard');
         },
 
         formatEntityType(type) {
@@ -1308,7 +1285,7 @@ export default {
             if (msg.role === 'user') {
                 return 'bg-raspberry-500 text-white';
             }
-            if (msg.role === 'navigation' || msg.role === 'entity_created' || msg.role === 'action') {
+            if (msg.role === 'navigation' || isEntityWriteRole(msg.role) || msg.role === 'action') {
                 return 'bg-transparent p-0';
             }
             // Pinned by tests/Feature/Fyn/CaptureCompleteStylingTest.php —

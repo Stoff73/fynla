@@ -11,6 +11,7 @@ use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Arr;
 
 uses(RefreshDatabase::class);
 
@@ -608,7 +609,12 @@ it('still advances a question turn whose write landed', function () {
     // The landed/failed signal itself never reaches the frontend.
     expect(collect($received)->firstWhere('type', 'capture_write_result'))->toBeNull()
         ->and(collect($received)->where('type', 'capture_complete'))->toHaveCount(1)
-        ->and(collect($received)->firstWhere('type', 'capture_complete')['records_created'])->toBe([
+        // Identity only — the row also carries the page the record lives on
+        // (route/mobile_route/label), which is presentation, not the assertion.
+        ->and(collect(collect($received)->firstWhere('type', 'capture_complete')['records_created'])
+            ->map(fn (array $row): array => Arr::only($row, ['type', 'id', 'name']))
+            ->all())
+        ->toBe([
             ['type' => 'savings_account', 'id' => 42, 'name' => 'Halifax ISA'],
         ]);
 });
@@ -891,7 +897,10 @@ it('never merges a question as original capture details — the previous turn as
     // The record still lands — this is a genuine capture turn, not a
     // clarification round.
     expect(collect($received)->where('type', 'capture_complete'))->toHaveCount(1)
-        ->and(collect($received)->firstWhere('type', 'capture_complete')['records_created'])->toBe([
+        ->and(collect(collect($received)->firstWhere('type', 'capture_complete')['records_created'])
+            ->map(fn (array $row): array => Arr::only($row, ['type', 'id', 'name']))
+            ->all())
+        ->toBe([
             ['type' => 'savings_account', 'id' => 77, 'name' => 'Nationwide'],
         ]);
 });

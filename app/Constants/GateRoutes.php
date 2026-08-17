@@ -87,6 +87,58 @@ final class GateRoutes
         self::DASHBOARD => ['label' => 'Dashboard', 'web' => '/dashboard', 'mobile' => '/dashboard'],
     ];
 
+    /**
+     * Which page shows a record Fyn just wrote, per entity type.
+     *
+     * SPEC-crud-handler-contract §5.4 and §7.3 (CSJ): the link points at the
+     * module page listing the record, with no per-record deep link. It lives
+     * here rather than in a new resolver because this class already holds the
+     * one web/mobile route table — a second one is the Rule 20 failure.
+     *
+     * An entity absent from this map gets no link, not a guessed one.
+     *
+     * @var array<string, string>
+     */
+    private const ENTITY_DESTINATIONS = [
+        'dc_pension' => self::RETIREMENT,
+        'db_pension' => self::RETIREMENT,
+        'savings_account' => self::SAVINGS,
+        'investment_account' => self::INVESTMENT,
+        'investment_holding' => self::INVESTMENT,
+        'property' => self::PROPERTY,
+        'mortgage' => self::LIABILITIES,
+        'life_insurance_policy' => self::PROTECTION,
+        'critical_illness_policy' => self::PROTECTION,
+        'income_protection_policy' => self::PROTECTION,
+        'goal' => self::GOALS,
+        'life_event' => self::GOALS,
+        'estate_asset' => self::ESTATE,
+        'estate_liability' => self::LIABILITIES,
+        'estate_gift' => self::ESTATE,
+        'will' => self::ESTATE,
+        'lasting_power_of_attorney' => self::ESTATE,
+        'trust' => self::ESTATE,
+        'family_member' => self::FAMILY_DETAILS,
+        'business_interest' => self::NET_WORTH,
+        'chattel' => self::NET_WORTH,
+    ];
+
+    /**
+     * The page showing this entity type, or null when it has none.
+     *
+     * `mobile` is null for destinations `/m` does not implement, in which case
+     * that surface shows the confirmation without a link rather than sending
+     * the user somewhere that does not exist.
+     *
+     * @return array{label: string, web: string, mobile: ?string}|null
+     */
+    public static function forEntityType(string $entityType): ?array
+    {
+        $destination = self::ENTITY_DESTINATIONS[$entityType] ?? null;
+
+        return $destination === null ? null : self::resolve($destination);
+    }
+
     /** @var array<string, string> */
     private const LEGACY_ROUTE_DESTINATIONS = [
         '/profile' => self::PERSONAL_DETAILS,

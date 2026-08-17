@@ -10,7 +10,16 @@ struct FynEventReducerTests {
 
         #expect(events[0] == .conversationCreated("321"))
         #expect(events[1] == .text("I have saved that. "))
-        #expect(events[2] == .entityCreated(name: "Cash ISA"))
+        #expect(events[2] == .entityWrite(
+            FynEntityWrite(
+                action: .created,
+                entityType: "savings_account",
+                entityID: 77,
+                name: "Cash ISA",
+                route: "/savings",
+                label: "Bank Accounts"
+            )
+        ))
         #expect(events[3] == .captureComplete(summary: "Saved Cash ISA with a balance of £12,000."))
         #expect(events[4] == .onboardingAdvance)
         #expect(events[5] == .quickReplies(
@@ -35,8 +44,24 @@ struct FynEventReducerTests {
         var reducer = FynEventReducer()
 
         reducer.reduce(.text("Saving your account."), into: &state)
-        reducer.reduce(.entityCreated(name: "Cash ISA"), into: &state)
+        reducer.reduce(
+            .entityWrite(
+                FynEntityWrite(
+                    action: .created,
+                    entityType: "savings_account",
+                    entityID: 77,
+                    name: "Cash ISA",
+                    route: "/savings",
+                    label: "Bank Accounts"
+                )
+            ),
+            into: &state
+        )
         #expect(state.messages.last?.capture == .pending(names: ["Cash ISA"]))
+        // SPEC-crud-handler-contract 5.4/5.5 — the record is linkable now that
+        // the decoder keeps the route the server resolved.
+        #expect(state.messages.last?.replies.last?.route == "/savings")
+        #expect(state.messages.last?.replies.last?.label == "View Bank Accounts")
 
         reducer.reduce(
             .captureComplete(summary: "Saved Cash ISA with a balance of £12,000."),
