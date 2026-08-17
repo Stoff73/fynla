@@ -238,6 +238,20 @@ describe('projectPensionPot', function () {
             ->and($result['current_age_source'])->toBe('assumed')
             ->and($result['years_to_retirement'])->toBe(25);
     });
+
+    it('uses the user target age for an individual pension whose scheme age is later', function () {
+        $pension = DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'retirement_age' => 67,
+            'current_fund_value' => 85_000,
+            'monthly_contribution_amount' => 500,
+        ]);
+
+        $result = $this->service->projectIndividualDCPension($pension->id, $this->user->id);
+
+        expect($result['retirement_age'])->toBe(65)
+            ->and($result['years_to_retirement'])->toBe(20);
+    });
 });
 
 describe('projectIncomeDrawdown', function () {

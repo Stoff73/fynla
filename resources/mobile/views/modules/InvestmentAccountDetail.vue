@@ -24,7 +24,7 @@
       <div class="m-card m-hero">
         <p class="m-sub m-label">Current value</p>
         <p class="m-metric">{{ fmt(account.current_value) }}</p>
-        <p v-if="account.contributions_ytd" class="m-hero-sub">{{ fmt(account.contributions_ytd) }} contributed this tax year</p>
+        <p v-if="contributionSummary" class="m-hero-sub">{{ contributionSummary }}</p>
       </div>
 
       <!-- Account information -->
@@ -97,6 +97,11 @@ export default {
     },
     account() {
       return this.accounts.find((a) => String(a.id) === String(this.accountId)) || null;
+    },
+    contributionSummary() {
+      if (!this.account?.contributions_ytd) return '';
+      const period = this.account.tax_year ? `in ${this.account.tax_year}` : 'year to date';
+      return `${this.fmt(this.account.contributions_ytd)} contributed ${period}`;
     },
     isIsa() { return isIsaAccount(this.account || {}); },
     infoRows() {
