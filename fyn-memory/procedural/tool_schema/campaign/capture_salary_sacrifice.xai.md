@@ -3,7 +3,7 @@ procedure_id: 'campaign.tool.capture_salary_sacrifice'
 kind: tool_schema
 module: campaign
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "capture_salary_sacrifice",
-    "description": "Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
+    "description": "Set salary_sacrifice flag on a specific pot-of-money pension owned by the user, with an optional employer National Insurance rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
     "parameters": {
         "type": "object",
         "properties": {

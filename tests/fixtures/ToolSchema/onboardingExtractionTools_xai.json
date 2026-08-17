@@ -152,7 +152,7 @@
         "type": "function",
         "function": {
             "name": "capture_salary_sacrifice",
-            "description": "Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
+            "description": "Set salary_sacrifice flag on a specific pot-of-money pension owned by the user, with an optional employer National Insurance rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -256,7 +256,7 @@
         "type": "function",
         "function": {
             "name": "capture_spouse_non_working_assets",
-            "description": "Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, CGT, Dividend allowance) and to size a non-earner spouse pension contribution.",
+            "description": "Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, Capital Gains Tax, Dividend allowance) and to size a non-earner spouse pension contribution.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -270,7 +270,7 @@
                     },
                     "spouse_existing_investment_balance": {
                         "type": "number",
-                        "description": "Spouse's existing standalone investment account (GIA) balance."
+                        "description": "Spouse's existing standalone investment account (General Investment Account) balance."
                     },
                     "spouse_existing_dividend_holdings_value": {
                         "type": "number",
@@ -291,7 +291,7 @@
         "type": "function",
         "function": {
             "name": "capture_pension_history",
-            "description": "Capture the user's gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused AA the user could still pension-up. Pass each year individually using the canonical \"YYYY/YY\" tax-year format (e.g. \"2024/25\").",
+            "description": "Capture the user's gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused Annual Allowance the user could still pension-up. Pass each year individually using the canonical \"YYYY/YY\" tax-year format (e.g. \"2024/25\").",
             "parameters": {
                 "type": "object",
                 "properties": {

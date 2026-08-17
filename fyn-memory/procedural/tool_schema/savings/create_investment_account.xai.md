@@ -3,7 +3,7 @@ procedure_id: 'savings.tool.create_investment_account'
 kind: tool_schema
 module: savings
 provider: xai
-version: 2
+version: 3
 active: true
 effective_from: 2026-06-11
 ---
@@ -84,14 +84,14 @@ effective_from: 2026-06-11
                     "number",
                     "null"
                 ],
-                "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (GIA, shares); leave null for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
+                "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (General Investment Account, shares); leave null for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
             },
             "isa_subscription_current_year": {
                 "type": [
                     "number",
                     "null"
                 ],
-                "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; leave null for GIA and other taxable accounts."
+                "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; leave null for General Investment Account and other taxable accounts."
             },
             "bond_purchase_date": {
                 "type": [
@@ -423,7 +423,7 @@ effective_from: 2026-06-11
                         "type": "null"
                     }
                 ],
-                "description": "Array of holdings to add inline when creating the account. Only for ISA, GIA, onshore/offshore bonds, VCT, EIS. Each holding has security_name, asset_type, allocation_percent (% of account), and optional cost_basis. Any unallocated remainder auto-defaults to cash. If the user mentions specific funds/ETFs/shares they hold, include them here instead of using create_holding separately."
+                "description": "Array of holdings to add inline when creating the account. Only for ISA, General Investment Account, onshore/offshore bonds, VCT, EIS. Each holding has security_name, asset_type, allocation_percent (% of account), and optional cost_basis. Any unallocated remainder auto-defaults to cash. If the user mentions specific funds/ETFs/shares they hold, include them here instead of using create_holding separately."
             }
         },
         "required": [
