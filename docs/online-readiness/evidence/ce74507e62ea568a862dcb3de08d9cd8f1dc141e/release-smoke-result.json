@@ -1,0 +1,75 @@
+{
+  "manifest_id": "release-smoke",
+  "commit_sha": "ce74507e62ea568a862dcb3de08d9cd8f1dc141e",
+  "started_at": "2026-07-13T16:07:36Z",
+  "finished_at": "2026-07-13T16:21:32Z",
+  "environment_url": "https://csjones.co/fynla",
+  "browser": {
+    "name": "Google Chrome",
+    "version": "150.0.7871.49"
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "status": "passed",
+  "steps": [
+    {
+      "surface": "desktop",
+      "action": "click",
+      "target": "Sign in",
+      "assertion": "Login form is visible",
+      "observed": "The public-page Sign in link opened the desktop login form in visible Chrome.",
+      "status": "passed",
+      "evidence": [
+        "01-desktop-login.png"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "action": "inspect-frame",
+      "target": "mobile application iframe",
+      "assertion": "Mobile main region is visible",
+      "observed": "The /m host visibly booted its same-origin Fynla iframe and the direct /m/app pathway rendered its mobile main region.",
+      "status": "passed",
+      "evidence": [
+        "02-mobile-boot.png"
+      ]
+    }
+  ],
+  "negative_assertions": [
+    {
+      "assertion": "no console errors",
+      "status": "passed",
+      "evidence": [
+        "01-desktop-login.png",
+        "02-mobile-boot.png"
+      ]
+    },
+    {
+      "assertion": "no unexpected 4xx or 5xx API responses",
+      "status": "passed",
+      "evidence": [
+        "01-desktop-login.png",
+        "02-mobile-boot.png"
+      ]
+    },
+    {
+      "assertion": "no desktop/mobile state divergence",
+      "status": "passed",
+      "evidence": [
+        "02-mobile-boot.png"
+      ]
+    }
+  ],
+  "evidence": [
+    "01-desktop-login.png",
+    "02-mobile-boot.png"
+  ],
+  "diagnostic_notes": [
+    {
+      "note": "Executed in the user's visible Google Chrome session at their request.",
+      "redacted": true
+    }
+  ]
+}

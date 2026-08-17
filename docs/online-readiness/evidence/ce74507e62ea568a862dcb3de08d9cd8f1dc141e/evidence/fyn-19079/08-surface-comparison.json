@@ -1,0 +1,42 @@
+{
+  "release_sha": "ce74507e62ea568a862dcb3de08d9cd8f1dc141e",
+  "browser": {
+    "name": "Google Chrome",
+    "version": "150.0.7871.49"
+  },
+  "dispatch_state": "advice",
+  "desktop": {
+    "conversation_id": 150,
+    "message_count": 2,
+    "roles": [
+      "user",
+      "assistant"
+    ],
+    "answer_characters": 1046
+  },
+  "mobile": {
+    "conversation_id": 151,
+    "message_count": 2,
+    "roles": [
+      "user",
+      "assistant"
+    ],
+    "answer_characters": 815
+  },
+  "equivalent_single_answer_outcome": true,
+  "application_console_errors": {
+    "desktop": 0,
+    "mobile": 0
+  },
+  "ignored_unrelated_extension_errors": 4,
+  "qa_cleanup": {
+    "soft_deleted_run_conversation_ids": [
+      150,
+      151
+    ],
+    "active_conversation_count_restored": 0,
+    "temporary_session_count_restored": 0,
+    "audit_chain_unchanged": true,
+    "audit_chain_was_preexisting_invalid": true
+  }
+}

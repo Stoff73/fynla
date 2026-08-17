@@ -1,0 +1,26 @@
+{
+  "release_sha": "0ca0b460851ea6127ed9c810c901daa5dc508cc3",
+  "browser": {
+    "name": "WebKit",
+    "version": "26.0"
+  },
+  "error": "locator.waitFor: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Chat with Fyn', exact: true }) to be visible\u001b[22m\n",
+  "diagnostics": {
+    "consoleErrors": [
+      {
+        "surface": "desktop",
+        "kind": "console",
+        "message": "Failed to load resource: the server responded with a status of 403 ()"
+      }
+    ],
+    "apiFailures": [
+      {
+        "surface": "desktop",
+        "status": 403,
+        "method": "GET",
+        "path": "/fynla/api/estate/trusts"
+      }
+    ]
+  },
+  "recorded_at": "2026-07-13T15:41:57.676Z"
+}

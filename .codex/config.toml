@@ -1,0 +1,30 @@
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
+
+[mcp_servers.mysql]
+command = "npx"
+args = [
+    "-y",
+    "@benborla29/mcp-server-mysql",
+]
+
+[mcp_servers.mysql.env]
+MYSQL_HOST = "127.0.0.1"
+MYSQL_PORT = "3306"
+MYSQL_USER = "root"
+MYSQL_PASSWORD = ""
+MYSQL_DATABASE = "fynla"
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+    "-y",
+    "@playwright/mcp@latest",
+]
+
+[mcp_servers.ssh-fynla]
+command = "node"
+args = ["/Users/CSJ/Desktop/fynla/mcp-servers/ssh/server.mjs"]
