@@ -1,6 +1,6 @@
 ---
 type: spec
-status: DRAFT — needs CSJ review before implementation
+status: APPROVED — §7 answered by CSJ 2026-08-17 (evening); implementation open
 date: 2026-08-17
 author: session 2026-08-17
 supersedes: nothing
@@ -14,8 +14,8 @@ module and whatever the surface. Today they do not: one handler out of twenty-fo
 is correct, and the rest each fail differently.
 
 This spec states the contract, records the measured current state, and defines one
-shared mechanism. **It is a draft — the open questions in §7 need CSJ before anyone
-writes code.**
+shared mechanism. **The four open questions in §7 were answered by CSJ on the evening
+of 2026-08-17 and the answers are recorded there — implementation may proceed.**
 
 Written after a full day debugging one pension capture (BUG-02, BUG-03). Every
 "current state" line below was measured, not assumed.
@@ -111,7 +111,21 @@ Only **3 of 19** create handlers check for an existing record at all:
 | `handleCreatePension` | fill / ask / ask, plus explicit-edit override | **Correct** — the reference implementation |
 | `handleCreateSavingsAccount:2879` | `checkForDuplicate` on `account_name` | Warns and discards — the answer lands on a no-op |
 | `handleCreateInvestmentAccount:2951` | `checkForDuplicate` on `account_name` | Same |
-| The other **16** | none | **Unverified.** May duplicate silently. Not measured — see §7. |
+| The other **16** | none | **Measured 2026-08-17 evening: they duplicate silently.** |
+
+§7.2 is now answered. Every `handleCreate*` body was scanned for an existence check on
+the entity it creates. Sixteen have none: `WhatIfScenario, Goal, LifeEvent, Holding,
+Property, Mortgage, ProtectionPolicy, EstateAsset, EstateLiability, EstateGift, Will,
+PowerOfAttorney, FamilyMember, Trust, BusinessInterest, Chattel`. Several *do* query
+with `user_id`, but for a **parent** record — `handleCreateHolding` resolves the
+investment account, `handleCreateMortgage` the property. None looks for an existing
+record of its own type, so a second call creates a second row.
+
+Receipts (C1) are also incomplete: six handlers return no `entity_id` —
+`handleCreateWhatIfScenario`, `handleCreateWill`, `handleUpdateWill`,
+`handleCreatePowerOfAttorney`, `handleUpdatePowerOfAttorney`, `handleUpdateProfile`.
+The first three of those also omit `created`/`updated`, so `HasAiChat` emits no
+`entity_created` for them at all.
 
 `checkForDuplicate` is a case-insensitive EXACT name match, so "Aviva Pension" and
 "Aviva Personal Pension" are different records. Its warning text claims to catch
@@ -146,10 +160,21 @@ decode time.
 
 ## 5. The shared mechanism
 
-One implementation, not twenty-four. Sketch only; §7 must be answered first.
+One implementation, not twenty-four.
+
+**5.0 It hangs off ONE call site.** `CoordinatingAgent::executeTool` dispatches every
+tool through a single `match` (`CoordinatingAgent.php:1079`). The guard runs immediately
+before that `match`, so no `handleCreate*` body needs a copy of it — including
+`handleCreatePension`, whose bespoke merge is deleted and replaced by the shared one.
+Nineteen edits become one. A new create handler still needs a registry entry, which an
+architecture test asserts.
+
+The guard returns `null` — proceed to the handler untouched — for a preview user, for
+input with no usable name, and for any tool not in the registry.
 
 **5.1 `RecordIdentity`** — per entity type, declares what "the same record" means
-(§7.1) and which fields a re-capture may fill.
+(§7.1: normalised name + provider/product + owner) and which fields a re-capture may
+fill.
 
 **5.2 `RecapturePolicy`** — the single fill/ask/ask decision from C2, plus the C3
 explicit-edit override. Takes the existing model, the canonical payload, the raw tool
@@ -161,7 +186,8 @@ input and the explicit-edit flag; returns `fill` / `confirm_edit_required` /
 `entity_deleted`.
 
 **5.4 One route resolver** — entity type → the page showing that record, in ONE place
-consumed by all three clients. Precedents already in-tree: `WebHandoffDestination`,
+consumed by all three clients. Per §7.3 the target is the module page, with no
+per-record deep link. Precedents already in-tree: `WebHandoffDestination`,
 `SemanticDestination`, and the three-way-duplicated `ONBOARDING_NAV_ROUTES` (BUG-02
 §Rule 20 finding) which is what NOT to do.
 
@@ -183,28 +209,32 @@ consumed by all three clients. Precedents already in-tree: `WebHandoffDestinatio
 
 ---
 
-## 7. Open questions — CSJ
+## 7. Answers — CSJ, 2026-08-17 evening
 
-**7.1 What is "the same record" per entity?**
-Pensions matched on `scheme_name`; savings and investments on `account_name`. Exact
-name matching is what produced the original duplicate ("Aviva Pension" vs "Aviva
-Personal Pension"), so a name-only key will keep failing. CSJ's stated rule is "same
-name, same product, same balance, same owner" — that needs turning into a concrete
-field list per entity type. **Blocking 5.1.**
+**7.1 "The same record" is the stable fields only: normalised name + provider/product
++ owner.** Balance and every other value field are explicitly NOT identity — they are
+compared afterwards and drive the C2 fill / ask / ask decision. CSJ's original wording
+("same name, same product, same balance, same owner") described an identical duplicate,
+not the identity key; putting balance in the key would make a corrected balance read as
+a brand-new record, which is the original bug.
 
-**7.2 What do the other 16 create handlers currently do on a re-capture?**
-Not measured. A probe on 2026-08-17 failed because the test payloads were incomplete
-(`clarification_required` on the first call), so nothing was learned. Needs a real
-payload per handler before the scope is known. **Blocking the estimate, not the design.**
+Name matching is normalised, not exact: lower-cased, punctuation stripped, and generic
+product nouns dropped, so "Aviva Pension" and "Aviva Personal Pension" resolve to the
+same record. A normalisation that is too eager is *safe by construction* — a false
+match cannot lose data, because both the conflict and identical branches of C2 write
+nothing and ask. The failure mode is one extra question, never an overwrite.
 
-**7.3 Where does a link point for entities with no dedicated page?**
-A chattel or an estate gift may have no per-record route. Module page with the record
-highlighted, or no link for those types?
+**7.2 Answered by measurement — see §4.1.** Sixteen of nineteen create handlers do no
+existence check and duplicate silently.
 
-**7.4 Should C5 be mechanical?**
-A guard that refuses to let a turn narrate a save when no write landed. This is the
-"no fabricated success" rule Fyn currently breaks. Design is not obvious — it needs to
-compare narration against tool results without blocking legitimate prose.
+**7.3 Module page, no highlight.** Entities with no per-record route (chattel, estate
+gift) link to the module page that lists them. Deep-link highlighting was rejected as
+three surfaces' worth of machinery for little gain; every entity gets a working link.
+
+**7.4 Deferred — prompt rule for now.** C5 stays a contract rule without a mechanical
+guard. Comparing narration against tool results without blocking legitimate prose is a
+hard problem, and the C1 receipt work shrinks the surface on which fabrication is
+possible. Revisit once receipts are universal.
 
 ---
 
