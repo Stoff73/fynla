@@ -130,25 +130,35 @@ out — the GATE-0002 failure mode), and all ten other hooks remain wired:
 - Root `CLAUDE.md` — paywall paragraph added to Mobile Clients → `ios-native/`
   (+2). Verified my edit is the only change to that file.
 
-## ⚠️ Outstanding — the guard is still OFF
+## Guard restored — and a correction
 
-`oversight-guard.sh` is no longer wired in `settings.json`. Nothing now gates
-`CLAUDE.md`, `.claude/agents/*.md`, `settings.json`, the hooks, `.goal` or
-`.mcp.json` against agent edits. **CSJ must paste the entry back:**
+The first version of this section said the guard was still off and asked CSJ to
+paste it back. **It has since been restored** (`git checkout HEAD~1 -- .claude/settings.json`),
+because committing `settings.json` with the entry removed took a control that was
+disabled locally for one edit and propagated it to **every checkout of the
+branch** — wider than the intent. A background commit-security review flagged the
+same thing as a control regression. Restored once both edits had landed; JSON
+re-validated, all ten other hooks intact.
 
-```json
-{ "type": "command",
-  "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/oversight-guard.sh",
-  "timeout": 10,
-  "statusMessage": "Checking workforce oversight boundary..." }
-```
+**Correction to what this gate first claimed.** The removal diff shows
+`oversight-guard.sh` was wired to **two** groups, not one:
 
-into the `PreToolUse` `Write|Edit` hooks array. Remove it **structurally** when
-disabling, never by commenting — `//` makes the file invalid JSON and silently
-disables *every* hook, including `dangerous-command-guard` and `prod-guard`
-(recorded in GATE-0002).
+- `PreToolUse` `Write|Edit` — after `env-guard.sh`
+- `PreToolUse` `Bash|mcp__ssh-fynla__ssh_exec` — after `workforce-guard.sh`
 
-Note also GATE-0002's still-open finding: the guard is wired only to
-`Write|Edit`, so its entire Bash anti-bypass branch (`oversight-guard.sh:63-71`)
-is dead as configured, and `(^|/)CLAUDE\.md` does not match a bare `CLAUDE.md`
-token in a command string. Worth fixing when the entry goes back.
+So GATE-0002's finding that the guard was bound only to `Write|Edit`, leaving its
+Bash anti-bypass branch (`oversight-guard.sh:63-71`) dead, **had already been
+fixed** at some point after that gate was written. This gate repeated the stale
+claim; it was wrong. The Bash branch was live until this commit removed it, and
+is live again now.
+
+**Still genuinely open from GATE-0002:** the `(^|/)CLAUDE\.md` anchor does not
+match a bare `CLAUDE.md` token inside a command string (`rm CLAUDE.md` passes
+while `rm ./CLAUDE.md` is denied), because in a command the token is preceded by
+a space. Widening to `(^|[/[:space:]"'])CLAUDE\.md` fixes it. Not changed here —
+that is a guard edit, and therefore itself gated.
+
+To disable the guard again for future gated work, remove the entries
+**structurally**, never by commenting: `//` makes the file invalid JSON and
+silently disables *every* hook, including `dangerous-command-guard` and
+`prod-guard` (GATE-0002).

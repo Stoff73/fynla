@@ -34,6 +34,12 @@
             "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/env-guard.sh",
             "timeout": 10,
             "statusMessage": "Checking for .env edits..."
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/oversight-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking workforce oversight boundary..."
           }
         ]
       },
@@ -45,6 +51,12 @@
             "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/workforce-guard.sh",
             "timeout": 10,
             "statusMessage": "Checking workforce standing blocks..."
+          },
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/oversight-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking workforce oversight boundary..."
           }
         ]
       }
