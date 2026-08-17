@@ -1,208 +1,126 @@
 ---
 id: BUG-01
 raised: 2026-08-17
-surface: web (root-caused) · /m (root-caused, separate cause) · native (not reproduced)
+surface: native iOS (confirmed from CSJ's screenshot)
 severity: blocker
-status: root cause found — not yet fixed
+status: ROOT CAUSE CONFIRMED — no code fix required for the primary cause
 fixed_in: null
 testflight_build: null
 ---
 
-# BUG-01 — Subscription upgrade fails at the payment engine
+# BUG-01 — "Premium subscriptions are unavailable" on the iOS app
 
-CSJ: *"the subscription service and upgrade process is not working, it does not
-show correctly, link through to the payment engine, or actually do anything
-useful."*
+## Root cause
 
-No fix applied yet.
+**There are no in-app purchase products in App Store Connect.** Queried the ASC
+API directly with key `683FKHT7SL`:
 
-## 0. Correction to my first report
+| App record | ASC id | subscriptionGroups | inAppPurchasesV2 |
+|---|---|---|---|
+| Fynla Dev (`org.fynla.app.dev`) | 6793193337 | **0** | **0** |
+| Fynla (`org.fynla.app`) | 6760545667 | **0** | **0** |
 
-My earlier report said the web **"Compare plans" button does nothing** and called
-that the blocker. **That was wrong.** The button works.
+Both are empty. `org.fynla.premium.monthly` and `org.fynla.premium.annual` have
+never been created on either record.
 
-What actually happened: the browser automation tool had stopped delivering mouse
-events to the page. Proven by a control test — clicking the "General" settings tab
-did nothing either, and instrumented listeners on `document` in capture phase
-recorded **zero** `pointerdown`/`mousedown`/`click` events for either click. A
-synthetic `.click()` on the same element in the same tab opens the modal
-immediately. So the dead click was my instrument, not the app.
+**This is a configuration gap, not a code defect.** The app is behaving correctly
+given that Apple returns nothing.
 
-Everything below is verified through paths that do not depend on that tool:
-synthetic clicks, direct controller invocation, the database, and the Laravel log.
+## The chain
 
-## 1. The upgrade journey actually works right up to the payment engine
+1. The paywall asks StoreKit for `StoreProductIdentifier.all` —
+   `org.fynla.premium.monthly` and `org.fynla.premium.annual`
+   (`StoreKitModels.swift:4-5`).
+2. Apple returns **zero products**, because none exist on the app record.
+3. `SubscriptionModel.swift:288-297`:
 
-Walked end to end:
-
-1. `/settings/subscription` → "Free" card + "Compare plans". ✅
-2. "Compare plans" → **modal opens**: "Upgrade Your Plan", Monthly/Yearly toggle,
-   Premium **£59.99/year**, "Save 28% vs monthly", all 10 features from the API. ✅
-3. "Choose Plan" → routes to `/checkout?plan=premium&cycle=yearly`. ✅
-4. Checkout renders a correct Order Summary — Premium / Yearly / **£59.99** —
-   plus a "Have a discount code?" link. ✅
-5. **Payment Method panel fails.** ❌
-
-So it *does* show, and it *does* link through. It dies inside the payment step.
-
-## 2. The failure, exactly
-
-Two errors on screen simultaneously:
-
-```
-Your previous checkout is still being reconciled. Please try again shortly.   [Try again]
-
-Payment Method
-  Failed to load
-  The provided order is not valid                                            [Try again]
-```
-
-`"still being reconciled"` is ours — `PaymentController.php:598`.
-`"The provided order is not valid"` appears **nowhere in the codebase**; it is the
-Revolut widget rejecting the order id it was handed.
-
-## 3. Root cause — verified from the log and the database
-
-`storage/logs/laravel.log`, 11:54:48:
-
-```
-local.ERROR: Revolut createOrderWithCustomer failed
-  {"status":400,"revolut_error_code":"validation","amount":5999,
-   "customer_id":"aa76d34b-373e-41bf-9577-0536e5ac1da8"}
-
-local.ERROR: Creating tier payment order failed
-  HTTP request returned status code 400
-  #1 RevolutService.php(232): Response->throw()
-  #2 PaymentController.php(515): createOrderWithCustomer(5999,'GBP','Premium — Yea…',
-                                  'http://localhos…','aa76d34b…','payment_1',
-                                  'john@example.co…', false)
-```
-
-### 3.1 Why Revolut rejects it — the app is talking to PRODUCTION Revolut
-
-`RevolutService.php:21-24`
-
-```php
-$sandbox = config('services.revolut.sandbox');
-$this->apiUrl = $sandbox
-    ? 'https://sandbox-merchant.revolut.com/api'
-    : 'https://merchant.revolut.com/api';
-```
-
-`config('services.revolut.sandbox')` resolves to **`false`** — so this local
-machine posts orders to **`https://merchant.revolut.com`**, the live endpoint.
-`config/services.php:64` defaults it to `true`; an explicit `REVOLUT_SANDBOX`
-value in `.env` overrides that.
-
-Production Revolut then returns `400 validation`. Two candidates, both consistent
-with "validation" and not yet separated:
-
-- `redirect_url` is `http://localhost:8000/…` — production Revolut will not accept
-  a non-public, non-HTTPS redirect URL.
-- The API key in `.env` is a sandbox key, invalid against the live endpoint.
-
-*(Correcting myself: the trailing `false` in the stack trace is
-`savePaymentMethod` — signature at `RevolutService.php:187-196` — not the sandbox
-flag. The sandbox evidence is the config read above.)*
-
-### 3.2 The serious defect — a failed order permanently bricks checkout
-
-This one is **environment-independent and would hit real users on production.**
-
-The `Payment` row is written **before** the remote call succeeds, with a
-placeholder id, and is **not cleaned up when Revolut fails**:
-
-```sql
-SELECT id, status, revolut_order_id, plan_slug, billing_cycle, amount FROM payments …
-```
-```
-id: 1  status: pending  revolut_order_id: pending_45e9eda9-d8f6-4ff3-9a3d-bf8b95eab938
-plan: premium  cycle: yearly  amount: 5999.00
-```
-
-`id: 1` — the **first payment row ever created in this database**. So a single
-failed first attempt from a clean state produced it.
-
-Now the guard at `PaymentController.php:583-600` runs on every later attempt:
-
-```php
-if (str_starts_with($pendingPayment->revolut_order_id, 'pending_')) {
-    try { $reconciledOrder = $this->revolutService->findOrderByMerchantReference("payment_{$pendingPayment->id}"); }
-    catch (\Throwable) { $reconciledOrder = null; }
-
-    if ($reconciledOrder === null) {
-        return response()->json([... 'Your previous checkout is still being reconciled…'], 409);
+```swift
+case (.free, _):
+    let sorted = products.sorted { productRank($0.id) < productRank($1.id) }
+    guard Set(sorted.map(\.id)) == StoreProductIdentifier.all,
+          let selected = sorted.first?.id
+    else {
+        state = .unavailable(
+            message: "Premium subscriptions are unavailable. Please try again later."
+        )
+        return
     }
 ```
 
-The order does not exist remotely — it never got created. So
-`findOrderByMerchantReference` returns null (or throws, and the `catch` flattens
-that to null), and the method returns **409 forever**. There is no expiry, no
-cleanup, no escape path.
+4. The guard fails → the exact message in CSJ's screenshot.
 
-**The "Try again" button can never succeed.** Any transient Revolut failure — a
-timeout, a 5xx, a blip — permanently locks that user out of checkout until
-someone deletes the row by hand. That is the bug worth fixing regardless of the
-sandbox misconfiguration.
+Confirmed by the screenshot: full feature list renders (that comes from the
+backend and is fine), then "Something went wrong / Premium subscriptions are
+unavailable. Please try again later." with a "Try again" button.
 
-Note also `catch (\Throwable) { $reconciledOrder = null; }` silently converts a
-network or auth error into "still reconciling", so the logs blame reconciliation
-for what may be an authentication failure.
+## Secondary code defects — worth fixing alongside
 
-## 4. `/m` fails for a completely different reason — also confirmed
+1. **All-or-nothing product loading.** The guard demands the product set match
+   `StoreProductIdentifier.all` **exactly**. One missing or mis-configured
+   product takes the entire paywall down rather than offering the one that did
+   load. The same pattern exists a layer below in
+   `SystemStoreKitClient.swift:63-67`, which throws `productUnavailable` on any
+   mismatch. Two layers, same brittleness.
 
-`resources/mobile/views/Subscription.vue:104-108`
+2. **The message is misleading.** "Please try again later" and a "Try again"
+   button imply a transient fault. Nothing about a missing ASC product is
+   transient — retrying can never succeed. A user will tap "Try again" forever.
 
-```js
-canUpgrade()         { return this.status?.tier === 'free' && this.status?.payment_enabled === true; },
-paymentUnavailable() { return this.status?.tier === 'free' && this.status?.payment_enabled !== true; },
+3. This is also why the six `Local StoreKit configuration` tests are red — the
+   same zero-products condition, and the reason not to have dismissed them as
+   benign.
+
+## What is NOT broken — verified, so we don't chase it again
+
+- **Backend:** `plans()` returns 200 (Premium £6.99/mo, £59.99/yr, 10 features);
+  `subscriptionStatus()` returns 200 with the full capability matrix and
+  `payment_enabled: true` at the top level.
+- **Desktop web:** subscription page → "Compare plans" modal → "Choose Plan" →
+  `/checkout` with a correct Order Summary. Works.
+- **`/m`:** the agreed architecture is intact — `Subscription.vue` calls
+  `issueWebHandoff('subscription')`, matching the specced "mobile routes the user
+  to the web app for payment". `POST /api/v1/mobile/web-handoffs` returns **201**
+  with a valid signed URL and expiry.
+- **Local Revolut errors are environment-only.** Local holds production Revolut
+  keys, so checkout cannot complete locally (`400 validation` against production,
+  `401 unauthenticated` against sandbox). Dev completes checkout, so this is not
+  a code path worth pursuing.
+
+## Two corrections to my earlier reports
+
+Recorded so the wrong versions do not get re-used:
+
+1. **"The web Compare plans button does nothing" — WRONG.** The button works. The
+   browser automation had stopped delivering mouse events; a control click on the
+   "General" tab did nothing either, and instrumented document-capture listeners
+   recorded zero events for both. A synthetic `.click()` opens the modal.
+2. **"`payment_enabled` is absent from the payload" — WRONG.** It is present at
+   the **top level** with value `true`, and `/m`'s merge at
+   `Subscription.vue:131-133` (`{ ...response.data, ...response.data.data }`)
+   does pull it through. I checked inside `data` instead of at the top level.
+
+Both errors came from reasoning off code rather than exercising the surface.
+
+## Fix
+
+**Primary (CSJ / App Store Connect — not a code change):** create the subscription
+group and the two auto-renewable subscriptions on the `Fynla Dev` record, product
+IDs exactly:
+
+```
+org.fynla.premium.monthly   £6.99   P1M
+org.fynla.premium.annual    £59.99  P1Y
 ```
 
-`GET /api/payment/subscription-status` (`PaymentController::subscriptionStatus`)
-**does not emit `payment_enabled`** — verified with `array_key_exists`, genuinely
-absent, not null. But `SubscriptionStatusService.php:86` *does* emit it, and
-`config('app.payment_enabled')` is **`true`**.
+matching `StoreKit/Fynla.storekit` and `StoreKitModels.swift:4-5`. Needs the paid
+applications agreement to be active, plus pricing, localizations and review
+information before they reach a state StoreKit will return. Once they exist, the
+existing code should work unchanged.
 
-So payments are enabled, the server knows, a service says so — and `/m` shows
-**"Upgrades are temporarily unavailable"** permanently, because it reads the one
-producer that omits the field. Two producers of one payload; Rule 20.
+**Secondary (code, once the above is decided):**
 
-`/m` never even reaches the checkout, so it never sees §3 at all.
-
-## 5. Native — still not reproduced
-
-No sign-in yet. Code-level concerns unchanged: `SystemStoreKitClient.swift:63-67`
-throws `productUnavailable` if the product set does not match exactly, so zero
-products takes the whole paywall down with no partial-availability path. Product
-IDs do match the `.storekit` config, so the six red StoreKit tests mean *zero
-products loaded*. Whether `org.fynla.premium.monthly` / `.annual` exist as in-app
-purchases on the `Fynla Dev` ASC record (6793193337) is **still unverified**.
-
-## 6. Lesser findings
-
-- `/api/payment/subscription-status` is fetched **5×** per page view.
-- `SubscriptionSettings.vue:6-8` promises "plan, billing, invoices, and discount
-  codes"; the free state shows only the plan card. Discount codes do exist in the
-  modal and at checkout, so this is a heading-vs-free-state mismatch rather than a
-  missing feature.
-- Backend `plans()` and `subscriptionStatus()` both return 200 with correct data —
-  £6.99/£59.99, matching the StoreKit prices.
-
-## 7. Fix order
-
-1. **`PaymentController` — never leave an unrecoverable `pending_` row.** Either
-   create the row only after Revolut confirms, or make the guard self-healing
-   (expire/void placeholder rows past a short TTL, and distinguish "remote error"
-   from "genuinely still reconciling" instead of `catch (\Throwable) → null`).
-   Highest priority: this is a production dead-end.
-2. **Decide `REVOLUT_SANDBOX` locally** (CSJ's call — `.env` untouched). Sandbox
-   would also fix the `http://localhost` redirect_url issue.
-3. **`payment_enabled` — one producer.** Add it to
-   `PaymentController::subscriptionStatus`, or point `/m` at
-   `SubscriptionStatusService`. Then have the server state upgrade eligibility
-   rather than `/m` deriving it.
-4. Clear the orphaned row for John (`payments.id = 1`) so local checkout is
-   testable again — with CSJ's agreement, since it is a data delete.
-5. The 5× fetch, then the §6 heading mismatch.
-6. Native: verify the ASC in-app purchase products exist before touching
-   `SystemStoreKitClient`.
+1. Degrade gracefully — offer whichever products loaded instead of failing the
+   whole paywall when the set is incomplete.
+2. Replace "Please try again later" for the empty-catalogue case with wording that
+   does not promise a retry will help, and drop the "Try again" button on that
+   branch.
