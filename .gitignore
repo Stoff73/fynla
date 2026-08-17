@@ -50,6 +50,12 @@ yarn-error.log
 # Design source files and screenshots (root-level)
 /*.png
 /*.pdf
+
+# Agent/session screenshots — filed here by month, never left loose at root
+/screenshots/
+
+# Python virtualenvs (Apple StoreKit verifier bridge)
+/.venv/
 /logo/
 /portraits/
 /Feb/
