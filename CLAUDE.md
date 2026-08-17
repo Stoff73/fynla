@@ -366,6 +366,8 @@ Phones are detected and routed to `/m`, which iframes the funnel and serves an *
 
 **Production has no native endpoints.** `routes/api_v1.php` on fynla.org has zero `native/auth` routes — probe `GET /api/v1/native/health`: prod returns `200 text/html` (SPA fallback = route absent), csjones returns `400 application/json`. A `Fynla-Production` build clears `/api/auth/login` then 404s at `/api/v1/native/auth/session/exchange`. Fixing this is a `dev → main` release, not a code change.
 
+**⚠️ The native paywall cannot work yet: there are no in-app purchase products in App Store Connect.** Verified 2026-08-17 against the ASC API — both `Fynla Dev` (6793193337) and `Fynla` (6760545667) return **zero** subscription groups and **zero** in-app purchases, so StoreKit returns nothing and the paywall shows "Premium subscriptions are unavailable. Please try again later." This is configuration, not code, and needs the **Paid Applications Agreement** Active before the products can be created (no second Apple Developer account required). The 6 red `Local StoreKit configuration` tests are a **real signal** of this, not noise. Web and `/m` are unaffected — `/m` hands off to the web app for payment (`issueWebHandoff('subscription')`), which is the agreed architecture; native cannot use that route because Apple requires in-app purchase for digital goods. Details: `August/August17Updates/iOSBugs/BUG-01-subscription-upgrade.md`.
+
 Release pipeline: `ios-native/TESTFLIGHT.md`. Per-screen `/m` parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md`.
 
 ### `ios/` — legacy Capacitor target (dormant)

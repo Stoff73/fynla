@@ -4,10 +4,10 @@ workstream: quality
 item: BUG-01
 action: Record the native in-app-purchase configuration trap in root CLAUDE.md and ios-native/CLAUDE.md, and correct the "never to be chased" line about the red StoreKit tests
 raised: 2026-08-17T11:40:00Z
-decided_by: null
-decided_at: null
-decision: null
-status: proposed
+decided_by: CSJ
+decided_at: 2026-08-17T11:49:00Z
+decision: approve
+status: applied
 ---
 
 ## What is being asked
@@ -113,4 +113,42 @@ what gets read on every task.
 
 ## Decision and reasoning
 
-_Pending CSJ._
+**CSJ: APPROVE — 2026-08-17** ("removed the guard").
+
+CSJ removed the `oversight-guard` entry from `.claude/settings.json` so the
+workforce could apply the edits directly. Checked before touching anything:
+`settings.json` is **valid JSON**, the removal was **structural** (not commented
+out — the GATE-0002 failure mode), and all ten other hooks remain wired:
+`dangerous-command-guard`, `prod-guard`, `env-guard`, `workforce-guard`,
+`pint-format`, `tax-hardcode-check`, `design-lint`, `m-parity-check`,
+`precompact-handover`, `postcompact-vaultsync`.
+
+**Applied 2026-08-17.** Both edits landed:
+
+- `ios-native/CLAUDE.md` — the "never to be chased" line replaced with the
+  In-app purchases section (+19/−1).
+- Root `CLAUDE.md` — paywall paragraph added to Mobile Clients → `ios-native/`
+  (+2). Verified my edit is the only change to that file.
+
+## ⚠️ Outstanding — the guard is still OFF
+
+`oversight-guard.sh` is no longer wired in `settings.json`. Nothing now gates
+`CLAUDE.md`, `.claude/agents/*.md`, `settings.json`, the hooks, `.goal` or
+`.mcp.json` against agent edits. **CSJ must paste the entry back:**
+
+```json
+{ "type": "command",
+  "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/oversight-guard.sh",
+  "timeout": 10,
+  "statusMessage": "Checking workforce oversight boundary..." }
+```
+
+into the `PreToolUse` `Write|Edit` hooks array. Remove it **structurally** when
+disabling, never by commenting — `//` makes the file invalid JSON and silently
+disables *every* hook, including `dangerous-command-guard` and `prod-guard`
+(recorded in GATE-0002).
+
+Note also GATE-0002's still-open finding: the guard is wired only to
+`Write|Edit`, so its entire Bash anti-bypass branch (`oversight-guard.sh:63-71`)
+is dead as configured, and `(^|/)CLAUDE\.md` does not match a bare `CLAUDE.md`
+token in a command string. Worth fixing when the entry goes back.

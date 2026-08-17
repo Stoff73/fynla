@@ -53,4 +53,21 @@ Rules 8 (no amber/orange), 10–11 (design system, CSS governance), 12 (no score
 - `scripts/verify-project.sh` asserts the Info.plist/xcconfig wiring — run it after touching any build configuration.
 - Release: `ios-native/TESTFLIGHT.md`.
 
-**Known and never to be chased:** 6 StoreKit hosted-configuration unit tests are red locally and green in CI.
+## In-app purchases — the trap that cost a session
+
+**No in-app purchase products exist in App Store Connect.** Verified 2026-08-17 against the ASC API: both `Fynla Dev` (6793193337) and `Fynla` (6760545667) return **zero** subscription groups and **zero** in-app purchases.
+
+So StoreKit returns nothing, and `SubscriptionModel.swift:291` — which requires the returned set to equal `StoreProductIdentifier.all` exactly — puts the paywall into `.unavailable` with **"Premium subscriptions are unavailable. Please try again later."** That is the app behaving correctly, not a bug in it.
+
+To fix, create in App Store Connect, matching `StoreKit/Fynla.storekit` and `StoreKitModels.swift:4-5` exactly:
+
+```text
+org.fynla.premium.monthly   £6.99    P1M
+org.fynla.premium.annual    £59.99   P1Y
+```
+
+No second Apple Developer account is required — the existing membership (team `99S3M8JLLF`) covers it. In-app purchases do need the **Paid Applications Agreement** Active (App Store Connect → Business): accept the agreement, add banking details, complete tax forms. Until Active, App Store Connect will not permit in-app purchases to be created.
+
+**The 6 red `Local StoreKit configuration` tests are a real signal, not noise.** They were previously documented here as "never to be chased"; that was wrong and cost a session — they are red for the same zero-products reason, and were the one pointer at the root cause. Treat them as green only once the products exist and they pass.
+
+Native cannot use the `/m` web-payment handoff — Apple requires in-app purchase for digital goods — so this is the only route to a paid native subscription. Full analysis: `August/August17Updates/iOSBugs/BUG-01-subscription-upgrade.md`.
