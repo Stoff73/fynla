@@ -149,3 +149,59 @@ it('still refuses to merge across pension categories', function (): void {
     expect($result['warning'] ?? false)->toBeTrue();
     expect(DCPension::where('user_id', $user->id)->count())->toBe(1);
 });
+
+it('applies a conflicting value when the user is answering Fyns own question', function (): void {
+    $user = User::factory()->create();
+    $agent = app(CoordinatingAgent::class);
+
+    $method = new ReflectionMethod(CoordinatingAgent::class, 'handleCreatePension');
+    $method->setAccessible(true);
+
+    $first = $method->invoke($agent, [
+        'pension_category' => 'dc',
+        'scheme_name' => 'Aviva Pension',
+        'scheme_type' => 'workplace',
+        'current_fund_value' => 45000,
+    ], $user, false);
+    $id = $first['entity_id'];
+
+    // Fyn asked "workplace or Self-Invested Personal Pension?"; the user said "Sip".
+    // That answer is explicit, so it lands rather than asking a second question.
+    $agent->setExplicitEditEntityType('pension');
+
+    $second = $method->invoke($agent, [
+        'pension_category' => 'dc',
+        'scheme_name' => 'Aviva Pension',
+        'scheme_type' => 'sipp',
+    ], $user, false);
+
+    expect($second['updated'] ?? false)->toBeTrue();
+    expect(DCPension::find($id)->pension_type)->toBe('sipp');
+    expect((float) DCPension::find($id)->current_fund_value)->toBe(45000.0);
+    expect(DCPension::where('user_id', $user->id)->count())->toBe(1);
+
+    $agent->setExplicitEditEntityType(null);
+});
+
+it('reverts to asking once the explicit-edit permission is cleared', function (): void {
+    $user = User::factory()->create();
+    $agent = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod(CoordinatingAgent::class, 'handleCreatePension');
+    $method->setAccessible(true);
+
+    $method->invoke($agent, [
+        'pension_category' => 'dc',
+        'scheme_name' => 'Aviva Pension',
+        'scheme_type' => 'workplace',
+        'current_fund_value' => 45000,
+    ], $user, false);
+
+    // No permission set — a later unrelated turn must not inherit it.
+    $second = $method->invoke($agent, [
+        'pension_category' => 'dc',
+        'scheme_name' => 'Aviva Pension',
+        'scheme_type' => 'sipp',
+    ], $user, false);
+
+    expect($second['error_type'] ?? null)->toBe('confirm_edit_required');
+});

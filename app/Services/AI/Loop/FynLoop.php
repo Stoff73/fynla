@@ -123,12 +123,19 @@ final class FynLoop
         ?array $verifyEditScope = null,
         ?string $providerOverride = null,
         ?array $confirmedFacts = null,
+        ?string $explicitEditEntityType = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
         }
         if ($verifyEditScope !== null) {
             $this->coordinatingAgent->setVerifyEditScope($verifyEditScope);
+        }
+        if ($explicitEditEntityType !== null) {
+            // Same instance-pairing discipline as the focus above. Marks this turn as
+            // the user ANSWERING Fyn's own outstanding question about that entity, so
+            // amending the record is explicit rather than assumed (CSJ 2026-08-17).
+            $this->coordinatingAgent->setExplicitEditEntityType($explicitEditEntityType);
         }
         if ($confirmedFacts !== null && $confirmedFacts !== []) {
             // Same instance-pairing discipline as the focus above:
@@ -159,6 +166,9 @@ final class FynLoop
             }
             if ($confirmedFacts !== null && $confirmedFacts !== []) {
                 $this->coordinatingAgent->setConfirmedCaptureFacts(null);
+            }
+            if ($explicitEditEntityType !== null) {
+                $this->coordinatingAgent->setExplicitEditEntityType(null);
             }
         }
     }

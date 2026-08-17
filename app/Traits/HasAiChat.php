@@ -142,6 +142,43 @@ trait HasAiChat
         $this->verifyEditScope = $scope;
     }
 
+    /**
+     * The entity type whose outstanding question the user is ANSWERING this turn.
+     *
+     * CSJ 2026-08-17: "an edit, amendment or change must be explicit. If there is any
+     * ambiguity Fyn must ask 'are we editing {plan}' before making any changes." A
+     * reply to a question Fyn itself just asked about a specific record IS explicit —
+     * Fyn asked "workplace or Self-Invested Personal Pension?" and the user answered
+     * "Sip". Without this signal the write handler cannot tell that apart from a
+     * fresh message that merely name-matches an existing record, which is ambiguous
+     * and must ask.
+     *
+     * Set by AdviceFyn around a capture-continuation turn and always cleared in its
+     * finally, on the SAME agent instance (CoordinatingAgent is container-transient).
+     */
+    private ?string $explicitEditEntityType = null;
+
+    public function setExplicitEditEntityType(?string $entityType): void
+    {
+        $this->explicitEditEntityType = $entityType;
+    }
+
+    /**
+     * True when the user is answering Fyn's own outstanding question about this
+     * entity type, which makes an amendment to it explicit rather than assumed.
+     */
+    protected function isExplicitEditTurnFor(string $entityType): bool
+    {
+        if ($this->explicitEditEntityType === null) {
+            return false;
+        }
+
+        // The classifier speaks in bare entity names ('pension'); handlers in table
+        // names ('dc_pension', 'db_pension'). Match either way round.
+        return $this->explicitEditEntityType === $entityType
+            || str_contains($entityType, $this->explicitEditEntityType);
+    }
+
     /** @return array<string, mixed>|null */
     private function verifyEditScopeError(string $toolName, array $input): ?array
     {

@@ -35,6 +35,12 @@ final class CaptureContext
      *                                              The orchestrator re-invokes advice with this
      *                                              question once capture_complete fires.
      * @param  string|null  $originatingFocus  Onboarding journey focus that triggered the capture, if any.
+     * @param  bool  $isContinuation  True when this turn is the user ANSWERING an outstanding
+     *                                question Fyn asked about a specific record. CSJ 2026-08-17:
+     *                                an edit must be explicit, and answering Fyn's own question
+     *                                is explicit — so the write handler may amend that record
+     *                                directly. A fresh message that merely name-matches is
+     *                                ambiguous and must ask first.
      */
     public function __construct(
         public readonly string $reason,
@@ -42,6 +48,7 @@ final class CaptureContext
         public readonly array $fieldsNeeded = [],
         public readonly ?string $pendingAdviceQuestion = null,
         public readonly ?string $originatingFocus = null,
+        public readonly bool $isContinuation = false,
     ) {
         if (trim($reason) === '') {
             throw new InvalidArgumentException('CaptureContext reason must not be empty.');
@@ -90,6 +97,9 @@ final class CaptureContext
             originatingFocus: isset($payload['originating_focus'])
                 ? (string) $payload['originating_focus']
                 : null,
+            // Never LLM-supplied — set only by the deterministic continuation branch
+            // in AdviceFyn, so the model cannot grant itself edit permission.
+            isContinuation: (bool) ($payload['is_continuation'] ?? false),
         );
     }
 

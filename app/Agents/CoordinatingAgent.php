@@ -3239,6 +3239,17 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
+        // An edit is explicit when the user is ANSWERING Fyn's own outstanding
+        // question about this record — Fyn asked "workplace or Self-Invested
+        // Personal Pension?" and the user said "Sip". Applying that is not an
+        // assumption. Any other same-name match still has to ask.
+        if ($conflicts !== [] && $this->isExplicitEditTurnFor($entityType)) {
+            foreach ($conflicts as $field => $pair) {
+                $fills[$field] = $pair['proposed'];
+            }
+            $conflicts = [];
+        }
+
         if ($conflicts !== []) {
             return [
                 'error' => true,

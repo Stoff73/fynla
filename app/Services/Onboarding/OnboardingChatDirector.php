@@ -6414,7 +6414,23 @@ PROMPT;
         // and as an executeTool argument for the deterministic gap-fill. No
         // shared transient: clear-ordering between the stream's finally and
         // the post-stream gap-fill must not matter.
-        yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
+        // CSJ 2026-08-17: answering Fyn's own outstanding question about a record is
+        // an EXPLICIT edit, so the write handler may amend it directly instead of
+        // asking again. Set on this service's own agent for the deterministic
+        // gap-fill/extractor writes, and passed separately into FynLoop::stream for
+        // the LLM dispatch — same both-paths discipline as confirmedFacts above,
+        // because CoordinatingAgent is container-transient.
+        if ($context->isContinuation) {
+            $this->coordinatingAgent->setExplicitEditEntityType($context->entityTypes[0] ?? null);
+        }
+
+        try {
+            yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
+        } finally {
+            if ($context->isContinuation) {
+                $this->coordinatingAgent->setExplicitEditEntityType(null);
+            }
+        }
     }
 
     /** @return \Generator<array<string, mixed>> */
@@ -6502,6 +6518,7 @@ PROMPT;
             persistUserMessage: false,
             unifiedFocus: $unifiedFocus,
             confirmedFacts: $confirmedFacts,
+            explicitEditEntityType: $context->isContinuation ? ($context->entityTypes[0] ?? null) : null,
         );
 
         foreach ($generator as $event) {

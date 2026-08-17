@@ -339,8 +339,14 @@ final class AdviceFyn
         // it lands in read-only advice and the capture dead-ends
         // mid-conversation (2026-07-03 walk: the pension details were never
         // persisted). Reuse the intent that opened the capture.
+        // CSJ 2026-08-17: answering Fyn's own outstanding question about a record IS
+        // an explicit edit, so a continuation may amend that record directly. A fresh
+        // message that merely name-matches is ambiguous and must ask instead. Only
+        // this branch knows which turn is which, so it flags it for the write handler.
+        $isCaptureContinuation = false;
         if ($intent === null) {
             $intent = $this->captureContinuationIntent($conversation, $message);
+            $isCaptureContinuation = $intent !== null;
         }
 
         // Full-duplicate short-circuit: when the user reasserts records
@@ -400,6 +406,11 @@ final class AdviceFyn
                 'reason' => $intent['reason'],
                 'entity_types' => [$intent['entity_type']],
                 'fields_needed' => $intent['fields_needed'],
+                // Carried through the context rather than set on this service's
+                // CoordinatingAgent: handleInlineCapture executes tools on the
+                // DIRECTOR's agent instance, and CoordinatingAgent is
+                // container-transient, so a flag set here would silently not apply.
+                'is_continuation' => $isCaptureContinuation,
             ]);
 
             Log::info('[AdviceFyn] Deterministic write-intent routed', [
