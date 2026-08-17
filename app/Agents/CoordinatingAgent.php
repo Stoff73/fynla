@@ -3169,6 +3169,79 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
+    /**
+     * Canonical pension field => the `create_pension` input that must be present
+     * and non-null for a re-capture to apply it. Keyed this way so a merge only
+     * ever writes what the USER supplied — never a normaliser-derived default
+     * (`provider` falls back to `scheme_name`, which would otherwise overwrite a
+     * real provider with the scheme name on any later turn).
+     */
+    private const PENSION_RECAPTURE_FIELDS = [
+        'pension_type' => 'scheme_type',
+        'scheme_type' => 'scheme_type',
+        'provider' => 'provider',
+        'current_fund_value' => 'current_fund_value',
+        'annual_salary' => 'annual_salary',
+        'employee_contribution_percent' => 'employee_contribution_percent',
+        'employer_contribution_percent' => 'employer_contribution_percent',
+        'monthly_contribution_amount' => 'monthly_contribution_amount',
+        'retirement_age' => 'retirement_age',
+        'accrued_annual_pension' => 'accrued_annual_pension',
+        'pensionable_service_years' => 'pensionable_service_years',
+        'pensionable_salary' => 'final_salary',
+        'normal_retirement_age' => 'normal_retirement_age',
+    ];
+
+    /**
+     * Apply a same-name re-capture onto the pension that already exists.
+     *
+     * @param  array<string, mixed>  $canonical
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function mergePensionRecapture(
+        DCPension|DBPension $existing,
+        string $entityType,
+        array $canonical,
+        array $input,
+        User $user,
+    ): array {
+        $updates = [];
+        foreach (self::PENSION_RECAPTURE_FIELDS as $canonicalField => $inputField) {
+            if (! array_key_exists($canonicalField, $canonical)) {
+                continue;
+            }
+            $supplied = $input[$inputField] ?? null;
+            if ($supplied === null || $supplied === '') {
+                continue;
+            }
+            $updates[$canonicalField] = $canonical[$canonicalField];
+        }
+
+        $changed = array_keys(array_filter(
+            $updates,
+            fn (mixed $value, string $field): bool => $existing->{$field} != $value,
+            ARRAY_FILTER_USE_BOTH,
+        ));
+
+        if ($changed !== []) {
+            $existing->fill(array_intersect_key($updates, array_flip($changed)))->save();
+            $this->invalidateUserCache($user->id);
+        }
+
+        return [
+            'success' => true,
+            'updated' => true,
+            'entity_type' => $entityType,
+            'entity_id' => $existing->id,
+            'name' => $existing->scheme_name,
+            'updated_fields' => $changed,
+            'message' => $changed === []
+                ? "Your \"{$existing->scheme_name}\" pension is already recorded with those details."
+                : "I've updated your \"{$existing->scheme_name}\" pension.",
+        ];
+    }
+
     private function handleCreatePension(array $input, User $user, bool $isPreview): array
     {
         if ($isPreview) {
@@ -3199,17 +3272,37 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $dcDuplicate = $this->checkForDuplicate(DCPension::class, $user->id, 'scheme_name', $input['scheme_name']);
-        if ($dcDuplicate) {
-            return $dcDuplicate;
-        }
-        $dbDuplicate = $this->checkForDuplicate(DBPension::class, $user->id, 'scheme_name', $input['scheme_name']);
-        if ($dbDuplicate) {
-            return $dbDuplicate;
+        $canonical = app(PensionNormaliser::class)->fromFynPension($input);
+        $isDb = $canonical['type'] === 'db';
+        $entityType = $isDb ? 'db_pension' : 'dc_pension';
+
+        // BUG-02/03 (2026-08-17): a re-capture of the SAME pension merges rather
+        // than warning. Live sequence: turn 1 recorded "Aviva Pension" and, lacking
+        // a scheme type, wrote the inferred default while asking for the type; the
+        // user answered "Sip"; turn 2 re-called this tool with the same scheme name
+        // and scheme_type=sipp — and the duplicate warning discarded it, leaving the
+        // row a workplace pension while Fyn reported a Self-Invested Personal
+        // Pension. Data entry has to be correct deterministically in code, not
+        // contingent on the model choosing `update_record`.
+        $existing = ($isDb ? DBPension::class : DCPension::class)::where('user_id', $user->id)
+            ->whereRaw('LOWER(scheme_name) = ?', [strtolower((string) $input['scheme_name'])])
+            ->first();
+
+        if ($existing !== null) {
+            return $this->mergePensionRecapture($existing, $entityType, $canonical, $input, $user);
         }
 
-        $canonical = app(PensionNormaliser::class)->fromFynPension($input);
-        $entityType = $canonical['type'] === 'db' ? 'db_pension' : 'dc_pension';
+        // The same name under the OTHER category is a different record shape, not a
+        // field correction, so the duplicate warning still applies there.
+        $crossDuplicate = $this->checkForDuplicate(
+            $isDb ? DCPension::class : DBPension::class,
+            $user->id,
+            'scheme_name',
+            $input['scheme_name'],
+        );
+        if ($crossDuplicate) {
+            return $crossDuplicate;
+        }
 
         try {
             $pension = $canonical['type'] === 'db'

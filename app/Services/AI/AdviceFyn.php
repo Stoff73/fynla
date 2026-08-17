@@ -459,12 +459,29 @@ final class AdviceFyn
             ->latest('id')
             ->first();
 
-        // Pending capture question = data_capture persona AND no tool calls
-        // (a capture turn that WROTE has tool_calls on the row — that capture
-        // concluded, so a follow-up message is a fresh turn, not an answer).
-        if ($lastAssistant === null
-            || $lastAssistant->persona !== 'data_capture'
-            || ! empty($lastAssistant->tool_calls)) {
+        if ($lastAssistant === null || $lastAssistant->persona !== 'data_capture') {
+            return null;
+        }
+
+        // A capture turn is pending while it is STILL ASKING, whatever it wrote.
+        //
+        // WP-1 scoped this to a capture that wrote nothing, on the assumption that
+        // a turn either asks or writes. A turn can do both — write what the user
+        // gave and ask for what is missing. Live 2026-08-17: "I have an aviva
+        // pension with a balance of 45000" produced ONE assistant turn reading
+        // "Is this a workplace pension or a Self-Invested Personal Pension?
+        // Recorded — Aviva pension of £45,000.", leaving persona=data_capture WITH
+        // tool_calls. The user answered "Sip", the old guard read the tool_calls as
+        // "capture concluded", the answer fell through to read-only advice, and the
+        // model narrated "recorded as a Self-Invested Personal Pension" without any
+        // write — the row stayed pension_type=occupational.
+        //
+        // That is the same dead-end WP-1 exists to close, reached by a turn that
+        // wrote as well as asked. Only a capture that wrote and asked nothing
+        // further has actually concluded.
+        $stillAsking = str_contains((string) $lastAssistant->content, '?');
+
+        if (! empty($lastAssistant->tool_calls) && ! $stillAsking) {
             return null;
         }
 
