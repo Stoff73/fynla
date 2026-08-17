@@ -3,11 +3,12 @@ import SwiftUI
 // Transcribes /m's Goals page (resources/mobile/views/modules/Goals.vue):
 // gradient page hero, Edit details pill, on-track hero card, overall-progress
 // card with the status bar, and per-goal blocks (name/type, status pill,
-// progress bar, amounts + time remaining, EDIT action). Goal add/edit run
-// through Fyn with /m's exact prompts. Whole-pound amounts.
+// progress bar, and amounts + time remaining. Cards open canonical detail;
+// only the detail can edit through contextual Fyn. Whole-pound amounts.
 struct GoalsView: View {
     let model: GoalsModel
-    let onOpenFyn: (String) -> Void
+    let onRoute: (AppRoute) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     let onOpenSubscription: () -> Void
 
     var body: some View {
@@ -44,12 +45,10 @@ struct GoalsView: View {
                     subtitle: "Your financial milestones and how they're tracking"
                 )
 
-                MobilePageActions(editDetails: {
-                    onOpenFyn(
-                        FynEditIntent.message(
-                            updateScope: "goals",
-                            addPhrase: "I'd like to add a new goal.",
-                            names: snapshot.goals.map { Optional($0.displayName) }
+                MobilePageActions(actionTitle: "Add goal", editDetails: {
+                    onOpenContextualFyn(
+                        FynContextualActions.goalsOverview(
+                            hasGoals: !snapshot.goals.isEmpty
                         )
                     )
                 })
@@ -132,16 +131,6 @@ struct GoalsView: View {
                     .font(.system(size: 12, weight: .bold))
                     .kerning(0.5)
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
-                Spacer()
-                Button {
-                    onOpenFyn("I'd like to add a new goal.")
-                } label: {
-                    Text("Add goal".uppercased())
-                        .font(.system(size: 12, weight: .bold))
-                        .kerning(0.5)
-                        .foregroundStyle(FynlaColor.Token.raspberry500.color)
-                }
-                .accessibilityIdentifier("goals.add")
             }
             .padding(.bottom, 6)
 
@@ -152,7 +141,13 @@ struct GoalsView: View {
                     .padding(.vertical, 8)
             } else {
                 ForEach(snapshot.goals) { goal in
-                    goalBlock(goal, showsDivider: goal.id != snapshot.goals.last?.id)
+                    Button {
+                        onRoute(goal.detailRoute)
+                    } label: {
+                        goalBlock(goal, showsDivider: goal.id != snapshot.goals.last?.id)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("goals.goal.\(goal.id)")
                 }
             }
         }
@@ -163,7 +158,7 @@ struct GoalsView: View {
     }
 
     // mg-goal: name/type + status pill head, status bar, amounts/remaining
-    // foot, EDIT action.
+    // foot. The enclosing button owns canonical detail navigation.
     private func goalBlock(_ goal: FinancialGoal, showsDivider: Bool) -> some View {
         let status = status(for: goal)
         let pct = NSDecimalNumber(decimal: goal.progressPercentage).doubleValue
@@ -200,16 +195,6 @@ struct GoalsView: View {
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
 
-            Button {
-                onOpenFyn("I'd like to update my \"\(goal.displayName)\" goal.")
-            } label: {
-                Text("Edit".uppercased())
-                    .font(.system(size: 12, weight: .bold))
-                    .kerning(0.5)
-                    .foregroundStyle(FynlaColor.Token.raspberry500.color)
-            }
-            .padding(.top, 2)
-            .accessibilityIdentifier("goals.edit.\(goal.id)")
         }
         .padding(.vertical, 12)
         .overlay(alignment: .bottom) {
@@ -218,7 +203,6 @@ struct GoalsView: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("goals.goal.\(goal.id)")
     }
 
     // /m statusOf(): complete/on-track spring; else violet ≥50%, raspberry.

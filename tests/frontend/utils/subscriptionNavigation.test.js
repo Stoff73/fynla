@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   shouldShowUpgradeEntry,
   subscriptionOptionsLocation,
 } from '@/utils/subscriptionNavigation';
 import {
   shouldShowMobileUpgrade,
-  subscriptionOptionsUrl,
+  upgradeMixin,
 } from '../../../resources/mobile/mixins/upgrade.js';
 
 describe('subscription navigation', () => {
@@ -16,9 +16,15 @@ describe('subscription navigation', () => {
     });
   });
 
-  it('uses the canonical parent-frame URL on /m', () => {
-    expect(subscriptionOptionsUrl('/fynla/')).toBe('/fynla/settings/subscription?openPricing=1');
-    expect(subscriptionOptionsUrl('/')).toBe('/settings/subscription?openPricing=1');
+  it('keeps /m upgrades inside the mobile subscription flow', () => {
+    const push = vi.fn();
+
+    upgradeMixin.methods.goUpgrade.call({
+      paidUpgradeAvailable: true,
+      $router: { push },
+    });
+
+    expect(push).toHaveBeenCalledWith('/subscription');
   });
 
   it('shows paid entry points only to Free users when payments are enabled', () => {

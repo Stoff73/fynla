@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" back @back="goBack">
+  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="this account" :edit-details="canEdit" :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ headerTitle }}</h1>
       <p class="m-sub">{{ headerSub }}</p>
@@ -51,6 +51,22 @@
           <span class="m-detail-value">{{ row.value }}</span>
         </div>
       </div>
+
+      <div v-if="account.is_isa" class="m-card">
+        <p class="m-section-label" style="margin-top:0">ISA contribution history</p>
+        <div v-if="isaStatus?.available_tax_years?.length" class="msa-years">
+          <button
+            v-for="year in isaStatus.available_tax_years"
+            :key="year"
+            type="button"
+            class="msa-year"
+            :class="{ 'msa-year--active': isaStatus.tax_year === year }"
+            @click="loadIsaStatus(year)"
+          >{{ year }}</button>
+        </div>
+        <p v-if="isaLoading" class="m-sub">Loading ISA contributions…</p>
+        <ISAContributionHistory v-else :status="isaStatus" :account-id="account.id" account-class="savings" />
+      </div>
     </template>
   </MobileChrome>
 </template>
@@ -60,6 +76,8 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -94,10 +112,27 @@ const ISA_TYPES = {
 
 export default {
   name: 'MobileSavingsAccount',
-  components: { MobileChrome },
-  data: () => ({ loading: true, error: '', account: null }),
+  components: { ISAContributionHistory, MobileChrome },
+  data: () => ({ loading: true, error: '', account: null, isaStatus: null, isaLoading: false }),
   computed: {
     accountId() { return this.$route.params.id; },
+    canEdit() { return this.account?.is_primary_owner !== false; },
+    contextualRequest() {
+      if (!this.canEdit) return null;
+      const accountId = Number(this.accountId);
+      if (!Number.isInteger(accountId) || accountId < 1) return null;
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType: 'savings_account',
+        resourceId: accountId,
+        currentDestination: {
+          screen: 'savings_account_detail',
+          params: { account_id: accountId },
+          fallback: 'savings',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
     headerTitle() {
       if (!this.account) return 'Account';
       return this.account.provider || this.account.institution || 'Savings account';
@@ -155,7 +190,8 @@ export default {
         rows.push({ key: 'Time to maturity', value: this.timeToMaturity(a.maturity_date) });
       }
       if (a.country) rows.push({ key: 'Country', value: a.country });
-      if (a.ownership_type) rows.push({ key: 'Ownership', value: this.ownershipLabel(a.ownership_type) });
+      if (a.is_isa) rows.push({ key: 'Owner', value: a.owner_name || 'You' });
+      else if (a.ownership_type) rows.push({ key: 'Ownership', value: this.ownershipLabel(a.ownership_type) });
       return rows;
     },
     isaRows() {
@@ -163,8 +199,6 @@ export default {
       const rows = [
         { key: 'ISA type', value: this.isaTypeLabel(a.isa_type) },
       ];
-      if (a.isa_subscription_year) rows.push({ key: 'Subscription year', value: a.isa_subscription_year });
-      if (a.isa_subscription_amount != null) rows.push({ key: 'Subscribed this year', value: this.fmt(a.isa_subscription_amount) });
       rows.push({ key: 'Interest', value: 'Tax-free' });
       return rows;
     },
@@ -211,12 +245,33 @@ export default {
       try {
         const { ok, status, data } = await apiGet(`/api/savings/accounts/${this.accountId}`, store.token);
         if (handleAuthExpiry({ status }, this.$router)) return;
-        if (ok) this.account = data?.data || data || null;
+        if (ok) {
+          this.account = data?.data || data || null;
+          if (this.account?.is_isa) await this.loadIsaStatus();
+        }
         else this.error = data?.message || 'We could not load this account.';
       } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
+      }
+    },
+    async loadIsaStatus(taxYear = null) {
+      this.isaLoading = true;
+      try {
+        const path = taxYear
+          ? `/api/savings/isa-allowance/${taxYear}`
+          : '/api/savings';
+        const { ok, status, data } = await apiGet(path, store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
+        if (!ok) return;
+        const payload = data?.data || data || {};
+        this.isaStatus = taxYear ? payload : payload.isa_allowance;
+      } catch {
+        // ISA history is supplementary; keep the canonical account page usable
+        // if this independent request is temporarily unavailable.
+      } finally {
+        this.isaLoading = false;
       }
     },
   },
@@ -228,4 +283,7 @@ export default {
 .msa-tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-sm); }
 .msa-tag--isa { color: var(--violet-500); background: color-mix(in srgb, var(--violet-500) 12%, var(--white)); }
 .msa-tag--ef { color: var(--spring-600); background: color-mix(in srgb, var(--spring-500) 12%, var(--white)); }
+.msa-years { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.msa-year { border: 1px solid var(--horizon-200); border-radius: var(--radius-sm); background: var(--white); padding: 5px 9px; color: var(--horizon-500); font-size: 12px; font-weight: 700; }
+.msa-year--active { border-color: var(--violet-500); background: var(--light-blue-100); color: var(--violet-500); }
 </style>

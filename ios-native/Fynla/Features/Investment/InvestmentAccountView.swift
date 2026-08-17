@@ -1,14 +1,11 @@
 import SwiftUI
 
-// Transcribes /m's investment account sub-page (resources/mobile/views/
-// modules/InvestmentAccountDetail.vue): gradient page hero, Back + Edit
-// details pills, provider identity card, dark current-value hero with the
-// contributions sub-line, Account information rows and the holdings list
-// with one-decimal allocation/gain percentages. Whole-pound amounts.
+// Renders the canonical investment account and shared portfolio contracts.
 struct InvestmentAccountView: View {
     let accountID: Int
     let model: InvestmentModel
-    let onOpenFyn: (String) -> Void
+    let savingsModel: SavingsModel
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -37,7 +34,12 @@ struct InvestmentAccountView: View {
             }
         }
         .background(FynlaColor.pageBackground)
-        .task(id: accountID) { await model.load() }
+        .task(id: accountID) {
+            await model.load()
+            if model.account(id: accountID)?.isISA == true {
+                await savingsModel.load()
+            }
+        }
         .accessibilityIdentifier("investment.account.screen")
     }
 
@@ -54,7 +56,11 @@ struct InvestmentAccountView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: { onOpenFyn("What would you like to update?") }
+                    editDetails: account.isPrimaryOwner == false
+                        ? nil
+                        : {
+                            onOpenContextualFyn(FynContextualActions.investmentAccount(id: accountID))
+                        }
                 )
 
                 Group {
@@ -75,7 +81,15 @@ struct InvestmentAccountView: View {
                         keyFontSize: 13
                     )
 
-                    holdingsCard(account.holdings)
+                    if account.isISA, let allowance = savingsModel.isaAllowance {
+                        contributionHistoryCard(allowance)
+                    }
+
+                    if let portfolio = account.portfolio {
+                        CanonicalPortfolioView(portfolio: portfolio)
+                    } else {
+                        portfolioUnavailableCard
+                    }
                 }
                 .padding(.horizontal, 16)
 
@@ -103,96 +117,50 @@ struct InvestmentAccountView: View {
             ("Provider", account.provider ?? "—"),
             ("Platform", account.platform ?? "—"),
             ("Account type", account.accountTypeLabel),
-            ("Ownership", titleCase(account.ownershipType) ?? "Individual"),
             ("Country", account.country == "UK" ? "United Kingdom" : (account.country ?? "United Kingdom")),
         ]
+        if account.isISA {
+            rows.append(("Owner", account.ownerName ?? "Owner unavailable"))
+        } else {
+            rows.append(("Ownership", titleCase(account.ownershipType) ?? "Individual"))
+        }
         if let contribution = account.monthlyContributionAmount, contribution > 0 {
             rows.append(("Monthly contribution", MoneyFormatter.gbpWhole(contribution)))
-        }
-        if account.isISA, let subscribed = account.isaSubscriptionCurrentYear {
-            rows.append(("ISA subscribed this year", MoneyFormatter.gbpWhole(subscribed)))
         }
         return rows
     }
 
-    // mid-holding — name/value head, meta + gain/loss foot, hairlines.
-    private func holdingsCard(_ holdings: [InvestmentHolding]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Holdings".uppercased())
-                .font(.system(size: 12, weight: .bold))
-                .kerning(0.5)
-                .foregroundStyle(FynlaColor.Token.neutral500.color)
-                .padding(.bottom, 8)
-            if holdings.isEmpty {
-                Text("No individual holdings recorded for this account.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(FynlaColor.Token.neutral500.color)
-            } else {
-                ForEach(Array(holdings.enumerated()), id: \.offset) { index, holding in
-                    holdingRow(holding, isLast: index == holdings.count - 1)
-                }
+    private func contributionHistoryCard(_ allowance: SavingsISAAllowance) -> some View {
+        ISAContributionHistoryView(
+            allowance: allowance,
+            accountID: accountID,
+            accountKind: .investment,
+            isLoading: savingsModel.isLoadingISAAllowance,
+            onSelectTaxYear: { taxYear in
+                Task { await savingsModel.loadISAAllowance(taxYear: taxYear) }
             }
-        }
+        )
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func holdingRow(_ holding: InvestmentHolding, isLast: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(holding.displayName)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(FynlaColor.Token.horizon500.color)
-                Spacer(minLength: 8)
-                Text(holding.currentValue.map(MoneyFormatter.gbpWhole) ?? "—")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(FynlaColor.Token.horizon500.color)
-                    .lineLimit(1)
-            }
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                HStack(spacing: 8) {
-                    if let allocation = holding.allocationPercent {
-                        Text("\(oneDecimal(allocation)) of account")
-                    }
-                    if let assetType = titleCase(holding.assetType) {
-                        Text(assetType)
-                    }
-                }
-                .font(.system(size: 12))
+    private var portfolioUnavailableCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Portfolio detail".uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .kerning(0.5)
                 .foregroundStyle(FynlaColor.Token.neutral500.color)
-                Spacer(minLength: 8)
-                if let gain = holding.gainLoss {
-                    Text(gainLabel(holding))
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(
-                            gain >= 0
-                                ? FynlaColor.Token.spring600.color
-                                : FynlaColor.Token.raspberry500.color
-                        )
-                        .lineLimit(1)
-                }
-            }
+            Text("Canonical holding exposure, drift, fees and recorded performance are unavailable for this account.")
+                .font(.system(size: 13))
+                .foregroundStyle(FynlaColor.Token.neutral500.color)
         }
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) {
-            if !isLast {
-                FynlaColor.Token.horizon100.color.frame(height: 1)
-            }
-        }
-    }
-
-    private func gainLabel(_ holding: InvestmentHolding) -> String {
-        guard let gain = holding.gainLoss else { return "" }
-        let prefix = gain >= 0 ? "+" : ""
-        let percentage = holding.gainLossPercent.map { " (\(oneDecimal($0)))" } ?? ""
-        return "\(prefix)\(MoneyFormatter.gbpWhole(gain))\(percentage)"
-    }
-
-    // /m pct(): always one decimal place.
-    private func oneDecimal(_ value: Decimal) -> String {
-        String(format: "%.1f%%", NSDecimalNumber(decimal: value).doubleValue)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityIdentifier("canonical-portfolio.unavailable")
     }
 
     private func titleCase(_ value: String?) -> String? {

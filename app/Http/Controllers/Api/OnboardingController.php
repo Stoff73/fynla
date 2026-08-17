@@ -6,13 +6,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Services\Onboarding\OnboardingService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OnboardingController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly OnboardingService $onboardingService
@@ -101,6 +104,12 @@ class OnboardingController extends Controller
                 ],
                 'message' => 'Step progress saved successfully',
             ]);
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResponse(
+                $e,
+                'Account limit reached for your current plan.',
+                'dashboard',
+            );
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Step progress save');
         }

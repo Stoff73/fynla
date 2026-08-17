@@ -4,6 +4,16 @@ protocol HolisticPlanClient: Sendable {
     func load() async throws -> HolisticPlan
 }
 
+protocol HolisticPlanClock: Sendable {
+    func sleep(for duration: Duration) async throws
+}
+
+struct ContinuousHolisticPlanClock: HolisticPlanClock {
+    func sleep(for duration: Duration) async throws {
+        try await Task.sleep(for: duration)
+    }
+}
+
 struct LiveHolisticPlanClient: HolisticPlanClient {
     private let apiClient: APIClient
 

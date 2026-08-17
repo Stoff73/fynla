@@ -27,6 +27,6 @@ class DCPensionValueSnapshot extends Model
 
     public function dcPension(): BelongsTo
     {
-        return $this->belongsTo(DCPension::class);
+        return $this->belongsTo(DCPension::class, 'dc_pension_id');
     }
 }

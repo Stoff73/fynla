@@ -145,6 +145,7 @@
 }
 .founder-card__role--violet { color: var(--violet-500); }
 .founder-card__role--spring { color: var(--spring-500); }
+.founder-card__role--raspberry { color: var(--raspberry-500); }
 
 /* Metadata definition list */
 .founder-card__meta {
@@ -179,6 +180,11 @@
   .about-founders__inner {
     padding-left: 2rem; padding-right: 2rem;
   }
+  /* Three founders: two-up would strand the third in a half-empty row, so the
+     last card centres itself across the grid at this width. */
   .founders-grid { grid-template-columns: repeat(2, 1fr); }
+  .founders-grid > .founder-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1; max-width: calc(50% - 1.5rem); justify-self: center;
+  }
   .about-mission__quote { padding: 2.5rem 4rem; }
 }

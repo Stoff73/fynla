@@ -189,10 +189,10 @@ describe('Savings API', function () {
             $response->assertStatus(403)
                 ->assertJson([
                     'success' => false,
-                    'error' => [
-                        'entity_key' => 'savings_account',
-                        'hard_limit' => 2,
-                    ],
+                    'error' => 'tier_limit_reached',
+                    'entity_key' => 'savings_account',
+                    'hard_limit' => 2,
+                    'action' => 'subscription_options',
                 ]);
 
             expect(SavingsAccount::where('user_id', $freeUser->id)->count())->toBe(2);

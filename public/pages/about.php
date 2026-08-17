@@ -78,7 +78,7 @@
 
   <a href="#main-content" class="skip-nav">Skip to main content</a>
 
-  <?php include __DIR__ . '/partials/nav.php'; ?>
+  <?php include __DIR__.'/partials/nav.php'; ?>
 
   <main id="main-content">
 
@@ -206,7 +206,7 @@
                 loading="lazy"
               />
               <h3 id="csj-heading" class="founder-card__name">Chris Slater-Jones</h3>
-              <p class="founder-card__role founder-card__role--violet">Co-Founder, Financial Planning Lead</p>
+              <p class="founder-card__role founder-card__role--violet">Co-Founder, Financial Planning and Technology Lead</p>
             </div>
 
             <dl class="founder-card__meta">
@@ -242,7 +242,7 @@
                 loading="lazy"
               />
               <h3 id="brett-heading" class="founder-card__name">Brett Isenberg, FCA</h3>
-              <p class="founder-card__role founder-card__role--spring">Co-Founder, Technology &amp; Strategy Lead</p>
+              <p class="founder-card__role founder-card__role--spring">Co-Founder, Operations and Strategy Lead</p>
             </div>
 
             <dl class="founder-card__meta">
@@ -266,6 +266,42 @@
             </div>
           </article>
 
+          <!-- Azlan Raj -->
+          <article id="azlan-raj" class="founder-card" aria-labelledby="azlan-heading">
+            <div class="founder-card__portrait">
+              <img
+                src="/images/portraits/azlan.png"
+                alt=""
+                class="founder-card__img"
+                width="128"
+                height="128"
+                loading="lazy"
+              />
+              <h3 id="azlan-heading" class="founder-card__name">Azlan Raj</h3>
+              <p class="founder-card__role founder-card__role--raspberry">Co-Founder, Product and Marketing Lead</p>
+            </div>
+
+            <dl class="founder-card__meta">
+              <div class="founder-card__meta-item">
+                <dt class="founder-card__meta-label">Qualifications</dt>
+                <dd class="founder-card__meta-value">BA Fine Art with Business &amp; IT; MA Computer Arts</dd>
+              </div>
+              <div class="founder-card__meta-item">
+                <dt class="founder-card__meta-label">Experience</dt>
+                <dd class="founder-card__meta-value">20+ years in marketing (Performance Marketing World Powerlist, PerformanceIN, CXM Today, CXM Hall of Fame)</dd>
+              </div>
+            </dl>
+
+            <div class="founder-card__bio">
+              <p>
+                Azlan is an award-winning Chief Marketing Officer and best-selling author with over 20 years&rsquo; experience leading global marketing transformations. He drives hyper-growth through a blend of business outcomes, data, AI-driven technology and creativity, working with some of the world&rsquo;s largest financial services brands &mdash; Barclays, Barclaycard, WisdomTree, Aviva and AXA &mdash; as well as early-stage startups, helping them define their brand, accelerate growth and transform their marketing organisations.
+              </p>
+              <p>
+                He co-authored the Amazon best-seller &ldquo;Shift: Transform motion into progress in business&rdquo;, holds a joint world record for the world&rsquo;s smallest advert, and sits on industry boards including the Forbes Communications Council, Performance Marketing World, ClickZ and the DMA Customer Engagement Committee. His style is approachable but honest &mdash; focused on innovation grounded in reality, and what it actually means for businesses today.
+              </p>
+            </div>
+          </article>
+
         </div><!-- /.founders-grid -->
       </div><!-- /.about-founders__inner -->
     </section>
@@ -276,20 +312,20 @@
          ================================================================ -->
     <?php
     $module = [
-      'id'      => 'about-cta',
-      'heading' => 'Create your free account today',
-      'subtext' => 'No credit card required. Free has no time limit, so you can build your financial picture at your own pace.',
-      'actions' => [
-        ['text' => 'Get started free', 'href' => '/register',    'primary' => true],
-        ['text' => 'See pricing',      'href' => '/pricing',     'primary' => false],
-      ],
+        'id' => 'about-cta',
+        'heading' => 'Create your free account today',
+        'subtext' => 'No credit card required. Free has no time limit, so you can build your financial picture at your own pace.',
+        'actions' => [
+            ['text' => 'Get started free', 'href' => '/register',    'primary' => true],
+            ['text' => 'See pricing',      'href' => '/pricing',     'primary' => false],
+        ],
     ];
-    include __DIR__ . '/partials/modules/cta-band.php';
-    ?>
+  include __DIR__.'/partials/modules/cta-band.php';
+  ?>
 
   </main>
 
-  <?php include __DIR__ . '/partials/footer.php'; ?>
+  <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=2" defer></script>
   <script src="/pages/js/about.js?v=1" defer></script>

@@ -97,6 +97,10 @@ struct SavingsExpenditureProfile: Decodable, Sendable, Equatable {
 }
 
 struct SavingsISAAllowance: Decodable, Sendable, Equatable {
+    let taxYear: String?
+    let currentTaxYear: String?
+    let priorTaxYear: String?
+    let availableTaxYears: [String]
     let cashISAUsed: Decimal
     let stocksSharesISAUsed: Decimal
     let lisaUsed: Decimal
@@ -104,8 +108,20 @@ struct SavingsISAAllowance: Decodable, Sendable, Equatable {
     let totalAllowance: Decimal
     let remaining: Decimal
     let percentageUsed: Decimal
+    let owners: [SavingsISAOwnerStatus]
+    private let directAccountBreakdown: [SavingsISAAccountBreakdown]
+
+    var accountBreakdown: [SavingsISAAccountBreakdown] {
+        directAccountBreakdown.isEmpty
+            ? owners.flatMap(\.accountBreakdown)
+            : directAccountBreakdown
+    }
 
     private enum CodingKeys: String, CodingKey {
+        case taxYear = "tax_year"
+        case currentTaxYear = "current_tax_year"
+        case priorTaxYear = "prior_tax_year"
+        case availableTaxYears = "available_tax_years"
         case cashISAUsed = "cash_isa_used"
         case stocksSharesISAUsed = "stocks_shares_isa_used"
         case lisaUsed = "lisa_used"
@@ -113,7 +129,111 @@ struct SavingsISAAllowance: Decodable, Sendable, Equatable {
         case totalAllowance = "total_allowance"
         case remaining
         case percentageUsed = "percentage_used"
+        case owners
+        case directAccountBreakdown = "account_breakdown"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        taxYear = try container.decodeIfPresent(String.self, forKey: .taxYear)
+        currentTaxYear = try container.decodeIfPresent(String.self, forKey: .currentTaxYear)
+        priorTaxYear = try container.decodeIfPresent(String.self, forKey: .priorTaxYear)
+        availableTaxYears = try container.decodeIfPresent([String].self, forKey: .availableTaxYears) ?? []
+        cashISAUsed = try container.decodeIfPresent(Decimal.self, forKey: .cashISAUsed) ?? 0
+        stocksSharesISAUsed = try container.decodeIfPresent(Decimal.self, forKey: .stocksSharesISAUsed) ?? 0
+        lisaUsed = try container.decodeIfPresent(Decimal.self, forKey: .lisaUsed) ?? 0
+        totalUsed = try container.decodeIfPresent(Decimal.self, forKey: .totalUsed) ?? 0
+        totalAllowance = try container.decodeIfPresent(Decimal.self, forKey: .totalAllowance) ?? 0
+        remaining = try container.decodeIfPresent(Decimal.self, forKey: .remaining) ?? 0
+        percentageUsed = try container.decodeIfPresent(Decimal.self, forKey: .percentageUsed) ?? 0
+        owners = try container.decodeIfPresent([SavingsISAOwnerStatus].self, forKey: .owners) ?? []
+        directAccountBreakdown = try container.decodeIfPresent(
+            [SavingsISAAccountBreakdown].self,
+            forKey: .directAccountBreakdown
+        ) ?? []
+    }
+}
+
+struct SavingsISAOwnerStatus: Decodable, Sendable, Equatable {
+    let owner: SavingsISAOwner
+    let cashISAUsed: Decimal
+    let stocksSharesISAUsed: Decimal
+    let lisaUsed: Decimal
+    let totalUsed: Decimal
+    let accountBreakdown: [SavingsISAAccountBreakdown]
+
+    private enum CodingKeys: String, CodingKey {
+        case owner
+        case cashISAUsed = "cash_isa_used"
+        case stocksSharesISAUsed = "stocks_shares_isa_used"
+        case lisaUsed = "lisa_used"
+        case totalUsed = "total_used"
+        case accountBreakdown = "account_breakdown"
+    }
+}
+
+struct SavingsISAOwner: Decodable, Sendable, Equatable {
+    let id: Int?
+    let relationship: String?
+    let label: String?
+    let name: String?
+
+    var displayName: String { name ?? label ?? "Owner unavailable" }
+}
+
+struct SavingsISAAccountBreakdown: Decodable, Sendable, Equatable, Identifiable {
+    let accountID: Int
+    let accountType: String
+    let accountName: String
+    let isaType: String
+    let owner: SavingsISAOwner
+    let contributed: Decimal
+    let provenance: String
+    let contributions: [SavingsISAContribution]
+
+    private enum CodingKeys: String, CodingKey {
+        case accountID = "account_id"
+        case accountType = "account_type"
+        case accountName = "account_name"
+        case isaType = "isa_type"
+        case owner, contributed, provenance, contributions
+    }
+
+    var id: String { "\(accountType)-\(accountID)" }
+    var isSavingsAccount: Bool { accountType.hasSuffix("SavingsAccount") }
+    var isInvestmentAccount: Bool { accountType.hasSuffix("InvestmentAccount") }
+    var isaTypeLabel: String {
+        switch isaType {
+        case "cash_isa": "Cash ISA"
+        case "stocks_and_shares_isa": "Stocks & Shares ISA"
+        case "lifetime_isa": "Lifetime ISA"
+        default: isaType.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+    var provenanceLabel: String {
+        switch provenance {
+        case "recorded_ledger": "Recorded contribution ledger"
+        case "legacy_annual_summary", "legacy_current_year_summary":
+            "Annual summary from the account record"
+        default: "Recorded account data"
+        }
+    }
+}
+
+struct SavingsISAContribution: Decodable, Sendable, Equatable, Identifiable {
+    let id: Int?
+    let date: String?
+    let amount: Decimal
+    let entryType: String?
+    let source: String?
+    let provenance: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, date, amount, source, provenance
+        case entryType = "entry_type"
+    }
+
+    var stableID: String { "\(id.map(String.init) ?? date ?? "summary")-\(amount)" }
 }
 
 struct SavingsEmergencyFundTarget: Decodable, Sendable, Equatable {

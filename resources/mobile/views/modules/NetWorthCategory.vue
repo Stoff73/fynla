@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Net Worth" subtitle="Everything you own, less what you owe" :loading="loading" loading-label="your accounts" back @back="goBack">
+  <MobileChrome title="Net Worth" subtitle="Everything you own, less what you owe" :loading="loading" loading-label="your accounts" :edit-details="false" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ title }}</h1>
       <p class="m-sub">{{ subtitle }}</p>
@@ -30,7 +30,16 @@
           <p class="m-sub" style="margin-bottom:0">Nothing recorded in this category yet.</p>
         </div>
 
-        <article v-for="item in items" :key="item.key" class="mnwc-item">
+        <component
+          :is="item.destination ? 'button' : 'article'"
+          v-for="item in items"
+          :key="item.key"
+          :type="item.destination ? 'button' : null"
+          class="mnwc-item"
+          :class="{ 'mnwc-item--link': item.destination }"
+          :data-destination="item.destination ? `${item.destination.screen}:${item.key}` : null"
+          @click="navigate(item)"
+        >
           <div class="mnwc-item__head">
             <span class="mnwc-item__name">{{ item.name }}</span>
             <span class="mnwc-item__value" :class="{ 'mnwc-item__value--debt': isLiabilities }">{{ fmt(item.value) }}</span>
@@ -38,7 +47,10 @@
           <div v-if="item.fields && item.fields.length" class="mnwc-item__fields">
             <span v-for="(f, i) in item.fields" :key="i" class="mnwc-item__field">{{ f }}</span>
           </div>
-        </article>
+          <span v-if="item.outstandingMortgage > 0" class="mnwc-item__mortgage mnwc-item__mortgage--debt">
+            Mortgage {{ fmt(item.outstandingMortgage) }}
+          </span>
+        </component>
       </div>
     </template>
   </MobileChrome>
@@ -76,15 +88,8 @@ const CONFIG = {
   pensions: { title: 'Pensions', sub: 'Accessible pension capital', source: 'detailed' },
   cash: { title: 'Cash & savings', sub: 'Savings accounts and cash', source: 'detailed' },
   business: { title: 'Business interests', sub: 'Your share of business holdings', source: 'detailed' },
-  chattels: { title: 'Possessions', sub: 'Valuable personal possessions', source: 'detailed' },
-  liabilities: { title: 'Liabilities', sub: 'Everything you owe', source: 'overview' },
-};
-
-const LIABILITY_LABELS = {
-  mortgages: 'Mortgages',
-  loans: 'Loans',
-  credit_cards: 'Credit cards',
-  other: 'Other debts',
+  chattels: { title: 'Valuables', sub: 'Valuable personal possessions', source: 'detailed' },
+  liabilities: { title: 'Liabilities', sub: 'Everything you owe', source: 'detailed' },
 };
 
 export default {
@@ -98,7 +103,7 @@ export default {
     title() { return this.config.title; },
     subtitle() { return this.config.sub; },
     total() {
-      if (this.isLiabilities) return this.payload?.total_liabilities ?? 0;
+      if (this.isLiabilities) return this.payload?.liabilities?.total_value ?? 0;
       return this.payload?.[this.categoryKey]?.total_value ?? 0;
     },
     items() {
@@ -136,14 +141,42 @@ export default {
           if (it.year) fields.push(String(it.year));
         }
         if (it.ownership_type) fields.push(ownershipLabel(it.ownership_type));
-        return { key: it.id ?? idx, name: it.name || titleCase(this.categoryKey), value: it.value, fields };
+        return {
+          key: it.id ?? idx,
+          name: it.name || titleCase(this.categoryKey),
+          value: it.value,
+          fields,
+          outstandingMortgage: Number(it.outstanding_mortgage) || 0,
+          destination: this.assetDestination(it),
+        };
       });
     },
     liabilityItems() {
-      const breakdown = this.payload?.liabilities_breakdown || {};
-      return Object.keys(LIABILITY_LABELS)
-        .filter((k) => Number(breakdown[k] ?? 0) > 0)
-        .map((k) => ({ key: k, name: LIABILITY_LABELS[k], value: breakdown[k], fields: [] }));
+      return (this.payload?.liabilities?.items || []).map((item) => ({
+        key: item.id,
+        name: item.name,
+        value: item.value,
+        fields: [item.liability_type ? titleCase(item.liability_type) : null].filter(Boolean),
+        destination: item.kind === 'mortgage'
+          ? { screen: 'mortgage_detail', route: 'm-mortgage' }
+          : { screen: 'liability_detail', route: 'm-liability' },
+      }));
+    },
+    assetDestination(item) {
+      if (!item?.id) return null;
+      if (this.categoryKey === 'property') return { screen: 'property_detail', route: 'm-property' };
+      if (this.categoryKey === 'investments') return { screen: 'investment_account_detail', route: 'm-investment-account' };
+      if (this.categoryKey === 'cash') return { screen: 'savings_account_detail', route: 'm-savings-account' };
+      if (this.categoryKey === 'pensions' && item.type) {
+        return { screen: 'pension_detail', route: 'm-retirement-pension', type: item.type };
+      }
+      return null;
+    },
+    navigate(item) {
+      if (!item?.destination) return;
+      const params = { id: item.key };
+      if (item.destination.type) params.type = item.destination.type;
+      this.$router.push({ name: item.destination.route, params });
     },
     async load() {
       this.loading = true;
@@ -168,7 +201,9 @@ export default {
 </script>
 
 <style scoped>
-.mnwc-item { padding: 12px 0; border-bottom: 1px solid var(--horizon-200); }
+.mnwc-item { display: block; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--horizon-200); background: transparent; text-align: left; }
+.mnwc-item--link { cursor: pointer; }
+.mnwc-item--link:active { opacity: 0.72; }
 .mnwc-item:first-of-type { padding-top: 4px; }
 .mnwc-item:last-of-type { border-bottom: 0; padding-bottom: 0; }
 .mnwc-item__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -180,4 +215,6 @@ export default {
   font-size: 11px; font-weight: 700; color: var(--neutral-600);
   background: var(--horizon-100); padding: 2px 8px; border-radius: var(--radius-full);
 }
+.mnwc-item__mortgage { display: block; margin-top: 6px; font-size: 12px; font-weight: 700; }
+.mnwc-item__mortgage--debt { color: var(--raspberry-500); }
 </style>

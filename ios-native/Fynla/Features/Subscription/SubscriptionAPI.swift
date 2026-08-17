@@ -17,6 +17,17 @@ struct LiveSubscriptionAPI: SubscriptionAPI {
         return response.entitlement
     }
 
+    func planComparison() async throws -> [PlanComparison] {
+        let response = try await apiClient.send(
+            APIRequest<PricingConfigResponse>(
+                path: "api/pricing-config",
+                method: .get,
+                responseDecoding: .raw
+            )
+        )
+        return response.data
+    }
+
     func authorizePurchase() async throws -> Bool {
         let response = try await apiClient.send(
             APIRequest<PurchaseAuthorizationResponse>(
@@ -72,6 +83,10 @@ struct LiveSubscriptionAPI: SubscriptionAPI {
 
 private struct EntitlementResponse: Decodable, Sendable {
     let entitlement: NativeEntitlement
+}
+
+private struct PricingConfigResponse: Decodable, Sendable {
+    let data: [PlanComparison]
 }
 
 private struct PurchaseAuthorizationResponse: Decodable, Sendable {

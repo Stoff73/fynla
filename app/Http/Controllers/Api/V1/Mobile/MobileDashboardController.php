@@ -45,9 +45,18 @@ class MobileDashboardController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            $userId = $request->user()->id;
+        $requestId = trim((string) $request->header('X-Request-ID'));
+        $userId = (int) $request->user()->id;
 
+        Log::info('Native dashboard request started', [
+            'request_id' => $requestId !== '' ? $requestId : null,
+            'user_id' => $userId,
+            'client' => $request->header('X-Fynla-Client'),
+            'version' => $request->header('X-Fynla-Version'),
+            'build' => $request->header('X-Fynla-Build'),
+        ]);
+
+        try {
             $data = $this->aggregator->getAggregatedDashboard($userId);
 
             // Billing state is request-current and must never be trapped inside
@@ -91,12 +100,41 @@ class MobileDashboardController extends Controller
                 $data['next_milestone'] = null;
             }
 
-            return response()->json([
+            $response = response()->json([
                 'success' => true,
                 'data' => $data,
             ]);
+
+            if ($requestId !== '') {
+                $response->headers->set('X-Request-ID', $requestId);
+            }
+
+            $body = (string) $response->getContent();
+            Log::info('Native dashboard request completed', [
+                'request_id' => $requestId !== '' ? $requestId : null,
+                'user_id' => $userId,
+                'status' => $response->getStatusCode(),
+                'response_bytes' => strlen($body),
+                'response_sha256' => hash('sha256', $body),
+            ]);
+
+            return $response;
         } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Fetching mobile dashboard data');
+            $response = $this->errorResponse(
+                $e,
+                'Fetching mobile dashboard data',
+                500,
+                [
+                    'request_id' => $requestId !== '' ? $requestId : null,
+                    'user_id' => $userId,
+                ],
+            );
+
+            if ($requestId !== '') {
+                $response->headers->set('X-Request-ID', $requestId);
+            }
+
+            return $response;
         }
     }
 

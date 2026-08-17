@@ -53,9 +53,11 @@ struct PrivacySettingsTests {
         let model = PrivacySettingsModel(client: client)
 
         await model.load()
+        #expect(model.marketingConsented == false)
         await model.setConsent(type: "marketing", consented: true)
 
         #expect(model.state == .loaded(updated))
+        #expect(model.marketingConsented == true)
         #expect(await client.updates() == [["marketing": true]])
     }
 

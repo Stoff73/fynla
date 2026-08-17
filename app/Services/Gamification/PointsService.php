@@ -7,6 +7,7 @@ namespace App\Services\Gamification;
 use App\Models\PointAward;
 use App\Models\User;
 use App\Models\UserGamification;
+use App\Models\UserLevelCrossing;
 use App\Traits\StructuredLogging;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -48,7 +49,10 @@ class PointsService
                 }
 
                 $g = UserGamification::firstOrCreate(['user_id' => $user->id]);
-                $oldLevel = $g->level;
+                // Database defaults are not hydrated on a just-created model.
+                // The level ladder starts at 1, so never persist a fictitious
+                // level-one crossing for a first award.
+                $oldLevel = $g->level ?? 1;
                 $g->total_points += $points;
                 $newLevel = $this->levels->levelForPoints($g->total_points);
                 $leveledUp = $newLevel > $oldLevel;
@@ -58,6 +62,15 @@ class PointsService
                     $g->pending_celebration_level = $newLevel;
                 }
                 $g->save();
+
+                if ($leveledUp) {
+                    foreach (range($oldLevel + 1, $newLevel) as $crossedLevel) {
+                        UserLevelCrossing::firstOrCreate(
+                            ['user_id' => $user->id, 'level' => $crossedLevel],
+                            ['point_award_id' => $award->id, 'reached_at' => $award->created_at],
+                        );
+                    }
+                }
 
                 if ($leveledUp) {
                     $this->collector->record($newLevel, $this->levels->levelName($newLevel));

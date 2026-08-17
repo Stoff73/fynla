@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Expenditure" subtitle="What you spend each month" :loading="loading" loading-label="your expenditure">
+  <MobileChrome title="Expenditure" subtitle="What you spend each month" :loading="loading" loading-label="your expenditure" :contextual-request="contextualRequest">
     <div v-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>
@@ -10,6 +10,12 @@
         <p class="m-sub m-label">Monthly expenditure</p>
         <p class="m-metric">{{ fmt(monthly) }}</p>
         <p class="m-hero-sub">{{ fmt(annual) }} a year</p>
+      </div>
+
+      <div class="m-card exp-mode">
+        <p class="m-section-label" style="margin-top:0">{{ presentation.entry_mode_label || 'Expenditure summary' }}</p>
+        <p class="m-sub">{{ presentation.total_basis }}</p>
+        <p v-if="!presentation.detail_available && presentation.summary_only_reason" class="exp-mode__reason">{{ presentation.summary_only_reason }}</p>
       </div>
 
       <div v-if="categoryRows.length" class="m-card">
@@ -28,6 +34,7 @@ import { store } from '../store.js';
 import { apiGet } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -48,8 +55,17 @@ export default {
   components: { MobileChrome },
   data: () => ({ loading: true, error: '', expenditure: null }),
   computed: {
-    monthly() { return Number(this.expenditure?.monthly_expenditure) || 0; },
-    annual() { return Number(this.expenditure?.annual_expenditure) || (this.monthly * 12); },
+    presentation() { return this.expenditure?.presentation || {}; },
+    monthly() { return Number(this.presentation.active_monthly_total) || 0; },
+    annual() { return Number(this.presentation.active_annual_total) || 0; },
+    contextualRequest() {
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType: 'expenditure',
+        currentDestination: { screen: 'expenditure', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
+    },
     categoryRows() {
       const cats = this.expenditure?.categories || {};
       return CATEGORIES.map(c => ({ ...c, amount: Number(cats[c.key]) || 0 })).filter(r => r.amount > 0);
@@ -83,4 +99,5 @@ export default {
 .exp-row:last-of-type { border-bottom: 0; }
 .exp-row__label { font-size: 14px; font-weight: 700; color: var(--horizon-500); }
 .exp-row__amt { font-size: 14px; color: var(--neutral-600); white-space: nowrap; }
+.exp-mode__reason { margin: 8px 0 0; color: var(--neutral-600); font-size: 14px; line-height: 1.45; }
 </style>

@@ -20,5 +20,8 @@ class EncryptCookies extends Middleware
         // SP3: mobile full-site pin cookie — must be readable as plaintext for
         // the RedirectPhoneToMobile middleware pin-check.
         'm_full_site',
+        // One-time web handoff marker — intentionally non-secret and consumed
+        // synchronously by mScaffoldBridge before the desktop auth store loads.
+        'fynla_web_session',
     ];
 }

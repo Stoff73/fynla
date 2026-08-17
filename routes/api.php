@@ -9,6 +9,13 @@ use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
 use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\Admin\Pipeline\ArticleSyncInboundController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineCampaignsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineSyncStatusController;
 use App\Http\Controllers\Api\Admin\ProceduralCorpusController;
 use App\Http\Controllers\Api\Admin\ProcedureAmendmentReviewController;
 use App\Http\Controllers\Api\Admin\SavingsMarketRateController;
@@ -366,6 +373,9 @@ Route::middleware('auth:sanctum')->prefix('tax-strategy')->group(function () {
 
 // Net Worth routes (Phase 3)
 Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
+    Route::get('/forecast', [NetWorthController::class, 'getForecast']);
+    Route::put('/forecast/assumptions', [NetWorthController::class, 'updateForecastAssumptions']);
+    Route::delete('/forecast/assumptions', [NetWorthController::class, 'resetForecastAssumptions']);
     Route::get('/overview', [NetWorthController::class, 'getOverview']);
     Route::get('/breakdown', [NetWorthController::class, 'getBreakdown']);
     Route::get('/assets-summary', [NetWorthController::class, 'getAssetsSummary']);
@@ -873,6 +883,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 // Liabilities is a Free-tier module (capability_matrix: liabilities=full),
 // surfaced under Net Worth. Not count-gated.
 Route::middleware(['auth:sanctum'])->prefix('estate/liabilities')->group(function () {
+    Route::get('/{id}', [EstateController::class, 'showLiability']);
     Route::post('/', [EstateController::class, 'storeLiability']);
     Route::put('/{id}', [EstateController::class, 'updateLiability']);
     Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
@@ -1310,6 +1321,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/do
     Route::post('{document}/publish', [DocumentArticleController::class, 'publish']);
     Route::post('{document}/unpublish', [DocumentArticleController::class, 'unpublish']);
     Route::get('{document}/preview-url', [DocumentArticleController::class, 'previewUrl']);
+    Route::post('{document}/cover-image', [DocumentArticleController::class, 'uploadCoverImage']);
+    Route::get('{document}/social-clips', [DocumentArticleController::class, 'socialClips']);
+    Route::get('{document}/publish-recommendation', [DocumentArticleController::class, 'publishRecommendation']);
+    Route::post('{document}/stock-cover', [DocumentArticleController::class, 'stockCover']);
 });
 
 // News subscribers (admin)
@@ -1318,6 +1333,48 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('news-subscribers/export', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
     // FR-M15 — per-action AI cost-attribution dashboard data.
     Route::get('ai-cost-dashboard', [AiCostDashboardController::class, 'index']);
+});
+
+// Marketing Pipeline — Stage 5 cross-env sync inbound (shared-secret auth, no user session)
+Route::post('admin/pipeline/articles/sync-inbound', [ArticleSyncInboundController::class, 'receive'])
+    ->name('pipeline.articles.sync-inbound');
+
+// Marketing Pipeline — Stage 4 admin (campaigns + post approval queue)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pipeline')->group(function () {
+    Route::apiResource('campaigns', PipelineCampaignsController::class)
+        ->parameters(['campaigns' => 'campaign']);
+
+    Route::get('posts', [PipelinePostsController::class, 'index']);
+    Route::get('posts/{post}', [PipelinePostsController::class, 'show']);
+    Route::patch('posts/{post}', [PipelinePostsController::class, 'update']);
+    Route::post('posts/{post}/approve', [PipelinePostsController::class, 'approve']);
+    Route::post('posts/{post}/reject', [PipelinePostsController::class, 'reject']);
+
+    // Stage 5 — Article manager (Word doc → cross-env publish flow)
+    Route::get('articles', [PipelineArticlesController::class, 'index']);
+    Route::get('articles/{article}', [PipelineArticlesController::class, 'show']);
+    Route::patch('articles/{article}', [PipelineArticlesController::class, 'update']);
+    Route::post('articles/{article}/publish-local', [PipelineArticlesController::class, 'publishLocal']);
+    Route::post('articles/{article}/push-to-dev', [PipelineArticlesController::class, 'pushToDev']);
+    Route::post('articles/{article}/push-to-live', [PipelineArticlesController::class, 'pushToLive']);
+    Route::post('articles/{article}/reimport', [PipelineArticlesController::class, 'reimport']);
+    Route::delete('articles/{article}', [PipelineArticlesController::class, 'destroy']);
+
+    // Stage 5 — Publisher whitelist (users allowed to push to live)
+    Route::get('publishers', [PipelinePublishersController::class, 'index']);
+    Route::post('publishers', [PipelinePublishersController::class, 'store']);
+    Route::delete('publishers/{userId}', [PipelinePublishersController::class, 'destroy']);
+    Route::get('publishers/search-users', [PipelinePublishersController::class, 'searchUsers']);
+
+    // Stage 5 — Cross-env sync credential health check
+    Route::get('sync-status', [PipelineSyncStatusController::class, 'index']);
+
+    // Stage 3.5 — Clip approval queue (between Stage 3 clip gen and Stage 4 compose)
+    Route::get('clip-approvals', [PipelineClipApprovalsController::class, 'index']);
+    Route::get('clip-approvals/{approval}', [PipelineClipApprovalsController::class, 'show']);
+    Route::post('clip-approvals/{approval}/approve', [PipelineClipApprovalsController::class, 'approve']);
+    Route::post('clip-approvals/{approval}/reject', [PipelineClipApprovalsController::class, 'reject']);
+    Route::post('clip-approvals/article/{pipelineArticleId}/approve-all', [PipelineClipApprovalsController::class, 'approveAll']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
@@ -1426,6 +1483,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('ai-chat')->group(f
     Route::get('/token-usage', [AiChatController::class, 'tokenUsage']);
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
+    Route::post('/contextual-conversations', [AiChatController::class, 'createContextual']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])

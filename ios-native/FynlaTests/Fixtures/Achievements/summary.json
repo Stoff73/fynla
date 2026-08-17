@@ -7,14 +7,22 @@
         "title": "Reached Builder",
         "description": "Your current planning level.",
         "earned": true,
-        "earned_at": "2026-07-17T09:30:00Z"
+        "earned_at": "2026-07-17T09:30:00Z",
+        "state": "earned",
+        "provenance": { "kind": "point_award", "event": "milestone:crossing", "occurred_at": "2026-07-17T09:30:00Z" },
+        "progress": null,
+        "next_action": null
       },
       {
         "key": "streak",
         "title": "3-day check-in streak",
         "description": "Check in three days in a row.",
         "earned": false,
-        "earned_at": null
+        "earned_at": null,
+        "state": "locked",
+        "provenance": null,
+        "progress": null,
+        "next_action": null
       }
     ],
     "completed": [
@@ -37,15 +45,46 @@
         "key": "action:0:1",
         "title": "You completed your first action.",
         "achieved": true,
-        "achieved_at": "2026-07-18T10:00:00Z"
+        "achieved_at": "2026-07-18T10:00:00Z",
+        "state": "earned",
+        "provenance": { "kind": "user_milestone", "event": "action:0:1", "occurred_at": "2026-07-18T10:00:00Z" },
+        "progress": null,
+        "next_action": null
       }
     ],
+    "milestones_total": 2,
+    "per_page": 1,
+    "next_cursor": "eyJ2IjoxLCJjdXJzb3IiOiJub25jZSJ9",
     "upcoming": [
       {
+        "key": "emergency_fund:0:3",
         "group": "Savings",
         "title": "Emergency fund covering three months of spending",
         "steps": "Top up your easy-access savings.",
+        "state": "in_progress",
+        "progress": { "current": 2500, "target": 5000, "percent": 50, "label": "£2,500 of £5,000" },
+        "next_action": { "label": "Review savings", "destination": { "screen": "savings", "params": {}, "fallback": "dashboard" } },
         "route": "m-savings"
+      },
+      {
+        "key": "estate:0:1",
+        "group": "Protection & estate",
+        "title": "Put your will in place",
+        "steps": "Record your will in the estate section.",
+        "state": "locked",
+        "progress": null,
+        "next_action": { "label": "Review estate plan", "destination": { "screen": "unknown_destination", "params": {}, "fallback": "estate" } },
+        "route": "m-estate"
+      },
+      {
+        "key": "lpa:0:1",
+        "group": "Protection & estate",
+        "title": "Consider an LPA",
+        "steps": "Tell us about your estate plan.",
+        "state": "inapplicable",
+        "progress": null,
+        "next_action": { "label": "Review estate plan", "destination": { "screen": "estate", "params": {}, "fallback": "dashboard" } },
+        "route": "m-estate"
       }
     ]
   }

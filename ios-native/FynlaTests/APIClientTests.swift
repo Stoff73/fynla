@@ -5,6 +5,24 @@ import Testing
 @Suite("API client")
 struct APIClientTests {
     @Test
+    func preservesOpaqueQueryValuesWithoutFormEncodingPlusSigns() throws {
+        let request = try APIRequest<TestValue>(
+            path: "api/v1/mobile/achievements/v2/milestones",
+            method: .get,
+            queryItems: [URLQueryItem(name: "cursor", value: "opaque+/= &cursor")]
+        ).urlRequest(
+            baseURL: URL(string: "https://csjones.co/fynla")!,
+            clientName: "ios",
+            version: "1.2.3",
+            build: "45",
+            requestID: "request-123",
+            accessToken: nil
+        )
+
+        #expect(request.url?.query == "cursor=opaque%2B/%3D%20%26cursor")
+    }
+
+    @Test
     func decodesASuccessEnvelopeAndAddsNativeHeaders() async throws {
         let transport = TestHTTPTransport([
             .response(status: 200, body: json(#"{"success":true,"data":{"value":"ready"}}"#)),
@@ -67,6 +85,7 @@ struct APIClientTests {
             (401, #"{"success":false,"message":"Unauthenticated"}"#, .unauthenticated),
             (403, #"{"success":false,"message":"Access denied"}"#, .forbidden(message: "Access denied")),
             (403, #"{"error":"upgrade_required","message":"Premium is required."}"#, .upgradeRequired(message: "Premium is required.")),
+            (403, #"{"error":"capability_denied","message":"The Holistic Plan is part of Premium."}"#, .upgradeRequired(message: "The Holistic Plan is part of Premium.")),
             (409, #"{"success":false,"message":"The record changed."}"#, .conflict(message: "The record changed.")),
             (500, #"{"success":false,"message":"Internal server error"}"#, .server(status: 500, requestID: "server-request")),
         ]

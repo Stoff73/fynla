@@ -12,6 +12,7 @@ use App\Http\Requests\Savings\StoreSavingsAccountRequest;
 use App\Http\Requests\Savings\UpdateSavingsAccountRequest;
 use App\Http\Resources\SavingsAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\SavingsGoal;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalStrategyService;
@@ -47,6 +48,7 @@ class SavingsController extends Controller
 {
     use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly SavingsAgent $savingsAgent,
@@ -288,15 +290,11 @@ class SavingsController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Savings account limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Savings account limit reached for your current plan.',
+                'savings',
+            );
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Creating savings account');
         }

@@ -53,6 +53,7 @@ struct MobileChromeGradientSlice: View {
 struct MobilePageHero: View {
     let title: String
     var subtitle: String?
+    var accessibilityID: String = "page.heading"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -69,9 +70,14 @@ struct MobilePageHero: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 24)
-        .background { MobileChromeGradientSlice() }
+        // Detail routes are pushed inside NavigationStack. A global-positioned
+        // gradient slice can retain the previous route's geometry during that
+        // transition and leave white heading text on the light page. Fill the
+        // hero itself so every pushed detail has a deterministic visible band.
+        .background { MobileChromeMetrics.sharedGradient }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+        .accessibilityIdentifier(accessibilityID)
     }
 }
 
@@ -207,6 +213,7 @@ struct MobileDetailHeader: View {
 // pre-asked with the page's holdings.
 struct MobilePageActions: View {
     var onBack: (() -> Void)?
+    var actionTitle = "Edit details"
     var editDetails: (() -> Void)?
 
     var body: some View {
@@ -234,7 +241,7 @@ struct MobilePageActions: View {
 
             if let editDetails {
                 Button(action: editDetails) {
-                    Text("Edit details")
+                    Text(actionTitle)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(FynlaColor.Token.raspberry600.color)
                         .padding(.vertical, 7)

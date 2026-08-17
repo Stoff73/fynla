@@ -8,6 +8,7 @@ use App\Constants\FinancialPlanningKnowledge;
 use App\Constants\QuerySchemas;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
@@ -24,6 +25,7 @@ use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\TaxConfigService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 
 /**
@@ -52,6 +54,7 @@ final class FynContextAssembler
         private readonly ProceduralCorpusLoader $proceduralLoader,
         private readonly ProceduralContributionCollector $proceduralContributions,
         private readonly ProceduralVersionHolder $proceduralVersions,
+        private readonly ContextualResourceResolver $contextualResources,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -73,6 +76,10 @@ final class FynContextAssembler
         // IDENTITY (always present in every bucket set)
         $lines[] = '<user_profile>'."\n".$this->advice->buildUserProfile($ctx->user)."\n".'</user_profile>';
         $lines[] = '<current_context>'."\n".$this->advice->moduleContextFor($ctx->currentRoute)."\n".'</current_context>';
+        $surfaceAction = $this->surfaceActionContext($ctx);
+        if ($surfaceAction !== null) {
+            $lines[] = $surfaceAction;
+        }
 
         // Known facts — mode-independent, included whenever non-empty
         $known = $this->memory->renderKnownFactsBlock($ctx->user, $ctx->conversation);
@@ -314,6 +321,97 @@ final class FynContextAssembler
         $lines[] = '</user_message>';
 
         return implode("\n", $lines);
+    }
+
+    private function surfaceActionContext(FynTurnContext $ctx): ?string
+    {
+        $metadata = $ctx->conversation?->metadata;
+        if (! is_array($metadata) || ($metadata['source'] ?? null) !== 'surface_action') {
+            return null;
+        }
+
+        $resourceType = $metadata['resource_type'] ?? null;
+        $rawResourceId = $metadata['resource_id'] ?? null;
+        $resourceId = is_int($rawResourceId)
+            ? $rawResourceId
+            : (is_string($rawResourceId) && ctype_digit($rawResourceId) ? (int) $rawResourceId : null);
+
+        if (! is_string($resourceType) || $resourceType === '') {
+            return $this->unavailableSurfaceAction('dashboard');
+        }
+
+        $fallback = $this->contextualResources->overviewScreenFor($resourceType);
+
+        try {
+            $resource = $this->contextualResources->resolve(
+                $ctx->user,
+                $resourceType,
+                $resourceId,
+            );
+        } catch (ModelNotFoundException) {
+            return $this->unavailableSurfaceAction($fallback);
+        }
+
+        $lines = [
+            '<surface_action>',
+            'authority: server',
+            'status: available',
+            'rehydrated_at: '.now()->toIso8601String(),
+            'action: '.UserContentSanitiser::clean((string) ($metadata['action'] ?? 'edit')),
+            'resource_type: '.$resource->resourceType,
+            'resource_id: '.($resource->resourceId ?? 'none'),
+            'related_entity: '.UserContentSanitiser::wrap($resource->label),
+            'canonical_facts:',
+        ];
+
+        foreach ($resource->canonicalFacts as $field => $value) {
+            $lines[] = '- '.$field.': '.$this->renderCanonicalFact($value);
+        }
+
+        $lines[] = 'The client supplied identifiers only to select this context; the facts above were loaded from canonical records.';
+        $lines[] = 'User changes remain proposed facts until the validated capture/write workflow saves them.';
+        $lines[] = '</surface_action>';
+
+        return implode("\n", $lines);
+    }
+
+    private function unavailableSurfaceAction(string $fallback): string
+    {
+        return implode("\n", [
+            '<surface_action>',
+            'authority: server',
+            'status: unavailable',
+            'fallback_screen: '.UserContentSanitiser::clean($fallback),
+            'The selected resource is no longer available to this user. Do not rely on stale conversation context or disclose whether another user owns it.',
+            '</surface_action>',
+        ]);
+    }
+
+    private function renderCanonicalFact(mixed $value): string
+    {
+        if ($value === null) {
+            return 'not recorded';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        if (is_string($value)) {
+            return is_numeric($value) ? $value : UserContentSanitiser::wrap($value);
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return UserContentSanitiser::wrap($json === false ? 'unavailable' : $json);
     }
 
     /**

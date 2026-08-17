@@ -11,7 +11,7 @@ struct RetirementPensionView: View {
     let pensionType: String
     let pensionID: Int?
     let model: RetirementModel
-    let onOpenFyn: (String) -> Void
+    let onOpenContextualFyn: (FynContextualAction) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -25,9 +25,6 @@ struct RetirementPensionView: View {
         .background(FynlaColor.pageBackground)
         .task(id: "\(pensionType)-\(pensionID ?? 0)") {
             await model.load()
-            if pensionType == RetirementPensionType.dc.rawValue, let pensionID {
-                await model.loadDCPensionProjection(id: pensionID)
-            }
         }
         .accessibilityIdentifier("retirement.pension.screen")
     }
@@ -65,7 +62,16 @@ struct RetirementPensionView: View {
             if let pensionID,
                let pension = snapshot.index.dcPensions.first(where: { $0.id == pensionID })
             {
-                dcContent(pension, offline: offline)
+                let planning = snapshot.projections?.planningProjection
+                let product = planning?.products.first {
+                    $0.resourceType == "dc_pension" && $0.resourceID == pensionID
+                }
+                dcContent(
+                    pension,
+                    planningProduct: product,
+                    assumptions: planning?.assumptions,
+                    offline: offline
+                )
             } else {
                 notFound
             }
@@ -86,7 +92,12 @@ struct RetirementPensionView: View {
         }
     }
 
-    private func dcContent(_ pension: DCPension, offline: Bool) -> some View {
+    private func dcContent(
+        _ pension: DCPension,
+        planningProduct: RetirementProjectionProduct?,
+        assumptions: RetirementProjectionAssumptions?,
+        offline: Bool
+    ) -> some View {
         page(
             title: pension.schemeName ?? pension.provider ?? "Pension",
             subtitle: "Defined Contribution Pension",
@@ -104,38 +115,54 @@ struct RetirementPensionView: View {
                 ("Pension type", dcSchemeType(pension.pensionType ?? pension.schemeType)),
                 ("Provider", pension.provider ?? "—"),
                 ("Current fund value", MoneyFormatter.gbpWhole(pension.currentFundValue)),
-                ("Monthly contribution", MoneyFormatter.gbpWhole(pension.monthlyContribution)),
+                (
+                    "Monthly contribution",
+                    MoneyFormatter.gbpWhole(planningProduct?.monthlyContribution ?? pension.monthlyContribution)
+                ),
                 ("Retirement age", pension.retirementAge.map(String.init) ?? "—"),
             ])
 
-            projectionCard
+            if let portfolio = pension.portfolio {
+                CanonicalPortfolioView(portfolio: portfolio)
+            }
+
+            projectionCard(planningProduct, assumptions: assumptions)
         }
     }
 
-    private var projectionCard: some View {
+    private func projectionCard(
+        _ product: RetirementProjectionProduct?,
+        assumptions: RetirementProjectionAssumptions?
+    ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Pension pot projection".uppercased())
                 .font(.system(size: 12, weight: .bold))
                 .kerning(0.5)
                 .foregroundStyle(FynlaColor.Token.neutral500.color)
                 .padding(.bottom, 12)
-            if model.isLoadingDCProjection {
-                Text("Loading projection…")
-                    .font(.system(size: 14))
-                    .foregroundStyle(FynlaColor.Token.neutral500.color)
-            } else if let projection = model.dcProjection {
-                projectionRow("Current value", money(projection.currentValue), divider: true)
-                projectionRow("Projected at retirement", money(projection.percentile20AtRetirement), divider: true)
-                projectionRow("Median projection", money(projection.medianAtRetirement), divider: false)
-                Text(projectionNote(projection))
+            if let product {
+                projectionRow("Current value", money(product.currentValue), divider: true)
+                projectionRow("Monthly contribution", money(product.monthlyContribution), divider: true)
+                projectionRow("Planning value at retirement", money(product.projectedValue), divider: true)
+                projectionRow(
+                    "Projected income from age \(product.commencementAge)",
+                    "\(MoneyFormatter.gbpWhole(product.annualIncome)) a year",
+                    divider: false
+                )
+                if let assumptions {
+                    Text(assumptionsNote(assumptions))
+                        .font(.system(size: 12))
+                        .foregroundStyle(FynlaColor.Token.neutral500.color)
+                        .lineSpacing(3)
+                        .padding(.top, 12)
+                        .accessibilityIdentifier("retirement.pension.projection.assumptions")
+                }
+            } else {
+                Text("The reconciled planning projection is not available yet.")
                     .font(.system(size: 12))
                     .foregroundStyle(FynlaColor.Token.neutral500.color)
                     .lineSpacing(3)
                     .padding(.top, 12)
-            } else {
-                Text("No projection available for this pension.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(FynlaColor.Token.neutral500.color)
             }
         }
         .padding(16)
@@ -228,7 +255,12 @@ struct RetirementPensionView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: { onOpenFyn("What would you like to update?") }
+                    editDetails: {
+                        guard let pensionID else { return }
+                        onOpenContextualFyn(
+                            FynContextualActions.pension(type: pensionType, id: pensionID)
+                        )
+                    }
                 )
 
                 Group {
@@ -276,11 +308,8 @@ struct RetirementPensionView: View {
         value.map(MoneyFormatter.gbpWhole) ?? "—"
     }
 
-    private func projectionNote(_ projection: RetirementPotProjection) -> String {
-        let age = projection.retirementAge.map(String.init) ?? "—"
-        let years = projection.yearsToRetirement.map(String.init) ?? "—"
-        let expectedReturn = projection.expectedReturn.map(MoneyFormatter.percentage) ?? "—"
-        return "Projected to age \(age) over \(years) years at an estimated \(expectedReturn) annual return. The projected figure is a conservative estimate (80% likelihood of exceeding it)."
+    private func assumptionsNote(_ assumptions: RetirementProjectionAssumptions) -> String {
+        "This planning value uses a \(MoneyFormatter.percentage(assumptions.sustainableWithdrawalRate.percent)) sustainable withdrawal rate, \(MoneyFormatter.percentage(assumptions.growthRatePercent)) growth, \(MoneyFormatter.percentage(assumptions.feeRatePercent)) fees (\(MoneyFormatter.percentage(assumptions.netGrowthRatePercent)) net growth), \(MoneyFormatter.percentage(assumptions.inflationRatePercent)) inflation, and this pension's recorded contributions. Figures are \(assumptions.basis); uncertainty is separate from the primary planning value."
     }
 
     private var offlineNotice: some View {

@@ -5,6 +5,27 @@ import Testing
 @Suite("Settings presentation")
 struct SettingsModelTests {
     @Test @MainActor
+    func exposesTheAuthenticatedAdminBeforeTheSettingsScreenRefreshes() {
+        let model = SettingsModel(
+            userProvider: {
+                AuthenticatedUser(
+                    id: 72,
+                    firstName: "Admin",
+                    surname: "User",
+                    name: nil,
+                    email: "admin@example.test",
+                    isAdmin: true
+                )
+            },
+            privacyLockController: nil,
+            webBaseURL: URL(string: "https://fynla.org")!
+        )
+
+        #expect(model.account?.isAdmin == true)
+        #expect(model.account?.name == "Admin User")
+    }
+
+    @Test @MainActor
     func presentsAuthenticatedAccountAndCanonicalFreePlan() {
         let model = SettingsModel(
             userProvider: {
@@ -31,7 +52,19 @@ struct SettingsModelTests {
         #expect(model.plan == .free)
         #expect(model.privacyURL.absoluteString == "https://csjones.co/fynla/privacy")
         #expect(model.termsURL.absoluteString == "https://csjones.co/fynla/terms")
-        #expect(model.supportURL.absoluteString == "https://csjones.co/fynla/contact")
+        #expect(model.supportURL.absoluteString == "https://csjones.co/fynla/help")
+        #expect(SettingsModel.isTrustedPublicURL(
+            model.supportURL,
+            relativeTo: URL(string: "https://csjones.co/fynla")!
+        ))
+        #expect(!SettingsModel.isTrustedPublicURL(
+            URL(string: "https://attacker.example/help")!,
+            relativeTo: URL(string: "https://csjones.co/fynla")!
+        ))
+        #expect(!SettingsModel.isTrustedPublicURL(
+            URL(string: "http://csjones.co/fynla/help")!,
+            relativeTo: URL(string: "https://csjones.co/fynla")!
+        ))
     }
 
     @Test @MainActor

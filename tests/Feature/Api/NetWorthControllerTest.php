@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -116,6 +118,123 @@ it('returns counts and totals from assets summary endpoint', function () {
                 ],
             ],
         ]);
+});
+
+it('returns canonical property mortgage and liability identifiers for detail navigation', function () {
+    $property = Property::factory()->create([
+        'user_id' => $this->user->id,
+        'address_line_1' => '12 Example Road',
+        'current_value' => 400000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    $mortgage = Mortgage::factory()->create([
+        'user_id' => $this->user->id,
+        'property_id' => $property->id,
+        'lender_name' => 'Example Bank',
+        'outstanding_balance' => 180000,
+    ]);
+    $liability = Liability::factory()->create([
+        'user_id' => $this->user->id,
+        'liability_name' => 'Personal loan',
+        'current_balance' => 12000,
+    ]);
+
+    $this->getJson('/api/net-worth/assets-summary-detailed')
+        ->assertOk()
+        ->assertJsonPath('data.property.items.0.id', $property->id)
+        ->assertJsonPath('data.property.items.0.outstanding_mortgage', 180000)
+        ->assertJsonPath('data.liabilities.items.0.kind', 'mortgage')
+        ->assertJsonPath('data.liabilities.items.0.id', $mortgage->id)
+        ->assertJsonPath('data.liabilities.items.1.kind', 'liability')
+        ->assertJsonPath('data.liabilities.items.1.id', $liability->id);
+});
+
+it('keeps detailed category values aligned with ownership-adjusted net worth totals', function () {
+    $property = Property::factory()->create([
+        'user_id' => $this->user->id,
+        'address_line_1' => '42 Oak Avenue',
+        'current_value' => 320000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ]);
+    Mortgage::factory()->create([
+        'user_id' => $this->user->id,
+        'property_id' => $property->id,
+        'lender_name' => 'Nationwide',
+        'outstanding_balance' => 245000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ]);
+    Liability::factory()->create([
+        'user_id' => $this->user->id,
+        'liability_name' => 'Car finance',
+        'current_balance' => 12000,
+        'ownership_type' => 'individual',
+    ]);
+
+    $overview = $this->getJson('/api/net-worth/overview')
+        ->assertOk()
+        ->json('data');
+    $detailed = $this->getJson('/api/net-worth/assets-summary-detailed')
+        ->assertOk()
+        ->json('data');
+
+    expect($overview['breakdown']['property'])->toEqual(160000.0)
+        ->and($detailed['property']['total_value'])->toEqual(160000.0)
+        ->and($detailed['property']['items'][0]['value'])->toEqual(160000.0)
+        ->and($detailed['property']['items'][0]['full_value'])->toEqual(320000.0)
+        ->and($detailed['property']['items'][0]['outstanding_mortgage'])->toEqual(122500.0)
+        ->and($overview['total_liabilities'])->toEqual(134500.0)
+        ->and($detailed['liabilities']['total_value'])->toEqual(134500.0)
+        ->and($detailed['liabilities']['items'][0]['value'])->toEqual(122500.0)
+        ->and($detailed['liabilities']['items'][0]['full_value'])->toEqual(245000.0);
+});
+
+it('includes the requesting users share when they are the secondary joint owner', function () {
+    $primaryOwner = User::factory()->create();
+    $property = Property::factory()->create([
+        'user_id' => $primaryOwner->id,
+        'joint_owner_id' => $this->user->id,
+        'current_value' => 200000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 40,
+    ]);
+    Mortgage::factory()->create([
+        'user_id' => $primaryOwner->id,
+        'joint_owner_id' => $this->user->id,
+        'property_id' => $property->id,
+        'outstanding_balance' => 150000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 40,
+    ]);
+    InvestmentAccount::factory()->create([
+        'user_id' => $primaryOwner->id,
+        'joint_owner_id' => $this->user->id,
+        'current_value' => 100000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 25,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $primaryOwner->id,
+        'joint_owner_id' => $this->user->id,
+        'current_balance' => 20000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ]);
+
+    $detailed = $this->getJson('/api/net-worth/assets-summary-detailed')
+        ->assertOk()
+        ->json('data');
+
+    expect($detailed['property']['total_value'])->toEqual(120000.0)
+        ->and($detailed['property']['items'][0]['value'])->toEqual(120000.0)
+        ->and($detailed['investments']['total_value'])->toEqual(75000.0)
+        ->and($detailed['investments']['items'][0]['value'])->toEqual(75000.0)
+        ->and($detailed['cash']['total_value'])->toEqual(10000.0)
+        ->and($detailed['cash']['items'][0]['value'])->toEqual(10000.0)
+        ->and($detailed['liabilities']['total_value'])->toEqual(90000.0)
+        ->and($detailed['liabilities']['items'][0]['value'])->toEqual(90000.0);
 });
 
 it('returns only joint assets from joint assets endpoint', function () {

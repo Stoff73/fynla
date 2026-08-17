@@ -84,7 +84,7 @@ class InvestmentAgent extends BaseAgent
                 // Portfolio analysis
                 $totalValue = $this->portfolioAnalyzer->calculateTotalValue($accounts);
                 $returns = $this->portfolioAnalyzer->calculateReturns($holdings);
-                $allocation = $this->portfolioAnalyzer->calculateAssetAllocation($holdings);
+                $allocation = $this->portfolioAnalyzer->calculateAssetAllocationWithLookThrough($holdings);
                 $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($holdings);
                 $riskMetrics = $this->portfolioAnalyzer->calculatePortfolioRisk($holdings, $riskProfile);
 

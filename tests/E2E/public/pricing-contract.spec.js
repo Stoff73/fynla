@@ -27,6 +27,29 @@ const capabilities = (premium) => ({
   investment_cost_analysis: premium ? 'full' : 'none',
 });
 
+const comparisonFeatures = (premium) => [
+  { key: 'dashboard', label: 'Financial dashboard', included: true, availability: 'full' },
+  {
+    key: 'savings_account',
+    label: premium ? 'Bank accounts' : 'Up to 4 bank accounts',
+    included: true,
+    availability: premium ? 'full' : 'limited',
+  },
+  { key: 'chattels', label: 'Valuables', included: true, availability: 'full' },
+  {
+    key: 'estate',
+    label: premium ? 'Estate planning' : 'Estate planning — preview only',
+    included: true,
+    availability: premium ? 'full' : 'teaser',
+  },
+  {
+    key: 'investments_exotic',
+    label: 'Alternative investments',
+    included: premium,
+    availability: premium ? 'full' : 'none',
+  },
+];
+
 const changedPricingRows = {
   data: [
     {
@@ -35,6 +58,7 @@ const changedPricingRows = {
       price_monthly_pence: 0,
       price_annual_pence: 0,
       capability_matrix: capabilities(false),
+      features: comparisonFeatures(false),
       count_caps: {
         savings_account: 4,
         investment: 3,
@@ -53,6 +77,7 @@ const changedPricingRows = {
       price_monthly_pence: 777,
       price_annual_pence: 7000,
       capability_matrix: capabilities(true),
+      features: comparisonFeatures(true),
       count_caps: {
         savings_account: null,
         investment: null,

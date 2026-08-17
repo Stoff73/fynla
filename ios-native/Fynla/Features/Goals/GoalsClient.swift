@@ -3,6 +3,7 @@ import Foundation
 protocol GoalsClient: Sendable {
     func loadGoals() async throws -> GoalListResponse
     func loadOverview() async throws -> GoalsOverview
+    func loadGoal(id: Int) async throws -> GoalDetailResponse
 }
 
 struct LiveGoalsClient: GoalsClient {
@@ -18,6 +19,10 @@ struct LiveGoalsClient: GoalsClient {
 
     func loadOverview() async throws -> GoalsOverview {
         try await apiClient.send(request(path: "api/goals/dashboard-overview"))
+    }
+
+    func loadGoal(id: Int) async throws -> GoalDetailResponse {
+        try await apiClient.send(request(path: "api/goals/\(id)"))
     }
 
     private func request<Value: Decodable & Sendable>(

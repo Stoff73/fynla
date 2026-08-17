@@ -127,10 +127,7 @@ struct SSEClientTests {
             Issue.record("Unexpected error: \(error)")
         }
 
-        for _ in 0..<100 where !(await cancellation.wasCancelled()) {
-            await Task.yield()
-        }
-        #expect(await cancellation.wasCancelled())
+        #expect(await cancellation.waitUntilCancelled())
     }
 
     @Test
@@ -171,10 +168,7 @@ struct SSEClientTests {
         consumer.cancel()
         _ = try? await consumer.value
 
-        for _ in 0..<100 where !(await cancellation.wasCancelled()) {
-            await Task.yield()
-        }
-        #expect(await cancellation.wasCancelled())
+        #expect(await cancellation.waitUntilCancelled())
     }
 
     @Test
@@ -186,9 +180,11 @@ struct SSEClientTests {
         let client = SSEClient(transport: transport, maximumBufferedEvents: 1)
         let stream = try requireStream(try await client.stream(request()))
 
-        for _ in 0..<100 {
-            await Task.yield()
-        }
+        // Give the producer a real scheduling window before the consumer
+        // starts. Repeated yields are only advisory and can keep selecting
+        // this test task on newer Swift runtimes, which makes the overflow
+        // assertion depend on scheduler luck.
+        try await Task.sleep(nanoseconds: 100_000_000)
 
         do {
             for try await _ in stream {}
@@ -377,6 +373,21 @@ private actor CancellationProbe {
 
     func wasCancelled() -> Bool {
         cancelled
+    }
+
+    func waitUntilCancelled() async -> Bool {
+        // Task.yield() is advisory and can immediately reschedule the polling
+        // test task on a busy CI runner. Give the detached stream producer a
+        // real, bounded scheduling window while retaining a strict failure if
+        // downstream cancellation never reaches the transport.
+        for _ in 0..<100 {
+            if cancelled {
+                return true
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        return cancelled
     }
 }
 

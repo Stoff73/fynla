@@ -87,4 +87,10 @@ return [
         'labels' => ['bug', 'from-mobile', 'claude-auto'],
     ],
 
+    // Pexels stock-photo search — used to auto-assign a relevant cover image to
+    // CMS articles that have no embedded image. Free API key from pexels.com/api.
+    'pexels' => [
+        'key' => env('PEXELS_API_KEY'),
+    ],
+
 ];

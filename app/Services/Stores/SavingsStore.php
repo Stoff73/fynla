@@ -13,6 +13,7 @@ use App\Models\Estate\Trust;
 use App\Models\SavingsAccount;
 use App\Models\SavingsAccountValueSnapshot;
 use App\Models\User;
+use App\Services\Savings\ISAContributionLedger;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Recalc\SavingsAccountDerivedColumnCalculator;
@@ -29,6 +30,7 @@ class SavingsStore
         private readonly TierGate $tierGate,
         private readonly SavingsAccountDerivedColumnCalculator $derivedCalc,
         private readonly SnapshotPolicies $snapshotPolicies,
+        private readonly ISAContributionLedger $isaContributionLedger,
     ) {}
 
     // ---------- Reads ----------
@@ -104,6 +106,25 @@ class SavingsStore
     }
 
     /**
+     * User-scoped id-based read for primary-owner-only actions.
+     *
+     * Contextual Edit conversations must mirror the store's mutation
+     * authority: joint owners can view an account, but only the primary owner
+     * may start a workflow that can update it.
+     */
+    public function findManyPrimary(array $ids, User $user): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return SavingsAccount::query()
+            ->whereIn('id', $ids)
+            ->where('user_id', $user->id)
+            ->get();
+    }
+
+    /**
      * Gate-accurate count of the user's savings accounts: primary-owner rows
      * only, matching what canCreate enforces (joint-owned accounts don't count
      * toward the cap). Single source for both create() and the free-tier cap
@@ -137,6 +158,7 @@ class SavingsStore
             $account = SavingsAccount::create($attributes);
 
             $this->recalculateDerived($account, $source, 'create');
+            $this->isaContributionLedger->syncSavingsAnnualSummary($account, $source);
 
             event(new SavingsAccountCreated($account, $user, $source));
 
@@ -166,6 +188,7 @@ class SavingsStore
             $fresh = $account->fresh();
 
             $this->recalculateDerived($fresh, $source, 'update');
+            $this->isaContributionLedger->syncSavingsAnnualSummary($fresh, $source);
 
             event(new SavingsAccountUpdated($fresh, $dirty, $user, $source));
 

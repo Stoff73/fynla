@@ -17,6 +17,23 @@ struct IncomeTests {
             "Employment", "Self-employment", "Dividends", "Interest",
         ])
         #expect(envelope.data.incomeSummary.spouse?.total == Decimal(48000))
+        #expect(envelope.data.incomeSummary.user.nonZeroSources.first?.frequency == "annual")
+        #expect(envelope.data.incomeSummary.user.nonZeroSources.first?.ownershipLabel == "You")
+        #expect(envelope.data.incomeSummary.user.nonZeroSources.first?.taxPosition == "Taxable earned income")
+        #expect(envelope.data.incomeSummary.user.taxPosition.personalAllowanceLabel == "Standard personal allowance")
+    }
+
+    @Test
+    func contextualIncomeEditContainsIdentifiersButNoFinancialFacts() throws {
+        let action = FynContextualActions.income(owner: "user", source: "employment")
+        let encoded = try JSONEncoder().encode(action.request)
+        let payload = String(data: encoded, encoding: .utf8) ?? ""
+
+        #expect(action.request.resourceType == "income")
+        #expect(action.request.currentDestination.params["income_owner"] == .string("user"))
+        #expect(action.request.currentDestination.params["income_source"] == .string("employment"))
+        #expect(!payload.contains("72500"))
+        #expect(!payload.contains("Northstar"))
     }
 
     @Test

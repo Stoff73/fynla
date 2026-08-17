@@ -5,9 +5,10 @@ import Testing
 @Suite("Achievements client")
 struct AchievementsClientTests {
     @Test
-    func usesExistingAuthenticatedEndpointsAndPreservesPaginationValues() async throws {
+    func usesCanonicalAuthenticatedEndpointsAndPreservesOpaqueMilestoneCursor() async throws {
         let transport = TestHTTPTransport([
             .response(status: 200, body: try fixture("summary")),
+            .response(status: 200, body: try fixture("milestones-page-2")),
             .response(status: 200, body: try fixture("completed-page-2")),
             .response(status: 200, body: try fixture("activity-page-1")),
             .response(status: 200, body: try fixture("status")),
@@ -29,6 +30,7 @@ struct AchievementsClientTests {
         )
 
         _ = try await client.loadAchievements()
+        _ = try await client.loadMilestones(cursor: "opaque+/= cursor")
         _ = try await client.loadCompleted(page: 2)
         _ = try await client.loadActivity(before: 101)
         let status = try await client.loadStatus()
@@ -37,14 +39,16 @@ struct AchievementsClientTests {
         #expect(status.pendingCelebration?.level == 3)
         let requests = await transport.requests()
         #expect(requests.map { $0.url?.path } == [
-            "/fynla/api/v1/mobile/achievements",
+            "/fynla/api/v1/mobile/achievements/v2",
+            "/fynla/api/v1/mobile/achievements/v2/milestones",
             "/fynla/api/v1/mobile/achievements/completed",
             "/fynla/api/gamification/activity",
             "/fynla/api/gamification/status",
             "/fynla/api/gamification/celebration/ack",
         ])
-        #expect(requests[1].url?.query == "page=2")
-        #expect(requests[2].url?.query == "before=101")
+        #expect(requests[1].url?.query == "cursor=opaque%2B/%3D%20cursor")
+        #expect(requests[2].url?.query == "page=2")
+        #expect(requests[3].url?.query == "before=101")
         #expect(requests.last?.httpMethod == "POST")
         #expect(
             requests.allSatisfy {

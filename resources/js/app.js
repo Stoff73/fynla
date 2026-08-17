@@ -1,5 +1,5 @@
-// MUST be first — adopts the /m mobile token into sessionStorage before the
-// Vuex store reads it synchronously on init. See mScaffoldBridge.js.
+// MUST be first — translates a consumed web-handoff marker into the fixed
+// web-session sentinel before Vuex reads auth state. See mScaffoldBridge.js.
 import './mScaffoldBridge';
 
 import './bootstrap';

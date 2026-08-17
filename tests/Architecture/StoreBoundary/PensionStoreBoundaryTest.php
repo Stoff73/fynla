@@ -140,6 +140,11 @@ $pensionConsumers = [
     'App\Services\Retirement\SalarySacrificeAnalyzer',
     'App\Services\Retirement\RetirementActionDefinitionService',
     'App\Services\Retirement\PensionContributionOptimizer',
+    //  - PortfolioPresentationService accepts an already ownership-scoped
+    //    DCPension and reads only its holdings/value-snapshot relationships
+    //    to build the canonical cross-wrapper presentation contract. It
+    //    performs no root pension query or pension mutation.
+    'App\Services\Investment\PortfolioPresentationService',
     //  - RetirementPlanService retains DCPension type hints on
     //    calculateMonthlyEmployeeContribution +
     //    calculateMonthlyEmployerContribution.

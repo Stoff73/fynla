@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { isAuthenticatedPublicUtilityPath } from './publicRoutePolicy.js';
+import { isTransferableMobileBearer } from '../mScaffoldBridge.js';
 import store from '@/store';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
@@ -141,6 +143,11 @@ const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleList
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
 const NewsSubscribersPage = () => import('@/views/Admin/NewsSubscribersPage.vue');
+const PostApprovalQueue = () => import('@/views/Admin/Pipeline/PostApprovalQueue.vue');
+const PipelineArticleManager = () => import('@/views/Admin/Pipeline/ArticleManager.vue');
+const PipelineArticleEditor = () => import('@/views/Admin/Pipeline/ArticleEditor.vue');
+const PipelinePublisherManager = () => import('@/views/Admin/Pipeline/PublisherManager.vue');
+const PipelineClipApprovalQueue = () => import('@/views/Admin/Pipeline/ClipApprovalQueue.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -1326,9 +1333,57 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/admin/cms/pages',
+    name: 'admin.cms.pages',
+    component: () => import('@/views/Admin/Cms/PagesManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/cms/emails',
+    name: 'admin.cms.emails',
+    component: () => import('@/views/Admin/Cms/EmailsComingSoon.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/campaigns',
+    name: 'admin.campaigns',
+    component: () => import('@/views/Admin/Campaigns/CampaignManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/admin/news-subscribers',
     name: 'AdminNewsSubscribers',
     component: NewsSubscribersPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/posts',
+    name: 'AdminPipelinePosts',
+    component: PostApprovalQueue,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles',
+    name: 'AdminPipelineArticles',
+    component: PipelineArticleManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles/:id',
+    name: 'AdminPipelineArticleEditor',
+    component: PipelineArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/publishers',
+    name: 'AdminPipelinePublishers',
+    component: PipelinePublisherManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/clips',
+    name: 'AdminPipelineClipApprovals',
+    component: PipelineClipApprovalQueue,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
@@ -1573,8 +1628,15 @@ router.beforeEach(async (to, from, next) => {
     // authenticated instead of bouncing to the mobile login. localStorage is
     // shared same-origin; both are the same Sanctum bearer token.
     const token = getTokenSync();
-    if (token) {
-      try { localStorage.setItem('m_scaffold_token', token); } catch { /* private mode */ }
+    if (isTransferableMobileBearer(token)) {
+      try {
+        // Preserve an existing rotated /m token. Copy only on the initial
+        // desktop-to-mobile handoff; mobile never copies its bearer back into
+        // desktop storage.
+        if (!localStorage.getItem('m_scaffold_token')) {
+          localStorage.setItem('m_scaffold_token', token);
+        }
+      } catch { /* private mode */ }
     }
     const mobileQuery = new URLSearchParams();
     if (typeof to.query.from === 'string' && to.query.from) {
@@ -1672,12 +1734,19 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Authenticated users never see the public marketing / landing pages — those
+  // Authenticated users do not see public marketing / landing pages — those
   // exist only to convert guests; the user lives behind the auth wall in the
-  // app. Bounce them to the dashboard. Preview personas are exempt so they can
-  // still reach the landing-page persona selector. Mirrors the server-side
-  // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
-  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode) {
+  // app. Account-support and legal utilities remain reachable from Settings.
+  // Preview personas are exempt so they can still reach the landing-page
+  // persona selector. Mirrors `redirect.authed` on server-rendered pages.
+  //
+  // Exception: `?preview=true` is the admin draft-preview link (from the CMS
+  // editor). Admins must be able to view the live article page while logged in,
+  // so don't bounce them — draft visibility is still gated server-side (the
+  // insights API only returns drafts to is_admin).
+  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode
+      && !isAuthenticatedPublicUtilityPath(to.path)
+      && to.query.preview !== 'true') {
     next({ name: 'Dashboard' });
     return;
   }

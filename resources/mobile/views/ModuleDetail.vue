@@ -76,7 +76,7 @@ const MODULE_CONFIG = {
     fields: ['total_life_cover', 'total_critical_illness_cover', 'total_income_protection', 'policy_count', 'critical_gaps', 'status'],
   },
   savings: {
-    label: 'Savings',
+    label: 'Bank Accounts',
     subtitle: 'Cash, ISA allowance and emergency fund',
     hero: (s) => ({
       label: 'Emergency fund runway',

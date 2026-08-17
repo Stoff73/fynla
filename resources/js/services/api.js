@@ -107,9 +107,15 @@ api.interceptors.response.use(
       // Handle 401 Unauthorized errors
       if (error.response.status === 401) {
         // Don't redirect if we're already on login/register endpoints (let component handle it)
+        // `/auth/user` is included so a transient 401 on the FIRST post-login
+        // user-fetch does not wipe the freshly-minted token and hard-redirect
+        // back to /login (the "had to click sign in twice" bug). Genuine token
+        // expiry is still caught by the router guard on the next navigation and
+        // by 401s on any other (non-allowlisted) endpoint.
         const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
           error.config?.url?.includes('/auth/register') ||
           error.config?.url?.includes('/auth/verify-code') ||
+          error.config?.url?.includes('/auth/user') ||
           error.config?.url?.includes('/preview/exit');
 
         // Check if we're in preview mode - don't redirect, just reject silently

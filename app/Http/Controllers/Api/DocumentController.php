@@ -8,16 +8,19 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\ConfirmExtractionRequest;
 use App\Http\Requests\Documents\UploadDocumentRequest;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\Document;
 use App\Services\Documents\DocumentAllowanceGate;
 use App\Services\Documents\DocumentProcessor;
 use App\Services\Documents\ExcelParserService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly DocumentProcessor $processor,
@@ -258,6 +261,12 @@ class DocumentController extends Controller
                 'message' => 'Import completed successfully',
                 'data' => $result,
             ]);
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResponse(
+                $e,
+                'Account limit reached for your current plan.',
+                'dashboard',
+            );
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Import failed', $e);
         }

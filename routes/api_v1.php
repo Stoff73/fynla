@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Mobile\MobileDashboardController;
 use App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController;
 use App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Mobile\ShareController;
+use App\Http\Controllers\Api\V1\Mobile\WebHandoffController;
 use App\Http\Controllers\Api\V1\Native\Auth\NativeSessionController;
 use App\Http\Controllers\Api\V1\Native\NativeEntitlementController;
 use App\Http\Controllers\Api\V1\Native\StoreKit\AppAccountTokenController;
@@ -120,6 +121,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:device-registration')
         ->name('api.v1.auth.refresh-token');
 
+    Route::post('/mobile/web-handoffs', WebHandoffController::class)
+        ->middleware('throttle:sensitive')
+        ->name('api.v1.mobile.web-handoffs.store');
+
     // Mobile dashboard — aggregated summary of all modules
     Route::get('/mobile/dashboard', [MobileDashboardController::class, 'index'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
@@ -129,6 +134,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mobile/achievements', [MobileAchievementsController::class, 'index'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.achievements');
+
+    // Canonical, bounded achievements contract for native clients. The legacy
+    // endpoint above intentionally retains its complete milestone collection.
+    Route::get('/mobile/achievements/v2', [MobileAchievementsController::class, 'canonical'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements.v2');
+    Route::get('/mobile/achievements/v2/milestones', [MobileAchievementsController::class, 'canonicalMilestonePage'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.achievements.v2.milestones');
 
     // WP-5c-ii — load-more pages of completed actions (25/page)
     Route::get('/mobile/achievements/completed', [MobileAchievementsController::class, 'completed'])

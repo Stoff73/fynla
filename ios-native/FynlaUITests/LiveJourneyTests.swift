@@ -60,11 +60,11 @@ final class LiveJourneyTests: XCTestCase {
         if verificationField.exists {
             verificationField.tap()
             verificationField.typeText(liveCode)
-            app.buttons["login.verification.submit"].tap()
+            tapWhenEnabled(app.buttons["login.verification.submit"])
         } else {
             mfaField.tap()
             mfaField.typeText(liveCode)
-            app.buttons["login.mfa.submit"].tap()
+            tapWhenEnabled(app.buttons["login.mfa.submit"])
         }
 
         // Face ID opt-in may interpose after a successful live sign-in.
@@ -107,6 +107,20 @@ final class LiveJourneyTests: XCTestCase {
         attach(app, name: "live-05-tax-strategy")
         app.swipeUp()
         attach(app, name: "live-06-tax-strategy-allowances")
+    }
+
+    /// SwiftUI enables the submit a beat after the last typed digit lands —
+    /// an immediate tap no-ops against the still-disabled button and the
+    /// screen never advances (live 2026-07-23 run: code typed, submit
+    /// enabled, untapped). Wait for enablement before tapping.
+    @MainActor
+    private func tapWhenEnabled(_ button: XCUIElement, timeout: TimeInterval = 10) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline, !(button.exists && button.isEnabled && button.isHittable) {
+            usleep(250_000)
+        }
+        XCTAssertTrue(button.exists && button.isEnabled, "\(button.identifier) never became enabled.")
+        button.tap()
     }
 
     @MainActor

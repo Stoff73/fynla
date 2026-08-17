@@ -39,6 +39,19 @@ describe('SavingsAccountNormaliser::fromForm', function () {
         expect($canonical['country'])->toBe('United Kingdom'); // default for non-ISA
     });
 
+    it('normalises legacy hyphenated ISA tax years before persistence', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromForm([
+            'account_name' => 'Legacy client Cash ISA',
+            'account_type' => 'cash_isa',
+            'current_balance' => 8000,
+            'is_isa' => true,
+            'isa_subscription_year' => '2024-25',
+            'isa_subscription_amount' => 8000,
+        ]);
+
+        expect($canonical['isa_subscription_year'])->toBe('2024/25');
+    });
+
     it('resets ownership_percentage and clears joint_owner_id when switching to individual ownership', function () {
         // Re-submit pattern: edit form flips joint → individual but still carries the
         // joint_owner_id and a 50% ownership_percentage from the previous state.

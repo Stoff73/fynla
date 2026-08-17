@@ -87,6 +87,11 @@ arch('SavingsAccount mutations and reads only happen inside the savings canonica
         //    (handleListRecords 'savings_account' arm) is migrated to
         //    SavingsStore::forUser().
         'App\Agents\CoordinatingAgent',
+        //  - ISAContributionLedger accepts an already ownership-scoped
+        //    SavingsAccount and uses SavingsAccount::class only as the
+        //    polymorphic source discriminator for the canonical ISA ledger.
+        //    It performs no SavingsAccount query or mutation.
+        'App\Services\Savings\ISAContributionLedger',
         //  - ISATracker: a SavingsAccount type hint on the public
         //    calculateProjectedSubscription(SavingsAccount $account) signature.
         //    Non-query type reference; all six of its direct query sites are

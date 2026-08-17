@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiGet, apiPost } from '../../../resources/mobile/api.js';
 import Retirement from '../../../resources/mobile/views/modules/Retirement.vue';
+import RetirementPensionDetail from '../../../resources/mobile/views/modules/RetirementPensionDetail.vue';
 
 vi.mock('../../../resources/mobile/api.js', () => ({
   apiGet: vi.fn(),
@@ -222,6 +223,27 @@ describe('mobile Retirement', () => {
             income_drawdown: {
               yearly_income: [{ total_income: 16315.91 }],
             },
+            planning_projection: {
+              contract_version: 'retirement_projection_v1',
+              target_retirement_age: 67,
+              planning_total_at_target_age: 16315.91,
+              products: [{
+                resource_type: 'dc_pension',
+                resource_id: 1,
+                name: 'Aviva Workplace Pension',
+                commencement_age: 67,
+                annual_income: 16315.91,
+              }],
+              age_bands: [{ start_age: 67, end_age: 100, annual_income: 16315.91 }],
+              assumptions: {
+                sustainable_withdrawal_rate: { percent: 4.7 },
+                growth_rate_percent: 6.5,
+                net_growth_rate_percent: 6,
+                inflation_rate_percent: 2.5,
+                fee_rate_percent: 0.5,
+                basis: 'nominal',
+              },
+            },
           },
         },
       };
@@ -248,11 +270,166 @@ describe('mobile Retirement', () => {
     expect(text).toContain('Defined Contribution pension value£47,500');
     expect(text).toContain('Target income—');
     expect(text).toContain('Comparison—');
-    expect(text).toContain('Current pot value£47,500');
-    expect(text).toContain('Monthly contributions£547');
-    expect(text).toContain('Projected at retirement£347,147');
-    expect(text).toContain('Median projection£575,866');
-    expect(text).toContain('an assumed retirement age 67');
+    expect(text).toContain('Aviva Workplace Pension from age 67£16,316 a year');
+    expect(text).toContain('Age 67–100£16,316 a year');
+    expect(text).toContain('4.7% sustainable withdrawal rate');
+    expect(text).not.toContain('Median projection');
+
+    wrapper.unmount();
+  });
+
+  it('renders reconciled planning income bands and disclosed assumptions without a median label', async () => {
+    apiGet.mockImplementation(async (url) => {
+      if (url === '/api/retirement') {
+        return {
+          ok: true,
+          data: {
+            data: {
+              profile: { target_retirement_age: 60, target_retirement_income: 30000 },
+              dc_pensions: [{ id: 1, scheme_name: 'SIPP', current_fund_value: 200000 }],
+              db_pensions: [{ id: 2, scheme_name: 'DB Scheme', accrued_annual_pension: 8000 }],
+              state_pension: { id: 3, state_pension_forecast_annual: 11500 },
+            },
+          },
+        };
+      }
+
+      return {
+        ok: true,
+        data: {
+          data: {
+            pension_pot_projection: {
+              current_value: 200000,
+              monthly_contribution: 500,
+              median_at_retirement: 999999,
+            },
+            planning_projection: {
+              contract_version: 'retirement_projection_v1',
+              planning_total_at_target_age: 9400,
+              products: [
+                { resource_type: 'dc_pension', resource_id: 1, name: 'SIPP', commencement_age: 60, projected_value: 200000, annual_income: 9400 },
+                { resource_type: 'db_pension', resource_id: 2, name: 'DB Scheme', commencement_age: 65, projected_value: null, annual_income: 8000 },
+                { resource_type: 'state_pension', resource_id: 3, name: 'State Pension', commencement_age: 67, projected_value: null, annual_income: 11500 },
+              ],
+              age_bands: [
+                { start_age: 60, end_age: 64, annual_income: 9400, source_ids: ['dc_pension:1'] },
+                { start_age: 65, end_age: 66, annual_income: 17400, source_ids: ['dc_pension:1', 'db_pension:2'] },
+                { start_age: 67, end_age: 100, annual_income: 28900, source_ids: ['dc_pension:1', 'db_pension:2', 'state_pension:3'] },
+              ],
+              assumptions: {
+                sustainable_withdrawal_rate: { decimal: 0.047, percent: 4.7, source: 'tax_configuration' },
+                growth_rate_percent: 5.5,
+                net_growth_rate_percent: 4.7,
+                inflation_rate_percent: 2.5,
+                fee_rate_percent: 0.8,
+                compound_periods: 12,
+                basis: 'nominal',
+                has_user_overrides: true,
+              },
+              uncertainty: { method: 'monte_carlo_percentile_bands', primary_projection: false, products: [] },
+              warnings: [],
+            },
+          },
+        },
+      };
+    });
+    apiPost.mockResolvedValue({
+      ok: true,
+      data: { success: true, data: { projected_income: 99999, target_income: 30000 } },
+    });
+
+    const wrapper = mount(Retirement, {
+      global: {
+        stubs: { MobileChrome: { template: '<main><slot /></main>' } },
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('.m-metric').text()).toContain('£9,400');
+    expect(wrapper.text()).toContain('SIPP from age 60');
+    expect(wrapper.text()).toContain('Age 60–64');
+    expect(wrapper.text()).toContain('£9,400 a year');
+    expect(wrapper.text()).toContain('4.7% sustainable withdrawal rate');
+    expect(wrapper.text()).toContain('5.5% growth');
+    expect(wrapper.text()).toContain('0.8% fees');
+    expect(wrapper.text()).not.toContain('Median projection');
+
+    wrapper.unmount();
+  });
+});
+
+describe('mobile Retirement pension detail', () => {
+  it('uses the shared planning product and assumptions without presenting a median', async () => {
+    apiGet.mockImplementation(async (url) => {
+      if (url === '/api/retirement') {
+        return {
+          ok: true,
+          status: 200,
+          data: {
+            data: {
+              dc_pensions: [{
+                id: 1,
+                scheme_name: 'SIPP',
+                provider: 'Example Pensions',
+                current_fund_value: 100000,
+                monthly_contribution_amount: 500,
+                retirement_age: 60,
+              }],
+              db_pensions: [],
+              state_pension: null,
+            },
+          },
+        };
+      }
+
+      return {
+        ok: true,
+        data: {
+          data: {
+            planning_projection: {
+              products: [{
+                resource_type: 'dc_pension',
+                resource_id: 1,
+                name: 'SIPP',
+                commencement_age: 60,
+                current_value: 100000,
+                monthly_contribution: 500,
+                projected_value: 236260.18,
+                annual_income: 11104.23,
+              }],
+              assumptions: {
+                sustainable_withdrawal_rate: { percent: 4.7 },
+                growth_rate_percent: 5.5,
+                net_growth_rate_percent: 4.7,
+                inflation_rate_percent: 2.5,
+                fee_rate_percent: 0.8,
+                basis: 'nominal',
+              },
+            },
+          },
+        },
+      };
+    });
+
+    const wrapper = mount(RetirementPensionDetail, {
+      global: {
+        mocks: {
+          $route: { params: { type: 'dc', id: '1' } },
+          $router: { push: vi.fn() },
+        },
+        stubs: {
+          MobileChrome: { template: '<main><slot /></main>' },
+          CanonicalPortfolio: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Planning value at retirement£236,260');
+    expect(wrapper.text()).toContain('Projected income from age 60£11,104 a year');
+    expect(wrapper.text()).toContain('4.7% sustainable withdrawal rate');
+    expect(wrapper.text()).not.toContain('Median projection');
+    expect(apiGet).toHaveBeenCalledWith('/api/retirement/projections', null);
 
     wrapper.unmount();
   });

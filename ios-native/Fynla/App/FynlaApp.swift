@@ -13,9 +13,12 @@ struct FynlaApp: App {
     @State private var subscriptionModel: SubscriptionModel
     @State private var dashboardModel: DashboardModel
     @State private var achievementsModel: AchievementsModel
+    @State private var conversationHistoryModel: ConversationHistoryModel
+    @State private var personalInformationModel: PersonalInformationModel
     @State private var incomeModel: IncomeModel
     @State private var expenditureModel: ExpenditureModel
     @State private var netWorthModel: NetWorthModel
+    @State private var netWorthForecastModel: NetWorthForecastModel
     @State private var balanceHistoryModel: BalanceHistoryModel
     @State private var savingsModel: SavingsModel
     @State private var investmentModel: InvestmentModel
@@ -38,6 +41,7 @@ struct FynlaApp: App {
     private let appleSubscriptionManager: any AppleSubscriptionManaging
     private let legacyCapacitorCleanup: LegacyCapacitorCleanup
     private let shareClient: any ShareContentClient
+    private let webHandoffClient: any WebHandoffClient
 
     #if FYNLA_UI_TESTING
     private let uiTestMode: UITestMode?
@@ -140,11 +144,22 @@ struct FynlaApp: App {
         let nativeVersionPolicyModel = NativeVersionPolicyModel(
             client: nativeVersionPolicyClient
         )
+        #if FYNLA_UI_TESTING
+        let systemPushClient: any SystemPushClient = uiTestMode == nil
+            ? LiveSystemPushClient()
+            : PrivacyAndSettingsUITestComposition.systemPushClient()
+        let pushClient: any PushClient = uiTestMode == nil
+            ? LivePushClient(apiClient: authenticatedDependencies.makeAPIClient())
+            : PrivacyAndSettingsUITestComposition.pushClient()
+        #else
+        let systemPushClient: any SystemPushClient = LiveSystemPushClient()
+        let pushClient: any PushClient = LivePushClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        #endif
         let pushCoordinator = PushRegistrationCoordinator(
-            system: LiveSystemPushClient(),
-            client: LivePushClient(
-                apiClient: authenticatedDependencies.makeAPIClient()
-            ),
+            system: systemPushClient,
+            client: pushClient,
             session: session,
             router: router,
             nativeSessionID: { coordinator.credentials?.sessionID },
@@ -187,21 +202,91 @@ struct FynlaApp: App {
             )
         )
         #endif
+        #if FYNLA_UI_TESTING
+        let netWorthModel = uiTestMode == nil
+            ? NetWorthModel(
+                client: LiveNetWorthClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ProjectionParityUITestComposition.netWorthModel()
+        let netWorthForecastModel = uiTestMode == nil
+            ? NetWorthForecastModel(
+                client: LiveNetWorthForecastClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ProjectionParityUITestComposition.netWorthForecastModel()
+        #else
         let netWorthModel = NetWorthModel(
             client: LiveNetWorthClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        let netWorthForecastModel = NetWorthForecastModel(
+            client: LiveNetWorthForecastClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
+        #endif
+        #if FYNLA_UI_TESTING
+        let personalInformationModel = uiTestMode == nil
+            ? PersonalInformationModel(
+                client: LivePersonalInformationClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : PersonalInformationUITestComposition.model()
+        #else
+        let personalInformationModel = PersonalInformationModel(
+            client: LivePersonalInformationClient(
+                apiClient: authenticatedDependencies.makeAPIClient()
+            )
+        )
+        #endif
         let balanceHistoryModel = BalanceHistoryModel(
             client: LiveBalanceHistoryClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #if FYNLA_UI_TESTING
+        let savingsModel = uiTestMode == nil
+            ? SavingsModel(
+                client: LiveSavingsClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : SavingsUITestComposition.model()
+        #else
         let savingsModel = SavingsModel(
             client: LiveSavingsClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
+        #if FYNLA_UI_TESTING
+        let investmentModel = uiTestMode == nil
+            ? InvestmentModel(
+                client: LiveInvestmentClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : InvestmentUITestComposition.model()
+        let retirementModel = uiTestMode == nil
+            ? RetirementModel(
+                client: LiveRetirementClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : RetirementUITestComposition.model()
+        let protectionModel = uiTestMode == nil
+            ? ProtectionModel(
+                client: LiveProtectionClient(
+                    apiClient: authenticatedDependencies.makeAPIClient()
+                )
+            )
+            : ProtectionUITestComposition.model()
+        #else
         let investmentModel = InvestmentModel(
             client: LiveInvestmentClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -217,6 +302,7 @@ struct FynlaApp: App {
                 apiClient: authenticatedDependencies.makeAPIClient()
             )
         )
+        #endif
         let estateModel = EstateModel(
             client: LiveEstateClient(
                 apiClient: authenticatedDependencies.makeAPIClient()
@@ -301,6 +387,7 @@ struct FynlaApp: App {
                 surname: "User",
                 name: "Example User",
                 email: "example@example.test",
+                isAdmin: ProcessInfo.processInfo.arguments.contains("-fynla-admin"),
                 onboardingCompleted: !onboardingActive,
                 onboardingFynStep: onboardingActive ? "income" : nil
             )
@@ -316,9 +403,15 @@ struct FynlaApp: App {
             webBaseURL: dependencies.environment.webBaseURL,
             beforeSignOut: { await pushCoordinator.unregister() }
         )
-        let privacyClient = LivePrivacyClient(
+        #if FYNLA_UI_TESTING
+        let privacyClient: any PrivacyClient = uiTestMode == nil
+            ? LivePrivacyClient(apiClient: authenticatedDependencies.makeAPIClient())
+            : PrivacyAndSettingsUITestComposition.privacyClient()
+        #else
+        let privacyClient: any PrivacyClient = LivePrivacyClient(
             apiClient: authenticatedDependencies.makeAPIClient()
         )
+        #endif
         let privacySettingsModel = PrivacySettingsModel(client: privacyClient)
         let exportStore = TemporaryExportStore()
         let dataExportModel = DataExportModel(
@@ -328,11 +421,21 @@ struct FynlaApp: App {
         let accountDeletionSubscriptionAPI = LiveSubscriptionAPI(
             apiClient: authenticatedDependencies.makeAPIClient()
         )
+        #if FYNLA_UI_TESTING
+        let accountDeletionClient: any AccountDeletionClient = uiTestMode == nil
+            ? LiveAccountDeletionClient(apiClient: authenticatedDependencies.makeAPIClient())
+            : PrivacyAndSettingsUITestComposition.accountDeletionClient()
+        #else
+        let accountDeletionClient: any AccountDeletionClient = LiveAccountDeletionClient(
+            apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        #endif
         let accountDeletionModel = AccountDeletionModel(
-            client: LiveAccountDeletionClient(
-                apiClient: authenticatedDependencies.makeAPIClient()
-            ),
+            client: accountDeletionClient,
             loadBillingState: {
+                #if FYNLA_UI_TESTING
+                if uiTestMode != nil { return .webPremium }
+                #endif
                 do {
                     let entitlement = try await accountDeletionSubscriptionAPI.entitlement()
                     return switch (entitlement.tier, entitlement.billingManagement) {
@@ -386,10 +489,18 @@ struct FynlaApp: App {
         let fynModel = uiTestMode == nil
             ? FynConversationModel(client: authenticatedDependencies.makeFynClient())
             : FynUITestComposition.model()
+        let conversationHistoryModel = uiTestMode == nil
+            ? ConversationHistoryModel {
+                try await authenticatedDependencies.makeFynClient().listConversations()
+            }
+            : FynUITestComposition.historyModel()
         #else
         let fynModel = FynConversationModel(
             client: authenticatedDependencies.makeFynClient()
         )
+        let conversationHistoryModel = ConversationHistoryModel {
+            try await authenticatedDependencies.makeFynClient().listConversations()
+        }
         #endif
         #if FYNLA_UI_TESTING
         let bugReportModel = uiTestMode == nil
@@ -430,9 +541,12 @@ struct FynlaApp: App {
         _subscriptionModel = State(initialValue: subscriptionModel)
         _dashboardModel = State(initialValue: dashboardModel)
         _achievementsModel = State(initialValue: achievementsModel)
+        _conversationHistoryModel = State(initialValue: conversationHistoryModel)
+        _personalInformationModel = State(initialValue: personalInformationModel)
         _incomeModel = State(initialValue: incomeModel)
         _expenditureModel = State(initialValue: expenditureModel)
         _netWorthModel = State(initialValue: netWorthModel)
+        _netWorthForecastModel = State(initialValue: netWorthForecastModel)
         _balanceHistoryModel = State(initialValue: balanceHistoryModel)
         _savingsModel = State(initialValue: savingsModel)
         _investmentModel = State(initialValue: investmentModel)
@@ -452,6 +566,10 @@ struct FynlaApp: App {
         _bugReportModel = State(initialValue: bugReportModel)
         shareClient = LiveShareContentClient(
             apiClient: authenticatedDependencies.makeAPIClient()
+        )
+        webHandoffClient = LiveWebHandoffClient(
+            apiClient: authenticatedDependencies.makeAPIClient(),
+            trustedWebBaseURL: authenticatedDependencies.environment.webBaseURL
         )
     }
 
@@ -484,9 +602,12 @@ struct FynlaApp: App {
             subscriptionModel: subscriptionModel,
             dashboardModel: dashboardModel,
             achievementsModel: achievementsModel,
+            conversationHistoryModel: conversationHistoryModel,
+            personalInformationModel: personalInformationModel,
             incomeModel: incomeModel,
             expenditureModel: expenditureModel,
             netWorthModel: netWorthModel,
+            netWorthForecastModel: netWorthForecastModel,
             balanceHistoryModel: balanceHistoryModel,
             savingsModel: savingsModel,
             investmentModel: investmentModel,
@@ -506,6 +627,7 @@ struct FynlaApp: App {
             bugReportModel: bugReportModel,
             appleSubscriptionManager: appleSubscriptionManager,
             shareClient: shareClient,
+            webHandoffClient: webHandoffClient,
             registrationActions: registrationActions,
             loginActions: loginActions,
             passwordResetActions: passwordResetActions,

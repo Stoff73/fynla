@@ -37,8 +37,12 @@ export default {
         return api.delete(`${base}/${id}`);
     },
 
-    publish(id) {
-        return api.post(`${base}/${id}/publish`);
+    publishRecommendation(id) {
+        return api.get(`${base}/${id}/publish-recommendation`);
+    },
+
+    publish(id, publishedAt = null) {
+        return api.post(`${base}/${id}/publish`, publishedAt ? { published_at: publishedAt } : {});
     },
 
     unpublish(id) {
@@ -47,5 +51,21 @@ export default {
 
     previewUrl(id) {
         return api.get(`${base}/${id}/preview-url`);
+    },
+
+    uploadCover(id, file) {
+        const form = new FormData();
+        form.append('image', file);
+        return api.post(`${base}/${id}/cover-image`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+
+    socialClips(id) {
+        return api.get(`${base}/${id}/social-clips`);
+    },
+
+    stockCover(id, query) {
+        return api.post(`${base}/${id}/stock-cover`, { query });
     },
 };

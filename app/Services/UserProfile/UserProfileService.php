@@ -22,6 +22,7 @@ use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\UKTaxCalculator;
 use Carbon\Carbon;
 
@@ -33,6 +34,7 @@ class UserProfileService
         private readonly ChildBenefitService $childBenefitService,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly IncomeDefinitionsService $incomeDefinitions,
     ) {}
 
     /**
@@ -97,7 +99,7 @@ class UserProfileService
             // consumed by the /m Income screen. Additive; never read by existing
             // consumers of income_occupation.
             'income_summary' => [
-                'user' => $this->incomeSources($user),
+                'user' => $this->incomeSources($user, 'user'),
                 'spouse' => $this->spouseIncomeSources($user),
             ],
             'expenditure' => [
@@ -111,6 +113,7 @@ class UserProfileService
                     'childcare' => $user->childcare,
                     'other_expenditure' => $user->other_expenditure,
                 ],
+                'presentation' => $this->expenditurePresentation($user),
             ],
             'family_members' => $this->getFamilyMembersWithSharing($user),
             'domicile_info' => $user->getDomicileInfo(),
@@ -398,20 +401,62 @@ class UserProfileService
      *
      * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}
      */
-    private function incomeSources(User $person): array
+    private function incomeSources(User $person, string $ownership): array
     {
-        $sources = [
-            'employment' => (float) ($person->annual_employment_income ?? 0),
-            'self_employment' => (float) ($person->annual_self_employment_income ?? 0),
-            'dividend' => (float) ($person->annual_dividend_income ?? 0),
-            'interest' => (float) ($person->annual_interest_income ?? 0),
-            'other' => (float) ($person->annual_other_income ?? 0),
+        $definition = $this->incomeDefinitions->calculate($person->id);
+        $components = $definition['components'];
+        $sourceDefinitions = [
+            'employment' => ['Employment', 'Taxable earned income'],
+            'self_employment' => ['Self-employment', 'Taxable earned income'],
+            'rental' => ['Rental income', 'Taxable property income'],
+            'dividend' => ['Dividends', 'Dividend income'],
+            'interest' => ['Interest', 'Savings income'],
+            'other' => ['Other', 'Other taxable income'],
+            'trust' => ['Trust income', 'Trust income'],
+            'pension_income' => ['Pension income', 'Taxable pension income'],
         ];
-        $sources['total'] = array_sum($sources);
+        $sources = $components;
+        $sources['total'] = (float) $definition['total_income'];
         // Identifying detail so the verify screen shows WHAT the user entered
         // (employer + role), not just the employment amount.
         $sources['employer'] = $person->employer ?: null;
         $sources['occupation'] = $person->occupation ?: null;
+        $sources['sources'] = collect($sourceDefinitions)
+            ->map(function (array $labels, string $key) use ($components, $ownership, $person): array {
+                $detail = null;
+                if ($key === 'employment') {
+                    $detail = collect([$person->employer, $person->occupation])
+                        ->filter(fn ($value): bool => is_string($value) && trim($value) !== '')
+                        ->implode(' · ') ?: null;
+                }
+
+                return [
+                    'key' => $key,
+                    'label' => $labels[0],
+                    'amount' => (float) ($components[$key] ?? 0),
+                    'frequency' => 'annual',
+                    'ownership' => $ownership,
+                    'ownership_label' => $ownership === 'spouse' ? 'Your spouse' : 'You',
+                    'detail' => $detail,
+                    'tax_position' => $labels[1],
+                ];
+            })
+            ->filter(fn (array $source): bool => $source['amount'] > 0)
+            ->values()
+            ->all();
+        $allowances = $definition['adjusted_allowances'];
+        $sources['tax_position'] = [
+            'total_income' => (float) $definition['total_income'],
+            'adjusted_net_income' => (float) $definition['adjusted_net_income'],
+            'personal_allowance' => (float) $allowances['personal_allowance'],
+            'personal_allowance_label' => $allowances['personal_allowance_tapered']
+                ? 'Tapered personal allowance'
+                : 'Standard personal allowance',
+            'pension_annual_allowance' => (float) $allowances['pension_annual_allowance'],
+            'pension_annual_allowance_label' => $allowances['pension_aa_tapered']
+                ? 'Tapered pension annual allowance'
+                : 'Standard pension annual allowance',
+        ];
 
         return $sources;
     }
@@ -430,7 +475,7 @@ class UserProfileService
     private function spouseIncomeSources(User $user): ?array
     {
         if ($user->spouse) {
-            return $this->incomeSources($user->spouse);
+            return $this->incomeSources($user->spouse, 'spouse');
         }
 
         $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)
@@ -448,6 +493,50 @@ class UserProfileService
             'total' => $spouseIncome,
             'employer' => null,
             'occupation' => null,
+            'sources' => [[
+                'key' => 'employment',
+                'label' => 'Employment',
+                'amount' => $spouseIncome,
+                'frequency' => 'annual',
+                'ownership' => 'spouse',
+                'ownership_label' => 'Your spouse',
+                'detail' => null,
+                'tax_position' => 'Estimated earned income',
+            ]],
+            'tax_position' => [
+                'total_income' => $spouseIncome,
+                'adjusted_net_income' => null,
+                'personal_allowance' => null,
+                'personal_allowance_label' => 'Link a spouse profile for a calculated tax position',
+                'pension_annual_allowance' => null,
+                'pension_annual_allowance_label' => 'Link a spouse profile for a calculated tax position',
+            ],
+        ];
+    }
+
+    /**
+     * Server-owned presentation contract consumed without client arithmetic.
+     */
+    private function expenditurePresentation(User $user): array
+    {
+        $breakdown = $this->getExpenditureBreakdown($user);
+        $isCategory = $user->expenditure_entry_mode === 'category';
+
+        return [
+            'entry_mode' => $isCategory ? 'category' : 'summary',
+            'entry_mode_label' => $isCategory ? 'Category detail' : 'Monthly summary',
+            'active_monthly_total' => $breakdown['monthly'],
+            'active_annual_total' => $breakdown['annual'],
+            'manual_monthly_total' => $breakdown['monthly_manual'],
+            'commitments_monthly_total' => $breakdown['monthly_commitments'],
+            'total_basis' => $isCategory
+                ? 'Category entries plus financial commitments'
+                : 'Monthly summary plus financial commitments',
+            'detail_available' => $isCategory,
+            'reconciles' => true,
+            'summary_only_reason' => $isCategory
+                ? null
+                : 'Only a monthly summary has been entered. Add category details to improve your insights.',
         ];
     }
 

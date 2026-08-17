@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Agents\CoordinatingAgent;
+use App\Constants\GateRoutes;
 use App\Enums\AiMessageStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AI\CreateContextualConversationRequest;
 use App\Http\Requests\AI\SendAiChatMessageRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\ContextualConversation\ContextualConversationService;
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
+use App\Services\AI\ContextualConversation\ConversationHistoryService;
+use App\Services\AI\ContextualConversation\ConversationModeResolver;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\AI\Loop\ResumptionService;
 use App\Services\Eval\EvalTraceCollector;
@@ -21,6 +27,7 @@ use App\Services\Gamification\LevelUpCollector;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -38,6 +45,8 @@ class AiChatController extends Controller
         private readonly ConsentService $consentService,
         private readonly ConcurrentTurnQueue $queue,
         private readonly ResumptionService $resumption,
+        private readonly ConversationModeResolver $conversationModes,
+        private readonly ContextualResourceResolver $contextualResources,
     ) {}
 
     /**
@@ -45,20 +54,11 @@ class AiChatController extends Controller
      *
      * GET /api/ai-chat/conversations
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, ConversationHistoryService $history): JsonResponse
     {
-        // FR-M10 — paused (idle) conversations stay in history so the user can
-        // return to them; sending reopens them. Only soft-deleted / archived
-        // conversations drop out.
-        $conversations = AiConversation::forUser($request->user()->id)
-            ->whereIn('status', ['active', 'paused'])
-            ->orderByDesc('last_message_at')
-            ->limit(50)
-            ->get(['id', 'title', 'message_count', 'last_message_at', 'created_at']);
-
         return response()->json([
             'success' => true,
-            'data' => $conversations,
+            'data' => $history->forUser($request->user()),
         ]);
     }
 
@@ -87,6 +87,23 @@ class AiChatController extends Controller
     }
 
     /**
+     * Start a fresh, server-authorised conversation for a surface Add/Edit action.
+     *
+     * POST /api/ai-chat/contextual-conversations
+     */
+    public function createContextual(
+        CreateContextualConversationRequest $request,
+        ContextualConversationService $contextualConversations,
+    ): JsonResponse {
+        $created = $contextualConversations->create($request->user(), $request->validated());
+
+        return response()->json([
+            'success' => true,
+            'data' => $created,
+        ], 201);
+    }
+
+    /**
      * Load a conversation with its messages.
      *
      * GET /api/ai-chat/conversations/{id}
@@ -95,6 +112,10 @@ class AiChatController extends Controller
     {
         $conversation = AiConversation::forUser($request->user()->id)
             ->findOrFail($id);
+
+        if ($unavailable = $this->contextualUnavailableResponse($request->user(), $conversation)) {
+            return $unavailable;
+        }
 
         $messages = $conversation->messages()
             ->whereIn('role', ['user', 'assistant'])
@@ -189,6 +210,10 @@ class AiChatController extends Controller
 
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
 
+        if ($unavailable = $this->contextualUnavailableResponse($user, $conversation)) {
+            return $unavailable;
+        }
+
         // FR-M10 — sending reopens a paused (idle) conversation.
         if ($conversation->status === 'paused') {
             $conversation->update(['status' => 'active']);
@@ -238,9 +263,9 @@ class AiChatController extends Controller
         //   signalled purely by active_campaign being non-null. A null
         //   onboarding_fyn_step (paused mid-campaign) falls back to advice so a
         //   paused user can still get answers without their step being lost.
-        //   The predicate is centralised in routesToOnboardingDirector() and
-        //   shared by streamQueuedMessage and action to keep all three in sync.
-        $inOnboarding = $this->routesToOnboardingDirector($user);
+        //   ConversationModeResolver keeps typed conversation modes immutable
+        //   and is shared by streamQueuedMessage and action.
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock) {
             try {
@@ -387,6 +412,10 @@ class AiChatController extends Controller
 
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
 
+        if ($unavailable = $this->contextualUnavailableResponse($user, $conversation)) {
+            return $unavailable;
+        }
+
         $queued = $conversation->messages()
             ->where('id', $messageId)
             ->where('status', AiMessageStatus::Queued->value)
@@ -413,7 +442,7 @@ class AiChatController extends Controller
 
         $message = $queued->content;
         $currentRoute = $request->input('current_route');
-        $inOnboarding = $this->routesToOnboardingDirector($user);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued) {
             try {
@@ -766,9 +795,9 @@ class AiChatController extends Controller
             }
             $user->onboarding_fyn_step = $stepId;
             $startStateId = $stepId;
-            // Re-entry: stamp active_campaign so routesToOnboardingDirector routes
-            // subsequent messages from this completed user to the director while
-            // the campaign session is in progress.
+            // Re-entry: stamp active_campaign so legacy untyped conversations
+            // from this completed user still route to the director while the
+            // campaign session is in progress.
             if ($reentryCampaign !== null) {
                 $user->active_campaign = $matchedCampaign;
             }
@@ -893,7 +922,7 @@ class AiChatController extends Controller
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
         $action = $request->input('action');
 
-        $inOnboarding = $this->routesToOnboardingDirector($user);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
             try {
@@ -957,21 +986,40 @@ class AiChatController extends Controller
         ]);
     }
 
-    /**
-     * The Fyn dispatch predicate: does this user's message belong to the
-     * onboarding director (the one write state)? True mid-onboarding, and
-     * during campaign re-entry (active_campaign set by onboarding/start;
-     * cleared at campaign terminal and on the "Something else" pause).
-     * Canonical contract: April/April24Updates/spec/00-canonical.md.
-     *
-     * Used by sendMessage, streamQueuedMessage, and action — all three seams
-     * must honour the same predicate, so a single helper replaces the old
-     * sync-by-comment pattern.
-     */
-    private function routesToOnboardingDirector(User $user): bool
-    {
-        return ($user->onboarding_completed === false || $user->active_campaign !== null)
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+    private function contextualUnavailableResponse(
+        User $user,
+        AiConversation $conversation,
+    ): ?JsonResponse {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if (($metadata['source'] ?? null) !== 'surface_action') {
+            return null;
+        }
+
+        $resourceType = $metadata['resource_type'] ?? null;
+        $rawResourceId = $metadata['resource_id'] ?? null;
+        $resourceId = is_int($rawResourceId)
+            ? $rawResourceId
+            : (is_string($rawResourceId) && ctype_digit($rawResourceId) ? (int) $rawResourceId : null);
+        $fallbackScreen = is_string($resourceType)
+            ? $this->contextualResources->overviewScreenFor($resourceType)
+            : GateRoutes::DASHBOARD;
+
+        try {
+            if (! is_string($resourceType) || $resourceType === '') {
+                throw (new ModelNotFoundException)->setModel('contextual_resource');
+            }
+            $this->contextualResources->resolve($user, $resourceType, $resourceId);
+
+            return null;
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'error' => 'contextual_resource_unavailable',
+                'message' => 'This related item is no longer available. Return to its overview to continue.',
+                'data' => [
+                    'fallback_destination' => GateRoutes::destination($fallbackScreen),
+                ],
+            ], 410);
+        }
     }
 }

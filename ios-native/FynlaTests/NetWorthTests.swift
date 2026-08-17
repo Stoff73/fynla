@@ -21,6 +21,25 @@ struct NetWorthTests {
         #expect(detailed.property.items.first?.ownershipType == "joint")
         #expect(detailed.business.items.first?.ownershipPercentage == Decimal(50))
         #expect(detailed.pensions.items.last?.annualPension == Decimal(20000))
+        #expect(detailed.property.items.first?.outstandingMortgage == Decimal(180000))
+        #expect(detailed.liabilities?.items.map(\.detailRoute) == [
+            .mortgageDetail(id: 91),
+            .liabilityDetail(id: 92),
+        ])
+    }
+
+    @Test
+    func decodesCanonicalPropertyMortgageAndLiabilityDetails() throws {
+        let property = try decode(PropertyDetailResponse.self, "property-detail").property
+        let mortgage = try decode(MortgageDetailResponse.self, "mortgage-detail").mortgage
+        let liability = try decode(LiabilityDetailResponse.self, "liability-detail").liability
+
+        #expect(property.outstandingMortgage == Decimal(180000))
+        #expect(property.mortgages?.first?.detailRoute == .mortgageDetail(id: 91))
+        #expect(mortgage.property?.detailRoute == .propertyDetail(id: 41))
+        #expect(mortgage.remainingTermMonths == 240)
+        #expect(liability.monthlyPayment == Decimal(350))
+        #expect(liability.interestRate == Decimal(string: "5.9"))
     }
 
     @Test
@@ -30,6 +49,9 @@ struct NetWorthTests {
         #expect(snapshot.assetCategories.map(\.id) == [
             .property, .investments, .pensions, .cash, .business, .chattels,
         ])
+        #expect(snapshot.assetCategories.last?.title == "Valuables")
+        #expect(NetWorthCategory.chattels.rawValue == "chattels")
+        #expect(NetWorthCategory.chattels.title == "Valuables")
         #expect(snapshot.section(for: .business)?.totalValue == Decimal(60000))
         #expect(snapshot.liabilityRows.map(\.title) == [
             "Mortgages", "Loans", "Credit cards",
@@ -58,14 +80,19 @@ struct NetWorthTests {
     @Test
     func clientLoadsBothExistingAuthenticatedEndpoints() async throws {
         let transport = TestHTTPTransport([
-            .response(
+            .responseForPath(
+                path: "/fynla/api/net-worth/overview",
                 status: 200,
                 body: try fixture("net-worth-overview-populated")
             ),
-            .response(
+            .responseForPath(
+                path: "/fynla/api/net-worth/assets-summary-detailed",
                 status: 200,
                 body: try fixture("net-worth-detailed-populated")
             ),
+            .response(status: 200, body: try fixture("property-detail")),
+            .response(status: 200, body: try fixture("mortgage-detail")),
+            .response(status: 200, body: try fixture("liability-detail")),
         ])
         let client = APIClient(
             environment: try AppEnvironment.values([
@@ -80,13 +107,20 @@ struct NetWorthTests {
             requestID: { "net-worth-request" }
         )
 
-        let snapshot = try await LiveNetWorthClient(apiClient: client).load()
+        let live = LiveNetWorthClient(apiClient: client)
+        let snapshot = try await live.load()
+        _ = try await live.loadProperty(id: 41)
+        _ = try await live.loadMortgage(id: 91)
+        _ = try await live.loadLiability(id: 92)
 
         #expect(snapshot.overview.totalAssets == Decimal(650000))
         let requests = await transport.requests()
         #expect(Set(requests.compactMap(\.url?.path)) == [
             "/fynla/api/net-worth/overview",
             "/fynla/api/net-worth/assets-summary-detailed",
+            "/fynla/api/properties/41",
+            "/fynla/api/mortgages/91",
+            "/fynla/api/estate/liabilities/92",
         ])
         #expect(requests.allSatisfy {
             $0.value(forHTTPHeaderField: "Authorization") == "Bearer net-worth-token"

@@ -67,5 +67,5 @@ it('runs every chromium-labelled Playwright project with installed Google Chrome
 
     expect($config)->not->toBeFalse()
         ->and($config)->toContain("process.env.PLAYWRIGHT_CHROME_CHANNEL || 'chrome'")
-        ->and(substr_count($config, 'channel: chromeChannel'))->toBe(2);
+        ->and(substr_count($config, 'channel: chromeChannel'))->toBe(3);
 });

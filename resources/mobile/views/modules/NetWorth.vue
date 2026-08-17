@@ -23,11 +23,13 @@
 
       <div class="m-card mnw-history">
         <div>
-          <p class="mnw-history__title">Balance history</p>
+          <p class="mnw-history__title">Recorded balance history</p>
           <p class="mnw-history__meta">Track how your recorded balances change over time.</p>
         </div>
-        <button type="button" class="mnw-history__button" @click="openHistory">View balance history</button>
+        <button type="button" class="mnw-history__button" data-testid="recorded-history-link" @click="openHistory">View balance history</button>
       </div>
+
+      <NetWorthForecast />
 
       <!-- Assets -->
       <div class="m-card">
@@ -76,6 +78,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import NetWorthForecast from '../../components/NetWorthForecast.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -88,13 +91,13 @@ const ASSET_LABELS = {
   pensions: 'Pensions',
   cash: 'Cash & savings',
   business: 'Business interests',
-  chattels: 'Possessions',
+  chattels: 'Valuables',
 };
 const ASSET_ORDER = ['property', 'investments', 'pensions', 'cash', 'business', 'chattels'];
 
 export default {
   name: 'MobileNetWorth',
-  components: { MobileChrome },
+  components: { MobileChrome, NetWorthForecast },
   data: () => ({ loading: true, error: '', overview: null, detailed: null }),
   computed: {
     netWorth() { return this.overview?.net_worth ?? 0; },

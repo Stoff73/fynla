@@ -9,6 +9,7 @@ use App\Http\Requests\StoreMortgageRequest;
 use App\Http\Requests\UpdateMortgageRequest;
 use App\Http\Resources\MortgageResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\JointAccountLog;
 use App\Models\Mortgage;
 use App\Models\Property;
@@ -38,6 +39,7 @@ class MortgageController extends Controller
 {
     use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly MortgageService $mortgageService,
@@ -140,15 +142,11 @@ class MortgageController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Mortgage limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Mortgage limit reached for your current plan.',
+                'net_worth',
+            );
         }
 
         $mortgageResource = (new MortgageResource($mortgage->refresh()))->additional([

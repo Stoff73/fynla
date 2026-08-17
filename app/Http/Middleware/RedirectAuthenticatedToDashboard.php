@@ -12,10 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Keeps authenticated users off the public-facing site.
  *
- * Every public marketing, educational, and campaign page lives behind this
- * middleware. A logged-in visitor should never see the unauthenticated front
- * pages — they exist only to convert guests. The user belongs in the in-app
- * dashboard.
+ * Public marketing, educational, and campaign pages live behind this
+ * middleware. Logged-in visitors are redirected from conversion pages to the
+ * in-app dashboard. Account-support destinations such as Help are explicit
+ * exceptions because authenticated clients link to them from Settings.
  *
  * Two layers, because Fynla authenticates with Sanctum bearer tokens held in
  * sessionStorage (there is no web session on a top-level navigation):
@@ -37,6 +37,14 @@ class RedirectAuthenticatedToDashboard
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Help is an account-support destination as well as a public page.
+        // Authenticated mobile/native clients deliberately hand users here,
+        // so neither the session guard nor the injected token guard may bounce
+        // it back to the dashboard. Marketing pages remain guest-only.
+        if ($request->is('help')) {
+            return $next($request);
+        }
+
         // Layer 1 — server-side redirect for a real (non-preview) web-session
         // user. Preview personas are exempt: they authenticate on the web guard
         // and must still be able to reach the public landing / persona selector.

@@ -344,8 +344,17 @@ export default {
       // CRITICAL: Reset aiChat state to prevent prior user's conversation leaking
       store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
 
-      // Fetch user data fresh from API (sets user, role, and permissions)
-      await store.dispatch('auth/fetchUser');
+      // Fetch user data fresh from API (sets user, role, and permissions).
+      // A transient failure here must NOT block navigation: the token is
+      // already stored and committed, so the user is authenticated and the
+      // dashboard re-fetches user data on load. Previously an unhandled
+      // rejection left the user stranded on /login, needing a second
+      // sign-in click to get through.
+      try {
+        await store.dispatch('auth/fetchUser');
+      } catch {
+        // Swallow — proceed to redirect regardless; the app recovers on load.
+      }
       if (typeof gtag === 'function') {
         gtag('event', 'login_success');
       }
@@ -428,7 +437,7 @@ export default {
 
       try {
         await store.dispatch('auth/fetchUser');
-      } catch (e) {
+      } catch {
         // fetchUser failure shouldn't block redirect — token is set.
       }
 

@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome ref="chrome" title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals" :edit-prompt="editPrompt">
+  <MobileChrome ref="chrome" title="Goals and life events" subtitle="Your financial milestones and how they're tracking" :loading="loading" loading-label="your goals" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your goals…</p>
     </div>
@@ -39,13 +39,12 @@
       <div class="m-card">
         <div class="mg-head" style="margin-top:0">
           <p class="m-section-label">Your goals</p>
-          <button type="button" class="mg-action" @click="addGoal">Add goal</button>
         </div>
         <p v-if="!goals.length" class="m-sub" style="margin-bottom:0">
           You haven't set any goals yet.
         </p>
         <div v-else>
-          <div v-for="goal in goals" :key="goal.id" class="mg-goal">
+          <button v-for="goal in goals" :key="goal.id" type="button" class="mg-goal" :data-goal-id="goal.id" @click="openGoal(goal)">
             <div class="mg-goal__head">
               <div class="mg-goal__title-wrap">
                 <span class="mg-goal__name">{{ goal.name || goal.goal_name }}</span>
@@ -60,10 +59,7 @@
               <span class="mg-goal__amounts">{{ fmt(goal.current_amount) }} of {{ fmt(goal.target_amount) }}</span>
               <span class="mg-goal__remaining">{{ remainingLabel(goal) }}</span>
             </div>
-            <div class="mg-goal__actions">
-              <button type="button" class="mg-action" @click="editGoal(goal)">Edit</button>
-            </div>
-          </div>
+          </button>
         </div>
       </div>
     </template>
@@ -75,7 +71,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
-import { buildEditPrompt } from '../../utils/editPrompt.js';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -105,14 +101,14 @@ export default {
       if (!this.totalGoals) return 'No goals set yet.';
       return `${this.fmt(this.totalCurrent)} of ${this.fmt(this.totalTarget)} saved so far.`;
     },
-    editPrompt() {
-      return buildEditPrompt('goals', "I'd like to add a new goal.",
-        this.goals.map((g) => g.name || g.goal_name));
+    contextualRequest() {
+      return this.goalRequest('add');
     },
   },
   async created() { await this.load(); },
   methods: {
     fmt(v) { return formatCurrency(v); },
+    canEditGoal(goal) { return goal?.is_primary_owner !== false; },
     barWidth(goal) {
       const pct = Number(goal.progress_percentage) || 0;
       return `${Math.min(pct, 100)}%`;
@@ -135,12 +131,38 @@ export default {
       return 'Target date passed';
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
-    // Goals add/edit run through Fyn (no standalone goal form on /m), reusing
-    // MobileChrome's openFynWith — the same dock the "Edit details" button uses.
-    addGoal() { this.$refs.chrome?.openFynWith('I\'d like to add a new goal.'); },
-    editGoal(goal) {
-      const name = goal.name || goal.goal_name || 'goal';
-      this.$refs.chrome?.openFynWith(`I'd like to update my "${name}" goal.`);
+    goalRequest(action, goalId = null) {
+      const id = Number(goalId);
+      if (action === 'edit' && Number.isInteger(id) && id > 0) {
+        return buildContextualConversationRequest({
+          action,
+          resourceType: 'goal',
+          resourceId: id,
+          currentDestination: {
+            screen: 'goal_detail',
+            params: { goal_id: id },
+            fallback: 'goals',
+          },
+          origin: { kind: 'surface_action' },
+        });
+      }
+      return buildContextualConversationRequest({
+        action,
+        resourceType: 'goals',
+        resourceId: null,
+        currentDestination: {
+          screen: 'goals',
+          params: {},
+          fallback: 'dashboard',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
+    openGoal(goal) {
+      const id = Number(goal?.id);
+      if (Number.isInteger(id) && id > 0) {
+        this.$router.push({ name: 'm-goal', params: { id } });
+      }
     },
     async load() {
       this.loading = true;
@@ -192,11 +214,8 @@ export default {
 
 .mg-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .mg-head .m-section-label { margin: 0; }
-.mg-action { background: transparent; border: 0; padding: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--raspberry-500); cursor: pointer; }
-.mg-action:active { opacity: 0.7; }
-.mg-goal__actions { display: flex; justify-content: flex-end; margin-top: 8px; }
-
-.mg-goal { padding: 14px 0; border-bottom: 1px solid var(--light-gray); }
+.mg-goal { display: block; width: 100%; padding: 14px 0; border: 0; border-bottom: 1px solid var(--light-gray); background: transparent; text-align: left; cursor: pointer; }
+.mg-goal:active { opacity: 0.72; }
 .mg-goal:first-child { padding-top: 4px; }
 .mg-goal:last-child { border-bottom: 0; padding-bottom: 0; }
 .mg-goal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }

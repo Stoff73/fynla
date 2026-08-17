@@ -8,11 +8,39 @@ struct ExpenditureSummary: Decodable, Sendable, Equatable {
     let monthly: Decimal?
     let annual: Decimal?
     let categories: ExpenditureCategories?
+    let presentation: ExpenditurePresentation
 
     private enum CodingKeys: String, CodingKey {
         case monthly = "monthly_expenditure"
         case annual = "annual_expenditure"
         case categories
+        case presentation
+    }
+}
+
+struct ExpenditurePresentation: Decodable, Sendable, Equatable {
+    let entryMode: String
+    let entryModeLabel: String
+    let activeMonthlyTotal: Decimal
+    let activeAnnualTotal: Decimal
+    let manualMonthlyTotal: Decimal
+    let commitmentsMonthlyTotal: Decimal
+    let totalBasis: String
+    let detailAvailable: Bool
+    let reconciles: Bool
+    let summaryOnlyReason: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case entryMode = "entry_mode"
+        case entryModeLabel = "entry_mode_label"
+        case activeMonthlyTotal = "active_monthly_total"
+        case activeAnnualTotal = "active_annual_total"
+        case manualMonthlyTotal = "manual_monthly_total"
+        case commitmentsMonthlyTotal = "commitments_monthly_total"
+        case totalBasis = "total_basis"
+        case detailAvailable = "detail_available"
+        case reconciles
+        case summaryOnlyReason = "summary_only_reason"
     }
 }
 

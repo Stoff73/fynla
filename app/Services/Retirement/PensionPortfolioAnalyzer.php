@@ -63,7 +63,7 @@ class PensionPortfolioAnalyzer
         // Portfolio analysis using Investment services
         $totalValue = $allHoldings->sum('current_value');
         $returns = $this->portfolioAnalyzer->calculateReturns($allHoldings);
-        $allocation = $this->portfolioAnalyzer->calculateAssetAllocation($allHoldings);
+        $allocation = $this->portfolioAnalyzer->calculateAssetAllocationWithLookThrough($allHoldings);
         $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($allHoldings);
         $riskMetrics = $this->portfolioAnalyzer->calculatePortfolioRisk($allHoldings, $riskProfile);
 

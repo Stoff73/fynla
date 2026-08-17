@@ -47,11 +47,71 @@
                 <input v-model="form.author_byline" type="text" class="w-full border border-horizon-200 rounded px-3 py-2" />
             </div>
 
-            <CoverImagePicker v-model="form.cover_image_path" :html-body="form.html_body" />
+            <CoverImagePicker v-model="form.cover_image_path" :html-body="form.html_body" :article-id="article && article.id" :search-query="form.title" />
+
+            <div class="border border-horizon-200 rounded p-3">
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-sm font-bold text-horizon-700">Campaign</label>
+                    <router-link to="/admin/campaigns" class="text-xs text-raspberry-500 hover:text-raspberry-700 font-semibold">+ New campaign</router-link>
+                </div>
+                <select v-model="form.pipeline_campaign_id" class="w-full border border-horizon-200 rounded px-3 py-2 text-sm">
+                    <option :value="null">— None (default Register CTA) —</option>
+                    <option v-for="c in campaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
+                <p class="text-xs text-horizon-500 mt-1">Linking a campaign swaps the article's bottom call-to-action for the campaign's landing page.</p>
+            </div>
+
+            <div class="border border-horizon-200 rounded p-3">
+                <label class="block text-sm font-bold text-horizon-700 mb-1">Social videos</label>
+                <p v-if="!socialClips.length" class="text-xs text-horizon-500">
+                    {{ socialStatus ? 'Pipeline status: ' + socialStatus + ' — no clips generated yet.' : 'No social clips linked to this article yet.' }}
+                </p>
+                <ul v-else class="space-y-1">
+                    <li v-for="clip in socialClips" :key="clip.index" class="flex items-center justify-between text-sm">
+                        <span class="text-horizon-700">Clip {{ clip.index }} <span class="text-horizon-400">({{ clip.filename }})</span></span>
+                        <a :href="clip.url" target="_blank" rel="noopener" class="text-raspberry-500 hover:text-raspberry-700 font-semibold">Preview</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div v-if="article.status !== 'published'" class="border border-horizon-200 rounded p-3">
+                <label class="block text-sm font-bold text-horizon-700 mb-1">Publish date and time</label>
+                <div class="flex flex-wrap items-center gap-2">
+                    <input
+                        v-model="publishAt"
+                        type="datetime-local"
+                        class="border border-horizon-200 rounded px-3 py-2 text-sm"
+                    />
+                    <button
+                        type="button"
+                        class="text-sm font-bold rounded px-3 py-2 border border-horizon-200 bg-eggshell-100 hover:bg-eggshell-500"
+                        @click="useRecommendedTime"
+                    >Use recommended</button>
+                    <button
+                        type="button"
+                        class="text-sm text-horizon-500 hover:text-raspberry-500 underline"
+                        @click="publishAt = ''"
+                    >Publish immediately</button>
+                </div>
+                <p v-if="recommendation" class="text-xs text-horizon-500 mt-2">
+                    <span class="font-bold text-horizon-700">Recommended:</span> {{ recommendation.reason }}
+                </p>
+                <p v-else class="text-xs text-horizon-500 mt-2">Leave blank to publish straight away.</p>
+                <p v-if="publishAtIsFuture" class="text-xs text-spring-700 mt-1">
+                    This article will stay off the site until then, and go live automatically.
+                </p>
+            </div>
 
             <div class="flex flex-wrap gap-3 pt-4 border-t border-horizon-200">
                 <button class="bg-horizon-700 text-eggshell-50 rounded px-4 py-2 font-bold hover:bg-horizon-800" @click="save">Save</button>
                 <button class="bg-eggshell-100 text-horizon-700 rounded px-4 py-2 font-bold hover:bg-eggshell-500" @click="openPreview">Preview</button>
+                <a
+                    v-if="article.status === 'published'"
+                    :href="`/insights/${form.slug}`"
+                    target="_blank"
+                    rel="noopener"
+                    class="bg-eggshell-100 text-horizon-700 rounded px-4 py-2 font-bold hover:bg-eggshell-500 inline-flex items-center"
+                >Open live</a>
                 <button
                     v-if="article.status !== 'published'"
                     class="bg-raspberry-500 text-eggshell-50 rounded px-4 py-2 font-bold hover:bg-raspberry-600"
@@ -97,6 +157,8 @@ import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CoverImagePicker from '@/components/Admin/Documents/CoverImagePicker.vue';
+import pipelineCampaignsService from '@/services/pipelineCampaignsService';
+import documentArticleService from '@/services/documentArticleService';
 
 export default {
     name: 'DocumentEditor',
@@ -112,7 +174,13 @@ export default {
                 author_byline: '',
                 cover_image_path: null,
                 html_body: '',
+                pipeline_campaign_id: null,
             },
+            campaigns: [],
+            socialClips: [],
+            socialStatus: null,
+            publishAt: '',
+            recommendation: null,
             editor: null,
             successMessage: '',
             errorMessage: '',
@@ -121,18 +189,24 @@ export default {
     computed: {
         ...mapState('documentArticles', ['current']),
         article() { return this.current; },
+        publishAtIsFuture() {
+            return !!this.publishAt && new Date(this.publishAt).getTime() > Date.now();
+        },
     },
     async created() {
         const id = parseInt(this.$route.params.id, 10);
         await this.get(id);
         this.hydrateForm();
         this.mountEditor();
+        this.loadCampaigns();
+        this.loadSocialClips();
+        this.loadPublishRecommendation();
     },
     beforeUnmount() {
         if (this.editor) this.editor.destroy();
     },
     methods: {
-        ...mapActions('documentArticles', ['get', 'update', 'publish', 'unpublish', 'destroy', 'previewUrl']),
+        ...mapActions('documentArticles', ['get', 'update', 'publish', 'unpublish', 'destroy', 'previewUrl', 'publishRecommendation']),
         hydrateForm() {
             if (!this.article) return;
             this.form = {
@@ -144,7 +218,29 @@ export default {
                 author_byline: this.article.author_byline || '',
                 cover_image_path: this.article.cover_image_path,
                 html_body: this.article.html_body || '',
+                pipeline_campaign_id: this.article.pipeline_campaign_id ?? this.article.campaign?.id ?? null,
             };
+        },
+        async loadSocialClips() {
+            if (!this.article?.id) return;
+            try {
+                const { data } = await documentArticleService.socialClips(this.article.id);
+                this.socialClips = data?.data?.clips || [];
+                this.socialStatus = data?.data?.status || null;
+            } catch {
+                this.socialClips = [];
+                this.socialStatus = null;
+            }
+        },
+        async loadCampaigns() {
+            try {
+                const res = await pipelineCampaignsService.list();
+                // The endpoint returns a paginator: { data: { data: [...] } }.
+                const body = res?.data;
+                this.campaigns = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : []);
+            } catch {
+                this.campaigns = [];
+            }
         },
         mountEditor() {
             this.editor = new Editor({
@@ -190,11 +286,30 @@ export default {
             const url = await this.previewUrl(this.article.id);
             window.open(url, '_blank');
         },
+        async loadPublishRecommendation() {
+            if (!this.article?.id || this.article.status === 'published') return;
+            try {
+                this.recommendation = await this.publishRecommendation(this.article.id);
+                // Pre-fill with the recommendation; the approver can override or clear it.
+                if (!this.publishAt) this.publishAt = this.toLocalInput(this.recommendation.recommended_at);
+            } catch {
+                this.recommendation = null;
+            }
+        },
+        useRecommendedTime() {
+            if (this.recommendation) this.publishAt = this.toLocalInput(this.recommendation.recommended_at);
+        },
+        // datetime-local needs 'YYYY-MM-DDTHH:mm' in local time, not an ISO string.
+        toLocalInput(iso) {
+            const d = new Date(iso);
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
         async onPublish() {
             const ok = await this.save({ redirect: false });
             if (!ok) return;
             try {
-                await this.publish(this.article.id);
+                await this.publish({ id: this.article.id, publishedAt: this.publishAt || null });
                 this.$router.push('/admin/documents');
             } catch (e) {
                 this.errorMessage = e?.response?.data?.message || 'Publish failed.';

@@ -27,6 +27,20 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
     let daysRemaining: Int?
     let monthsRemaining: Int?
     let isOnTrack: Bool
+    let isPrimaryOwner: Bool?
+    let description: String?
+    let startDate: String?
+    let currentMilestone: Decimal?
+    let nextMilestone: Decimal?
+    let requiredMonthlyContribution: Decimal?
+    let monthlyContribution: Decimal?
+    let contributionFrequency: String?
+    let contributionStreak: Int?
+    let longestStreak: Int?
+    let lastContributionDate: String?
+    let ownershipType: String?
+    let ownershipPercentage: Decimal?
+    let createdAt: String?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -43,9 +57,24 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
         case daysRemaining = "days_remaining"
         case monthsRemaining = "months_remaining"
         case isOnTrack = "is_on_track"
+        case isPrimaryOwner = "is_primary_owner"
+        case description
+        case startDate = "start_date"
+        case currentMilestone = "current_milestone"
+        case nextMilestone = "next_milestone"
+        case requiredMonthlyContribution = "required_monthly_contribution"
+        case monthlyContribution = "monthly_contribution"
+        case contributionFrequency = "contribution_frequency"
+        case contributionStreak = "contribution_streak"
+        case longestStreak = "longest_streak"
+        case lastContributionDate = "last_contribution_date"
+        case ownershipType = "ownership_type"
+        case ownershipPercentage = "ownership_percentage"
+        case createdAt = "created_at"
     }
 
     var displayName: String { name ?? goalName ?? "Goal" }
+    var detailRoute: AppRoute { .goalDetail(id: id) }
     var typeLabel: String {
         displayGoalType
             ?? goalType?.replacingOccurrences(of: "_", with: " ").capitalized
@@ -63,6 +92,27 @@ struct FinancialGoal: Decodable, Sendable, Equatable, Identifiable {
             return "\(daysRemaining) \(daysRemaining == 1 ? "day" : "days") left"
         }
         return status == "completed" ? "Complete" : "Target date passed"
+    }
+}
+
+struct GoalDetailResponse: Decodable, Sendable, Equatable {
+    let goal: FinancialGoal
+    let milestones: [GoalMilestone]
+}
+
+struct GoalMilestone: Decodable, Sendable, Equatable, Identifiable {
+    let percentage: Decimal?
+    let progressPercentage: Decimal?
+    let reached: Bool?
+
+    var id: String {
+        "\(percentage ?? progressPercentage ?? 0)-\(reached == true)"
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case percentage
+        case progressPercentage = "progress_percentage"
+        case reached
     }
 }
 
@@ -87,6 +137,16 @@ enum GoalsViewState: Sendable, Equatable {
     case loading
     case loaded(GoalsSnapshot)
     case offline(previous: GoalsSnapshot?)
+    case unauthenticated
+    case upgradeRequired(message: String)
+    case failed(requestID: String?)
+}
+
+enum GoalDetailViewState: Sendable, Equatable {
+    case idle
+    case loading
+    case loaded(GoalDetailResponse)
+    case offline(previous: GoalDetailResponse?)
     case unauthenticated
     case upgradeRequired(message: String)
     case failed(requestID: String?)

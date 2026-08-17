@@ -59,7 +59,8 @@ final class InvestmentDefaults
         'emerging_markets' => 'equities',
         'equity' => 'equities',
         'stock' => 'equities',
-        'etf' => 'equities',
+        // ETF alone does not reveal whether exposure is equity, bond or mixed.
+        'etf' => 'unclassified',
         // Bonds
         'bond' => 'bonds',
         'fixed_income' => 'bonds',
@@ -145,7 +146,7 @@ final class InvestmentDefaults
      *  1. If $subType is set and exists in FUND_SUB_TYPES, return that mapping.
      *  2. If $assetType is 'fund' with no recognised $subType, return 'mixed'.
      *  3. Look up $assetType in ASSET_CLASS_MAP.
-     *  4. Fallback to 'equities'.
+     *  4. Fallback to 'unclassified'.
      */
     public static function resolveAssetClass(string $assetType, ?string $subType = null): string
     {
@@ -159,7 +160,7 @@ final class InvestmentDefaults
             return 'mixed';
         }
 
-        return self::ASSET_CLASS_MAP[$normalised] ?? 'equities';
+        return self::ASSET_CLASS_MAP[$normalised] ?? 'unclassified';
     }
 
     /**
