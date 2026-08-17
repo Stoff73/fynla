@@ -81,3 +81,39 @@ it('exposes no banned acronym in any tool schema text', function (string $catalo
         implode("\n  ", $violations)
     ));
 })->with('fyn tool catalogues');
+
+/**
+ * SPEC-crud-handler-contract C7 — the same rule, one layer further out.
+ *
+ * A handler's `message` is printed to the user verbatim (that is what made the
+ * C6 model-instruction leak visible), so it is Fyn's vocabulary just as much as
+ * a tool description is. Two acronyms reached users this way — "Recorded your
+ * {type} LPA." and "No LPA with that ID found" — and the schema sweep above
+ * could not see them.
+ */
+it('exposes no banned acronym in a handler message', function (): void {
+    // Not app_path() — this file is read, not executed, so the source is enough.
+    $source = file_get_contents(__DIR__.'/../../app/Agents/CoordinatingAgent.php');
+
+    preg_match_all('/\'message\' => (?:\'([^\']*)\'|"([^"]*)")/', (string) $source, $matches, PREG_SET_ORDER);
+
+    expect($matches)->not->toBeEmpty('No handler messages found — the regex has drifted from the source.');
+
+    $violations = [];
+    foreach ($matches as $match) {
+        $text = $match[1] !== '' ? $match[1] : ($match[2] ?? '');
+        $haystack = str_replace(RULE9_NOT_ACRONYMS, '', $text);
+
+        foreach (RULE9_BANNED as $acronym) {
+            if (preg_match('/(?<![A-Za-z])'.preg_quote($acronym, '/').'(?![A-Za-z])/', $haystack) === 1) {
+                $violations[] = sprintf('"%s" uses "%s"', mb_strimwidth($text, 0, 80, '…'), $acronym);
+            }
+        }
+    }
+
+    expect($violations)->toBe([], sprintf(
+        "Rule 9 violated in %d handler message(s) — spell these out in full:\n  %s",
+        count($violations),
+        implode("\n  ", $violations)
+    ));
+});
