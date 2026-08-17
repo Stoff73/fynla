@@ -124,6 +124,7 @@ final class FynLoop
         ?string $providerOverride = null,
         ?array $confirmedFacts = null,
         ?string $explicitEditEntityType = null,
+        ?int $explicitEditRecordId = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
@@ -135,7 +136,7 @@ final class FynLoop
             // Same instance-pairing discipline as the focus above. Marks this turn as
             // the user ANSWERING Fyn's own outstanding question about that entity, so
             // amending the record is explicit rather than assumed (CSJ 2026-08-17).
-            $this->coordinatingAgent->setExplicitEditEntityType($explicitEditEntityType);
+            $this->coordinatingAgent->setExplicitEditEntityType($explicitEditEntityType, $explicitEditRecordId);
         }
         if ($confirmedFacts !== null && $confirmedFacts !== []) {
             // Same instance-pairing discipline as the focus above:

@@ -169,18 +169,35 @@ trait HasAiChat
      */
     private ?string $explicitEditEntityType = null;
 
-    public function setExplicitEditEntityType(?string $entityType): void
+    /** The record that question was about. The permission is scoped to it. */
+    private ?int $explicitEditRecordId = null;
+
+    public function setExplicitEditEntityType(?string $entityType, ?int $recordId = null): void
     {
         $this->explicitEditEntityType = $entityType;
+        $this->explicitEditRecordId = $recordId;
     }
 
     /**
      * True when the user is answering Fyn's own outstanding question about this
      * entity type, which makes an amendment to it explicit rather than assumed.
      */
-    protected function isExplicitEditTurnFor(string $entityType): bool
+    protected function isExplicitEditTurnFor(string $entityType, ?int $recordId = null): bool
     {
         if ($this->explicitEditEntityType === null) {
+            return false;
+        }
+
+        // Scoped to the record the question was about, never to the type.
+        //
+        // CSJ's rule licenses amending the record Fyn just asked about — "Sip"
+        // answers "workplace or Self-Invested Personal Pension?" for THAT
+        // pension. Read as a type-wide permission it also licenses editing an
+        // unrelated record of the same type: live 2026-08-17, answering a
+        // priority question about a NEW house-deposit goal overwrote an
+        // existing goal's £25,000 target with £20,000, silently. Without a
+        // known record there is no permission, so the write handler asks.
+        if ($this->explicitEditRecordId === null || $recordId !== $this->explicitEditRecordId) {
             return false;
         }
 
@@ -1250,6 +1267,37 @@ trait HasAiChat
         $messageMetadata['turn_intent'] = ($this->personaOverride === 'data_capture'
             ? FynTurnIntent::CaptureAck
             : FynTurnIntent::AdviceAnswer)->value;
+
+        // Did a write actually land on this capture turn?
+        //
+        // AdviceFyn::captureContinuationIntent has to know whether the user
+        // still owes us something, and it used to infer that from the presence
+        // of tool_calls plus a question mark in the text. A capture that CALLED
+        // a write tool and had it rejected (the accuracy gate returning
+        // clarification_required) looks identical to one that succeeded, and the
+        // deterministic failure copy we compose has no question mark in it — so
+        // the user's answer fell through to read-only advice, which then
+        // narrated "Recorded." over a write that never happened (live
+        // conversation 157, 2026-08-17). Recording the fact removes the guess.
+        if ($this->personaOverride === 'data_capture') {
+            // The record this capture turn wrote or asked about — the next
+            // turn's explicit-edit permission is scoped to it.
+            $messageMetadata['capture_record_id'] = collect($fullToolResults)
+                ->map(fn (array $result): mixed => is_array($result['raw'] ?? null)
+                    ? ($result['raw']['entity_id'] ?? null)
+                    : null)
+                ->filter(fn (mixed $id): bool => is_int($id) || (is_string($id) && ctype_digit($id)))
+                ->map(fn (mixed $id): int => (int) $id)
+                ->last();
+
+            $messageMetadata['capture_write_landed'] = collect($fullToolResults)
+                ->contains(function (array $result): bool {
+                    $raw = $result['raw'] ?? null;
+
+                    return is_array($raw) && collect(array_keys(self::ENTITY_EVENTS))
+                        ->contains(fn (string $flag): bool => ($raw[$flag] ?? false) === true);
+                });
+        }
 
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,

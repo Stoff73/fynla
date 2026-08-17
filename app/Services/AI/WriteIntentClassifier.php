@@ -83,8 +83,17 @@ final class WriteIntentClassifier
             'credit card', 'personal loan', 'student loan', 'car finance',
             'overdraft', 'loan',
         ],
+        // A goal is often stated without the word "goal": what marks it is
+        // saving TOWARDS something. "I want to save 20000 for a house deposit
+        // by June 2030" routed to property on the incidental word "house" and
+        // the capture turn, told to record a property the user never mentioned,
+        // answered with the prompt-injection refusal instead (live conversation
+        // 157, 2026-08-17).
         'goal' => [
             'savings goal', 'goal', 'target',
+            'save for', 'saving for', 'saving up for', 'save towards', 'saving towards',
+            'put aside for', 'putting aside for', 'set aside for',
+            'house deposit', 'deposit for',
         ],
     ];
 
@@ -151,6 +160,16 @@ final class WriteIntentClassifier
         // conservative false-positive contract (verb required, question
         // guard) is untouched.
         $goalKeyword = $this->firstMatch($normalised, self::ENTITY_KEYWORDS['goal']);
+
+        // Saving TOWARDS something, with the amount in between: "save 20000 for
+        // a house deposit". The keyword list cannot express that gap, and the
+        // gap is the common phrasing.
+        if ($goalKeyword === null
+            && preg_match('/\b(?:save|saving|saving up|put aside|putting aside|set aside)\b[^.!?]{0,40}\bfor\b/', $normalised, $goalMatch) === 1
+        ) {
+            $goalKeyword = trim($goalMatch[0]);
+        }
+
         if ($goalKeyword !== null) {
             return $this->buildResult('goal', $matchedVerb, $goalKeyword);
         }

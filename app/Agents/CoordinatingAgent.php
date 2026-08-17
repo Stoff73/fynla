@@ -3212,7 +3212,7 @@ class CoordinatingAgent extends BaseAgent
             $canonical,
             $input,
             $user,
-            fn (string $type): bool => $this->isExplicitEditTurnFor($type),
+            fn (string $type, ?int $recordId): bool => $this->isExplicitEditTurnFor($type, $recordId),
         );
 
         if ($result !== null && ($result['updated'] ?? false)) {

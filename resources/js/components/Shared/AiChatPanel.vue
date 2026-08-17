@@ -892,16 +892,16 @@ export default {
             await this.postAction('skip');
         },
 
-        /**
-         * Phase 13 — record-card "View" button. Navigates to the relevant
-         * module page for the captured record.
-         */
         isEntityWriteRole(role) {
             // entity_created / entity_updated / entity_deleted. These carry the
             // confirmation data; the visible card is capture_complete.
             return typeof role === 'string' && role.startsWith('entity_');
         },
 
+        /**
+         * Phase 13 — record-card "View" button. Navigates to the relevant
+         * module page for the captured record.
+         */
         handleRecordView(record) {
             // The server resolves the page (GateRoutes::forEntityType) and sends
             // it on the record row, so every surface links to the same place.
@@ -1285,7 +1285,7 @@ export default {
             if (msg.role === 'user') {
                 return 'bg-raspberry-500 text-white';
             }
-            if (msg.role === 'navigation' || isEntityWriteRole(msg.role) || msg.role === 'action') {
+            if (msg.role === 'navigation' || this.isEntityWriteRole(msg.role) || msg.role === 'action') {
                 return 'bg-transparent p-0';
             }
             // Pinned by tests/Feature/Fyn/CaptureCompleteStylingTest.php —

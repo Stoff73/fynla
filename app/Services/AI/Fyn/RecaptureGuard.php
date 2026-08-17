@@ -237,7 +237,7 @@ final class RecaptureGuard
     /**
      * @param  array<string, mixed>  $payload  canonical column => value, as the handler would write it
      * @param  array<string, mixed>  $input  the raw tool input — a field only counts if the USER supplied it (C4)
-     * @param  callable(string): bool  $isExplicitEdit  is the user answering Fyn's own question about this entity? (C3)
+     * @param  callable(string, ?int): bool  $isExplicitEdit  is the user answering Fyn's own question about THIS record? (C3)
      * @return array<string, mixed>|null null when there is no match and the handler should carry on and create
      */
     public function inspect(
@@ -425,7 +425,7 @@ final class RecaptureGuard
 
         // C3 — answering Fyn's own outstanding question IS explicit, so a
         // conflicting value applies rather than raising a second question.
-        if ($conflicts !== [] && $isExplicitEdit($entityType)) {
+        if ($conflicts !== [] && $isExplicitEdit($entityType, (int) $existing->id)) {
             foreach ($conflicts as $column => $pair) {
                 $fills[$column] = $pair['proposed'];
             }

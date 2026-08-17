@@ -167,7 +167,9 @@ it('applies a conflicting value when the user is answering Fyns own question', f
 
     // Fyn asked "workplace or Self-Invested Personal Pension?"; the user said "Sip".
     // That answer is explicit, so it lands rather than asking a second question.
-    $agent->setExplicitEditEntityType('pension');
+    // The permission names the record the question was about — see the test below
+    // for why it cannot be granted for the type at large.
+    $agent->setExplicitEditEntityType('pension', $id);
 
     $second = $method->invoke($agent, [
         'pension_category' => 'dc',
@@ -179,6 +181,47 @@ it('applies a conflicting value when the user is answering Fyns own question', f
     expect(DCPension::find($id)->pension_type)->toBe('sipp');
     expect((float) DCPension::find($id)->current_fund_value)->toBe(45000.0);
     expect(DCPension::where('user_id', $user->id)->count())->toBe(1);
+
+    $agent->setExplicitEditEntityType(null);
+});
+
+it('does not let an edit permission for one pension amend a different one', function (): void {
+    // Live 2026-08-17: answering a question about a NEW goal ("high priority,
+    // 300 a month") carried a permission scoped to the TYPE, and the recapture
+    // guard applied it to a pre-existing goal of the same name — overwriting a
+    // £25,000 target with £20,000, silently. CSJ's rule licenses amending the
+    // record Fyn asked about, and only that one.
+    $user = User::factory()->create();
+    $agent = app(CoordinatingAgent::class);
+    $method = new ReflectionMethod(CoordinatingAgent::class, 'handleCreatePension');
+    $method->setAccessible(true);
+
+    $asked = $method->invoke($agent, [
+        'pension_category' => 'dc',
+        'scheme_name' => 'Aviva Pension',
+        'scheme_type' => 'workplace',
+        'current_fund_value' => 45000,
+    ], $user, false);
+
+    $other = $method->invoke($agent, [
+        'pension_category' => 'dc',
+        'scheme_name' => 'Standard Life Pension',
+        'scheme_type' => 'workplace',
+        'current_fund_value' => 30000,
+    ], $user, false);
+
+    // Permission granted for the Aviva pension Fyn asked about.
+    $agent->setExplicitEditEntityType('pension', $asked['entity_id']);
+
+    // A re-capture of the OTHER pension with a different value must still ask.
+    $result = $method->invoke($agent, [
+        'pension_category' => 'dc',
+        'scheme_name' => 'Standard Life Pension',
+        'current_fund_value' => 1000,
+    ], $user, false);
+
+    expect($result['error_type'] ?? null)->toBe('confirm_edit_required');
+    expect((float) DCPension::find($other['entity_id'])->current_fund_value)->toBe(30000.0);
 
     $agent->setExplicitEditEntityType(null);
 });

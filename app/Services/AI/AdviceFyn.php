@@ -411,6 +411,10 @@ final class AdviceFyn
                 // DIRECTOR's agent instance, and CoordinatingAgent is
                 // container-transient, so a flag set here would silently not apply.
                 'is_continuation' => $isCaptureContinuation,
+                // Only the record Fyn asked about may be amended without asking.
+                'continuation_record_id' => $isCaptureContinuation
+                    ? ($intent['pending_record_id'] ?? null)
+                    : null,
             ]);
 
             Log::info('[AdviceFyn] Deterministic write-intent routed', [
@@ -457,7 +461,7 @@ final class AdviceFyn
      * capture question, when the user is asking something (route to advice),
      * or when no earlier message classifies.
      *
-     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string, pending_record_id?: int|null}|null
      */
     private function captureContinuationIntent(AiConversation $conversation, string $message): ?array
     {
@@ -492,9 +496,27 @@ final class AdviceFyn
         // further has actually concluded.
         $stillAsking = str_contains((string) $lastAssistant->content, '?');
 
-        if (! empty($lastAssistant->tool_calls) && ! $stillAsking) {
+        // A capture concluded only if something was actually WRITTEN. Reading
+        // "it called a tool" as "it captured" is what broke live conversation
+        // 157: the model called create_savings_account, the accuracy gate
+        // rejected it as unevidenced ownership, and our deterministic failure
+        // line ("I couldn't save that — I need you to confirm whether you own it
+        // individually…") carries no question mark. Both signals said
+        // "concluded", the user's answer routed to read-only advice, and Fyn
+        // told them it was "Recorded" with nothing in the database.
+        //
+        // The write result is recorded on the row (HasAiChat). Older rows
+        // predate the flag, so they keep the previous reading.
+        $metadata = $lastAssistant->metadata ?? [];
+        $landedWrite = array_key_exists('capture_write_landed', $metadata)
+            ? (bool) $metadata['capture_write_landed']
+            : ! empty($lastAssistant->tool_calls);
+
+        if ($landedWrite && ! $stillAsking) {
             return null;
         }
+
+        $pendingRecordId = $metadata['capture_record_id'] ?? null;
 
         $recentUserMessages = $conversation->messages()
             ->where('role', 'user')

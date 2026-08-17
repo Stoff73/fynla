@@ -41,6 +41,12 @@ final class CaptureContext
      *                                is explicit — so the write handler may amend that record
      *                                directly. A fresh message that merely name-matches is
      *                                ambiguous and must ask first.
+     * @param  int|null  $continuationRecordId  The record Fyn's outstanding question was ABOUT.
+     *                                          The permission is scoped to it: answering "high
+     *                                          priority" about a goal being created must not
+     *                                          license editing a different goal that happens to
+     *                                          share its name (live 2026-08-17: a £25,000 house
+     *                                          deposit target was overwritten with £20,000).
      */
     public function __construct(
         public readonly string $reason,
@@ -49,6 +55,7 @@ final class CaptureContext
         public readonly ?string $pendingAdviceQuestion = null,
         public readonly ?string $originatingFocus = null,
         public readonly bool $isContinuation = false,
+        public readonly ?int $continuationRecordId = null,
     ) {
         if (trim($reason) === '') {
             throw new InvalidArgumentException('CaptureContext reason must not be empty.');
@@ -100,6 +107,9 @@ final class CaptureContext
             // Never LLM-supplied — set only by the deterministic continuation branch
             // in AdviceFyn, so the model cannot grant itself edit permission.
             isContinuation: (bool) ($payload['is_continuation'] ?? false),
+            continuationRecordId: isset($payload['continuation_record_id'])
+                ? (int) $payload['continuation_record_id']
+                : null,
         );
     }
 

@@ -4220,9 +4220,19 @@ PROMPT;
             ->map(fn (array $failure): string => trim((string) ($failure['message'] ?? '')))
             ->first(fn (string $message): bool => $message !== '' && $message !== 'The write failed.');
 
-        return is_string($reason)
-            ? "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.'
-            : null;
+        if (! is_string($reason)) {
+            return null;
+        }
+
+        // A reason already phrased as a question is a request for one more
+        // detail, not a failure report. Asking it plainly is what a person
+        // would do; wrapping it in an apology and a system instruction is what
+        // we used to do, and it read as broken (CSJ 2026-08-17, live).
+        if (str_ends_with($reason, '?')) {
+            return $reason;
+        }
+
+        return "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.';
     }
 
     /**
@@ -6409,7 +6419,10 @@ PROMPT;
         // the LLM dispatch — same both-paths discipline as confirmedFacts above,
         // because CoordinatingAgent is container-transient.
         if ($context->isContinuation) {
-            $this->coordinatingAgent->setExplicitEditEntityType($context->entityTypes[0] ?? null);
+            $this->coordinatingAgent->setExplicitEditEntityType(
+                $context->entityTypes[0] ?? null,
+                $context->continuationRecordId,
+            );
         }
 
         try {
@@ -6507,6 +6520,7 @@ PROMPT;
             unifiedFocus: $unifiedFocus,
             confirmedFacts: $confirmedFacts,
             explicitEditEntityType: $context->isContinuation ? ($context->entityTypes[0] ?? null) : null,
+            explicitEditRecordId: $context->isContinuation ? $context->continuationRecordId : null,
         );
 
         foreach ($generator as $event) {
