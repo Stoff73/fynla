@@ -22,3 +22,5 @@
 {"ts":"2026-08-14T14:45:00Z","agent":"quality-lead","item":"GATE-0002","event":"done","note":"12 edits applied across 6 CLAUDE.md + new ios-native/CLAUDE.md; 3 incidental findings: settings.json was invalid JSON (all hooks off), plaintext SSH passphrase removed (ROTATE), rmdir-hooks allow-rule removed"}
 {"ts":"2026-08-14T16:30:46Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-14.md"}
 {"ts":"2026-08-14T16:30:49Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}
+{"ts":"2026-08-17T16:30:14Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-17.md"}
+{"ts":"2026-08-17T16:30:15Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}

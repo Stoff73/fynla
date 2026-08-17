@@ -3206,7 +3206,20 @@ class CoordinatingAgent extends BaseAgent
         array $input,
         User $user,
     ): array {
-        $updates = [];
+        // CSJ 2026-08-17, superseding the first version of this method: an edit,
+        // amendment or change MUST be explicit. Merging on a name match is an
+        // assumption, and a wrong one loses data — "I have an Aviva pension worth
+        // 60000" would have silently overwritten a 45000 balance that might belong
+        // to a different pension entirely.
+        //
+        // So this splits three ways:
+        //   fill      — the record has no value for the field yet. Unambiguous.
+        //   conflict  — the record holds a DIFFERENT value. Never written here; Fyn
+        //               must ask "are we editing X?" and the user must confirm.
+        //   identical — nothing to do.
+        $fills = [];
+        $conflicts = [];
+
         foreach (self::PENSION_RECAPTURE_FIELDS as $canonicalField => $inputField) {
             if (! array_key_exists($canonicalField, $canonical)) {
                 continue;
@@ -3215,30 +3228,64 @@ class CoordinatingAgent extends BaseAgent
             if ($supplied === null || $supplied === '') {
                 continue;
             }
-            $updates[$canonicalField] = $canonical[$canonicalField];
+
+            $incoming = $canonical[$canonicalField];
+            $current = $existing->{$canonicalField};
+
+            if ($current === null || $current === '' || (is_numeric($current) && (float) $current === 0.0)) {
+                $fills[$canonicalField] = $incoming;
+            } elseif ($current != $incoming) {
+                $conflicts[$canonicalField] = ['current' => $current, 'proposed' => $incoming];
+            }
         }
 
-        $changed = array_keys(array_filter(
-            $updates,
-            fn (mixed $value, string $field): bool => $existing->{$field} != $value,
-            ARRAY_FILTER_USE_BOTH,
-        ));
+        if ($conflicts !== []) {
+            return [
+                'error' => true,
+                'error_type' => 'confirm_edit_required',
+                'entity_type' => $entityType,
+                'entity_id' => $existing->id,
+                'name' => $existing->scheme_name,
+                'conflicts' => $conflicts,
+                // User-facing. The failure path surfaces `message` verbatim in chat,
+                // so it must read as Fyn speaking — an imperative aimed at the model
+                // leaks straight into the conversation (seen live 2026-08-17).
+                'message' => "You already have a pension recorded as \"{$existing->scheme_name}\" with different details. "
+                    ."Is this the same pension you'd like me to update, or a separate one?",
+                'model_directive' => 'Do not write anything until the user confirms whether this is an edit to the '
+                    ."existing \"{$existing->scheme_name}\" pension or a separate pension. If separate, record it "
+                    .'under a name that distinguishes it.',
+            ];
+        }
 
-        if ($changed !== []) {
-            $existing->fill(array_intersect_key($updates, array_flip($changed)))->save();
+        if ($fills !== []) {
+            $existing->fill($fills)->save();
             $this->invalidateUserCache($user->id);
+
+            return [
+                'success' => true,
+                'updated' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $existing->id,
+                'name' => $existing->scheme_name,
+                'updated_fields' => array_keys($fills),
+                'message' => "I've completed your \"{$existing->scheme_name}\" pension.",
+            ];
         }
 
+        // Everything the user gave already matches. Per CSJ: do not assume a
+        // duplicate — ask whether this is a separate pension.
         return [
-            'success' => true,
-            'updated' => true,
+            'error' => true,
+            'error_type' => 'confirm_duplicate_required',
             'entity_type' => $entityType,
             'entity_id' => $existing->id,
             'name' => $existing->scheme_name,
-            'updated_fields' => $changed,
-            'message' => $changed === []
-                ? "Your \"{$existing->scheme_name}\" pension is already recorded with those details."
-                : "I've updated your \"{$existing->scheme_name}\" pension.",
+            // User-facing, for the same reason as the conflict branch above.
+            'message' => "You already have a pension recorded as \"{$existing->scheme_name}\" with exactly these details. "
+                .'Is this a separate pension you also hold, or the same one?',
+            'model_directive' => 'Do not add a second record on the assumption it is a duplicate. If the user confirms '
+                .'it is a separate pension, record it under a name that distinguishes it from the existing one.',
         ];
     }
 
