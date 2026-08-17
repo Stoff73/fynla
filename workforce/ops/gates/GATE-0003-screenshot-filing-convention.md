@@ -4,10 +4,10 @@ workstream: quality
 item: null
 action: Add a screenshot-filing convention to root CLAUDE.md so agent-generated PNGs land in screenshots/YYYY-MM/ instead of the repo root
 raised: 2026-08-17T07:45:00Z
-decided_by: null
-decided_at: null
-decision: null
-status: proposed
+decided_by: CSJ
+decided_at: 2026-08-17T08:17:00Z
+decision: approve
+status: approved — awaiting founder application (guard denied the agent edit)
 ---
 
 ## What is being asked
@@ -49,26 +49,30 @@ Hence the gate.
 
 ## The edit
 
-Root `CLAUDE.md`, appended to the existing **Scratchpad Directory** guidance
-(which already tells agents where temporary files go, but says nothing about
-screenshots, which are deliberately *kept*):
+**Anchor corrected 2026-08-17.** The first draft of this gate said the text
+should append to a "Scratchpad Directory" section of root `CLAUDE.md`. **That
+section does not exist in the file** — the scratchpad guidance is injected by the
+harness environment prompt, not written in `CLAUDE.md`. Verified by `grep`: zero
+matches for `Scratchpad`, `scratchpad` or `screenshot` in `CLAUDE.md`.
+
+Corrected anchor: **`## Working Style`**, as a new bolded-lead paragraph directly
+after the existing `**Long sessions.**` entry (`CLAUDE.md:114`). That matches the
+section's established form — every entry there is `**Topic.** prose`.
+
+Exact strings for `Edit`:
 
 ```
-NEW (add as its own short subsection):
+OLD:
+**Long sessions.** Context compacts automatically — don't wrap up early over token worries. For multi-window work, save progress to a file (git log, progress note, `CSJTODO.md`).
 
-### Screenshots
+NEW:
+**Long sessions.** Context compacts automatically — don't wrap up early over token worries. For multi-window work, save progress to a file (git log, progress note, `CSJTODO.md`).
 
-Browser/Playwright screenshots you intend to keep go in
-`screenshots/YYYY-MM/` (create the month folder if absent) — **never the repo
-root**. The directory is gitignored, so nothing here reaches the repo; the rule
-exists because 173 loose PNGs made the root unreadable by 2026-08-17.
-
-Throwaway captures taken mid-investigation belong in the session scratchpad
-instead, not in `screenshots/`.
+**Screenshots.** Browser/Playwright captures you intend to keep go in `screenshots/YYYY-MM/` (create the month folder if absent) — **never the repo root**. The directory is gitignored, so nothing reaches the repo; the rule exists because 173 loose PNGs made the root unreadable by 2026-08-17. Throwaway captures taken mid-investigation belong in the session scratchpad, not in `screenshots/`.
 ```
 
-That is the whole change: one subsection, no rule renumbering, no edit to any
-existing line.
+One added paragraph. No existing line changed, no rule renumbered, no section
+added or moved.
 
 ## What happens if held
 
@@ -83,4 +87,32 @@ this decision.
 
 ## Decision and reasoning
 
-_Pending CSJ._
+**CSJ: APPROVE — 2026-08-17** ("yes agree that is fine", following the summary of
+this gate).
+
+**Not yet applied.** The agent attempted the `Edit` after approval and
+`oversight-guard.sh` denied it:
+
+```
+BLOCKED: rank-1 under 00-precedence §1 — it outranks the trunk
+(workforce/core/charter.md §2).
+```
+
+This is the guard behaving correctly. Verbal approval in a session does not
+disable a `PreToolUse` hook — the guard has no channel through which to learn a
+decision was made. Same position GATE-0002 reached: CSJ applied it by editing
+`.claude/settings.json` to drop the guard entry for the duration.
+
+**To apply, either:**
+
+1. Paste the `NEW` block above into `CLAUDE.md` after line 114 directly, or
+2. Remove the `oversight-guard` entry from the `Write|Edit` hooks array in
+   `.claude/settings.json`, have the agent apply it, then restore the entry.
+
+If option 2 is used, remove the entry **structurally** — do not comment it out.
+GATE-0002 recorded that `//` comments make `settings.json` invalid JSON, which
+silently disables *every* hook including `dangerous-command-guard` and
+`prod-guard`.
+
+The filing half of CSJ's instruction is already complete and needed no gate;
+only the prevention rule is outstanding.
