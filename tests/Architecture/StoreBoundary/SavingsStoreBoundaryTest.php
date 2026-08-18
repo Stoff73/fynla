@@ -87,6 +87,15 @@ arch('SavingsAccount mutations and reads only happen inside the savings canonica
         //    (handleListRecords 'savings_account' arm) is migrated to
         //    SavingsStore::forUser().
         'App\Agents\CoordinatingAgent',
+        //  - RecaptureGuard (SPEC-crud-handler-contract 5): the one place that
+        //    decides what a re-capture of an existing record does. It reads the
+        //    user's records to find the match and fills BLANK fields only - a
+        //    conflicting value is never written, it raises a question. This is
+        //    the same direct write CoordinatingAgent::mergePensionRecapture did
+        //    before it was extracted here; routing each fill through the Store
+        //    (so a merge carries IngestSource provenance like a create does) is
+        //    open work, not settled.
+        'App\Services\AI\Fyn\RecaptureGuard',
         //  - ISAContributionLedger accepts an already ownership-scoped
         //    SavingsAccount and uses SavingsAccount::class only as the
         //    polymorphic source discriminator for the canonical ISA ledger.

@@ -90,6 +90,14 @@ final class OnboardingStateMachine
 
     public const STATE_DONE = 'done';
 
+    /**
+     * The user declined both onboarding paths and wants to get on with
+     * something else. Onboarding pauses rather than completes: the step
+     * pointer is nulled so every later turn routes to advice Fyn, while
+     * onboarding_completed stays false because they have not onboarded.
+     */
+    public const STATE_FREE_CHAT = 'free_chat';
+
     // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign).
     // Hangs off STATE_PROFILE_REVIEW_EXPENDITURE; bypasses STATE_ASSET_CAPTURE.
     // STATE_CAMPAIGN_INTRO is the consent gate before the asset/liability capture
@@ -367,6 +375,13 @@ final class OnboardingStateMachine
                 'bubbles' => [
                     ['id' => 'journey', 'label' => 'Follow a journey'],
                     ['id' => 'focus', 'label' => 'Pick a focus'],
+                    // CSJ 2026-08-18: without a third door this state was a
+                    // dead end. Anything that is not one of the two labels gets
+                    // "Sorry, I didn't catch that. Please pick one of the
+                    // options above." — so a returning user who wanted to ask
+                    // something, or add one record, could not get past the
+                    // front page of onboarding, on any surface, ever.
+                    ['id' => 'skip', 'label' => 'Something else'],
                 ],
                 'capture_field' => 'onboarding_fyn_path',
                 'next' => self::class.'::nextFromPathChoice',
@@ -995,6 +1010,12 @@ final class OnboardingStateMachine
                 'capture_field' => null,
                 'next' => self::class.'::nextFromAddMore',
             ],
+            self::STATE_FREE_CHAT => [
+                'turn_type' => 'terminal',
+                'prompt_text' => 'No problem. What would you like help with?',
+                'capture_field' => null,
+                'next' => null,
+            ],
             self::STATE_DONE => [
                 'turn_type' => 'terminal',
                 'prompt_text' => 'All set, {first_name}. Your {selection} module is ready to explore.',
@@ -1221,6 +1242,10 @@ final class OnboardingStateMachine
         $normalised = mb_strtolower(trim($answer));
         if (str_contains($normalised, 'journey')) {
             return self::STATE_JOURNEY_SELECTION;
+        }
+
+        if (str_contains($normalised, 'skip') || str_contains($normalised, 'something else')) {
+            return self::STATE_FREE_CHAT;
         }
 
         return self::STATE_FOCUS_SELECTION;

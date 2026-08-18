@@ -1,5 +1,44 @@
 # CSJTODO — Fynla
 
+*Last updated: 2026-08-17 — pre-debugging catch-up. Branch brought fully up to
+date: `origin/dev` (161 commits, PRs #672–#694) plus the three unmerged codex
+branches merged in, zero conflicts bar stale README counts. Root PNGs filed,
+month-folder convention normalised to `AugustNNUpdates`, `docs/INDEX.md` created.
+Survey: August/August17Updates/repo-state-2026-08-17.md.*
+
+## 2026-08-17 — catch-up and clean-up
+
+- [x] **Merge `origin/dev` + all unmerged codex branches** into `fix/widow-persona-cleanup` — DONE. `codex/ios-m-testflight-hotfix`, `codex/ios-package7-platform-release`, `codex/repository-context-tooling`. All four now report 0 unmerged commits.
+- [x] **Root PNG sweep** — 173 loose `.png` filed into `screenshots/YYYY-MM/` (May 7, June 112, July 54). Root 297 → 127 entries. `/screenshots/` gitignored.
+- [x] **Month-folder convention** normalised to `AugustNNUpdates` in repo AND vault (`Aug12/13/14/15/17` → `August12/13/14/15/17`).
+- [x] **`docs/` pointer** — `docs/INDEX.md` indexes all 176 dated docs; regenerate with `August/August17Updates/regen-docs-index.sh`. `August12Updates/` 16 byte-identical duplicates replaced with a pointer README (checksum-verified before removal, repo + vault).
+- [x] **Apple StoreKit bridge venv** created (`.venv/apple-store`, Python 3.12 + `requirements.lock`). Merged code fataled `php artisan route:list` without it; 804 routes resolve now. `.venv/` gitignored.
+- [ ] **GATE-0003 raised** — screenshot-filing convention for root `CLAUDE.md` (gated path). Awaiting CSJ.
+- [ ] **32 pending migrations** not run (9 July iOS/Apple + 23 from `dev`). Awaiting CSJ.
+- [ ] **Commit + push** the clean-up (merges are committed; doc/gitignore changes are not).
+- [ ] `main` is **719 behind `dev`** and 28 ahead (doc commits that skipped `dev`). A release needs those reconciled.
+- [ ] README stat counts are stale (`Vue Components 675` etc.) — untouched during conflict resolution.
+
+## 2026-08-14 — docs, guards, worktrees
+
+- [ ] **Install the guard consolidation** — `workforce/ops/proposed-guard.sh` replaces all five PreToolUse guards; 59/59 regression suite passes. Founder-gated, so CSJ applies: `mv` into `.claude/hooks/guard.sh`, `chmod +x`, delete the five originals, collapse the `PreToolUse` block to one entry (matcher `Write|Edit|Bash|mcp__ssh-fynla__ssh_exec`). Re-run the suite against the installed path after.
+- [x] **Guard test cases rescued** into `.claude/hooks/tests/` (59 cases). Note: the proposed guard widens `PROTECTED` to the `.claude/hooks` prefix, which would gate this tests dir too — an agent could no longer add a regression case unaided. Probably right (guard changes are gated anyway), but decide deliberately.
+- [ ] **Revisit GATE-0001.** Its premise is falsified: `main` and `dev` both have `required_approving_review_count: 0`, `require_code_owner_reviews: false`, no required status checks, `enforce_admins: false`. Nothing mechanically stops `claude.yml` self-merging to dev.
+- [~] **Root sweep** — PNG half DONE 2026-08-17 (173 filed to `screenshots/`, root 297→127). Still open: `create_trial.php`, a ProjectionLab JSON with CSJ's email in the filename, `addepar.md`/`addeparIntegrate.pdf` — none verified safe to delete.
+- [ ] **`.worktrees/` holds 14 clones of OTHER repos** (FynlaMCP ×9, fynla-agents, fynla-control, fynlaBrain) — ~250 MB, all clean. Relocate?
+- [ ] **`fynla-marketing-review` worktree** has 10 modified tracked files + 2 new tests uncommitted (pipeline controllers, `ClipApprovalService`, `routes/web.php`). Commit or discard.
+- [ ] **Upgrade git** — currently 2.10.1 (2016). No `worktree remove`, `branch --show-current`, or `stash push -- <path>`.
+- [ ] Hook commands use absolute paths in tracked `settings.json` — `$CLAUDE_PROJECT_DIR` fixes it. Gated.
+- [ ] 19 agent definitions with overlapping remits and no routing rule (`product-manager` vs `product-lead`; `design-lead` vs `premium-ui-designer` vs `ux-writing-expert`).
+- [ ] `enabledPlugins.github` contradicts between `settings.json` (true) and `settings.local.json` (false).
+- [x] ~~Rebase `fix/widow-persona-cleanup` on `origin/dev`~~ — done 2026-08-17 as a **merge** (branch already pushed, so no history rewrite). 0 behind.
+- [x] CLAUDE.md audit + repair across all 6 files — DONE (`705bf9b`). Report: August/Aug14Updates/claude-context-audit-2026-08-14.md.
+- [x] New `ios-native/CLAUDE.md` — DONE. 240 Swift files previously undocumented.
+- [x] iOS TestFlight login failure — DIAGNOSED, user error. TestFlight build is `Fynla-Staging` → csjones DB; testers must register on csjones.co/fynla, not fynla.org. Now in root CLAUDE.md + memory.
+- [x] Worktrees 13→4, ~2.2 GB reclaimed, 7 stale CLAUDE.md copies gone — DONE.
+- [x] Production SSH passphrase found in plaintext in `settings.local.json` — removed; key rotated by CSJ.
+- [x] Allow-list carried standing permission to `rmdir .claude/hooks/` — removed.
+
 *Last updated: 2026-07-24 — end-of-day wrap (evening). Merge train complete:
 #670 (E2E loop fixes) + #671 (journey verify loop — every data entry) + #672
 (PSA joint-interest share) all admin-merged to dev per CSJ; csjones on dev

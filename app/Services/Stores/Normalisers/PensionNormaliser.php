@@ -73,12 +73,22 @@ class PensionNormaliser
             return $canonical;
         }
 
-        $pensionType = match ($toolParams['scheme_type'] ?? 'workplace') {
+        // CSJ 2026-08-17: the default is ALWAYS a personal pension. It used to be
+        // 'occupational', so an unstated or unrecognised scheme type silently
+        // became a workplace pension — the 2026-08-17 "Sip" incident, where the
+        // user said SIPP and got "Aviva workplace pension" recorded.
+        //
+        // Matched case-insensitively: the tool schema advertises lowercase values
+        // but the model naturally emits "SIPP", and a case-sensitive match sent
+        // every one of those to the default arm.
+        $rawSchemeType = strtolower(trim((string) ($toolParams['scheme_type'] ?? '')));
+
+        $pensionType = match ($rawSchemeType) {
             'workplace', 'occupational' => 'occupational',
-            'sipp', 'self_invested' => 'sipp',
-            'personal', 'personal_pension' => 'personal',
+            'sipp', 'self_invested', 'self-invested' => 'sipp',
             'stakeholder' => 'stakeholder',
-            default => 'occupational',
+            'personal', 'personal_pension' => 'personal',
+            default => 'personal',
         };
 
         $canonical = [

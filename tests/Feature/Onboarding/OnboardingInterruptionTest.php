@@ -48,6 +48,9 @@ function scriptedFynClientWithText(string $text): void
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    // The front door now hands unclaimed messages to advice Fyn, which reads
+    // tier configuration through the guardrails.
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 function interruptionUser(string $step = OnboardingStateMachine::STATE_PATH_CHOICE): array
@@ -136,15 +139,26 @@ function driveDirectorWithScriptedCaptureTurn(User $user, AiConversation $conver
     return ['events' => $received, 'captured_message' => $capturedMessage];
 }
 
-it('still emits the plain retry for unclassifiable free text', function () {
+it('steps out of the front door rather than re-asking forever', function () {
+    // Was: unclassifiable free text at path_choice got "Sorry, I didn't catch
+    // that. Please pick one of the options above." and stayed put — so a user
+    // who had logged in before, and wanted neither offered path, could not get
+    // past the first screen on any surface (CSJ 2026-08-18, live on /m).
+    //
+    // Now the front door yields: onboarding pauses (step null, completed still
+    // false) and advice Fyn takes the message. The interruption handling above
+    // is untouched — store offers and inline module answers still keep the walk
+    // going, and deeper states still re-ask.
     [$user, $conversation] = interruptionUser();
 
     $received = driveDirector($user, $conversation, 'asdf qwerty');
 
     $texts = collect($received)->where('type', 'content')->pluck('text');
-    expect($texts->first(fn ($t) => str_contains($t, "didn't catch that")))->not->toBeNull();
+    expect($texts->first(fn ($t) => str_contains($t, "didn't catch that")))->toBeNull();
+
     $user->refresh();
-    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+    expect($user->onboarding_fyn_step)->toBeNull()
+        ->and($user->onboarding_completed)->toBeFalse();
 });
 
 it('offers to store volunteered write-intent information and parks the pending flag', function () {
@@ -687,28 +701,31 @@ it('defers a holistic question with a promise and parks it on the conversation',
     expect(collect($received)->where('type', 'quick_replies')->count())->toBeGreaterThan(0);
 });
 
-it('falls through to the plain retry when a question-shaped message does not classify', function () {
-    // QueryClassifier::classify() always returns a string `primary`
-    // (defaulting to `general`), so no real phrasing drives the
-    // `$primary === null` branch in handleQuestionInterruption — mock it
-    // directly, the same pattern AdviceFynHandoffErrorTest and
-    // AssistantHonestyOnWriteFailureTest use to force this exact shape.
-    $classifier = Mockery::mock(QueryClassifier::class);
-    $classifier->shouldReceive('classify')->andReturn(['primary' => null, 'related' => []]);
-    app()->instance(QueryClassifier::class, $classifier);
-
+it('answers a question at the front door instead of re-asking', function () {
+    // This used to force `primary => null` through a mocked QueryClassifier to
+    // drive the fall-through in handleQuestionInterruption, and asserted the
+    // plain retry. That branch no longer ends in a retry at path_choice — it
+    // ends in the user getting out (CSJ 2026-08-18) — and driving a null
+    // primary through the whole advice stack only exercises a shape the real
+    // classifier never returns (its own note: `classify()` always returns a
+    // string primary, defaulting to `general`).
+    //
+    // So this now asserts the contract that matters to a user: ask something at
+    // the front door and you are not held there.
     [$user, $conversation] = interruptionUser();
 
     $received = driveDirector($user, $conversation, 'why though?');
 
+    // A question is CLAIMED by the interruption handler and answered inline,
+    // which is better than leaving: the user gets their answer and the walk is
+    // still there. What must never happen is the retry loop.
     $texts = collect($received)->where('type', 'content')->pluck('text');
-    expect($texts->first(fn ($t) => str_contains($t, "didn't catch that")))->not->toBeNull();
-
-    $conversation->refresh();
-    expect($conversation->metadata['deferred_questions'] ?? null)->toBeNull();
+    // (No assertion on the answer's text: this suite binds an empty scripted
+    // AI client, so the inline answer streams nothing here.)
+    expect($texts->first(fn ($t) => str_contains($t, "didn't catch that")))->toBeNull();
 
     $user->refresh();
-    expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_PATH_CHOICE);
+    expect($user->onboarding_completed)->toBeFalse();
 });
 
 // ── Task 5: deferred questions raised at both completion terminals ─────────

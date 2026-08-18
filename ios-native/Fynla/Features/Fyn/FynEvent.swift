@@ -6,6 +6,27 @@ struct FynLevelUp: Sendable, Equatable {
     let nextActions: [String]
 }
 
+/// A record Fyn created, edited or deleted, and the page it lives on.
+///
+/// SPEC-crud-handler-contract 5.4: `route` is resolved server-side (GateRoutes)
+/// so every client links to the same place. This used to decode `name` alone,
+/// which meant the identity and the destination were discarded before the
+/// reducer ever saw them and native structurally could not offer the link.
+struct FynEntityWrite: Sendable, Equatable {
+    enum Action: String, Sendable {
+        case created
+        case updated
+        case deleted
+    }
+
+    let action: Action
+    let entityType: String?
+    let entityID: Int?
+    let name: String?
+    let route: String?
+    let label: String?
+}
+
 enum FynEvent: Sendable, Equatable {
     case text(String)
     case conversationCreated(String)
@@ -18,7 +39,7 @@ enum FynEvent: Sendable, Equatable {
     case consentRequired
     case handoffError(String)
     case error(String)
-    case entityCreated(name: String?)
+    case entityWrite(FynEntityWrite)
     case captureComplete(summary: String?)
     case quickReplies(prompt: String?, replies: [FynReply], actionReplies: Bool)
     case skipLink(FynReply)
@@ -63,8 +84,21 @@ struct FynEventDecoder: Sendable {
             return .handoffError(frame.message ?? "Fyn could not pick up that request.")
         case "error":
             return .error(frame.message ?? "Fyn could not complete that request.")
-        case "entity_created":
-            return .entityCreated(name: frame.name)
+        case "entity_created", "entity_updated", "entity_deleted":
+            let action = FynEntityWrite.Action(
+                rawValue: String(frame.type.dropFirst("entity_".count))
+            ) ?? .created
+
+            return .entityWrite(
+                FynEntityWrite(
+                    action: action,
+                    entityType: frame.entityType,
+                    entityID: frame.entityID,
+                    name: frame.name,
+                    route: frame.route,
+                    label: frame.label
+                )
+            )
         case "capture_complete":
             return .captureComplete(summary: frame.summary)
         case "quick_replies":
@@ -122,9 +156,15 @@ private struct FynEventFrame: Decodable {
     let actionBubbles: Bool?
     let skipLink: FynSkipLink?
     let action: String?
+    let entityType: String?
+    let entityID: Int?
+    let route: String?
+    let label: String?
 
     private enum CodingKeys: String, CodingKey {
-        case type, text, message, section, level, name, summary, bubbles, action
+        case type, text, message, section, level, name, summary, bubbles, action, route, label
+        case entityType = "entity_type"
+        case entityID = "entity_id"
         case conversationID = "conversation_id"
         case messageID = "message_id"
         case routePath = "route_path"

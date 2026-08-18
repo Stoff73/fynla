@@ -851,7 +851,6 @@ Persona data loaded from `resources/js/data/personas/{persona_id}.json`.
 |---|---|---|---|
 | peak_earners (David Mitchell) | 1 policy: Vitality Level Term £500k, £85/mo, in trust | 1 policy: L&G Standalone £200k, £125/mo | None |
 | young_family (James Carter) | 1 policy: L&G Level Term £350k, £32/mo, NOT in trust | None | None |
-| widow (Margaret Thompson) | TBC | TBC | TBC |
 | entrepreneur (Alex Chen) | TBC | TBC | TBC |
 | young_saver (John Morgan) | TBC | TBC | TBC |
 | retired_couple (Robert Williams) | TBC | TBC | TBC |

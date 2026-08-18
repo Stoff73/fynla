@@ -19,6 +19,7 @@ use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Shared per-turn chat loop (CoALA Phase 5 items 4 + 5, Option B).
@@ -74,9 +75,10 @@ final class FynLoop
      * template, so for a normal question the planner chooses `reason`.
      */
     private const PLANNER_SYSTEM_PROMPT = <<<'PROMPT'
-        You are Fyn's turn planner. Read the user's latest message and choose the single next action for this turn by calling the `plan` tool exactly once.
+        You are Fyn's turn planner. Read the conversation so far, then choose the single next action for the user's latest message by calling the `plan` tool exactly once.
 
         - For a normal question, request, or anything you can answer or act on now, choose `reason`.
+        - A short or fragmentary message is usually the user ANSWERING the question in the previous assistant turn (for example "yes", "workplace", "45000", "the second one"). Read it in that context and choose `reason` — never discard an answer as unactionable.
         - Choose `no_action` only when you genuinely cannot proceed this turn.
 
         Do not write any prose. Emit exactly one `plan` tool call.
@@ -121,12 +123,20 @@ final class FynLoop
         ?array $verifyEditScope = null,
         ?string $providerOverride = null,
         ?array $confirmedFacts = null,
+        ?string $explicitEditEntityType = null,
+        ?int $explicitEditRecordId = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
         }
         if ($verifyEditScope !== null) {
             $this->coordinatingAgent->setVerifyEditScope($verifyEditScope);
+        }
+        if ($explicitEditEntityType !== null) {
+            // Same instance-pairing discipline as the focus above. Marks this turn as
+            // the user ANSWERING Fyn's own outstanding question about that entity, so
+            // amending the record is explicit rather than assumed (CSJ 2026-08-17).
+            $this->coordinatingAgent->setExplicitEditEntityType($explicitEditEntityType, $explicitEditRecordId);
         }
         if ($confirmedFacts !== null && $confirmedFacts !== []) {
             // Same instance-pairing discipline as the focus above:
@@ -157,6 +167,9 @@ final class FynLoop
             }
             if ($confirmedFacts !== null && $confirmedFacts !== []) {
                 $this->coordinatingAgent->setConfirmedCaptureFacts(null);
+            }
+            if ($explicitEditEntityType !== null) {
+                $this->coordinatingAgent->setExplicitEditEntityType(null);
             }
         }
     }
@@ -199,7 +212,7 @@ final class FynLoop
         for ($cycle = 1; $cycle <= $cap; $cycle++) {
             $action = $this->planner->plan(
                 $plannerSystem,
-                [['role' => 'user', 'content' => $message]],
+                $this->plannerMessages($conversation, $message),
             );
 
             // FR-M11 — attribute the planner's own LLM call (stage=planner).
@@ -417,6 +430,51 @@ final class FynLoop
         );
 
         yield from $this->interceptHandoff($upstream, $user, $conversation, $message, $currentRoute);
+    }
+
+    /** How many prior turns the planner sees. Enough for a question-and-answer pair. */
+    private const PLANNER_HISTORY_TURNS = 6;
+
+    /** Per-message cap so history cannot inflate the planner's input cost. */
+    private const PLANNER_HISTORY_CHARS = 600;
+
+    /**
+     * Build the planner's message list: recent conversation history, then the
+     * user's current message last.
+     *
+     * BUG-02 (2026-08-17): this used to be `[['role' => 'user', 'content' => $message]]`
+     * — the latest message and nothing else. A terse answer to a question Fyn had
+     * just asked ("Sip", "yes", "workplace", "45000") therefore reached the planner
+     * with no context, so it decided it could not proceed, returned `no_action`, and
+     * the answer was discarded behind the canonical defer line. Reproduced live: the
+     * user answered "Sip" to Fyn's own scheme-type question and nothing was
+     * persisted, not even the user message.
+     *
+     * @return list<array<string, string>>
+     */
+    private function plannerMessages(AiConversation $conversation, string $message): array
+    {
+        $history = $conversation->messages()
+            ->whereIn('role', ['user', 'assistant'])
+            ->latest('id')
+            ->limit(self::PLANNER_HISTORY_TURNS)
+            ->get()
+            ->reverse()
+            ->map(fn ($row): array => [
+                'role' => (string) $row->role,
+                'content' => Str::limit((string) $row->content, self::PLANNER_HISTORY_CHARS),
+            ])
+            ->values()
+            ->all();
+
+        // The turn being planned. `run()` may or may not have persisted it yet
+        // (see $persistUserMessage), so append it unless it is already the tail.
+        $last = end($history);
+        if ($last === false || $last['role'] !== 'user' || $last['content'] !== $message) {
+            $history[] = ['role' => 'user', 'content' => $message];
+        }
+
+        return $history;
     }
 
     /**

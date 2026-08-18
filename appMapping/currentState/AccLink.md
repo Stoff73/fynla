@@ -651,7 +651,6 @@ Notification sent when one spouse requests data sharing permission. Contains a l
 |---------|---------|--------|--------------|
 | young_family | James Carter | Emily Carter | Active spouse |
 | peak_earners | David Mitchell | Sarah Mitchell | Active spouse |
-| widow | Margaret Thompson | (none) | Deceased (not created) |
 | entrepreneur | Alex Chen | (none) | Single |
 | young_saver | John Morgan | (none) | Single |
 | retired_couple | Robert Williams | Patricia Williams | Active spouse |

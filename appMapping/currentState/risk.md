@@ -1176,7 +1176,6 @@ Each level has: `bg`, `text`, `border`, and `combined` (bg + text + border) Tail
 |------|
 | `resources/js/data/personas/young_family.json` |
 | `resources/js/data/personas/peak_earners.json` |
-| `resources/js/data/personas/widow.json` |
 | `resources/js/data/personas/entrepreneur.json` |
 | `resources/js/data/personas/young_saver.json` |
 | `resources/js/data/personas/retired_couple.json` |

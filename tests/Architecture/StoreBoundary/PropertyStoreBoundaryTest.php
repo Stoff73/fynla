@@ -112,6 +112,15 @@ $propertyConsumers = [
     //    only; all property write tools and read calls now route through
     //    PropertyStore.
     'App\Agents\CoordinatingAgent',
+    //  - RecaptureGuard (SPEC-crud-handler-contract 5): the one place that
+    //    decides what a re-capture of an existing record does. It reads the
+    //    user's records to find the match and fills BLANK fields only - a
+    //    conflicting value is never written, it raises a question. This is
+    //    the same direct write CoordinatingAgent::mergePensionRecapture did
+    //    before it was extracted here; routing each fill through the Store
+    //    (so a merge carries IngestSource provenance like a create does) is
+    //    open work, not settled.
+    'App\Services\AI\Fyn\RecaptureGuard',
     //  - DocumentTypeDetector + PropertyMapper: Property::class used as
     //    a dispatch key in the upload field-mapper registry. Non-query
     //    class-name references only.

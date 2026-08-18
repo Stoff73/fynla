@@ -1490,8 +1490,6 @@ class PreviewUserSeeder extends Seeder
     {
         if ($personaId === 'peak_earners') {
             $this->createPeakEarnerLpas($user, $spouse);
-        } elseif ($personaId === 'widow') {
-            $this->createWidowLpas($user);
         }
     }
 
@@ -1712,112 +1710,12 @@ class PreviewUserSeeder extends Seeder
     }
 
     /**
-     * Create LPAs for widow (Margaret Thompson).
-     */
-    private function createWidowLpas(User $user): void
-    {
-        // Property & Financial Affairs (registered)
-        $pfLpa = LastingPowerOfAttorney::create([
-            'user_id' => $user->id,
-            'lpa_type' => 'property_financial',
-            'status' => 'registered',
-            'source' => 'uploaded',
-            'donor_full_name' => $user->name,
-            'donor_date_of_birth' => $user->date_of_birth,
-            'donor_address_line_1' => '7 Rose Cottage Lane',
-            'donor_address_city' => 'Bath',
-            'donor_address_county' => 'Somerset',
-            'donor_address_postcode' => 'BA1 5NR',
-            'attorney_decision_type' => 'jointly',
-            'when_attorneys_can_act' => 'only_when_lost_capacity',
-            'preferences' => 'I would prefer my son to be the lead attorney for day-to-day financial decisions. I would like my existing charitable donations to the Royal British Legion and Macmillan Cancer Support to continue.',
-            'instructions' => 'My attorneys must not sell my main residence at 7 Rose Cottage Lane without the written agreement of both my children. Any investment decisions must be made jointly.',
-            'certificate_provider_name' => 'Dr Helen Cross',
-            'certificate_provider_relationship' => 'GP',
-            'certificate_provider_known_years' => 15,
-            'registration_date' => '2023-11-20',
-            'opg_reference' => 'LP-2023-0612845',
-            'is_registered_with_opg' => true,
-            'completed_at' => '2023-10-15',
-        ]);
-
-        // Primary attorney: son
-        LpaAttorney::create([
-            'lasting_power_of_attorney_id' => $pfLpa->id,
-            'attorney_type' => 'primary',
-            'full_name' => 'Richard Thompson',
-            'date_of_birth' => '1982-07-19',
-            'relationship_to_donor' => 'Son',
-            'sort_order' => 0,
-        ]);
-
-        // Replacement attorney: daughter
-        LpaAttorney::create([
-            'lasting_power_of_attorney_id' => $pfLpa->id,
-            'attorney_type' => 'replacement',
-            'full_name' => 'Catherine Thompson',
-            'date_of_birth' => '1985-02-11',
-            'relationship_to_donor' => 'Daughter',
-            'sort_order' => 0,
-        ]);
-
-        LpaNotificationPerson::create([
-            'lasting_power_of_attorney_id' => $pfLpa->id,
-            'full_name' => 'Susan Clarke',
-            'address_line_1' => '15 Lansdown Road',
-            'address_city' => 'Bath',
-            'address_postcode' => 'BA1 5EE',
-            'sort_order' => 0,
-        ]);
-
-        // Health & Welfare (draft — not yet registered)
-        $hwLpa = LastingPowerOfAttorney::create([
-            'user_id' => $user->id,
-            'lpa_type' => 'health_welfare',
-            'status' => 'draft',
-            'source' => 'created',
-            'donor_full_name' => $user->name,
-            'donor_date_of_birth' => $user->date_of_birth,
-            'donor_address_line_1' => '7 Rose Cottage Lane',
-            'donor_address_city' => 'Bath',
-            'donor_address_county' => 'Somerset',
-            'donor_address_postcode' => 'BA1 5NR',
-            'attorney_decision_type' => 'jointly',
-            'life_sustaining_treatment' => 'can_consent',
-            'preferences' => 'I would prefer to remain in my own home for as long as possible. If I require residential care, I would prefer a facility in Bath or the surrounding area so my friends and family can visit easily.',
-            'instructions' => 'My attorneys must consult with my GP, Dr Helen Cross, before making decisions about changes to my medication or treatment plan.',
-        ]);
-
-        // Primary attorney: son
-        LpaAttorney::create([
-            'lasting_power_of_attorney_id' => $hwLpa->id,
-            'attorney_type' => 'primary',
-            'full_name' => 'Richard Thompson',
-            'date_of_birth' => '1982-07-19',
-            'relationship_to_donor' => 'Son',
-            'sort_order' => 0,
-        ]);
-
-        // Replacement attorney: daughter
-        LpaAttorney::create([
-            'lasting_power_of_attorney_id' => $hwLpa->id,
-            'attorney_type' => 'replacement',
-            'full_name' => 'Catherine Thompson',
-            'date_of_birth' => '1985-02-11',
-            'relationship_to_donor' => 'Daughter',
-            'sort_order' => 0,
-        ]);
-    }
-
-    /**
      * Create Will Documents (Will Builder) for specific personas.
      */
     private function createWillDocuments(User $user, ?User $spouse, string $personaId): void
     {
         if ($personaId === 'peak_earners') {
             $this->createMitchellWillDocuments($user, $spouse);
-        } elseif ($personaId === 'widow') {
-            $this->createWidowWillDocument($user);
         } elseif ($personaId === 'retired_couple') {
             $this->createRetiredCoupleWillDocuments($user, $spouse);
         }
@@ -1920,58 +1818,6 @@ class PreviewUserSeeder extends Seeder
             if ($spouseWill) {
                 $spouseWill->update(['will_document_id' => $sarahDoc->id]);
             }
-        }
-    }
-
-    /**
-     * Simple will for Margaret Thompson.
-     */
-    private function createWidowWillDocument(User $user): void
-    {
-        $will = Will::where('user_id', $user->id)->first();
-
-        $doc = WillDocument::create([
-            'user_id' => $user->id,
-            'will_id' => $will?->id,
-            'will_type' => 'simple',
-            'status' => 'complete',
-            'testator_full_name' => $user->name,
-            'testator_address' => '7 Rose Cottage Lane, Bath, Somerset, BA1 5NR',
-            'testator_date_of_birth' => $user->date_of_birth,
-            'testator_occupation' => 'Retired Teacher',
-            'executors' => [
-                ['name' => 'Andrew Thompson', 'address' => '12 Lansdown Crescent, Bath, BA1 5EX', 'relationship' => 'Son'],
-                ['name' => 'Smithson Solicitors LLP', 'address' => '4 Queen Square, Bath, BA1 2HE', 'relationship' => 'Professional Executor'],
-            ],
-            'guardians' => null,
-            'specific_gifts' => [
-                ['beneficiary_name' => 'Cotswold Care Hospice', 'type' => 'cash', 'amount' => 25000, 'description' => null, 'conditions' => null],
-                ['beneficiary_name' => 'St Lawrence Church, Bourton', 'type' => 'cash', 'amount' => 5000, 'description' => null, 'conditions' => null],
-                ['beneficiary_name' => 'Catherine Williams', 'type' => 'item', 'amount' => null, 'description' => 'Engagement ring and pearl necklace from my late husband Harold', 'conditions' => null],
-            ],
-            'residuary_estate' => [
-                ['beneficiary_name' => 'Andrew Thompson', 'percentage' => 40, 'substitution_beneficiary' => 'His children in equal shares'],
-                ['beneficiary_name' => 'Catherine Williams', 'percentage' => 40, 'substitution_beneficiary' => 'Her children in equal shares'],
-                ['beneficiary_name' => 'Grandchildren Education Trust', 'percentage' => 15, 'substitution_beneficiary' => null],
-                ['beneficiary_name' => 'Richard Thompson', 'percentage' => 5, 'substitution_beneficiary' => 'His children in equal shares'],
-            ],
-            'funeral_preference' => 'burial',
-            'funeral_wishes_notes' => 'To be buried alongside my late husband Harold at St Lawrence Churchyard, Bourton-on-the-Water. A traditional Church of England service. Hymns: The Lord Is My Shepherd and Dear Lord and Father of Mankind.',
-            'digital_executor_name' => 'Andrew Thompson',
-            'digital_assets_instructions' => 'Email and online banking credentials are in the blue folder in the bureau in the front room. Facebook account to be memorialised.',
-            'survivorship_days' => 28,
-            'domicile_confirmed' => 'england_wales',
-            'signed_date' => '2023-06-15',
-            'witnesses' => [
-                ['name' => 'Dr Helen Cross', 'address' => 'Pulteney Practice, 35 Great Pulteney Street, Bath, BA2 4BY', 'occupation' => 'General Practitioner', 'date' => '2023-06-15'],
-                ['name' => 'Mary Jenkins', 'address' => '4 Rose Cottage Lane, Bath, BA1 5NR', 'occupation' => 'Retired Nurse', 'date' => '2023-06-15'],
-            ],
-            'generated_at' => '2023-06-10 14:00:00',
-            'last_edited_at' => '2023-06-10 14:00:00',
-        ]);
-
-        if ($will) {
-            $will->update(['will_document_id' => $doc->id]);
         }
     }
 
@@ -2581,10 +2427,6 @@ class PreviewUserSeeder extends Seeder
             'peak_earners' => [
                 'selections' => $allJourneys,
                 'states' => $buildStates(completed: $allJourneys),
-            ],
-            'widow' => [
-                'selections' => ['estate', 'protection'],
-                'states' => $buildStates(completed: ['estate', 'protection']),
             ],
             'entrepreneur' => [
                 'selections' => ['business', 'investment', 'retirement'],

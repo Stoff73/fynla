@@ -103,6 +103,74 @@ describe('desktop Fyn stream event parity', () => {
     }, { root: true });
   });
 
+  it('carries the server-resolved page onto every entity write message', async () => {
+    // SPEC-crud-handler-contract 5.4 — the route comes from the server so the
+    // panel stops keeping its own table (it had one until 2026-08-17, the
+    // fourth copy). An edit and a delete had no event at all before this.
+    aiChatService.sendMessageStream.mockResolvedValue(streamReader([
+      {
+        type: 'entity_created',
+        entity_type: 'savings_account',
+        entity_id: 7,
+        name: 'Cash ISA',
+        route: '/savings',
+        mobile_route: '/savings',
+        label: 'Bank Accounts',
+      },
+      {
+        type: 'entity_updated',
+        entity_type: 'dc_pension',
+        entity_id: 9,
+        name: 'Aviva Pension',
+        route: '/retirement',
+        mobile_route: '/retirement',
+        label: 'Retirement',
+      },
+      {
+        type: 'entity_deleted',
+        entity_type: 'dc_pension',
+        entity_id: 9,
+        name: 'Aviva Pension',
+        route: '/retirement',
+        mobile_route: '/retirement',
+        label: 'Retirement',
+      },
+      { type: 'done', message_id: 51 },
+    ]));
+
+    const localState = {
+      ...aiChat.state,
+      currentConversation: { id: 10, title: 'Fyn' },
+      messages: [],
+      conversations: [],
+      streamingText: '',
+      error: null,
+    };
+    const commit = (name, payload) => aiChat.mutations[name](localState, payload);
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    await aiChat.actions.sendMessage({
+      commit,
+      dispatch,
+      state: localState,
+      rootState: { route: { path: '/dashboard' } },
+    }, { message: 'Add my Cash ISA' });
+
+    const writes = localState.messages.filter((message) => message.role.startsWith('entity_'));
+
+    expect(writes.map((message) => message.role)).toEqual([
+      'entity_created',
+      'entity_updated',
+      'entity_deleted',
+    ]);
+    expect(writes[0].metadata).toMatchObject({
+      entity_type: 'savings_account',
+      entity_id: 7,
+      route: '/savings',
+      label: 'Bank Accounts',
+    });
+  });
+
   it('renders a subscription action after the accurate at-cap reply', async () => {
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
       { type: 'content', text: "You've reached your plan's limit of 2 goals. To add more, upgrade your plan." },

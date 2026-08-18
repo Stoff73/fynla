@@ -37,7 +37,7 @@ return new class extends Migration
         }
 
         // Guard against re-application.
-        $exists = collect(\DB::select(
+        $exists = collect(DB::select(
             "SELECT 1 FROM information_schema.STATISTICS
              WHERE TABLE_SCHEMA = DATABASE()
                AND TABLE_NAME = 'audit_logs'
@@ -60,7 +60,7 @@ return new class extends Migration
             return;
         }
 
-        $exists = collect(\DB::select(
+        $exists = collect(DB::select(
             "SELECT 1 FROM information_schema.STATISTICS
              WHERE TABLE_SCHEMA = DATABASE()
                AND TABLE_NAME = 'audit_logs'

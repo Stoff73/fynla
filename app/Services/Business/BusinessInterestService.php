@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Business;
 
+use App\Exceptions\FinancialCalculationException;
 use App\Models\BusinessInterest;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -175,7 +176,7 @@ class BusinessInterestService
         // seeding/deploy bug, not something to paper over.
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
         if (! isset($cgtConfig['business_asset_disposal_relief_rate'])) {
-            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+            throw FinancialCalculationException::taxConfigError(
                 'business_asset_disposal_relief_rate',
                 'BADR rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
             );
@@ -187,13 +188,13 @@ class BusinessInterestService
         // are 0.24 / 0.18 — silently falling back would surface 4-percentage-point
         // wrong tax advice on every non-BADR business sale. Fail loud.
         if (! isset($cgtConfig['higher_rate'])) {
-            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+            throw FinancialCalculationException::taxConfigError(
                 'higher_rate',
                 'CGT higher rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
             );
         }
         if (! isset($cgtConfig['basic_rate'])) {
-            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+            throw FinancialCalculationException::taxConfigError(
                 'basic_rate',
                 'CGT basic rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
             );

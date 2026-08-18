@@ -2,7 +2,7 @@
 procedure_id: 'savings.tool.create_investment_account'
 kind: tool_schema
 module: savings
-version: 2
+version: 3
 active: true
 effective_from: 2026-06-11
 ---
@@ -16,7 +16,7 @@ effective_from: 2026-06-11
         "properties": {
             "account_name": {
                 "type": "string",
-                "description": "Name of the account (e.g., \"Vanguard Stocks & Shares ISA\", \"Hargreaves Lansdown GIA\", \"Octopus VCT\")"
+                "description": "Name of the account (e.g., \"Vanguard Stocks & Shares ISA\", \"Hargreaves Lansdown General Investment Account\", \"Octopus VCT\")"
             },
             "account_type": {
                 "type": "string",
@@ -71,11 +71,11 @@ effective_from: 2026-06-11
             },
             "annual_dividend_income": {
                 "type": "number",
-                "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (GIA, shares); omit for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
+                "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (General Investment Account, shares); omit for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
             },
             "isa_subscription_current_year": {
                 "type": "number",
-                "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; omit for GIA and other taxable accounts."
+                "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; omit for General Investment Account and other taxable accounts."
             },
             "bond_purchase_date": {
                 "type": "string",

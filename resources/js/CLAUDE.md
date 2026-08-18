@@ -9,7 +9,7 @@ This file supplements the root `CLAUDE.md` with frontend-specific patterns.
 - `app.js` - Bootstraps Vue app with Router, Vuex, VueApexCharts, `v-preview-disabled` directive
 - `App.vue` - Root component, renders `<router-view />`, fetches user data on mount
 - `router/index.js` - All routes with lazy loading (`() => import(...)`)
-- `store/index.js` - 33 namespaced Vuex modules
+- `store/index.js` - namespaced Vuex modules
 
 ## Router
 
@@ -23,7 +23,7 @@ This file supplements the root `CLAUDE.md` with frontend-specific patterns.
 
 ## Vuex Store Pattern
 
-All 33 modules are `namespaced: true` and follow this structure:
+All modules are `namespaced: true` and follow this structure:
 
 ```javascript
 // State: data + loading + error
@@ -86,7 +86,7 @@ import { previewModeMixin } from '@/mixins/previewModeMixin';
 
 | File | Purpose |
 |------|---------|
-| `designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, `PRIMARY_COLORS` (Raspberry), `SECONDARY_COLORS` (Horizon), `SUCCESS_COLORS` (Spring), `WARNING_COLORS` (Violet) — aligned with `fynlaDesignGuide.md` v1.2.0 palette |
+| `designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, `PRIMARY_COLORS` (Raspberry), `SECONDARY_COLORS` (Horizon), `SUCCESS_COLORS` (Spring), `WARNING_COLORS` (Violet) — aligned with `fynlaDesignGuide.md` v1.3.1 palette |
 | `eventIcons.js` | `LIFE_EVENT_ICONS` - maps event types to icon names |
 | `eventIconSvgs.js` | `EVENT_ICON_SVGS` - inline SVG components for life event icons |
 | `goalIcons.js` | `GOAL_TYPE_ICONS`, `getGoalIcon()` - maps goal types to emoji icons |
@@ -149,37 +149,8 @@ Blocks element interaction in preview mode. Adds disabled state, tooltip, and cl
 - **AppLayout** - Authenticated pages: Navbar, PreviewBanner, content slot (`max-w-7xl`), Footer, InfoGuidePanel
 - **PublicLayout** - Public pages: navigation, login/register buttons, footer
 
-## Mobile App (Capacitor)
+## Mobile — not in this directory
 
-Mobile views live in `mobile/` with their own layout (`MobileLayout.vue`) and routes under `/m/`.
+The `/m` mobile SPA is **`resources/mobile/`**, an isolated bundle with its own router, store and API client. Nothing under `resources/js/` is shared with it — a fix here does not reach `/m`. The native iOS app is **`ios-native/`** (SwiftUI, see `ios-native/CLAUDE.md`). Both are covered in root `CLAUDE.md` → Mobile Clients.
 
-**Store modules:** `mobileDashboard`, `mobileNotifications`, `aiChat` (shared with web)
-
-**Data normalisation:** Backend returns raw module fields. The `normaliseModule()` function in `mobileDashboard.js` transforms them into the shape expected by `ModuleSummaryCard` (`metric_type`, `metric_value`, `status`, `subtitle`) and `ModuleSummary` (`hero_metric.formatted`, `hero_metric.value`, `fyn_summary`, `details[]`).
-
-**Platform detection:** `import { platform } from '@/utils/platform'` — `platform.isNative()`, `platform.isIOS()`, `platform.canUseBiometrics()`
-
-**External URLs in mobile:** Never use `window.location.origin` (returns `capacitor://localhost`). Use `import.meta.env.VITE_API_BASE_URL || 'https://fynla.org'`.
-
-**SSE streaming:** `aiChatService.sendMessageStream()` uses raw `fetch()` (not axios) for streaming. On Capacitor, needs `credentials: 'omit'` and fallback for `response.body` being null.
-
-**Biometric (Face ID) login:**
-- Credentials stored in iOS Keychain via `@capgo/capacitor-native-biometric` (token as `password`, email as `username`, server `fynla.org`)
-- Mobile logout uses `auth/mobileLogout` (clears local state, keeps server token valid) — NEVER use `auth/logout` on mobile or biometric breaks
-- `app.js` calls `attemptBiometricLogin()` on startup when no token in Preferences
-- `BiometricPrompt.vue` is a bottom-sheet modal shown on dashboard via `?biometricSetup=1` query param
-- `SettingsList.vue` has a Face ID toggle at the top of the settings list
-- Key files: `appLifecycle.js` (biometric login + app lifecycle), `BiometricPrompt.vue` (setup modal), `SettingsList.vue` (toggle), `MobileLoginScreen.vue` (fallback Face ID button)
-
-**Voice Input (`VoiceInputButton.vue`):**
-- Uses `@capacitor-community/speech-recognition` v6.0.1 for native iOS, Web Speech API fallback for browser
-- **Continuous listening mode** — mic stays active until user explicitly taps again
-- **NEVER call `stop()` then `start()`** — causes fatal Swift crash (nil unwrap at Plugin.swift:81)
-- `start()` with `partialResults: true` resolves IMMEDIATELY — use `partialResults` + `listeningState` listeners for results
-- `listeningState` `{status: "stopped"}` is the ONLY safe restart point for continuous listening
-- `forceStop()` must remove listeners FIRST to prevent ghost restart loops
-
-**CRITICAL — vite.config.js rules for iOS:**
-- **NEVER** add `external` to `rollupOptions` for image/asset paths — this makes Rollup leave `/images/*` as JS module imports, causing WKWebView to reject PNGs with `'image/png' is not a valid JavaScript MIME type'` → blank screen.
-- **ALWAYS** keep `transformAssetUrls: false` in the `vue()` plugin template config — prevents Vue template compiler from converting `<img src="/images/...">` into JS `import()` calls.
-- **ALWAYS** keep `!disablePWA && VitePWA(...)` — PWA must be conditionally disabled for iOS builds via `VITE_DISABLE_PWA=true`.
+The only `resources/js/` file the mobile clients touch is `store/modules/auth.js` — `auth/mobileLogout` clears local state without revoking the server token. **Never call `auth/logout` from a mobile client**; it revokes the token and breaks Face ID.
