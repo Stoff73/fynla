@@ -86,10 +86,20 @@ struct FynEventReducer: Sendable {
                 }
             }
         case let .captureComplete(summary):
+            // One confirmation, not two. This wrote the summary into BOTH the
+            // message text and the capture chip, and FynMessageView renders both
+            // in the same bubble — so the user was told the record was saved
+            // twice, one line under the other (CSJ, live on the simulator
+            // 2026-08-18). When Fyn has already said it in prose that prose
+            // stands; the chip is for when it has not.
             let text = summary ?? "Your information was saved."
             let index = assistantIndex(in: &state)
-            state.messages[index].capture = .confirmed(summary: text)
-            state.messages[index].text = text
+            if state.messages[index].text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                state.messages[index].capture = .confirmed(summary: text)
+                state.messages[index].text = text
+            } else {
+                state.messages[index].capture = nil
+            }
         case let .quickReplies(prompt, replies, actionReplies):
             let index: Int
             if let current = currentAssistantIndex(in: state),

@@ -67,9 +67,37 @@ struct FynEventReducerTests {
             .captureComplete(summary: "Saved Cash ISA with a balance of £12,000."),
             into: &state
         )
-        #expect(state.messages.last?.capture == .confirmed(
-            summary: "Saved Cash ISA with a balance of £12,000."
-        ))
+        // Fyn already said it in prose ("Saving your account."), so the chip
+        // stands down rather than repeating the same news underneath it — the
+        // bubble renders text and chip together, and both carrying the summary
+        // confirmed the save twice (CSJ, live 2026-08-18).
+        #expect(state.messages.last?.capture == nil)
+        #expect(state.messages.last?.text == "Saving your account.")
+    }
+
+    @Test
+    func captureCompleteSpeaksWhenFynHasNotAlready() throws {
+        var state = FynReductionState()
+        var reducer = FynEventReducer()
+
+        reducer.reduce(
+            .entityWrite(
+                FynEntityWrite(
+                    action: .created,
+                    entityType: "goal",
+                    entityID: 12,
+                    name: "House Deposit",
+                    route: "/goals",
+                    label: "Goals"
+                )
+            ),
+            into: &state
+        )
+        reducer.reduce(.captureComplete(summary: "Saved to your records"), into: &state)
+
+        // Nothing was streamed, so the confirmation is the chip's to carry.
+        #expect(state.messages.last?.capture == .confirmed(summary: "Saved to your records"))
+        #expect(state.messages.last?.text == "Saved to your records")
     }
 
     @Test

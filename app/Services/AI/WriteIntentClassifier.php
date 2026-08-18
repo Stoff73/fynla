@@ -83,6 +83,21 @@ final class WriteIntentClassifier
             'credit card', 'personal loan', 'student loan', 'car finance',
             'overdraft', 'loan',
         ],
+        // Physical valuables. CSJ 2026-08-18: everything a user owns is already
+        // an estate asset — EstateAssetAggregatorService builds the estate from
+        // properties, savings, investments, pensions, business interests,
+        // protection AND chattels. So "add my antique watch to my estate" is a
+        // CHATTEL, not a second record in the estate's own catch-all table.
+        // Without these words nothing matched, the message fell through to the
+        // read-only surface, and the model answered with the prompt-injection
+        // refusal (live on /m and native, 2026-08-18).
+        'chattel' => [
+            'antique', 'antiques', 'jewellery', 'jewelry', 'watch', 'ring', 'necklace',
+            'artwork', 'painting', 'paintings', 'sculpture', 'art collection',
+            'collectible', 'collectibles', 'memorabilia', 'stamp collection',
+            'coin collection', 'wine collection', 'classic car', 'motorbike',
+            'motorcycle', 'caravan', 'boat', 'yacht', 'furniture', 'heirloom',
+        ],
         // A goal is often stated without the word "goal": what marks it is
         // saving TOWARDS something. "I want to save 20000 for a house deposit
         // by June 2030" routed to property on the incidental word "house" and
@@ -299,6 +314,7 @@ final class WriteIntentClassifier
             'mortgage' => ['provider', 'outstanding_balance', 'interest_rate', 'mortgage_type'],
             'liability' => ['liability_type', 'outstanding_balance', 'interest_rate'],
             'goal' => ['goal_name', 'target_amount', 'target_date'],
+            'chattel' => ['description', 'category', 'estimated_value'],
             default => [],
         };
     }

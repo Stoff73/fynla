@@ -65,6 +65,10 @@ final class FynConversationModel {
     private let makeID: @Sendable () -> String
     private var reducer: FynEventReducer
     private var reduction = FynReductionState()
+
+    /// Bumped when a navigation is requested outside a stream — a tapped route
+    /// reply. The view observes it and drains `takeNavigation()`.
+    private(set) var navigationRequests = 0
     private var retryText: String?
     private var retryID: String?
     private var pendingContextualConversationID: String?
@@ -279,16 +283,29 @@ final class FynConversationModel {
         if case .failed = phase {
             phase = .idle
         }
-        guard phase == .idle, let conversationID else { return }
-        consumeReplies()
 
+        // A route reply is pure navigation and must work whatever the
+        // conversation is doing. It used to sit below the idle guard, so the
+        // link Fyn offers alongside a capture — which appears WHILE the turn is
+        // still streaming — was a button that did nothing when tapped (CSJ,
+        // live on the simulator 2026-08-18). Going to a page does not need the
+        // stream to be finished.
         if let route = reply.route,
            let navigation = navigation(for: route)
         {
+            consumeReplies()
             reduction.pendingNavigation = navigation
             settleNavigation()
+            // The view drains a pending navigation from .onChange(of: phase),
+            // and this path changes no phase — every other caller of
+            // settleNavigation() is followed by one, which is why only this one
+            // was dead. Signal the view directly.
+            navigationRequests += 1
             return
         }
+
+        guard phase == .idle, let conversationID else { return }
+        consumeReplies()
 
         if reply.isAction {
             phase = .accepting
