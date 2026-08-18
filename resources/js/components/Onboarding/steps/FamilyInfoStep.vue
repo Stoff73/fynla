@@ -120,10 +120,9 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '../UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import FamilyMemberFormModal from '@/components/UserProfile/FamilyMemberFormModal.vue';
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
@@ -135,7 +134,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     FamilyMemberFormModal,
     SpouseSuccessModal,
   },
