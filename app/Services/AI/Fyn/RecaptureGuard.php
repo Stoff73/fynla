@@ -452,7 +452,9 @@ final class RecaptureGuard
                 'message' => "You already have {$indefinite}, with different details. "
                     ."Is this the same {$noun} you'd like me to update, or a separate one?",
                 'model_directive' => 'Do not write anything until the user confirms whether this is an edit to '
-                    ."{$label} or a separate {$noun}. If separate, record it under a name that distinguishes it.",
+                    ."{$label} or a separate {$noun}. If separate, record it under a name that distinguishes it. "
+                    .'If their next message is about something else entirely, drop this question and deal with '
+                    .'that instead — never ask it twice.',
             ];
         }
 
@@ -480,7 +482,8 @@ final class RecaptureGuard
                 ."Is this a separate {$noun} you also hold, or the same one?",
             'model_directive' => 'Do not add a second record on the assumption it is a duplicate. If the user '
                 ."confirms it is a separate {$noun}, record it under a name that distinguishes it from the "
-                .'existing one.',
+                .'existing one. If their next message is about something else entirely, drop this question and '
+                .'deal with that instead — never ask it twice.',
         ];
     }
 }

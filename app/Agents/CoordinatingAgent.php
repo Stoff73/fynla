@@ -54,6 +54,7 @@ use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
+use App\Services\AI\WriteIntentClassifier;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -879,6 +880,11 @@ class CoordinatingAgent extends BaseAgent
         ?string $evidenceOverride = null,
         ?array $confirmedFacts = null,
     ): array {
+        // The turn's conversation, for the handlers that need to see what the
+        // previous turn already asked (guardRecapture). Set per dispatch — this
+        // agent is container-transient, so it never leaks across turns.
+        $this->activeConversationId = $conversationId;
+
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
         $input = array_map(function ($v) {
@@ -3205,6 +3211,9 @@ class CoordinatingAgent extends BaseAgent
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>|null
      */
+    /** The conversation this dispatch belongs to; see executeTool. */
+    private ?int $activeConversationId = null;
+
     private function guardRecapture(string $entityType, array $canonical, array $input, User $user): ?array
     {
         $result = app(RecaptureGuard::class)->inspect(
@@ -3218,6 +3227,83 @@ class CoordinatingAgent extends BaseAgent
         if ($result !== null && ($result['updated'] ?? false)) {
             $this->invalidateUserCache($user->id);
         }
+
+        return $result === null ? null : $this->suppressRepeatedAsk($result);
+    }
+
+    /**
+     * A question Fyn has already asked and the user has not answered must not be
+     * asked again just because the model re-issued the same tool call.
+     *
+     * Live 2026-08-17: Fyn asked "is this the same House Deposit goal, or a
+     * separate one?"; the user's next message started a DIFFERENT capture ("I
+     * have a Chase savings account…"); the model re-emitted the identical
+     * create_goal, the guard blocked it identically, and the model narrated the
+     * goal question again — the savings account was never captured and the user
+     * saw the same sentence twice.
+     *
+     * Blocking the write again is right. Repeating the sentence is not: the
+     * question stands from the turn that asked it. So a repeat carries no
+     * user-facing text at all, and tells the model to answer the message the
+     * user actually sent.
+     *
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function suppressRepeatedAsk(array $result): array
+    {
+        $errorType = $result['error_type'] ?? null;
+        if (! in_array($errorType, ['confirm_edit_required', 'confirm_duplicate_required'], true)) {
+            return $result;
+        }
+
+        if ($this->activeConversationId === null || ($result['entity_id'] ?? null) === null) {
+            return $result;
+        }
+
+        $previous = AiMessage::where('conversation_id', $this->activeConversationId)
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first();
+
+        if ($previous === null) {
+            return $result;
+        }
+
+        $alreadyAsked = collect($previous->tool_results ?? [])
+            ->contains(function (array $entry) use ($result): bool {
+                $raw = $entry['raw'] ?? null;
+
+                return is_array($raw)
+                    && ($raw['entity_id'] ?? null) === $result['entity_id']
+                    && in_array($raw['error_type'] ?? null, ['confirm_edit_required', 'confirm_duplicate_required'], true);
+            });
+
+        if (! $alreadyAsked) {
+            return $result;
+        }
+
+        // Only when the user has genuinely MOVED ON. Answering the model's own
+        // follow-up ("300 a month, high priority") re-runs the same blocked
+        // call, and the question has not been put to them yet — silencing it
+        // there leaves a bare "the information could not be saved". A message
+        // that classifies to a different entity type is a new subject; one that
+        // classifies to nothing is still part of this exchange.
+        $latest = $this->latestUserMessageText($this->activeConversationId) ?? '';
+        $movedOn = app(WriteIntentClassifier::class)->classify($latest);
+        $blockedType = (string) ($result['entity_type'] ?? '');
+
+        if ($movedOn === null
+            || $movedOn['entity_type'] === $blockedType
+            || str_contains($blockedType, $movedOn['entity_type'])) {
+            return $result;
+        }
+
+        $result['message'] = '';
+        $result['repeated_ask'] = true;
+        $result['model_directive'] = 'You already asked the user this and they have not answered it. '
+            .'Do not ask it again and do not repeat it back to them — the question still stands from the '
+            .'turn that asked it. Deal with the message they actually sent instead.';
 
         return $result;
     }
