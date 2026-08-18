@@ -355,9 +355,14 @@ trait HasAiChat
         $classifier = app(QueryClassifier::class);
         $classification = $classifier->classify($message, $currentRoute);
 
+        // A classification with no primary is treated as general rather than
+        // fatal: the KYC gate has nothing to gate on, and a TypeError here
+        // would take down a turn that only needed answering plainly.
+        $primary = $classification['primary'] ?? QuerySchemas::GENERAL;
+
         $kycResult = null;
-        if (! QuerySchemas::isBypassType($classification['primary'])
-            && $classification['primary'] !== QuerySchemas::GENERAL) {
+        if (! QuerySchemas::isBypassType($primary)
+            && $primary !== QuerySchemas::GENERAL) {
             $kycChecker = app(KycGateChecker::class);
             $kycResult = $kycChecker->check($user, $classification);
         }

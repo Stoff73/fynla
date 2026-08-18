@@ -108,3 +108,6 @@ fynlaBrain/
 
 # Workforce runtime logs (append-only, machine-local)
 workforce/ops/log/*.log
+
+# Xcode archives and export artifacts (56 MB of DWARF per build)
+ios-native/build/

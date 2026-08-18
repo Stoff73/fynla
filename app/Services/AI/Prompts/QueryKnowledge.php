@@ -31,7 +31,9 @@ final class QueryKnowledge
             return FinancialPlanningKnowledge::getSystemPromptKnowledge();
         }
 
-        $primary = $classification['primary'];
+        // Same tolerance as the chat trait: a classification without a primary
+        // is general, not a fatal.
+        $primary = $classification['primary'] ?? QuerySchemas::GENERAL;
 
         // Bypass types need no knowledge
         if (QuerySchemas::isBypassType($primary) || $primary === QuerySchemas::GENERAL) {
