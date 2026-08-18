@@ -8,22 +8,22 @@ This file supplements the root `CLAUDE.md` with testing-specific patterns.
 
 ```
 tests/
-  Unit/           123 test files - Isolated service/agent/model tests
-    Agents/       Agent orchestration tests
+  Unit/           Isolated service/agent/model tests
+    Agents/       Agent orchestration
     Models/       Model domain logic
     Services/     Service calculations (organised by module)
-  Feature/        77 test files - API endpoint integration tests
-    Api/          General API tests
-    Auth/         Authentication flow
-    Estate/       Estate module endpoints
-    Protection/   Protection module endpoints
-    Savings/      Savings module endpoints
-    Security/     Security-specific tests
-  Architecture/   8 test files - Code standards enforcement
-  Integration/    3 test files - Multi-step workflow tests
+  Feature/        API endpoint integration tests
+    Api/ Auth/ Estate/ Protection/ Savings/ Security/
+  Architecture/   Code standards enforcement (Pest arch tests)
+  Integration/    Multi-step workflow tests
+  Browser/        Playwright end-to-end scenarios
+    scenarios/    BS-NN-*.php — the Rule 14 acceptance contract
+  Eval/           Fyn evaluation runs (own testsuite, not part of ./vendor/bin/pest)
 ```
 
-Total suite: 1,600+ individual `it()` cases.
+Six testsuites are declared in `phpunit.xml`: Unit, Feature, Integration, Architecture, Browser, Eval.
+
+**`tests/Browser/scenarios/BS-NN-*.php` is where Rule 14 lives.** The docblock at the top of each scenario IS the acceptance contract — every assertion in it must hold (DB row, SSE shape, audit chain, UI card, no fabricated success) before the work is done. Never treat a green unit suite as satisfying a BS-NN scenario.
 
 ## Pest Syntax (Preferred)
 
@@ -115,7 +115,7 @@ arch('controllers do not use DB facade directly')
 
 ## Factories
 
-64 factories in `database/factories/` with state methods:
+Factories in `database/factories/` with state methods:
 ```php
 // Basic usage
 $user = User::factory()->create();

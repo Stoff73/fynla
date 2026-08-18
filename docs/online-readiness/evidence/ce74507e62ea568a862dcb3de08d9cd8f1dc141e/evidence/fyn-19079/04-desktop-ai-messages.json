@@ -1,0 +1,10 @@
+{
+  "conversation_id": 150,
+  "row_count": 2,
+  "roles": [
+    "user",
+    "assistant"
+  ],
+  "assistant_content_characters": 1046,
+  "content_redacted": true
+}

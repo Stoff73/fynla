@@ -56,6 +56,14 @@ final class UpdateRecordAllowlist
             'scheme_name', 'provider', 'current_fund_value',
             'monthly_contribution_amount', 'employee_contribution_percent',
             'employer_contribution_percent', 'retirement_age',
+            // BUG-02 (2026-08-17): pension_type was absent, so a scheme type
+            // supplied AFTER the record was created had nowhere to land —
+            // update_record dropped it as disallowed. The user answered "Sip" to
+            // Fyn's own question and the pension stayed a workplace pension while
+            // Fyn reported "Recorded — Self-Invested Personal Pension". A
+            // classification, not an identity or ownership field, so it is safe
+            // to correct.
+            'pension_type',
             // Campaign-captured contribution fields: salary basis + salary
             // sacrifice (occupational scheme) and the flexible-access flag
             // (campaign2_flexible_access — closes the round-1 latent item where

@@ -1,0 +1,46 @@
+deny	Bash	command	php artisan migrate:fresh
+deny	Bash	command	php artisan migrate:refresh
+deny	Bash	command	php artisan db:wipe
+deny	mcp__ssh-fynla__ssh_exec	command	php artisan migrate:fresh
+allow	Bash	command	php artisan migrate --force
+allow	Bash	command	php artisan db:seed
+deny	Bash	command	php artisan route:cache
+deny	Bash	command	php artisan optimize
+allow	Bash	command	php artisan optimize:clear
+allow	Bash	command	php artisan route:clear
+deny	Bash	command	php artisan migrate --env=testing
+deny	Bash	command	pkill -f vite
+deny	Bash	command	npm run build
+deny	Bash	command	npx vite build
+allow	Bash	command	./deploy/fynla-org/build.sh
+allow	Bash	command	npx vitest run
+allow	Bash	command	npm run dev
+deny	Bash	command	gh pr merge 249 --admin
+deny	Bash	command	gh pr merge --admin 249
+deny	Bash	command	gh pr close 249
+deny	Bash	command	gh pr merge --admin 303
+allow	Bash	command	gh pr merge 700 --admin
+allow	Bash	command	gh pr list --state open
+deny	mcp__ssh-fynla__ssh_exec	command	cd ~/www/csjones.co/fynla-app && ls
+allow	mcp__ssh-fynla__ssh_exec	command	cd ~/www/fynla.org/public_html && ls
+deny	Write	file_path	/Users/CSJ/Desktop/fynla/.env
+deny	Write	file_path	/Users/CSJ/Desktop/fynla/.env.production
+allow	Write	file_path	/Users/CSJ/Desktop/fynla/.env.example
+allow	Write	file_path	/Users/CSJ/Desktop/fynla/app/Models/User.php
+deny	Edit	file_path	/Users/CSJ/Desktop/fynla/CLAUDE.md
+deny	Edit	file_path	/Users/CSJ/Desktop/fynla/tests/CLAUDE.md
+deny	Edit	file_path	/Users/CSJ/Desktop/fynla/.claude/settings.json
+deny	Edit	file_path	/Users/CSJ/Desktop/fynla/.claude/hooks/guard.sh
+deny	Edit	file_path	/Users/CSJ/Desktop/fynla/.claude/agents/build-lead.md
+deny	Edit	file_path	/Users/CSJ/Desktop/fynla/workforce/core/charter.md
+allow	Edit	file_path	/Users/CSJ/Desktop/fynla/workforce/ops/board/W-0001.md
+deny	Bash	command	rm CLAUDE.md
+deny	Bash	command	rm ./CLAUDE.md
+deny	Bash	command	mv CLAUDE.md /tmp/x
+deny	Bash	command	sed -i s/a/b/ CLAUDE.md
+deny	Bash	command	rm CODEOWNERS
+deny	Bash	command	rm .github/CODEOWNERS
+deny	Bash	command	rmdir /Users/CSJ/Desktop/fynla/.claude/hooks/
+allow	Bash	command	rm /tmp/scratch.txt
+allow	Bash	command	cat CLAUDE.md
+allow	Bash	command	grep -n Rule CLAUDE.md

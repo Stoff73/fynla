@@ -148,6 +148,73 @@ describe('/m Fyn stream event parity', () => {
     expect(harness.vm.messages.map((message) => message.text)).toContain(expectedText);
   });
 
+  it('offers the record page as a bubble when the server sent a mobile route', () => {
+    // SPEC-crud-handler-contract 5.4 — /m links to the page the server named
+    // (GateRoutes mobile column). It kept no route table of its own, so before
+    // this it discarded entity_type and entity_id and showed text alone.
+    const harness = makeHarness();
+
+    harness.handle({
+      type: 'entity_created',
+      entity_type: 'savings_account',
+      entity_id: 7,
+      name: 'Cash ISA',
+      route: '/savings',
+      mobile_route: '/savings',
+      label: 'Bank Accounts',
+    });
+
+    expect(harness.cursor.captureReply.bubbles).toEqual([
+      { id: 'view_record', label: 'View Bank Accounts', route: '/savings' },
+    ]);
+  });
+
+  it('shows no link for a page /m does not have', () => {
+    const harness = makeHarness();
+
+    harness.handle({
+      type: 'entity_created',
+      entity_type: 'family_member',
+      entity_id: 3,
+      name: 'Lily',
+      route: '/settings/family',
+      mobile_route: null,
+      label: 'Family Details',
+    });
+
+    expect(harness.cursor.captureReply.bubbles ?? []).toEqual([]);
+    expect(harness.vm.messages.map((message) => message.text)).toContain('Saved Lily.');
+  });
+
+  it('renders an edit and a delete, which used to have no event at all', () => {
+    const harness = makeHarness();
+
+    harness.handle({
+      type: 'entity_updated',
+      entity_type: 'dc_pension',
+      entity_id: 9,
+      name: 'Aviva Pension',
+      route: '/retirement',
+      mobile_route: '/retirement',
+      label: 'Retirement',
+    });
+    expect(harness.vm.messages.map((m) => m.text)).toContain('Updated Aviva Pension.');
+
+    const deleted = makeHarness();
+    deleted.handle({
+      type: 'entity_deleted',
+      entity_type: 'dc_pension',
+      entity_id: 9,
+      name: 'Aviva Pension',
+      route: '/retirement',
+      mobile_route: '/retirement',
+      label: 'Retirement',
+    });
+    expect(deleted.vm.messages.map((m) => m.text)).toContain('Deleted Aviva Pension.');
+    // Nothing left to view.
+    expect(deleted.cursor.captureReply.bubbles ?? []).toEqual([]);
+  });
+
   it('renders skip_link as a usable director action bubble', () => {
     const harness = makeHarness();
 

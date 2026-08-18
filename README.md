@@ -84,6 +84,42 @@ A comprehensive financial planning web application designed for UK individuals a
 | Goals & Life Events | 100% | Goal tracking, projections, life events |
 | Email Verification | 100% | 6-digit code verification for registration/login |
 | Mobile Responsive | 90% | Dashboard and key views optimized |
+| Native iOS subscriptions | Blocked | No in-app purchase products exist in App Store Connect — see below |
+
+### Known blocker — native iOS in-app purchases
+
+The iOS paywall shows **"Premium subscriptions are unavailable. Please try again
+later."** because **no in-app purchase products exist in App Store Connect**.
+Verified 2026-08-17 against the ASC API — both app records return zero:
+
+| App record | ASC id | subscriptionGroups | inAppPurchasesV2 |
+|---|---|---|---|
+| Fynla Dev (`org.fynla.app.dev`) | 6793193337 | 0 | 0 |
+| Fynla (`org.fynla.app`) | 6760545667 | 0 | 0 |
+
+This is configuration, not code. StoreKit returns nothing, and the guard at
+`ios-native/.../SubscriptionModel.swift:291` requires the returned set to equal
+`StoreProductIdentifier.all` exactly, so the paywall reports unavailable.
+
+To resolve, create in App Store Connect (product IDs must match
+`ios-native/StoreKit/Fynla.storekit` and `StoreKitModels.swift:4-5`):
+
+```text
+org.fynla.premium.monthly   £6.99    P1M
+org.fynla.premium.annual    £59.99   P1Y
+```
+
+**No second Apple Developer account is needed** — the existing membership covers
+this. In-app purchases do require the **Paid Applications Agreement** to be
+Active (App Store Connect → Business): accept the agreement, add banking details
+and complete tax forms. Until it is Active, App Store Connect will not allow
+in-app purchases to be created.
+
+Web and `/m` are unaffected: `/m` hands off to the web app for payment
+(`issueWebHandoff('subscription')`), which is the agreed architecture. Native
+cannot use that route because Apple requires in-app purchase for digital goods.
+
+Full analysis: `August/August17Updates/iOSBugs/BUG-01-subscription-upgrade.md`.
 
 ---
 

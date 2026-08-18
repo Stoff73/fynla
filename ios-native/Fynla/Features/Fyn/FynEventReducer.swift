@@ -60,16 +60,31 @@ struct FynEventReducer: Sendable {
         case let .handoffError(message), let .error(message):
             state.notice = .failure(message)
             replaceAssistantText(message, delivery: .failed, in: &state)
-        case let .entityCreated(name):
+        case let .entityWrite(write):
             let index = assistantIndex(in: &state)
             var names: [String] = []
             if case let .pending(existing)? = state.messages[index].capture {
                 names = existing
             }
-            if let name, !names.contains(name) {
+            if let name = write.name, write.action == .created, !names.contains(name) {
                 names.append(name)
             }
             state.messages[index].capture = .pending(names: names)
+
+            // The link to the page the record lives on, offered as a reply the
+            // user can tap. A delete has nothing left to view, and an entity
+            // with no page sends no route rather than a guessed one.
+            if write.action != .deleted, let route = write.route {
+                let reply = FynReply(
+                    id: "view_record",
+                    label: write.label.map { "View \($0)" } ?? "View record",
+                    route: route,
+                    isAction: true
+                )
+                if !state.messages[index].replies.contains(where: { $0.id == reply.id }) {
+                    state.messages[index].replies.append(reply)
+                }
+            }
         case let .captureComplete(summary):
             let text = summary ?? "Your information was saved."
             let index = assistantIndex(in: &state)

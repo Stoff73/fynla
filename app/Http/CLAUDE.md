@@ -112,7 +112,13 @@ Use `$this->whenLoaded()` for relationships and `$this->when()` for conditional 
 
 ## Route Structure
 
-All routes in `routes/api.php`, prefixed with `/api/`:
+Three route files:
+
+- `routes/api.php` — the web + `/m` API, prefixed `/api/`
+- `routes/api_v1.php` — the **native iOS** surface, prefixed `/api/v1/`. Native auth/session lives here (`/native/auth/session/exchange|refresh`), behind `native.client` (`IdentifyNativeClient`), `native.version` (`EnforceNativeVersion`) and `native.session` (`EnsureActiveNativeSession`). **These routes do not exist on production** — see root `CLAUDE.md` → Mobile Clients.
+- `routes/e2e.php` — browser-scenario support, non-production only
+
+Pattern in `routes/api.php`:
 
 ```php
 // Public: auth/register, auth/login, preview/personas

@@ -91,7 +91,7 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Seeders
 
-**23 seeder classes** in `database/seeders/` (including `DatabaseSeeder` orchestrator).
+**Seeder classes** live in `database/seeders/`, orchestrated by `DatabaseSeeder`.
 
 **Phase 1 — Required Data** (always runs, 18 seeders, executed in this order):
 1. TaxConfigurationSeeder - 5 UK tax years
@@ -125,7 +125,7 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Factories
 
-64 factories in `database/factories/`. Structure:
+Factories live in `database/factories/`. Structure:
 ```php
 class MyModelFactory extends Factory {
     protected $model = MyModel::class;

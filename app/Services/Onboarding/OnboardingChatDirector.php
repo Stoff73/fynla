@@ -3648,11 +3648,7 @@ PROMPT;
                 }
 
                 if ($type === 'entity_created') {
-                    $record = [
-                        'type' => (string) ($event['entity_type'] ?? ''),
-                        'id' => $event['entity_id'] ?? null,
-                        'name' => (string) ($event['name'] ?? ''),
-                    ];
+                    $record = self::recordRowFromEvent($event);
                     $recordKey = $record['type'].':'.(string) $record['id'];
                     $alreadyTracked = collect($recordsCreated)->contains(
                         static fn (array $tracked): bool => $recordKey === $tracked['type'].':'.(string) $tracked['id']
@@ -3686,11 +3682,7 @@ PROMPT;
                     // aiFormFill queue sees them in a single turn.
                     foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
                         if (($gapFillEvent['type'] ?? '') === 'entity_created') {
-                            $recordsCreated[] = [
-                                'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
-                                'id' => $gapFillEvent['entity_id'] ?? null,
-                                'name' => (string) ($gapFillEvent['name'] ?? ''),
-                            ];
+                            $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                         }
                         yield $gapFillEvent;
                     }
@@ -3712,11 +3704,7 @@ PROMPT;
                 }
                 foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
                     if (($gapFillEvent['type'] ?? '') === 'entity_created') {
-                        $recordsCreated[] = [
-                            'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
-                            'id' => $gapFillEvent['entity_id'] ?? null,
-                            'name' => (string) ($gapFillEvent['name'] ?? ''),
-                        ];
+                        $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                     }
                     yield $gapFillEvent;
                 }
@@ -4232,9 +4220,19 @@ PROMPT;
             ->map(fn (array $failure): string => trim((string) ($failure['message'] ?? '')))
             ->first(fn (string $message): bool => $message !== '' && $message !== 'The write failed.');
 
-        return is_string($reason)
-            ? "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.'
-            : null;
+        if (! is_string($reason)) {
+            return null;
+        }
+
+        // A reason already phrased as a question is a request for one more
+        // detail, not a failure report. Asking it plainly is what a person
+        // would do; wrapping it in an apology and a system instruction is what
+        // we used to do, and it read as broken (CSJ 2026-08-17, live).
+        if (str_ends_with($reason, '?')) {
+            return $reason;
+        }
+
+        return "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.';
     }
 
     /**
@@ -6414,7 +6412,26 @@ PROMPT;
         // and as an executeTool argument for the deterministic gap-fill. No
         // shared transient: clear-ordering between the stream's finally and
         // the post-stream gap-fill must not matter.
-        yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
+        // CSJ 2026-08-17: answering Fyn's own outstanding question about a record is
+        // an EXPLICIT edit, so the write handler may amend it directly instead of
+        // asking again. Set on this service's own agent for the deterministic
+        // gap-fill/extractor writes, and passed separately into FynLoop::stream for
+        // the LLM dispatch — same both-paths discipline as confirmedFacts above,
+        // because CoordinatingAgent is container-transient.
+        if ($context->isContinuation) {
+            $this->coordinatingAgent->setExplicitEditEntityType(
+                $context->entityTypes[0] ?? null,
+                $context->continuationRecordId,
+            );
+        }
+
+        try {
+            yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
+        } finally {
+            if ($context->isContinuation) {
+                $this->coordinatingAgent->setExplicitEditEntityType(null);
+            }
+        }
     }
 
     /** @return \Generator<array<string, mixed>> */
@@ -6502,6 +6519,8 @@ PROMPT;
             persistUserMessage: false,
             unifiedFocus: $unifiedFocus,
             confirmedFacts: $confirmedFacts,
+            explicitEditEntityType: $context->isContinuation ? ($context->entityTypes[0] ?? null) : null,
+            explicitEditRecordId: $context->isContinuation ? $context->continuationRecordId : null,
         );
 
         foreach ($generator as $event) {
@@ -6609,11 +6628,7 @@ PROMPT;
             // Track every record persisted by a create_* / direct-write handler
             // so the closing capture_complete event carries the full list.
             if ($type === 'entity_created') {
-                $recordsCreated[] = [
-                    'type' => (string) ($event['entity_type'] ?? ''),
-                    'id' => $event['entity_id'] ?? null,
-                    'name' => (string) ($event['name'] ?? ''),
-                ];
+                $recordsCreated[] = self::recordRowFromEvent($event);
             }
 
             yield $event;
@@ -6895,6 +6910,30 @@ PROMPT;
      *
      * @param  list<array{type: string, id: int|string|null, name: string}>  $records
      */
+    /**
+     * The one shape of a `capture_complete` record row, built from the entity
+     * event that produced it.
+     *
+     * SPEC-crud-handler-contract §5.3/§5.4 — the row carries the page the
+     * record lives on, resolved server-side by GateRoutes, so every client
+     * links to the same place instead of keeping its own route table (the web
+     * chat panel kept a fourth one until 2026-08-17).
+     *
+     * @param  array<string, mixed>  $event
+     * @return array{type: string, id: mixed, name: string, route: ?string, mobile_route: ?string, label: ?string}
+     */
+    private static function recordRowFromEvent(array $event): array
+    {
+        return [
+            'type' => (string) ($event['entity_type'] ?? ''),
+            'id' => $event['entity_id'] ?? null,
+            'name' => (string) ($event['name'] ?? ''),
+            'route' => $event['route'] ?? null,
+            'mobile_route' => $event['mobile_route'] ?? null,
+            'label' => $event['label'] ?? null,
+        ];
+    }
+
     private function buildCaptureCompleteSummary(array $records): string
     {
         if (count($records) === 1) {

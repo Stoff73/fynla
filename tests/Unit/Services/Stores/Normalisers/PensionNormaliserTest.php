@@ -133,6 +133,35 @@ describe('PensionNormaliser::fromFynPension', function () {
 
         expect($canonical['pension_type'])->toBe('occupational');
     });
+
+    // CSJ 2026-08-17: the default is ALWAYS a personal pension. It used to be
+    // 'occupational', so anything the match arm did not recognise silently became
+    // a workplace pension — the "Sip" incident, where the user said SIPP and the
+    // app recorded "Aviva workplace pension".
+    it('defaults an unstated scheme_type to personal, never workplace', function () {
+        foreach ([null, '', 'nonsense', 'Self-Invested Personal Pension'] as $schemeType) {
+            $canonical = (new PensionNormaliser)->fromFynPension([
+                'pension_category' => 'dc',
+                'scheme_name' => 'Aviva Pension',
+                'scheme_type' => $schemeType,
+            ]);
+
+            expect($canonical['pension_type'])
+                ->toBe('personal', 'scheme_type '.var_export($schemeType, true).' must default to personal');
+        }
+    });
+
+    it('matches Fyn scheme_type case-insensitively', function () {
+        foreach (['SIPP' => 'sipp', 'Sipp' => 'sipp', 'sipp' => 'sipp', 'WORKPLACE' => 'occupational', 'Stakeholder' => 'stakeholder'] as $input => $expected) {
+            $canonical = (new PensionNormaliser)->fromFynPension([
+                'pension_category' => 'dc',
+                'scheme_name' => 'Aviva Pension',
+                'scheme_type' => $input,
+            ]);
+
+            expect($canonical['pension_type'])->toBe($expected, "scheme_type '{$input}' should map to '{$expected}'");
+        }
+    });
 });
 
 describe('PensionNormaliser::fromFynInputHistory', function () {
@@ -173,7 +202,7 @@ it('carries salary_sacrifice through fromFynPension — false is a fact, not an 
     // salary_sacrifice=false, and the normaliser dropped it — the row
     // persisted NULL (unknown) and downstream salary-sacrifice advice
     // could re-ask or mis-target.
-    $normaliser = new \App\Services\Stores\Normalisers\PensionNormaliser;
+    $normaliser = new PensionNormaliser;
 
     $denied = $normaliser->fromFynPension([
         'pension_category' => 'dc',

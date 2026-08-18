@@ -1,0 +1,26 @@
+{"ts":"2026-08-14T07:47:57Z","agent":"build-lead","item":"W-0006","event":"claim_blocked","reason":"no prior-art check"}
+{"ts":"2026-08-14T07:47:57Z","agent":"build-lead","item":"W-0006","event":"claimed"}
+{"ts":"2026-08-14T07:47:57Z","agent":"build-lead","item":"W-0006","event":"handoff","to":"quality-lead","note":"workforce/ops/handoffs/W-0006/build-lead-to-quality-lead-2026-08-14.md"}
+{"ts":"2026-08-14T07:47:57Z","agent":"quality-lead","item":"W-0006","event":"review"}
+{"ts":"2026-08-14T07:47:57Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-14.md"}
+{"ts":"2026-08-14T07:48:09Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-14.md"}
+{"ts":"2026-08-14T10:34:08Z","agent":"chief-of-staff","item":"-","event":"slack_connected","note":"first brief posted to #fyn-brief"}
+{"ts":"2026-08-14T10:34:08Z","agent":"chief-of-staff","item":"-","event":"ratified","note":"6B production safety list; 6C no out-of-hours contact"}
+{"ts":"2026-08-14T10:35:32Z","agent":"chief-of-staff","item":"-","event":"named","note":"speaks as Myrtle; role stays chief-of-staff internally"}
+{"ts":"2026-08-14T10:41:36Z","agent":"chief-of-staff","item":"-","event":"slack_blocked","reason":"no bot token; would post as CSJ"}
+{"ts":"2026-08-14T11:11:43Z","agent":"chief-of-staff","item":"-","event":"slack_failed","channel":"fyn-brief"}
+{"ts":"2026-08-14T11:27:44Z","agent":"chief-of-staff","item":"-","event":"monday_plan","file":"workforce/ops/reports/monday-2026-08-14.md"}
+{"ts":"2026-08-14T11:27:44Z","agent":"chief-of-staff","item":"-","event":"friday_delta","file":"workforce/ops/reports/friday-2026-08-14.md"}
+{"ts":"2026-08-14T11:51:52Z","agent":"chief-of-staff","item":"GATE-0001","event":"gate_approve","note":"by CSJ"}
+{"ts":"2026-08-14T11:52:03Z","agent":"chief-of-staff","item":"GATE-0001","event":"gate_approve","note":"by CSJ"}
+{"ts":"2026-08-14T11:56:24Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-14.md"}
+{"ts":"2026-08-14T11:56:24Z","agent":"chief-of-staff","item":"-","event":"monday_plan","file":"workforce/ops/reports/monday-2026-08-14.md"}
+{"ts":"2026-08-14T11:56:24Z","agent":"chief-of-staff","item":"-","event":"friday_delta","file":"workforce/ops/reports/friday-2026-08-14.md"}
+{"ts":"2026-08-14T12:14:28Z","agent":"chief-of-staff","item":"GATE-0001","event":"gate_approve","note":"by CSJ"}
+{"ts":"2026-08-14T14:10:00Z","agent":"quality-lead","item":null,"event":"gated","note":"workforce/ops/gates/GATE-0002-claude-md-context-repair.md — CLAUDE.md context audit, 12 edits across 6 rank-1 files + new ios-native/CLAUDE.md; blocked by oversight-guard"}
+{"ts":"2026-08-14T14:40:00Z","agent":"chief-of-staff","item":"GATE-0002","event":"gate_approve","note":"by CSJ"}
+{"ts":"2026-08-14T14:45:00Z","agent":"quality-lead","item":"GATE-0002","event":"done","note":"12 edits applied across 6 CLAUDE.md + new ios-native/CLAUDE.md; 3 incidental findings: settings.json was invalid JSON (all hooks off), plaintext SSH passphrase removed (ROTATE), rmdir-hooks allow-rule removed"}
+{"ts":"2026-08-14T16:30:46Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-14.md"}
+{"ts":"2026-08-14T16:30:49Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}
+{"ts":"2026-08-17T16:30:14Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-17.md"}
+{"ts":"2026-08-17T16:30:15Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}

@@ -201,7 +201,7 @@ Manages the preview (demo) mode where unauthenticated visitors explore the app u
 - **State:** `loading`, `error`
 - **Getters:** `isPreviewMode` (checks `rootState.auth.user.is_preview_user`), `currentPersonaId`, `currentPersona`, `availablePersonas`, `effectivePersonaData`, `hasSpouse`, `isViewingAsSpouse`, `toggleTargetName`, `currentViewerName`, `basePersonaId`, `spouseFirstName`, `primaryFirstName`
 
-Six personas are available: `young_family` (James & Emily Carter), `peak_earners` (David & Sarah Mitchell), `widow` (Margaret Thompson), `entrepreneur` (Alex Chen), `young_saver` (John Morgan), `retired_couple` (Robert & Patricia Williams). Full persona data is imported from JSON files under `resources/js/data/personas/`.
+Six personas are available: `young_family` (James & Emily Carter), `peak_earners` (David & Sarah Mitchell), `entrepreneur` (Alex Chen), `young_saver` (John Morgan), `student` (Janice Taylor), `retired_couple` (Robert & Patricia Williams). Full persona data is imported from JSON files under `resources/js/data/personas/`.
 
 **Key actions:**
 
@@ -553,9 +553,9 @@ Six JSON files define the complete data sets for preview mode personas:
 |------|---------|-------|
 | `young_family.json` | Young family | James & Emily Carter |
 | `peak_earners.json` | Peak earners | David & Sarah Mitchell |
-| `widow.json` | Widow | Margaret Thompson |
 | `entrepreneur.json` | Entrepreneur | Alex Chen |
 | `young_saver.json` | Young saver | John Morgan |
+| `student.json` | Student | Janice Taylor |
 | `retired_couple.json` | Retired couple | Robert & Patricia Williams |
 
 Each JSON file contains:

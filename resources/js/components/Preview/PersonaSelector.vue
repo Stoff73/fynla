@@ -263,7 +263,6 @@ export default {
             const colors = {
                 young_family: 'bg-violet-100',
                 peak_earners: 'bg-spring-100',
-                widow: 'bg-violet-100',
                 entrepreneur: 'bg-fuchsia-100',
                 young_saver: 'bg-cyan-100',
                 student: 'bg-teal-100',
@@ -276,7 +275,6 @@ export default {
             const emojis = {
                 young_family: '👨‍👩‍👧‍👦',
                 peak_earners: '💼',
-                widow: '👵',
                 entrepreneur: '🚀',
                 young_saver: '🎓',
                 student: '📚',
