@@ -339,8 +339,14 @@ final class AdviceFyn
         // it lands in read-only advice and the capture dead-ends
         // mid-conversation (2026-07-03 walk: the pension details were never
         // persisted). Reuse the intent that opened the capture.
+        // CSJ 2026-08-17: answering Fyn's own outstanding question about a record IS
+        // an explicit edit, so a continuation may amend that record directly. A fresh
+        // message that merely name-matches is ambiguous and must ask instead. Only
+        // this branch knows which turn is which, so it flags it for the write handler.
+        $isCaptureContinuation = false;
         if ($intent === null) {
             $intent = $this->captureContinuationIntent($conversation, $message);
+            $isCaptureContinuation = $intent !== null;
         }
 
         // Full-duplicate short-circuit: when the user reasserts records
@@ -400,6 +406,15 @@ final class AdviceFyn
                 'reason' => $intent['reason'],
                 'entity_types' => [$intent['entity_type']],
                 'fields_needed' => $intent['fields_needed'],
+                // Carried through the context rather than set on this service's
+                // CoordinatingAgent: handleInlineCapture executes tools on the
+                // DIRECTOR's agent instance, and CoordinatingAgent is
+                // container-transient, so a flag set here would silently not apply.
+                'is_continuation' => $isCaptureContinuation,
+                // Only the record Fyn asked about may be amended without asking.
+                'continuation_record_id' => $isCaptureContinuation
+                    ? ($intent['pending_record_id'] ?? null)
+                    : null,
             ]);
 
             Log::info('[AdviceFyn] Deterministic write-intent routed', [
@@ -446,7 +461,7 @@ final class AdviceFyn
      * capture question, when the user is asking something (route to advice),
      * or when no earlier message classifies.
      *
-     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string, pending_record_id?: int|null}|null
      */
     private function captureContinuationIntent(AiConversation $conversation, string $message): ?array
     {
@@ -459,14 +474,49 @@ final class AdviceFyn
             ->latest('id')
             ->first();
 
-        // Pending capture question = data_capture persona AND no tool calls
-        // (a capture turn that WROTE has tool_calls on the row — that capture
-        // concluded, so a follow-up message is a fresh turn, not an answer).
-        if ($lastAssistant === null
-            || $lastAssistant->persona !== 'data_capture'
-            || ! empty($lastAssistant->tool_calls)) {
+        if ($lastAssistant === null || $lastAssistant->persona !== 'data_capture') {
             return null;
         }
+
+        // A capture turn is pending while it is STILL ASKING, whatever it wrote.
+        //
+        // WP-1 scoped this to a capture that wrote nothing, on the assumption that
+        // a turn either asks or writes. A turn can do both — write what the user
+        // gave and ask for what is missing. Live 2026-08-17: "I have an aviva
+        // pension with a balance of 45000" produced ONE assistant turn reading
+        // "Is this a workplace pension or a Self-Invested Personal Pension?
+        // Recorded — Aviva pension of £45,000.", leaving persona=data_capture WITH
+        // tool_calls. The user answered "Sip", the old guard read the tool_calls as
+        // "capture concluded", the answer fell through to read-only advice, and the
+        // model narrated "recorded as a Self-Invested Personal Pension" without any
+        // write — the row stayed pension_type=occupational.
+        //
+        // That is the same dead-end WP-1 exists to close, reached by a turn that
+        // wrote as well as asked. Only a capture that wrote and asked nothing
+        // further has actually concluded.
+        $stillAsking = str_contains((string) $lastAssistant->content, '?');
+
+        // A capture concluded only if something was actually WRITTEN. Reading
+        // "it called a tool" as "it captured" is what broke live conversation
+        // 157: the model called create_savings_account, the accuracy gate
+        // rejected it as unevidenced ownership, and our deterministic failure
+        // line ("I couldn't save that — I need you to confirm whether you own it
+        // individually…") carries no question mark. Both signals said
+        // "concluded", the user's answer routed to read-only advice, and Fyn
+        // told them it was "Recorded" with nothing in the database.
+        //
+        // The write result is recorded on the row (HasAiChat). Older rows
+        // predate the flag, so they keep the previous reading.
+        $metadata = $lastAssistant->metadata ?? [];
+        $landedWrite = array_key_exists('capture_write_landed', $metadata)
+            ? (bool) $metadata['capture_write_landed']
+            : ! empty($lastAssistant->tool_calls);
+
+        if ($landedWrite && ! $stillAsking) {
+            return null;
+        }
+
+        $pendingRecordId = $metadata['capture_record_id'] ?? null;
 
         $recentUserMessages = $conversation->messages()
             ->where('role', 'user')

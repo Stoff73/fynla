@@ -15,6 +15,7 @@ describe('OnboardingStateMachine::states', function () {
 
         $expected = [
             OnboardingStateMachine::STATE_PATH_CHOICE,
+            OnboardingStateMachine::STATE_FREE_CHAT,
             OnboardingStateMachine::STATE_JOURNEY_SELECTION,
             OnboardingStateMachine::STATE_FOCUS_SELECTION,
             OnboardingStateMachine::STATE_BASE_PERSONAL,
@@ -119,7 +120,9 @@ describe('OnboardingStateMachine::getState', function () {
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PATH_CHOICE);
         expect($state)->not->toBeNull()
             ->and($state['turn_type'])->toBe('bubbles')
-            ->and(count($state['bubbles']))->toBe(2);
+            // Three: the two onboarding paths, plus the way out for a user who
+            // wants neither (CSJ 2026-08-18 — the state was a dead end).
+            ->and(count($state['bubbles']))->toBe(3);
     });
 
     it('declares the standard layout on profile review states', function () {

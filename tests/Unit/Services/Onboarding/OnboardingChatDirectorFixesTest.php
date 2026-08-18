@@ -7,6 +7,7 @@ use App\Models\ExpenditureProfile;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -363,7 +364,7 @@ it('keeps the sentence after an echoed failure line ending in a decimal figure',
  * stream with "An unexpected error occurred" right after spouse verify.
  */
 it('voices the spouse-advice allowance fallback without a container fatal', function (): void {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 
     $director = app(OnboardingChatDirector::class);
     $reflection = new ReflectionMethod($director, 'buildSpouseAdvice');

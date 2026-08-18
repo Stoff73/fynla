@@ -9,6 +9,28 @@ import aiChatService from '@/services/aiChatService';
 import { stripTags } from '@/utils/stripTags';
 
 import logger from '@/utils/logger';
+/**
+ * One message shape for every entity write event, used by both stream paths.
+ *
+ * The two paths (fresh stream and resumed stream) each carried their own copy
+ * of this, which is how a fix reaches one and not the other. The `route` comes
+ * from the server (GateRoutes) so no client keeps its own route table.
+ */
+function entityWriteMessage(event) {
+    return {
+        id: 'entity_' + Date.now(),
+        role: event.type,
+        content: event.name || '',
+        metadata: {
+            entity_type: event.entity_type,
+            entity_id: event.entity_id,
+            route: event.route || null,
+            label: event.label || null,
+        },
+        created_at: new Date().toISOString(),
+    };
+}
+
 const state = {
     isOpen: false,
     conversations: [],
@@ -563,16 +585,9 @@ const actions = {
                                 break;
 
                             case 'entity_created':
-                                commit('ADD_MESSAGE', {
-                                    id: 'entity_' + Date.now(),
-                                    role: 'entity_created',
-                                    content: event.name || '',
-                                    metadata: {
-                                        entity_type: event.entity_type,
-                                        entity_id: event.entity_id,
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
+                            case 'entity_updated':
+                            case 'entity_deleted':
+                                commit('ADD_MESSAGE', entityWriteMessage(event));
                                 break;
 
                             case 'action':
@@ -935,13 +950,9 @@ const actions = {
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
                             case 'entity_created':
-                                commit('ADD_MESSAGE', {
-                                    id: 'entity_' + Date.now(),
-                                    role: 'entity_created',
-                                    content: event.name || '',
-                                    metadata: { entity_type: event.entity_type, entity_id: event.entity_id },
-                                    created_at: new Date().toISOString(),
-                                });
+                            case 'entity_updated':
+                            case 'entity_deleted':
+                                commit('ADD_MESSAGE', entityWriteMessage(event));
                                 break;
                             case 'action':
                                 addPresentationAction(commit, state, event);

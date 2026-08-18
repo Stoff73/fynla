@@ -2,7 +2,7 @@
 procedure_id: 'handoff.tool.capture_complete'
 kind: tool_schema
 module: handoff
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -16,7 +16,7 @@ effective_from: 2026-06-02
         "properties": {
             "summary": {
                 "type": "string",
-                "description": "Short user-facing recap (e.g. \"Added Scottish Widows SIPP £50k\")."
+                "description": "Short user-facing recap (e.g. \"Added Scottish Widows Self-Invested Personal Pension £50k\")."
             },
             "records_created": {
                 "type": "array",

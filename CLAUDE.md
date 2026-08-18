@@ -6,14 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Fynla** is a UK financial planning application (Laravel 10 + Vue.js 3 + MySQL 8) covering seven modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination.
 
-| Metric | Count |
-|--------|-------|
-| Vue Components | 675 |
-| PHP Services | 446 |
-| Controllers | 128 |
-| Models | 134 |
-| Vuex Stores | 35 |
-| Agents | 9 |
+**Three clients, one backend:** the desktop web SPA (`resources/js/`), the `/m` mobile web pathway (`resources/mobile/`), and the native SwiftUI iOS app (`ios-native/`). See Rule 19 and the Mobile Clients section.
 
 **Production**: https://fynla.org | **Version**: v1.0
 
@@ -57,7 +50,7 @@ php artisan migrate && php artisan db:seed
 |---------|---------|
 | `php artisan preview:reset` | Reset all preview persona data |
 | `php artisan audit:purge` | Purge old audit log entries |
-| `php artisan trials:expire` | Expire ended trial subscriptions |
+| `php artisan subscriptions:expire` | Expire ended trial/lapsed subscriptions |
 | `php artisan sessions:cleanup` | Clean up orphaned user sessions |
 | `php artisan registrations:cleanup` | Remove stale pending registrations |
 | `php artisan fyn:episodic:backfill-blobs` | One-shot idempotent backfill of episodic .md blobs for legacy ai_messages rows |
@@ -73,21 +66,21 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 ```
 
 **Backend** (`app/`): See `app/Services/CLAUDE.md` and `app/Http/CLAUDE.md` for detailed conventions.
-- `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
-- `Services/{Module}/` - Domain calculations (214 services across 32 module directories)
-- `Http/Controllers/Api/` - API endpoints (89 controllers)
-- `Http/Requests/` - Form request validation (83 classes)
+- `Agents/` - Module orchestrators extending `BaseAgent` (Protection, Savings, Investment, Retirement, Estate, Goals, TaxOptimisation, Coordinating)
+- `Services/{Module}/` - Domain calculations, one module per directory
+- `Http/Controllers/Api/` - API endpoints
+- `Http/Requests/` - Form request validation
 - `Http/Resources/` - API response transformation
 - `Traits/` - Shared behaviours (`Auditable`, `HasJointOwnership`, `CalculatesOwnershipShare`, `FormatsCurrency`, `StructuredLogging`, `PolicyCRUDTrait`, `ResolvesExpenditure`, `ResolvesIncome`, `TracksGoalContributions`)
 - `Constants/` - `TaxDefaults`, `ValidationLimits`, `EstateDefaults`
-- `Observers/` - Risk recalculation observers, goal contribution trackers, Monte Carlo triggers (12 observers)
+- `Observers/` - Risk recalculation, goal contribution tracking, Monte Carlo triggers
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (488 across 29 module directories)
-- `views/` - Page-level route components (138 views)
-- `store/modules/` - Vuex state management (33 namespaced modules)
-- `services/` - API wrappers (45 services)
+- `components/{Module}/` - Vue components, organised by module
+- `views/` - Page-level route components
+- `store/modules/` - Vuex state management (all namespaced)
+- `services/` - API wrappers
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
 - `utils/` - `currency`, `dateFormatter`, `ownership`, `poller`, `logger`
 - `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
@@ -166,7 +159,7 @@ Amber (`amber-*`) and orange (`orange-*`) are banned. Warnings/caution → viole
 All acronyms must be spelled out in user-facing text. Write "Annual Allowance" not "AA", "Stocks & Shares" not "S&S", "Defined Benefit" not "DB", "Defined Contribution" not "DC", "Money Purchase Annual Allowance" not "MPAA", etc. The only exception is **ISA**, which may remain abbreviated.
 
 ### 10. Design System Compliance
-**Before any UI work, read `./fynlaDesignGuide.md` (v1.3.0) — it is the single source of truth for all visual decisions:** colours, typography (Segoe UI / Inter; weights 900 display, 700 h2–h5), buttons/cards/forms/modals, badges, and charts (via `designSystem.js`). Never introduce a colour, spacing value, or component pattern that isn't in the guide. **Where Rules 12 (No Scores) and 15 (Icons) conflict with the guide, those CLAUDE.md rules win** — the guide predates them.
+**Before any UI work, read `./fynlaDesignGuide.md` (v1.3.1) — it is the single source of truth for all visual decisions:** colours, typography (Segoe UI / Inter; weights 900 display, 700 h2–h5), buttons/cards/forms/modals, badges, and charts (via `designSystem.js`). Never introduce a colour, spacing value, or component pattern that isn't in the guide. **Where Rules 12 (No Scores) and 15 (Icons) conflict with the guide, those CLAUDE.md rules win** — the guide predates them.
 
 ### 11. CSS Governance
 Palette tokens only (`raspberry/horizon/spring/violet/savannah/eggshell/neutral/light-*`; never old `primary-*`/`secondary-*`/`gray-*`). No hardcoded hex in `<style>` — use `@apply` (e.g. `@apply text-horizon-500`); chart colours from `designSystem.js`. Before adding scoped CSS, check `app.css` for an existing global class: `.scrollbar-hide`/`.scrollbar-thin`, `.animate-fade-in*`, `.detail-inline-back`, `.expand-*`, card variants (`.card`/`.card-lg`/`.card-sm`), badge classes, and the spinner (`<div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin">` — never a custom `@keyframes spin`). Full rules in `./fynlaDesignGuide.md`.
@@ -179,7 +172,7 @@ Numerical ratings ("75/100", adequacy / diversification / portfolio-health score
 **Built & approved — the `/m` mobile dashboard gamification (CSJ direction 2026-06-05).** The `/m` pathway dashboard (`resources/mobile/views/Dashboard.vue`) intentionally shows a gamification layer: the **Level wheel + level number**, the **"X of Y actions complete" progress**, and the **"you're ahead of X% of people" percentile** (fed by `MobileLevelService` → `GET /api/v1/mobile/dashboard`). This is a deliberate engagement mechanic — **leave it in; never strip, "score-launder", or flag it in audits.** It does NOT count as a banned score. Note `ModuleSummaryController::removeScores()` only strips *financial-quality* scores (`adequacy_score`, `diversification_score`, etc.) from module summaries — it must never be extended to the `level`/`percentile` gamification fields.
 
 ### 13. All Pages Must Wrap in AppLayout
-Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. Mobile routes under `/m/*` use `<MobileLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
+Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. `/m` is a separate SPA (`resources/mobile/`) — its views wrap in `<MobileChrome>`, not `<AppLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
 
 Pattern (see `views/Admin/AdminPanel.vue`):
 ```vue
@@ -338,10 +331,10 @@ Fynla runs on two environments, isolated database, code, and credentials:
   - **CSJ's own work:** any short descriptive name is fine — camelCase or kebab-case. Examples: `onboardingFyn`, `fyn-quick-start`, `lifecycle-email-engine`, `revolutLive`. No prefix required.
   - **External contributors (mandatory prefix for traceability):**
     - `feature/icecube/<task>` — `icecube-acc`
-    - `feature/phailanx/<task>` — `Phailanx`
-  - PRs from contributors without the correct prefix will be closed.
+  - PRs from contributors listed above without the correct prefix will be closed.
+  - **`Phailanx`:** no prefix required for now (CSJ direction 2026-08-02) — any short descriptive branch name is fine. Don't flag Phailanx branch names in reviews.
 - **All PRs target `dev`**, never `main` directly (except the periodic `dev → main` release PR which only `@Stoff73` opens).
-- `.github/CODEOWNERS` forces `@Stoff73` as a required reviewer on every PR.
+- PR review is **not** enforced by GitHub on `dev` or `main` (verified 2026-08-14: `required_approving_review_count: 0`, `require_code_owner_reviews: false`, no required status checks, `enforce_admins: false`). CODEOWNERS was removed 2026-08-14 (`ab339eb`); it was never actually being enforced. The merge gate is the evidence pack — process, not mechanism.
 
 ### Build & deploy procedures
 
@@ -352,16 +345,39 @@ Step-by-step build + deploy commands for both environments live in **`deploy/DEP
 - **Prod (fynla.org)** is manual upload: build, upload `public/build/` + changed PHP, run `migrate --force` + cache clears, monitor `storage/logs/laravel.log` for 10–15 min.
 - Credentials live only in each server's `.env` (gitignored) — never in the repo or chat.
 
-## Mobile App (Capacitor iOS)
+## Mobile Clients (`/m`, `ios-native/`, `ios/`)
 
-**Status 2026-07-20 — the native SwiftUI app (third client) is the successor in flight.** Packages 1–3 (API readiness/contract freeze, SwiftUI foundation, native auth + Face ID) are merged to `dev`; Packages 4–7 (StoreKit/entitlements, dashboard + Fyn, financial modules, platform/release) are the open PR chain #634 → #636 → #635 → #637. The pkg7 branch (worktree `/Users/CSJ/Desktop/fynla-ios-package7`) additionally carries the 2026-07-20 audit remediation and the CSJ-directed **/m-parity rework** (every native screen must match `/m` on detail, functionality, states, intent, and design — dispositions in `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` on that branch). Nothing native has shipped; the Capacitor target below remains the legacy shipped app until Package 7 replaces it, and `/m` stays permanent regardless (Rule 19).
+**Three clients, one backend.** Rule 19 governs: work is not done until it is verified on web AND `/m`.
 
-Full conventions in `resources/js/CLAUDE.md` (Mobile section) + the `mobile_capacitor_patterns.md` memory. Load-bearing essentials:
+### `/m` — mobile web (`resources/mobile/`)
 
-- **Build:** `./deploy/mobile/build-ios.sh` (web assets + `npx cap sync ios`). NEVER `npx vite build` alone — changes won't reach the iOS app. After any mobile change, `php artisan cache:clear` (mobile dashboard cached 5 min/user).
-- **vite.config.js (blank-screen prevention):** never add `external` to `rollupOptions` for image/asset paths (Rollup leaves `/images/*` as JS imports → WKWebView rejects PNGs: `'image/png' is not a valid JavaScript MIME type'`); always keep `transformAssetUrls: false` in the `vue()` plugin; always keep `!disablePWA && VitePWA(...)`.
-- **Biometric login:** mobile logout uses `auth/mobileLogout` (local state only) — NEVER `auth/logout` (revokes server token, breaks Face ID).
-- **Data flow:** `MobileDashboardAggregator` (raw fields) → store `normaliseModule()` (normalised shape) → `ModuleSummaryCard`/`ModuleSummary`.
+Phones are detected and routed to `/m`, which iframes the funnel and serves an **isolated** Vite bundle (`vite.mobile.config.js` → `public/m-build/`) with its own `api.js`, `router.js`, `store.js` and `tokens.js`. It does **not** share the web SPA's store, router or services — a fix in `resources/js/` does not reach `/m`. API base is chosen at runtime (`resources/mobile/api.js:19-21`): `Capacitor.isNativePlatform()` → `VITE_API_BASE_URL`; browser → same-origin with the `VITE_ROUTER_BASE` subdirectory prefix.
+
+### `ios-native/` — the native SwiftUI app (current)
+
+240 Swift files. Packages 1–7 all merged to `dev` (#630–#633, #634–#637, 2026-07-22); the TestFlight hotfix chain #685–#689 shipped **build 6** (2026-08-12). Conventions: `ios-native/CLAUDE.md`. Two schemes:
+
+| Scheme | Backend | Bundle ID | Notes |
+|---|---|---|---|
+| `Fynla-Staging` | `https://csjones.co/fynla` | `org.fynla.app.dev` | The build on TestFlight |
+| `Fynla-Production` | `https://fynla.org` | `org.fynla.app` | **Login cannot work yet** |
+
+**⚠️ The TestFlight app reads the csjones STAGING database.** An account created on fynla.org does not exist there — login returns 401 with audit `reason: user_not_found`, which the UI renders as "Invalid email or password". **Testers must register on csjones.co/fynla, not fynla.org.** Diagnosed 2026-08-13; write-up in `August/Aug14Updates/`.
+
+**Production has no native endpoints.** `routes/api_v1.php` on fynla.org has zero `native/auth` routes — probe `GET /api/v1/native/health`: prod returns `200 text/html` (SPA fallback = route absent), csjones returns `400 application/json`. A `Fynla-Production` build clears `/api/auth/login` then 404s at `/api/v1/native/auth/session/exchange`. Fixing this is a `dev → main` release, not a code change.
+
+**⚠️ The native paywall cannot work yet: there are no in-app purchase products in App Store Connect.** Verified 2026-08-17 against the ASC API — both `Fynla Dev` (6793193337) and `Fynla` (6760545667) return **zero** subscription groups and **zero** in-app purchases, so StoreKit returns nothing and the paywall shows "Premium subscriptions are unavailable. Please try again later." This is configuration, not code, and needs the **Paid Applications Agreement** Active before the products can be created (no second Apple Developer account required). The 6 red `Local StoreKit configuration` tests are a **real signal** of this, not noise. Web and `/m` are unaffected — `/m` hands off to the web app for payment (`issueWebHandoff('subscription')`), which is the agreed architecture; native cannot use that route because Apple requires in-app purchase for digital goods. Details: `August/August17Updates/iOSBugs/BUG-01-subscription-upgrade.md`.
+
+Release pipeline: `ios-native/TESTFLIGHT.md`. Per-screen `/m` parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md`.
+
+### `ios/` — legacy Capacitor target (dormant)
+
+Wraps `public/m-build` via `capacitor.config.ts`. **Untouched since 2026-03-13**; `org.fynla.app` is not on the App Store. `deploy/mobile/build-ios.sh` and the `@capacitor/*` dependencies are still present. Do not develop against it without asking CSJ — superseded by `ios-native/`, but not yet deleted.
+
+Still load-bearing if you do build it:
+- **Build:** `./deploy/mobile/build-ios.sh` (never `npx vite build` alone). After any mobile change, `php artisan cache:clear` (dashboard cached 5 min/user).
+- **vite.config.js blank-screen rules:** never add `external` to `rollupOptions` for image/asset paths (Rollup leaves `/images/*` as JS imports → WKWebView rejects PNGs: `'image/png' is not a valid JavaScript MIME type'`); always keep `transformAssetUrls: false` in the `vue()` plugin; always keep `!disablePWA && VitePWA(...)`.
+- **Biometrics:** mobile logout uses `auth/mobileLogout` (local state only) — NEVER `auth/logout`, which revokes the server token and breaks Face ID.
 
 ## Preview Mode
 

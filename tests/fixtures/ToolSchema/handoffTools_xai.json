@@ -44,7 +44,7 @@
                 "properties": {
                     "summary": {
                         "type": "string",
-                        "description": "Short user-facing recap (e.g. \"Added Scottish Widows SIPP £50k\")."
+                        "description": "Short user-facing recap (e.g. \"Added Scottish Widows Self-Invested Personal Pension £50k\")."
                     },
                     "records_created": {
                         "type": "array",

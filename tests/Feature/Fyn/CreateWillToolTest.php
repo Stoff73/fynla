@@ -69,7 +69,12 @@ it('defaults spouse_primary_beneficiary to false for single users', function () 
     expect((bool) $will->spouse_primary_beneficiary)->toBeFalse();
 });
 
-it('upserts on repeated create_will calls for the same user', function () {
+it('asks instead of overwriting on a repeated create_will call', function () {
+    // Was an updateOrCreate until 2026-08-17 — the second call replaced the
+    // executor silently. SPEC-crud-handler-contract C2 (CSJ): an edit must be
+    // explicit, so a conflicting value is never written, it raises a question.
+    // Still exactly one will per user; the difference is what happens to the
+    // value the user already gave.
     $user = User::factory()->create(['is_preview_user' => false]);
     $agent = app(CoordinatingAgent::class);
 
@@ -77,10 +82,11 @@ it('upserts on repeated create_will calls for the same user', function () {
     $r2 = $agent->executeTool('create_will', ['executor_name' => 'Second Exec'], $user);
 
     expect(Will::where('user_id', $user->id)->count())->toBe(1);
-    expect($r1['id'])->toBe($r2['id']);
+    expect($r2['error_type'] ?? null)->toBe('confirm_edit_required');
+    expect($r2['entity_id'])->toBe($r1['id']);
 
-    $will = Will::find($r2['id']);
-    expect($will->executor_name)->toBe('Second Exec');
+    $will = Will::find($r1['id']);
+    expect($will->executor_name)->toBe('First Exec');
 });
 
 it('update_will falls back to create when no prior will exists', function () {

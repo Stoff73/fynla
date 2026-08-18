@@ -47,12 +47,14 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\Fyn\RecaptureGuard;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Pointers\FetchContext;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
+use App\Services\AI\WriteIntentClassifier;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -878,6 +880,11 @@ class CoordinatingAgent extends BaseAgent
         ?string $evidenceOverride = null,
         ?array $confirmedFacts = null,
     ): array {
+        // The turn's conversation, for the handlers that need to see what the
+        // previous turn already asked (guardRecapture). Set per dispatch — this
+        // agent is container-transient, so it never leaks across turns.
+        $this->activeConversationId = $conversationId;
+
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
         $input = array_map(function ($v) {
@@ -2443,6 +2450,11 @@ class CoordinatingAgent extends BaseAgent
     {
         $service = app(WhatIfScenarioService::class);
 
+        $recapture = $this->guardRecapture('what_if_scenario', ['name' => $input['name']], $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
+
         $result = $service->createScenario($user, [
             'name' => $input['name'],
             'scenario_type' => $input['scenario_type'] ?? 'custom',
@@ -2453,6 +2465,10 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'success' => true,
+            'created' => true,
+            'entity_type' => 'what_if_scenario',
+            'entity_id' => $result['scenario_id'],
+            'name' => $input['name'],
             'scenario_id' => $result['scenario_id'],
             'comparison' => $result,
             'action' => 'navigate',
@@ -2667,6 +2683,10 @@ class CoordinatingAgent extends BaseAgent
         if (isset($input['description']) && $input['description'] !== '') {
             $payload['description'] = $input['description'];
         }
+        $recapture = $this->guardRecapture('goal', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         try {
             $goal = app(GoalStore::class)->create($payload, $user, IngestSource::FYN_AI);
@@ -2717,6 +2737,10 @@ class CoordinatingAgent extends BaseAgent
 
         if (isset($input['description']) && $input['description'] !== '') {
             $payload['description'] = $input['description'];
+        }
+        $recapture = $this->guardRecapture('life_event', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
         }
 
         try {
@@ -2876,12 +2900,12 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        $duplicateCheck = $this->checkForDuplicate(SavingsAccount::class, $user->id, 'account_name', $input['account_name']);
-        if ($duplicateCheck) {
-            return $duplicateCheck;
-        }
-
         $canonical = app(SavingsAccountNormaliser::class)->fromFyn($input);
+
+        $recapture = $this->guardRecapture('savings_account', $canonical, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         try {
             $account = app(SavingsStore::class)->create(
@@ -2946,11 +2970,6 @@ class CoordinatingAgent extends BaseAgent
         ]);
         if ($validationError) {
             return $validationError;
-        }
-
-        $duplicateCheck = $this->checkForDuplicate(InvestmentAccount::class, $user->id, 'account_name', $input['account_name']);
-        if ($duplicateCheck) {
-            return $duplicateCheck;
         }
 
         $accountType = $input['account_type'] ?? 'personal_investment_account';
@@ -3046,6 +3065,11 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $canonical = InvestmentAccountNormaliser::fromFyn($payload, $user);
+
+        $recapture = $this->guardRecapture('investment_account', $canonical, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         try {
             $account = app(InvestmentAccountStore::class)->create($canonical, $user, IngestSource::FYN_AI);
@@ -3154,6 +3178,11 @@ class CoordinatingAgent extends BaseAgent
             $payload['purchase_date'] = $input['purchase_date'];
         }
 
+        $recapture = $this->guardRecapture('investment_holding', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
+
         $holding = DB::transaction(fn () => Holding::create($payload));
 
         $this->invalidateUserCache($user->id);
@@ -3167,6 +3196,116 @@ class CoordinatingAgent extends BaseAgent
             'persisted_fields' => array_keys($payload),
             'message' => "I've added \"{$holding->security_name}\" to your {$account->provider} account.",
         ];
+    }
+
+    /**
+     * The one entry point every create handler uses to ask "does the user
+     * already have this record?".
+     *
+     * SPEC: August/August17Updates/SPEC-crud-handler-contract.md §5. The
+     * decision itself lives in RecaptureGuard — Rule 20 means one mechanism, not
+     * a copy per handler. Returns null when there is no match and the handler
+     * should carry on and create.
+     *
+     * @param  array<string, mixed>  $canonical
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>|null
+     */
+    /** The conversation this dispatch belongs to; see executeTool. */
+    private ?int $activeConversationId = null;
+
+    private function guardRecapture(string $entityType, array $canonical, array $input, User $user): ?array
+    {
+        $result = app(RecaptureGuard::class)->inspect(
+            $entityType,
+            $canonical,
+            $input,
+            $user,
+            fn (string $type, ?int $recordId): bool => $this->isExplicitEditTurnFor($type, $recordId),
+        );
+
+        if ($result !== null && ($result['updated'] ?? false)) {
+            $this->invalidateUserCache($user->id);
+        }
+
+        return $result === null ? null : $this->suppressRepeatedAsk($result);
+    }
+
+    /**
+     * A question Fyn has already asked and the user has not answered must not be
+     * asked again just because the model re-issued the same tool call.
+     *
+     * Live 2026-08-17: Fyn asked "is this the same House Deposit goal, or a
+     * separate one?"; the user's next message started a DIFFERENT capture ("I
+     * have a Chase savings account…"); the model re-emitted the identical
+     * create_goal, the guard blocked it identically, and the model narrated the
+     * goal question again — the savings account was never captured and the user
+     * saw the same sentence twice.
+     *
+     * Blocking the write again is right. Repeating the sentence is not: the
+     * question stands from the turn that asked it. So a repeat carries no
+     * user-facing text at all, and tells the model to answer the message the
+     * user actually sent.
+     *
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function suppressRepeatedAsk(array $result): array
+    {
+        $errorType = $result['error_type'] ?? null;
+        if (! in_array($errorType, ['confirm_edit_required', 'confirm_duplicate_required'], true)) {
+            return $result;
+        }
+
+        if ($this->activeConversationId === null || ($result['entity_id'] ?? null) === null) {
+            return $result;
+        }
+
+        $previous = AiMessage::where('conversation_id', $this->activeConversationId)
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first();
+
+        if ($previous === null) {
+            return $result;
+        }
+
+        $alreadyAsked = collect($previous->tool_results ?? [])
+            ->contains(function (array $entry) use ($result): bool {
+                $raw = $entry['raw'] ?? null;
+
+                return is_array($raw)
+                    && ($raw['entity_id'] ?? null) === $result['entity_id']
+                    && in_array($raw['error_type'] ?? null, ['confirm_edit_required', 'confirm_duplicate_required'], true);
+            });
+
+        if (! $alreadyAsked) {
+            return $result;
+        }
+
+        // Only when the user has genuinely MOVED ON. Answering the model's own
+        // follow-up ("300 a month, high priority") re-runs the same blocked
+        // call, and the question has not been put to them yet — silencing it
+        // there leaves a bare "the information could not be saved". A message
+        // that classifies to a different entity type is a new subject; one that
+        // classifies to nothing is still part of this exchange.
+        $latest = $this->latestUserMessageText($this->activeConversationId) ?? '';
+        $movedOn = app(WriteIntentClassifier::class)->classify($latest);
+        $blockedType = (string) ($result['entity_type'] ?? '');
+
+        if ($movedOn === null
+            || $movedOn['entity_type'] === $blockedType
+            || str_contains($blockedType, $movedOn['entity_type'])) {
+            return $result;
+        }
+
+        $result['message'] = '';
+        $result['repeated_ask'] = true;
+        $result['model_directive'] = 'You already asked the user this and they have not answered it. '
+            .'Do not ask it again and do not repeat it back to them — the question still stands from the '
+            .'turn that asked it. Deal with the message they actually sent instead.';
+
+        return $result;
     }
 
     private function handleCreatePension(array $input, User $user, bool $isPreview): array
@@ -3199,17 +3338,34 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $dcDuplicate = $this->checkForDuplicate(DCPension::class, $user->id, 'scheme_name', $input['scheme_name']);
-        if ($dcDuplicate) {
-            return $dcDuplicate;
-        }
-        $dbDuplicate = $this->checkForDuplicate(DBPension::class, $user->id, 'scheme_name', $input['scheme_name']);
-        if ($dbDuplicate) {
-            return $dbDuplicate;
+        $canonical = app(PensionNormaliser::class)->fromFynPension($input);
+        $isDb = $canonical['type'] === 'db';
+        $entityType = $isDb ? 'db_pension' : 'dc_pension';
+
+        // BUG-02/03 (2026-08-17): a re-capture of the SAME pension merges rather
+        // than warning. Live sequence: turn 1 recorded "Aviva Pension" and, lacking
+        // a scheme type, wrote the inferred default while asking for the type; the
+        // user answered "Sip"; turn 2 re-called this tool with the same scheme name
+        // and scheme_type=sipp — and the duplicate warning discarded it, leaving the
+        // row a workplace pension while Fyn reported a Self-Invested Personal
+        // Pension. Data entry has to be correct deterministically in code, not
+        // contingent on the model choosing `update_record`.
+        $recapture = $this->guardRecapture($entityType, $canonical, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
         }
 
-        $canonical = app(PensionNormaliser::class)->fromFynPension($input);
-        $entityType = $canonical['type'] === 'db' ? 'db_pension' : 'dc_pension';
+        // The same name under the OTHER category is a different record shape, not a
+        // field correction, so the duplicate warning still applies there.
+        $crossDuplicate = $this->checkForDuplicate(
+            $isDb ? DCPension::class : DBPension::class,
+            $user->id,
+            'scheme_name',
+            $input['scheme_name'],
+        );
+        if ($crossDuplicate) {
+            return $crossDuplicate;
+        }
 
         try {
             $pension = $canonical['type'] === 'db'
@@ -3305,6 +3461,11 @@ class CoordinatingAgent extends BaseAgent
         ], $input);
 
         $canonical = app(PropertyNormaliser::class)->fromFyn($toolInput);
+
+        $recapture = $this->guardRecapture('property', $canonical, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         // Mortgage auto-create — flagged via has_mortgage OR by legacy
         // outstanding_mortgage / mortgage_outstanding_balance fields. Routed
@@ -3464,6 +3625,11 @@ class CoordinatingAgent extends BaseAgent
 
         $canonical = MortgageNormaliser::fromFyn($payload, $user);
 
+        $recapture = $this->guardRecapture('mortgage', $canonical, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
+
         try {
             $mortgage = app(MortgageStore::class)->create($canonical, $user, IngestSource::FYN_AI);
         } catch (StoreValidationException $e) {
@@ -3566,6 +3732,10 @@ class CoordinatingAgent extends BaseAgent
                 }
             }
 
+            // Distinct from the re-capture guard below, which is about a USER
+            // recording the same policy twice across turns. This one is about the
+            // MODEL emitting the same call twice inside one turn, before it has
+            // seen the first result — so it skips silently rather than asking.
             // BS-17 in-turn idempotency: grok-4.3 occasionally emits
             // create_protection_policy twice for the same entity inside one
             // multi-entity message. Without this guard the second tool call
@@ -3591,6 +3761,11 @@ class CoordinatingAgent extends BaseAgent
                     'persisted_fields' => [],
                     'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
                 ];
+            }
+
+            $recapture = $this->guardRecapture('life_insurance_policy', $payload, $input, $user);
+            if ($recapture !== null) {
+                return $recapture;
             }
 
             $policy = DB::transaction(fn () => LifeInsurancePolicy::create($payload));
@@ -3646,6 +3821,11 @@ class CoordinatingAgent extends BaseAgent
                 ];
             }
 
+            $recapture = $this->guardRecapture('critical_illness_policy', $payload, $input, $user);
+            if ($recapture !== null) {
+                return $recapture;
+            }
+
             $policy = DB::transaction(fn () => CriticalIllnessPolicy::create($payload));
             $entityType = 'critical_illness_policy';
         } else {
@@ -3688,6 +3868,11 @@ class CoordinatingAgent extends BaseAgent
                     'persisted_fields' => [],
                     'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
                 ];
+            }
+
+            $recapture = $this->guardRecapture('income_protection_policy', $payload, $input, $user);
+            if ($recapture !== null) {
+                return $recapture;
             }
 
             $policy = DB::transaction(fn () => IncomeProtectionPolicy::create($payload));
@@ -3737,6 +3922,10 @@ class CoordinatingAgent extends BaseAgent
         }
         if (isset($input['liquidity']) && $input['liquidity'] !== '') {
             $payload['liquidity'] = $input['liquidity'];
+        }
+        $recapture = $this->guardRecapture('estate_asset', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
         }
 
         $asset = DB::transaction(fn () => Asset::create($payload));
@@ -3807,6 +3996,10 @@ class CoordinatingAgent extends BaseAgent
                 $payload[$f] = $input[$f];
             }
         }
+        $recapture = $this->guardRecapture('estate_liability', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         $liability = app(LiabilityStore::class)->create($payload, $user, IngestSource::FYN_AI);
 
@@ -3852,6 +4045,10 @@ class CoordinatingAgent extends BaseAgent
         if (isset($input['notes']) && $input['notes'] !== '') {
             $payload['notes'] = $input['notes'];
         }
+        $recapture = $this->guardRecapture('estate_gift', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         $gift = DB::transaction(fn () => Gift::create($payload));
 
@@ -3892,25 +4089,36 @@ class CoordinatingAgent extends BaseAgent
             ? (bool) $input['spouse_primary_beneficiary']
             : in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
 
-        $will = Will::updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'has_will' => true,
-                'executor_name' => $input['executor_name'],
-                'residuary_beneficiary' => $input['residuary_beneficiary'] ?? null,
-                'guardian_for_minors' => $input['guardian_for_minors'] ?? null,
-                'specific_gifts' => $input['specific_gifts'] ?? null,
-                'spouse_primary_beneficiary' => $spousePrimary,
-                'will_last_updated' => now()->toDateString(),
-            ],
-        );
+        $payload = [
+            'has_will' => true,
+            'executor_name' => $input['executor_name'],
+            'residuary_beneficiary' => $input['residuary_beneficiary'] ?? null,
+            'guardian_for_minors' => $input['guardian_for_minors'] ?? null,
+            'specific_gifts' => $input['specific_gifts'] ?? null,
+            'spouse_primary_beneficiary' => $spousePrimary,
+            'will_last_updated' => now()->toDateString(),
+        ];
+
+        // This used to be an updateOrCreate, which silently overwrote whatever
+        // the user had already recorded — the sharpest version of the C2 failure
+        // (SPEC-crud-handler-contract §3). A second capture now fills blanks and
+        // asks about anything that conflicts.
+        $recapture = $this->guardRecapture('will', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
+
+        $will = Will::create($payload + ['user_id' => $user->id]);
 
         $this->invalidateUserCache($user->id);
 
         return [
             'action' => 'record_saved',
+            'created' => true,
             'entity_type' => 'will',
+            'entity_id' => $will->id,
             'id' => $will->id,
+            'name' => 'Will',
             'message' => 'Recorded your will details.',
         ];
     }
@@ -3968,8 +4176,11 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            'updated' => true,
             'entity_type' => 'will',
+            'entity_id' => $will->id,
             'id' => $will->id,
+            'name' => 'Will',
             'message' => 'Updated your will details.',
         ];
     }
@@ -3992,6 +4203,17 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $donorName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: ($user->name ?? '');
+
+        // One power of attorney per type — a second capture of the same type is
+        // a re-capture of that one, not a second document.
+        $recapture = $this->guardRecapture('lasting_power_of_attorney', [
+            'lpa_type' => $input['lpa_type'],
+            'status' => $input['status'] ?? null,
+            'opg_reference' => $input['opg_reference'] ?? null,
+        ], $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         $lpa = DB::transaction(function () use ($input, $user, $donorName) {
             $lpa = LastingPowerOfAttorney::create([
@@ -4031,9 +4253,12 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            'created' => true,
             'entity_type' => 'lasting_power_of_attorney',
+            'entity_id' => $lpa->id,
             'id' => $lpa->id,
-            'message' => "Recorded your {$typeLabel} LPA.",
+            'name' => $typeLabel,
+            'message' => "Recorded your {$typeLabel} Lasting Power of Attorney.",
         ];
     }
 
@@ -4061,7 +4286,7 @@ class CoordinatingAgent extends BaseAgent
             return [
                 'error' => true,
                 'error_type' => 'not_found',
-                'message' => 'No LPA with that ID found for this user.',
+                'message' => 'No Lasting Power of Attorney with that reference was found on your record.',
             ];
         }
 
@@ -4117,9 +4342,12 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'action' => 'record_saved',
+            'updated' => true,
             'entity_type' => 'lasting_power_of_attorney',
+            'entity_id' => $lpa->id,
             'id' => $lpa->id,
-            'message' => 'Updated your LPA.',
+            'name' => 'Lasting Power of Attorney',
+            'message' => 'Updated your Lasting Power of Attorney.',
         ];
     }
 
@@ -4468,6 +4696,11 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
+        $recapture = $this->guardRecapture('family_member', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
+
         $member = DB::transaction(fn () => FamilyMember::create($payload));
 
         $this->invalidateUserCache($user->id);
@@ -4536,6 +4769,10 @@ class CoordinatingAgent extends BaseAgent
         if (isset($input['purpose']) && $input['purpose'] !== '') {
             $payload['purpose'] = $input['purpose'];
         }
+        $recapture = $this->guardRecapture('trust', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         // FR-M15 — TrustObserver::created emits the corresponding Gift
         // (Chargeable Lifetime Transfer) when the trust persists; we don't
@@ -4603,6 +4840,10 @@ class CoordinatingAgent extends BaseAgent
                 $payload[$f] = $input[$f];
             }
         }
+        $recapture = $this->guardRecapture('business_interest', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
+        }
 
         $bi = DB::transaction(fn () => BusinessInterest::create($payload));
 
@@ -4661,6 +4902,11 @@ class CoordinatingAgent extends BaseAgent
         }
         if (isset($input['notes']) && $input['notes'] !== '') {
             $payload['notes'] = $input['notes'];
+        }
+
+        $recapture = $this->guardRecapture('chattel', $payload, $input, $user);
+        if ($recapture !== null) {
+            return $recapture;
         }
 
         $chattel = DB::transaction(fn () => Chattel::create($payload));
@@ -5596,6 +5842,7 @@ class CoordinatingAgent extends BaseAgent
 
             return [
                 'success' => true,
+                'updated' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $pension->id,
                 'fields_updated' => array_keys($fields),
@@ -5623,6 +5870,7 @@ class CoordinatingAgent extends BaseAgent
 
             return array_filter([
                 'success' => true,
+                'updated' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $record->id,
                 'fields_updated' => array_keys($fields),
@@ -5643,6 +5891,7 @@ class CoordinatingAgent extends BaseAgent
 
             return array_filter([
                 'success' => true,
+                'updated' => true,
                 'entity_type' => $entityType,
                 'entity_id' => $model->id,
                 'fields_updated' => array_keys($fields),

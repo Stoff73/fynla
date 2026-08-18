@@ -60,21 +60,46 @@ struct FynEventReducer: Sendable {
         case let .handoffError(message), let .error(message):
             state.notice = .failure(message)
             replaceAssistantText(message, delivery: .failed, in: &state)
-        case let .entityCreated(name):
+        case let .entityWrite(write):
             let index = assistantIndex(in: &state)
             var names: [String] = []
             if case let .pending(existing)? = state.messages[index].capture {
                 names = existing
             }
-            if let name, !names.contains(name) {
+            if let name = write.name, write.action == .created, !names.contains(name) {
                 names.append(name)
             }
             state.messages[index].capture = .pending(names: names)
+
+            // The link to the page the record lives on, offered as a reply the
+            // user can tap. A delete has nothing left to view, and an entity
+            // with no page sends no route rather than a guessed one.
+            if write.action != .deleted, let route = write.route {
+                let reply = FynReply(
+                    id: "view_record",
+                    label: write.label.map { "View \($0)" } ?? "View record",
+                    route: route,
+                    isAction: true
+                )
+                if !state.messages[index].replies.contains(where: { $0.id == reply.id }) {
+                    state.messages[index].replies.append(reply)
+                }
+            }
         case let .captureComplete(summary):
+            // One confirmation, not two. This wrote the summary into BOTH the
+            // message text and the capture chip, and FynMessageView renders both
+            // in the same bubble — so the user was told the record was saved
+            // twice, one line under the other (CSJ, live on the simulator
+            // 2026-08-18). When Fyn has already said it in prose that prose
+            // stands; the chip is for when it has not.
             let text = summary ?? "Your information was saved."
             let index = assistantIndex(in: &state)
-            state.messages[index].capture = .confirmed(summary: text)
-            state.messages[index].text = text
+            if state.messages[index].text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                state.messages[index].capture = .confirmed(summary: text)
+                state.messages[index].text = text
+            } else {
+                state.messages[index].capture = nil
+            }
         case let .quickReplies(prompt, replies, actionReplies):
             let index: Int
             if let current = currentAssistantIndex(in: state),

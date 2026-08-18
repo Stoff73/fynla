@@ -126,7 +126,6 @@ export default {
             const emojis = {
                 young_family: '👨‍👩‍👧‍👦',
                 peak_earners: '💼',
-                widow: '👵',
                 entrepreneur: '🚀',
                 young_saver: '🎓',
                 retired_couple: '👴👵',
@@ -140,7 +139,6 @@ export default {
             const gradients = {
                 young_family: 'bg-gradient-to-br from-blue-500 to-blue-700',
                 peak_earners: 'bg-gradient-to-br from-green-500 to-green-700',
-                widow: 'bg-gradient-to-br from-violet-500 to-violet-700',
                 entrepreneur: 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-700',
                 young_saver: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
                 retired_couple: 'bg-gradient-to-br from-rose-500 to-rose-700',
@@ -162,11 +160,6 @@ export default {
                     'Are we maximising our pension tax relief?',
                     'How much inheritance tax will our estate face?',
                     'Is our investment portfolio properly diversified?',
-                ],
-                widow: [
-                    'How can I reduce the inheritance tax on my estate?',
-                    'Should I be making gifts to reduce my estate?',
-                    'Do I have enough income for retirement?',
                 ],
                 entrepreneur: [
                     'Is my business adequately protected?',

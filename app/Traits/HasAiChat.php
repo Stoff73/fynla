@@ -15,6 +15,7 @@ use Anthropic\Messages\RawMessageStartEvent;
 use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
@@ -64,6 +65,16 @@ use Illuminate\Support\Facades\Log;
  */
 trait HasAiChat
 {
+    /**
+     * The write flag a handler returns => the event the clients listen for.
+     * SPEC-crud-handler-contract §5.3.
+     */
+    private const ENTITY_EVENTS = [
+        'created' => 'entity_created',
+        'updated' => 'entity_updated',
+        'deleted' => 'entity_deleted',
+    ];
+
     /**
      * Default tool-call cap when no engine-level signal is available.
      * Used by code paths outside AdviceFyn (e.g. onboarding asset_capture
@@ -140,6 +151,60 @@ trait HasAiChat
     public function setVerifyEditScope(?array $scope): void
     {
         $this->verifyEditScope = $scope;
+    }
+
+    /**
+     * The entity type whose outstanding question the user is ANSWERING this turn.
+     *
+     * CSJ 2026-08-17: "an edit, amendment or change must be explicit. If there is any
+     * ambiguity Fyn must ask 'are we editing {plan}' before making any changes." A
+     * reply to a question Fyn itself just asked about a specific record IS explicit —
+     * Fyn asked "workplace or Self-Invested Personal Pension?" and the user answered
+     * "Sip". Without this signal the write handler cannot tell that apart from a
+     * fresh message that merely name-matches an existing record, which is ambiguous
+     * and must ask.
+     *
+     * Set by AdviceFyn around a capture-continuation turn and always cleared in its
+     * finally, on the SAME agent instance (CoordinatingAgent is container-transient).
+     */
+    private ?string $explicitEditEntityType = null;
+
+    /** The record that question was about. The permission is scoped to it. */
+    private ?int $explicitEditRecordId = null;
+
+    public function setExplicitEditEntityType(?string $entityType, ?int $recordId = null): void
+    {
+        $this->explicitEditEntityType = $entityType;
+        $this->explicitEditRecordId = $recordId;
+    }
+
+    /**
+     * True when the user is answering Fyn's own outstanding question about this
+     * entity type, which makes an amendment to it explicit rather than assumed.
+     */
+    protected function isExplicitEditTurnFor(string $entityType, ?int $recordId = null): bool
+    {
+        if ($this->explicitEditEntityType === null) {
+            return false;
+        }
+
+        // Scoped to the record the question was about, never to the type.
+        //
+        // CSJ's rule licenses amending the record Fyn just asked about — "Sip"
+        // answers "workplace or Self-Invested Personal Pension?" for THAT
+        // pension. Read as a type-wide permission it also licenses editing an
+        // unrelated record of the same type: live 2026-08-17, answering a
+        // priority question about a NEW house-deposit goal overwrote an
+        // existing goal's £25,000 target with £20,000, silently. Without a
+        // known record there is no permission, so the write handler asks.
+        if ($this->explicitEditRecordId === null || $recordId !== $this->explicitEditRecordId) {
+            return false;
+        }
+
+        // The classifier speaks in bare entity names ('pension'); handlers in table
+        // names ('dc_pension', 'db_pension'). Match either way round.
+        return $this->explicitEditEntityType === $entityType
+            || str_contains($entityType, $this->explicitEditEntityType);
     }
 
     /** @return array<string, mixed>|null */
@@ -290,9 +355,14 @@ trait HasAiChat
         $classifier = app(QueryClassifier::class);
         $classification = $classifier->classify($message, $currentRoute);
 
+        // A classification with no primary is treated as general rather than
+        // fatal: the KYC gate has nothing to gate on, and a TypeError here
+        // would take down a turn that only needed answering plainly.
+        $primary = $classification['primary'] ?? QuerySchemas::GENERAL;
+
         $kycResult = null;
-        if (! QuerySchemas::isBypassType($classification['primary'])
-            && $classification['primary'] !== QuerySchemas::GENERAL) {
+        if (! QuerySchemas::isBypassType($primary)
+            && $primary !== QuerySchemas::GENERAL) {
             $kycChecker = app(KycGateChecker::class);
             $kycResult = $kycChecker->check($user, $classification);
         }
@@ -874,13 +944,33 @@ trait HasAiChat
                             }
                         }
 
-                        // Handle entity creation results
-                        if (isset($toolResult['created']) && $toolResult['created'] === true) {
+                        // Entity write results. `entity_created` used to be the
+                        // only one of these in the whole application, so an edit
+                        // or a delete had no event to carry a confirmation —
+                        // SPEC-crud-handler-contract §4.2. One loop, so a fourth
+                        // never grows its own copy of this block.
+                        foreach (self::ENTITY_EVENTS as $flag => $eventType) {
+                            // Some results flag a write with nothing to name —
+                            // update_profile edits the user, not a record. No
+                            // identity, no event.
+                            if (($toolResult[$flag] ?? false) !== true
+                                || ! isset($toolResult['entity_type'], $toolResult['entity_id'])) {
+                                continue;
+                            }
+
+                            // The page showing the record, resolved once on the
+                            // server so all three clients link to the same place
+                            // (§5.4). Null for an entity with no page.
+                            $page = GateRoutes::forEntityType((string) ($toolResult['entity_type'] ?? ''));
+
                             yield [
-                                'type' => 'entity_created',
+                                'type' => $eventType,
                                 'entity_type' => $toolResult['entity_type'],
                                 'entity_id' => $toolResult['entity_id'],
                                 'name' => $toolResult['name'] ?? '',
+                                'route' => $page['web'] ?? null,
+                                'mobile_route' => $page['mobile'] ?? null,
+                                'label' => $page['label'] ?? null,
                             ];
                         }
 
@@ -1182,6 +1272,37 @@ trait HasAiChat
         $messageMetadata['turn_intent'] = ($this->personaOverride === 'data_capture'
             ? FynTurnIntent::CaptureAck
             : FynTurnIntent::AdviceAnswer)->value;
+
+        // Did a write actually land on this capture turn?
+        //
+        // AdviceFyn::captureContinuationIntent has to know whether the user
+        // still owes us something, and it used to infer that from the presence
+        // of tool_calls plus a question mark in the text. A capture that CALLED
+        // a write tool and had it rejected (the accuracy gate returning
+        // clarification_required) looks identical to one that succeeded, and the
+        // deterministic failure copy we compose has no question mark in it — so
+        // the user's answer fell through to read-only advice, which then
+        // narrated "Recorded." over a write that never happened (live
+        // conversation 157, 2026-08-17). Recording the fact removes the guess.
+        if ($this->personaOverride === 'data_capture') {
+            // The record this capture turn wrote or asked about — the next
+            // turn's explicit-edit permission is scoped to it.
+            $messageMetadata['capture_record_id'] = collect($fullToolResults)
+                ->map(fn (array $result): mixed => is_array($result['raw'] ?? null)
+                    ? ($result['raw']['entity_id'] ?? null)
+                    : null)
+                ->filter(fn (mixed $id): bool => is_int($id) || (is_string($id) && ctype_digit($id)))
+                ->map(fn (mixed $id): int => (int) $id)
+                ->last();
+
+            $messageMetadata['capture_write_landed'] = collect($fullToolResults)
+                ->contains(function (array $result): bool {
+                    $raw = $result['raw'] ?? null;
+
+                    return is_array($raw) && collect(array_keys(self::ENTITY_EVENTS))
+                        ->contains(fn (string $flag): bool => ($raw[$flag] ?? false) === true);
+                });
+        }
 
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,

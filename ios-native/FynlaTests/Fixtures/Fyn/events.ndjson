@@ -1,6 +1,6 @@
 {"type":"conversation_created","conversation_id":321}
 {"type":"content","text":"I have saved that. "}
-{"type":"entity_created","name":"Cash ISA"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":77,"name":"Cash ISA","route":"/savings","mobile_route":"/savings","label":"Bank Accounts"}
 {"type":"capture_complete","summary":"Saved Cash ISA with a balance of £12,000."}
 {"type":"onboarding_advance","from_step":"savings","to_step":"retirement"}
 {"type":"quick_replies","prompt_text":"Do you have a pension?","bubbles":[{"id":"yes","label":"Yes"},{"id":"no","label":"No"}],"action_bubbles":false}

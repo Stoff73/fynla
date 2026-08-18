@@ -3,7 +3,7 @@ procedure_id: 'estate.tool.create_asset'
 kind: tool_schema
 module: estate
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -39,14 +39,14 @@ effective_from: 2026-06-02
                     "boolean",
                     "null"
                 ],
-                "description": "Whether exempt from IHT. Default false."
+                "description": "Whether exempt from Inheritance Tax. Default false."
             },
             "exemption_reason": {
                 "type": [
                     "string",
                     "null"
                 ],
-                "description": "Reason for IHT exemption, if applicable."
+                "description": "Reason for Inheritance Tax exemption, if applicable."
             }
         },
         "required": [

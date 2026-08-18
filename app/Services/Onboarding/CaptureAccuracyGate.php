@@ -132,7 +132,11 @@ final class CaptureAccuracyGate
             || ($argumentOwnership !== ($confirmedFacts['ownership_type'] ?? null)
                 && ($textOwnership === null || $argumentOwnership !== $textOwnership))) {
             $missing[] = 'ownership_type';
-            $reasons[] = 'I need you to confirm whether you own it individually or with someone else';
+            // Phrased as the question it is. A missing detail is not a failure
+            // to apologise for, and the composer only wraps a reason in "I
+            // couldn't save that — …" when it is not already a question
+            // (CSJ 2026-08-17, on seeing this turn live).
+            $reasons[] = 'Is this in your name only, or do you share it with someone else?';
         }
 
         if (in_array($argumentOwnership, ['joint', 'tenants_in_common'], true)) {

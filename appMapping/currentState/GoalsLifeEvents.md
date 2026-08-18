@@ -818,7 +818,6 @@ Creates life events for preview personas. Handles:
 Each persona has goals appropriate to their life stage:
 - **Young Family (Carters):** Emergency fund, home deposit, education savings
 - **Peak Earners (Mitchells):** Wealth building, retirement boost, holiday
-- **Widow (Thompson):** Legacy planning, travel, charitable giving
 - **Entrepreneur (Chen):** Business growth fund, property portfolio
 - **Young Saver (Morgan):** Emergency fund, first home deposit, car purchase
 - **Retired Couple (Williams):** Home renovation, travel, legacy

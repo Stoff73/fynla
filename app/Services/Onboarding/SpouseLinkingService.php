@@ -10,6 +10,7 @@ use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
+use App\Models\UserConsent;
 use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -259,6 +260,12 @@ final class SpouseLinkingService
                 'county' => $currentUser->county,
                 'postcode' => $currentUser->postcode,
             ]);
+
+            // A spouse account is a real login, so it needs the same ai_chat
+            // consent registration grants — without it the Fyn gate answers 403
+            // on every surface and the account is locked out of the product with
+            // nothing to tap. Same basis as AuthController: the journey is chat.
+            UserConsent::recordConsent($spouseUser->id, UserConsent::TYPE_AI_CHAT);
 
             $currentUser->spouse_id = $spouseUser->id;
             $currentUser->marital_status = $maritalStatus;

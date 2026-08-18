@@ -240,6 +240,43 @@ describe('/m financial data parity', () => {
     expect(wrapper.text()).toContain('Mixed Fund');
   });
 
+  it('dates an investment contribution summary to its recorded tax year', async () => {
+    apiGet.mockImplementation(async (path) => {
+      if (path === '/api/investment') {
+        return {
+          ok: true,
+          status: 200,
+          data: { data: { accounts: [{
+            id: 22,
+            provider: 'Canonical Investments',
+            platform: 'Example Platform',
+            account_type: 'isa',
+            current_value: 10000,
+            contributions_ytd: 4800,
+            monthly_contribution_amount: 400,
+            tax_year: '2025/26',
+            isa_subscription_current_year: 4800,
+            owner_name: 'Alex Example',
+            is_primary_owner: true,
+            portfolio,
+          }] } },
+        };
+      }
+      return { ok: true, status: 200, data: { data: { isa_allowance: isaStatus } } };
+    });
+
+    const wrapper = mount(InvestmentAccountDetail, {
+      global: {
+        stubs: { MobileChrome: MobileChromeStub },
+        mocks: { $route: { params: { id: '22' } }, $router: { push: vi.fn() } },
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('£4,800 contributed in 2025/26');
+    expect(wrapper.text()).not.toContain('£4,800 contributed this tax year');
+  });
+
   it('shows the cash ISA owner and navigates canonical contribution tax years', async () => {
     const priorStatus = { ...isaStatus, tax_year: '2025/26', total_used: 1000 };
     apiGet.mockImplementation(async (path) => {

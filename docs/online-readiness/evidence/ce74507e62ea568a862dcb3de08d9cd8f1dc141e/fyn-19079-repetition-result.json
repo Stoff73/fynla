@@ -1,0 +1,185 @@
+{
+  "manifest_id": "fyn-19079-repetition",
+  "commit_sha": "ce74507e62ea568a862dcb3de08d9cd8f1dc141e",
+  "started_at": "2026-07-13T16:07:36Z",
+  "finished_at": "2026-07-13T16:21:32Z",
+  "environment_url": "https://csjones.co/fynla",
+  "browser": {
+    "name": "Google Chrome",
+    "version": "150.0.7871.49"
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "status": "passed",
+  "steps": [
+    {
+      "surface": "desktop",
+      "action": "provision",
+      "target": "completed-onboarding QA user with retirement data and zero goals",
+      "assertion": "User has retirement data, no goals, no active campaign, and no onboarding step",
+      "observed": "The standing QA account matched every retirement/advice prerequisite.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/01-desktop-user-state.json"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "action": "ask",
+      "target": "Am I on track for retirement?",
+      "assertion": "Fyn returns one complete retirement answer without a goals prerequisite gate",
+      "observed": "One visible answer persisted at 1046 characters.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/02-desktop-answer.png"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "action": "inspect-stream",
+      "target": "desktop conversation stream and tool audit",
+      "assertion": "No identical tool executes more than once and no paragraph repeats",
+      "observed": "No duplicate dispatch fingerprint or repeated paragraph was observed.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/03-desktop-stream.json"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "action": "inspect-database",
+      "target": "ai_messages rows for the desktop conversation",
+      "assertion": "Exactly one user turn and one assistant answer of 100 to 8000 characters are persisted",
+      "observed": "Exactly two rows persisted in user/assistant order.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/04-desktop-ai-messages.json"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "action": "inspect-frame",
+      "target": "mobile application iframe signed in as the same completed-onboarding QA user",
+      "assertion": "Mobile resolves the user to advice state with no active onboarding flow",
+      "observed": "The direct /m/app pathway rendered the completed-onboarding dashboard and mobile Fyn chat.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/05-mobile-user-state.png"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "action": "ask",
+      "target": "Am I on track for retirement?",
+      "assertion": "Fyn returns one complete retirement answer without a goals prerequisite gate",
+      "observed": "One visible answer persisted at 815 characters.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/06-mobile-answer.png"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "action": "inspect-stream",
+      "target": "mobile conversation stream and tool audit",
+      "assertion": "No identical tool executes more than once and no paragraph repeats",
+      "observed": "No duplicate dispatch fingerprint or repeated paragraph was observed.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/07-mobile-stream.json"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "action": "compare-state",
+      "target": "desktop and mobile dispatch, answer, and persisted conversation state",
+      "assertion": "Both surfaces use advice state and persist equivalent single-answer outcomes",
+      "observed": "Both surfaces persisted exactly one user turn and one assistant answer in advice state.",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/08-surface-comparison.json"
+      ]
+    }
+  ],
+  "negative_assertions": [
+    {
+      "assertion": "no goals prerequisite gate",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/03-desktop-stream.json",
+        "evidence/fyn-19079/07-mobile-stream.json"
+      ]
+    },
+    {
+      "assertion": "no repeated paragraph",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/03-desktop-stream.json",
+        "evidence/fyn-19079/07-mobile-stream.json"
+      ]
+    },
+    {
+      "assertion": "no identical tool executed more than once per answer",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/03-desktop-stream.json",
+        "evidence/fyn-19079/07-mobile-stream.json"
+      ]
+    },
+    {
+      "assertion": "no duplicate or unbounded ai_messages rows",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/04-desktop-ai-messages.json",
+        "evidence/fyn-19079/07-mobile-stream.json"
+      ]
+    },
+    {
+      "assertion": "no desktop/mobile state divergence",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/08-surface-comparison.json"
+      ]
+    },
+    {
+      "assertion": "no console errors",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/08-surface-comparison.json"
+      ]
+    },
+    {
+      "assertion": "no unexpected 4xx or 5xx API responses",
+      "status": "passed",
+      "evidence": [
+        "evidence/fyn-19079/08-surface-comparison.json"
+      ]
+    }
+  ],
+  "evidence": [
+    "evidence/fyn-19079/01-desktop-user-state.json",
+    "evidence/fyn-19079/02-desktop-answer.png",
+    "evidence/fyn-19079/03-desktop-stream.json",
+    "evidence/fyn-19079/04-desktop-ai-messages.json",
+    "evidence/fyn-19079/05-mobile-user-state.png",
+    "evidence/fyn-19079/06-mobile-answer.png",
+    "evidence/fyn-19079/07-mobile-stream.json",
+    "evidence/fyn-19079/08-surface-comparison.json"
+  ],
+  "diagnostic_notes": [
+    {
+      "note": "Executed in the user's visible Google Chrome session at their request.",
+      "redacted": true
+    },
+    {
+      "note": "Cleanup soft-deleted both run conversations, restored credentials and temporary sessions, and left the pre-run AI audit-chain state unchanged.",
+      "redacted": true
+    },
+    {
+      "note": "Four console errors from an unrelated installed Chrome extension were excluded; Fynla emitted zero application console errors on both surfaces.",
+      "redacted": true
+    }
+  ]
+}

@@ -45,6 +45,12 @@ jobs:
         run: composer install --no-interaction --prefer-dist
       - name: Install frontend dependencies
         run: npm ci
+      # policy-lint.sh reads the diff with `rg --pcre2` (the banned-token check
+      # needs a lookbehind). The runner has no ripgrep, so the step died on
+      # "rg: command not found" for any PR that touched resources/ — the design
+      # guard was not failing, it was not running.
+      - name: Install ripgrep
+        run: sudo apt-get install -y ripgrep
       - name: Run range-aware lint checks
         env:
           QUALITY_BASE: ${{ github.event.pull_request.base.sha }}
