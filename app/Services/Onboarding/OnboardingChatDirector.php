@@ -432,6 +432,38 @@ final class OnboardingChatDirector
                 return;
             }
 
+            // At the FRONT DOOR, an unparseable answer is where users got
+            // stuck: path_choice offers two labels, the interruption handling
+            // above did not claim the message, and the retry below just asks
+            // again — forever (CSJ 2026-08-18, seen live on /m). A user who has
+            // logged in before must be able to get on with something else, so
+            // step aside and let advice Fyn answer what they actually said.
+            // Onboarding pauses; it is never marked complete.
+            //
+            // Only here. Deeper in the walk the user has context and the retry
+            // is the right response — and the interruption mechanism (store
+            // offers, inline module answers) still runs first, everywhere.
+            if ($currentStateId === OnboardingStateMachine::STATE_PATH_CHOICE && trim($message) !== '') {
+                $user->onboarding_fyn_step = null;
+                $user->save();
+                $this->recordProgress($user, OnboardingStateMachine::STATE_FREE_CHAT, [
+                    'paused' => true,
+                    'reason' => 'free_text_at_path_choice',
+                ]);
+
+                // Resolved lazily: AdviceFyn takes this director in its
+                // constructor, so a constructor-injected reference is a cycle.
+                yield from app(AdviceFyn::class)->handle(
+                    $user,
+                    $conversation,
+                    $message,
+                    $currentRoute,
+                    persistUserMessage: false,
+                );
+
+                return;
+            }
+
             // Can't parse the answer — re-ask without advancing. Also the
             // fallback for a volunteered-record classification whose
             // interruption handling declined to fire (e.g. it was also
@@ -512,6 +544,14 @@ final class OnboardingChatDirector
         // Terminal state: wrap up onboarding and navigate.
         if ($nextStateId === OnboardingStateMachine::STATE_DONE) {
             yield from $this->emitDoneTurn($user, $conversation);
+
+            return;
+        }
+
+        // The user asked for something else. Step aside rather than hold them
+        // at the front door (CSJ 2026-08-18).
+        if ($nextStateId === OnboardingStateMachine::STATE_FREE_CHAT) {
+            yield from $this->emitFreeChatTurn($user, $conversation);
 
             return;
         }
@@ -6159,6 +6199,40 @@ PROMPT;
      * onboarding_fyn_step so subsequent Fyn messages go through the normal
      * CoordinatingAgent path.
      */
+    /**
+     * Leave onboarding open but get out of the user's way.
+     *
+     * CSJ 2026-08-18: a user who has logged in before must never be stuck at
+     * the two-option front door. Choosing "Something else" pauses onboarding —
+     * the step pointer is nulled, which routes every later turn to advice Fyn
+     * (the canonical paused-onboarding case) — and Fyn simply asks what they
+     * want. `onboarding_completed` stays false, because they have not
+     * onboarded; nothing is marked done that was not done.
+     */
+    private function emitFreeChatTurn(User $user, AiConversation $conversation): \Generator
+    {
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_FREE_CHAT) ?? [];
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        yield ['type' => 'content', 'text' => $text];
+
+        $assistantMessage = $this->saveMessage(
+            $conversation,
+            'assistant',
+            $text,
+            ['metadata' => [
+                'onboarding_step' => OnboardingStateMachine::STATE_FREE_CHAT,
+            ]]
+        );
+
+        yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+
+        $user->onboarding_fyn_step = null;
+        $user->save();
+
+        $this->recordProgress($user, OnboardingStateMachine::STATE_FREE_CHAT, ['paused' => true]);
+    }
+
     private function emitDoneTurn(User $user, AiConversation $conversation): \Generator
     {
         $selection = $user->onboarding_fyn_selection ?? '';
