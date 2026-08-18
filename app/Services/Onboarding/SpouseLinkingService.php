@@ -100,7 +100,20 @@ final class SpouseLinkingService
             true
         ) ? $currentUser->marital_status : 'married';
 
-        $spouseUser = User::where('email', $spouseEmail)->first();
+        // withTrashed, because the unique index does not honour soft deletes.
+        // A default lookup skipped a closed account, reported "no such user",
+        // and then INSERTed straight into a 1062 duplicate-key violation — the
+        // user was told to re-send the first name, date of birth and email they
+        // had just sent, forever (live: user 49, isenbret@gmail.com, 17:54, and
+        // twice more on 2026-07-23). PR #697 closed this in
+        // FamilyMembersController; this is the same hole in the path Fyn uses.
+        $spouseUser = User::withTrashed()->where('email', $spouseEmail)->first();
+
+        if ($spouseUser?->trashed()) {
+            throw new SpouseCollisionException(
+                'That email belongs to a closed Fynla account, so I cannot link it.'
+            );
+        }
 
         if ($spouseUser) {
             return $this->linkExistingSpouse($currentUser, $spouseUser, $data, $maritalStatus);

@@ -1774,7 +1774,18 @@ class CoordinatingAgent extends BaseAgent
                 'error' => $e->getMessage(),
             ]);
 
-            return ['error' => true, 'message' => 'Could not link spouse account. Please try again.'];
+            // As a plain error this reached the user as the grouped_extract
+            // retry copy — "I need a first name, date of birth, and email
+            // address" — asking again for details they had just given, with no
+            // exit, because the next attempt fails identically. Surfaced as a
+            // capture error it says what actually happened and does not pretend
+            // the answer was the problem.
+            return [
+                'onboarding_capture_error' => true,
+                'field_group' => 'spouse',
+                'error_type' => 'spouse_link_failed',
+                'message' => "I could not link your partner's account just then, and I have not saved anything. Try a different email address for them, or come back to this later.",
+            ];
         }
 
         return [

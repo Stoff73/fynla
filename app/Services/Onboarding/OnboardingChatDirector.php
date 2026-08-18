@@ -3474,7 +3474,7 @@ PROMPT;
         // recognises; estate / business / savetax fall through (no checker
         // mapping — handler-level dedup remains the floor for those).
         $entityType = match ($selection) {
-            'savings', 'budgeting' => 'savings_account',
+            'savings' => 'savings_account',
             'investment' => 'investment_account',
             'retirement' => 'pension',
             'protection' => 'protection_policy',
