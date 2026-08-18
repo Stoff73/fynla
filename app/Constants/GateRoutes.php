@@ -60,6 +60,10 @@ final class GateRoutes
 
     public const DASHBOARD = 'dashboard';
 
+    public const CHATTELS = 'chattels';
+
+    public const BUSINESS = 'business';
+
     /** @var array<string, array{label: string, web: string, mobile: ?string}> */
     public const MAP = [
         self::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => null],
@@ -85,6 +89,11 @@ final class GateRoutes
         self::CONVERSATION_HISTORY => ['label' => 'Conversation History', 'web' => '/dashboard', 'mobile' => '/conversation-history'],
         self::ADMIN => ['label' => 'Admin Panel', 'web' => '/admin', 'mobile' => null],
         self::DASHBOARD => ['label' => 'Dashboard', 'web' => '/dashboard', 'mobile' => '/dashboard'],
+        // Valuables and business interests have their own pages under net
+        // worth; linking to the module root made the user hunt for what they
+        // had just added.
+        self::CHATTELS => ['label' => 'Valuables', 'web' => '/net-worth/chattels', 'mobile' => '/net-worth/chattels'],
+        self::BUSINESS => ['label' => 'Business Interests', 'web' => '/net-worth/business', 'mobile' => '/net-worth/business'],
     ];
 
     /**
@@ -119,8 +128,8 @@ final class GateRoutes
         'lasting_power_of_attorney' => self::ESTATE,
         'trust' => self::ESTATE,
         'family_member' => self::FAMILY_DETAILS,
-        'business_interest' => self::NET_WORTH,
-        'chattel' => self::NET_WORTH,
+        'business_interest' => self::BUSINESS,
+        'chattel' => self::CHATTELS,
     ];
 
     /**
