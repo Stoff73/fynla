@@ -98,8 +98,10 @@
         <FamilyMemberFormModal
           :member="selectedMember"
           context="onboarding"
+          :api-error="error"
           @save="handleSave"
           @close="closeModal"
+          @dismiss-error="clearError"
         />
       </div>
 
@@ -118,10 +120,9 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '../UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import FamilyMemberFormModal from '@/components/UserProfile/FamilyMemberFormModal.vue';
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
@@ -133,7 +134,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     FamilyMemberFormModal,
     SpouseSuccessModal,
   },
@@ -155,7 +155,6 @@ export default {
     const loading = ref(false);
     const error = ref(null);
     let successTimeout = null;
-    let errorTimeout = null;
 
     const calculateAge = (dateOfBirth) => {
       if (!dateOfBirth) return 0;
@@ -244,6 +243,7 @@ export default {
           }
         }
 
+        error.value = null;
         closeModal();
         await loadFamilyMembers();
 
@@ -257,15 +257,12 @@ export default {
       } catch (err) {
         logger.error('Failed to save family member:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
-        error.value = `Failed to save family member: ${errorMsg}`;
-        closeModal();
-
-        // Clear error after 8 seconds
-        if (errorTimeout) clearTimeout(errorTimeout);
-        errorTimeout = setTimeout(() => {
-          error.value = null;
-        }, 8000);
+        error.value = errorMsg;
       }
+    };
+
+    const clearError = () => {
+      error.value = null;
     };
 
     const closeSpouseSuccess = () => {
@@ -306,7 +303,6 @@ export default {
 
     onBeforeUnmount(() => {
       if (successTimeout) clearTimeout(successTimeout);
-      if (errorTimeout) clearTimeout(errorTimeout);
     });
 
     onMounted(async () => {
@@ -336,6 +332,7 @@ export default {
       showAddModal,
       editMember,
       closeModal,
+      clearError,
       handleSave,
       closeSpouseSuccess,
       deleteMember,
