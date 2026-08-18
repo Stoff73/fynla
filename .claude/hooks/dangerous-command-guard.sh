@@ -69,13 +69,21 @@ if printf '%s' "$cmd" | grep -Eq '\b(pkill|killall)\b[^|;&]*vite'; then
   deny "BLOCKED: killing vite by name also kills the sibling fynlaInternational dev server on :5174 (MEMORY: feedback_vite_canonical_port_5173). Kill by PID, or free the port with: lsof -ti tcp:5173 | xargs kill"
 fi
 
-# 4. Raw production-build commands (must go through deploy/*/build.sh) ------
-#    Matches: `npm run build`, `yarn build`, `yarn run build`, `pnpm build`,
-#    `pnpm run build`, `npx vite build`, bare `vite build`.
-#    Does NOT match `vitest`, `vite` (dev), or the deploy scripts themselves.
+# 4. Raw builds aimed at PRODUCTION -----------------------------------------
+#    CSJ 2026-08-18: local and dev builds are not this guard's business, and
+#    blocking them cost a night's /m verification. Only a hand-rolled build
+#    pointed at PRODUCTION is guarded, because that is where a wrong
+#    VITE_BASE_PATH / VITE_ROUTER_BASE serves live customers a blank page.
+#
+#    Production intent = the command names the prod host, the prod document
+#    root, or the prod SSH user. The sanctioned script is exempt, as are
+#    localhost and csjones/dev builds of any shape.
 if printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_/.-])(npm|yarn|pnpm)[[:space:]]+(run[[:space:]]+)?build(\b|$)' \
    || printf '%s' "$cmd" | grep -Eq '(^|[^[:alnum:]_/.-])(npx[[:space:]]+)?vite[[:space:]]+build(\b|$)'; then
-  deny "BLOCKED: never run a raw production build — Vite env vars (VITE_BASE_PATH / VITE_ROUTER_BASE) must match the target or routing breaks silently (CLAUDE.md Build scripts). Use ./deploy/fynla-org/build.sh (main) or ./deploy/csjones-fynla/build.sh (dev). For iOS: ./deploy/mobile/build-ios.sh"
+  if ! printf '%s' "$cmd" | grep -Eq 'deploy/fynla-org/build\.sh' \
+     && printf '%s' "$cmd" | grep -Eq 'fynla\.org|u2783-hrf1k8bpfg02|www/fynla'; then
+    deny "BLOCKED: that is a raw build aimed at PRODUCTION. VITE_BASE_PATH / VITE_ROUTER_BASE must match the target or fynla.org silently serves a blank page (CLAUDE.md Build scripts). Use ./deploy/fynla-org/build.sh. Local and dev builds are not blocked."
+  fi
 fi
 
 exit 0
