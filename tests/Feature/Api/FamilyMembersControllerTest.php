@@ -170,6 +170,30 @@ describe('POST /api/user/family-members', function () {
         expect($response->json('data.family_member.relationship'))->toBe('child');
     });
 
+    it('returns a validation error when a spouse email belongs to a soft-deleted account', function () {
+        $email = 'existing-spouse@example.com';
+        $existingUser = User::factory()->create(['email' => $email]);
+        $existingUser->delete();
+
+        $response = $this->postJson('/api/user/family-members', [
+            'relationship' => 'spouse',
+            'email' => $email,
+            'first_name' => 'Existing',
+            'last_name' => 'Spouse',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'That email address is already in use')
+            ->assertJsonPath('errors.email.0', 'That email address is already in use');
+
+        $this->assertSoftDeleted('users', ['id' => $existingUser->id]);
+        $this->assertDatabaseMissing('family_members', [
+            'user_id' => $this->user->id,
+            'relationship' => 'spouse',
+        ]);
+    });
+
     it('validates required fields', function () {
         $invalidData = [
             'relationship' => '', // Required

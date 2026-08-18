@@ -15,6 +15,7 @@ use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\UserProfile\UserProfileService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -125,7 +126,11 @@ class FamilyMembersController extends Controller
         ]);
 
         // Check if spouse already has an account
-        $spouseUser = User::where('email', $spouseEmail)->first();
+        $spouseUser = User::withTrashed()->where('email', $spouseEmail)->first();
+
+        if ($spouseUser?->trashed()) {
+            return $this->duplicateEmailValidationError();
+        }
 
         Log::info('Spouse user lookup result', [
             'found' => $spouseUser ? 'yes' : 'no',
@@ -327,105 +332,113 @@ class FamilyMembersController extends Controller
         // Spouse doesn't exist - create new user account inside a transaction
         $temporaryPassword = Str::random(16);
 
-        [$familyMember, $spouseUser] = DB::transaction(function () use ($currentUser, $data, $spouseEmail, $temporaryPassword) {
-            // Construct full name from name parts
-            $fullName = trim(($data['first_name'] ?? '').' '.
-                (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
-                ($data['last_name'] ?? ''));
+        try {
+            [$familyMember, $spouseUser] = DB::transaction(function () use ($currentUser, $data, $spouseEmail, $temporaryPassword) {
+                // Construct full name from name parts
+                $fullName = trim(($data['first_name'] ?? '').' '.
+                    (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
+                    ($data['last_name'] ?? ''));
 
-            $spouseUser = User::create([
-                'first_name' => $data['first_name'] ?? '',
-                'surname' => $data['last_name'] ?? '',
-                'name' => $fullName,
-                'email' => $spouseEmail,
-                'password' => Hash::make($temporaryPassword),
-                'must_change_password' => true,
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
-                'marital_status' => 'married',
-                'spouse_id' => $currentUser->id,
-                'household_id' => $currentUser->household_id,
-                'is_primary_account' => false,
-                'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                'annual_employment_income' => $data['annual_income'] ?? 0,
-                'address_line_1' => $currentUser->address_line_1,
-                'address_line_2' => $currentUser->address_line_2,
-                'city' => $currentUser->city,
-                'county' => $currentUser->county,
-                'postcode' => $currentUser->postcode,
-            ]);
-
-            // Update current user
-            $currentUser->spouse_id = $spouseUser->id;
-            $currentUser->marital_status = 'married';
-            $currentUser->save();
-
-            $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
-
-            // Create bidirectional spouse data sharing permissions
-            SpousePermission::updateOrCreate(
-                [
-                    'user_id' => $currentUser->id,
-                    'spouse_id' => $spouseUser->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
-
-            SpousePermission::updateOrCreate(
-                [
-                    'user_id' => $spouseUser->id,
+                $spouseUser = User::create([
+                    'first_name' => $data['first_name'] ?? '',
+                    'surname' => $data['last_name'] ?? '',
+                    'name' => $fullName,
+                    'email' => $spouseEmail,
+                    'password' => Hash::make($temporaryPassword),
+                    'must_change_password' => true,
+                    'date_of_birth' => $data['date_of_birth'] ?? null,
+                    'gender' => $data['gender'] ?? null,
+                    'marital_status' => 'married',
                     'spouse_id' => $currentUser->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
+                    'household_id' => $currentUser->household_id,
+                    'is_primary_account' => false,
+                    'national_insurance_number' => $data['national_insurance_number'] ?? null,
+                    'annual_employment_income' => $data['annual_income'] ?? 0,
+                    'address_line_1' => $currentUser->address_line_1,
+                    'address_line_2' => $currentUser->address_line_2,
+                    'city' => $currentUser->city,
+                    'county' => $currentUser->county,
+                    'postcode' => $currentUser->postcode,
+                ]);
 
-            // Create family member record for current user
-            $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
-            $familyMember = FamilyMember::create([
-                'user_id' => $currentUser->id,
-                'household_id' => $currentUser->household_id,
-                'linked_user_id' => $spouseUser->id,
-                'relationship' => 'spouse',
-                'first_name' => $data['first_name'],
-                'middle_name' => $data['middle_name'] ?? null,
-                'last_name' => $data['last_name'],
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
-                'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                'annual_income' => $data['annual_income'] ?? null,
-                'is_dependent' => $data['is_dependent'] ?? false,
-                'notes' => $data['notes'] ?? null,
-                'name' => $fullName,
-            ]);
+                // Update current user
+                $currentUser->spouse_id = $spouseUser->id;
+                $currentUser->marital_status = 'married';
+                $currentUser->save();
 
-            // Create reciprocal family member record for new spouse
-            $currentUserNameParts = explode(' ', $currentUser->name);
-            $currentUserFirstName = $currentUserNameParts[0] ?? '';
-            $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
+                $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
 
-            FamilyMember::create([
-                'user_id' => $spouseUser->id,
-                'household_id' => $spouseUser->household_id,
-                'linked_user_id' => $currentUser->id,
-                'relationship' => 'spouse',
-                'first_name' => $currentUserFirstName,
-                'last_name' => $currentUserLastName,
-                'date_of_birth' => $currentUser->date_of_birth,
-                'gender' => $currentUser->gender,
-                'national_insurance_number' => $currentUser->national_insurance_number,
-                'annual_income' => $currentUser->employment_income ?? 0,
-                'is_dependent' => false,
-                'name' => $currentUser->name,
-            ]);
+                // Create bidirectional spouse data sharing permissions
+                SpousePermission::updateOrCreate(
+                    [
+                        'user_id' => $currentUser->id,
+                        'spouse_id' => $spouseUser->id,
+                    ],
+                    [
+                        'status' => 'accepted',
+                        'responded_at' => now(),
+                    ]
+                );
 
-            return [$familyMember, $spouseUser];
-        });
+                SpousePermission::updateOrCreate(
+                    [
+                        'user_id' => $spouseUser->id,
+                        'spouse_id' => $currentUser->id,
+                    ],
+                    [
+                        'status' => 'accepted',
+                        'responded_at' => now(),
+                    ]
+                );
+
+                // Create family member record for current user
+                $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
+                $familyMember = FamilyMember::create([
+                    'user_id' => $currentUser->id,
+                    'household_id' => $currentUser->household_id,
+                    'linked_user_id' => $spouseUser->id,
+                    'relationship' => 'spouse',
+                    'first_name' => $data['first_name'],
+                    'middle_name' => $data['middle_name'] ?? null,
+                    'last_name' => $data['last_name'],
+                    'date_of_birth' => $data['date_of_birth'] ?? null,
+                    'gender' => $data['gender'] ?? null,
+                    'national_insurance_number' => $data['national_insurance_number'] ?? null,
+                    'annual_income' => $data['annual_income'] ?? null,
+                    'is_dependent' => $data['is_dependent'] ?? false,
+                    'notes' => $data['notes'] ?? null,
+                    'name' => $fullName,
+                ]);
+
+                // Create reciprocal family member record for new spouse
+                $currentUserNameParts = explode(' ', $currentUser->name);
+                $currentUserFirstName = $currentUserNameParts[0] ?? '';
+                $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
+
+                FamilyMember::create([
+                    'user_id' => $spouseUser->id,
+                    'household_id' => $spouseUser->household_id,
+                    'linked_user_id' => $currentUser->id,
+                    'relationship' => 'spouse',
+                    'first_name' => $currentUserFirstName,
+                    'last_name' => $currentUserLastName,
+                    'date_of_birth' => $currentUser->date_of_birth,
+                    'gender' => $currentUser->gender,
+                    'national_insurance_number' => $currentUser->national_insurance_number,
+                    'annual_income' => $currentUser->employment_income ?? 0,
+                    'is_dependent' => false,
+                    'name' => $currentUser->name,
+                ]);
+
+                return [$familyMember, $spouseUser];
+            });
+        } catch (QueryException $exception) {
+            if ($this->isDuplicateEmailException($exception)) {
+                return $this->duplicateEmailValidationError();
+            }
+
+            throw $exception;
+        }
 
         // Send email to spouse with temporary password (outside transaction)
         $emailSent = false;
@@ -449,6 +462,20 @@ class FamilyMembersController extends Controller
                 'spouse_email' => $spouseEmail,
             ],
         ], 201);
+    }
+
+    private function duplicateEmailValidationError(): JsonResponse
+    {
+        return $this->validationErrorResponse(
+            'That email address is already in use',
+            ['email' => ['That email address is already in use']]
+        );
+    }
+
+    private function isDuplicateEmailException(QueryException $exception): bool
+    {
+        return $exception->getCode() === '23000'
+            && str_contains($exception->getMessage(), 'users_email_unique');
     }
 
     /**

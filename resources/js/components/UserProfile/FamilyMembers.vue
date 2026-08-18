@@ -178,8 +178,10 @@
     <FamilyMemberFormModal
       v-if="showModal"
       :member="selectedMember"
+      :api-error="errorMessage"
       @save="handleSave"
       @close="closeModal"
+      @dismiss-error="clearError"
     />
 
     <!-- Delete Confirmation Modal -->
@@ -271,7 +273,6 @@ export default {
     const temporaryPassword = ref(null);
     const familyMembers = ref([]);
     let successTimeout = null;
-    let errorTimeout = null;
     let deleteSuccessTimeout = null;
 
     // Watch for changes in the store's familyMembers and update local ref
@@ -426,6 +427,7 @@ export default {
         if (store.state.aiFormFill?.pendingFill) {
           store.dispatch('aiFormFill/cancelFill');
         }
+        errorMessage.value = '';
         closeModal();
         // Refresh family members list directly via API (not fetchProfile)
         // Using fetchProfile would set loading=true, which unmounts this component
@@ -443,14 +445,11 @@ export default {
         logger.error('Failed to save family member:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Failed to save family member';
         errorMessage.value = errorMsg;
-        closeModal();
-
-        // Clear error after 8 seconds
-        if (errorTimeout) clearTimeout(errorTimeout);
-        errorTimeout = setTimeout(() => {
-          errorMessage.value = '';
-        }, 8000);
       }
+    };
+
+    const clearError = () => {
+      errorMessage.value = '';
     };
 
     const closeSpouseSuccess = () => {
@@ -516,7 +515,6 @@ export default {
 
     onBeforeUnmount(() => {
       if (successTimeout) clearTimeout(successTimeout);
-      if (errorTimeout) clearTimeout(errorTimeout);
       if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout);
     });
 
@@ -560,6 +558,7 @@ export default {
       openAddModal,
       openEditModal,
       closeModal,
+      clearError,
       handleSave,
       closeSpouseSuccess,
       confirmDelete,

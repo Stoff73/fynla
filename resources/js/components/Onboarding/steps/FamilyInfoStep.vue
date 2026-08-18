@@ -98,8 +98,10 @@
         <FamilyMemberFormModal
           :member="selectedMember"
           context="onboarding"
+          :api-error="error"
           @save="handleSave"
           @close="closeModal"
+          @dismiss-error="clearError"
         />
       </div>
 
@@ -155,7 +157,6 @@ export default {
     const loading = ref(false);
     const error = ref(null);
     let successTimeout = null;
-    let errorTimeout = null;
 
     const calculateAge = (dateOfBirth) => {
       if (!dateOfBirth) return 0;
@@ -244,6 +245,7 @@ export default {
           }
         }
 
+        error.value = null;
         closeModal();
         await loadFamilyMembers();
 
@@ -257,15 +259,12 @@ export default {
       } catch (err) {
         logger.error('Failed to save family member:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
-        error.value = `Failed to save family member: ${errorMsg}`;
-        closeModal();
-
-        // Clear error after 8 seconds
-        if (errorTimeout) clearTimeout(errorTimeout);
-        errorTimeout = setTimeout(() => {
-          error.value = null;
-        }, 8000);
+        error.value = errorMsg;
       }
+    };
+
+    const clearError = () => {
+      error.value = null;
     };
 
     const closeSpouseSuccess = () => {
@@ -306,7 +305,6 @@ export default {
 
     onBeforeUnmount(() => {
       if (successTimeout) clearTimeout(successTimeout);
-      if (errorTimeout) clearTimeout(errorTimeout);
     });
 
     onMounted(async () => {
@@ -336,6 +334,7 @@ export default {
       showAddModal,
       editMember,
       closeModal,
+      clearError,
       handleSave,
       closeSpouseSuccess,
       deleteMember,
