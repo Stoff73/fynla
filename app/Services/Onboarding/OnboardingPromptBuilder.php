@@ -104,13 +104,26 @@ final class OnboardingPromptBuilder
         // focus so the retraction block in assetCaptureInstructions can act
         // on contradictions without leaving the focused capture window.
         $focusTools = match ($focus) {
-            'savings', 'budgeting' => ['create_savings_account'],
+            'savings' => ['create_savings_account'],
+            // Budgeting asks for monthly spending, so it needs the expenditure
+            // tool. Aliased to savings until 2026-08-18, it ran as a Cash &
+            // Savings turn: the user answered "£5000 per month", the model had
+            // no tool that fit, and its only scripted exit was the
+            // prompt-injection refusal — then "Sorry, I didn't catch that", on
+            // every retry, forever (live: user 80, conversation 67). Same
+            // failure the 'pensioncheck' arm below was added to stop.
+            'budgeting' => ['set_expenditure'],
             'investment' => ['create_investment_account', 'create_holding'],
             'retirement' => ['create_pension'],
             'protection' => ['create_protection_policy'],
-            'estate' => ['create_asset', 'create_liability', 'create_estate_gift', 'create_property', 'create_chattel'],
+            // create_business_interest is here because the estate intro invites
+            // business interests in the same breath as valuables and gifts; the
+            // capture block tells the model to ignore anything outside its tool
+            // list, so without it the user's answer was silently dropped.
+            'estate' => ['create_asset', 'create_liability', 'create_estate_gift', 'create_property', 'create_chattel', 'create_business_interest'],
             'business' => ['create_business_interest'],
-            'goals' => ['create_goal'],
+            // The focus is 'Goals & Life Events'; both need a tool.
+            'goals' => ['create_goal', 'create_life_event'],
             // SaveTax campaign covers all asset/liability families across the
             // 5 STATE_CAMPAIGN_* delegated states (occupational scheme, ISAs,
             // bank, investment, SIPP) plus the 4 spouse-related tools used
@@ -148,7 +161,7 @@ final class OnboardingPromptBuilder
     private function assetCaptureInstructions(string $focus): string
     {
         $toolList = implode(', ', self::toolsForFocus($focus));
-        $focusLabel = $this->focusLabel($focus);
+        $focusLabel = self::focusLabel($focus);
 
         return <<<PROMPT
 <asset_capture_turn>
@@ -262,7 +275,11 @@ is a compliance breach.
 PROMPT;
     }
 
-    private function focusLabel(string $focus): string
+    /**
+     * The one focus → label map. FynContextAssembler held a second copy that
+     * called budgeting "Cash & Savings"; every consumer reads this one now.
+     */
+    public static function focusLabel(string $focus): string
     {
         return match ($focus) {
             'savings' => 'Cash & Savings',

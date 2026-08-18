@@ -571,20 +571,10 @@ Ambiguity: if a figure the user gave you is ambiguous in a way that changes the 
 RULES;
     }
 
+    /** Delegates to the one focus → label map (Rule 20). */
     private function focusLabel(?string $focus): string
     {
-        return match ($focus) {
-            'savings', 'budgeting' => 'Cash & Savings',
-            'investment' => 'Investments',
-            'retirement' => 'Retirement',
-            'protection' => 'Protection',
-            'estate' => 'Estate Planning',
-            'business' => 'Business',
-            'goals' => 'Goals',
-            'savetax' => 'SaveTax',
-            'pensioncheck' => 'Pension Check',
-            default => (string) $focus,
-        };
+        return OnboardingPromptBuilder::focusLabel((string) $focus);
     }
 
     /**
