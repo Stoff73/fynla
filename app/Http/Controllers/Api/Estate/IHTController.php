@@ -48,7 +48,7 @@ class IHTController extends Controller
         try {
             // Determine user scenario
             $hasLinkedSpouse = $user->liveSpouseId() !== null;
-            $spouse = $user->spouse;
+            $spouse = $user->liveSpouse();
             $dataSharingEnabled = $hasLinkedSpouse && $user->hasAcceptedSpousePermission();
 
             // Calculate IHT using the simplified service

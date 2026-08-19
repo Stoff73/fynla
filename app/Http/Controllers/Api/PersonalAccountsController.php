@@ -87,7 +87,7 @@ class PersonalAccountsController extends Controller
         // Check if user is married and has permission to view spouse data
         $spouseData = null;
         if ($user->liveSpouseId() && $user->hasAcceptedSpousePermission()) {
-            $spouse = $user->spouse;
+            $spouse = $user->liveSpouse();
             if ($spouse) {
                 $spouseData = [
                     'profit_and_loss' => $this->personalAccountsService->calculateProfitAndLoss(

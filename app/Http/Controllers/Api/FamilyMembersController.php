@@ -503,7 +503,7 @@ class FamilyMembersController extends Controller
 
         // If this is a spouse and user has a spouse_id, get the spouse's email
         if ($familyMember->relationship === 'spouse' && $user->liveSpouseId()) {
-            $memberArray['email'] = $user->spouse?->email;
+            $memberArray['email'] = $user->liveSpouse()?->email;
         }
 
         return response()->json([

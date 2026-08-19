@@ -443,7 +443,29 @@ class User extends Authenticatable
      */
     public function liveSpouseId(): ?int
     {
-        return $this->spouse?->id;
+        return $this->liveSpouse()?->id;
+    }
+
+    /**
+     * The spouse's account while it is live, or null once it is deleted.
+     *
+     * Resolved WITHOUT lazy loading — `Model::preventLazyLoading()` is on, so
+     * reaching for `$this->spouse` on a model loaded as part of a collection
+     * throws. Uses the eager-loaded relation when there is one, queries
+     * explicitly when there is not, and caches the result so repeated calls in
+     * a request cost one query rather than one each.
+     */
+    public function liveSpouse(): ?self
+    {
+        if ($this->spouse_id === null) {
+            return null;
+        }
+
+        if (! $this->relationLoaded('spouse')) {
+            $this->setRelation('spouse', $this->spouse()->first());
+        }
+
+        return $this->getRelation('spouse');
     }
 
     /**
@@ -750,7 +772,7 @@ class User extends Authenticatable
         // sharing switched on for an account that no longer exists. Measured on
         // csjones: three survivors, all returning true (CSJ decision D1/D2,
         // 2026-08-19 — retain the rows, ignore them at read time).
-        $spouse = $this->spouse;
+        $spouse = $this->liveSpouse();
         if ($spouse === null) {
             return false;
         }

@@ -189,7 +189,7 @@ class EstateController extends Controller
             $user->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
 
             // Also load spouse relationships if spouse is involved
-            $spouse = $user->marital_status === 'married' ? $user->spouse : null;
+            $spouse = $user->marital_status === 'married' ? $user->liveSpouse() : null;
             if ($spouse) {
                 $spouse->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
             }
