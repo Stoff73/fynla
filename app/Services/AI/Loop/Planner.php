@@ -308,7 +308,7 @@ final class Planner
                 'action_type' => [
                     'type' => 'string',
                     'enum' => ['reason', 'retrieve', 'learn', 'ground', 'no_action'],
-                    'description' => 'reason: answer the user now. retrieve: recall from memory. learn: write to memory. ground: run a tool / write surface. no_action: stop, come back later.',
+                    'description' => 'reason: answer the user now, including any request to record, save, add, update or correct the user\'s own data — the reasoner performs that write. retrieve: recall from memory. learn: stage a note about how to help this user; NOT for recording the user\'s financial or household data. ground: run a tool / write surface. no_action: stop, come back later.',
                 ],
                 'prompt_template_id' => ['type' => 'string', 'description' => 'reason only — which reasoning template to stream.'],
                 'working_memory_fields' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'reason only — working-memory fields the reasoner needs.'],

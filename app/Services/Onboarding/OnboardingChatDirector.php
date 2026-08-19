@@ -81,6 +81,15 @@ use Illuminate\Support\Facades\Log;
 final class OnboardingChatDirector
 {
     /**
+     * Focus for an advice -> capture handoff whose entity types match no
+     * module. Not a module itself: it advertises the whole write surface, so a
+     * record type the map has never seen still reaches a turn that can write
+     * it. See the note at the $unifiedFocus assignment for what happened when
+     * this was 'savings'.
+     */
+    public const HANDOFF_FALLBACK_FOCUS = 'inline_capture';
+
+    /**
      * Hard cap on how many advice turns may auto-advance within a single
      * response. Advice turns chain with no user input between them, so a
      * state-table cycle would otherwise recurse without bound (see the
@@ -6529,15 +6538,28 @@ PROMPT;
         // Mirror handleAssetCaptureTurn: derive the focus from the
         // CaptureContext and carry it for the duration of the turn (no-op
         // under legacy — the property is only read on the unified path).
-        // The `?? 'savings'` fallback is the deflection guarantee: a turn that
-        // reached handleInlineCapture is a write the classifier or the LLM
+        // The fallback is the deflection guarantee: a turn that reached
+        // handleInlineCapture is a write the classifier or the LLM
         // delegate_to_capture path has ALREADY cleared, so it must stay in
         // capture mode even when the entity type has no module focus (e.g. an
         // LLM-emitted entity the map below doesn't know). A null focus here
         // demotes the turn to advice mode, the CAPTURE bucket is dropped, and
         // the model deflects with the security refusal (June13 §6c).
+        //
+        // It falls back to 'inline_capture', NOT 'savings'. entity_types is a
+        // free-text array on the delegate_to_capture schema and the module map
+        // below covers assets only, so every household-shaped record advice can
+        // hand over — spouse, dependants, personal details, work, expenditure,
+        // charitable giving, state pension, retirement goals — used to land in
+        // the savings focus. The turn then read "you can use
+        // create_savings_account; anything else is not in scope for this Cash &
+        // Savings turn" while carrying the full write catalogue underneath, and
+        // the model's only scripted exit was the refusal. Same dead end as the
+        // budgeting alias (user 80, conversation 67, 2026-08-18), reached
+        // through the advice door instead of the walk. 'inline_capture' frames
+        // the turn as what it is and offers the whole write surface.
         $unifiedFocus = FynPromptMode::isUnified()
-            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? 'savings')
+            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? self::HANDOFF_FALLBACK_FOCUS)
             : null;
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
@@ -7026,37 +7048,13 @@ PROMPT;
      */
     private function captureToolSet(CaptureContext $context): array
     {
-        return [
-            'create_savings_account', 'create_investment_account', 'create_holding',
-            'create_pension', 'create_property', 'create_mortgage',
-            'create_protection_policy', 'create_family_member',
-            'create_goal', 'create_life_event', 'create_trust',
-            'create_will', 'update_will',
-            'create_power_of_attorney', 'update_power_of_attorney',
-            'create_asset', 'create_liability', 'create_estate_gift',
-            'create_chattel', 'create_business_interest',
-            'update_record', 'update_profile', 'set_expenditure',
-            // S0.5.r — what-if scenarios persist a WhatIfScenario row, so
-            // they route through the handoff like every other create_*.
-            'create_what_if_scenario',
-            // S0.5.r — delete is allowed in inline-capture so the user can
-            // ask Advice Fyn to remove a record and have the handoff dispatch
-            // delete_record for them.
-            'delete_record',
-            // SaveTax campaign sections 4-6 — used during the campaign-only
-            // post-expenditure state-machine branch. Always whitelisted; the
-            // state machine itself gates which states can call which tool.
-            'capture_salary_sacrifice',
-            'capture_spouse_work_status',
-            'capture_spouse_household_data',
-            'capture_spouse_non_working_assets',
-            // Pensioncheck campaign captures — whitelisted so a post-campaign
-            // "I want to retire at 62 on £30k" / "my State Pension forecast is
-            // £11,500" in advice mode can delegate to the same handlers the
-            // walk uses instead of dead-ending in update_record.
-            'capture_retirement_goals',
-            'capture_state_pension',
-        ];
+        // Rule 20 — one list. AdviceFyn::WRITE_TOOLS is the canonical set of
+        // write surfaces stripped from advice mode; every one of them must be
+        // dispatchable here or the strip creates a dead end the user cannot
+        // escape: advice will not write it, and the Fyn it delegates to has no
+        // tool for it. navigate_to_page is the one exclusion — it is stripped
+        // from advice as an escape hatch (S0.5.t), not because it writes.
+        return array_values(array_diff(AdviceFyn::WRITE_TOOLS, ['navigate_to_page']));
     }
 
     /**
