@@ -4663,6 +4663,13 @@ class CoordinatingAgent extends BaseAgent
             'relationship' => $dbRelationship,
             'first_name' => $input['first_name'],
             'last_name' => $surname,
+            // family_members.name is NOT NULL DEFAULT 'Unknown', and plenty of
+            // consumers read it rather than first_name — the web Family Details
+            // heading, the estate plan's children list, the savings child-name
+            // copy. Leaving it unset wrote 'Unknown' into every one of them, so
+            // a dependant Fyn recorded by name showed up nameless. It is the
+            // same string this handler's own receipt already returned below.
+            'name' => trim($input['first_name'].' '.($surname ?? '')),
             'is_dependent' => $isDependent,
         ];
         if (isset($input['date_of_birth']) && $input['date_of_birth'] !== '') {
