@@ -14,6 +14,7 @@ use App\Models\Estate\Trust;
 use App\Models\Investment\InvestmentAccount;
 use App\Traits\Auditable;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -51,6 +52,26 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
+    /**
+     * Monthly charitable giving, with the annual figure derived from it.
+     *
+     * `annual_charitable_donations` is read by IHT planning, ResolvesIncome and
+     * PersonalAccountsService, so it stays — but it is now derived here rather
+     * than written by each caller. Before this, the monthly figure had no column
+     * at all: the Expenditure form's "Charitable Donations" line was discarded on
+     * save, and the annual field was set by a side-channel call that nothing read
+     * back, so the form showed 0 and the next save committed that 0.
+     */
+    protected function charitableDonations(): Attribute
+    {
+        return Attribute::make(
+            set: static fn ($value): array => [
+                'charitable_donations' => $value,
+                'annual_charitable_donations' => $value === null ? null : round((float) $value * 12, 2),
+            ],
+        );
+    }
+
     protected $guarded = [
         'id',
         'is_admin',
@@ -149,6 +170,7 @@ class User extends Authenticatable
         'university_fees' => 'decimal:2',
         'children_activities' => 'decimal:2',
         'gifts_charity' => 'decimal:2',
+        'charitable_donations' => 'decimal:2',
         'regular_savings' => 'decimal:2',
         'other_expenditure' => 'decimal:2',
         'rent' => 'decimal:2',

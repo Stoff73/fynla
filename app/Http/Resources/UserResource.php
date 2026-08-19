@@ -70,6 +70,7 @@ class UserResource extends JsonResource
             'university_fees' => $this->when($canViewDetailedExpenditure, $this->university_fees),
             'children_activities' => $this->when($canViewDetailedExpenditure, $this->children_activities),
             'gifts_charity' => $this->when($canViewDetailedExpenditure, $this->gifts_charity),
+            'charitable_donations' => $this->when($canViewDetailedExpenditure, $this->charitable_donations),
             'regular_savings' => $this->when($canViewDetailedExpenditure, $this->regular_savings),
             'other_expenditure' => $this->when($canViewDetailedExpenditure, $this->other_expenditure),
             // Income fields (needed by IncomeOccupation and tax calculations)

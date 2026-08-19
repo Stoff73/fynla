@@ -111,6 +111,7 @@ class UserProfileService
                     'clothing_personal_care' => $user->clothing_personal_care,
                     'entertainment_dining' => $user->entertainment_dining,
                     'childcare' => $user->childcare,
+                    'charitable_donations' => $user->charitable_donations,
                     'other_expenditure' => $user->other_expenditure,
                 ],
                 'presentation' => $this->expenditurePresentation($user),

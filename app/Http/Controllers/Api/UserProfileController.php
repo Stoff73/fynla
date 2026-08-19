@@ -44,6 +44,7 @@ class UserProfileController extends Controller
         'university_fees',
         'children_activities',
         'gifts_charity',
+        'charitable_donations',
         'regular_savings',
         'other_expenditure',
         'retired_budget_overrides',
@@ -173,6 +174,7 @@ class UserProfileController extends Controller
             'university_fees' => 'nullable|numeric|min:0',
             'children_activities' => 'nullable|numeric|min:0',
             'gifts_charity' => 'nullable|numeric|min:0',
+            'charitable_donations' => 'nullable|numeric|min:0',
             'regular_savings' => 'nullable|numeric|min:0',
             'other_expenditure' => 'nullable|numeric|min:0',
             'retired_budget_overrides' => 'nullable|array',
@@ -416,6 +418,7 @@ class UserProfileController extends Controller
             'university_fees' => 'nullable|numeric|min:0',
             'children_activities' => 'nullable|numeric|min:0',
             'gifts_charity' => 'nullable|numeric|min:0',
+            'charitable_donations' => 'nullable|numeric|min:0',
             'regular_savings' => 'nullable|numeric|min:0',
             'other_expenditure' => 'nullable|numeric|min:0',
         ]);

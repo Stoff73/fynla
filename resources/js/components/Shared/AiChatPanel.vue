@@ -912,7 +912,19 @@ export default {
             // The historical short keys it also carried ("life_insurance",
             // "asset", "pension") are gone: the write handlers emit the canonical
             // long keys, which is what the server maps.
-            this.$router.push(record.route || '/dashboard');
+            //
+            // Refresh the cached user first. Profile-backed pages (expenditure,
+            // personal, income) render from auth/currentUser, which was loaded at
+            // sign-in — so a field Fyn had just written showed as its old value on
+            // the very page the user was sent to confirm it. Module pages fetch
+            // their own records on mount and were never affected; /m refetches the
+            // profile per page, so this is the desktop store only. Navigation must
+            // not depend on it succeeding.
+            this.$store.dispatch('auth/fetchUser')
+                .catch(() => {})
+                .finally(() => {
+                    this.$router.push(record.route || '/dashboard');
+                });
         },
 
         formatEntityType(type) {

@@ -66,8 +66,8 @@ final class GateRoutes
 
     /** @var array<string, array{label: string, web: string, mobile: ?string}> */
     public const MAP = [
-        self::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => null],
-        self::FAMILY_DETAILS => ['label' => 'Family Details', 'web' => '/settings/family', 'mobile' => null],
+        self::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => '/personal-information'],
+        self::FAMILY_DETAILS => ['label' => 'Family Details', 'web' => '/settings/family', 'mobile' => '/personal-information'],
         self::INCOME => ['label' => 'Income', 'web' => '/valuable-info?section=income', 'mobile' => '/income'],
         self::EXPENDITURE => ['label' => 'Expenditure', 'web' => '/valuable-info?section=expenditure', 'mobile' => '/expenditure'],
         self::PROTECTION => ['label' => 'Protection', 'web' => '/protection', 'mobile' => '/protection'],
@@ -131,6 +131,46 @@ final class GateRoutes
         'business_interest' => self::BUSINESS,
         'chattel' => self::CHATTELS,
     ];
+
+    /**
+     * Which page shows a grouped capture, per field group.
+     *
+     * The entity map above only answers for writes that produce a record with
+     * an id. A capture_* handler writes columns on `users` and its satellites,
+     * so it has no entity to name — and so, until now, its confirmation offered
+     * the user no way to see what had just been recorded, even though every one
+     * of these pages already existed.
+     *
+     * Lives here beside ENTITY_DESTINATIONS deliberately: one route table, per
+     * the note above.
+     *
+     * @var array<string, string>
+     */
+    private const FIELD_GROUP_DESTINATIONS = [
+        'personal' => self::PERSONAL_DETAILS,
+        'spouse' => self::FAMILY_DETAILS,
+        'dependants' => self::FAMILY_DETAILS,
+        'work' => self::INCOME,
+        'expenditure' => self::EXPENDITURE,
+        'campaign_charitable_giving' => self::EXPENDITURE,
+        'campaign_pension_history' => self::RETIREMENT,
+        'campaign_retirement_goals' => self::RETIREMENT,
+        'campaign_state_pension' => self::RETIREMENT,
+        'campaign_spouse_household' => self::TAX_STRATEGY,
+        'campaign_spouse_non_working_assets' => self::TAX_STRATEGY,
+    ];
+
+    /**
+     * The page showing a grouped capture, or null when the group has none.
+     *
+     * @return array{label: string, web: string, mobile: ?string}|null
+     */
+    public static function forFieldGroup(string $fieldGroup): ?array
+    {
+        $destination = self::FIELD_GROUP_DESTINATIONS[$fieldGroup] ?? null;
+
+        return $destination === null ? null : self::resolve($destination);
+    }
 
     /**
      * The page showing this entity type, or null when it has none.

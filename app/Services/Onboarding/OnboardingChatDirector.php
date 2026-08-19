@@ -3696,7 +3696,7 @@ PROMPT;
                     continue;
                 }
 
-                if ($type === 'entity_created') {
+                if (self::isRecordRowEvent($type)) {
                     $record = self::recordRowFromEvent($event);
                     $recordKey = $record['type'].':'.(string) $record['id'];
                     $alreadyTracked = collect($recordsCreated)->contains(
@@ -3730,7 +3730,7 @@ PROMPT;
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
                     foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
-                        if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+                        if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                             $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                         }
                         yield $gapFillEvent;
@@ -3752,7 +3752,7 @@ PROMPT;
                     yield $flushEvent;
                 }
                 foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
-                    if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+                    if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                         $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                     }
                     yield $gapFillEvent;
@@ -6723,7 +6723,7 @@ PROMPT;
 
             // Track every record persisted by a create_* / direct-write handler
             // so the closing capture_complete event carries the full list.
-            if ($type === 'entity_created') {
+            if (self::isRecordRowEvent($type)) {
                 $recordsCreated[] = self::recordRowFromEvent($event);
             }
 
@@ -6749,7 +6749,7 @@ PROMPT;
             $confirmedFacts,
             $failedAttemptTools,
         ) as $gapFillEvent) {
-            if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+            if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                 $recordsCreated[] = [
                     'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
                     'id' => $gapFillEvent['entity_id'] ?? null,
@@ -7018,6 +7018,20 @@ PROMPT;
      * @param  array<string, mixed>  $event
      * @return array{type: string, id: mixed, name: string, route: ?string, mobile_route: ?string, label: ?string}
      */
+    /**
+     * Whether an event contributes a row to the closing capture_complete card.
+     *
+     * `entity_updated` counts because it is now also how a write with no record
+     * id reports itself — a capture_* handler or set_expenditure writing columns
+     * on `users`. Those pages all exist; without this the confirmation could not
+     * offer the View link that a created record gets, so the same fact was
+     * confirmable or not depending only on which handler happened to write it.
+     */
+    private static function isRecordRowEvent(string $type): bool
+    {
+        return $type === 'entity_created' || $type === 'entity_updated';
+    }
+
     private static function recordRowFromEvent(array $event): array
     {
         return [

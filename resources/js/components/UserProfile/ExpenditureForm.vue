@@ -2289,16 +2289,18 @@ export default {
         emit('save', saveData);
       }
 
-      // Save charitable donations and Gift Aid to user profile
-      const monthlyCharitable = formData.value.charitable_donations || 0;
-      if (monthlyCharitable > 0 || isGiftAid.value) {
-        store.dispatch('userProfile/updatePersonalInfo', {
-          annual_charitable_donations: monthlyCharitable * 12,
-          is_gift_aid: isGiftAid.value,
-        }).catch((err) => {
-          logger.error('Failed to save charitable donations to user profile:', err);
-        });
-      }
+      // Gift Aid only. `charitable_donations` now posts with every other
+      // category above and the annual figure is derived from it server-side
+      // (User::charitableDonations), so writing the annual here as well would
+      // fight that. It also used to destroy data: the monthly field was never
+      // read back, so it sat at 0, and this call fired on the Gift Aid flag
+      // alone — committing an annual total of 0 over whatever the user or Fyn
+      // had recorded.
+      store.dispatch('userProfile/updatePersonalInfo', {
+        is_gift_aid: isGiftAid.value,
+      }).catch((err) => {
+        logger.error('Failed to save Gift Aid preference to user profile:', err);
+      });
 
       if (!props.isOnboarding) {
         isEditing.value = false;
