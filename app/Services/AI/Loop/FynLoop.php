@@ -79,6 +79,7 @@ final class FynLoop
 
         - For a normal question, request, or anything you can answer or act on now, choose `reason`.
         - A short or fragmentary message is usually the user ANSWERING the question in the previous assistant turn (for example "yes", "workplace", "45000", "the second one"). Read it in that context and choose `reason` — never discard an answer as unactionable.
+        - When the user states a fact about their own finances or household, or asks you to record, save, add, update or correct one ("record that I donate £2,400 a year", "my wife is Meg, born 1975", "I spend £5,000 a month"), choose `reason`. That is a database write and the reasoner performs the handoff that makes it. NEVER choose `learn` for it: `learn` stages a note about how to help this user, it does not record their data, and choosing it here loses the user's answer.
         - Choose `no_action` only when you genuinely cannot proceed this turn.
 
         Do not write any prose. Emit exactly one `plan` tool call.

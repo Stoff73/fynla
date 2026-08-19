@@ -49,6 +49,20 @@ final class WriteIntentClassifier
      * @var array<string, list<string>>
      */
     private const ENTITY_KEYWORDS = [
+        // 2026-08-19 — the household and profile records. Everything below the
+        // asset groups used to be absent, so "please record that I donate
+        // £2,400 a year to charity" matched a write VERB but no entity, the
+        // classifier returned null, the turn fell to the read-only surface and
+        // the model answered with the prompt-injection refusal (live: john,
+        // conversations 185-187). These records live on `users` and its
+        // satellites rather than an asset table; that is a storage detail, not
+        // a reason the user cannot ask Fyn to record them.
+        //
+        // `state_pension` is FIRST because the 'pension' group below ends in a
+        // bare 'pension' catch-all that would otherwise swallow it.
+        'state_pension' => [
+            'state pension forecast', 'state pension',
+        ],
         'protection_policy' => [
             'life insurance', 'life cover', 'life policy', 'life assurance',
             'critical illness', 'ci cover',
@@ -104,6 +118,36 @@ final class WriteIntentClassifier
         // the capture turn, told to record a property the user never mentioned,
         // answered with the prompt-injection refusal instead (live conversation
         // 157, 2026-08-17).
+        'charitable_giving' => [
+            'gift aid', 'charitable donation', 'charitable donations',
+            'charitable giving', 'donation to charity', 'donations to charity',
+            'donate to charity', 'charity', 'donation', 'donations',
+        ],
+        'expenditure' => [
+            'monthly expenditure', 'annual expenditure', 'expenditure',
+            'monthly outgoings', 'outgoings', 'monthly spending', 'spending',
+            'i spend', 'we spend', 'spend',
+            'monthly budget', 'household bills',
+        ],
+        'spouse' => [
+            'my wife', 'my husband', 'my spouse', 'my partner',
+            'wife', 'husband', 'spouse',
+        ],
+        'dependant' => [
+            'dependant', 'dependants', 'dependent', 'dependents',
+            'my daughter', 'my son', 'my child', 'my children',
+            'daughter', 'son', 'children',
+        ],
+        'work_details' => [
+            'my salary', 'my employer', 'my occupation', 'my job title',
+            'salary', 'employer', 'occupation',
+        ],
+        'personal_details' => [
+            'date of birth', 'my dob', 'marital status',
+        ],
+        'retirement_goals' => [
+            'retirement income', 'retire at', 'target retirement age',
+        ],
         'goal' => [
             'savings goal', 'goal', 'target',
             'save for', 'saving for', 'saving up for', 'save towards', 'saving towards',

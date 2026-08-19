@@ -416,11 +416,32 @@ trait HasAiChat
 
             if ($this->allowedToolsOverride !== null) {
                 $allowed = array_flip($this->allowedToolsOverride);
-                $tools = array_values(array_filter($tools, function ($tool) use ($allowed): bool {
+
+                // The grouped-extract capture_* schemas are deliberately kept
+                // out of getTools() for the token budget, so a narrowed turn
+                // that names one would filter it straight back out — the tool
+                // is allowed but never offered, and the model has no way to
+                // record what the turn just asked for. Widen the pool to the
+                // extraction catalogue before filtering; the allowlist still
+                // decides what survives, so nothing new leaks into a turn
+                // that did not ask for it.
+                $pool = array_merge(
+                    $tools,
+                    $this->toolDefinitions->onboardingExtractionTools($isXai ? 'xai' : 'anthropic'),
+                );
+
+                $seen = [];
+                $tools = array_values(array_filter($pool, function ($tool) use ($allowed, &$seen): bool {
                     $name = $tool['name']
                         ?? ($tool['function']['name'] ?? null);
 
-                    return $name !== null && isset($allowed[$name]);
+                    if ($name === null || ! isset($allowed[$name]) || isset($seen[$name])) {
+                        return false;
+                    }
+
+                    $seen[$name] = true;
+
+                    return true;
                 }));
             }
         }

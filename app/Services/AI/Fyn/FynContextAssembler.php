@@ -23,6 +23,7 @@ use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
+use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -303,6 +304,7 @@ final class FynContextAssembler
                 $lines[] = FynCaptureTurnInstructions::render(
                     $this->focusLabel($focus),
                     implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
+                    isModuleWalk: $focus !== OnboardingChatDirector::HANDOFF_FALLBACK_FOCUS,
                 );
             }
         }
