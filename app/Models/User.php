@@ -461,12 +461,28 @@ class User extends Authenticatable
             return null;
         }
 
-        if (! $this->relationLoaded('spouse')) {
-            $this->setRelation('spouse', $this->spouse()->first());
+        if ($this->relationLoaded('spouse')) {
+            return $this->getRelation('spouse');
         }
 
-        return $this->getRelation('spouse');
+        if (! $this->liveSpouseResolved) {
+            $this->liveSpouseCache = $this->spouse()->first();
+            $this->liveSpouseResolved = true;
+        }
+
+        return $this->liveSpouseCache;
     }
+
+    /**
+     * Cached deliberately OUTSIDE the relation registry. Calling setRelation()
+     * here would flip relationLoaded('spouse') to true, and UserResource builds
+     * `has_spouse` before its `spouse` block — so merely asking whether the
+     * spouse is live would have started including their id, name and email in
+     * every payload that previously omitted them.
+     */
+    private ?self $liveSpouseCache = null;
+
+    private bool $liveSpouseResolved = false;
 
     /**
      * THE single authorization rule for attaching a joint_owner_id (Rule 20):

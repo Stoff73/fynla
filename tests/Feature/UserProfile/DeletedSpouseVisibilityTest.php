@@ -137,6 +137,22 @@ it('publishes the historical link and a live one that goes null on deletion', fu
         ->and($after['has_spouse'])->toBeFalse();
 });
 
+it('does not start publishing the spouse block just by asking whether they are live', function (): void {
+    // liveSpouseId() resolves the spouse. If it did that through setRelation(),
+    // relationLoaded('spouse') would flip to true and UserResource — which
+    // builds has_spouse BEFORE its spouse block — would begin including the
+    // spouse's id, name and email in payloads that previously omitted them.
+    [$user] = linkedCouple();
+
+    // resolve(), not toArray() — toArray leaves the unmet when() conditions in
+    // place as MissingValue and only resolve() strips them, so asserting on
+    // toArray would pass whatever happened.
+    $payload = (new UserResource($user->fresh()))->resolve(request());
+
+    expect($payload['has_spouse'])->toBeTrue()
+        ->and($payload)->not->toHaveKey('spouse');
+});
+
 // ─── Planning stops treating them as a couple (D4) ───────────────────────────
 
 it('stops planning the survivor as one of a couple', function (): void {
