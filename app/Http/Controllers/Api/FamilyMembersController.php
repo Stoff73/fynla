@@ -78,12 +78,14 @@ class FamilyMembersController extends Controller
                 ->where('date_of_birth', $data['date_of_birth'] ?? null)
                 ->exists();
 
-            $duplicateInSpouseRecords = FamilyMember::where('user_id', $user->spouse_id)
-                ->where('relationship', 'child')
-                ->where('first_name', $data['first_name'])
-                ->where('last_name', $data['last_name'])
-                ->where('date_of_birth', $data['date_of_birth'] ?? null)
-                ->exists();
+            $liveSpouseId = $user->liveSpouseId();
+            $duplicateInSpouseRecords = $liveSpouseId !== null
+                && FamilyMember::where('user_id', $liveSpouseId)
+                    ->where('relationship', 'child')
+                    ->where('first_name', $data['first_name'])
+                    ->where('last_name', $data['last_name'])
+                    ->where('date_of_birth', $data['date_of_birth'] ?? null)
+                    ->exists();
 
             if ($duplicateInUserRecords || $duplicateInSpouseRecords) {
                 return response()->json([
