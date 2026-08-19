@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
+use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,11 +36,18 @@ function invokeSetExpenditure(User $user, array $input, bool $isPreview = false)
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    // The per-category breakdown is Premium (CSJ decision 2026-08-19), so
+    // handleSetExpenditure now resolves the user's tier — which needs the tier
+    // table and the role rows behind it. The users below are Premium for the
+    // same reason; the gate itself is covered in DetailedExpenditureGateTest.
+    config(['app.payment_enabled' => true]);
+    $this->seed(TierConfigurationSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
 });
 
 describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function () {
     it('writes total_monthly_expenditure to ExpenditureProfile on first call', function () {
-        $user = User::factory()->create(['is_preview_user' => false]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false]);
 
         $result = invokeSetExpenditure($user, [
             'rent' => 1500,
@@ -58,7 +67,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('updates the existing ExpenditureProfile row on second call (no duplicate)', function () {
-        $user = User::factory()->create(['is_preview_user' => false]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false]);
 
         invokeSetExpenditure($user, ['rent' => 1500]);
         invokeSetExpenditure($user, ['rent' => 1800, 'utilities' => 300]);
@@ -69,7 +78,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('merges a partial category update with the users existing expenditure', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'is_preview_user' => false,
             'rent' => 1500,
             'utilities' => 200,
@@ -88,7 +97,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('accepts zero as an explicit category clear without erasing other categories', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'is_preview_user' => false,
             'rent' => 1500,
             'utilities' => 300,
@@ -106,7 +115,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('rejects a negative category amount without changing expenditure', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'is_preview_user' => false,
             'rent' => 1500,
             'monthly_expenditure' => 1500,
@@ -120,7 +129,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('does not write to ExpenditureProfile when no amounts are provided', function () {
-        $user = User::factory()->create(['is_preview_user' => false]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false]);
 
         $result = invokeSetExpenditure($user, []);
 
@@ -129,7 +138,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('blocks preview users and leaves ExpenditureProfile untouched', function () {
-        $user = User::factory()->create(['is_preview_user' => true]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => true]);
 
         $result = invokeSetExpenditure($user, ['rent' => 1000], isPreview: true);
 

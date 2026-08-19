@@ -113,7 +113,7 @@ class UserResource extends JsonResource
         }
 
         try {
-            return app(TeaserGate::class)->isFull($user, 'expenditure_detailed');
+            return app(TeaserGate::class)->allows($user, 'expenditure_detailed');
         } catch (ModelNotFoundException) {
             // Match AuthController's pre-seed degradation contract: when the
             // canonical tier rows are not installed yet, gated fields stay off.

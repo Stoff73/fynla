@@ -32,4 +32,21 @@ class TeaserGate
     {
         return $this->mode($user, $capabilityKey) === 'full';
     }
+
+    /**
+     * Whether the user may use a capability outright — the tier's `full` mode
+     * plus the admin / preview-persona bypass every consumer applies.
+     *
+     * The bypass used to be re-implemented per call site, and the copies had
+     * drifted: the write path allowed admins through while the payload told
+     * their client the capability was unavailable, and the Fyn capture handlers
+     * applied no check at all — so Fyn wrote detailed expenditure for a Free
+     * user that their own Expenditure page then refused to show them.
+     */
+    public function allows(User $user, string $capabilityKey): bool
+    {
+        return $user->is_admin
+            || $user->is_preview_user
+            || $this->isFull($user, $capabilityKey);
+    }
 }
