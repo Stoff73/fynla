@@ -130,6 +130,10 @@ export default {
   },
   created() {
     this.load();
+    // A View link tapped while already on this screen re-navigates to the same
+    // route, so nothing remounts and created() never runs again. Same tick the
+    // other /m screens watch.
+    this.$watch(() => store.screenRefreshTick, () => { this.load(); });
   },
   methods: {
     dependantLabel(dependant) {

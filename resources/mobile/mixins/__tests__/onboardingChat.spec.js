@@ -218,3 +218,60 @@ describe('onboardingChat mixin — contextual and explicit conversation loading'
     expect(wrapper.vm.messages).toEqual([]);
   });
 });
+
+// The View link the capture layer emits (GateRoutes resolves `mobile_route`
+// server-side) used to be filtered through a hardcoded list of "/m routes"
+// that had drifted — /personal-information was never in it, so every Personal
+// or Family Details View link rendered and then did nothing when tapped.
+describe('onboardingChat mixin — View link navigation', () => {
+  // closeFyn lives on the host (MobileChrome / Dashboard), not the mixin.
+  const NavHost = defineComponent({
+    mixins: [onboardingChat],
+    methods: { closeFyn() {} },
+    render() { return h('div'); },
+  });
+
+  const mountOn = (path) => {
+    const push = vi.fn();
+    const resolve = vi.fn((target) => ({
+      matched: ['/dashboard', '/personal-information', '/expenditure'].includes(target) ? [{}] : [],
+    }));
+    const wrapper = mount(NavHost, {
+      global: { mocks: { $router: { push, resolve }, $route: { path, query: {} } } },
+    });
+
+    return { wrapper, push };
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    store.token = 'live-token';
+  });
+
+  it('follows a View link to a screen /m has', () => {
+    const { wrapper, push } = mountOn('/dashboard');
+    wrapper.vm.chooseBubble({ id: 'view_record', label: 'View Family Details', route: '/personal-information' });
+    vi.advanceTimersByTime(400);
+
+    expect(push).toHaveBeenCalledWith('/personal-information');
+  });
+
+  it('ignores a route /m does not have rather than pushing a dead path', () => {
+    const { wrapper, push } = mountOn('/dashboard');
+    wrapper.vm.chooseBubble({ id: 'view_record', label: 'View Risk Profile', route: '/risk-profile' });
+    vi.advanceTimersByTime(400);
+
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('refreshes in place when the View link points at the screen already open', () => {
+    const before = store.screenRefreshTick;
+    const { wrapper, push } = mountOn('/personal-information');
+    wrapper.vm.chooseBubble({ id: 'view_record', label: 'View Family Details', route: '/personal-information' });
+    vi.advanceTimersByTime(400);
+
+    expect(push).not.toHaveBeenCalled();
+    expect(store.screenRefreshTick).toBe(before + 1);
+  });
+});

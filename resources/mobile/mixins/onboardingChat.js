@@ -28,13 +28,6 @@ import {
 // terminal turn (campaign → /tax-strategy). Anything outside this set is a
 // desktop-only route with no /m screen and is ignored (the chat thread still
 // carries the result). Keep in step with OnboardingStateMachine::campaignVerifyConfig().
-export const ONBOARDING_NAV_ROUTES = [
-  '/tax-strategy', '/income', '/expenditure', '/savings', '/investment', '/retirement',
-  // Journey-path verify destinations (CSJ 2026-07-24: every data entry
-  // verifies) — all three have /m screens registered in router.js.
-  '/protection', '/estate', '/goals',
-];
-
 export default {
   created() {
     loadMobileSubscriptionStatus();
@@ -695,8 +688,21 @@ export default {
     // in front, then route. When the chat re-emits a navigation for the screen
     // we're ALREADY on (the dock re-showing the Gate-2 turn), keep the chat open
     // so the bubbles stay visible. Unknown desktop-only routes are ignored.
+    routeExistsOnMobile(routePath) {
+      try {
+        return this.$router.resolve(routePath).matched.length > 0;
+      } catch {
+        return false;
+      }
+    },
+
     handleOnboardingNavigation(routePath, section = null) {
-      if (!ONBOARDING_NAV_ROUTES.includes(routePath)) return;
+      // "Does /m have this screen?" is a question the /m router already answers.
+      // A hardcoded list here used to answer it instead, and drifted: it never
+      // gained /personal-information, so every View link the server resolved to
+      // Personal or Family Details was swallowed silently — the bubble rendered,
+      // the tap did nothing. The router cannot drift from itself (Rule 20).
+      if (!this.routeExistsOnMobile(routePath)) return;
       if (this.$route && this.$route.path === routePath) {
         // Re-verify on the screen the user is ALREADY on (a verify-edit just
         // applied here): close the chat so they actually see the updated page

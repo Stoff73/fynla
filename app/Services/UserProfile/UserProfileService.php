@@ -830,9 +830,14 @@ class UserProfileService
             }
         }
 
-        // If user has a linked spouse, get spouse's children (NOT the spouse record itself)
-        if ($user->spouse_id) {
-            $spouseFamilyMembers = FamilyMember::where('user_id', $user->spouse_id)
+        // If user has a linked spouse, get spouse's children (NOT the spouse record
+        // itself). Keyed on the LIVE spouse: a deleted spouse's records are kept
+        // for regulatory purposes but must stop being visible to their partner,
+        // and this payload was still handing them over — tagged owner: 'spouse'
+        // alongside a spouse field the same payload had already nulled out.
+        $liveSpouseId = $user->liveSpouseId();
+        if ($liveSpouseId) {
+            $spouseFamilyMembers = FamilyMember::where('user_id', $liveSpouseId)
                 ->where('relationship', 'child')  // Only children, not spouse record
                 ->orderBy('date_of_birth')
                 ->get();

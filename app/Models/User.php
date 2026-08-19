@@ -432,6 +432,21 @@ class User extends Authenticatable
     }
 
     /**
+     * The spouse's id, but only while their account is live.
+     *
+     * `spouse_id` deliberately survives the spouse deleting their account —
+     * everything is retained for regulatory purposes — but from that moment the
+     * surviving partner must stop seeing their data. Reading the raw column
+     * answers "were these two ever linked"; this answers "may I show their
+     * information", which is the question every consumer of shared spouse data
+     * actually has. The soft-delete filter on the relation does the work.
+     */
+    public function liveSpouseId(): ?int
+    {
+        return $this->spouse?->id;
+    }
+
+    /**
      * THE single authorization rule for attaching a joint_owner_id (Rule 20):
      * an attached id grants the linked account visibility of the record, so
      * only the user's reciprocally linked spouse qualifies. A joint record

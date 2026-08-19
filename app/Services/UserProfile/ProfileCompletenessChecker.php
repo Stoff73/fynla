@@ -166,8 +166,8 @@ class ProfileCompletenessChecker
 
         // Also check if spouse has dependent children (shared between linked accounts)
         $spouseHasChildren = false;
-        if ($user->spouse_id) {
-            $spouseHasChildren = FamilyMember::where('user_id', $user->spouse_id)
+        if ($liveSpouseId = $user->liveSpouseId()) {
+            $spouseHasChildren = FamilyMember::where('user_id', $liveSpouseId)
                 ->where('is_dependent', true)
                 ->whereIn('relationship', ['child', 'step_child'])
                 ->exists();

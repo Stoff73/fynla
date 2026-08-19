@@ -1870,7 +1870,10 @@ class CoordinatingAgent extends BaseAgent
                 'household_id' => $user->household_id,
                 'relationship' => $dep['relationship'],
                 'first_name' => $dep['first_name'],
-                'name' => $dep['first_name'],
+                // Same surname default create_family_member applies, so the two
+                // tools that write this table produce the same row for the same
+                // dependant. `name` is derived on the model.
+                'last_name' => $user->surname,
                 'date_of_birth' => $dep['date']->toDateString(),
                 'is_dependent' => true,
                 'education_status' => $this->educationStatusForAge($dep['date']->age),
@@ -4939,6 +4942,19 @@ class CoordinatingAgent extends BaseAgent
     {
         if ($isPreview) {
             return $this->previewBlocked('expenditure');
+        }
+
+        // The per-category breakdown is Premium. Fyn used to write it straight
+        // through the model for anyone, while UserProfileController refused the
+        // same fields to the same user — so a Free user's categories were saved
+        // and then hidden from them on the page that owns them. One predicate,
+        // both paths (CSJ decision 2026-08-19).
+        if (! $this->teaserGate->allows($user, 'expenditure_detailed')) {
+            return [
+                'blocked' => true,
+                'reason' => 'Recording spending category by category is part of Premium. '
+                    .'Their total monthly spending can still be recorded on the free plan.',
+            ];
         }
 
         // All expenditure category fields (monthly amounts)

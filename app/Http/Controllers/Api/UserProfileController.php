@@ -109,9 +109,7 @@ class UserProfileController extends Controller
 
     private function canUseDetailedExpenditure(User $user): bool
     {
-        return $user->is_admin
-            || $user->is_preview_user
-            || $this->teaserGate->isFull($user, 'expenditure_detailed');
+        return $this->teaserGate->allows($user, 'expenditure_detailed');
     }
 
     /**
