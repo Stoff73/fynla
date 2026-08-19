@@ -137,6 +137,7 @@ it('returns canonical property mortgage and liability identifiers for detail nav
     $liability = Liability::factory()->create([
         'user_id' => $this->user->id,
         'liability_name' => 'Personal loan',
+        'liability_type' => 'personal_loan',
         'current_balance' => 12000,
     ]);
 
@@ -148,6 +149,25 @@ it('returns canonical property mortgage and liability identifiers for detail nav
         ->assertJsonPath('data.liabilities.items.0.id', $mortgage->id)
         ->assertJsonPath('data.liabilities.items.1.kind', 'liability')
         ->assertJsonPath('data.liabilities.items.1.id', $liability->id);
+});
+
+/**
+ * Guards the coupling that made the test below red in CI and green locally for
+ * two merges running: NetWorthService skips mortgage-typed liabilities on
+ * purpose, and LiabilityFactory used to pick 'mortgage' as one of nine random
+ * defaults — so an unpinned liability vanished from the totals about one run in
+ * nine. Ask for a mortgage explicitly with ->mortgage() instead.
+ */
+it('never gives a liability the mortgage type by default', function () {
+    $types = collect(range(1, 60))
+        ->map(fn () => Liability::factory()->make(['user_id' => $this->user->id])->liability_type)
+        ->unique();
+
+    expect($types)->not->toContain('mortgage')
+        ->and($types->count())->toBeGreaterThan(1);
+
+    expect(Liability::factory()->mortgage()->make(['user_id' => $this->user->id])->liability_type)
+        ->toBe('mortgage');
 });
 
 it('keeps detailed category values aligned with ownership-adjusted net worth totals', function () {
@@ -169,6 +189,10 @@ it('keeps detailed category values aligned with ownership-adjusted net worth tot
     Liability::factory()->create([
         'user_id' => $this->user->id,
         'liability_name' => 'Car finance',
+        // Say what it is. Left to the factory's random default, this was a
+        // mortgage one run in nine, and a mortgage-typed liability is skipped
+        // from the totals below by design — which is the whole assertion.
+        'liability_type' => 'hire_purchase',
         'current_balance' => 12000,
         'ownership_type' => 'individual',
     ]);
