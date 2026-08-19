@@ -1870,7 +1870,10 @@ class CoordinatingAgent extends BaseAgent
                 'household_id' => $user->household_id,
                 'relationship' => $dep['relationship'],
                 'first_name' => $dep['first_name'],
-                'name' => $dep['first_name'],
+                // Same surname default create_family_member applies, so the two
+                // tools that write this table produce the same row for the same
+                // dependant. `name` is derived on the model.
+                'last_name' => $user->surname,
                 'date_of_birth' => $dep['date']->toDateString(),
                 'is_dependent' => true,
                 'education_status' => $this->educationStatusForAge($dep['date']->age),
@@ -4663,13 +4666,6 @@ class CoordinatingAgent extends BaseAgent
             'relationship' => $dbRelationship,
             'first_name' => $input['first_name'],
             'last_name' => $surname,
-            // family_members.name is NOT NULL DEFAULT 'Unknown', and plenty of
-            // consumers read it rather than first_name — the web Family Details
-            // heading, the estate plan's children list, the savings child-name
-            // copy. Leaving it unset wrote 'Unknown' into every one of them, so
-            // a dependant Fyn recorded by name showed up nameless. It is the
-            // same string this handler's own receipt already returned below.
-            'name' => trim($input['first_name'].' '.($surname ?? '')),
             'is_dependent' => $isDependent,
         ];
         if (isset($input['date_of_birth']) && $input['date_of_birth'] !== '') {

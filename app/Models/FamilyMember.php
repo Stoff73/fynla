@@ -58,6 +58,45 @@ class FamilyMember extends Model
     protected $appends = ['age'];
 
     /**
+     * Keep the legacy `name` column in step with the name parts.
+     *
+     * `name` predates first_name/middle_name/last_name and is NOT NULL DEFAULT
+     * 'Unknown', so any writer that set the parts and not `name` stored the
+     * literal string "Unknown" — which is what the web Family Details heading,
+     * the estate plan's children list and the savings child-name copy all read.
+     * Eight places create these rows; four of them left `name` unset (both
+     * spouse-linking paths, both Fyn onboarding paths) and five more repeated
+     * this exact derivation by hand.
+     *
+     * Filling it here is the one place a new writer cannot miss. It only ever
+     * replaces the column default (or an empty string) — a name a caller set
+     * deliberately is left alone, including the whole names OnboardingService
+     * writes with no first_name and the display names the update endpoint
+     * accepts. So this fills the gap without taking anything over.
+     */
+    private const LEGACY_NAME_DEFAULT = 'Unknown';
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $member): void {
+            $current = trim((string) ($member->name ?? ''));
+            if ($current !== '' && $current !== self::LEGACY_NAME_DEFAULT) {
+                return;
+            }
+
+            $derived = trim(implode(' ', array_filter([
+                $member->first_name,
+                $member->middle_name,
+                $member->last_name,
+            ])));
+
+            if ($derived !== '') {
+                $member->name = $derived;
+            }
+        });
+    }
+
+    /**
      * Get the user that owns this family member record.
      */
     public function user(): BelongsTo

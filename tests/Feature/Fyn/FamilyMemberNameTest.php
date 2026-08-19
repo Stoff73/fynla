@@ -49,13 +49,76 @@ it('stores the first name alone when there is no surname to use', function (): v
     expect(FamilyMember::find($result['entity_id'])->name)->toBe('Mia');
 });
 
-it('agrees with the other tool that writes this table', function (): void {
-    $user = User::factory()->create(['surname' => 'McTest']);
+it('produces the same row from either tool that writes this table', function (): void {
+    $viaCapture = User::factory()->create(['surname' => 'McTest']);
+    $viaCreate = User::factory()->create(['surname' => 'McTest']);
 
     (new ReflectionMethod(CoordinatingAgent::class, 'handleCaptureDependants'))
         ->invoke(app(CoordinatingAgent::class), [
             'dependants' => [['first_name' => 'Tom', 'relationship' => 'child', 'date_of_birth' => '2019-03-03']],
-        ], $user);
+        ], $viaCapture);
 
-    expect(FamilyMember::where('user_id', $user->id)->pluck('name'))->not->toContain('Unknown');
+    (new ReflectionMethod(CoordinatingAgent::class, 'handleCreateFamilyMember'))
+        ->invoke(app(CoordinatingAgent::class), [
+            'first_name' => 'Tom',
+            'relationship' => 'child',
+            'date_of_birth' => '2019-03-03',
+        ], $viaCreate, false);
+
+    $captured = FamilyMember::where('user_id', $viaCapture->id)->sole();
+    $created = FamilyMember::where('user_id', $viaCreate->id)->sole();
+
+    expect($captured->name)->toBe('Tom McTest')
+        ->and($created->name)->toBe($captured->name)
+        ->and($created->last_name)->toBe($captured->last_name);
+});
+
+// The two Fyn tools were never the whole problem: of the eight places that
+// create these rows, four set the name parts and not `name` — both
+// spouse-linking paths and both Fyn onboarding paths. Deriving on the model is
+// what closes the ones nobody edited.
+it('derives the name for a writer that never sets it', function (): void {
+    $user = User::factory()->create();
+
+    $member = FamilyMember::create([
+        'user_id' => $user->id,
+        'relationship' => 'spouse',
+        'first_name' => 'Jane',
+        'middle_name' => 'Elizabeth',
+        'last_name' => 'Doe',
+    ]);
+
+    expect($member->fresh()->name)->toBe('Jane Elizabeth Doe');
+});
+
+it('leaves a name alone when there are no parts to derive it from', function (): void {
+    // OnboardingService takes a whole name and no first_name.
+    $user = User::factory()->create();
+
+    $member = FamilyMember::create([
+        'user_id' => $user->id,
+        'name' => 'Patricia Bennett',
+        'relationship' => 'parent',
+    ]);
+
+    expect($member->fresh()->name)->toBe('Patricia Bennett');
+});
+
+it('never takes over a name a caller set on purpose', function (): void {
+    // The update endpoint accepts a display name, and the factory sets one
+    // independently of the parts. Filling the default must not touch either.
+    $user = User::factory()->create();
+    $member = FamilyMember::create([
+        'user_id' => $user->id,
+        'relationship' => 'child',
+        'name' => 'Child One',
+        'first_name' => 'Ethyl',
+        'last_name' => 'Bashirian',
+    ]);
+
+    expect($member->fresh()->name)->toBe('Child One');
+
+    $member->update(['name' => 'Updated Child Name']);
+
+    expect($member->fresh()->name)->toBe('Updated Child Name');
 });
