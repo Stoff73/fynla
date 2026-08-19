@@ -274,7 +274,7 @@ class DataReadinessService
      */
     private function checkSpouseData(User $user): array
     {
-        $hasSpouse = $user->spouse_id !== null;
+        $hasSpouse = $user->liveSpouseId() !== null;
 
         return [
             'key' => 'spouse_data',

@@ -743,26 +743,31 @@ class User extends Authenticatable
      */
     public function hasAcceptedSpousePermission(): bool
     {
-        // No spouse linked
-        if (! $this->spouse_id) {
+        // No LIVE spouse — no sharing. The raw spouse_id survives the partner
+        // deleting their account, deliberately: everything is retained for
+        // regulatory purposes. Their `accepted` permission row is retained with
+        // it, and the legacy fallback below used to find that row and keep
+        // sharing switched on for an account that no longer exists. Measured on
+        // csjones: three survivors, all returning true (CSJ decision D1/D2,
+        // 2026-08-19 — retain the rows, ignore them at read time).
+        $spouse = $this->spouse;
+        if ($spouse === null) {
             return false;
         }
 
         // If both users are married and linked, enable data sharing automatically
-        // Use existing relationship to avoid N+1 queries when eager-loaded
-        if ($this->marital_status === 'married') {
-            $spouse = $this->relationLoaded('spouse') ? $this->spouse : $this->spouse()->first();
-            if ($spouse && $spouse->marital_status === 'married' && $spouse->spouse_id === $this->id) {
-                return true;
-            }
+        if ($this->marital_status === 'married'
+            && $spouse->marital_status === 'married'
+            && $spouse->spouse_id === $this->id) {
+            return true;
         }
 
         // Fallback: Check for explicit permission record (legacy/optional)
-        $permission = SpousePermission::where(function ($query) {
+        $permission = SpousePermission::where(function ($query) use ($spouse) {
             $query->where('user_id', $this->id)
-                ->where('spouse_id', $this->spouse_id);
-        })->orWhere(function ($query) {
-            $query->where('user_id', $this->spouse_id)
+                ->where('spouse_id', $spouse->id);
+        })->orWhere(function ($query) use ($spouse) {
+            $query->where('user_id', $spouse->id)
                 ->where('spouse_id', $this->id);
         })->where('status', 'accepted')->first();
 

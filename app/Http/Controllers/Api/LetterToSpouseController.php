@@ -96,7 +96,7 @@ class LetterToSpouseController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->spouse_id) {
+        if (! $user->liveSpouseId()) {
             return response()->json([
                 'success' => false,
                 'message' => 'No spouse linked to your account',

@@ -24,7 +24,7 @@ class IntestacyCalculator
         }
 
         // Check if married - either by spouse_id OR by having a spouse in family_members
-        $hasLinkedSpouse = in_array($user->marital_status, ['married', 'civil_partnership']) && $user->spouse_id !== null;
+        $hasLinkedSpouse = in_array($user->marital_status, ['married', 'civil_partnership']) && $user->liveSpouseId() !== null;
         $familyMembers = FamilyMember::where('user_id', $userId)->get();
         $hasSpouseFamilyMember = $familyMembers->where('relationship', 'spouse')->count() > 0;
 

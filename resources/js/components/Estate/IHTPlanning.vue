@@ -1492,7 +1492,7 @@ export default {
         this.isMarried = user.marital_status === 'married';
         // Widowed and divorced users should not see spouse options
         const excludedStatuses = ['widowed', 'divorced'];
-        this.hasSpouse = user.spouse_id !== null && !excludedStatuses.includes(user.marital_status);
+        this.hasSpouse = user.live_spouse_id != null && !excludedStatuses.includes(user.marital_status);
         this.userGender = user.gender || 'male';
       }
     },

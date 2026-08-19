@@ -108,7 +108,7 @@ export default {
     const user = computed(() => store.getters['auth/currentUser']);
 
     const isMarried = computed(() => {
-      return user.value?.marital_status === 'married' && !!user.value?.spouse_id;
+      return user.value?.marital_status === 'married' && !!user.value?.live_spouse_id;
     });
 
     const spouseName = computed(() => {
@@ -117,10 +117,10 @@ export default {
     });
 
     const fetchSpouseData = async () => {
-      if (!user.value?.spouse_id) return;
+      if (!user.value?.live_spouse_id) return;
 
       try {
-        const response = await store.dispatch('auth/fetchUserById', user.value.spouse_id);
+        const response = await store.dispatch('auth/fetchUserById', user.value.live_spouse_id);
         spouseData.value = response || {};
       } catch (err) {
         logger.error('Failed to fetch spouse data:', err);

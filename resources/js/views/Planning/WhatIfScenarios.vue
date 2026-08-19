@@ -71,7 +71,7 @@ export default {
 
     isMarriedWithSpouse() {
       const user = this.currentUser;
-      return user && user.marital_status === 'married' && user.spouse_id;
+      return user && user.marital_status === 'married' && user.live_spouse_id;
     },
   },
 

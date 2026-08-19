@@ -57,7 +57,7 @@ class ProfileCompletenessChecker
         return [
             'spouse_linked' => [
                 'required' => true,
-                'filled' => ! is_null($user->spouse_id),
+                'filled' => ! is_null($user->liveSpouseId()),
                 'message' => 'Link your spouse account for accurate joint financial planning',
                 'priority' => 'high',
                 'link' => '/profile#family',
@@ -156,7 +156,7 @@ class ProfileCompletenessChecker
     {
         // For married users, having a linked spouse counts - they're someone to protect
         // even if they earn their own income (not marked is_dependent)
-        $hasSpouse = ! is_null($user->spouse_id);
+        $hasSpouse = ! is_null($user->liveSpouseId());
 
         // Check if user has dependent children
         $hasChildren = $user->familyMembers()

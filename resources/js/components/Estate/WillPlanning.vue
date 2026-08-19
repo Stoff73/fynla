@@ -490,7 +490,7 @@ export default {
     },
 
     isMarried() {
-      return this.currentUser?.marital_status === 'married' && this.currentUser?.spouse_id;
+      return this.currentUser?.marital_status === 'married' && this.currentUser?.live_spouse_id;
     },
 
     spouseAmount() {

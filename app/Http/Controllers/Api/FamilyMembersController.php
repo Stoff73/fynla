@@ -70,7 +70,7 @@ class FamilyMembersController extends Controller
         }
 
         // Check for duplicate children when user has linked spouse
-        if ($data['relationship'] === 'child' && $user->spouse_id) {
+        if ($data['relationship'] === 'child' && $user->liveSpouseId()) {
             $duplicateInUserRecords = FamilyMember::where('user_id', $user->id)
                 ->where('relationship', 'child')
                 ->where('first_name', $data['first_name'])
@@ -502,9 +502,8 @@ class FamilyMembersController extends Controller
         $memberArray = $familyMember->toArray();
 
         // If this is a spouse and user has a spouse_id, get the spouse's email
-        if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouse = User::find($user->spouse_id);
-            $memberArray['email'] = $spouse ? $spouse->email : null;
+        if ($familyMember->relationship === 'spouse' && $user->liveSpouseId()) {
+            $memberArray['email'] = $user->spouse?->email;
         }
 
         return response()->json([

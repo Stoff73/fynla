@@ -264,8 +264,10 @@ class UserProfileController extends Controller
     {
         $currentUser = $request->user();
 
-        // Only allow access to spouse data
-        if ($currentUser->spouse_id !== $userId) {
+        // Only allow access to a LIVE spouse's data. The link survives the
+        // partner deleting their account — retention — but this endpoint returns
+        // their profile, so it must stop answering once they are gone (D5).
+        if ($currentUser->liveSpouseId() !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,
@@ -378,8 +380,9 @@ class UserProfileController extends Controller
             return $this->detailedExpenditureDenial();
         }
 
-        // Only allow updating spouse's expenditure
-        if ($currentUser->spouse_id !== $userId) {
+        // Only allow updating a LIVE spouse's expenditure. A retained record
+        // must not stay writable by someone who can no longer see it (D5).
+        if ($currentUser->liveSpouseId() !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,

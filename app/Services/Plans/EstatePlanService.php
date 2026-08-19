@@ -381,8 +381,8 @@ class EstatePlanService extends BasePlanService
         $profile = $data['profile'] ?? [];
 
         // Determine spouse and data sharing status
-        $hasLinkedSpouse = $user->spouse_id !== null;
-        $spouse = $hasLinkedSpouse ? User::find($user->spouse_id) : null;
+        $hasLinkedSpouse = $user->liveSpouseId() !== null;
+        $spouse = $user->spouse;
         $dataSharingEnabled = $hasLinkedSpouse && $user->hasAcceptedSpousePermission();
 
         // Gather assets for formatting service (same as IHTController)
