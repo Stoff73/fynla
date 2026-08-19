@@ -82,6 +82,37 @@ describe('PersonalInformation.vue', () => {
     expect(wrapper.find('[data-testid="personal-information-edit"]').exists()).toBe(false);
   });
 
+  it('lists dependants with relationship and age, and hides the section when there are none', async () => {
+    const noDependants = mountView();
+    await flushPromises();
+    expect(noDependants.find('[data-testid="personal-information-dependants"]').exists()).toBe(false);
+
+    apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        data: {
+          ...canonicalProfile,
+          family_members: [
+            { id: 1, first_name: 'Sam', relationship: 'spouse', is_dependent: false },
+            { id: 2, first_name: 'Rosie', relationship: 'child', age: 9, is_dependent: true },
+            { id: 3, first_name: 'Maureen', relationship: 'parent', age: 78, is_dependent: true },
+            { id: 4, first_name: 'Jo', relationship: 'other_dependent', is_dependent: true },
+          ],
+        },
+      },
+    });
+    const wrapper = mountView();
+    await flushPromises();
+
+    const section = wrapper.get('[data-testid="personal-information-dependants"]');
+    expect(section.text()).toContain('Rosie');
+    expect(section.text()).toContain('Child, aged 9');
+    expect(section.text()).toContain('Parent, aged 78');
+    expect(section.text()).toContain('Dependant');
+    expect(section.text()).not.toContain('Sam');
+  });
+
   it('shows a clear empty state for an empty canonical envelope', async () => {
     apiGet.mockResolvedValue({ ok: true, status: 200, data: { data: {} } });
     const wrapper = mountView();
