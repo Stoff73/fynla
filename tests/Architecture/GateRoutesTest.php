@@ -6,8 +6,10 @@ use App\Constants\GateRoutes;
 
 it('resolves every canonical gate destination for desktop and mobile', function (): void {
     $expected = [
-        GateRoutes::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => null],
-        GateRoutes::FAMILY_DETAILS => ['label' => 'Family Details', 'web' => '/settings/family', 'mobile' => null],
+        // /m has had /personal-information all along; these nulls sent a mobile
+        // user's confirmation nowhere. Family details live on that same screen.
+        GateRoutes::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => '/personal-information'],
+        GateRoutes::FAMILY_DETAILS => ['label' => 'Family Details', 'web' => '/settings/family', 'mobile' => '/personal-information'],
         GateRoutes::INCOME => ['label' => 'Income', 'web' => '/valuable-info?section=income', 'mobile' => '/income'],
         GateRoutes::EXPENDITURE => ['label' => 'Expenditure', 'web' => '/valuable-info?section=expenditure', 'mobile' => '/expenditure'],
         GateRoutes::PROTECTION => ['label' => 'Protection', 'web' => '/protection', 'mobile' => '/protection'],

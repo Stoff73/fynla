@@ -970,14 +970,19 @@ trait HasAiChat
                         // or a delete had no event to carry a confirmation —
                         // SPEC-crud-handler-contract §4.2. One loop, so a fourth
                         // never grows its own copy of this block.
+                        $emittedEntityEvent = false;
+
                         foreach (self::ENTITY_EVENTS as $flag => $eventType) {
                             // Some results flag a write with nothing to name —
                             // update_profile edits the user, not a record. No
-                            // identity, no event.
+                            // identity, no event. Those are picked up below by
+                            // field group instead, so the write still confirms.
                             if (($toolResult[$flag] ?? false) !== true
                                 || ! isset($toolResult['entity_type'], $toolResult['entity_id'])) {
                                 continue;
                             }
+
+                            $emittedEntityEvent = true;
 
                             // The page showing the record, resolved once on the
                             // server so all three clients link to the same place
@@ -993,6 +998,42 @@ trait HasAiChat
                                 'mobile_route' => $page['mobile'] ?? null,
                                 'label' => $page['label'] ?? null,
                             ];
+                        }
+
+                        // A write with no record id — a capture_* handler or
+                        // set_expenditure, both of which write columns on `users`
+                        // and its satellites. The loop above skips them, so the
+                        // user got a confirmation with no way to see what had been
+                        // recorded, even though every one of these pages already
+                        // existed. Resolve the page from the field group and emit
+                        // the same write event the clients already render, so no
+                        // surface needs its own idea of where the data lives.
+                        $fieldGroup = $toolResult['field_group'] ?? null;
+                        $isFieldWrite = ($toolResult['onboarding_capture'] ?? false) === true
+                            || ($toolResult['updated'] ?? false) === true;
+
+                        if (! $emittedEntityEvent && $isFieldWrite && $fieldGroup !== null) {
+                            $page = GateRoutes::forFieldGroup((string) $fieldGroup);
+
+                            if ($page !== null) {
+                                yield [
+                                    'type' => 'entity_updated',
+                                    // The field group is an internal name and the
+                                    // clients print it. `campaign_` is a flow the
+                                    // user never saw, so it must not appear in the
+                                    // record card (Rule 9 — no internal jargon in
+                                    // user-facing text).
+                                    'entity_type' => (string) preg_replace('/^campaign_/', '', (string) $fieldGroup),
+                                    'entity_id' => null,
+                                    // The clients render this as "Updated {name}",
+                                    // so it must be a noun phrase — the page label,
+                                    // not the handler's whole sentence.
+                                    'name' => (string) ($page['label'] ?? ''),
+                                    'route' => $page['web'] ?? null,
+                                    'mobile_route' => $page['mobile'] ?? null,
+                                    'label' => $page['label'] ?? null,
+                                ];
+                            }
                         }
 
                         // Handle grouped onboarding field captures (used by the

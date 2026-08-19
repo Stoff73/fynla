@@ -5001,6 +5001,11 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'updated' => true,
+            // The page is resolved from this by GateRoutes::forFieldGroup, the
+            // one route table, rather than the hardcoded route_path below —
+            // which nothing consumed, since `action => navigate` has had no
+            // handler since route hijacking was removed.
+            'field_group' => 'expenditure',
             'action' => 'navigate',
             'route_path' => '/valuable-info?section=expenditure',
             'section' => 'expenditure',
@@ -5489,15 +5494,25 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'annual_donations must be >= 0.'];
         }
 
-        $user->update(['annual_charitable_donations' => $amount]);
+        // Store the monthly figure — it is the category column the Expenditure
+        // page shows, and User::charitableDonations() derives the annual from
+        // it. Report the DERIVED annual rather than the number we were handed,
+        // so a figure that does not divide evenly by 12 is confirmed as what
+        // was actually stored instead of what was asked for.
+        $user->update(['charitable_donations' => $amount / 12]);
+        $user->refresh();
+        $storedAnnual = (float) ($user->annual_charitable_donations ?? 0);
 
         return [
             'onboarding_capture' => true,
             'field_group' => 'campaign_charitable_giving',
-            'summary' => $amount > 0
-                ? sprintf('Annual Gift Aid donations recorded as £%s.', number_format($amount, 0))
+            'summary' => $storedAnnual > 0
+                ? sprintf('Annual Gift Aid donations recorded as £%s.', number_format($storedAnnual, 0))
                 : 'No Gift Aid donations recorded.',
-            'details' => ['annual_charitable_donations' => $amount],
+            'details' => [
+                'charitable_donations' => (float) ($user->charitable_donations ?? 0),
+                'annual_charitable_donations' => $storedAnnual,
+            ],
         ];
     }
 

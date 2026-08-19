@@ -40,6 +40,21 @@
         </dl>
       </section>
 
+      <section
+        v-if="dependants.length"
+        class="m-card profile-card"
+        aria-labelledby="profile-dependants-heading"
+        data-testid="personal-information-dependants"
+      >
+        <h2 id="profile-dependants-heading" class="m-section-label">Dependants</h2>
+        <dl class="profile-list">
+          <div v-for="dependant in dependants" :key="dependant.id" class="profile-row">
+            <dt>{{ dependant.first_name || dependant.name || 'Dependant' }}</dt>
+            <dd>{{ dependantLabel(dependant) }}</dd>
+          </div>
+        </dl>
+      </section>
+
       <section class="m-card profile-card" aria-labelledby="profile-domicile-heading">
         <h2 id="profile-domicile-heading" class="m-section-label">Domicile</h2>
         <p class="m-sub profile-copy">{{ domicileLabel }}</p>
@@ -92,6 +107,9 @@ export default {
     personalInfo() {
       return this.profile?.personal_info || {};
     },
+    dependants() {
+      return (this.profile?.family_members || []).filter((member) => member.is_dependent);
+    },
     householdLabel() {
       return this.profile?.household?.name
         || (this.profile?.spouse?.name ? `Household with ${this.profile.spouse.name}` : 'Single-person household');
@@ -114,6 +132,16 @@ export default {
     this.load();
   },
   methods: {
+    dependantLabel(dependant) {
+      const relationship = {
+        child: 'Child',
+        parent: 'Parent',
+        other_dependent: 'Dependant',
+      }[dependant.relationship] || 'Dependant';
+      const age = dependant.age;
+
+      return age == null ? relationship : `${relationship}, aged ${age}`;
+    },
     money(value) {
       if (value == null || value === '' || Number.isNaN(Number(value))) return '—';
       return new Intl.NumberFormat('en-GB', {
