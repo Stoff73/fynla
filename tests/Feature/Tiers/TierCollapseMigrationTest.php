@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Subscription;
+use App\Models\TaxConfiguration;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 
 function tierCollapseMigration(): Migration
 {
@@ -37,6 +39,18 @@ function restoreCanonicalTierSchema(Migration $migration): void
     $migration->up();
     unboundedPremiumQuotasMigration()->up();
 }
+
+// Both tests below run real migrations, and MySQL implicitly commits on DDL — so
+// RefreshDatabase's transaction is gone before either finishes and its rollback does
+// nothing. restoreCanonicalTierSchema() deliberately leaves the canonical tier rows in
+// place for the assertion that follows it, so they are cleared here instead, along with
+// the invoice sequence (deleting invoices does not rewind the counter) and the
+// safety-net tax configuration.
+afterEach(function (): void {
+    DB::table('invoice_sequences')->delete();
+    TierConfiguration::query()->delete();
+    TaxConfiguration::query()->where('tax_year', '2019/20')->delete();
+});
 
 it('blocks active entitlement then maps historical identity without rewriting financial history', function () {
     $migration = tierCollapseMigration();
