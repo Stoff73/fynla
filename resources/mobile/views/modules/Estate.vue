@@ -60,6 +60,13 @@
           <span class="me-row__label">Will</span>
           <span class="me-row__value" :class="willInPlace ? 'me-row__value--ok' : 'me-row__value--warn'">{{ willInPlace ? 'In place' : 'Not set up' }}</span>
         </div>
+        <button type="button" class="me-row me-row--link" @click="openBequests">
+          <span class="me-row__label">Specific bequests</span>
+          <span class="me-row__right">
+            <span class="me-row__value">{{ bequests.length }} {{ bequests.length === 1 ? 'bequest' : 'bequests' }}</span>
+            <span class="me-row__view">View</span>
+          </span>
+        </button>
       </div>
     </template>
   </MobileChrome>
@@ -83,7 +90,7 @@ export default {
   name: 'MobileEstate',
   components: { MobileChrome },
   mixins: [upgradeMixin],
-  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null }),
+  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null, bequests: [] }),
   computed: {
     gifts() { return this.payload?.gifts || []; },
     trusts() { return this.payload?.trusts || []; },
@@ -101,6 +108,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     compLabel(type) { return COMP_LABELS[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Assets'); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
+    openBequests() { this.$router.push({ name: 'm-estate-bequests' }); },
     async load() {
       this.loading = true;
       this.error = '';
@@ -108,6 +116,7 @@ export default {
       this.teaser = {};
       this.payload = null;
       this.netWorth = null;
+      this.bequests = [];
       try {
         const { ok, status, data } = await apiGet('/api/estate', store.token);
         if (handleAuthExpiry({ status }, this.$router)) return;
@@ -124,6 +133,11 @@ export default {
           const nw = await apiGet('/api/estate/net-worth', store.token);
           if (handleAuthExpiry(nw, this.$router)) return;
           if (nw.ok) this.netWorth = nw.data?.data?.net_worth || nw.data?.net_worth || nw.data?.data || null;
+          // /api/estate's will_info carries no bequests, so the count for the
+          // drill-down row comes from the same endpoint the bequests screen uses.
+          const bq = await apiGet('/api/estate/bequests', store.token);
+          if (handleAuthExpiry(bq, this.$router)) return;
+          if (bq.ok) this.bequests = bq.data?.data || [];
         }
       } catch {
         this.error = 'Network error. Please try again.';
@@ -145,6 +159,10 @@ export default {
 .me-row--total .me-row__label { font-weight: 700; color: var(--horizon-500); }
 .me-row__value { font-size: 14px; font-weight: 700; color: var(--horizon-500); white-space: nowrap; }
 .me-row--total .me-row__value { font-size: 16px; }
+.me-row--link { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--light-gray); font: inherit; text-align: left; cursor: pointer; }
+.me-row--link:last-of-type { border-bottom: 0; padding-bottom: 0; }
+.me-row__right { display: flex; align-items: baseline; gap: 10px; }
+.me-row__view { font-size: 12px; font-weight: 700; color: var(--raspberry-500); }
 .me-row__value--ok { color: var(--spring-600); }
 .me-row__value--warn { color: var(--violet-500); }
 </style>
