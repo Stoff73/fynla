@@ -42,7 +42,7 @@ class LifePolicyController extends Controller
 
             // ========== REUSE EXISTING IHT PLANNING DATA ==========
             // Get IHT planning data (second death for married, standard for single)
-            $isMarried = $user->marital_status === 'married' && $user->spouse_id !== null;
+            $isMarried = $user->marital_status === 'married' && $user->liveSpouseId() !== null;
 
             if ($isMarried) {
                 // For married users, use second death IHT calculation

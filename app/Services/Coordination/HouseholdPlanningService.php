@@ -378,7 +378,7 @@ class HouseholdPlanningService
      */
     private function getLinkedSpouse(User $user): ?User
     {
-        if (! $user->spouse_id) {
+        if (! $user->liveSpouseId()) {
             return null;
         }
 

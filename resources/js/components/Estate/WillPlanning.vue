@@ -490,7 +490,7 @@ export default {
     },
 
     isMarried() {
-      return this.currentUser?.marital_status === 'married' && this.currentUser?.spouse_id;
+      return this.currentUser?.marital_status === 'married' && this.currentUser?.live_spouse_id;
     },
 
     spouseAmount() {
@@ -547,7 +547,7 @@ export default {
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     },
@@ -638,7 +638,7 @@ export default {
       try {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-      } catch (e) {
+      } catch {
         return dateString;
       }
     },
@@ -705,7 +705,7 @@ export default {
       }
     },
 
-    editBequest(bequest) {
+    editBequest() {
     },
   },
 };

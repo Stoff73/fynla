@@ -784,6 +784,6 @@ class ModuleDataRequirementsService
         }
 
         // Married users need spouse_id to be set
-        return $user->spouse_id !== null;
+        return $user->liveSpouseId() !== null;
     }
 }

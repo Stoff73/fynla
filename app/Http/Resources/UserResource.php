@@ -41,8 +41,17 @@ class UserResource extends JsonResource
             // campaign re-entry (audit fix P3).
             'active_campaign' => $this->active_campaign,
             'journey_state' => $this->journey_state,
-            'has_spouse' => $this->has_spouse,
+            // `spouse_id` is the historical link and survives the partner
+            // deleting their account — everything is retained for regulatory
+            // purposes. `live_spouse_id` is the one to branch on: it is null the
+            // moment that account is gone, so a client cannot offer spouse views
+            // for someone who is no longer there (CSJ decision D3, 2026-08-19).
+            //
+            // `has_spouse` had no column and no accessor behind it and had been
+            // publishing null since it was added; it now answers its own name.
+            'has_spouse' => $this->liveSpouseId() !== null,
             'spouse_id' => $this->spouse_id,
+            'live_spouse_id' => $this->liveSpouseId(),
             'mfa_enabled' => $this->mfa_enabled,
             'is_student' => $this->is_student,
             'student_loan_plan' => $this->student_loan_plan,
@@ -99,8 +108,16 @@ class UserResource extends JsonResource
                     'is_preview_user' => $this->spouse->is_preview_user,
                 ] : null;
             }),
-            'role' => $this->when($this->relationLoaded('role'), $this->role),
-            'subscription' => $this->when($this->relationLoaded('subscription'), $this->subscription),
+            // Closures, not bare values: PHP evaluates when()'s arguments before
+            // when() is called, so `$this->role` ran on every request whether or
+            // not the relation was loaded — the condition only ever controlled
+            // whether the result was OUTPUT, never whether it was ACCESSED. In
+            // production that was a wasted query; everywhere else lazy loading is
+            // disabled, so it throws the moment this resource is built from a
+            // model that came out of a collection. The `spouse` key above always
+            // had this right.
+            'role' => $this->when($this->relationLoaded('role'), fn () => $this->role),
+            'subscription' => $this->when($this->relationLoaded('subscription'), fn () => $this->subscription),
         ];
     }
 

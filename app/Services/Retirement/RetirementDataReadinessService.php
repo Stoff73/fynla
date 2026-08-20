@@ -327,8 +327,8 @@ class RetirementDataReadinessService
      */
     private function checkSpousePensionData(User $user): array
     {
-        // Not applicable if no spouse linked
-        if (! $user->spouse_id) {
+        // Not applicable if no LIVE spouse linked
+        if (! $user->liveSpouseId()) {
             return [
                 'key' => 'spouse_pension_data',
                 'level' => 'info',

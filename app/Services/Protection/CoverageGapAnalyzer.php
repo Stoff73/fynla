@@ -320,7 +320,7 @@ class CoverageGapAnalyzer
         $spousePermissionDenied = false;
 
         // Check for spouse and track spouse income separately
-        if ($user->spouse_id && $user->marital_status === 'married') {
+        if ($user->liveSpouseId() && $user->marital_status === 'married') {
             // Check if spouse permission is accepted (either direction)
             if ($user->hasAcceptedSpousePermission()) {
                 // Permission granted - track spouse income (REDUCES protection need)

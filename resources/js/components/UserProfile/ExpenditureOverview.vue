@@ -37,7 +37,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import ExpenditureForm from './ExpenditureForm.vue';
 
@@ -60,7 +60,7 @@ export default {
     const profile = computed(() => store.getters['userProfile/profile']);
 
     const isMarried = computed(() => {
-      return user.value?.marital_status === 'married' && !!user.value?.spouse_id;
+      return user.value?.marital_status === 'married' && !!user.value?.live_spouse_id;
     });
 
     const spouseName = computed(() => {
@@ -71,11 +71,11 @@ export default {
     const fetchSpouseData = async () => {
       // Fetch spouse data for all users (including preview mode)
       // Preview users are real database users and use the same code paths
-      if (!user.value?.spouse_id) return;
+      if (!user.value?.live_spouse_id) return;
 
       try {
         // Fetch spouse user data via API
-        const response = await store.dispatch('auth/fetchUserById', user.value.spouse_id);
+        const response = await store.dispatch('auth/fetchUserById', user.value.live_spouse_id);
         spouse.value = response || {};
       } catch (err) {
         logger.error('Failed to fetch spouse data:', err);
@@ -94,9 +94,9 @@ export default {
           await store.dispatch('userProfile/updateExpenditure', formData.userData);
 
           // Save spouse data
-          if (user.value?.spouse_id) {
+          if (user.value?.live_spouse_id) {
             await store.dispatch('userProfile/updateSpouseExpenditure', {
-              spouseId: user.value.spouse_id,
+              spouseId: user.value.live_spouse_id,
               expenditureData: formData.spouseData,
             });
           }

@@ -443,8 +443,46 @@ class User extends Authenticatable
      */
     public function liveSpouseId(): ?int
     {
-        return $this->spouse?->id;
+        return $this->liveSpouse()?->id;
     }
+
+    /**
+     * The spouse's account while it is live, or null once it is deleted.
+     *
+     * Resolved WITHOUT lazy loading — `Model::preventLazyLoading()` is on, so
+     * reaching for `$this->spouse` on a model loaded as part of a collection
+     * throws. Uses the eager-loaded relation when there is one, queries
+     * explicitly when there is not, and caches the result so repeated calls in
+     * a request cost one query rather than one each.
+     */
+    public function liveSpouse(): ?self
+    {
+        if ($this->spouse_id === null) {
+            return null;
+        }
+
+        if ($this->relationLoaded('spouse')) {
+            return $this->getRelation('spouse');
+        }
+
+        if (! $this->liveSpouseResolved) {
+            $this->liveSpouseCache = $this->spouse()->first();
+            $this->liveSpouseResolved = true;
+        }
+
+        return $this->liveSpouseCache;
+    }
+
+    /**
+     * Cached deliberately OUTSIDE the relation registry. Calling setRelation()
+     * here would flip relationLoaded('spouse') to true, and UserResource builds
+     * `has_spouse` before its `spouse` block — so merely asking whether the
+     * spouse is live would have started including their id, name and email in
+     * every payload that previously omitted them.
+     */
+    private ?self $liveSpouseCache = null;
+
+    private bool $liveSpouseResolved = false;
 
     /**
      * THE single authorization rule for attaching a joint_owner_id (Rule 20):
@@ -743,26 +781,31 @@ class User extends Authenticatable
      */
     public function hasAcceptedSpousePermission(): bool
     {
-        // No spouse linked
-        if (! $this->spouse_id) {
+        // No LIVE spouse — no sharing. The raw spouse_id survives the partner
+        // deleting their account, deliberately: everything is retained for
+        // regulatory purposes. Their `accepted` permission row is retained with
+        // it, and the legacy fallback below used to find that row and keep
+        // sharing switched on for an account that no longer exists. Measured on
+        // csjones: three survivors, all returning true (CSJ decision D1/D2,
+        // 2026-08-19 — retain the rows, ignore them at read time).
+        $spouse = $this->liveSpouse();
+        if ($spouse === null) {
             return false;
         }
 
         // If both users are married and linked, enable data sharing automatically
-        // Use existing relationship to avoid N+1 queries when eager-loaded
-        if ($this->marital_status === 'married') {
-            $spouse = $this->relationLoaded('spouse') ? $this->spouse : $this->spouse()->first();
-            if ($spouse && $spouse->marital_status === 'married' && $spouse->spouse_id === $this->id) {
-                return true;
-            }
+        if ($this->marital_status === 'married'
+            && $spouse->marital_status === 'married'
+            && $spouse->spouse_id === $this->id) {
+            return true;
         }
 
         // Fallback: Check for explicit permission record (legacy/optional)
-        $permission = SpousePermission::where(function ($query) {
+        $permission = SpousePermission::where(function ($query) use ($spouse) {
             $query->where('user_id', $this->id)
-                ->where('spouse_id', $this->spouse_id);
-        })->orWhere(function ($query) {
-            $query->where('user_id', $this->spouse_id)
+                ->where('spouse_id', $spouse->id);
+        })->orWhere(function ($query) use ($spouse) {
+            $query->where('user_id', $spouse->id)
                 ->where('spouse_id', $this->id);
         })->where('status', 'accepted')->first();
 

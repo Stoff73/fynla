@@ -381,8 +381,8 @@ class EstatePlanService extends BasePlanService
         $profile = $data['profile'] ?? [];
 
         // Determine spouse and data sharing status
-        $hasLinkedSpouse = $user->spouse_id !== null;
-        $spouse = $hasLinkedSpouse ? User::find($user->spouse_id) : null;
+        $hasLinkedSpouse = $user->liveSpouseId() !== null;
+        $spouse = $user->liveSpouse();
         $dataSharingEnabled = $hasLinkedSpouse && $user->hasAcceptedSpousePermission();
 
         // Gather assets for formatting service (same as IHTController)
@@ -544,8 +544,10 @@ class EstatePlanService extends BasePlanService
 
         // Spouse
         $spouseName = null;
-        if (in_array($user->marital_status, ['married', 'civil_partnership']) && $user->spouse) {
-            $spouse = $user->spouse;
+        $spouse = in_array($user->marital_status, ['married', 'civil_partnership'])
+            ? $user->liveSpouse()
+            : null;
+        if ($spouse) {
             $spouseName = trim(($spouse->first_name ?? '').' '.($spouse->surname ?? '')) ?: $spouse->name;
         }
 
@@ -667,11 +669,11 @@ class EstatePlanService extends BasePlanService
     {
         $profile = $data['profile'] ?? [];
 
-        if (! ($profile['has_spouse'] ?? false) || ! $user->spouse) {
+        $spouse = $user->liveSpouse();
+        if (! ($profile['has_spouse'] ?? false) || ! $spouse) {
             return null;
         }
 
-        $spouse = $user->spouse;
         $ihtCalc = $data['iht_calculation'] ?? [];
 
         // Primary user figures from analysis

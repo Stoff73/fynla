@@ -444,7 +444,7 @@ class UserContextBuilder
             return null;
         }
 
-        if (! $user->spouse_id) {
+        if (! $user->liveSpouseId()) {
             return null;
         }
 

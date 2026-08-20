@@ -524,7 +524,7 @@ class MilestoneDetectionService
             ];
         }
 
-        if ($user->spouse_id && ! $has('household')) {
+        if ($user->liveSpouseId() && ! $has('household')) {
             $upcoming[] = [
                 'key' => 'household:0:1',
                 'group' => 'Journey',

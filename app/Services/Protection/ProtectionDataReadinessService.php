@@ -423,7 +423,7 @@ class ProtectionDataReadinessService
             return true;
         }
 
-        if (! $user->spouse_id) {
+        if (! $user->liveSpouseId()) {
             return false;
         }
 

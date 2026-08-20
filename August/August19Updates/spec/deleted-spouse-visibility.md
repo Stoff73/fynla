@@ -177,27 +177,28 @@ app/Http/Controllers/Api/Estate/IHTController.php:50          (feeds :52, see §
 
 ---
 
-## 5. Decisions needed from CSJ before implementation
+## 5. Decisions — all settled by CSJ, 2026-08-19
 
-- **D1 — The sharing gate.** Should `hasAcceptedSpousePermission()` require a
-  live spouse, so a retained `accepted` permission row can no longer keep
-  sharing alive? *Recommendation: yes.* It is one edit and it closes ten of the
-  thirteen consumers.
-- **D2 — `spouse_permissions` rows.** Leave them in place (retention) and ignore
-  them at read time, or mark them void at deletion? *Recommendation: leave and
-  ignore* — consistent with §1, and voiding is a write at delete time.
-- **D3 — What clients are told.** Stop publishing `spouse_id` in `UserResource`,
-  publish a live-spouse field alongside it, or leave the payload and fix the 19
-  frontend branches? This is the only item with a frontend cost. `/m` is
-  unaffected either way.
-- **D4 — Planning output.** Should the bucket-F branches switch to
-  `liveSpouseId()`? This changes recommendation output for a survivor: married-
-  couple tax planning, protection gap analysis and estate/intestacy would stop
-  treating the deleted partner as present. Probably right, but it is a product
-  call, not a mechanical one — and note `marital_status` stays `married`, which
-  may be the truth of the person's life regardless of the account.
-- **D5 — Write access.** Block a survivor from editing the deleted partner's
-  retained profile (§3.3)? *Recommendation: yes*, on retention-integrity grounds.
+- **D1 — The sharing gate: require a live spouse.** `hasAcceptedSpousePermission()`
+  returns `false` once the partner's account is deleted, regardless of a retained
+  `accepted` permission row. Follows directly from the rule in §1 — a retained
+  row keeping sharing alive contradicts "can log in, but not see the other
+  spouse's information". Closes ten of the thirteen consumers.
+- **D2 — `spouse_permissions`: retain, ignore at read time.** The rows stay
+  untouched for the regulatory record; the gate simply requires a live spouse
+  before consulting them. No write at delete time.
+- **D3 — Clients get a live-spouse field, `spouse_id` stays.** `UserResource`
+  publishes both; the 19 `resources/js` branches move onto the live field.
+  Nothing breaks for a consumer that still needs the historical link. `/m` reads
+  neither and needs no change.
+- **D4 — Planning switches to the live spouse.** The bucket-F branches use
+  `liveSpouseId()`, so a deleted partner stops driving married-couple tax,
+  protection gap, retirement, estate and intestacy output. A survivor is planned
+  as a single person. Note `marital_status` stays `married` and is not touched —
+  that may still be the truth of their life.
+- **D5 — Write access is blocked.** A survivor can no longer edit the deleted
+  partner's retained profile (§3.3). Retention integrity: a retained record
+  should not be mutable by someone who can no longer see it.
 
 ---
 
