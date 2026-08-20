@@ -153,6 +153,46 @@ it('does not start publishing the spouse block just by asking whether they are l
         ->and($payload)->not->toHaveKey('spouse');
 });
 
+// ─── Lazy-load traps (CSJ, 2026-08-20) ───────────────────────────────────────
+
+/**
+ * Model::preventLazyLoading(! app()->isProduction()) makes a lazy load a wasted
+ * query in production and a thrown LazyLoadingViolationException everywhere
+ * else — but ONLY for a model that came out of a collection of MORE THAN ONE
+ * row. Measured, not assumed:
+ *
+ *   find()                    → no throw
+ *   first()                   → no throw
+ *   get()->first(), 1 row     → no throw
+ *   get()->first(), 2+ rows   → THROWS
+ *
+ * That is why both traps sat unnoticed, and why the two guards below create a
+ * second user they never use. Without it they pass against the broken code.
+ */
+it('builds the user payload from a collection without lazy loading', function (): void {
+    User::factory()->count(2)->create();
+
+    $users = User::query()->get();
+
+    foreach ($users as $user) {
+        $payload = (new UserResource($user))->resolve(request());
+        expect($payload)->toHaveKey('has_spouse')
+            // Not loaded, so not published — and, now, not touched either.
+            ->and($payload)->not->toHaveKey('role')
+            ->and($payload)->not->toHaveKey('subscription');
+    }
+});
+
+it('reads the spouse from a collection-loaded user without lazy loading', function (): void {
+    [$user] = linkedCouple();
+    User::factory()->create(); // the collection must hold more than one row
+
+    $fromCollection = User::query()->get()->firstWhere('id', $user->id);
+
+    expect($fromCollection->liveSpouse()?->id)->toBe($user->spouse_id)
+        ->and($fromCollection->hasAcceptedSpousePermission())->toBeTrue();
+});
+
 // ─── Planning stops treating them as a couple (D4) ───────────────────────────
 
 it('stops planning the survivor as one of a couple', function (): void {

@@ -108,8 +108,16 @@ class UserResource extends JsonResource
                     'is_preview_user' => $this->spouse->is_preview_user,
                 ] : null;
             }),
-            'role' => $this->when($this->relationLoaded('role'), $this->role),
-            'subscription' => $this->when($this->relationLoaded('subscription'), $this->subscription),
+            // Closures, not bare values: PHP evaluates when()'s arguments before
+            // when() is called, so `$this->role` ran on every request whether or
+            // not the relation was loaded — the condition only ever controlled
+            // whether the result was OUTPUT, never whether it was ACCESSED. In
+            // production that was a wasted query; everywhere else lazy loading is
+            // disabled, so it throws the moment this resource is built from a
+            // model that came out of a collection. The `spouse` key above always
+            // had this right.
+            'role' => $this->when($this->relationLoaded('role'), fn () => $this->role),
+            'subscription' => $this->when($this->relationLoaded('subscription'), fn () => $this->subscription),
         ];
     }
 
