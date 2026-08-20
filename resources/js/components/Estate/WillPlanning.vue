@@ -354,7 +354,7 @@
           <h3 class="text-lg font-semibold text-horizon-500">Specific Bequests</h3>
           <button
             v-preview-disabled="'add'"
-            @click="showBequestModal = true"
+            @click="openCreateBequest"
             class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 text-sm"
           >
             Add Bequest
@@ -418,6 +418,18 @@
       </div>
     </div>
 
+    <!-- Bequest Form Modal -->
+    <div v-if="showBequestModal" class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <BequestForm
+          :bequest="bequestBeingEdited"
+          :saving="savingBequest"
+          @save="handleBequestSave"
+          @cancel="closeBequestModal"
+        />
+      </div>
+    </div>
+
     <!-- Success Message -->
     <div v-if="successMessage" class="fixed top-4 right-4 bg-spring-50 border border-spring-200 rounded-lg p-4 shadow-lg z-50">
       <p class="text-sm text-spring-800">{{ successMessage }}</p>
@@ -434,6 +446,7 @@
 import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import IntestacyRules from './IntestacyRules.vue';
+import BequestForm from './BequestForm.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
@@ -446,6 +459,7 @@ export default {
 
   components: {
     IntestacyRules,
+    BequestForm,
   },
 
   props: {
@@ -474,6 +488,8 @@ export default {
       originalForm: null,
       bequests: [],
       showBequestModal: false,
+      bequestBeingEdited: null,
+      savingBequest: false,
       successMessage: '',
       errorMessage: '',
       netEstateValue: 0,
@@ -705,7 +721,51 @@ export default {
       }
     },
 
-    editBequest() {
+    openCreateBequest() {
+      this.bequestBeingEdited = null;
+      this.showBequestModal = true;
+    },
+
+    editBequest(bequest) {
+      this.bequestBeingEdited = bequest;
+      this.showBequestModal = true;
+    },
+
+    closeBequestModal() {
+      this.showBequestModal = false;
+      this.bequestBeingEdited = null;
+    },
+
+    async handleBequestSave(formData) {
+      if (this.isPreviewMode) {
+        return;
+      }
+
+      const editing = this.bequestBeingEdited;
+      this.savingBequest = true;
+
+      try {
+        if (editing) {
+          await api.put(`/estate/bequests/${editing.id}`, formData);
+        } else {
+          await api.post('/estate/bequests', formData);
+        }
+
+        this.successMessage = editing ? 'Bequest updated successfully' : 'Bequest added successfully';
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => this.successMessage = '', 3000);
+
+        this.closeBequestModal();
+        await this.loadBequests();
+      } catch (error) {
+        // Rule 3: the modal stays open on failure so the entry is not lost.
+        logger.error('Failed to save bequest:', error);
+        this.errorMessage = editing ? 'Failed to update bequest' : 'Failed to add bequest';
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => this.errorMessage = '', 3000);
+      } finally {
+        this.savingBequest = false;
+      }
     },
   },
 };
