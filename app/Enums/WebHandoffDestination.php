@@ -11,6 +11,7 @@ enum WebHandoffDestination: string
     case SETTINGS = 'settings';
     case PRIVACY = 'privacy';
     case NOTIFICATIONS = 'notifications';
+    case ESTATE_WILL = 'estate_will';
 
     public function path(): string
     {
@@ -20,6 +21,7 @@ enum WebHandoffDestination: string
             self::SETTINGS => '/settings',
             self::PRIVACY => '/settings/privacy',
             self::NOTIFICATIONS => '/settings/notifications',
+            self::ESTATE_WILL => '/estate/will-builder',
         };
     }
 }
