@@ -73,10 +73,19 @@ function captureNativeSessionError(callable $operation): NativeSessionException
 
 function cleanupCommittedNativeFixture(int $userId): void
 {
+    // Everything the committing tests wrote has to go by hand — the session family
+    // first, because User soft-deletes and would otherwise leave its children orphaned
+    // and visible to the rest of the run.
+    NativeRefreshToken::query()->whereIn(
+        'native_device_session_id',
+        NativeDeviceSession::query()->where('user_id', $userId)->select('id'),
+    )->delete();
+    NativeDeviceSession::query()->where('user_id', $userId)->delete();
+
     $user = User::query()->find($userId);
     if ($user !== null) {
         $user->tokens()->delete();
-        $user->delete();
+        $user->forceDelete();
     }
 
     TaxConfiguration::query()->where('tax_year', '2019/20')->delete();
@@ -607,4 +616,17 @@ it('avoids deadlock when replay races the current refresh credential', function 
         cleanupCommittedNativeFixture($userId);
         DB::beginTransaction();
     }
+});
+
+// Runs last on purpose. The three tests above commit past RefreshDatabase's
+// transaction so their forked workers can see the fixture, which turns teardown's
+// rollback into a no-op — everything they wrote is theirs to clean up by hand. When
+// cleanupCommittedNativeFixture() misses something, the leftovers stay visible to
+// every later test in the run, which is how three NativeSessionApiTest assertions
+// came to fail only when run alongside others and pass 33/33 alone.
+it('leaves nothing behind once the forked-worker tests have committed', function (): void {
+    expect(User::withTrashed()->count())->toBe(0)
+        ->and(PersonalAccessToken::query()->count())->toBe(0)
+        ->and(NativeDeviceSession::query()->count())->toBe(0)
+        ->and(NativeRefreshToken::query()->count())->toBe(0);
 });

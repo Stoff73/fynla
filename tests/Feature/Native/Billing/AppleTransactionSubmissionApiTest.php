@@ -69,6 +69,12 @@ function appleSubmissionUser(string $accountToken): User
 
 function cleanupCommittedAppleSubmissionUser(int $userId): void
 {
+    // Sanctum tokens hang off a polymorphic column with no foreign key, so deleting
+    // the user does not take the native session's token with it.
+    PersonalAccessToken::query()
+        ->where('tokenable_type', User::class)
+        ->where('tokenable_id', $userId)
+        ->delete();
     User::withTrashed()->whereKey($userId)->forceDelete();
     TaxConfiguration::query()->where('tax_year', '2019/20')->delete();
 }
@@ -524,3 +530,14 @@ final class SubmissionAppleVerifierStub implements AppleSignedDataVerifier
         throw new AppleVerificationException('unsupported_operation');
     }
 }
+
+// Runs last on purpose — see the equivalent guard in NativeSessionServiceTest. The
+// concurrency test above commits past RefreshDatabase's transaction, so whatever
+// cleanupCommittedAppleSubmissionUser() misses stays visible to the rest of the run.
+it('leaves nothing behind once the forked-worker test has committed', function (): void {
+    expect(User::withTrashed()->count())->toBe(0)
+        ->and(PersonalAccessToken::query()->count())->toBe(0)
+        ->and(NativeDeviceSession::query()->count())->toBe(0)
+        ->and(AppleTransaction::query()->count())->toBe(0)
+        ->and(PremiumEntitlement::query()->count())->toBe(0);
+});
