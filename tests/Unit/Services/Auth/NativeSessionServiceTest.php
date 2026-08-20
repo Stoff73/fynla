@@ -625,8 +625,17 @@ it('avoids deadlock when replay races the current refresh credential', function 
 // every later test in the run, which is how three NativeSessionApiTest assertions
 // came to fail only when run alongside others and pass 33/33 alone.
 it('leaves nothing behind once the forked-worker tests have committed', function (): void {
-    expect(User::withTrashed()->count())->toBe(0)
-        ->and(PersonalAccessToken::query()->count())->toBe(0)
-        ->and(NativeDeviceSession::query()->count())->toBe(0)
-        ->and(NativeRefreshToken::query()->count())->toBe(0);
+    // Reported as identifiers rather than counts: when this fails during a full-suite
+    // run the survivor's identity is the whole diagnosis.
+    expect([
+        'users' => User::withTrashed()->pluck('email')->all(),
+        'tokens' => PersonalAccessToken::query()->pluck('name')->all(),
+        'native_sessions' => NativeDeviceSession::query()->pluck('id')->all(),
+        'refresh_tokens' => NativeRefreshToken::query()->pluck('id')->all(),
+    ])->toBe([
+        'users' => [],
+        'tokens' => [],
+        'native_sessions' => [],
+        'refresh_tokens' => [],
+    ]);
 });

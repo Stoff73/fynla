@@ -535,9 +535,19 @@ final class SubmissionAppleVerifierStub implements AppleSignedDataVerifier
 // concurrency test above commits past RefreshDatabase's transaction, so whatever
 // cleanupCommittedAppleSubmissionUser() misses stays visible to the rest of the run.
 it('leaves nothing behind once the forked-worker test has committed', function (): void {
-    expect(User::withTrashed()->count())->toBe(0)
-        ->and(PersonalAccessToken::query()->count())->toBe(0)
-        ->and(NativeDeviceSession::query()->count())->toBe(0)
-        ->and(AppleTransaction::query()->count())->toBe(0)
-        ->and(PremiumEntitlement::query()->count())->toBe(0);
+    // Reported as identifiers rather than counts: when this fails during a full-suite
+    // run the survivor's identity is the whole diagnosis.
+    expect([
+        'users' => User::withTrashed()->pluck('email')->all(),
+        'tokens' => PersonalAccessToken::query()->pluck('name')->all(),
+        'native_sessions' => NativeDeviceSession::query()->pluck('id')->all(),
+        'apple_transactions' => AppleTransaction::query()->pluck('id')->all(),
+        'entitlements' => PremiumEntitlement::query()->pluck('id')->all(),
+    ])->toBe([
+        'users' => [],
+        'tokens' => [],
+        'native_sessions' => [],
+        'apple_transactions' => [],
+        'entitlements' => [],
+    ]);
 });
