@@ -81,7 +81,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '../UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import ExpenditureForm from '../../UserProfile/ExpenditureForm.vue';
 
@@ -91,7 +90,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     ExpenditureForm,
   },
 
@@ -231,7 +229,7 @@ export default {
             initialData.value = stepData;
           }
         }
-      } catch (err) {
+      } catch {
         // No existing data, start with empty form
       }
 

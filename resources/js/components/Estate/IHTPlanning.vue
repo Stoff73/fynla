@@ -647,7 +647,6 @@ import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
 import IHTCalculationTable from './IHTCalculationTable.vue';
 import EstateLifeEventsImpact from './EstateLifeEventsImpact.vue';
 import LetterEstateWarnings from './LetterEstateWarnings.vue';
-import estateService from '../../services/estateService';
 import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -886,7 +885,6 @@ export default {
     immediatelyGiftableAmount() {
       // Calculate assets that can be gifted immediately (liquid assets)
       const netWorth = this.ihtData?.net_estate_value || 0;
-      const taxableEstate = this.ihtData?.taxable_estate || 0;
 
       // Estimate liquid assets as a percentage of net worth (simplified)
       // In a real scenario, this would come from the backend with actual liquid asset calculations
@@ -1155,7 +1153,6 @@ export default {
       if (!this.projection?.now) return null;
 
       const years = this.yearsToDeathMinus5;
-      const currentNetEstate = this.projection.now.net_estate || 0;
       const currentAssets = this.projection.now.assets || 0;
       const currentLiabilities = this.projection.now.liabilities || 0;
       const totalAllowance = (this.ihtData?.nrb_available || this.ihtNilRateBand) + (this.ihtData?.rnrb_available || 0);
@@ -1183,7 +1180,6 @@ export default {
       if (!this.projection?.now) return null;
 
       const years = this.yearsToDeathPlus5;
-      const currentNetEstate = this.projection.now.net_estate || 0;
       const currentAssets = this.projection.now.assets || 0;
       const currentLiabilities = this.projection.now.liabilities || 0;
       const totalAllowance = (this.ihtData?.nrb_available || this.ihtNilRateBand) + (this.ihtData?.rnrb_available || 0);
