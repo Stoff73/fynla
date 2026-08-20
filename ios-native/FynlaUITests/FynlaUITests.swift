@@ -1430,9 +1430,9 @@ final class FynlaUITests: XCTestCase {
     @MainActor
     private func verifySettingsBrowserLinks() {
         // Help and legal links intentionally open inside Fynla. Open and
-        // inspect each sheet to prove the URLs are actionable. Safari's
-        // remote Done control cannot be driven by XCTest on this Intel/iOS
-        // 18.6 simulator combination, so relaunch between destinations.
+        // inspect each sheet to prove the URLs are actionable. Relaunch between
+        // destinations rather than dismissing, because Safari's remote controls
+        // cannot be driven by XCTest on every simulator.
         for identifier in [
             "settings.link.help-and-support",
             "settings.link.privacy-policy",
@@ -1443,14 +1443,25 @@ final class FynlaUITests: XCTestCase {
             assertReachable(link, in: app)
             link.tap()
 
-            // SFSafariViewController is hosted by SafariViewService, so query
-            // its visible Done control from the service process rather than
-            // incorrectly treating it as a descendant of the Fynla process.
+            // SFSafariViewController is hosted by SafariViewService, so query it
+            // from the service process rather than incorrectly treating it as a
+            // descendant of the Fynla process. Match the dismiss control on both
+            // namings: it is exposed as "Close" here, and asserting on "Done"
+            // alone is what made this test fail against a working app.
             let safari = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
-            let done = safari.buttons.matching(
-                NSPredicate(format: "label == %@", "Done")
+            let dismiss = safari.buttons.matching(
+                NSPredicate(format: "identifier IN %@ OR label IN %@", ["Close", "Done"], ["Close", "Done"])
             ).firstMatch
-            XCTAssertTrue(done.waitForExistence(timeout: 5), "\(identifier) did not open Safari")
+            XCTAssertTrue(dismiss.waitForExistence(timeout: 10), "\(identifier) did not open Safari")
+
+            // Chrome alone would also appear for a blank sheet, so check the
+            // address bar carries a URL — that is what "actionable" means here.
+            let address = safari.buttons["URL"]
+            XCTAssertTrue(address.waitForExistence(timeout: 10), "\(identifier) opened Safari with no address bar")
+            XCTAssertFalse(
+                ((address.value as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                "\(identifier) opened Safari without loading a URL"
+            )
             app.terminate()
         }
     }

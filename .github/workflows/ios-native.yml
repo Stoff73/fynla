@@ -89,6 +89,19 @@ jobs:
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
           echo "destination=platform=iOS Simulator,id=$udid" >> "$GITHUB_OUTPUT"
 
+          # A simulator created fresh on a fresh runner has the hardware keyboard
+          # connected, so the software keyboard never appears. XCTest then types
+          # into a focused field and the keystrokes go nowhere, and the taps land
+          # on the docked Fyn bar at the bottom of the screen instead — which
+          # opens Fyn over the page and makes everything below it unhittable.
+          # That is the "Not hittable ... Keyboard Focused" failure, and it is why
+          # these tests pass on a developer machine, where the preference persists
+          # as off, and fail only here.
+          defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false
+          /usr/libexec/PlistBuddy \
+            -c "Add :DevicePreferences:${udid}:ConnectHardwareKeyboard bool false" \
+            ~/Library/Preferences/com.apple.iphonesimulator.plist 2>/dev/null || true
+
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
 
