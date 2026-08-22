@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Constants\TaxDefaults;
+use App\Http\Traits\ValidatesSharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,6 +18,8 @@ use Illuminate\Validation\Rule;
  */
 class UpdateInvestmentAccountRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -40,6 +43,17 @@ class UpdateInvestmentAccountRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      */
+    /**
+     * A stated ownership share that is not a shared split is refused rather
+     * than rewritten (W-0040).
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($v) {
+            $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
+        });
+    }
+
     public function rules(): array
     {
         return [
@@ -55,6 +69,9 @@ class UpdateInvestmentAccountRequest extends FormRequest
 
             // Platform fees
             'platform_fee_percent' => 'nullable|numeric|min:0',
+            // Same rule shape as StoreDCPensionRequest — the column and every
+            // display of it already existed, only the way to enter it did not (W-0008).
+            'advisor_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
             'platform_fee_amount' => 'nullable|numeric|min:0',
             'platform_fee_type' => ['nullable', Rule::in(['percentage', 'fixed'])],
             'platform_fee_frequency' => ['nullable', Rule::in(['monthly', 'quarterly', 'annually'])],

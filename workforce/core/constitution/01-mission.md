@@ -73,8 +73,8 @@ not be reintroduced by anything that finds its residue in the codebase.
 what `GET /api/preview/personas` returns, and therefore what a user actually sees.
 `PreviewUserSeeder::PERSONAS` (the `private const`, not the file) agrees with it.
 
-Everything else describes: `appMapping/personaData/`, `fynlaBrain/Personas/`,
-`Persona Data.md`, `CLAUDE.md`'s table.
+Everything else describes: `docs/archive/appMapping/personaData/`, `fynlaBrain/Personas/`,
+`docs/reference/Persona Data.md`, `CLAUDE.md`'s table.
 
 **Corrected 2026-08-13.** An earlier version of this section claimed seven personas
 including `widow`, and blamed `CLAUDE.md` for being stale. **`CLAUDE.md` was right.**
@@ -102,11 +102,11 @@ Unreachable, but it misleads anyone who greps.
 `AdvisorClientSeeder.php:62` · `PersonaSelector.vue` · `PersonaSelectionModal.vue` ·
 `PersonaIntroModal.vue` · `public/mockup-persona-modal.html`.
 
-**Docs:** `Persona Data.md:13` · `appMapping/personaData/widow.{md,pdf}` ·
-`appMapping/v083/05-FRONTEND-ARCHITECTURE.md:242` (*"Seven personas"* — the
-document that caused this error) · `appMapping/v07/05-FRONTEND-ARCHITECTURE.md:204`
+**Docs:** `docs/reference/Persona Data.md:13` · `docs/archive/appMapping/personaData/widow.{md,pdf}` ·
+`docs/archive/appMapping/v083/05-FRONTEND-ARCHITECTURE.md:242` (*"Seven personas"* — the
+document that caused this error) · `docs/archive/appMapping/v07/05-FRONTEND-ARCHITECTURE.md:204`
 (says "six", lists widow, omits student — doubly wrong) · several
-`appMapping/currentState/` files · vault `Personas/widow.md` and `Personas Index.md`.
+`docs/archive/appMapping/currentState/` files · vault `Personas/widow.md` and `Personas Index.md`.
 
 **Never touch:** `widowed` as a marital status, or "Scottish Widows" as a provider.
 Both are legitimate and unrelated — `OnboardingStateMachine.php`,

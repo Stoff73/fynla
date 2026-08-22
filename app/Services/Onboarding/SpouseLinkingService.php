@@ -50,6 +50,64 @@ final class SpouseLinkingService
     ) {}
 
     /**
+     * THE correspondence between a spouse's `family_members` row and their own
+     * `users` row (Rule 20).
+     *
+     * The two tables hold the same person under different column names, and the
+     * translation was written out by hand wherever it was needed. The edit path
+     * got it wrong: it synced `name`, which `users` does not have — `name` is an
+     * appended accessor derived from first_name/middle_name/surname
+     * (`User::getNameAttribute()`), and `isFillable('name')` is false, so the
+     * value was dropped by `fill()` without an error, a warning or a failed
+     * save. Correcting a spouse's name updated their card and left their own
+     * account, and with it every surface that reads the spouse off the user
+     * record — the profile payload, `/m`, native iOS, beneficiary dropdowns
+     * (W-0112).
+     *
+     * `last_name` → `surname` is the whole reason this needs a declared home:
+     * the one field whose name differs is the one a hand-written sync gets
+     * wrong, and getting it wrong fails silently.
+     *
+     * @var array<string, string> family_members column => users column
+     */
+    public const FAMILY_MEMBER_TO_USER_COLUMNS = [
+        'first_name' => 'first_name',
+        'middle_name' => 'middle_name',
+        'last_name' => 'surname',
+        'date_of_birth' => 'date_of_birth',
+        'gender' => 'gender',
+        'annual_income' => 'annual_employment_income',
+        'national_insurance_number' => 'national_insurance_number',
+    ];
+
+    /**
+     * Translate family-member-shaped fields into the columns the linked user
+     * actually has.
+     *
+     * Only keys PRESENT in $fields are translated, so a caller syncing one
+     * edited field never blanks the rest — and a key present with an explicit
+     * null does clear its column, because that is the user removing a value.
+     * Anything with no correspondence (relationship, is_dependent, notes,
+     * education_status, and the derived `name`) is dropped here rather than
+     * being offered to the user record at all.
+     *
+     * @param  array<string, mixed>  $fields
+     * @return array<string, mixed>
+     */
+    public function userAttributesFrom(array $fields): array
+    {
+        $attributes = [];
+
+        foreach (self::FAMILY_MEMBER_TO_USER_COLUMNS as $memberColumn => $userColumn) {
+            if (array_key_exists($memberColumn, $fields)) {
+                $attributes[$userColumn] = $fields[$memberColumn];
+            }
+        }
+
+        return $attributes;
+    }
+
+    /**
      * Link an existing spouse account or create a new one.
      *
      * @param  array<string, mixed>  $data  Required: first_name, email. Optional:
@@ -147,25 +205,13 @@ final class SpouseLinkingService
             throw new SpouseCollisionException('This email is already linked to another Fynla household.');
         }
 
-        // Already linked to current user — make sure the FamilyMember
-        // record exists on the current user side.
+        // Already linked to current user — make sure the FamilyMember record
+        // exists on the current user side AND actually carries the link. It
+        // previously returned whatever spouse row it found first, which on a
+        // household holding an unlinked row returned the orphan and reported
+        // "already linked" over the top of it (W-0051).
         if ($spouseUser->spouse_id === $currentUser->id) {
-            $existing = FamilyMember::where('user_id', $currentUser->id)
-                ->where('relationship', 'spouse')
-                ->first();
-
-            if ($existing) {
-                return [
-                    'family_member' => $existing,
-                    'spouse_user' => $spouseUser,
-                    'created_new_user' => false,
-                    'already_linked' => true,
-                    'email_sent' => false,
-                    'temporary_password' => null,
-                ];
-            }
-
-            $familyMember = $this->createFamilyMemberRow($currentUser, $spouseUser->id, $data);
+            $familyMember = $this->upsertFamilyMemberRow($currentUser, $spouseUser->id, $data);
 
             return [
                 'family_member' => $familyMember,
@@ -206,7 +252,7 @@ final class SpouseLinkingService
             $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $lockedSpouse->id);
             $this->createSpousePermissions($currentUser->id, $lockedSpouse->id);
 
-            $familyMember = $this->createFamilyMemberRow($currentUser, $lockedSpouse->id, $data);
+            $familyMember = $this->upsertFamilyMemberRow($currentUser, $lockedSpouse->id, $data);
             $this->createReciprocalFamilyMember($lockedSpouse, $currentUser);
 
             return $familyMember;
@@ -250,23 +296,29 @@ final class SpouseLinkingService
         ) {
             $firstName = (string) ($data['first_name'] ?? '');
             $lastName = (string) ($data['last_name'] ?? '');
-            $fullName = trim($firstName.' '.$lastName);
 
             $spouseUser = User::create([
+                // The person's own details come from the ONE declared
+                // correspondence, so a field the family-member row carries
+                // cannot quietly fail to reach their account. `middle_name` did
+                // exactly that while this list was written out by hand — the
+                // card had it, the account did not (W-0112). No `name` key
+                // either: `users` has no such column and User::isFillable('name')
+                // is false, so passing one was discarded in silence.
+                ...$this->userAttributesFrom($data),
+                // Creation-only shaping the map does not carry: empty strings
+                // rather than nulls for the name parts, and an explicit zero
+                // income rather than the column default.
                 'first_name' => $firstName,
                 'surname' => $lastName,
-                'name' => $fullName !== '' ? $fullName : null,
+                'annual_employment_income' => $data['annual_income'] ?? 0,
                 'email' => $spouseEmail,
                 'password' => Hash::make($temporaryPassword),
                 'must_change_password' => true,
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
                 'marital_status' => $maritalStatus,
                 'spouse_id' => $currentUser->id,
                 'household_id' => $currentUser->household_id,
                 'is_primary_account' => false,
-                'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                'annual_employment_income' => $data['annual_income'] ?? 0,
                 'address_line_1' => $currentUser->address_line_1,
                 'address_line_2' => $currentUser->address_line_2,
                 'city' => $currentUser->city,
@@ -287,7 +339,7 @@ final class SpouseLinkingService
             $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
             $this->createSpousePermissions($currentUser->id, $spouseUser->id);
 
-            $familyMember = $this->createFamilyMemberRow($currentUser, $spouseUser->id, $data);
+            $familyMember = $this->upsertFamilyMemberRow($currentUser, $spouseUser->id, $data);
             $this->createReciprocalFamilyMember($spouseUser, $currentUser);
 
             return [$familyMember, $spouseUser];
@@ -306,17 +358,27 @@ final class SpouseLinkingService
     }
 
     /**
+     * Write the current user's spouse row, ADOPTING an existing unlinked one
+     * rather than adding a second (W-0051).
+     *
+     * A household can only have one spouse. Before this, any row already sitting
+     * on the account — the one Fyn's free-text capture writes, or one carried
+     * over from an older build — was ignored and a second row inserted, so
+     * linking a spouse the product's own happy way left two cards for one
+     * person and no way to remove either. Adoption is also what makes the whole
+     * flow idempotent: re-linking the same spouse updates the row it already
+     * wrote instead of stacking another.
+     *
      * @param  array<string, mixed>  $data
      */
-    private function createFamilyMemberRow(User $currentUser, int $linkedUserId, array $data): FamilyMember
+    private function upsertFamilyMemberRow(User $currentUser, int $linkedUserId, array $data): FamilyMember
     {
         $firstName = (string) ($data['first_name'] ?? '');
         $middleName = (string) ($data['middle_name'] ?? '');
         $lastName = (string) ($data['last_name'] ?? '');
         $fullName = trim(implode(' ', array_filter([$firstName, $middleName, $lastName])));
 
-        return FamilyMember::create([
-            'user_id' => $currentUser->id,
+        $attributes = [
             'household_id' => $currentUser->household_id,
             'linked_user_id' => $linkedUserId,
             'relationship' => 'spouse',
@@ -329,28 +391,85 @@ final class SpouseLinkingService
             'is_dependent' => false,
             'name' => $fullName !== '' ? $fullName : null,
             'notes' => $data['notes'] ?? null,
-        ]);
+        ];
+
+        $existing = $this->adoptableSpouseRow($currentUser->id, $linkedUserId);
+
+        if ($existing !== null) {
+            // A field the caller did not supply must not wipe one the row
+            // already holds — adoption enriches the record, it does not reset it.
+            $existing->fill(array_filter(
+                $attributes,
+                static fn ($value) => $value !== null && $value !== '',
+            ));
+            $existing->linked_user_id = $linkedUserId;
+            $existing->save();
+
+            return $existing;
+        }
+
+        return FamilyMember::create(['user_id' => $currentUser->id] + $attributes);
     }
 
     private function createReciprocalFamilyMember(User $newSpouseUser, User $currentUser): FamilyMember
     {
-        $nameParts = array_values(array_filter(explode(' ', (string) $currentUser->name)));
-        $currentFirst = $nameParts[0] ?? '';
-        $currentLast = $nameParts[count($nameParts) - 1] ?? '';
-
-        return FamilyMember::create([
-            'user_id' => $newSpouseUser->id,
+        // Read the user's own name columns rather than splitting the display
+        // name back apart. `name` is derived FROM these three
+        // (User::getNameAttribute), so exploding it on spaces threw away the
+        // middle name and mis-split any double-barrelled or multi-word surname
+        // — for the one record the spouse sees of their partner (W-0112).
+        $attributes = [
             'household_id' => $newSpouseUser->household_id,
             'linked_user_id' => $currentUser->id,
             'relationship' => 'spouse',
-            'first_name' => $currentFirst !== '' ? $currentFirst : null,
-            'last_name' => $currentLast !== '' && $currentLast !== $currentFirst ? $currentLast : null,
+            'first_name' => $currentUser->first_name ?: null,
+            'middle_name' => $currentUser->middle_name ?: null,
+            'last_name' => $currentUser->surname ?: null,
             'date_of_birth' => $currentUser->date_of_birth,
             'gender' => $currentUser->gender,
             'annual_income' => $currentUser->annual_employment_income ?? 0,
             'is_dependent' => false,
             'name' => $currentUser->name,
-        ]);
+        ];
+
+        // The far side needs the same adoption rule: the spouse's own account
+        // can already hold an unlinked row for their partner.
+        $existing = $this->adoptableSpouseRow($newSpouseUser->id, $currentUser->id);
+
+        if ($existing !== null) {
+            $existing->fill(array_filter(
+                $attributes,
+                static fn ($value) => $value !== null && $value !== '',
+            ));
+            $existing->linked_user_id = $currentUser->id;
+            $existing->save();
+
+            return $existing;
+        }
+
+        return FamilyMember::create(['user_id' => $newSpouseUser->id] + $attributes);
+    }
+
+    /**
+     * The spouse row on `$userId` that this link should take over: one already
+     * pointing at `$linkedUserId` (re-link, idempotent) or one pointing at
+     * nobody (the orphan). A row pointing at a DIFFERENT account is somebody
+     * else's link and is never touched — the caller has already refused that
+     * case with a collision.
+     */
+    private function adoptableSpouseRow(int $userId, int $linkedUserId): ?FamilyMember
+    {
+        return FamilyMember::where('user_id', $userId)
+            ->where('relationship', 'spouse')
+            ->where(function ($query) use ($linkedUserId) {
+                $query->whereNull('linked_user_id')
+                    ->orWhere('linked_user_id', $linkedUserId);
+            })
+            // Non-null first: where a household already holds the real linked
+            // row, that is the one to keep current. The orphan beside it is the
+            // repair command's job, not something to silently overwrite here.
+            ->orderByRaw('linked_user_id IS NULL')
+            ->first();
     }
 
     private function createSpousePermissions(int $userId, int $spouseId): void

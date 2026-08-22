@@ -4,11 +4,59 @@ declare(strict_types=1);
 
 namespace App\Services\Stores\Normalisers;
 
+use App\Constants\PensionEnums;
+
 class PensionNormaliser
 {
     private const ALLOWED_DB_SCHEME_TYPES = ['final_salary', 'career_average', 'public_sector'];
 
     private const ALLOWED_DC_PENSION_TYPES = ['occupational', 'sipp', 'personal', 'stakeholder'];
+
+    /**
+     * Map whatever a caller calls a Defined Benefit scheme's status onto the one
+     * stored vocabulary, `PensionEnums::SCHEME_STATUSES` (W-0032).
+     *
+     * Three writers reach `db_pensions` and they do not agree on presentation. The
+     * web forms send the stored values (their title-case text is only a label).
+     * Fyn's `create_pension` schema declares a title-case enum — "Active",
+     * "Deferred", "In Payment" — and re-recording that schema to match would mean
+     * re-recording its golden master, which is not worth doing for a mapping this
+     * small. A document import can produce whatever the extractor read off a
+     * statement. Normalising here — the layer every one of those paths already
+     * passes through — is why there is one vocabulary rather than three.
+     *
+     * An unrecognised value returns null rather than a guess. Null is meaningful:
+     * `DBPension::isInPayment()` falls back to age against the Normal Retirement
+     * Age, which is the correct behaviour for a status nobody has stated.
+     */
+    /**
+     * Shape a partial Defined Benefit field set — a correction rather than a whole
+     * record — onto the stored vocabulary.
+     *
+     * `update_record` hands PensionStore a bare field list, so it does not pass
+     * through any of the `from*` methods. Without this it would be the one write
+     * path with a different idea of what "In Payment" means, which is the disease
+     * Rule 20 exists to stop.
+     */
+    public function normaliseDbFields(array $fields): array
+    {
+        if (array_key_exists('scheme_status', $fields)) {
+            $fields['scheme_status'] = $this->normaliseSchemeStatus($fields['scheme_status']);
+        }
+
+        return $fields;
+    }
+
+    private function normaliseSchemeStatus(mixed $raw): ?string
+    {
+        if (! is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+
+        $candidate = str_replace([' ', '-'], '_', strtolower(trim($raw)));
+
+        return in_array($candidate, PensionEnums::SCHEME_STATUSES, true) ? $candidate : null;
+    }
 
     public function fromFormDc(array $request): array
     {
@@ -28,6 +76,12 @@ class PensionNormaliser
         $data['scheme_type'] = in_array($rawSchemeType, self::ALLOWED_DB_SCHEME_TYPES, true)
             ? $rawSchemeType
             : 'final_salary';
+
+        // Only when the key was sent: an edit that omits it must leave the stored
+        // status alone rather than clearing it to null.
+        if (array_key_exists('scheme_status', $data)) {
+            $data['scheme_status'] = $this->normaliseSchemeStatus($data['scheme_status']);
+        }
 
         return $data;
     }
@@ -68,6 +122,12 @@ class PensionNormaliser
                 if (isset($toolParams[$f]) && $toolParams[$f] !== '') {
                     $canonical[$f] = $toolParams[$f];
                 }
+            }
+            // Fyn's schema has always asked for this ("Active" / "Deferred" / "In
+            // Payment") and the answer was discarded until W-0032 gave it a column.
+            $schemeStatus = $this->normaliseSchemeStatus($toolParams['scheme_status'] ?? null);
+            if ($schemeStatus !== null) {
+                $canonical['scheme_status'] = $schemeStatus;
             }
 
             return $canonical;
@@ -186,6 +246,11 @@ class PensionNormaliser
             if (array_key_exists($optional, $extraction)) {
                 $canonical[$optional] = $extraction[$optional];
             }
+        }
+
+        $schemeStatus = $this->normaliseSchemeStatus($extraction['scheme_status'] ?? null);
+        if ($schemeStatus !== null) {
+            $canonical['scheme_status'] = $schemeStatus;
         }
 
         return $canonical;

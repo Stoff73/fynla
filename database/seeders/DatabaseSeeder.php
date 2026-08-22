@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
  * Main Database Seeder
  *
  * This seeder orchestrates all other seeders in the correct order.
- * See /seedMigration.md for full documentation on seeding procedures.
+ * See docs/archive/seedMigration.md for full documentation on seeding procedures.
  *
  * Seeder Categories:
  * 1. Required Data (MUST RUN) - Tax config, life tables, product info, admin, preview users

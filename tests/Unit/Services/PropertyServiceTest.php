@@ -22,7 +22,7 @@ class PropertyServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->propertyService = new PropertyService;
+        $this->propertyService = app(PropertyService::class);
         $this->user = User::factory()->create();
     }
 

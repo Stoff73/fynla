@@ -78,6 +78,14 @@
           <span class="m-detail-key">Held in trust</span>
           <span class="m-detail-value">Yes</span>
         </div>
+        <div v-if="policy.joint_life" class="m-detail-row">
+          <span class="m-detail-key">Joint life</span>
+          <span class="m-detail-value">{{ policy.joint_life_with ? `Yes, with ${policy.joint_life_with}` : 'Yes' }}</span>
+        </div>
+        <div v-if="policy.is_own_policy === false" class="m-detail-row">
+          <span class="m-detail-key">Recorded by</span>
+          <span class="m-detail-value">{{ policy.joint_life_with || 'Your spouse' }}</span>
+        </div>
       </div>
 
       <!-- Premium -->
@@ -195,6 +203,10 @@ export default {
         sicknessIllness: 'sickness_illness_policy',
       }[this.policyType];
       if (!resourceType || !Number.isInteger(this.policyId) || this.policyId < 1) return null;
+      // A joint-life policy reaching this account through the spouse who recorded
+      // it is read-only here — the write path is scoped to that account, so an edit
+      // request would be refused. Do not offer one (W-0186).
+      if (this.policy?.is_own_policy === false) return null;
       return buildContextualConversationRequest({
         action: 'edit',
         resourceType,

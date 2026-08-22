@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Traits\ValidatesSharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdatePropertyRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -127,6 +130,12 @@ class UpdatePropertyRequest extends FormRequest
         $validator->sometimes('postcode', 'regex:/^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i', function ($input) {
             // Only validate UK postcode format when country is UK or not specified
             return $input->country === 'United Kingdom' || $input->country === null;
+        });
+
+        // A stated ownership share that is not a shared split is refused rather
+        // than rewritten (W-0040).
+        $validator->after(function ($v) {
+            $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
         });
     }
 }

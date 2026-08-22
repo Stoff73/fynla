@@ -14,6 +14,7 @@ use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\LifeCoverCalculator;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 use App\Services\Estate\WillAnalysisService;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -80,7 +81,8 @@ beforeEach(function () {
         $this->taxConfig,
         $this->personaliser,
         $this->readinessService,
-        $this->lifeCoverCalculator
+        $this->lifeCoverCalculator,
+        app(LifeCoverReach::class)
     );
 
     Cache::flush();

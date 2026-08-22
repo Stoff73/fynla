@@ -24,7 +24,7 @@ This statement is the source of truth for every doc, spec, plan, PRD, and task l
 >
 > No `FynPersonaOrchestrator`, no invoker, no registry, no `DataCapturePromptBuilder`. `HandoffContract` constants and `CaptureContext` VO are kept. **`AdvicePromptBuilder` and `OnboardingPromptBuilder` are retained permanently** (not deleted): they remain in-tree behind `FYN_PROMPT_ARCH=legacy` so the legacy and unified prompt architectures stay switchable indefinitely for real A/B comparison (CSJ directive, 2026-05-18). The single-prompt guarantee above describes the `unified` path; parity (`unified` ≡ `legacy`) is the contract — not deletion of the legacy builders.
 
-A single `prompts/fyn-system-prompt.md` documents the `unified` `FynSystemPrompt::text()`. The two per-state artefacts under `prompts/` (`advice-system-prompt.md`, `onboarding-system-prompt.md`) are **retained as the legacy reference**, documenting the `FYN_PROMPT_ARCH=legacy` builders that remain in-tree.
+A single `docs/reference/prompts/fyn-system-prompt.md` documents the `unified` `FynSystemPrompt::text()`. The two per-state artefacts under `docs/reference/prompts/` (`advice-system-prompt.md`, `onboarding-system-prompt.md`) are **retained as the legacy reference**, documenting the `FYN_PROMPT_ARCH=legacy` builders that remain in-tree.
 
 ## What this means for evaluation
 

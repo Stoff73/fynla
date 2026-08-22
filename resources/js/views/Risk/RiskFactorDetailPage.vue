@@ -170,7 +170,7 @@
                     class="flex justify-between py-2"
                   >
                     <span class="text-sm text-neutral-500">{{ dep.name }}</span>
-                    <span class="text-sm text-neutral-500">{{ formatRelationship(dep.relationship) }}</span>
+                    <span class="text-sm text-neutral-500">{{ familyMemberRelationshipTitle(dep) }}</span>
                   </div>
                 </template>
                 <div class="flex justify-between items-center pt-3">
@@ -323,6 +323,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { familyMemberRelationshipTitle } from '@/utils/familyMember';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 import logger from '@/utils/logger';
@@ -556,10 +557,10 @@ export default {
       return classes[level] || 'bg-horizon-400';
     },
 
-    formatRelationship(rel) {
-      if (!rel) return '';
-      return rel.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    },
+    // W-0115 — was the last of four private relationship formatters. The
+    // payload now carries `display_relationship`, so this renders what the user
+    // chose instead of the enum value the column had to hold.
+    familyMemberRelationshipTitle,
   },
 };
 </script>

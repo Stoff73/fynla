@@ -181,9 +181,9 @@ Recorded at ratification, pending the first review:
   the code, which matters because agents are told to read the vault before module
   work (`CLAUDE.md`). **Archivist priority.**
 
-- `appMapping/v083/05-FRONTEND-ARCHITECTURE.md:242` claims "Seven personas"
+- `docs/archive/appMapping/v083/05-FRONTEND-ARCHITECTURE.md:242` claims "Seven personas"
   including widow — the document that caused the error above.
-  `appMapping/v07/05-FRONTEND-ARCHITECTURE.md:204` says six but lists widow and
+  `docs/archive/appMapping/v07/05-FRONTEND-ARCHITECTURE.md:204` says six but lists widow and
   omits student.
 - `April/April19Updates/marketing/04-product-strategy.md` is **superseded in three
   places**, all found during sessions 3–4. It remains advisory elsewhere.

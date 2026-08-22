@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\AwardsDataEntryPoints;
+use App\Models\Concerns\RecordsPolicyDates;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class IncomeProtectionPolicy extends Model
 {
-    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, RecordsPolicyDates, SoftDeletes;
 
     public function gamificationCategory(): string
     {
@@ -36,7 +37,6 @@ class IncomeProtectionPolicy extends Model
         'premium_amount',
         'premium_frequency',
         'occupation_class',
-        'policy_start_date',
     ];
 
     /**
@@ -49,7 +49,6 @@ class IncomeProtectionPolicy extends Model
         'premium_amount' => 'decimal:2',
         'deferred_period_weeks' => 'integer',
         'benefit_period_months' => 'integer',
-        'policy_start_date' => 'date',
     ];
 
     protected $hidden = ['policy_number'];

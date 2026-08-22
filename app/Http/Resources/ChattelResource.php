@@ -30,6 +30,10 @@ class ChattelResource extends JsonResource
             'user_id' => $this->user_id,
             'household_id' => $this->household_id,
             'joint_owner_id' => $this->joint_owner_id,
+            // The free-text counterparty, for a co-owner who is not on the
+            // platform. Without it the card cannot name them and falls back to
+            // the (null) jointOwner relation — see ownership.js coOwnerName.
+            'joint_owner_name' => $this->joint_owner_name,
             'trust_id' => $this->trust_id,
             'name' => $this->name,
             'description' => $this->description,
@@ -70,7 +74,7 @@ class ChattelResource extends JsonResource
             'full_value' => (float) $this->current_value,
             'user_share' => $userId ? $this->calculateUserShare($this->resource, $userId) : 0.0,
             'is_primary_owner' => $userId ? $this->user_id === $userId : null,
-            'is_shared' => in_array($this->ownership_type, ['joint', 'tenants_in_common'], true),
+            'is_shared' => $this->isSharedOwnership($this->resource),
             'is_wasting_asset' => $this->chattel_type === 'vehicle',
 
             'notes' => $this->notes,

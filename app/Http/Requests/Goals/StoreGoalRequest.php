@@ -22,7 +22,13 @@ class StoreGoalRequest extends FormRequest
             'description' => 'nullable|string|max:500',
             'target_amount' => 'sometimes|numeric|min:1|max:100000000',
             'current_amount' => 'nullable|numeric|min:0',
-            'target_date' => 'sometimes|date|after:today',
+            // W-0029: a target date on or before today used to be rejected, so a
+            // goal that had already been missed — or one whose deadline is today
+            // — could not be recorded at all, while UpdateGoalRequest has always
+            // accepted any date. The consuming services already clamp past dates
+            // (GoalCalculationService::calculateMonthsRemaining returns 0,
+            // GoalsProjectionService only projects target_date > now).
+            'target_date' => 'sometimes|date',
             'start_date' => 'nullable|date',
             'assigned_module' => 'nullable|string|in:savings,investment,property,retirement',
             'module_override' => 'nullable|boolean',
@@ -54,7 +60,6 @@ class StoreGoalRequest extends FormRequest
             'target_amount.required' => 'Please set a target amount for your goal.',
             'target_amount.min' => 'Target amount must be at least £1.',
             'target_date.required' => 'Please set a target date for your goal.',
-            'target_date.after' => 'Target date must be in the future.',
             'custom_goal_type_name.required_if' => 'Please provide a name for your custom goal type.',
             'joint_owner_id.required_if' => 'Please select a joint owner for joint goals.',
         ];

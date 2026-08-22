@@ -12,6 +12,8 @@ use App\Services\Savings\ISATracker;
 use App\Services\Savings\LiquidityAnalyzer;
 use App\Services\Savings\RateComparator;
 use App\Services\Savings\SavingsDataReadinessService;
+use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Eloquent\Collection;
 
 beforeEach(function () {
@@ -34,7 +36,9 @@ beforeEach(function () {
         $this->goalProgressCalculator,
         $this->liquidityAnalyzer,
         $this->rateComparator,
-        $this->readinessService
+        $this->readinessService,
+        app(SavingsStore::class),
+        app(CrossModuleAssetAggregator::class)
     );
 });
 

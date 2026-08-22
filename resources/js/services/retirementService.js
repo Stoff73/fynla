@@ -138,6 +138,23 @@ export default {
         return response.data;
     },
 
+    /**
+     * Record the user's retirement goals — target retirement age, target retirement
+     * income, or both (W-0035).
+     *
+     * The one write path for `retirement_profiles.target_retirement_income` that a
+     * user interface can reach. Web, /m and native all call this same endpoint;
+     * before it existed only Fyn could write the column, so anyone who had not
+     * chatted to Fyn had every retirement projection built on a fallback figure they
+     * never chose.
+     *
+     * @param {{target_retirement_age?: number|null, target_retirement_income?: number|null}} data
+     */
+    async updateRetirementGoals(data) {
+        const response = await api.put(`${API_BASE}/goals`, data);
+        return response.data;
+    },
+
     // State Pension
     async updateStatePension(data) {
         const response = await api.post(`${API_BASE}/state-pension`, data);

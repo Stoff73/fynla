@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Traits\ValidatesSharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StorePropertyRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -32,6 +35,17 @@ class StorePropertyRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      */
+    /**
+     * A stated ownership share that is not a shared split is refused rather
+     * than rewritten (W-0040).
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($v) {
+            $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
+        });
+    }
+
     public function rules(): array
     {
         return [
@@ -80,6 +94,12 @@ class StorePropertyRequest extends FormRequest
             'mortgage_variable_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_start_date' => ['nullable', 'date'],
             'mortgage_maturity_date' => ['nullable', 'date'],
+            // The wizard renders these three; without rules here validated() strips
+            // them and the mortgage is written with a hardcoded term, no rate-fix
+            // end date and no interest portion (W-0012).
+            'mortgage_rate_fix_end_date' => ['nullable', 'date'],
+            'mortgage_remaining_term_months' => ['nullable', 'integer', 'min:0'],
+            'mortgage_monthly_interest_portion' => ['nullable', 'numeric', 'min:0'],
             'mortgage_ownership_type' => ['nullable', Rule::in(['individual', 'joint'])],
             'mortgage_original_loan_amount' => ['nullable', 'numeric', 'min:0'],
             'mortgage_joint_owner_id' => ['nullable', 'exists:users,id'],

@@ -7,14 +7,26 @@
         </svg>
       </div>
       <h2 class="text-h3 font-bold text-horizon-500 mb-2">Your Will Has Been Generated</h2>
+      <!-- W-0143. This said "Follow the steps below to make it legally binding" under
+           the heading "How to Make Your Will Legally Valid". Wills Act 1837 s.9(1)
+           opens "No will shall be valid unless", stating NECESSARY conditions; both
+           strings stated a SUFFICIENT one, which is the converse. "until it is signed
+           and witnessed" restores the necessary form, and "the parts you can prepare
+           for" stops the list reading as exhaustive without enumerating what it omits
+           — limb (b), that the testator appears to have intended their signature to
+           give effect to the will, is a state of mind and no checklist reaches it.
+           Do not swap "binding" for "valid" or back: both assert the object, and the
+           fix is the sentence shape, not the adjective. -->
       <p class="text-sm text-neutral-500">
-        Your will document has been saved. Follow the steps below to make it legally binding.
+        Your will has been saved. It is a draft until it is signed and witnessed.
+        Section 9 of the Wills Act 1837 sets out what the law requires; the steps below
+        cover the parts you can prepare for, and Fynla does not check any of them.
       </p>
     </div>
 
     <!-- Signing Instructions -->
     <div class="space-y-4">
-      <h3 class="text-base font-semibold text-horizon-500">How to Make Your Will Legally Valid</h3>
+      <h3 class="text-base font-semibold text-horizon-500">Before your will can take effect</h3>
 
       <div class="border border-light-gray rounded-lg divide-y divide-light-gray">
         <div class="p-4 flex gap-4">
@@ -38,12 +50,21 @@
           <div>
             <h4 class="text-sm font-semibold text-horizon-500">Choose Two Independent Witnesses</h4>
             <p class="text-sm text-neutral-500 mt-1">Your witnesses must be:</p>
+            <!-- W-0157. "18 years or older" was stated as a requirement and is
+                 unsourced — s.9 sets no witness age, and compliance could not
+                 establish where the figure came from. It is not asserted to be
+                 wrong; it is unverified, so it says less and says whose suggestion
+                 it is. Do not restore a number without a source. -->
             <ul class="text-sm text-neutral-500 mt-2 space-y-1 list-disc ml-5">
-              <li>18 years or older</li>
+              <li>Adults</li>
               <li><strong>Not</strong> a beneficiary named in your will</li>
               <li><strong>Not</strong> the spouse or civil partner of a beneficiary</li>
               <li>Of sound mind</li>
             </ul>
+            <p class="text-xs text-neutral-500 mt-2">
+              The Wills Act 1837 does not set an age for witnesses. Suggesting adults is
+              Fynla's guidance, not a legal requirement.
+            </p>
             <p class="text-xs text-raspberry-600 mt-2">
               If a beneficiary or their spouse witnesses your will, their inheritance is automatically void.
             </p>
@@ -68,7 +89,7 @@
           <div>
             <h4 class="text-sm font-semibold text-horizon-500">Store Safely</h4>
             <p class="text-sm text-neutral-500 mt-1">Keep one signed copy in a safe, fireproof location. Give the second copy to your executor. Tell your executor where the original is stored.</p>
-            <p class="text-xs text-neutral-500 mt-2">Optional: You can also store your will with the Probate Service for a fee of £75 — visit <strong>gov.uk</strong> for details.</p>
+            <p class="text-xs text-neutral-500 mt-2">Optional: You can also store your will with the Probate Service for a one-off charge of {{ willStorageFee }} — visit <strong>gov.uk</strong> for details.</p>
           </div>
         </div>
       </div>
@@ -98,11 +119,36 @@
 <script>
 import { printWillDocument } from '@/utils/willDocumentRenderer';
 
+/**
+ * The charge to deposit a will with the Probate Service.
+ *
+ * Source: HM Courts and Tribunals Service, "How to store a will with the Probate
+ * Service" — "There is a one-off charge of £24 to deposit a will or its codicil."
+ * Read 2026-08-21; the page displayed "Updated 13 July 2026", so this figure is
+ * re-checkable against a dated publisher page. Registered as row **C3** in
+ * `workforce/core/registry/sources.md`, which carries the re-check trigger.
+ *
+ * W-0157: Fynla stated **£75** until 2026-08-21 — wrong by more than a factor of
+ * three, and in the direction that makes a service look unaffordable when it is not.
+ * It was inline, unsourced and undated, which is why nothing caught it. This is the
+ * third figure of that shape found in one day.
+ *
+ * **If this number changes, update `sources.md` row C3 in the same edit.** A number
+ * here without a matching dated row there is how the last one went stale.
+ */
+const WILL_STORAGE_FEE = '£24';
+
 export default {
   name: 'WillBuilderSigningStep',
 
   props: {
     formData: { type: Object, required: true },
+  },
+
+  data() {
+    return {
+      willStorageFee: WILL_STORAGE_FEE,
+    };
   },
 
   methods: {

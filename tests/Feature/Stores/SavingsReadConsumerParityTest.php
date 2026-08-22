@@ -1658,6 +1658,8 @@ it('SavingsAgent::generateRecommendations (IIFE site 276) passes a JOINT-AWARE s
         app(LiquidityAnalyzer::class),
         app(RateComparator::class),
         app(SavingsDataReadinessService::class),
+        app(SavingsStore::class),
+        app(CrossModuleAssetAggregator::class),
         $spy,
     );
 
@@ -1689,6 +1691,8 @@ it('SavingsAgent::generateRecommendations (IIFE site 276) hands an EMPTY collect
         app(LiquidityAnalyzer::class),
         app(RateComparator::class),
         app(SavingsDataReadinessService::class),
+        app(SavingsStore::class),
+        app(CrossModuleAssetAggregator::class),
         $spy,
     );
 

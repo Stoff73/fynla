@@ -205,8 +205,8 @@
               </div>
             </div>
 
-            <!-- Start Date (conditional for life insurance) -->
-            <div v-if="showStartDate">
+            <!-- Start Date (every policy type carries one) -->
+            <div>
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Start Date
               </label>
@@ -232,7 +232,7 @@
             </div>
 
             <!-- End Date (for all policies - optional) -->
-            <div v-if="showEndDate">
+            <div>
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Policy End Date
               </label>
@@ -264,6 +264,24 @@
               </p>
             </div>
 
+            <!-- Joint Life (for Life Insurance) -->
+            <div v-if="formData.policyType === 'life'">
+              <div class="flex items-center">
+                <input
+                  id="joint_life"
+                  v-model="formData.joint_life"
+                  type="checkbox"
+                  class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
+                />
+                <label for="joint_life" class="ml-2 block text-sm font-medium text-neutral-500">
+                  Is this a joint life policy?
+                </label>
+              </div>
+              <p class="text-xs text-neutral-500 mt-1 ml-6">
+                A joint life policy covers two people and pays out once, on the first death. Two separate single life policies pay out twice.
+              </p>
+            </div>
+
             <!-- Mortgage Protection (for Life Insurance) -->
             <div v-if="formData.policyType === 'life'">
               <div class="flex items-center">
@@ -286,95 +304,87 @@
             <div v-if="isLifeInsurance" class="space-y-4 p-4 bg-violet-50 border border-violet-200 rounded-lg">
               <p class="text-sm text-violet-800 font-medium">Beneficiary Details</p>
 
-              <!-- Beneficiary Selection -->
-              <div>
-                <label for="beneficiary_selection" class="block text-sm font-medium text-neutral-500 mb-1">
-                  Beneficiary
-                </label>
-                <select
-                  id="beneficiary_selection"
-                  v-model="beneficiarySelection"
-                  @change="handleBeneficiarySelection"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                >
-                  <option value="">Select beneficiary...</option>
-                  <option v-if="spouseOption" :value="'linked_' + spouseOption.id">
-                    {{ spouseOption.name }} (Spouse - Linked Account)
-                  </option>
-                  <option value="other">Add Beneficiary</option>
-                </select>
-              </div>
-
-              <!-- Free Text Beneficiary Name (when "Add Beneficiary" selected) -->
-              <div v-if="beneficiarySelection === 'other'">
-                <label for="beneficiary_name" class="block text-sm font-medium text-neutral-500 mb-1">
-                  Beneficiary Name
-                </label>
-                <input
-                  id="beneficiary_name"
-                  v-model="formData.beneficiary_name"
-                  type="text"
-                  placeholder="Enter beneficiary's full name"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                />
-                <p class="text-xs text-neutral-500 mt-1">
-                  Note: This person doesn't have an account in the system.
-                </p>
-              </div>
-
-              <!-- Beneficiary Percentage (shows when beneficiary selected) -->
-              <div v-if="beneficiarySelection">
-                <label for="beneficiary_percentage" class="block text-sm font-medium text-neutral-500 mb-1">
-                  Beneficiary Share (%)
-                </label>
-                <input
-                  id="beneficiary_percentage"
-                  v-model.number="formData.beneficiary_percentage"
-                  type="number"
-                  min="1"
-                  max="100"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                />
-                <p class="text-xs text-neutral-500 mt-1">
-                  Enter the percentage share for this beneficiary (1-100%).
-                </p>
-              </div>
-
-              <!-- Percentage Split Display -->
-              <div v-if="beneficiarySelection" class="bg-white p-3 rounded border border-violet-300">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <p class="text-sm font-medium text-neutral-500">Primary Beneficiary</p>
-                    <p class="text-2xl font-bold text-violet-600">{{ formData.beneficiary_percentage || 0 }}%</p>
-                  </div>
-                  <div v-if="remainingBeneficiaryPercentage > 0" class="text-horizon-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                  </div>
-                  <div v-if="remainingBeneficiaryPercentage > 0" class="text-right">
-                    <p class="text-sm font-medium text-neutral-500">Remaining</p>
-                    <p class="text-2xl font-bold text-violet-600">{{ remainingBeneficiaryPercentage }}%</p>
-                  </div>
+              <!-- One row per beneficiary. A policy in trust distributes by this
+                   nomination, so every named person has to be recordable here. -->
+              <div
+                v-for="(beneficiary, index) in beneficiaryRows"
+                :key="index"
+                class="bg-white p-3 rounded border border-violet-300 space-y-3"
+              >
+                <div>
+                  <label :for="`beneficiary_selection_${index}`" class="block text-sm font-medium text-neutral-500 mb-1">
+                    Beneficiary {{ index + 1 }}
+                  </label>
+                  <select
+                    :id="`beneficiary_selection_${index}`"
+                    v-model="beneficiary.selection"
+                    @change="handleBeneficiarySelection(index)"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  >
+                    <option value="">Select beneficiary...</option>
+                    <option v-for="option in beneficiaryOptions" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
+                    <option value="other">Someone else</option>
+                  </select>
                 </div>
+
+                <!-- Free Text Beneficiary Name (when "Someone else" selected) -->
+                <div v-if="beneficiary.selection === 'other'">
+                  <label :for="`beneficiary_name_${index}`" class="block text-sm font-medium text-neutral-500 mb-1">
+                    Beneficiary Name
+                  </label>
+                  <input
+                    :id="`beneficiary_name_${index}`"
+                    v-model="beneficiary.name"
+                    type="text"
+                    placeholder="Enter beneficiary's full name"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  />
+                  <p class="text-xs text-neutral-500 mt-1">
+                    Note: This person doesn't have an account in the system.
+                  </p>
+                </div>
+
+                <div v-if="beneficiary.selection">
+                  <label :for="`beneficiary_percentage_${index}`" class="block text-sm font-medium text-neutral-500 mb-1">
+                    Beneficiary Share (%)
+                  </label>
+                  <input
+                    :id="`beneficiary_percentage_${index}`"
+                    v-model.number="beneficiary.percentage"
+                    type="number"
+                    min="1"
+                    max="100"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  />
+                </div>
+
+                <button
+                  v-if="beneficiaryRows.length > 1"
+                  type="button"
+                  @click="removeBeneficiary(index)"
+                  class="text-sm font-medium text-raspberry-600 hover:text-raspberry-700 transition-colors"
+                >
+                  Remove this beneficiary
+                </button>
               </div>
 
-              <!-- Additional Beneficiaries (only shows when percentage < 100%) -->
-              <div v-if="showAdditionalBeneficiaries">
-                <label for="additional_beneficiaries" class="block text-sm font-medium text-neutral-500 mb-1">
-                  Additional Beneficiaries
-                </label>
-                <textarea
-                  id="additional_beneficiaries"
-                  v-model="formData.additional_beneficiaries"
-                  rows="2"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                  placeholder="e.g., Children: 30% split, Charity: 10%"
-                ></textarea>
-                <p class="text-xs text-neutral-500 mt-1">
-                  Specify additional beneficiaries and their share of the remaining {{ remainingBeneficiaryPercentage }}%.
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  @click="addBeneficiary"
+                  class="px-3 py-2 bg-white border border-violet-300 text-violet-600 text-sm font-medium rounded-lg hover:bg-violet-100 transition-colors"
+                >
+                  Add another beneficiary
+                </button>
+                <p class="text-sm font-medium" :class="beneficiaryTotal === 100 ? 'text-neutral-500' : 'text-violet-600'">
+                  Shares total {{ beneficiaryTotal }}%
                 </p>
               </div>
+              <p v-if="beneficiaryTotal > 0 && beneficiaryTotal !== 100" class="text-xs text-violet-600">
+                Most policies expect the shares to add up to 100%.
+              </p>
 
               <p class="text-xs text-neutral-500">
                 Linked accounts will be notified and benefits will appear in their accounts.
@@ -483,6 +493,47 @@
 import { mapState } from 'vuex';
 
 import logger from '@/utils/logger';
+
+// `life_insurance_policies.beneficiaries` is one text column holding
+// "Name: 60%, Name: 40%". These two functions are the only place that shape is
+// read or written, so the form can offer as many beneficiaries as the policy
+// names without a schema change. A fragment that is not "Name: N%" (free text
+// typed before this form supported rows) survives as a name-only row and
+// serialises back unchanged.
+const BENEFICIARY_SHARE_PATTERN = /^(.*?):\s*(\d+(?:\.\d+)?)\s*%$/;
+
+function parseBeneficiaries(value) {
+  if (!value) return [];
+
+  return String(value)
+    .split(',')
+    .map(part => part.trim())
+    .filter(part => part.length > 0)
+    .map(part => {
+      const match = part.match(BENEFICIARY_SHARE_PATTERN);
+      return match
+        ? { name: match[1].trim(), percentage: parseFloat(match[2]) }
+        : { name: part, percentage: null };
+    });
+}
+
+function serialiseBeneficiaries(rows) {
+  return rows
+    .map(row => {
+      const name = (row.name || '').trim();
+      if (!name) return '';
+      return row.percentage === null || row.percentage === '' || isNaN(Number(row.percentage))
+        ? name
+        : `${name}: ${Number(row.percentage)}%`;
+    })
+    .filter(entry => entry.length > 0)
+    .join(', ');
+}
+
+function emptyBeneficiaryRow() {
+  return { selection: '', name: '', percentage: 100 };
+}
+
 export default {
   name: 'PolicyFormModal',
 
@@ -508,7 +559,7 @@ export default {
     return {
       submitting: false,
       familyMembers: [],
-      beneficiarySelection: '',
+      beneficiaryRows: [emptyBeneficiaryRow()],
       formData: {
         policyType: '',
         life_policy_type: '',
@@ -523,10 +574,8 @@ export default {
         end_date: '',
         term_years: null,
         in_trust: false,
+        joint_life: false,
         is_mortgage_protection: false,
-        beneficiary_name: '',
-        beneficiary_percentage: 100,
-        additional_beneficiaries: '',
         benefit_frequency: 'monthly',
         deferred_period_weeks: null,
         benefit_period_months: null,
@@ -601,13 +650,6 @@ export default {
       return this.isLifeInsurance && this.formData.life_policy_type === 'decreasing_term';
     },
 
-    showStartDate() {
-      if (!this.isLifeInsurance) return true; // Other policies always show start date
-      const lifeType = this.formData.life_policy_type;
-      // Show for decreasing_term and term, hide for whole_of_life
-      return lifeType === 'decreasing_term' || lifeType === 'term' || lifeType === 'level_term';
-    },
-
     showTermYearsForLifePolicy() {
       if (!this.isLifeInsurance) return false;
       const lifeType = this.formData.life_policy_type;
@@ -621,23 +663,39 @@ export default {
       return spouse ? { id: spouse.id, name: spouse.name } : null;
     },
 
-    remainingBeneficiaryPercentage() {
-      return 100 - (this.formData.beneficiary_percentage || 0);
+    // Everyone on the account who can be named on the policy. The family members
+    // are already loaded on mount; before this they were fetched and then never
+    // offered, so a policy could only ever pay the linked spouse (W-0027).
+    beneficiaryOptions() {
+      const options = [];
+      const seen = new Set();
+
+      if (this.spouseOption?.name) {
+        options.push({
+          value: `linked_${this.spouseOption.id}`,
+          label: `${this.spouseOption.name} (Spouse - Linked Account)`,
+          name: this.spouseOption.name,
+        });
+        seen.add(this.spouseOption.name);
+      }
+
+      this.familyMembers.forEach(member => {
+        const name = member.name || [member.first_name, member.last_name].filter(Boolean).join(' ');
+        if (!name || seen.has(name)) return;
+        seen.add(name);
+        const relationship = (member.relationship || '').replace(/_/g, ' ');
+        options.push({
+          value: `member_${member.id}`,
+          label: relationship ? `${name} (${relationship})` : name,
+          name,
+        });
+      });
+
+      return options;
     },
 
-    showAdditionalBeneficiaries() {
-      return this.isLifeInsurance &&
-             this.beneficiarySelection &&
-             this.formData.beneficiary_percentage < 100;
-    },
-
-    showEndDate() {
-      // All policy types can have an optional end date
-      if (!this.isLifeInsurance) return true;
-
-      // For life insurance, show for term-based policies, hide for whole_of_life
-      const lifeType = this.formData.life_policy_type;
-      return lifeType === 'decreasing_term' || lifeType === 'term' || lifeType === 'level_term';
+    beneficiaryTotal() {
+      return this.beneficiaryRows.reduce((sum, row) => sum + (Number(row.percentage) || 0), 0);
     },
   },
 
@@ -667,16 +725,15 @@ export default {
               end_date: '',
               term_years: null,
               in_trust: false,
+              joint_life: false,
               is_mortgage_protection: false,
-              beneficiary_name: '',
-              beneficiary_percentage: 100,
-              additional_beneficiaries: '',
               benefit_frequency: 'monthly',
               deferred_period_weeks: null,
               benefit_period_months: null,
               coverage_type: 'accident_and_sickness',
               notes: '',
             });
+            this.beneficiaryRows = [emptyBeneficiaryRow()];
             this.errors = {};
           }
 
@@ -746,13 +803,24 @@ export default {
       }
     },
 
-    handleBeneficiarySelection() {
-      // When user selects a linked spouse, populate the name
-      if (this.beneficiarySelection.startsWith('linked_') && this.spouseOption) {
-        this.formData.beneficiary_name = this.spouseOption.name;
-      } else if (this.beneficiarySelection === 'other') {
-        // Clear the name so user can enter their own
-        this.formData.beneficiary_name = '';
+    handleBeneficiarySelection(index) {
+      const row = this.beneficiaryRows[index];
+      if (!row) return;
+
+      const option = this.beneficiaryOptions.find(o => o.value === row.selection);
+      // Anyone on the account carries their own name; "Someone else" is typed in.
+      row.name = option ? option.name : '';
+    },
+
+    addBeneficiary() {
+      const remaining = Math.max(0, 100 - this.beneficiaryTotal);
+      this.beneficiaryRows.push({ ...emptyBeneficiaryRow(), percentage: remaining });
+    },
+
+    removeBeneficiary(index) {
+      this.beneficiaryRows.splice(index, 1);
+      if (this.beneficiaryRows.length === 0) {
+        this.beneficiaryRows.push(emptyBeneficiaryRow());
       }
     },
 
@@ -776,43 +844,17 @@ export default {
     },
 
     loadPolicyData() {
-      // Parse beneficiaries string (format: "Name: 60%, Additional text")
-      let beneficiary_name = '';
-      let beneficiary_percentage = 100;
-      let additional_beneficiaries = '';
-
-      if (this.policy.beneficiaries) {
-        const beneficiariesStr = this.policy.beneficiaries;
-
-        // Split by first comma to separate primary beneficiary from additional
-        const parts = beneficiariesStr.split(',');
-
-        if (parts.length > 0 && parts[0].includes(':')) {
-          // Parse primary beneficiary (format: "Name: 60%")
-          const primaryParts = parts[0].split(':');
-          beneficiary_name = primaryParts[0].trim();
-
-          // Extract percentage
-          if (primaryParts[1]) {
-            const percentMatch = primaryParts[1].match(/(\d+)%/);
-            if (percentMatch) {
-              beneficiary_percentage = parseInt(percentMatch[1], 10);
-            }
-          }
-        }
-
-        // If there are additional parts, combine them as additional beneficiaries
-        if (parts.length > 1) {
-          additional_beneficiaries = parts.slice(1).join(',').trim();
-        }
-      }
-
-      // Check if beneficiary matches a linked spouse
-      if (beneficiary_name && this.spouseOption && beneficiary_name === this.spouseOption.name) {
-        this.beneficiarySelection = `linked_${this.spouseOption.id}`;
-      } else if (beneficiary_name) {
-        this.beneficiarySelection = 'other';
-      }
+      const parsed = parseBeneficiaries(this.policy.beneficiaries);
+      this.beneficiaryRows = parsed.length
+        ? parsed.map(row => {
+          const option = this.beneficiaryOptions.find(o => o.name === row.name);
+          return {
+            selection: option ? option.value : 'other',
+            name: row.name,
+            percentage: row.percentage,
+          };
+        })
+        : [emptyBeneficiaryRow()];
 
       this.formData = {
         policyType: this.policy.policy_type,
@@ -828,10 +870,8 @@ export default {
         end_date: this.formatDateForInput(this.policy.end_date || this.policy.policy_end_date),
         term_years: this.policy.term_years || this.policy.policy_term_years || null,
         in_trust: this.policy.in_trust || false,
+        joint_life: this.policy.joint_life || false,
         is_mortgage_protection: this.policy.is_mortgage_protection || false,
-        beneficiary_name: beneficiary_name,
-        beneficiary_percentage: beneficiary_percentage,
-        additional_beneficiaries: additional_beneficiaries,
         benefit_frequency: this.policy.benefit_frequency || 'monthly',
         deferred_period_weeks: this.policy.deferred_period_weeks || null,
         benefit_period_months: this.policy.benefit_period_months || null,
@@ -861,6 +901,11 @@ export default {
         policy_number: this.formData.policy_number,
         premium_amount: this.formData.premium_amount,
         premium_frequency: this.formData.premium_frequency === 'annual' ? 'annually' : this.formData.premium_frequency,
+        // The dates every policy type carries, assigned once. The three branches
+        // below each used to set them, and disagreed about nulling (W-0026).
+        policy_start_date: this.formData.start_date || null,
+        policy_end_date: this.formData.end_date || null,
+        policy_term_years: this.formData.term_years || null,
       };
 
       // Add coverage amount with correct field name
@@ -875,47 +920,18 @@ export default {
           data.decreasing_rate = this.formData.decreasing_rate / 100;
         }
 
-        // Add dates and term based on policy type
-        if (this.formData.life_policy_type === 'whole_of_life') {
-          // Whole of life policies: use start date or today, and set term to 50 years (max allowed, represents lifetime coverage)
-          data.policy_start_date = this.formData.start_date || null;
-          data.policy_end_date = this.formData.end_date || null;
-          data.policy_term_years = this.formData.term_years || null;
-        } else {
-          // Term-based policies require end_date
-          data.policy_start_date = this.formData.start_date || null;
-          data.policy_end_date = this.formData.end_date;
-          data.policy_term_years = this.formData.term_years || null;
-        }
-
         data.in_trust = this.formData.in_trust || false;
+        data.joint_life = this.formData.joint_life || false;
         data.is_mortgage_protection = this.formData.is_mortgage_protection || false;
-
-        // Build beneficiaries string
-        let beneficiaries = '';
-        if (this.formData.beneficiary_name) {
-          beneficiaries = `${this.formData.beneficiary_name}: ${this.formData.beneficiary_percentage}%`;
-        }
-        if (this.formData.additional_beneficiaries) {
-          beneficiaries = beneficiaries
-            ? `${beneficiaries}, ${this.formData.additional_beneficiaries}`
-            : this.formData.additional_beneficiaries;
-        }
-        data.beneficiaries = beneficiaries || null;
+        data.beneficiaries = serialiseBeneficiaries(this.beneficiaryRows) || null;
       } else if (type === 'criticalIllness') {
         data.policy_type = 'standalone'; // Default to standalone critical illness
         data.sum_assured = this.formData.coverage_amount;
-        data.policy_start_date = this.formData.start_date;
-        data.policy_end_date = this.formData.end_date || null;
-        data.policy_term_years = this.formData.term_years;
         data.conditions_covered = []; // Empty array for conditions covered
       } else {
         data.benefit_amount = this.formData.coverage_amount;
         data.benefit_frequency = this.formData.benefit_frequency;
         data.benefit_period_months = this.formData.benefit_period_months;
-        data.policy_start_date = this.formData.start_date;
-        data.policy_end_date = this.formData.end_date || null;
-        data.policy_term_years = this.formData.term_years || null;
       }
 
       // Add deferred period for income protection and disability

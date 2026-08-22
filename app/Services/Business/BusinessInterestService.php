@@ -403,15 +403,31 @@ class BusinessInterestService
             'days_until' => $now->diffInDays($ctDeadline, false),
         ];
 
-        // Company Accounts - 9 months after year end
-        $accountsDeadline = $yearEnd->copy()->addMonths(9);
-        $deadlines[] = [
-            'name' => 'File Company Accounts',
-            'date' => $accountsDeadline->format('Y-m-d'),
-            'description' => 'Companies House accounts filing deadline (9 months after year-end)',
-            'type' => 'accounts',
-            'days_until' => $now->diffInDays($accountsDeadline, false),
-        ];
+        // Company Accounts. When the company number has been synced against the
+        // Companies House register we hold the real deadline — use it. The
+        // 9-months-after-year-end rule below is only ever an estimate, and it is
+        // wrong for a first accounting period or a shortened reference date.
+        if ($business->accounts_due_on) {
+            $accountsDeadline = Carbon::parse($business->accounts_due_on)->startOfDay();
+            $deadlines[] = [
+                'name' => 'File Company Accounts',
+                'date' => $accountsDeadline->format('Y-m-d'),
+                'description' => 'Annual accounts filing deadline from the Companies House register',
+                'type' => 'accounts',
+                'days_until' => $now->diffInDays($accountsDeadline, false),
+                'estimated' => false,
+            ];
+        } else {
+            $accountsDeadline = $yearEnd->copy()->addMonths(9);
+            $deadlines[] = [
+                'name' => 'File Company Accounts',
+                'date' => $accountsDeadline->format('Y-m-d'),
+                'description' => 'Companies House accounts filing deadline (9 months after year-end)',
+                'type' => 'accounts',
+                'days_until' => $now->diffInDays($accountsDeadline, false),
+                'estimated' => true,
+            ];
+        }
 
         // CT600 Return - 12 months after year end
         $ct600Deadline = $yearEnd->copy()->addMonths(12);
@@ -423,16 +439,32 @@ class BusinessInterestService
             'days_until' => $now->diffInDays($ct600Deadline, false),
         ];
 
-        // Confirmation Statement - annually
-        $confirmationDeadline = $now->copy()->addDays(14);
-        $deadlines[] = [
-            'name' => 'Confirmation Statement',
-            'date' => $confirmationDeadline->format('Y-m-d'),
-            'description' => 'Annual confirmation statement due within 14 days of review period end',
-            'type' => 'confirmation',
-            'days_until' => 14,
-            'note' => 'Check your specific confirmation statement deadline on Companies House',
-        ];
+        // Confirmation Statement. The register holds the real date; without it
+        // there is nothing to compute from (the review period runs from the
+        // incorporation or last-statement date, neither of which we store), so
+        // the fallback below stays the placeholder it has always been.
+        if ($business->confirmation_statement_due_on) {
+            $confirmationDeadline = Carbon::parse($business->confirmation_statement_due_on)->startOfDay();
+            $deadlines[] = [
+                'name' => 'Confirmation Statement',
+                'date' => $confirmationDeadline->format('Y-m-d'),
+                'description' => 'Annual confirmation statement deadline from the Companies House register',
+                'type' => 'confirmation',
+                'days_until' => $now->diffInDays($confirmationDeadline, false),
+                'estimated' => false,
+            ];
+        } else {
+            $confirmationDeadline = $now->copy()->addDays(14);
+            $deadlines[] = [
+                'name' => 'Confirmation Statement',
+                'date' => $confirmationDeadline->format('Y-m-d'),
+                'description' => 'Annual confirmation statement due within 14 days of review period end',
+                'type' => 'confirmation',
+                'days_until' => 14,
+                'estimated' => true,
+                'note' => 'Add your company number to show the exact deadline from Companies House',
+            ];
+        }
 
         return $deadlines;
     }

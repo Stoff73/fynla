@@ -76,6 +76,7 @@ class SavingsController extends Controller
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = $this->savingsStore->forUser($user)->take(100);
+        $accounts->loadMissing(['user:id,first_name,surname', 'jointOwner:id,first_name,surname']);
 
         // Transform accounts using resource and add calculated fields
         $accounts = $accounts->map(function ($account) use ($user) {
@@ -84,6 +85,12 @@ class SavingsController extends Controller
             $resourceData['full_balance'] = (float) $account->current_balance;
             $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
             $resourceData['is_shared'] = $this->isSharedOwnership($account);
+            // Owner names, same shape as showAccount and the property/investment
+            // lists, so the card can name the OTHER party rather than the viewer.
+            $owner = $account->user;
+            $jointOwner = $account->jointOwner;
+            $resourceData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+            $resourceData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
 
             return $resourceData;
         });
@@ -245,9 +252,13 @@ class SavingsController extends Controller
     /**
      * Get ISA allowance status for a tax year
      */
-    public function isaAllowance(Request $request, string $taxYear): JsonResponse
+    public function isaAllowance(Request $request, ?string $taxYear = null): JsonResponse
     {
         $user = $request->user();
+
+        // The active tax year is a server fact (Rule 2) — callers that do not
+        // care which year it is may omit it.
+        $taxYear ??= app(TaxConfigService::class)->getTaxYear();
 
         try {
             $allowanceStatus = $this->isaTracker->getISAAllowanceStatus($user->id, $taxYear);
@@ -350,7 +361,14 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            $canonical = $this->normaliser->fromForm($request->validated(), partial: true);
+            // The stored account comes too, so an update that says nothing about
+            // the split keeps the share already on it rather than re-defaulting
+            // to 50 (W-0040). Read through the store, not the model: the savings
+            // boundary is locked and says every joint-aware read funnels through
+            // SavingsStore, which is also where the owner guard lives.
+            $existing = $this->savingsStore->find($id, $user);
+
+            $canonical = $this->normaliser->fromForm($request->validated(), partial: true, existing: $existing);
             $account = $this->savingsStore->update($id, $canonical, $user, IngestSource::FORM);
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);

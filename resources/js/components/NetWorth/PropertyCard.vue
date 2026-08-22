@@ -5,10 +5,10 @@
         {{ propertyTypeLabel }}
       </span>
       <span v-if="isJoint" class="ownership-badge joint-badge">
-        Joint ({{ property.ownership_percentage }}%)
+        Joint ({{ sharePercent }}%)
       </span>
       <span v-if="isTenantsInCommon" class="ownership-badge tic-badge">
-        Tenants in Common ({{ property.ownership_percentage }}%)
+        Tenants in Common ({{ sharePercent }}%)
       </span>
     </div>
 
@@ -20,8 +20,8 @@
       <p class="property-location">
         {{ property.city }}, {{ property.postcode }}
       </p>
-      <p v-if="isSharedOwnership && property.joint_owner_name" class="property-coowner">
-        {{ ownershipLabel }} with {{ property.joint_owner_name }}
+      <p v-if="coOwner" class="property-coowner">
+        {{ ownershipLabel }} with {{ coOwner }}
       </p>
 
       <div class="property-details">
@@ -34,7 +34,7 @@
           </div>
 
           <div class="detail-row">
-            <span class="detail-label">{{ isSharedOwnership ? `Your Share (${property.ownership_percentage}%)` : 'Current Value' }}</span>
+            <span class="detail-label">{{ isSharedOwnership ? `Your Share (${sharePercent}%)` : 'Current Value' }}</span>
             <span class="detail-value">{{ formatCurrency(userShare) }}</span>
           </div>
 
@@ -56,6 +56,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { calculateUserShare, coOwnerName, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'PropertyCard',
@@ -106,16 +107,21 @@ export default {
       return this.property.full_value ?? this.property.current_value ?? 0;
     },
 
+    // The viewer's share, percentage and counterparty all come from the ONE
+    // ownership helper. Rendering the record's stored joint_owner_name
+    // unconditionally told the spouse the property was "Joint with <herself>",
+    // and would name the wrong party on a tenants-in-common asset held with
+    // someone outside the household (W-0016).
     userShare() {
-      // Single-record pattern: API provides user_share, or calculate from full value
-      if (this.property.user_share !== undefined) {
-        return this.property.user_share;
-      }
-      // Fallback: calculate from full value
-      if (this.isSharedOwnership && this.property.ownership_percentage) {
-        return this.fullPropertyValue * (this.property.ownership_percentage / 100);
-      }
-      return this.fullPropertyValue;
+      return calculateUserShare(this.property, { valueField: 'current_value' });
+    },
+
+    sharePercent() {
+      return userSharePercent(this.property).toFixed(2);
+    },
+
+    coOwner() {
+      return coOwnerName(this.property);
     },
 
     mortgageLabel() {

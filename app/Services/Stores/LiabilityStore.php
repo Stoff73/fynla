@@ -11,6 +11,7 @@ use App\Models\LiabilityValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Snapshots\SnapshotPolicies;
+use App\Support\SharedOwnership;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -40,7 +41,10 @@ class LiabilityStore
     {
         $canonical['user_id'] = $user->id;
         $canonical['ownership_type'] ??= 'individual';
-        $canonical['ownership_percentage'] ??= $canonical['ownership_type'] === 'joint' ? 50 : 100;
+        // One rule, one home (App\Support\SharedOwnership). The copy that lived
+        // here knew only 'joint', so a tenants-in-common liability defaulted to
+        // 100 — the same gap W-0025 closed for chattels (W-0040).
+        $canonical = SharedOwnership::applyTo($canonical, $canonical['ownership_type'] ?? null);
         $this->validateCanonical($canonical, partial: false);
 
         return AuditLog::withContext(

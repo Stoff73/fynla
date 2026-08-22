@@ -39,7 +39,10 @@
               <option value="stakeholder">Stakeholder Pension</option>
               <!-- Onboarding pre-scopes this form to DC only; the DB and State options
                    are for the unified "Add Pension" entry point on the retirement dashboard. -->
-              <option v-if="!isOnboarding" value="final_salary">Final Salary (Defined Benefit)</option>
+              <!-- The wire value stays `final_salary` for backward compatibility; the
+                   actual scheme type (final salary, career average, public sector) is
+                   picked inside the Defined Benefit section below. -->
+              <option v-if="!isOnboarding" value="final_salary">Defined Benefit (Final Salary, Career Average or Public Sector)</option>
               <option v-if="!isOnboarding" value="state_pension">State Pension</option>
             </select>
             <p class="text-xs text-neutral-500 mt-1">
@@ -425,20 +428,40 @@
               </div>
             </div>
 
-            <div>
-              <label for="db_scheme_status" class="block text-sm font-medium text-neutral-500 mb-2">
-                Scheme Status
-              </label>
-              <select
-                id="db_scheme_status"
-                v-model="formData.db_scheme_status"
-                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              >
-                <option value="">Select status</option>
-                <option value="Active">Active</option>
-                <option value="Deferred">Deferred</option>
-                <option value="In Payment">In Payment</option>
-              </select>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="db_scheme_status" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Scheme Status
+                </label>
+                <select
+                  id="db_scheme_status"
+                  v-model="formData.db_scheme_status"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  <option value="">Select status</option>
+                  <option v-for="option in dbSchemeStatusOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+                <p class="mt-1 text-xs text-neutral-500">
+                  Tells us whether this pension is being paid to you now, which decides
+                  whether it counts towards your income today.
+                </p>
+              </div>
+              <div>
+                <label for="db_scheme_type" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Scheme Type
+                </label>
+                <select
+                  id="db_scheme_type"
+                  v-model="formData.db_scheme_type"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  <option v-for="option in dbSchemeTypeOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
             </div>
 
             <div>
@@ -488,6 +511,40 @@
               </div>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="db_normal_retirement_age" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Normal Retirement Age
+                </label>
+                <input
+                  id="db_normal_retirement_age"
+                  v-model.number="formData.db_normal_retirement_age"
+                  type="number"
+                  min="55"
+                  max="75"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  placeholder="e.g., 60"
+                />
+                <p class="text-xs text-neutral-500 mt-1">The age this scheme pays out in full</p>
+              </div>
+              <div>
+                <label for="db_spouse_pension_percent" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Spouse Pension (%)
+                </label>
+                <input
+                  id="db_spouse_pension_percent"
+                  v-model.number="formData.db_spouse_pension_percent"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  placeholder="e.g., 50"
+                />
+                <p class="text-xs text-neutral-500 mt-1">Percentage paid to your spouse after your death</p>
+              </div>
+            </div>
+
             <div>
               <label for="db_accrual_rate" class="block text-sm font-medium text-neutral-500 mb-2">
                 Accrual Rate (1/X)
@@ -504,8 +561,24 @@
             </div>
 
             <div>
+              <label for="db_inflation_protection" class="block text-sm font-medium text-neutral-500 mb-2">
+                Inflation Protection
+              </label>
+              <select
+                id="db_inflation_protection"
+                v-model="formData.db_inflation_protection"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              >
+                <option v-for="option in dbInflationProtectionOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <p class="text-xs text-neutral-500 mt-1">How the scheme increases your pension before it comes into payment</p>
+            </div>
+
+            <div v-if="formData.db_inflation_protection === 'fixed'">
               <label for="db_revaluation_rate" class="block text-sm font-medium text-neutral-500 mb-2">
-                Revaluation Rate (% p.a.)
+                Fixed Revaluation Rate (% a year)
               </label>
               <input
                 id="db_revaluation_rate"
@@ -517,7 +590,6 @@
                 class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., 2.50"
               />
-              <p class="text-xs text-neutral-500 mt-1">Typical: CPI, CPI+1.5%, or fixed %</p>
             </div>
 
             <div>
@@ -718,6 +790,12 @@ import InlineHoldingsEditor from '@/components/Investment/InlineHoldingsEditor.v
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import {
+  DB_SCHEME_TYPE_OPTIONS,
+  DB_SCHEME_STATUS_OPTIONS,
+  DB_INFLATION_PROTECTION_OPTIONS,
+  buildDbPensionPayload,
+} from './dbPensionFields';
 
 export default {
   name: 'DCPensionForm',
@@ -773,13 +851,17 @@ export default {
         beneficiary_id: null,
         beneficiary_name: '',
         holdings: [],
-        // Defined Benefit (Final Salary) fields — only populated when pension_type === 'final_salary'.
+        // Defined Benefit fields — only populated when pension_type === 'final_salary'.
         // Mapped to the db_pensions backend payload in handleSubmit.
         db_scheme_status: '',
+        db_scheme_type: 'final_salary',
         db_annual_income: null,
         db_service_years: null,
         db_final_salary: null,
+        db_normal_retirement_age: null,
+        db_spouse_pension_percent: null,
         db_accrual_rate: null,
+        db_inflation_protection: 'none',
         db_revaluation_rate: null,
         db_pcls_available: null,
         // State Pension fields — only populated when pension_type === 'state_pension'.
@@ -804,6 +886,10 @@ export default {
       // Collapsed "Additional information" section (fees, expected return, lump sum,
       // beneficiary, holdings). Auto-expands in edit mode when any hidden field has a value.
       showAdditionalInfo: false,
+      // Shared with DBPensionForm so both entry points offer the same options.
+      dbSchemeTypeOptions: DB_SCHEME_TYPE_OPTIONS,
+      dbSchemeStatusOptions: DB_SCHEME_STATUS_OPTIONS,
+      dbInflationProtectionOptions: DB_INFLATION_PROTECTION_OPTIONS,
     };
   },
 
@@ -1192,8 +1278,9 @@ export default {
     // (the column the backend expects for dc_pensions).
     buildDCPayload() {
       const {
-        db_scheme_status, db_annual_income, db_service_years, db_final_salary,
-        db_accrual_rate, db_revaluation_rate, db_pcls_available,
+        db_scheme_status, db_scheme_type, db_annual_income, db_service_years, db_final_salary,
+        db_normal_retirement_age, db_spouse_pension_percent, db_accrual_rate,
+        db_inflation_protection, db_revaluation_rate, db_pcls_available,
         state_forecast_weekly_amount, state_qualifying_years, state_forecast_date,
         state_has_ni_gaps, state_gaps_years, state_estimated_gap_cost,
         policy_number,
@@ -1240,18 +1327,21 @@ export default {
         return;
       }
 
-      // Shape mirrors DBPensionForm.handleSubmit so db_pensions records are
-      // identical whether captured via this unified form or the legacy edit form.
-      const apiData = {
-        scheme_name: this.formData.scheme_name,
-        scheme_type: 'final_salary',
-        accrued_annual_pension: this.formData.db_annual_income,
-        pensionable_service_years: this.formData.db_service_years,
-        pensionable_salary: this.formData.db_final_salary,
-        revaluation_method: this.formData.db_revaluation_rate ? `${this.formData.db_revaluation_rate}%` : null,
-        lump_sum_entitlement: this.formData.db_pcls_available,
-        notes: this.formData.notes,
-      };
+      // One mapper shared with DBPensionForm, so db_pensions records are identical
+      // whether captured via this unified form or the edit form (W-0017).
+      const apiData = buildDbPensionPayload({
+        schemeName: this.formData.scheme_name,
+        schemeType: this.formData.db_scheme_type,
+        schemeStatus: this.formData.db_scheme_status,
+        annualIncome: this.formData.db_annual_income,
+        serviceYears: this.formData.db_service_years,
+        pensionableSalary: this.formData.db_final_salary,
+        normalRetirementAge: this.formData.db_normal_retirement_age,
+        spousePensionPercent: this.formData.db_spouse_pension_percent,
+        inflationProtection: this.formData.db_inflation_protection,
+        revaluationRate: this.formData.db_revaluation_rate,
+        lumpSum: this.formData.db_pcls_available,
+      });
 
       this.$emit('save', { ...apiData, _pensionType: 'db' });
     },

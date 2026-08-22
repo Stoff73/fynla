@@ -57,6 +57,48 @@ class LifeEventService
     }
 
     /**
+     * The subset of a set of events that has not happened yet.
+     *
+     * @param  Collection<int, LifeEvent>  $events
+     * @return Collection<int, LifeEvent>
+     */
+    public function upcoming(Collection $events): Collection
+    {
+        return $events->reject(fn (LifeEvent $event) => $event->hasOccurred())->values();
+    }
+
+    /**
+     * What a set of life events still means for the user, at a glance.
+     *
+     * The one home for the totals (Rule 20). Four surfaces each summed their own
+     * way — the goals projection summary, the module impact panel, the web
+     * events tab and the /m goals screen — and none of them excluded events that
+     * had already happened, so a confirmed 2020 inheritance was presented as
+     * money still to come on all four (W-0207).
+     *
+     * @param  Collection<int, LifeEvent>  $events
+     * @return array{expected_income: float, expected_expense: float, net_impact: float, income_count: int, expense_count: int}
+     */
+    public function summariseUpcoming(Collection $events): array
+    {
+        $upcoming = $this->upcoming($events);
+
+        $income = $upcoming->where('impact_type', 'income');
+        $expense = $upcoming->where('impact_type', 'expense');
+
+        $incomeTotal = (float) $income->sum('amount');
+        $expenseTotal = (float) $expense->sum('amount');
+
+        return [
+            'expected_income' => round($incomeTotal, 2),
+            'expected_expense' => round($expenseTotal, 2),
+            'net_impact' => round($incomeTotal - $expenseTotal, 2),
+            'income_count' => $income->count(),
+            'expense_count' => $expense->count(),
+        ];
+    }
+
+    /**
      * Get events grouped by age for chart display.
      */
     public function getEventsByAge(int $userId, bool $includeHousehold = false): array

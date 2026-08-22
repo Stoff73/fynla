@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\ChattelController;
 use App\Http\Controllers\Api\ContactFormController;
+use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
@@ -136,6 +137,13 @@ use Illuminate\Support\Facades\Route;
 
 // Contact form (public, rate-limited)
 Route::post('/contact', [ContactFormController::class, 'submit'])->middleware('throttle:3,5');
+
+// Cookie-banner consent (public, rate-limited). The single write path for the
+// analytics + affiliate consent decision on every surface — the web SPA banner,
+// the server-rendered public pages, and /m. Public because the decision is made
+// before an account exists. See App\Services\Consent\CookieConsentService.
+Route::post('/cookie-consent', [CookieConsentController::class, 'store'])
+    ->middleware('throttle:cookie-consent');
 
 Route::post('/webhooks/apple/v2', AppleNotificationController::class)
     ->middleware('throttle:apple-webhook')
@@ -518,7 +526,7 @@ Route::middleware('auth:sanctum')->prefix('savings')->group(function () {
     Route::post('/scenarios', [SavingsController::class, 'scenarios']);
 
     // ISA allowance tracking
-    Route::get('/isa-allowance/{taxYear}', [SavingsController::class, 'isaAllowance'])->where('taxYear', '.*');
+    Route::get('/isa-allowance/{taxYear?}', [SavingsController::class, 'isaAllowance'])->where('taxYear', '.*');
 
     // Savings accounts
     Route::prefix('accounts')->group(function () {
@@ -1044,6 +1052,10 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
         Route::put('/{id}', [RetirementController::class, 'updateDBPension']);
         Route::delete('/{id}', [RetirementController::class, 'destroyDBPension']);
     });
+
+    // Retirement goals — the one write path for target retirement age and income,
+    // shared by web, /m and native (W-0035).
+    Route::put('/goals', [RetirementController::class, 'updateRetirementGoals']);
 
     // State pension
     Route::post('/state-pension', [RetirementController::class, 'updateStatePension']);

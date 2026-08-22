@@ -55,10 +55,29 @@
     <!-- Will Type -->
     <div class="mb-6">
       <label class="block text-sm font-medium text-horizon-500 mb-3">
-        What type of will would you like to create?
+        Type of will
       </label>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+      <!--
+        A married user is not offered a choice here (CLAUDE.md Rule 16 —
+        CSJ direction W-0019). Rendering a lone button would still frame the
+        step as a chooser, so the choice is replaced by a statement. All the
+        wording comes from the server (WillTypePolicy) so the form, the API
+        and Fyn cannot drift apart.
+      -->
+      <template v-if="isRefused">
+        <p class="text-sm text-neutral-500 mb-3">{{ refusalLead }}</p>
+        <div v-if="refusalDetail.length" class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-violet-800 mb-2">{{ willTypePolicy.refusal_heading }}</h3>
+          <div class="text-sm text-violet-700 space-y-2">
+            <p v-for="(paragraph, i) in refusalDetail" :key="i">{{ paragraph }}</p>
+          </div>
+        </div>
+      </template>
+
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button
+          v-if="allowsSimple"
           type="button"
           @click="willType = 'simple'"
           class="p-4 rounded-lg border-2 text-left transition-all"
@@ -70,7 +89,7 @@
           <span class="block text-xs text-neutral-500 mt-1">A single will for you, distributing your estate as you wish.</span>
         </button>
         <button
-          v-if="prePopulated?.has_spouse"
+          v-if="allowsMirror"
           type="button"
           @click="willType = 'mirror'"
           class="p-4 rounded-lg border-2 text-left transition-all"
@@ -109,16 +128,58 @@ export default {
   emits: ['next', 'update'],
 
   data() {
+    const policy = this.prePopulated?.will_type_policy || null;
+    const allowed = policy?.allowed_will_types || ['simple'];
+
     return {
       disclaimerAccepted: false,
-      willType: this.formData.will_type || 'simple',
+      // Never default to 'simple' for a user who may not have one — before
+      // W-0019 a married user who ignored this block proceeded with a
+      // one-sided will having made no choice at all.
+      willType: allowed.includes(this.formData.will_type)
+        ? this.formData.will_type
+        : (allowed[0] || null),
       domicile: this.formData.domicile_confirmed || null,
     };
   },
 
   computed: {
+    willTypePolicy() {
+      return this.prePopulated?.will_type_policy || {
+        married: false,
+        allowed_will_types: ['simple'],
+        mirror_available: false,
+        can_build: true,
+        refusal_heading: '',
+        refusal: null,
+      };
+    },
+
+    isRefused() {
+      return Array.isArray(this.willTypePolicy.refusal) && this.willTypePolicy.refusal.length > 0;
+    },
+
+    refusalLead() {
+      return this.isRefused ? this.willTypePolicy.refusal[0] : '';
+    },
+
+    refusalDetail() {
+      return this.isRefused ? this.willTypePolicy.refusal.slice(1) : [];
+    },
+
+    allowsSimple() {
+      return this.willTypePolicy.allowed_will_types.includes('simple');
+    },
+
+    allowsMirror() {
+      return this.willTypePolicy.allowed_will_types.includes('mirror');
+    },
+
     canProceed() {
-      return this.disclaimerAccepted && this.domicile && this.willType;
+      return this.disclaimerAccepted
+        && this.domicile
+        && this.willType
+        && this.willTypePolicy.can_build;
     },
 
     domicileOptions() {

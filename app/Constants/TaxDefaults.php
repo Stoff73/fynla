@@ -47,6 +47,12 @@ final class TaxDefaults
     public const IHT_CHARITABLE_RATE = 0.36;
 
     /**
+     * Proportion of the baseline amount that must pass to charity for the
+     * reduced rate to apply (IHTA 1984 Sch 1A).
+     */
+    public const IHT_CHARITY_THRESHOLD = 0.10;
+
+    /**
      * Annual exemption for gifts (per donor).
      */
     public const ANNUAL_GIFT_EXEMPTION = 3000;
@@ -233,6 +239,12 @@ final class TaxDefaults
      * Default safe withdrawal rate for retirement income calculations.
      */
     public const SAFE_WITHDRAWAL_RATE = 0.04;
+
+    /**
+     * Share of pre-retirement income a household is assumed to need in retirement,
+     * when `retirement.target_income_percent` cannot be read from configuration.
+     */
+    public const RETIREMENT_TARGET_INCOME_PERCENT = 0.75;
 
     // ==================== Cache TTL Values ====================
 

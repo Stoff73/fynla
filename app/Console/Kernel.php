@@ -41,6 +41,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('notifications:mortgage-rate-alerts')->dailyAt('09:30');
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
+        $schedule->command('business:send-filing-alerts')->dailyAt('10:45');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
         $schedule->command('payments:reconcile-pending --older-than=15')->everyTenMinutes()->withoutOverlapping();
         $schedule->command('apple:notifications:recover')

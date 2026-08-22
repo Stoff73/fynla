@@ -186,8 +186,10 @@ const actions = {
           marital_status: user.marital_status,
           phone: user.phone,
           education_level: user.education_level,
-          good_health: user.good_health,
-          smoker: user.smoker,
+          // `good_health` / `smoker` are not columns on `users` — both read
+          // undefined on every user. The real fields are these two (W-0006).
+          health_status: user.health_status,
+          smoking_status: user.smoking_status,
           address: {
             line_1: user.address_line_1,
             line_2: user.address_line_2,

@@ -1,0 +1,152 @@
+---
+id: W-0202
+title: Fyn's expenditure capture writes one account at 100% regardless of the household's declared sharing mode — the same 100/0 split W-0190 fixed, through a different door
+mission: persona-run-peak_earners-2026-08-20
+branch: null
+owner: build-lead
+status: queued
+severity: high
+surfaces: [web, m, ios]
+created: 2026-08-22T03:10:00Z
+claimed: null
+blocked_by: []
+gate: null
+handoff_to: null
+prior_art_checked: 2026-08-22
+prior_art_found: [W-0190, W-0011]
+prior_art_outcome: extend
+constitution_refs: [07-quality-bar]
+---
+
+## Intent
+
+Raised by `cycle2-ownership` while fixing **W-0190**. **Deliberately not folded into
+that fix** — the reason is in Acceptance below and it is a decision, not an oversight.
+
+### The gap
+
+W-0190 gave the household expenditure sharing rule one home
+(`app/Support/SharedExpenditure.php`) and routed both write paths through it:
+
+| Path | Applies the declared sharing rule |
+|---|---|
+| `OnboardingService::processExpenditure()` | yes (always did) |
+| `UserProfileController::updateExpenditure()` / `updateSpouseExpenditure()` | yes (fixed under W-0190) |
+| **`CoordinatingAgent::handleSetExpenditure()` — Fyn** | **no** |
+
+`CoordinatingAgent.php:5183-5225` writes the categories to the acting user at 100%,
+totals them, mirrors the total into `ExpenditureProfile`, and **never touches the
+spouse**. On a household declaring `joint`, a Fyn capture therefore reproduces exactly
+the shape W-0190 reports: the whole of a shared cost on one account, nothing on the
+other, under a table that says "Joint (50/50) expenditure".
+
+Fyn is reachable from web, `/m` and native, and on `/m` it is the **only** way to edit
+expenditure — `resources/mobile/views/Expenditure.vue` is read-only and hands off to Fyn
+via `contextualRequest` with `action: 'edit'`. So on `/m` this is the only door.
+
+### Why it was not fixed with W-0190
+
+Three reasons, all of which need a decision rather than a guess:
+
+1. **Fyn's input is genuinely ambiguous where the form's is not.** The expenditure form
+   declares in its own subheading that the figures are the household's. A user telling
+   Fyn "our food shopping is £600" may mean the household's or their own. Halving
+   silently would be wrong half the time, and would look identical to a bug.
+2. **Its field list differs from both the others.** `handleSetExpenditure` covers
+   `rent`, `utilities` and `charitable_donations`, which `SharedExpenditure::SHARED_FIELDS`
+   does not, and omits `regular_savings`, which it does. Routing it through would also
+   change **which fields divide** — a second behaviour change riding on the first.
+3. ~~**`CoordinatingAgent.php` is 6,500 lines and was modified by another agent** in the
+   shared tree at the time.~~ **Stale** — that agent is terminated and the file is free
+   (team-lead, 2026-08-22). Reasons 1 and 2 stand.
+
+## DECIDED — team-lead, 2026-08-22
+
+**Use the household's declared mode. Do not halve unconditionally and do not leave
+100/0.**
+
+| Declared mode | Fyn's figure means | Behaviour |
+|---|---|---|
+| `joint` | the household's spending | halve and mirror, same as the form |
+| `separate` | the speaker's own | write to the one account at 100% |
+| none recorded | unknown | **Fyn asks** — an unanswered question must not become an answer |
+
+The reasoning, recorded because it is the part that generalises: an ambiguous input
+must not be resolved by an assumption the user never made — but **this household has
+already told us**. `use_separate_expenditure` is a deliberate declaration, so applying
+it is not a guess. It is what the expenditure form's subheading does explicitly.
+
+**NOT to be built this cycle.** A conversational-flow change is not a thing to start at
+the end of one. Left `queued`.
+
+---
+
+## Reachability check — done before building, as instructed. Read this before implementing.
+
+**The mode is reachable. The third branch is not.**
+
+`handleSetExpenditure(array $input, User $user, bool $isPreview)` has `$user` in scope
+and `expenditure_sharing_mode` is a column on `users`, so
+`$user->expenditure_sharing_mode` needs **no plumbing at all** — no threading through
+the 6,500-line file, no signature change. The first two branches are buildable as
+written.
+
+**But `users.expenditure_sharing_mode` is `enum('joint','separate') NOT NULL DEFAULT
+'joint'`.** It cannot be null. Every user row has had a mode since the moment it was
+created. **The "no mode recorded → Fyn asks" branch can never fire**, because there is
+no such state to detect.
+
+**And the consequence is sharper than a dead branch.** The default means
+**joint-by-declaration and joint-by-never-having-been-asked are indistinguishable**. A
+married user who has never opened the expenditure form, never seen the toggle and never
+formed a view reads as having declared `joint` — identically to one who chose it.
+
+Live distribution on the dev database, which shows the shape rather than a
+counter-example: **19 users, all `joint`, none `separate`, 12 with a spouse.** Nobody
+has ever chosen `separate`. Every value is the default.
+
+So on the decision's own terms — *"an unanswered question must not become an answer"* —
+**the schema already turned the unanswered question into an answer, before Fyn ever
+sees it.** Reading the column and calling it a declaration would inherit that, and the
+"ask" branch that was meant to prevent exactly this is unreachable.
+
+**This does NOT invalidate the decision; it identifies what has to be built first.**
+Three options, for team-lead / CSJ:
+
+1. **Make the unanswered state expressible** — the column becomes nullable, or a
+   companion `expenditure_sharing_mode_declared_at` records that someone chose. Then
+   the third branch works as decided and Fyn asks the users who have never said. This
+   is the option that matches the decision as written.
+2. **Treat the default as a declaration and disclose it** — Fyn states what it is doing
+   ("I've split that across you both, as your household is set to share expenditure"),
+   so the assumption is visible at the point it is made rather than silent. Cheaper,
+   and consistent with the form, which shows "Joint (50/50) expenditure" on screen while
+   the user types.
+3. **Have Fyn ask whenever the household has a spouse and the figure is a category
+   total**, ignoring the column for this purpose. Most conversational, most friction.
+
+**Note this also touches the shipped W-0190 fix, in the form's favour.** The profile
+path now halves for any married user whose mode is the default. That is defensible
+where Fyn's would not be, because **the form discloses it**: the subheading reads
+"Joint (50/50) expenditure" and the toggle is visible and set, at the moment of entry.
+Fyn has no equivalent disclosure. The difference between the two surfaces is disclosure,
+not arithmetic.
+
+---
+
+### Acceptance
+
+1. **The unanswered state is made expressible, or the default is disclosed** — see the
+   three options above. **This must be settled first**; branch three of the decision is
+   unbuildable until it is.
+2. `handleSetExpenditure` composes from `SharedExpenditure` — Rule 20, one home, and it
+   is the last path that does not.
+3. **Do not change which fields divide while changing which path divides.** The lists
+   differ — `handleSetExpenditure` covers `rent`, `utilities` and `charitable_donations`
+   which `SharedExpenditure::SHARED_FIELDS` does not, and omits `regular_savings` which
+   it does. If routing forces both, that is two behaviour changes and it splits into two
+   items. (`rent` and `utilities` are household costs by nature, so the reconciliation
+   is worth doing — separately.)
+4. Verified from Fyn on web AND `/m`, on both accounts of a linked household. **`/m` is
+   the one that matters**: its expenditure screen is read-only, so Fyn is the only
+   expenditure edit door there.

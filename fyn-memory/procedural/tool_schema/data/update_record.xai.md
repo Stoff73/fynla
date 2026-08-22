@@ -3,7 +3,7 @@ procedure_id: 'data.tool.update_record'
 kind: tool_schema
 module: data
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -584,6 +584,14 @@ effective_from: 2026-06-02
                         ]
                     },
                     "annual_profit": {
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "company_number": {
                         "type": [
                             "string",
                             "number",

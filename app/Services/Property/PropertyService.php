@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Property;
 
 use App\Models\Property;
+use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Traits\CalculatesOwnershipShare;
 
 /**
@@ -17,6 +19,65 @@ use App\Traits\CalculatesOwnershipShare;
 class PropertyService
 {
     use CalculatesOwnershipShare;
+
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
+
+    /**
+     * THE rental income figure (Rule 20).
+     *
+     * A user's annual rental profit — rent less allowable letting expenses, at
+     * their ownership share — plus the Section 24 finance-cost credit, plus the
+     * per-property composition so the total can be traced back to the records
+     * it came from.
+     *
+     * One definition, one home. The income page previously took the profit from
+     * here for the tax computation while the allowance panel re-derived a GROSS
+     * figure of its own, so a single screen taxed one income and tested the
+     * £100,000 taper against another (W-0175). Property income enters total
+     * income as the profits of the property business (ITA 2007 s23 Step 1 over
+     * ITTOIA 2005 Part 3), so the profit is the right figure for both.
+     *
+     * Properties where the user is the joint owner rather than the primary owner
+     * are included — `forUserByType` is joint-aware and `calculateTaxPosition`
+     * resolves the correct side of the split.
+     *
+     * @return array{total: float, section_24_credit: float, properties: list<array{name: string, annual_taxable: float, annual_credit: float, ownership_percentage: int|null}>}
+     */
+    public function annualRentalTaxPosition(User $user): array
+    {
+        $btlProperties = $this->propertyStore->forUserByType($user, 'buy_to_let');
+        $btlProperties->load('mortgages');
+
+        $properties = [];
+        $totalTaxableIncome = 0.0;
+        $totalSection24Credit = 0.0;
+
+        foreach ($btlProperties as $property) {
+            $taxPosition = $this->calculateTaxPosition($property, $user->id);
+
+            if ($taxPosition['annual_taxable_income'] <= 0 && $taxPosition['section_24_annual_credit'] <= 0) {
+                continue;
+            }
+
+            $totalTaxableIncome += $taxPosition['annual_taxable_income'];
+            $totalSection24Credit += $taxPosition['section_24_annual_credit'];
+
+            $properties[] = [
+                'name' => $taxPosition['property_name'],
+                'annual_taxable' => $taxPosition['annual_taxable_income'],
+                'annual_credit' => $taxPosition['section_24_annual_credit'],
+                'ownership_percentage' => $taxPosition['ownership_percentage'],
+            ];
+        }
+
+        return [
+            'total' => round($totalTaxableIncome, 2),
+            'section_24_credit' => round($totalSection24Credit, 2),
+            'properties' => $properties,
+        ];
+    }
 
     /**
      * Calculate property equity (current value - outstanding mortgage balance)

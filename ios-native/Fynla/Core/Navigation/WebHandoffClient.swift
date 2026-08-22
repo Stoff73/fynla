@@ -1,11 +1,26 @@
 import Foundation
 
+/// Mirrors `app/Enums/WebHandoffDestination.php`, which is the source of truth.
+///
+/// **Every case carries an explicit raw value equal to the PHP enum's backing
+/// value, and new cases must too.** The raw value is what `IssueRequest` puts on
+/// the wire, and `IssueWebHandoffRequest` validates it against the PHP enum — so a
+/// Swift-defaulted raw value (`"estateWill"` rather than `"estate_will"`) is
+/// rejected by the server as a 422 while looking perfectly correct in Swift. The
+/// five original cases worked only because their names happen to be single
+/// lowercase words; the first multi-word destination is where that runs out.
+///
+/// `estateWill` was absent from this mirror until W-0044 (2026-08-21), which meant
+/// the native app had **no route to the Will Builder at all**. When a case is added
+/// to the PHP enum, add it here and to `WebHandoffClientTests`; the PHP-side
+/// `WebHandoffDestinationTest` fails until this list is brought back into line.
 enum WebHandoffDestination: String, Codable, CaseIterable, Sendable {
-    case admin
-    case subscription
-    case settings
-    case privacy
-    case notifications
+    case admin = "admin"
+    case subscription = "subscription"
+    case settings = "settings"
+    case privacy = "privacy"
+    case notifications = "notifications"
+    case estateWill = "estate_will"
 }
 
 private struct WebHandoffResponse: Decodable, Sendable {

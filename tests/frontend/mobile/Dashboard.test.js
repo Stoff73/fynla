@@ -2,13 +2,22 @@ import { describe, expect, it } from 'vitest';
 import Dashboard from '../../../resources/mobile/views/Dashboard.vue';
 
 describe('mobile Dashboard retirement summary', () => {
-  it('shows the known pension pot without inventing target progress when retirement goals are not configured', () => {
+  it('shows the pension pot without inventing target progress when no target is set', () => {
+    // This case used to send `retirement: { status: 'not_configured' }` with the
+    // pot only present under `net_worth…pensions`, and asserted that /m reached
+    // across into the net worth block for it. That reach was a /m-only fallback
+    // the web dashboard never had — two surfaces answering one question
+    // differently (W-0238) — and it is gone. The endpoint now reports the pot on
+    // the retirement module itself for any user who has one, so the payload
+    // below is what the backend actually sends.
     const finances = Dashboard.computed.finances.call({
       data: {
         modules: {
           retirement: {
-            status: 'not_configured',
-            message: 'Retirement profile not yet set up.',
+            status: 'active',
+            pot_value: 47500,
+            guaranteed_income: 0,
+            target_income: 0,
           },
         },
         net_worth: {
@@ -32,6 +41,30 @@ describe('mobile Dashboard retirement summary', () => {
       barValue: 'Target not set',
       barUnit: '',
       caption: 'Your pension pot',
+    });
+  });
+
+  it('shows a guaranteed annual income, labelled per year, when there is no pot', () => {
+    // A defined-benefit-only spouse: the card read "£0 — Plan your retirement"
+    // beside her own retirement page showing £35,000 a year (W-0238).
+    const finances = Dashboard.computed.finances.call({
+      data: {
+        modules: {
+          retirement: {
+            status: 'active',
+            pot_value: 0,
+            guaranteed_income: 35000,
+            target_income: 0,
+          },
+        },
+        net_worth: { total: 0, breakdown: { assets: {}, total_assets: 0, total_liabilities: 0 } },
+      },
+      fmt: Dashboard.methods.fmt,
+    });
+
+    expect(finances.find(({ key }) => key === 'retirement')).toMatchObject({
+      value: '£35,000/year',
+      caption: 'Guaranteed retirement income',
     });
   });
 

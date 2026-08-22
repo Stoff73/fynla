@@ -33,6 +33,12 @@ export VITE_APP_NAME="Fynla"
 export VITE_APP_VERSION="1.0-$(git rev-parse --short HEAD 2>/dev/null || echo prod)"
 export VITE_API_BASE_URL=https://fynla.org
 
+# Google Analytics — the production measurement ID belongs to the production
+# build and nowhere else. The application code has NO fallback (W-0047): an
+# environment that does not set this loads no analytics at all, rather than
+# reporting development and test traffic into the live property.
+export VITE_GA_ID=G-3Y8DL3QB09
+
 # Awin affiliate tracking — production is always enabled. Flip to false here
 # temporarily if you need to ship a build with Awin off for any reason.
 export VITE_AWIN_ENABLED=true

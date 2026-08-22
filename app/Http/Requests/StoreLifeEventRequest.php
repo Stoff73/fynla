@@ -27,7 +27,13 @@ class StoreLifeEventRequest extends FormRequest
             'description' => 'nullable|string|max:1000',
             'amount' => 'sometimes|numeric|min:0.01|max:999999999.99',
             'impact_type' => 'nullable|string|in:income,expense',
-            'expected_date' => 'sometimes|date|after:today',
+            // W-0029: an event dated on or before today used to be rejected, so a
+            // completed event — an inheritance already received, a bonus already
+            // paid — could not be recorded, even though LifeEvent carries a
+            // `completed` status and POST /life-events/{id}/complete exists. The
+            // projection services already skip past events
+            // (FinancialForecastService:222, GoalAffordabilityService:250).
+            'expected_date' => 'sometimes|date',
             'certainty' => 'nullable|string|in:confirmed,likely,possible,speculative',
             'icon' => 'nullable|string|max:50',
             'show_in_projection' => 'nullable|boolean',
@@ -51,7 +57,6 @@ class StoreLifeEventRequest extends FormRequest
             'amount.required' => 'Please enter the expected amount.',
             'amount.min' => 'Amount must be greater than zero.',
             'expected_date.required' => 'Please select when you expect this event to occur.',
-            'expected_date.after' => 'Expected date must be in the future.',
         ];
     }
 }

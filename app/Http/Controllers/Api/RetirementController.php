@@ -10,6 +10,7 @@ use App\Http\Requests\Retirement\RetirementAnalysisRequest;
 use App\Http\Requests\Retirement\ScenarioRequest;
 use App\Http\Requests\Retirement\StoreDBPensionRequest;
 use App\Http\Requests\Retirement\StoreDCPensionRequest;
+use App\Http\Requests\Retirement\UpdateRetirementGoalsRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
 use App\Http\Resources\DCPensionResource;
 use App\Http\Traits\SanitizedErrorResponse;
@@ -35,7 +36,9 @@ use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\RetirementProfileStore;
 use App\Services\Stores\TierGate;
+use App\Support\HoldingValuation;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,6 +72,7 @@ class RetirementController extends Controller
         private readonly PensionNormaliser $pensionNormaliser,
         private readonly TierGate $tierGate,
         private readonly PortfolioPresentationService $portfolioPresentation,
+        private readonly RetirementProfileStore $retirementProfileStore,
     ) {}
 
     /**
@@ -403,7 +407,12 @@ class RetirementController extends Controller
                 $hasCashHolding = true;
             }
 
-            $pension->holdings()->create([
+            // The allocation percentage is where the value comes from when nothing
+            // else is stated — an INPUT to the one shared rule, never a competing
+            // one (Rule 20, W-0126). This form sends no units or prices today, so
+            // the reconciliation is inert; reading the shared class is what means
+            // the day it does, units are handled without anyone remembering to.
+            $pension->holdings()->create(HoldingValuation::reconcile([
                 'holdable_type' => DCPension::class,
                 'holdable_id' => $pension->id,
                 'security_name' => $holdingData['security_name'],
@@ -412,20 +421,20 @@ class RetirementController extends Controller
                 'current_value' => $currentValue,
                 'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
                 'cost_basis' => $holdingData['cost_basis'] ?? null,
-            ]);
+            ]));
         }
 
         $totalAllocated = collect($holdings)->sum('allocation_percent');
         if ($totalAllocated < 100 && ! $hasCashHolding) {
             $remainderPercent = 100 - $totalAllocated;
-            $pension->holdings()->create([
+            $pension->holdings()->create(HoldingValuation::reconcile([
                 'holdable_type' => DCPension::class,
                 'holdable_id' => $pension->id,
                 'security_name' => 'Cash',
                 'asset_type' => 'cash',
                 'allocation_percent' => $remainderPercent,
                 'current_value' => ($pension->current_fund_value * $remainderPercent) / 100,
-            ]);
+            ]));
         }
     }
 
@@ -563,6 +572,45 @@ class RetirementController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'DB pension deleted successfully',
+        ]);
+    }
+
+    /**
+     * Record the user's retirement goals — target retirement age and target
+     * retirement income (W-0035).
+     *
+     * The one write path for `retirement_profiles.target_retirement_income` that is
+     * reachable from a user interface. Web, `/m` and native all call this; none of
+     * them gets its own endpoint or its own rules (Rule 19, Rule 20). Before this
+     * existed the column could only be written by Fyn's `capture_retirement_goals`
+     * tool, so every user who had not chatted to Fyn had their entire retirement
+     * projection built on a fallback figure they never chose.
+     */
+    public function updateRetirementGoals(UpdateRetirementGoalsRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+
+        try {
+            $profile = $this->retirementProfileStore->updateGoals(
+                $user,
+                array_key_exists('target_retirement_age', $validated) && $validated['target_retirement_age'] !== null
+                    ? (int) $validated['target_retirement_age']
+                    : null,
+                array_key_exists('target_retirement_income', $validated) && $validated['target_retirement_income'] !== null
+                    ? (float) $validated['target_retirement_income']
+                    : null,
+            );
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
+
+        $this->invalidateRetirementCache($user->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Retirement goals updated successfully',
+            'data' => $profile,
         ]);
     }
 

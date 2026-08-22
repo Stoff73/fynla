@@ -272,6 +272,56 @@ What this means in practice:
 
 **Ownership:** OWNED by CSJ (issued 2026-07-23). Changeable only by CSJ editing this section. No plan, PR, contributor, or sub-agent overrides it.
 
+### 21. When a Tester Agent Runs, the Main Inference IS the Coordinator
+
+**Invoking `persona-tester` (or any test-run agent) makes the main inference the coordinator of that run for its whole life.** Dispatching is not delegating and walking away — the run's momentum is the coordinator's job, not the tester's.
+
+**The tester must never sit idle.** There are exactly two legitimate idle states:
+
+1. It needs a decision only CSJ can make, and has already exhausted the persona file, the plan, the spec, the canonical contract and the vault.
+2. It has looped to green and the run is genuinely finished.
+
+**Everything else is a coordinator failure, not a tester failure.** A tester idle because it is waiting for a fix to land, for provisioning, for tooling, for an environment, for a question the coordinator could answer, or for a decision the coordinator could take — that is the coordinator asleep at the wheel.
+
+**Coordinator obligations while a tester is running:**
+
+- **Keep it fed.** The moment it is blocked on one surface, re-task it onto surfaces the in-flight fixes do not touch. Blocked ≠ finished.
+- **Batch fixes, never single issues.** Group defects into non-colliding batches by subsystem and dispatch them in parallel. One agent per batch, ordered so the cause is fixed before its symptoms.
+- **Unblock what you can yourself** — tooling, MCP servers, provisioning, environments, test data, sanctioned test-support paths. Do not hand these to CSJ, and do not let the tester do them (provisioning and DB state are the coordinator's, never the tester's).
+- **Answer what you can answer.** Escalate to CSJ only what genuinely requires their judgement, batched, with a recommendation.
+- **Drive to the goal.** The run is not over when the passes are done; it is over when every defect it raised is fixed, verified, and green where CSJ tests.
+
+**Fast without shortcuts.** Speed comes from parallelism and batching, never from skipping detail, thinning verification, or declaring partial success.
+
+**Ownership:** OWNED by CSJ (issued 2026-08-21). Changeable only by CSJ editing this section.
+
+### 22. Context Budget — Hand Over at 900k, Never Run Into the Ceiling
+
+**Applies to every agent in this repo, main inference and sub-agents alike.** This section is the ONE home for the rule — it is not copied into agent definitions.
+
+The window is 1M tokens. **The buffer is 900k.** On reaching roughly 900k — or on the first harness signal of context pressure, whichever comes first — stop taking new work and hand over.
+
+**An agent cannot clear itself.** The handover is therefore a two-party contract:
+
+1. **The agent** stops, writes a handover, and returns it to whoever dispatched it. Nothing else — do not start one more check, do not "just finish this file".
+2. **The coordinator** spawns a **fresh agent seeded with that handover**. The replacement's clean context IS the clear.
+
+**What the handover must carry** — enough that the replacement needs nothing else:
+
+- The task as originally dispatched, verbatim, plus any amendments received since.
+- What is DONE, with evidence (file:line, board item ids, DB rows, screenshot names).
+- What is IN FLIGHT, mid-edit or mid-verification, and its exact state.
+- What is NOT STARTED, in priority order.
+- Decisions already taken and their reasoning — so the replacement does not re-litigate them.
+- Dead ends already ruled out — so it does not re-walk them.
+- Environment state it depends on (test users, provisioning, branches, running servers).
+
+**Where:** alongside the work. Test runs → `tests/Persona/<run>/reports/R-NN-handover.md`. Fix batches → the branch document under `workforce/branches/`. Always linked from the run log or board item so the replacement can find it unaided.
+
+**Never** hit the ceiling mid-write with unsaved reasoning. A handover written at 900k is cheap; an automatic mid-thought compaction loses exactly the context that was expensive to build.
+
+**Ownership:** OWNED by CSJ (issued 2026-08-21). Changeable only by CSJ editing this section.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**

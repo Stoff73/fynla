@@ -404,6 +404,8 @@
               <strong>Note:</strong> Tax calculations use {{ detailedTaxBreakdown.tax_year }} UK tax rates.
               Income is taxed in priority order: employment income uses the Personal Allowance first,
               with other income types taxed at remaining band positions.
+              Rental profit is your share of the rent less allowable letting expenses — utilities,
+              buildings and contents insurance, service charge, ground rent and managing agent fees.
             </p>
           </div>
         </div>

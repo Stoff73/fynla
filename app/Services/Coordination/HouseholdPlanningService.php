@@ -41,6 +41,85 @@ class HouseholdPlanningService
     use CalculatesOwnershipShare;
     use ResolvesIncome;
 
+    /**
+     * Assumed spouse's pension as a percentage of the member's, when the scheme record
+     * does not state one. Half is the common Defined Benefit scheme rule and this is
+     * long-standing behaviour, kept rather than changed while fixing W-0154.
+     *
+     * It is an assumption presented to the user as a figure, and the application does
+     * not agree with itself about it: `PensionDerivedColumnCalculator::calculateDb()`
+     * returns **null** for an unstated percentage rather than assuming anything, so the
+     * derived column and this service answer the same question differently. Settling
+     * that is a product decision, recorded in the W-0154 working notes rather than
+     * decided here.
+     *
+     * NOT a tax value, so deliberately not in `TaxConfigService` (Rule 2) — it is a
+     * scheme convention, and the real fix is recording the actual percentage, which the
+     * Defined Benefit form has captured since W-0017.
+     */
+    private const DEFAULT_SPOUSE_PENSION_PERCENT = 50;
+
+    /**
+     * Read the standard Inheritance Tax rate from configuration (W-0154, Rule 2).
+     *
+     * **This service asked for `$ihtConfig['rate']` at two sites, and that key has never
+     * existed.** The configured array holds `standard_rate`, which is what
+     * `IHTCalculationService` (`:1392`, `:2003`), `PersonalizedGiftingStrategyService`
+     * (`:53`) and `PersonalizedTrustStrategyService` (five sites) all read. So this was
+     * not a configured-but-null value — it was the wrong key name, and `?? 0.40`
+     * swallowed the miss. Every Inheritance Tax figure this service produced used a
+     * literal that no configuration change could move: the rate was not merely unread,
+     * it was unreachable.
+     *
+     * Both call sites now go through here rather than being corrected in lockstep, so
+     * the key is named once (Rule 20).
+     *
+     * **The fallback is loud on purpose.** An unconfigured tax rate quietly becoming 40%
+     * is exactly how this survived: correct-looking at the call site, correct-looking in
+     * the seed, wrong only where the two meet. `TaxDefaults::IHT_RATE` still keeps the
+     * figure sane rather than throwing at a user mid-calculation — matching how
+     * `PersonalizedTrustStrategyService` falls back — but it no longer does so in
+     * silence.
+     *
+     * @param  array<string, mixed>  $ihtConfig  from TaxConfigService::getInheritanceTax()
+     */
+    private function inheritanceTaxRate(array $ihtConfig): float
+    {
+        if (! isset($ihtConfig['standard_rate'])) {
+            report(new \RuntimeException(
+                'Inheritance Tax standard_rate is not configured; falling back to TaxDefaults::IHT_RATE. '
+                .'Household planning figures are being produced from a default, not from tax configuration.'
+            ));
+
+            return TaxDefaults::IHT_RATE;
+        }
+
+        return (float) $ihtConfig['standard_rate'];
+    }
+
+    /**
+     * Residence nil rate band taper — £1 of allowance lost per £2 of estate above the
+     * threshold, so the configured rate is 0.5.
+     *
+     * Was a hardcoded `/ 2`. `rnrb_taper_rate` is configured and is what
+     * `IHTCalculationService:1266` reads; dividing by a literal meant this service could
+     * not follow a change to it.
+     *
+     * @param  array<string, mixed>  $ihtConfig  from TaxConfigService::getInheritanceTax()
+     */
+    private function rnrbTaperRate(array $ihtConfig): float
+    {
+        if (! isset($ihtConfig['rnrb_taper_rate'])) {
+            report(new \RuntimeException(
+                'Inheritance Tax rnrb_taper_rate is not configured; falling back to the statutory 0.5.'
+            ));
+
+            return 0.5;
+        }
+
+        return (float) $ihtConfig['rnrb_taper_rate'];
+    }
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly PropertyStore $propertyStore,
@@ -257,7 +336,7 @@ class HouseholdPlanningService
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
         $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
-        $ihtRate = (float) ($ihtConfig['rate'] ?? 0.40);
+        $ihtRate = $this->inheritanceTaxRate($ihtConfig);
 
         // Gather deceased's assets
         $deceasedAssets = $this->gatherAssetsForUser($deceased);
@@ -780,7 +859,30 @@ class HouseholdPlanningService
     }
 
     /**
-     * Calculate DB pension spouse benefit (typically 50% of scheme pension).
+     * Calculate the Defined Benefit pension income a surviving spouse would receive.
+     *
+     * Surfaces to the user as `income_impact.db_spouse_benefit` in the widowhood
+     * scenario, rendered at `DeathOfSpouseScenario.vue:102-104` behind a `> 0` guard.
+     *
+     * **This returned zero for every household in the application until W-0154.** It
+     * multiplied the spouse percentage by `expected_annual_pension` — a column that has
+     * never existed on `db_pensions` (the real ones are `accrued_annual_pension` and the
+     * derived `projected_annual_pension_at_nra_gbp`). `?? 0` swallowed the null, so the
+     * arithmetic was always a percentage of nothing, the `> 0` guard never fired, and a
+     * surviving spouse was silently never told about pension income they would actually
+     * receive.
+     *
+     * It also made `fix-batch-C`'s W-0030 fix unobservable through this path: that batch
+     * corrected the `spouse_pension_percent` unit convention with a migration the same
+     * day, and this multiplied the corrected percentage into a null.
+     *
+     * `spouse_pension_projected_gbp` is preferred because it is the *same* arithmetic
+     * already performed in the one canonical place —
+     * `PensionDerivedColumnCalculator::calculateDb()` writes it as the annual pension
+     * times the spouse percentage — so the widowhood scenario and the pension record
+     * cannot disagree about one figure (Rule 20). The fallback exists because that
+     * column is only written when a write triggers recalculation, so rows predating it
+     * are null; it recomputes from the same sources rather than a different figure.
      */
     private function calculateDBPensionSpouseBenefit(User $deceased): float
     {
@@ -788,9 +890,25 @@ class HouseholdPlanningService
         $total = 0.0;
 
         foreach ($dbPensions as $pension) {
-            $spousePercent = (float) ($pension->spouse_pension_percent ?? 50);
-            $annualPension = (float) ($pension->expected_annual_pension ?? 0);
-            $total += $annualPension * ($spousePercent / 100);
+            if ($pension->spouse_pension_projected_gbp !== null) {
+                $total += (float) $pension->spouse_pension_projected_gbp;
+
+                continue;
+            }
+
+            $annualPension = $pension->projected_annual_pension_at_nra_gbp
+                ?? $pension->accrued_annual_pension;
+
+            // No recorded pension amount at all. Contributing nothing is the only
+            // honest option here — but note it is indistinguishable, in the float this
+            // returns, from a scheme that genuinely pays the spouse nothing. See the
+            // W-0154 working notes: the payload has no way to say "not known".
+            if ($annualPension === null) {
+                continue;
+            }
+
+            $spousePercent = (float) ($pension->spouse_pension_percent ?? self::DEFAULT_SPOUSE_PENSION_PERCENT);
+            $total += (float) $annualPension * ($spousePercent / 100);
         }
 
         return $total;
@@ -908,7 +1026,7 @@ class HouseholdPlanningService
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
         $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
-        $ihtRate = (float) ($ihtConfig['rate'] ?? 0.40);
+        $ihtRate = $this->inheritanceTaxRate($ihtConfig);
 
         $hasMainResidence = $this->propertyStore
             ->forUserByType($user, 'main_residence')
@@ -920,7 +1038,7 @@ class HouseholdPlanningService
         $netEstate = $assets['total'] - $liabilities['total'];
         $taperThreshold = (float) ($ihtConfig['rnrb_taper_threshold'] ?? EstateDefaults::RNRB_TAPER_THRESHOLD);
         if ($qualifiesForRNRB && $netEstate > $taperThreshold) {
-            $taperReduction = ($netEstate - $taperThreshold) / 2;
+            $taperReduction = ($netEstate - $taperThreshold) * $this->rnrbTaperRate($ihtConfig);
             $effectiveRNRB = max(0.0, $effectiveRNRB - $taperReduction);
         }
         $totalAllowances = $nrb + $effectiveRNRB;

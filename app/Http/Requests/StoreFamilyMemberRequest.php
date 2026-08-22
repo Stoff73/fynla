@@ -27,7 +27,20 @@ class StoreFamilyMemberRequest extends FormRequest
 
         return [
             'relationship' => ['sometimes', Rule::in(['spouse', 'partner', 'child', 'step_child', 'parent', 'other_dependent'])],
-            'email' => ['nullable', 'email', 'max:255'],
+            // Required for a spouse, because a spouse row is the household's
+            // account link: `users.spouse_id`, both SpousePermission rows and
+            // everything joint key off it. Without an email there is nothing to
+            // link by, and the record that came back claimed a link it never
+            // made (W-0051). The message for this rule was already here — the
+            // rule itself never was.
+            // Prohibited for anyone else, because only a spouse gets an
+            // account. The form used to reveal this field for a partner too,
+            // labelled "Used to create or link their account", validate what was
+            // typed, return 201 — and then drop it, since `email` is not a
+            // `family_members` column and only a spouse is routed to linking.
+            // A field the code intends to discard is not a field to accept
+            // (W-0111).
+            'email' => ['required_if:relationship,spouse', 'prohibited_unless:relationship,spouse', 'nullable', 'email', 'max:255'],
             'name' => ['nullable', 'string', 'max:255'], // Optional - constructed from name parts
             'first_name' => ['sometimes', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
@@ -90,7 +103,8 @@ class StoreFamilyMemberRequest extends FormRequest
     {
         return [
             'relationship.required' => 'Please select a relationship type.',
-            'email.required_if' => 'Email address is required for spouse.',
+            'email.required_if' => 'Please enter your spouse\'s email address. We use it to create or link their account, which is what connects your finances.',
+            'email.prohibited_unless' => 'Only a spouse can be given an email address — an account is created or linked for them, which does not happen for other family members.',
             'email.email' => 'Please enter a valid email address.',
             'first_name.required' => 'First name is required.',
             'last_name.required' => 'Last name is required.',

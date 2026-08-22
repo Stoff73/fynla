@@ -8,6 +8,16 @@ the literal path of one of them, so a move breaks the test suite.
 Session handovers and working notes live in `{Month}/{Month}{D}Updates/`.
 This file is the bridge between the two conventions.
 
+Undated material filed off the repo root on 2026-08-21 is **not** listed below
+(this table is dated docs only):
+
+| Tree | Holds |
+|---|---|
+| `docs/reference/` | Live non-code reference: `prompts/` (Fyn system prompt corpus), `tools/` (Fyn tool catalogue), `Articles/`, `FCA/`, `fyn/`, `campaigns/`, `investmentTree/`, `fynlaFeaturesModules/`, plus loose reference docs (`Persona Data.md`, `System Map.md`, `sshCLI.md`, the `.docx` templates). |
+| `docs/archive/` | Superseded and historical: `appMapping/`, `revolut/`, `awin/`, `brettTesting/`, plus finished plans and one-off notes. |
+| `docs/assets/templates/` | Social/marketing image templates (`ImageRendererService`). |
+| `docs/dashboards/` | Dashboard screenshot history. |
+
 Regenerate after adding docs:
 
 ```bash
@@ -42,6 +52,8 @@ bash August/August17Updates/regen-docs-index.sh > docs/INDEX.md
 | 2026-08-09 | testing | [ios-m-parity-pr1-evidence](testing/2026-08-09-ios-m-parity-pr1-evidence.md) |
 | 2026-08-09 | specs | [ios-m-parity-debugging-design](superpowers/specs/2026-08-09-ios-m-parity-debugging-design.md) |
 | 2026-08-09 | plans | [ios-m-parity-foundations](superpowers/plans/2026-08-09-ios-m-parity-foundations.md) |
+| 2026-08-04 | plans | [independent-mortgage-liability](superpowers/plans/2026-08-04-independent-mortgage-liability.md) |
+| 2026-08-03 | specs | [independent-mortgage-liability-design](superpowers/specs/2026-08-03-independent-mortgage-liability-design.md) |
 | 2026-07-22 | specs | [structured-turn-intent-and-gate-facts](superpowers/specs/2026-07-22-structured-turn-intent-and-gate-facts.md) |
 | 2026-07-22 | plans | [structured-turn-intent-implementation](superpowers/plans/2026-07-22-structured-turn-intent-implementation.md) |
 | 2026-07-21 | plans | [onboarding-interruption-intelligence](superpowers/plans/2026-07-21-onboarding-interruption-intelligence.md) |

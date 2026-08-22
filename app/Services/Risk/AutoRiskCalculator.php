@@ -270,9 +270,13 @@ class AutoRiskCalculator
      */
     private function calculateDependantsFactor(User $user): array
     {
+        // `stated_relationship` is selected because `display_relationship` is
+        // computed from it — a partial select without it would silently fall
+        // back to the stored enum and print "Other Dependent" for someone's
+        // partner, on the one page about their financial dependants (W-0115).
         $dependants = FamilyMember::where('user_id', $user->id)
             ->where('is_dependent', true)
-            ->get(['first_name', 'relationship']);
+            ->get(['first_name', 'relationship', 'stated_relationship']);
 
         $dependantCount = $dependants->count();
 
@@ -299,7 +303,11 @@ class AutoRiskCalculator
                 'count' => $dependantCount,
                 'dependants' => $dependants->map(fn ($d) => [
                     'name' => $d->first_name,
+                    // Raw value kept for anything that needs to branch; the
+                    // display value added so the client renders what the user
+                    // chose rather than what the column could hold.
                     'relationship' => $d->relationship,
+                    'display_relationship' => $d->display_relationship,
                 ])->toArray(),
             ],
         ];

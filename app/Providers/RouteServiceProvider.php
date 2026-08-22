@@ -71,6 +71,21 @@ class RouteServiceProvider extends ServiceProvider
             });
         }
 
+        // Cookie-banner consent (public, unauthenticated). Named, not inline:
+        // Laravel keys inline throttles for unauthenticated requests by
+        // sha1("$domain|$ip") with no path component, so an inline limit here
+        // would share one bucket with every other inline-throttled public
+        // route. Generous enough that a visitor toggling their mind, or a
+        // household behind one NAT address, is never refused.
+        RateLimiter::for('cookie-consent', function (Request $request) {
+            return Limit::perMinute(20)->by($request->path().'|'.$request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many requests. Please wait a moment and try again.',
+                ], 429);
+            });
+        });
+
         // Rate limit for data export (expensive operation)
         RateLimiter::for('export', function (Request $request) {
             return Limit::perHour(3)->by($request->user()?->id ?: $request->ip())->response(function () {

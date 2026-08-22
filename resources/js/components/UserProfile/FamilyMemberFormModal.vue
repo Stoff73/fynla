@@ -33,7 +33,7 @@
                 <option value="child">Child</option>
                 <option value="step_child">Step Child</option>
                 <option value="parent">Parent</option>
-                <option value="other_dependent">Other Dependent</option>
+                <option value="other_dependent">Other Dependant</option>
               </select>
               <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-raspberry-500">
                 A user account will be created for your spouse if they don't have one yet. If they already have an account, it will be linked.
@@ -46,8 +46,16 @@
               </p>
             </div>
 
-            <!-- Email (for spouse or partner — account will be created/linked) -->
-            <div v-if="form.relationship === 'spouse' || form.relationship === 'partner'">
+            <!-- Email — SPOUSE ONLY, because a spouse is the only relationship
+                 that gets an account. It was offered for a partner too, under
+                 "Used to create or link their account", and then discarded
+                 without a word (W-0111).
+                 Add only: the update endpoint cannot link an account, so
+                 offering the field on an edit would silently discard it. To link
+                 a spouse already on file, add them again with their email — the
+                 linking service adopts the existing record rather than adding a
+                 second (W-0051). -->
+            <div v-if="!isEditing && form.relationship === 'spouse'">
               <label for="email" class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Email Address <span class="text-raspberry-500">*</span>
               </label>
@@ -442,6 +450,16 @@ export default {
     const handleSubmit = async () => {
       submitting.value = true;
       errorMessage.value = '';
+
+      // The asterisk on the spouse email field promised this and nothing
+      // enforced it, on either side. An empty email is stripped from the
+      // payload below, so the request arrived with no email at all and the
+      // household came back with a spouse record and no account link (W-0051).
+      if (!isEditing.value && form.value.relationship === 'spouse' && !form.value.email?.trim()) {
+        errorMessage.value = "Please enter your spouse's email address. We use it to create or link their account, which is what connects your finances.";
+        submitting.value = false;
+        return;
+      }
 
       // Validate DOB before submitting
       if (!validateDob()) {

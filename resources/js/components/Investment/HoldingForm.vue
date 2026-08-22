@@ -26,6 +26,11 @@
         <!-- Form -->
         <form @submit.prevent="submitForm">
           <div class="bg-white px-6 py-4 space-y-4">
+            <!-- Save failure. The parent owns the API call (see CLAUDE.md Rule 3)
+                 and feeds the message back here; the modal stays open (W-0009). -->
+            <div v-if="saveError" class="bg-eggshell-500 rounded-lg p-4">
+              <p class="text-sm text-raspberry-800">{{ saveError }}</p>
+            </div>
             <!-- Account Selection -->
             <div>
               <label for="account_id" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -140,6 +145,48 @@
             </div>
 
             <!-- Allocation Percentage and Purchase Price (Optional) -->
+            <!-- Units held and dividend yield. Both are columns the model has
+                 always carried and no form could write: every one of the
+                 persona's ten holdings has a unit count with nowhere to go
+                 (W-0039), and dividend_yield was validated by both requests
+                 while no input existed anywhere in the SPA. -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="quantity" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Units Held <span class="text-horizon-400 text-xs">(Optional)</span>
+                </label>
+                <input
+                  id="quantity"
+                  v-model.number="formData.quantity"
+                  type="number"
+                  step="0.000001"
+                  min="0"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  :class="{ 'border-raspberry-500': errors.quantity }"
+                  placeholder="e.g., 351"
+                />
+                <p v-if="errors.quantity" class="mt-1 text-sm text-raspberry-600">{{ errors.quantity }}</p>
+                <p class="mt-1 text-xs text-neutral-500">{{ unitsHelpText }}</p>
+              </div>
+              <div>
+                <label for="dividend_yield" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Dividend Yield % <span class="text-horizon-400 text-xs">(Optional)</span>
+                </label>
+                <input
+                  id="dividend_yield"
+                  v-model.number="formData.dividend_yield"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  :class="{ 'border-raspberry-500': errors.dividend_yield }"
+                  placeholder="e.g., 2.10"
+                />
+                <p v-if="errors.dividend_yield" class="mt-1 text-sm text-raspberry-600">{{ errors.dividend_yield }}</p>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="allocation_percent" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -304,6 +351,10 @@ export default {
       type: Number,
       default: null,
     },
+    saveError: {
+      type: String,
+      default: null,
+    },
   },
 
   data() {
@@ -316,9 +367,11 @@ export default {
         asset_type: '',
         sub_type: null,
         allocation_percent: null,
+        quantity: null,
         purchase_price: null,
         purchase_date: '',
         current_price: null,
+        dividend_yield: null,
         ocf_percent: 0,
       },
       errors: {},
@@ -342,9 +395,22 @@ export default {
       return this.accounts.find(acc => acc.id === this.formData.investment_account_id);
     },
 
+    // Mirrors App\Support\HoldingValuation, which is the authority — this is a
+    // preview only, and the server recomputes it on save. Units win over the
+    // allocation fallback, so the two can never disagree (W-0039).
     calculatedHoldingValue() {
+      if (this.formData.quantity > 0 && this.formData.current_price > 0) {
+        return this.formData.quantity * this.formData.current_price;
+      }
       if (!this.selectedAccount || !this.formData.allocation_percent) return 0;
       return (this.selectedAccount.current_value * this.formData.allocation_percent) / 100;
+    },
+
+    unitsHelpText() {
+      if (this.formData.quantity > 0 && this.formData.current_price > 0) {
+        return `Value: ${this.formatCurrency(this.calculatedHoldingValue)} — units x current price`;
+      }
+      return 'With a current price, the value is calculated from units x price';
     },
 
     returnPercent() {
@@ -366,6 +432,14 @@ export default {
         if (newHolding) {
           this.formData = {
             ...newHolding,
+            // A holding record references its account as holdable_id, and the
+            // inline editor passes a trimmed shape carrying neither — so the
+            // Account select came up empty and "Account is required" blocked
+            // every edit before a request was even sent (W-0009).
+            investment_account_id: newHolding.investment_account_id
+              ?? newHolding.holdable_id
+              ?? this.defaultAccountId
+              ?? '',
             sub_type: newHolding.sub_type || null,
             purchase_date: this.formatDateForInput(newHolding.purchase_date),
           };
@@ -444,8 +518,9 @@ export default {
           // cost_basis will be calculated on backend if purchase price is provided
         };
 
+        // NOT closed here. The parent runs the API call and closes on success;
+        // self-closing is what made a discarded edit look saved (W-0009).
         this.$emit('save', holdingData);
-        this.closeModal();
       } catch (error) {
         logger.error('Form submission error:', error);
         if (error.response?.data?.errors) {
@@ -513,9 +588,11 @@ export default {
         asset_type: '',
         sub_type: null,
         allocation_percent: null,
+        quantity: null,
         purchase_price: null,
         purchase_date: '',
         current_price: null,
+        dividend_yield: null,
         ocf_percent: 0,
       };
       this.errors = {};

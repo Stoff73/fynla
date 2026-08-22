@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\Tax\IncomeTaxBands;
+
 /**
  * Tracks Personal Allowance and tax band consumption as income sources are stacked.
  * Used for detailed per-income-type tax breakdowns.
@@ -28,24 +30,23 @@ class TaxBandTracker
 
     private float $usedHigherBand = 0;
 
-    public function __construct(array $taxConfig)
+    /**
+     * @param  array<string, mixed>  $taxConfig  TaxConfigService::getIncomeTax()
+     * @param  float|null  $personalAllowance  Effective allowance after any taper.
+     *                                         Passed separately so the config keeps its
+     *                                         full allowance — the basic-rate band width
+     *                                         is derived from it (W-0174).
+     */
+    public function __construct(array $taxConfig, ?float $personalAllowance = null)
     {
-        $this->personalAllowance = $taxConfig['personal_allowance'];
-        $bands = $taxConfig['bands'];
+        $bands = IncomeTaxBands::forPersonalAllowance($taxConfig, $personalAllowance);
 
-        // Absolute thresholds — prefer the top-level aliases, which are derived
-        // from bands[i].upper_limit. The legacy `PA + bands[i].max` formula was
-        // latently wrong for band[1] because bands[1].max is the absolute
-        // additional-rate threshold (£125,140) rather than a band width — fine
-        // when PA is fully tapered, broken otherwise. See audit finding #5.
-        $this->basicRateLimit = (float) ($taxConfig['higher_rate_threshold']
-            ?? ($this->personalAllowance + $bands[0]['max']));
-        $this->higherRateLimit = (float) ($taxConfig['additional_rate_threshold']
-            ?? ($bands[1]['upper_limit'] ?? ($this->personalAllowance + $bands[1]['max'])));
-
-        $this->basicRate = $bands[0]['rate'];
-        $this->higherRate = $bands[1]['rate'];
-        $this->additionalRate = $bands[2]['rate'];
+        $this->personalAllowance = $bands->personalAllowance;
+        $this->basicRateLimit = $bands->basicRateLimit;
+        $this->higherRateLimit = $bands->higherRateLimit;
+        $this->basicRate = $bands->basicRate;
+        $this->higherRate = $bands->higherRate;
+        $this->additionalRate = $bands->additionalRate;
     }
 
     /**

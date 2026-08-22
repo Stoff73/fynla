@@ -105,4 +105,37 @@ describe('PolicyCard', () => {
     ]);
     expect(wrapper.vm.parseConditions('invalid')).toEqual([]);
   });
+
+  // W-0186 — a joint-life policy covers both spouses and is recorded once, on the
+  // account that entered it. It reaches the other life assured read-only.
+  it('names the other life assured on a joint-life policy', () => {
+    const { wrapper } = mountCard({
+      ...lifePolicy,
+      joint_life: true,
+      joint_life_with: 'Sarah Jones',
+      is_own_policy: true,
+    });
+
+    expect(wrapper.text()).toContain('Joint life with Sarah Jones');
+    expect(wrapper.text()).not.toContain("Recorded on");
+  });
+
+  it('says whose record it is when the policy is not this account\'s', () => {
+    const { wrapper } = mountCard({
+      ...lifePolicy,
+      joint_life: true,
+      joint_life_with: 'David Jones',
+      is_own_policy: false,
+    });
+
+    expect(wrapper.text()).toContain('Joint life with David Jones');
+    expect(wrapper.text()).toContain("Recorded on David Jones's account");
+  });
+
+  it('says nothing about sharing on a single-life policy', () => {
+    const { wrapper } = mountCard({ ...lifePolicy, joint_life: false, is_own_policy: true });
+
+    expect(wrapper.text()).not.toContain('Joint life');
+    expect(wrapper.text()).not.toContain('Recorded on');
+  });
 });

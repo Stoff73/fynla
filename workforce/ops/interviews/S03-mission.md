@@ -10,8 +10,8 @@ Blocks anything customer-facing being judged for goal fit.
 ## What I read first
 
 `April/April19Updates/marketing/04-product-strategy.md` §1–3 in full ·
-`marketing/README.md` · `README.md` · `Persona Data.md` · `CLAUDE.md` preview
-personas · `fynlaBrain/Personas/` · `CSJTODO-freemium-series.md` (title only)
+`marketing/README.md` · `README.md` · `docs/reference/Persona Data.md` · `CLAUDE.md` preview
+personas · `fynlaBrain/Personas/` · `docs/archive/CSJTODO-freemium-series.md` (title only)
 
 **First correction to my own earlier framing.** I have been calling the strategy
 doc "unsigned" and treating it as advisory. Having now read it properly: it is
@@ -91,7 +91,7 @@ should be one thing in one place, not restated in two.
 > **Three findings while writing it:**
 >
 > 1. **There are seven personas, not six.** `widow` is in `PreviewUserSeeder.php`,
->    `appMapping/personaData/` and the vault. `CLAUDE.md` omits it. Logged to
+>    `docs/archive/appMapping/personaData/` and the vault. `CLAUDE.md` omits it. Logged to
 >    `00-precedence.md` §3. It also strengthens the ruling — a widow with a
 >    transferable nil-rate band is defined by situation, not income.
 > 2. **Four sources define personas.** Ruled: `PreviewUserSeeder.php` is canonical
@@ -143,7 +143,7 @@ Three ways this can go:
    match what is actually being built.
 3. **Both are true because there are two motions** — a narrow paid beachhead and a
    broad free/low-tier funnel. If so, that needs saying explicitly, because it
-   changes every downstream judgement. `CSJTODO-freemium-series.md` exists, which
+   changes every downstream judgement. `docs/archive/CSJTODO-freemium-series.md` exists, which
    hints at this.
 
 ### B2. "Every UK household" versus a 150k beachhead

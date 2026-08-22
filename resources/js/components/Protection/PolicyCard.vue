@@ -35,6 +35,13 @@
               </span>
             </div>
           </div>
+
+          <p v-if="jointLifeNote" class="mt-2 text-sm text-neutral-500">
+            {{ jointLifeNote }}
+          </p>
+          <p v-if="sharedRecordNote" class="mt-1 text-sm text-neutral-500">
+            {{ sharedRecordNote }}
+          </p>
         </div>
 
         <svg
@@ -102,6 +109,23 @@ export default {
 
     coverageAmount() {
       return this.policy.sum_assured || this.policy.benefit_amount || 0;
+    },
+
+    // A joint-life policy covers both spouses and is recorded once, on the account
+    // that entered it. It reaches the other life assured read-only, so say whose
+    // record it is rather than offering an edit that cannot work (W-0186).
+    jointLifeNote() {
+      if (!this.isLifePolicy || !this.policy.joint_life) return null;
+      return this.policy.joint_life_with
+        ? `Joint life with ${this.policy.joint_life_with}`
+        : 'Joint life';
+    },
+
+    sharedRecordNote() {
+      if (this.policy.is_own_policy !== false) return null;
+      return this.policy.joint_life_with
+        ? `Recorded on ${this.policy.joint_life_with}'s account`
+        : 'Recorded on your spouse\'s account';
     },
 
     isActive() {

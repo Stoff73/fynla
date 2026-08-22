@@ -33,6 +33,12 @@ const getters = {
   tierFlags: (state) => state.tierFlags,
   openApiAffordance: (state) => state.tierFlags?.open_api_affordance === true,
   currencyDisplayMode: (state) => state.tierFlags?.currency_display_mode ?? 'gbp_only',
+  // Mirrors TeaserGate::allows() on the backend: admin and preview personas
+  // bypass, otherwise the resolved tier's capability matrix decides. Screens
+  // gate on this so they never offer an entry form the API will refuse.
+  hasCapability: (state) => (capabilityKey) => state.user?.is_admin === true
+    || state.user?.is_preview_user === true
+    || state.tierFlags?.capabilities?.[capabilityKey] === 'full',
 };
 
 const actions = {

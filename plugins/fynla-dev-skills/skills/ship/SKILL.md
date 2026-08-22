@@ -50,7 +50,7 @@ Prefer adding specific files by name. Only use `git add -A` if the user explicit
 If there are files the user likely does NOT want committed (temp files, debug logs, large binaries), flag them before staging:
 
 > "I see these files — should I include them?"
-> - `tech-debt-report.md` (generated report)
+> - `docs/tech-debt-report.md` (generated report)
 > - `storage/logs/laravel.log` (log file)
 
 ## Step 3: Generate Commit Message

@@ -13,6 +13,7 @@ class StoreLifePolicyRequest extends BasePolicyRequest
         $specificRules = [
             'policy_type' => ['nullable', Rule::in(['term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'level_term'])],
             'in_trust' => ['nullable', 'boolean'],
+            'joint_life' => ['nullable', 'boolean'],
             'is_mortgage_protection' => ['nullable', 'boolean'],
             'beneficiaries' => ['nullable', 'string', 'max:1000'],
             'indexation_rate' => ['nullable', 'numeric', 'min:0', 'max:0.10'],

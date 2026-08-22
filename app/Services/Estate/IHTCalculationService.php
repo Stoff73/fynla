@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\Estate\Bequest;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
+use App\Models\Estate\Will;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
@@ -33,17 +35,7 @@ class IHTCalculationService
 {
     use CalculatesOwnershipShare;
 
-    private const DEFAULT_RETIREMENT_AGE = 68;
-
-    private const DEFAULT_STATE_PENSION_AGE = 67;
-
     private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
-
-    /** Fallback expenditure ratio when no expenditure profile exists (assume 70% spent, 30% saved) */
-    private const EXPENDITURE_FALLBACK_RATIO = 0.70;
-
-    /** Retirement phase expenditure fallback ratio (typically lower than pre-retirement) */
-    private const RETIREMENT_EXPENDITURE_FALLBACK_RATIO = 0.50;
 
     public function __construct(
         private readonly EstateAssetAggregatorService $aggregator,
@@ -53,6 +45,8 @@ class IHTCalculationService
         private readonly FutureValueCalculator $futureValueCalculator,
         private readonly LifeEventService $lifeEventService,
         private readonly PropertyStore $propertyStore,
+        private readonly WillAnalysisService $willAnalysis,
+        private readonly HouseholdCashFlowProjector $cashFlowProjector,
     ) {}
 
     /**
@@ -96,8 +90,36 @@ class IHTCalculationService
         $isMarried = in_array($user->marital_status, ['married']) && $spouse !== null;
         $isWidowed = $user->marital_status === 'widowed';
 
-        // Get IHT profile for transferred allowances (widows/widowers)
-        $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
+        // W-0154 F1/F3 — THE decision about whose records this calculation covers,
+        // made once and used by every input below.
+        //
+        // It used to be made twice, differently, and that was the whole defect.
+        // Assets and liabilities pooled on `$isMarried && $dataSharingEnabled`
+        // (:107, :118) while the allowances doubled on `$isMarried` alone and every
+        // per-person input — gifts, profiles, wills — read the logged-in user only.
+        // Two consequences, both live:
+        //   F1: the same household was quoted two different bills depending on who
+        //       logged in, because one spouse's gifts reduced the pooled band in
+        //       their view and by nothing in the other's.
+        //   F3: married with sharing off gave £1,000,000 of allowances against one
+        //       person's assets alone — a £0 bill on a £700,000 estate where the
+        //       answer is £80,000.
+        //
+        // Everything that follows reads `$pooledMembers`. Adding a per-person input
+        // to this service means adding it to that loop, not to `$user`.
+        $pooledMembers = $this->pooledMembers($user, $spouse, $isMarried, $dataSharingEnabled);
+        $poolsSpouse = count($pooledMembers) > 1;
+
+        // Transferred allowances (widows/widowers) belong to whoever holds the
+        // profile, so they are summed across the pooled members rather than read
+        // from the logged-in user. Fetched once; `determineIHTRate()` is given the
+        // same collection so it does not re-query.
+        $profiles = IHTProfile::whereIn('user_id', array_map(fn (User $m): int => $m->id, $pooledMembers))
+            ->get()
+            ->keyBy('user_id');
+        $ihtProfile = $profiles->get($user->id);
+        $nrbTransferredPooled = (float) $profiles->sum('nrb_transferred_from_spouse');
+        $rnrbTransferredPooled = (float) $profiles->sum('rnrb_transferred_from_spouse');
 
         // 3. Fetch and sum assets (exclude IHT-exempt assets like pensions)
         $userAssets = $this->aggregator->gatherUserAssets($user);
@@ -127,62 +149,111 @@ class IHTCalculationService
 
         // 6. Calculate NRB with message (includes transferred NRB for widows)
         $nrbSingle = $ihtConfig['nil_rate_band']; // £325,000
-        $nrbTransferred = (float) ($ihtProfile?->nrb_transferred_from_spouse ?? 0);
+        $nrbTransferred = $nrbTransferredPooled;
 
-        if ($isMarried) {
-            $nrbAvailable = $nrbSingle * 2;
-            $nrbMessage = 'Combined Nil Rate Band of £'.number_format($nrbAvailable).' available (£'.number_format($nrbSingle).' each). Transfers between spouses are exempt from IHT on first death.';
+        // W-0154 F3: doubles on `$poolsSpouse`, not `$isMarried`. The allowances now
+        // cover exactly the estates being taxed.
+        //
+        // W-0154 F2: `$nrbSpouseModelled` is reported separately from
+        // `$nrbTransferred` and the two are NOT the same thing. There is no
+        // transferable nil rate band while both spouses are alive — IHTA 1984 s8A
+        // creates the claim on the survivor's death — so `nrb_transferred` is
+        // legitimately 0 for a living couple. The doubling is this service's
+        // second-death modelling assumption (see the projection docblock), and it is
+        // now labelled as one instead of appearing as £175,000 the user could not
+        // account for. Do NOT "fix" this by writing 325,000 into `nrb_transferred`.
+        $nrbSpouseModelled = 0.0;
+
+        if ($poolsSpouse) {
+            $nrbSpouseModelled = $nrbSingle;
+            $nrbGross = $nrbSingle + $nrbSpouseModelled;
         } elseif ($isWidowed && $nrbTransferred > 0) {
-            $nrbAvailable = $nrbSingle + $nrbTransferred;
-            $nrbMessage = 'Combined Nil Rate Band of £'.number_format($nrbAvailable).' available (own £'.number_format($nrbSingle).' + £'.number_format($nrbTransferred).' transferred from late spouse\'s estate).';
+            $nrbGross = $nrbSingle + $nrbTransferred;
         } else {
-            $nrbAvailable = $nrbSingle;
-            $nrbMessage = 'Nil Rate Band of £'.number_format($nrbAvailable).' available for single person.';
+            $nrbGross = $nrbSingle;
         }
 
-        // 6b. Deduct primary user's PETs and CLTs from their OWN NRB only
-        // Spouse NRB is handled separately by SpouseNRBTrackerService
-        $nrbDeduction = $this->calculateNRBDeductionForGifts($user, $nrbSingle);
-        $nrbAvailable = max(0, $nrbAvailable - $nrbDeduction['total_nrb_used']);
+        // 6b. Deduct each pooled member's gifts, capped at their OWN band.
+        //
+        // The comment that used to sit here said spouse nil rate band was "handled
+        // separately by SpouseNRBTrackerService". **That service has never had a
+        // caller** — verified repo-wide; the only hits were this comment, its twin
+        // above the deduction method, and the class declaration. It described work
+        // nothing did, and it is why the gap went unexamined. The service is left in
+        // place, unwired, for a separate decision (W-0146); the claim is removed.
+        $nrbDeduction = $this->calculateNRBDeductionForGifts($pooledMembers, $nrbSingle);
+        $nrbAvailable = max(0, $nrbGross - $nrbDeduction['total_nrb_used']);
 
-        if ($nrbDeduction['total_nrb_used'] > 0) {
-            $nrbMessage .= ' Reduced by £'.number_format($nrbDeduction['total_nrb_used'])
-                .' due to gifts made within the last 7 years'
-                .($nrbDeduction['clts_7_to_14_years'] > 0
-                    ? ' (including the 14-year rule for historical Chargeable Lifetime Transfers)'
-                    : '')
-                .'.';
-        }
+        // W-0134 acceptance 4. The message is built AFTER the deduction, so its
+        // headline is the band actually applied. It used to be built before, then
+        // have "Reduced by £150,000…" appended, which left the sentence opening
+        // "Combined Nil Rate Band of £650,000 available" beneath a table whose rows
+        // now itemise £500,000 — the last unexplained figure on a page fixed
+        // specifically so a reader can add it up.
+        $nrbMessage = $this->buildNrbMessage(
+            $nrbGross,
+            $nrbAvailable,
+            $nrbSingle,
+            $nrbTransferred,
+            $nrbDeduction,
+            $poolsSpouse,
+            $isWidowed
+        );
 
-        // 7. Calculate RNRB with message (ALWAYS calculate, even if £0)
-        $rnrbData = $this->calculateRNRB($totalNetEstate, $user, $spouse, $ihtConfig, $isMarried, $isWidowed, $ihtProfile);
+        // 7-8. Assess the residence band, the rate and the exemption.
+        //
+        // W-0136 — this assessment is now a single mechanism, `assessTaxPosition()`,
+        // run against whatever estate it is given. The projection calls the SAME
+        // method with the projected estate rather than reusing this answer, so the
+        // £2,000,000 residence-band taper, the 10% charitable rate test and the
+        // s23(1) exemption are all evaluated against the estate they apply to.
+        //
+        // The bug that made this necessary: every one of those three tests was run
+        // once, against the CURRENT estate, and its answer was carried into a
+        // projection roughly two and a half times larger. A household projected past
+        // £2,000,000 was shown the full £350,000 residence band beneath a sentence
+        // asserting it was below the taper threshold.
+        //
+        // W-0154 F3: the spouse is passed only when their estate is actually pooled.
+        // `hasMainResidence()`, `hasDirectDescendants()` and `getMainResidenceNetValue()`
+        // all consult whoever they are given, so an unpooled spouse could grant the
+        // residence band, and raise its cap, using a property excluded from the estate
+        // being taxed.
+        $pooledSpouse = $poolsSpouse ? $spouse : null;
 
-        // 8. Determine IHT rate - check for charitable reduced rate (36% if 10%+ to charity)
-        $ihtRateData = $this->determineIHTRate($user, $totalNetEstate, $nrbAvailable, $ihtConfig);
+        $assessment = [
+            'user' => $user,
+            'spouse' => $pooledSpouse,
+            'pooled_members' => $pooledMembers,
+            'iht_config' => $ihtConfig,
+            'pools_spouse' => $poolsSpouse,
+            'is_widowed' => $isWidowed,
+            'rnrb_transferred' => $rnrbTransferredPooled,
+            'nrb_available' => $nrbAvailable,
+            'profiles' => $profiles,
+        ];
+
+        $current = $this->assessTaxPosition(
+            $totalNetEstate,
+            $this->getMainResidenceNetValue($user, $pooledSpouse),
+            $assessment
+        );
+
+        $rnrbData = $current['rnrb'];
+        $ihtRateData = $current['rate'];
         $ihtRate = $ihtRateData['rate'];
-
-        // Charitable legacies are fully exempt (IHTA 1984 s23): the gift leaves the
-        // taxable estate entirely, deducted alongside the NRB and RNRB before the
-        // rate is applied. The 36% reduced rate (above) is a separate effect that
-        // stacks on top of the exemption.
-        $charitableAmount = (float) ($ihtRateData['charitable_amount'] ?? 0);
-        $charitableFraction = $totalNetEstate > 0 ? ($charitableAmount / $totalNetEstate) : 0.0;
-
-        // 8b. Calculate taxable estate and IHT (CURRENT values)
-        $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
-        $taxableEstate = max(0, $totalNetEstate - $totalAllowances - $charitableAmount);
-        $ihtLiability = $taxableEstate * $ihtRate;
+        $charitableAmount = $current['charitable_deduction'];
+        $totalAllowances = $current['total_allowances'];
+        $taxableEstate = $current['taxable_estate'];
+        $ihtLiability = $current['iht_liability'];
         $effectiveRate = $totalNetEstate > 0 ? ($ihtLiability / $totalNetEstate * 100) : 0;
 
         // 9. Calculate PROJECTED values at death using asset-specific methods
         $projectedData = $this->calculateProjectedValues(
             $user,
             $spouse,
-            $nrbAvailable,
-            $rnrbData,
             $isMarried,
-            $ihtRate,
-            $charitableFraction,
+            $assessment,
             $dataSharingEnabled
         );
 
@@ -201,9 +272,18 @@ class IHTCalculationService
             'spouse_net_estate' => round($spouseNetEstate, 2),
             'total_net_estate' => round($totalNetEstate, 2),
 
+            // W-0154 F2. These five now reconcile, and a user can check them:
+            //   nrb_individual + nrb_spouse_modelled + nrb_transferred
+            //     − nrb_gift_deduction = nrb_available
+            // Before this, three of them were published (325,000 + 0 = 500,000) and
+            // the £175,000 difference was two unlabelled effects netting out — a
+            // +£325,000 modelled spouse band and a −£150,000 gift deduction that had
+            // no field to appear in at all.
             'nrb_available' => round($nrbAvailable, 2),
             'nrb_individual' => round($nrbSingle, 2),
+            'nrb_spouse_modelled' => round($nrbSpouseModelled, 2),
             'nrb_transferred' => round($nrbTransferred, 2),
+            'nrb_gift_deduction' => round($nrbDeduction['total_nrb_used'], 2),
             'nrb_message' => $nrbMessage,
 
             'rnrb_available' => round($rnrbData['rnrb_available'], 2),
@@ -227,6 +307,8 @@ class IHTCalculationService
 
             // Projected values at death (asset-specific)
             'projected_cash' => $projectedData['projected_cash'],
+            'projected_cash_shortfall' => $projectedData['projected_cash_shortfall'],
+            'projected_cash_assumptions' => $projectedData['projected_cash_assumptions'],
             'projected_investments' => $projectedData['projected_investments'],
             'projected_properties' => $projectedData['projected_properties'],
             'projected_gross_assets' => $projectedData['projected_gross_assets'],
@@ -237,6 +319,23 @@ class IHTCalculationService
             'years_to_death' => $projectedData['years_to_death'],
             'retirement_age' => $projectedData['retirement_age'],
             'estimated_age_at_death' => $projectedData['estimated_age_at_death'],
+            'inflation_rate' => $projectedData['inflation_rate'],
+
+            // W-0136 / W-0134 — the projected column's own allowance components.
+            // The residence band tapers away as the estate grows, so the projected
+            // allowances are NOT the current ones and a screen that prints one set
+            // beside both columns cannot be added up. Every figure the projected
+            // column needs to reconcile is published here.
+            'projected_nrb_available' => $projectedData['projected_nrb_available'],
+            'projected_rnrb_available' => $projectedData['projected_rnrb_available'],
+            'projected_rnrb_individual' => $projectedData['projected_rnrb_individual'],
+            'projected_rnrb_transferred' => $projectedData['projected_rnrb_transferred'],
+            'projected_rnrb_status' => $projectedData['projected_rnrb_status'],
+            'projected_rnrb_message' => $projectedData['projected_rnrb_message'],
+            'projected_total_allowances' => $projectedData['projected_total_allowances'],
+            'projected_charitable_deduction' => $projectedData['projected_charitable_deduction'],
+            'projected_iht_rate' => $projectedData['projected_iht_rate'],
+            'projected_iht_rate_percent' => $projectedData['projected_iht_rate_percent'],
 
             'is_married' => $isMarried,
             'is_widowed' => $isWidowed,
@@ -269,46 +368,49 @@ class IHTCalculationService
      * - Investments: Monte Carlo (80% confidence) or custom rate
      * - Properties: Configurable growth rate (default 3%)
      * - Liabilities: Amortisation to end date (default retirement age)
+     *
+     * The tax position at death is NOT inherited from the current position. It is
+     * re-assessed by `assessTaxPosition()` against the projected estate — see the
+     * comment where that call is made.
+     *
+     * @param  array  $assessment  The assessment context built in `calculate()`.
      */
     private function calculateProjectedValues(
         User $user,
         ?User $spouse,
-        float $nrbAvailable,
-        array $rnrbData,
         bool $isMarried,
-        float $ihtRate,
-        float $charitableFraction = 0.0,
+        array $assessment,
         bool $dataSharingEnabled = false
     ): array {
         // Get current age and key milestone ages
         $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 50;
-        $retirementAge = $this->getRetirementAge($user);
+        $retirementAge = $this->cashFlowProjector->retirementAgeFor($user);
 
-        // For married couples, calculate BOTH life expectancies and use the longer one (second death)
+        // The horizon is a number of YEARS FROM NOW, and it is a property of the
+        // household, not of whoever is signed in: the second death is the later of the
+        // two life expectancies, and `max()` gives the same answer from either login.
+        //
+        // W-0188. The age at death used to be taken in whichever spouse dies second's
+        // own age frame and then handed to a loop that started at the VIEWER's age. For
+        // the second-dying spouse that is the true horizon; for the other it is short
+        // by the age gap between them. One household projected two estates £103,206
+        // apart, and every projection-derived figure — the taper test, life-cover
+        // sizing, any gifting strategy quantified against the future estate —
+        // inherited it.
+        //
+        // `$estimatedAgeAtDeath` is now purely a label: the viewer's own age at the
+        // household horizon. The two logins therefore show DIFFERENT ages against the
+        // SAME projection, which is correct — the spouses are not the same age.
         if ($isMarried && $spouse && $spouse->date_of_birth && $spouse->gender) {
-            $userYearsUntilDeath = $this->calculateLifeExpectancy($user);
-            $spouseYearsUntilDeath = $this->calculateLifeExpectancy($spouse);
-
-            // Use the LONGER life expectancy (second death scenario)
-            $yearsUntilDeath = max($userYearsUntilDeath, $spouseYearsUntilDeath);
-
-            // Determine who dies second and use their estimated age
-            if ($spouseYearsUntilDeath > $userYearsUntilDeath) {
-                $estimatedAgeAtDeath = Carbon::parse($spouse->date_of_birth)->age + $spouseYearsUntilDeath;
-            } else {
-                $estimatedAgeAtDeath = $currentAge + $userYearsUntilDeath;
-            }
-        } elseif (! $user->date_of_birth || ! $user->gender) {
-            // No DOB/gender - assume 25 years
-            $yearsUntilDeath = 25;
-            $estimatedAgeAtDeath = $user->date_of_birth
-                ? Carbon::parse($user->date_of_birth)->age + $yearsUntilDeath
-                : 80;
+            $yearsUntilDeath = max(
+                $this->calculateLifeExpectancy($user),
+                $this->calculateLifeExpectancy($spouse)
+            );
         } else {
-            // Single person - use their own life expectancy
             $yearsUntilDeath = $this->calculateLifeExpectancy($user);
-            $estimatedAgeAtDeath = $currentAge + $yearsUntilDeath;
         }
+
+        $estimatedAgeAtDeath = $currentAge + $yearsUntilDeath;
 
         // Get estate planning assumptions
         $assumptions = $this->assumptionsService->getEstateAssumptions($user);
@@ -323,16 +425,16 @@ class IHTCalculationService
             $dataSharingEnabled
         );
 
-        // Project cash: year-by-year income - expenses, both inflation-adjusted, with life events
-        $projectedCash = $this->projectCashWithInflation(
+        // Project cash: one mechanism, shared with the year-by-year table the user
+        // reads beneath the headline (Rule 20 — see HouseholdCashFlowProjector).
+        $cashFlow = $this->cashFlowProjector->project(
             $user,
             $spouse,
-            $currentAge,
-            $retirementAge,
-            $estimatedAgeAtDeath,
-            $inflationRate,
-            $dataSharingEnabled
+            $dataSharingEnabled,
+            $yearsUntilDeath,
+            $inflationRate
         );
+        $projectedCash = $cashFlow['final_cash'];
 
         $projectedProperties = $this->projectProperties(
             $user,
@@ -374,325 +476,202 @@ class IHTCalculationService
         $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness;
         $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities;
 
-        // Calculate projected IHT using same allowances. Charitable legacies remain
-        // fully exempt (IHTA 1984 s23); scale the exempt amount to the projected estate
-        // so the same charitable proportion is deducted at death as today.
-        $totalAllowances = $nrbAvailable + $rnrbData['rnrb_available'];
-        $projectedCharitableAmount = $projectedNetEstate * $charitableFraction;
-        $projectedTaxableEstate = max(0, $projectedNetEstate - $totalAllowances - $projectedCharitableAmount);
-        $projectedIHTLiability = $projectedTaxableEstate * $ihtRate;
+        // W-0136 and the charitable scaling defect, fixed together because fixing
+        // either alone lands on a plausible wrong answer.
+        //
+        // This used to reuse the current assessment verbatim: the same allowances,
+        // the same rate, and the current charitable exemption multiplied by
+        // projected ÷ current. Three consequences, all live:
+        //
+        //   * The £2,000,000 residence-band taper never fired on a projection,
+        //     however large. The arithmetic for it existed and was correct; it was
+        //     simply never asked the question about this estate.
+        //   * The 10% charitable rate test was likewise decided against today's
+        //     estate. A household on 36% carried that rate to death even though the
+        //     baseline roughly doubles while a fixed legacy does not.
+        //   * A FIXED cash legacy was inflated in proportion to the estate. £20,000
+        //     of `specific_amount` bequests became £50,891 on a £4.37m projection.
+        //     A cash legacy is a fixed sum; only a `percentage` bequest grows.
+        //
+        // The fix is one call to the same assessment with the projected estate.
+        // `getCharitableBequestTotal()` already distinguishes the two bequest types,
+        // so re-asking it is exactly right where re-scaling its answer was not.
+        //
+        // The residence value handed to the cap (IHTA 1984 s8E(2)) is projected too.
+        // Feeding it the current value would cap the projected band at a home price
+        // decades out of date — it does not bite a household whose residence already
+        // exceeds the band, and it silently under-caps every household whose does not.
+        $projected = $this->assessTaxPosition(
+            $projectedNetEstate,
+            $this->projectMainResidenceNetValue(
+                $user,
+                $assessment['spouse'],
+                $currentAge,
+                $retirementAge,
+                $yearsUntilDeath,
+                $assumptions
+            ),
+            $assessment
+        );
 
         return [
             'projected_cash' => round($projectedCash, 2),
+
+            // W-0137. The projected expenditure the household's cash could not meet,
+            // as a positive amount. It used to be folded INTO `projected_cash` as a
+            // negative balance — a Cash ISA at minus £854,179 — which is not a value a
+            // deposit account can hold, and which was then subtracted from the estate.
+            // A shortfall is a planning output; a negative asset is a broken model.
+            'projected_cash_shortfall' => round((float) $cashFlow['shortfall'], 2),
+
+            // What the projection had to assume because a figure was absent. Published
+            // so an unavailable number is never read as a real zero — a missing State
+            // Pension forecast is a gap in the record, not an entitlement of nothing.
+            'projected_cash_assumptions' => $cashFlow['assumptions'],
+
             'projected_investments' => round($projectedInvestments, 2),
             'projected_properties' => round($projectedProperties, 2),
             'projected_gross_assets' => round($projectedGrossAssets, 2),
             'projected_liabilities' => round($projectedLiabilities, 2),
             'projected_net_estate' => round($projectedNetEstate, 2),
-            'projected_taxable_estate' => round($projectedTaxableEstate, 2),
-            'projected_iht_liability' => round($projectedIHTLiability, 2),
+            'projected_taxable_estate' => round($projected['taxable_estate'], 2),
+            'projected_iht_liability' => round($projected['iht_liability'], 2),
+            'projected_nrb_available' => round((float) $assessment['nrb_available'], 2),
+            'projected_rnrb_available' => round((float) $projected['rnrb']['rnrb_available'], 2),
+            'projected_rnrb_individual' => round((float) ($projected['rnrb']['rnrb_individual'] ?? 0), 2),
+            'projected_rnrb_transferred' => round((float) ($projected['rnrb']['rnrb_transferred'] ?? 0), 2),
+            'projected_rnrb_status' => $projected['rnrb']['rnrb_status'],
+            'projected_rnrb_message' => $projected['rnrb']['rnrb_message'],
+            'projected_total_allowances' => round($projected['total_allowances'], 2),
+            'projected_charitable_deduction' => round($projected['charitable_deduction'], 2),
+            'projected_iht_rate' => $projected['rate']['rate'],
+            'projected_iht_rate_percent' => round($projected['rate']['rate'] * 100, 0),
             'years_to_death' => $yearsUntilDeath,
             'retirement_age' => $retirementAge,
             'estimated_age_at_death' => $estimatedAgeAtDeath,
+
+            // Published so the year-by-year breakdown is driven by the same rate this
+            // projection used. It was re-derived downstream before, and defaulted to a
+            // different number.
+            'inflation_rate' => $inflationRate,
         ];
     }
 
     /**
-     * Get retirement age from user profile or defaults
+     * Assess one estate: residence band, rate, exemption, taxable estate, tax.
+     *
+     * The single mechanism behind both the current and the projected column. Every
+     * test inside it — the £2,000,000 residence-band taper, the 10% charitable rate
+     * test, the s23(1) exemption — is a function of the estate being assessed, so
+     * running it twice with two estates is the only way both columns can be right.
+     * Reusing one answer for both was W-0136 and its two siblings.
+     *
+     * The nil rate band is deliberately NOT re-derived here: it is a statutory
+     * amount reduced by chargeable transfers already made, neither of which is a
+     * function of the estate's size.
+     *
+     * @param  array  $ctx  user, spouse (pooled only), pooled_members, iht_config,
+     *                      pools_spouse, is_widowed, rnrb_transferred, nrb_available,
+     *                      profiles.
      */
-    private function getRetirementAge(User $user): int
+    private function assessTaxPosition(float $netEstate, float $residenceNetValue, array $ctx): array
     {
-        // Priority order for retirement age
-        if ($user->retirementProfile?->target_retirement_age) {
-            return $user->retirementProfile->target_retirement_age;
-        }
+        $rnrbData = $this->calculateRNRB(
+            $netEstate,
+            $residenceNetValue,
+            $ctx['user'],
+            $ctx['spouse'],
+            $ctx['iht_config'],
+            $ctx['pools_spouse'],
+            $ctx['is_widowed'],
+            $ctx['rnrb_transferred']
+        );
 
-        if ($user->target_retirement_age) {
-            return $user->target_retirement_age;
-        }
+        $rateData = $this->determineIHTRate(
+            $ctx['user'],
+            $ctx['pooled_members'],
+            $netEstate,
+            $ctx['nrb_available'],
+            $ctx['iht_config'],
+            $ctx['profiles']
+        );
 
-        // Check DC pensions for retirement age
-        $pensionRetirementAge = $user->dcPensions()
-            ->whereNotNull('retirement_age')
-            ->value('retirement_age');
-
-        if ($pensionRetirementAge) {
-            return (int) $pensionRetirementAge;
-        }
-
-        return self::DEFAULT_RETIREMENT_AGE;
-    }
-
-    /**
-     * Project cash accounts using income/expense surplus model
-     *
-     * Pre-retirement: Uses current income and expenses
-     * Post-retirement: Uses retirement income (including state pension) and retirement expenses
-     */
-    private function projectCashAccounts(
-        User $user,
-        ?User $spouse,
-        int $currentAge,
-        int $retirementAge,
-        int $deathAge,
-        bool $dataSharingEnabled
-    ): float {
-        // Get current cash value from savings accounts
-        $currentCash = $this->getCurrentCashValue($user);
-        if ($dataSharingEnabled && $spouse) {
-            $currentCash += $this->getCurrentCashValue($spouse);
-        }
-
-        $projectedCash = $currentCash;
-
-        // Pre-Retirement Phase: currentAge → retirementAge
-        if ($currentAge < $retirementAge) {
-            $preRetirementYears = min($retirementAge, $deathAge) - $currentAge;
-            $annualIncome = $this->getTotalAnnualIncome($user, $spouse, $dataSharingEnabled);
-            $annualExpenses = $this->getCurrentAnnualExpenses($user, $spouse, $dataSharingEnabled);
-            $annualSurplus = $annualIncome - $annualExpenses;
-
-            $projectedCash += $annualSurplus * $preRetirementYears;
-        }
-
-        // Post-Retirement Phase: retirementAge → deathAge
-        if ($deathAge > $retirementAge) {
-            $startAge = max($currentAge, $retirementAge);
-            for ($age = $startAge; $age < $deathAge; $age++) {
-                $retirementIncome = $this->getRetirementIncome($user, $spouse, $age, $dataSharingEnabled);
-                $retirementExpenses = $this->getRetirementExpenses($user, $spouse, $dataSharingEnabled);
-                $surplus = $retirementIncome - $retirementExpenses;
-                $projectedCash += $surplus;
-            }
-        }
-
-        // Cash can go negative (implies drawing from investments) but we return 0 minimum
-        // The negative is implicitly handled by reduced investment value
-        return max(0, $projectedCash);
-    }
-
-    /**
-     * Project cash balance year-by-year with inflation-adjusted income/expenses and life events.
-     *
-     * For each year from current age to death:
-     * - Pre-retirement: employment income - current expenses (both inflation-adjusted)
-     * - Post-retirement: retirement income - retirement expenses (both inflation-adjusted)
-     * - Life events injected at their specific ages
-     * - Cash can go negative to give an honest estate picture
-     */
-    private function projectCashWithInflation(
-        User $user,
-        ?User $spouse,
-        int $currentAge,
-        int $retirementAge,
-        int $deathAge,
-        float $inflationRate,
-        bool $dataSharingEnabled
-    ): float {
-        // Starting cash balance from savings accounts
-        $cashBalance = $this->getCurrentCashValue($user);
-        if ($dataSharingEnabled && $spouse) {
-            $cashBalance += $this->getCurrentCashValue($spouse);
-        }
-
-        // Base income and expenses (year 0 values, before inflation)
-        $basePreRetirementIncome = $this->getTotalAnnualIncome($user, $spouse, $dataSharingEnabled);
-        $basePreRetirementExpenses = $this->getCurrentAnnualExpenses($user, $spouse, $dataSharingEnabled);
-        $baseRetirementExpenses = $this->getRetirementExpenses($user, $spouse, $dataSharingEnabled);
-
-        // Life event impacts keyed by age
-        $lifeEventImpacts = $this->getLifeEventImpactsByAge($user, $spouse, $dataSharingEnabled);
-
-        // Year-by-year projection
-        for ($age = $currentAge; $age < $deathAge; $age++) {
-            $yearsFromNow = $age - $currentAge;
-            $inflationMultiplier = pow(1 + $inflationRate, $yearsFromNow);
-
-            if ($age < $retirementAge) {
-                $income = $basePreRetirementIncome * $inflationMultiplier;
-                $expenses = $basePreRetirementExpenses * $inflationMultiplier;
-            } else {
-                $income = $this->getRetirementIncome($user, $spouse, $age, $dataSharingEnabled) * $inflationMultiplier;
-                $expenses = $baseRetirementExpenses * $inflationMultiplier;
-            }
-
-            $surplus = $income - $expenses;
-
-            // Inject life events at their specific ages
-            $surplus += $lifeEventImpacts[$age] ?? 0;
-
-            $cashBalance += $surplus;
-        }
-
-        // Cash can go negative — gives honest estate picture so line items sum to total
-        return $cashBalance;
-    }
-
-    /**
-     * Integrated projection: Cash deficits drawn from investments year-by-year
-     *
-     * For each year:
-     * 1. Calculate cash surplus (income - expenses)
-     * 2. If negative, deduct deficit from investments BEFORE applying growth
-     * 3. Apply investment growth rate to reduced balance
-     * 4. Repeat for each year until death
-     *
-     * This creates a realistic model where retirement deficits deplete investment
-     * accounts over time rather than accumulating impossible negative cash.
-     */
-    private function projectCashAndInvestmentsIntegrated(
-        User $user,
-        ?User $spouse,
-        int $currentAge,
-        int $retirementAge,
-        int $deathAge,
-        array $assumptions,
-        bool $dataSharingEnabled
-    ): array {
-        // Get initial cash value
-        $cashBalance = $this->getCurrentCashValue($user);
-        if ($dataSharingEnabled && $spouse) {
-            $cashBalance += $this->getCurrentCashValue($spouse);
-        }
-
-        // Get investment accounts as array for year-by-year projection
-        $investments = $this->getInvestmentAccountsArray($user, $spouse, $dataSharingEnabled);
-        $totalInvestments = array_sum(array_column($investments, 'balance'));
-
-        // Get investment growth rate (Monte Carlo annualised rate or custom)
-        $method = $assumptions['investment_growth_method'] ?? 'monte_carlo';
-        if ($method === 'monte_carlo') {
-            // Use annualised Monte Carlo growth rate (derived from p20 percentile)
-            $investmentGrowthRate = $this->getMonteCarloAnnualRate($user, $spouse, $dataSharingEnabled);
-        } else {
-            // Custom rate specified by user
-            $investmentGrowthRate = ($assumptions['custom_investment_rate'] ?? 5.0) / 100;
-        }
-
-        // Get life event impacts keyed by age (certainty-weighted)
-        $lifeEventImpacts = $this->getLifeEventImpactsByAge($user, $spouse, $dataSharingEnabled);
-
-        // Year-by-year projection
-        for ($age = $currentAge; $age < $deathAge; $age++) {
-            // Step 1: Calculate cash surplus for this year
-            if ($age < $retirementAge) {
-                // Pre-retirement: employment income - current expenses
-                $income = $this->getTotalAnnualIncome($user, $spouse, $dataSharingEnabled);
-                $expenses = $this->getCurrentAnnualExpenses($user, $spouse, $dataSharingEnabled);
-            } else {
-                // Post-retirement: retirement income - retirement expenses
-                $income = $this->getRetirementIncome($user, $spouse, $age, $dataSharingEnabled);
-                $expenses = $this->getRetirementExpenses($user, $spouse, $dataSharingEnabled);
-            }
-            $surplus = $income - $expenses;
-
-            // Step 1b: Add life event impacts for this age (income positive, expense negative)
-            $surplus += $lifeEventImpacts[$age] ?? 0;
-
-            // Step 2: Update cash balance
-            $cashBalance += $surplus;
-
-            // Step 3: If cash goes negative, draw from investments BEFORE growth
-            if ($cashBalance < 0) {
-                $deficit = abs($cashBalance);
-                $cashBalance = 0; // Reset cash to zero
-
-                // Distribute deficit equally across all investment accounts
-                $accountCount = count($investments);
-                if ($accountCount > 0 && $totalInvestments > 0) {
-                    $deficitPerAccount = $deficit / $accountCount;
-
-                    foreach ($investments as &$account) {
-                        $account['balance'] = max(0, $account['balance'] - $deficitPerAccount);
-                    }
-                    unset($account);
-
-                    // Recalculate total after drawdown
-                    $totalInvestments = array_sum(array_column($investments, 'balance'));
-                }
-            }
-
-            // Step 4: Apply investment growth AFTER drawdown
-            foreach ($investments as &$account) {
-                $account['balance'] *= (1 + $investmentGrowthRate);
-            }
-            unset($account);
-            $totalInvestments = array_sum(array_column($investments, 'balance'));
-        }
+        // Charitable legacies are fully exempt (IHTA 1984 s23): the gift leaves the
+        // taxable estate entirely, deducted alongside the NRB and RNRB before the
+        // rate is applied. The 36% reduced rate is a separate effect that stacks on
+        // top of the exemption.
+        $charitableDeduction = (float) ($rateData['charitable_amount'] ?? 0);
+        $totalAllowances = (float) $ctx['nrb_available'] + (float) $rnrbData['rnrb_available'];
+        $taxableEstate = max(0, $netEstate - $totalAllowances - $charitableDeduction);
 
         return [
-            'projected_cash' => round($cashBalance, 2),
-            'projected_investments' => round($totalInvestments, 2),
-            'investment_accounts' => $investments, // For individual account projections
+            'rnrb' => $rnrbData,
+            'rate' => $rateData,
+            'charitable_deduction' => $charitableDeduction,
+            'total_allowances' => $totalAllowances,
+            'taxable_estate' => $taxableEstate,
+            'iht_liability' => $taxableEstate * $rateData['rate'],
         ];
     }
 
     /**
-     * Get all investment accounts as array for integrated projection
+     * The net value of the main residence(s) AT DEATH.
      *
-     * Returns an array of accounts with id, name, owner, and balance
-     * for year-by-year drawdown calculations.
-     */
-    private function getInvestmentAccountsArray(User $user, ?User $spouse, bool $dataSharingEnabled): array
-    {
-        $accounts = [];
-
-        // User's investment accounts (exclude IHT-exempt accounts like pensions)
-        foreach ($user->investmentAccounts as $account) {
-            // Skip accounts flagged as IHT exempt (pensions are already excluded by account type)
-            $accounts[] = [
-                'id' => $account->id,
-                'name' => $account->account_name ?? 'Investment Account',
-                'owner' => 'user',
-                'balance' => (float) ($account->current_value ?? 0),
-            ];
-        }
-
-        // Spouse's investment accounts (if data sharing enabled)
-        if ($dataSharingEnabled && $spouse) {
-            foreach ($spouse->investmentAccounts as $account) {
-                $accounts[] = [
-                    'id' => $account->id,
-                    'name' => $account->account_name ?? 'Investment Account',
-                    'owner' => 'spouse',
-                    'balance' => (float) ($account->current_value ?? 0),
-                ];
-            }
-        }
-
-        return $accounts;
-    }
-
-    /**
-     * Get annualised Monte Carlo growth rate for investments
+     * The projected counterpart of `sumMainResidenceNetShare()`, and it exists for
+     * one reason: the residence cap in IHTA 1984 s8E(2) limits the residence band to
+     * the net value of the home, so a projected band assessed against a current home
+     * value caps a future allowance at a past price.
      *
-     * Calculates the implied annual growth rate from the Monte Carlo p20 projection.
-     * This rate is then applied year-by-year in the integrated projection.
+     * Both halves reuse the mechanisms that produce the rest of the projection —
+     * property growth via `FutureValueCalculator`, mortgage amortisation via
+     * `projectSingleLiability()` — so the residence cannot be worth one thing here
+     * and another in `projectProperties()` / `projectLiabilities()`.
      */
-    private function getMonteCarloAnnualRate(User $user, ?User $spouse, bool $dataSharingEnabled): float
-    {
-        $fallbackRate = $this->getFallbackGrowthRate($user);
+    private function projectMainResidenceNetValue(
+        User $user,
+        ?User $spouse,
+        int $currentAge,
+        int $retirementAge,
+        int $yearsToProject,
+        array $assumptions
+    ): float {
+        $growthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
+        $currentYear = now()->year;
 
-        // Use a reference projection period to derive annual rate
-        $yearsToProject = 10;
-        $currentValue = $this->getCurrentInvestmentValue($user, $spouse, $dataSharingEnabled);
+        $projectFor = function (User $member) use ($growthRate, $currentAge, $retirementAge, $yearsToProject, $currentYear): float {
+            return (float) $this->propertyStore
+                ->forUserByType($member, 'main_residence')
+                ->sum(function ($property) use ($member, $growthRate, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
+                    $valueShare = $this->futureValueCalculator->calculateFutureValue(
+                        $this->calculateUserShare($property, $member->id),
+                        $growthRate,
+                        $yearsToProject
+                    );
 
-        if ($currentValue <= 0) {
-            return $fallbackRate;
+                    $mortgageShare = (float) $property->mortgages->sum(function ($mortgage) use ($member, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
+                        $endDate = $mortgage->end_date;
+
+                        return $this->projectSingleLiability(
+                            (float) $this->calculateUserMortgageShare($mortgage, $member->id),
+                            $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
+                            $currentAge,
+                            $retirementAge,
+                            $yearsToProject,
+                            $currentYear
+                        );
+                    });
+
+                    return max(0.0, $valueShare - $mortgageShare);
+                });
+        };
+
+        $value = $projectFor($user);
+
+        if ($spouse) {
+            $value += $projectFor($spouse);
         }
 
-        // Get the Monte Carlo projected value
-        $projectedValue = $this->projectInvestmentsMonteCarlo($user, $spouse, $yearsToProject, $dataSharingEnabled);
-
-        // Calculate implied annual rate: FV = PV * (1 + r)^n → r = (FV/PV)^(1/n) - 1
-        if ($projectedValue > 0 && $currentValue > 0) {
-            $impliedRate = pow($projectedValue / $currentValue, 1 / $yearsToProject) - 1;
-
-            // Sanity check: rate should be between -10% and +30%
-            return max(-0.10, min(0.30, $impliedRate));
-        }
-
-        return $fallbackRate;
+        return max(0.0, $value);
     }
 
     /**
@@ -709,194 +688,6 @@ class IHTCalculationService
         }
 
         return 0.047;
-    }
-
-    /**
-     * Get current cash value from all savings/cash accounts
-     * Matches EstateAssetAggregatorService which treats ALL savings accounts as 'cash'
-     */
-    private function getCurrentCashValue(User $user): float
-    {
-        // All savings accounts are considered cash (matching aggregator logic)
-        $cashValue = $user->savingsAccounts()->sum('current_balance');
-
-        return (float) $cashValue;
-    }
-
-    /**
-     * Get total annual income for user (and spouse if sharing enabled)
-     */
-    private function getTotalAnnualIncome(User $user, ?User $spouse, bool $dataSharingEnabled): float
-    {
-        $income = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
-
-        // Include spouse income if data sharing enabled
-        if ($dataSharingEnabled && $spouse) {
-            $income += (float) ($spouse->annual_employment_income ?? 0)
-                + (float) ($spouse->annual_self_employment_income ?? 0)
-                + (float) ($spouse->annual_rental_income ?? 0)
-                + (float) ($spouse->annual_dividend_income ?? 0)
-                + (float) ($spouse->annual_interest_income ?? 0)
-                + (float) ($spouse->annual_other_income ?? 0)
-                + (float) ($spouse->annual_trust_income ?? 0);
-        }
-
-        return $income;
-    }
-
-    /**
-     * Get current annual expenses from expenditure profile
-     * Falls back to 70% of income if no profile exists
-     */
-    private function getCurrentAnnualExpenses(User $user, ?User $spouse, bool $dataSharingEnabled): float
-    {
-        $expenses = 0;
-        $hasUserProfile = false;
-        $hasSpouseProfile = false;
-
-        $profile = $user->expenditureProfile;
-        if ($profile && $profile->total_monthly_expenditure) {
-            $expenses = (float) $profile->total_monthly_expenditure * 12;
-            $hasUserProfile = true;
-        }
-
-        // Include spouse expenses if data sharing enabled
-        if ($dataSharingEnabled && $spouse) {
-            $spouseProfile = $spouse->expenditureProfile;
-            if ($spouseProfile && $spouseProfile->total_monthly_expenditure) {
-                $expenses += (float) $spouseProfile->total_monthly_expenditure * 12;
-                $hasSpouseProfile = true;
-            }
-        }
-
-        // Fallback: if no expenditure profiles, estimate as 70% of combined income
-        // This prevents unrealistic surplus accumulation
-        if (! $hasUserProfile && ! $hasSpouseProfile) {
-            $totalIncome = $this->getTotalAnnualIncome($user, $spouse, $dataSharingEnabled);
-            $expenses = $totalIncome * self::EXPENDITURE_FALLBACK_RATIO; // Assume 70% spent, 30% saved
-        } elseif (! $hasUserProfile && $hasSpouseProfile) {
-            // User has no profile, estimate their portion
-            $userIncome = $this->getUserAnnualIncome($user);
-            $expenses += $userIncome * self::EXPENDITURE_FALLBACK_RATIO;
-        } elseif ($hasUserProfile && ! $hasSpouseProfile && $dataSharingEnabled && $spouse) {
-            // Spouse has no profile, estimate their portion
-            $spouseIncome = $this->getUserAnnualIncome($spouse);
-            $expenses += $spouseIncome * self::EXPENDITURE_FALLBACK_RATIO;
-        }
-
-        return $expenses;
-    }
-
-    /**
-     * Get annual income for a single user (helper for expense fallback)
-     */
-    private function getUserAnnualIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
-    }
-
-    /**
-     * Get retirement income at a given age (includes state pension when applicable)
-     */
-    private function getRetirementIncome(User $user, ?User $spouse, int $age, bool $dataSharingEnabled): float
-    {
-        $income = 0;
-
-        // Target retirement income from retirement profile
-        $income += (float) ($user->retirementProfile?->target_retirement_income ?? 0);
-
-        // Add State Pension if user has reached state pension age
-        $statePensionAge = $user->state_pension_age ?? self::DEFAULT_STATE_PENSION_AGE;
-        if ($age >= $statePensionAge) {
-            $statePension = $user->statePension;
-            $income += (float) ($statePension?->estimated_annual_amount ?? 0);
-        }
-
-        // Include spouse retirement income and state pension
-        if ($dataSharingEnabled && $spouse) {
-            $income += (float) ($spouse->retirementProfile?->target_retirement_income ?? 0);
-
-            $spouseStatePensionAge = $spouse->state_pension_age ?? self::DEFAULT_STATE_PENSION_AGE;
-            // Calculate spouse's age at the same point in time
-            $userCurrentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 50;
-            $spouseCurrentAge = $spouse->date_of_birth ? Carbon::parse($spouse->date_of_birth)->age : $userCurrentAge;
-            $spouseAgeAtTime = $spouseCurrentAge + ($age - $userCurrentAge);
-
-            if ($spouseAgeAtTime >= $spouseStatePensionAge) {
-                $spouseStatePension = $spouse->statePension;
-                $income += (float) ($spouseStatePension?->estimated_annual_amount ?? 0);
-            }
-        }
-
-        return $income;
-    }
-
-    /**
-     * Get retirement expenses from retirement profile
-     * Falls back to target retirement income if no expenses defined
-     */
-    private function getRetirementExpenses(User $user, ?User $spouse, bool $dataSharingEnabled): float
-    {
-        $expenses = 0;
-
-        $profile = $user->retirementProfile;
-        if ($profile) {
-            $profileExpenses = (float) ($profile->essential_expenditure ?? 0)
-                + (float) ($profile->lifestyle_expenditure ?? 0);
-
-            if ($profileExpenses > 0) {
-                $expenses = $profileExpenses;
-            } elseif ($profile->target_retirement_income > 0) {
-                // Fallback: assume retirement expenses equal target retirement income
-                // (they're targeting to spend what they earn in retirement)
-                $expenses = (float) $profile->target_retirement_income;
-            }
-        }
-
-        // If still no expenses, use 70% of pre-retirement income estimate
-        if ($expenses <= 0) {
-            $userIncome = $this->getUserAnnualIncome($user);
-            $expenses = $userIncome * self::RETIREMENT_EXPENDITURE_FALLBACK_RATIO; // Typically spend less in retirement
-        }
-
-        // Include spouse retirement expenses if data sharing enabled
-        if ($dataSharingEnabled && $spouse) {
-            $spouseProfile = $spouse->retirementProfile;
-            $spouseExpenses = 0;
-
-            if ($spouseProfile) {
-                $profileExpenses = (float) ($spouseProfile->essential_expenditure ?? 0)
-                    + (float) ($spouseProfile->lifestyle_expenditure ?? 0);
-
-                if ($profileExpenses > 0) {
-                    $spouseExpenses = $profileExpenses;
-                } elseif ($spouseProfile->target_retirement_income > 0) {
-                    $spouseExpenses = (float) $spouseProfile->target_retirement_income;
-                }
-            }
-
-            // Fallback for spouse
-            if ($spouseExpenses <= 0) {
-                $spouseIncome = $this->getUserAnnualIncome($spouse);
-                $spouseExpenses = $spouseIncome * 0.50;
-            }
-
-            $expenses += $spouseExpenses;
-        }
-
-        return $expenses;
     }
 
     /**
@@ -1178,22 +969,34 @@ class IHTCalculationService
      *
      * ALWAYS returns a value (even £0) with explanatory message.
      * For widows/widowers, includes transferred RNRB from deceased spouse.
+     *
+     * `$residenceNetValue` is a required argument rather than something this method
+     * looks up, because it has to be the residence value of the estate being
+     * assessed. Deriving it here made the s8E(2) cap permanently current-valued, so
+     * the projected band was capped at today's house price (W-0136).
      */
     private function calculateRNRB(
         float $totalNetEstate,
+        float $residenceNetValue,
         User $user,
         ?User $spouse,
         array $ihtConfig,
-        bool $isMarried,
+        bool $poolsSpouse,
         bool $isWidowed = false,
-        ?IHTProfile $ihtProfile = null
+        float $rnrbTransferred = 0.0
     ): array {
         $rnrbSingle = $ihtConfig['residence_nil_rate_band']; // £175,000
         $taperThreshold = $ihtConfig['rnrb_taper_threshold']; // £2,000,000
         $taperRate = $ihtConfig['rnrb_taper_rate']; // 0.5 (£1 lost per £2 over threshold)
 
-        // Get transferred RNRB for widows
-        $rnrbTransferred = (float) ($ihtProfile?->rnrb_transferred_from_spouse ?? 0);
+        // W-0154 F3: `$poolsSpouse` replaces `$isMarried` here, and the caller passes
+        // `$spouse` as null when their estate is not pooled. `hasMainResidence()` and
+        // `hasDirectDescendants()` below both consult whoever they are given, as does
+        // whichever residence valuation the caller passed in, so a spouse excluded
+        // from the estate could previously grant this allowance and raise its cap
+        // with a property that was not being taxed. The transferred figure arrives
+        // already summed across the
+        // pooled members, for the same reason.
 
         // Check eligibility: the estate must own a main residence AND leave it to
         // direct descendants. IHTA 1984 s8E/s8K: the RNRB only applies where the
@@ -1204,7 +1007,7 @@ class IHTCalculationService
         $hasDirectDescendants = $this->hasDirectDescendants($user, $spouse);
 
         // Calculate potential max RNRB for messaging
-        $potentialMax = $isMarried ? ($rnrbSingle * 2) : ($isWidowed && $rnrbTransferred > 0 ? $rnrbSingle + $rnrbTransferred : $rnrbSingle);
+        $potentialMax = $poolsSpouse ? ($rnrbSingle * 2) : ($isWidowed && $rnrbTransferred > 0 ? $rnrbSingle + $rnrbTransferred : $rnrbSingle);
 
         if (! $hasMainResidence) {
             return [
@@ -1226,8 +1029,8 @@ class IHTCalculationService
             ];
         }
 
-        // Calculate full RNRB (married gets double, widow with transfer gets own + transferred)
-        if ($isMarried) {
+        // Calculate full RNRB (pooled couple gets double, widow with transfer gets own + transferred)
+        if ($poolsSpouse) {
             $fullRNRB = $rnrbSingle * 2;
         } elseif ($isWidowed && $rnrbTransferred > 0) {
             $fullRNRB = $rnrbSingle + $rnrbTransferred;
@@ -1240,7 +1043,6 @@ class IHTCalculationService
         // allowance at the net-of-mortgage, ownership-share-adjusted residence value
         // BEFORE the £2m taper is applied. A £200k home therefore limits the RNRB to
         // £200k even for a married couple whose combined maximum would be £350k.
-        $residenceNetValue = $this->getMainResidenceNetValue($user, $spouse);
         $cappedByResidence = $residenceNetValue < $fullRNRB;
         $fullRNRB = min($fullRNRB, $residenceNetValue);
 
@@ -1249,7 +1051,7 @@ class IHTCalculationService
             // Build message based on status
             if ($cappedByResidence) {
                 $rnrbMsg = 'Residence Nil Rate Band of £'.number_format($fullRNRB).' available — capped at the net value of your main residence (£'.number_format($residenceNetValue).'), which is lower than the maximum allowance of £'.number_format($potentialMax).'. Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
-            } elseif ($isMarried) {
+            } elseif ($poolsSpouse) {
                 $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (£'.number_format($rnrbSingle).' each). Your combined estate is below the £'.number_format($taperThreshold).' taper threshold.';
             } elseif ($isWidowed && $rnrbTransferred > 0) {
                 $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (own £'.number_format($rnrbSingle).' + £'.number_format($rnrbTransferred).' transferred from late spouse\'s estate). Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
@@ -1303,32 +1105,103 @@ class IHTCalculationService
      * @param  array  $ihtConfig  Tax configuration for IHT
      * @return array Rate determination with type and message
      */
-    private function determineIHTRate(User $user, float $netEstate, float $nrbAvailable, array $ihtConfig): array
-    {
+    private function determineIHTRate(
+        User $user,
+        array $pooledMembers,
+        float $netEstate,
+        float $nrbAvailable,
+        array $ihtConfig,
+        ?Collection $profiles = null
+    ): array {
         $standardRate = $ihtConfig['standard_rate']; // 0.40 (40%)
-        $reducedRate = $ihtConfig['reduced_rate_charity'] ?? 0.36; // 0.36 (36%)
+        $reducedRate = $this->taxConfig->getCharitableReducedRate();
 
-        // Get user's IHT profile for charitable giving percentage
-        $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
-        $charitablePercent = $ihtProfile?->charitable_giving_percent ?? 0;
+        // W-0154 F1 — the exemption and the rate test do NOT use the same set of
+        // wills, and conflating them is the intuitive fix that is wrong.
+        //
+        // tax-compliance-reviewer's statutory ruling, 2026-08-21: there is no
+        // household baseline in law. IHTA 1984 Sch 1A tests the estate of ONE
+        // deceased person.
+        //
+        //   * s23(1) EXEMPTION — every pooled member's charitable legacies are paid
+        //     and every one of them leaves the combined estate. Deducting only the
+        //     logged-in user's understated the exemption on both accounts: a
+        //     household where each spouse left £10,000 to a different charity had
+        //     £10,000 deducted, never £20,000, whichever spouse logged in.
+        //
+        //   * 10% RATE TEST — only the SURVIVOR's will counts. This service models
+        //     to the second death, so the estate being tested is the survivor's and
+        //     the will operating on it is theirs. The first-to-die's legacy was
+        //     tested on the first death against an estate that, under full spouse
+        //     exemption, is nil — so no rate question arose there and their legacy
+        //     cannot be added to the survivor's. **Summing both wills for the 10%
+        //     test would over-qualify households for the 36% rate.**
+        //
+        // This is a modelling ruling — a statute mapped onto a construct the statute
+        // does not have — and it carries a product sign-off requirement (W-0154).
+        $survivor = $this->survivingMember($user, $pooledMembers[1] ?? null, count($pooledMembers) > 1);
+
+        $profiles ??= IHTProfile::whereIn('user_id', array_map(fn (User $m): int => $m->id, $pooledMembers))
+            ->get()
+            ->keyBy('user_id');
+
+        // The planning percentage is a property of the estate being rate-tested, so
+        // it comes from the survivor rather than from whoever happens to be logged in.
+        $charitablePercent = $profiles->get($survivor->id)?->charitable_giving_percent ?? 0;
 
         // Calculate baseline: Net Estate - NRB (RNRB is excluded from baseline calculation)
         $baseline = max(0, $netEstate - $nrbAvailable);
 
         // Threshold for reduced rate: 10% of baseline
-        $threshold = $baseline * 0.10;
+        $threshold = $baseline * $this->taxConfig->getCharitableThresholdPercent();
 
         // Calculate charitable amount as percentage of net estate
         $charitableAmount = $netEstate * ($charitablePercent / 100);
 
+        // W-0020: the recorded will wins. Until 2026-08-21 this rate was decided
+        // solely by charitable_giving_percent — a planning figure the user types
+        // on their Inheritance Tax profile — while the bequests actually
+        // recorded in their will were never consulted. So a user could enter a
+        // charitable legacy, see it in their generated will, and still be told
+        // they had left nothing to charity. Two answers to "what is going to
+        // charity", never speaking to each other (Rule 20).
+        //
+        // The will is the instrument HMRC reads, so recorded charitable
+        // bequests take precedence. The profile percentage remains the answer
+        // for a user who has recorded no bequests.
+        // The exemption pools every member's legacies; the rate test uses the
+        // survivor's alone. See the ruling in this method's opening comment.
+        $bequestTotal = 0.0;
+        foreach ($pooledMembers as $member) {
+            $bequestTotal += $this->willAnalysis->getCharitableBequestTotal($member, $netEstate);
+        }
+
+        $survivorBequestTotal = count($pooledMembers) > 1
+            ? $this->willAnalysis->getCharitableBequestTotal($survivor, $netEstate)
+            : $bequestTotal;
+
+        if ($bequestTotal > 0) {
+            $charitableAmount = $bequestTotal;
+            $rateTestAmount = $survivorBequestTotal;
+            $charitablePercent = $netEstate > 0 ? ($survivorBequestTotal / $netEstate) * 100 : 0;
+        }
+
+        // `$charitableAmount` is the s23(1) exemption the caller deducts from the
+        // estate — pooled. `$rateTestAmount` is what the 10% test compares — the
+        // survivor's alone. They are equal for a single person and differ for a
+        // household where both spouses left a legacy. The messages quote the
+        // rate-test figure, because the comparison they describe is the rate test.
+        $rateTestAmount ??= $charitableAmount;
+
         // Check if charitable giving meets the 10% of baseline threshold
-        if ($charitablePercent > 0 && $charitableAmount >= $threshold && $baseline > 0) {
+        if ($charitablePercent > 0 && $rateTestAmount >= $threshold && $baseline > 0) {
             return [
                 'rate' => $reducedRate,
                 'type' => 'reduced',
-                'message' => 'Reduced IHT rate of 36% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($charitableAmount).') meets the 10% threshold of £'.number_format($threshold).' (10% of baseline £'.number_format($baseline).').',
+                'message' => 'Reduced IHT rate of 36% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($rateTestAmount).') meets the 10% threshold of £'.number_format($threshold).' (10% of baseline £'.number_format($baseline).').',
                 'charitable_percent' => $charitablePercent,
                 'charitable_amount' => round($charitableAmount, 2),
+                'charitable_rate_test_amount' => round($rateTestAmount, 2),
                 'baseline' => round($baseline, 2),
                 'threshold' => round($threshold, 2),
             ];
@@ -1336,14 +1209,15 @@ class IHTCalculationService
 
         // Standard rate applies
         if ($charitablePercent > 0 && $baseline > 0) {
-            $shortfall = $threshold - $charitableAmount;
+            $shortfall = $threshold - $rateTestAmount;
 
             return [
                 'rate' => $standardRate,
                 'type' => 'standard',
-                'message' => 'Standard IHT rate of 40% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($charitableAmount).') is below the 10% threshold of £'.number_format($threshold).'. Increase by £'.number_format($shortfall).' to qualify for 36% rate.',
+                'message' => 'Standard IHT rate of 40% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($rateTestAmount).') is below the 10% threshold of £'.number_format($threshold).'. Increase by £'.number_format($shortfall).' to qualify for 36% rate.',
                 'charitable_percent' => $charitablePercent,
                 'charitable_amount' => round($charitableAmount, 2),
+                'charitable_rate_test_amount' => round($rateTestAmount, 2),
                 'baseline' => round($baseline, 2),
                 'threshold' => round($threshold, 2),
             ];
@@ -1361,21 +1235,30 @@ class IHTCalculationService
     }
 
     /**
-     * Calculate life expectancy for a user using actuarial tables.
+     * How many more years this person is projected to live.
      *
-     * Delegates to FutureValueCalculator::getLifeExpectancyYears() which provides
-     * interpolated lookups from the ONS actuarial life tables.
+     * Delegates to `FutureValueCalculator::getLifeExpectancy(User)`, which honours
+     * `users.life_expectancy_override` before falling back to an interpolated lookup
+     * from the Office for National Statistics actuarial life tables.
+     *
+     * **This used to call `getLifeExpectancyYears(int $age, string $gender)` instead**
+     * — the one method on that calculator which never receives the user and therefore
+     * *cannot* see the override, however it is written. So a household that told the
+     * application when they expect to die was answered one way by retirement
+     * (`RetirementAgent`), the same way by decumulation (`DecumulationController`),
+     * and another way by their inheritance tax projection, with nothing anywhere
+     * revealing the disagreement. The override moves the whole projection horizon, so
+     * the two answers were not close.
+     *
+     * The missing-date-of-birth and missing-gender cases are handled inside the
+     * calculator (30 years from an assumed age 85, and a default cohort respectively),
+     * rather than short-circuited to a literal 25 here that no other module used.
      */
     private function calculateLifeExpectancy(User $user): int
     {
-        if (! $user->date_of_birth || ! $user->gender) {
-            return 25; // Default fallback
-        }
-
-        $currentAge = Carbon::parse($user->date_of_birth)->age;
-        $gender = strtolower($user->gender);
-
-        return (int) round($this->futureValueCalculator->getLifeExpectancyYears($currentAge, $gender));
+        return (int) round(
+            (float) $this->futureValueCalculator->getLifeExpectancy($user)['years_remaining']
+        );
     }
 
     /**
@@ -1488,7 +1371,8 @@ class IHTCalculationService
         // Check if hashes match (data hasn't changed)
         if ($cached->assets_hash === $currentHashes['assets_hash'] &&
             $cached->liabilities_hash === $currentHashes['liabilities_hash'] &&
-            $cached->result_json) {
+            $cached->result_json &&
+            $this->isCurrentResultShape($cached->result_json)) {
             return $cached->result_json;
         }
 
@@ -1496,14 +1380,74 @@ class IHTCalculationService
     }
 
     /**
+     * Does a stored result carry every figure today's consumers read?
+     *
+     * The hashes fingerprint the DATA. They say nothing about the CODE that
+     * produced the row, so a result persisted before W-0136 added the projected
+     * allowance components would pass every hash check and then be served to a
+     * controller that reads keys it does not contain.
+     *
+     * Recomputing is the right answer to a stale shape. Filling the gaps with
+     * `?? 0` would publish a £0 allowance as though it were a finding — which is
+     * precisely the failure mode this work item is full of.
+     *
+     * Nothing writes these rows today (`$persist` is false at every call site —
+     * W-0131), so this guard is dormant. It is here so that fixing W-0131 does not
+     * quietly resurrect a pre-fix answer.
+     */
+    private function isCurrentResultShape(array $result): bool
+    {
+        foreach (['projected_total_allowances', 'projected_charitable_deduction', 'projected_rnrb_status'] as $key) {
+            if (! array_key_exists($key, $result)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Generate hashes for cache invalidation
      */
+    /**
+     * A fingerprint of the bequests that can move the Inheritance Tax rate.
+     *
+     * The cached calculation is keyed on hashes of assets and liabilities only.
+     * That was sound while the rate depended solely on
+     * IHTProfile.charitable_giving_percent — but W-0020 made the rate read the
+     * user's recorded bequests, so without this a user could add a charitable
+     * legacy, qualify for the reduced rate, and keep being served the previous
+     * 40% figure from cache until their assets happened to change. That is the
+     * exact journey W-0020 exists to fix, so the fingerprint belongs in the key.
+     *
+     * Sorted, so re-ordering bequests alone does not invalidate the cache.
+     */
+    private function charitableBequestFingerprint(User $user): string
+    {
+        $will = Will::where('user_id', $user->id)->with('bequests')->first();
+
+        if (! $will) {
+            return 'none';
+        }
+
+        return $will->bequests
+            ->map(fn (Bequest $bequest) => implode(':', [
+                $bequest->bequest_type,
+                (string) $bequest->specific_amount,
+                (string) $bequest->percentage_of_estate,
+                $bequest->isCharitable() ? 'charity' : 'other',
+            ]))
+            ->sort()
+            ->implode(',');
+    }
+
     private function generateHashes(User $user, ?User $spouse, bool $dataSharingEnabled): array
     {
         $userAssets = $this->aggregator->gatherUserAssets($user);
         $spouseAssets = ($spouse && $dataSharingEnabled) ? $this->aggregator->gatherUserAssets($spouse) : collect();
 
-        $assetsString = $userAssets->pluck('current_value')->join(',').'|'.$spouseAssets->pluck('current_value')->join(',');
+        $assetsString = $userAssets->pluck('current_value')->join(',').'|'.$spouseAssets->pluck('current_value')->join(',')
+            .'|'.$this->charitableBequestFingerprint($user);
         $assetsHash = hash('sha256', $assetsString);
 
         $userLiabilities = $this->aggregator->calculateUserLiabilities($user);
@@ -1530,7 +1474,8 @@ class IHTCalculationService
         float $spouseLiabilities
     ): void {
         // Generate hashes
-        $assetsString = $userAssets->pluck('current_value')->join(',').'|'.$spouseAssets->pluck('current_value')->join(',');
+        $assetsString = $userAssets->pluck('current_value')->join(',').'|'.$spouseAssets->pluck('current_value')->join(',')
+            .'|'.$this->charitableBequestFingerprint($user);
         $liabilitiesString = $userLiabilities.'|'.$spouseLiabilities;
 
         IHTCalculation::create([
@@ -1574,79 +1519,144 @@ class IHTCalculationService
     }
 
     /**
-     * Get life event cash impacts keyed by user age.
+     * The nil-rate-band footnote, stated as the band actually applied.
      *
-     * Returns an array where keys are ages and values are the net cash impact
-     * (income events positive, expense events negative) using raw amounts.
+     * W-0134 acceptance 4. This sentence sits directly beneath the allowance rows
+     * of `IHTCalculationTable.vue`, and it is the last place on that page a reader
+     * meets a figure they cannot reconcile with the column above it. The rows
+     * itemise £325,000 each, less the gift deduction, reaching the applied band;
+     * the prose opened with the pre-deduction total and called it "available".
      *
-     * @return array<int, float>
+     * Two rules govern the wording, both inherited from the rows rather than
+     * invented here (Rule 20 — one vocabulary):
+     *
+     *   * the headline is the APPLIED band, with the gift deduction shown as the
+     *     working that gets you there, not appended as an afterthought; and
+     *   * a living spouse's £325,000 is described as modelled on second death,
+     *     matching the `nrb-spouse-modelled` row note, because IHTA 1984 s8A
+     *     creates the transferable band on the survivor's death and not before.
+     *
+     * @param  float  $nrbGross  The band before gifts are deducted
+     * @param  float  $nrbAvailable  The band actually applied to the estate
+     * @param  array{total_nrb_used: float, clts_7_to_14_years: float}  $deduction
      */
-    private function getLifeEventImpactsByAge(User $user, ?User $spouse, bool $dataSharingEnabled): array
-    {
-        $impacts = [];
+    private function buildNrbMessage(
+        float $nrbGross,
+        float $nrbAvailable,
+        float $nrbSingle,
+        float $nrbTransferred,
+        array $deduction,
+        bool $poolsSpouse,
+        bool $isWidowed
+    ): string {
+        $giftsUsed = (float) $deduction['total_nrb_used'];
 
-        $userDob = $user->date_of_birth ? Carbon::parse($user->date_of_birth) : null;
-        if (! $userDob) {
-            return $impacts;
+        if ($poolsSpouse) {
+            $composition = '£'.number_format($nrbSingle).' each';
+        } elseif ($isWidowed && $nrbTransferred > 0) {
+            $composition = 'own £'.number_format($nrbSingle)
+                .' plus £'.number_format($nrbTransferred).' transferred from your late spouse\'s estate';
+        } else {
+            $composition = null;
         }
 
-        // Get user's active life events
-        $events = $this->lifeEventService->getActiveEventsForProjection($user->id, false);
+        $heading = ($poolsSpouse || ($isWidowed && $nrbTransferred > 0))
+            ? 'Combined Nil Rate Band'
+            : 'Nil Rate Band';
 
-        foreach ($events as $event) {
-            $age = (int) $userDob->diffInYears($event->expected_date);
-            $amount = (float) $event->amount;
-
-            if ($event->impact_type === 'expense') {
-                $amount = -$amount;
-            }
-
-            $impacts[$age] = ($impacts[$age] ?? 0) + $amount;
+        if ($giftsUsed > 0) {
+            $working = $composition ?? '£'.number_format($nrbGross);
+            $message = $heading.' of £'.number_format($nrbAvailable).' applied: '.$working
+                .', less £'.number_format($giftsUsed).' of allowance used by gifts made within the last 7 years'
+                .($deduction['clts_7_to_14_years'] > 0
+                    ? ' (including the 14-year rule for historical Chargeable Lifetime Transfers)'
+                    : '')
+                .'.';
+        } else {
+            $message = $heading.' of £'.number_format($nrbAvailable).' applied'
+                .($composition !== null ? ' ('.$composition.')' : '')
+                .'.';
         }
 
-        // Include spouse events if data sharing enabled
-        if ($dataSharingEnabled && $spouse) {
-            $spouseEvents = $this->lifeEventService->getActiveEventsForProjection($spouse->id, false);
-
-            foreach ($spouseEvents as $event) {
-                // Map spouse event date to primary user's age timeline
-                $age = (int) $userDob->diffInYears($event->expected_date);
-                $amount = (float) $event->amount;
-
-                if ($event->impact_type === 'expense') {
-                    $amount = -$amount;
-                }
-
-                $impacts[$age] = ($impacts[$age] ?? 0) + $amount;
-            }
+        if ($poolsSpouse) {
+            $message .= ' Your spouse\'s £'.number_format($nrbSingle)
+                .' is modelled on second death — there is no transferable allowance while you are both alive.'
+                .' Transfers between spouses are exempt from Inheritance Tax on the first death.';
         }
 
-        return $impacts;
+        return $message;
     }
 
     /**
-     * Calculate NRB deduction for the primary user's gifts (PETs and CLTs).
+     * Gift deduction (potentially exempt transfers and chargeable lifetime
+     * transfers) across every pooled member, each capped at their own band.
      *
      * Implements the 14-year rule (Direction B): historical CLTs made 7-14 years
      * before death reduce the NRB available for PETs in the final 7 years.
      *
-     * Only deducts from the PRIMARY user's own NRB. Spouse NRB is tracked
-     * separately by SpouseNRBTrackerService.
+     * **W-0154.** This read the primary user only, and its docblock said spouse nil
+     * rate band was "tracked separately by SpouseNRBTrackerService". **That service
+     * has no callers** — verified repo-wide, twice. So one spouse's gifts reduced the
+     * household band when they logged in and did nothing when the other did, and the
+     * comment is why nobody looked. The claim is removed rather than reworded; see
+     * W-0146 for whether the service is wired up or deleted.
      *
-     * @param  User  $user  The primary user
+     * @param  list<User>  $members  The people whose records this calculation covers
      * @param  float  $nrbSingle  The individual NRB amount
-     * @return array NRB deduction breakdown
+     * @return array NRB deduction breakdown, summed across members
      */
-    private function calculateNRBDeductionForGifts(User $user, float $nrbSingle): array
+    private function calculateNRBDeductionForGifts(array $members, float $nrbSingle): array
+    {
+        $totals = [
+            'pets_in_7_years' => 0.0,
+            'clts_in_7_years' => 0.0,
+            'clts_7_to_14_years' => 0.0,
+            'nrb_used_by_clts' => 0.0,
+            'nrb_used_by_pets' => 0.0,
+            'total_nrb_used' => 0.0,
+        ];
+
+        foreach ($members as $member) {
+            $memberDeduction = $this->nrbDeductionForOneMember($member, $nrbSingle);
+
+            foreach (array_keys($totals) as $key) {
+                $totals[$key] += $memberDeduction[$key];
+            }
+        }
+
+        return array_map(fn (float $value): float => round($value, 2), $totals)
+            + ['fourteen_year_rule_applied' => $totals['clts_7_to_14_years'] > 0];
+    }
+
+    /**
+     * One person's gift deduction, capped at their OWN nil rate band.
+     *
+     * **The cap is the point, and it is why this is per member.** The deduction used
+     * to be summed and then taken off the POOLED band —
+     * `max(0, $nrbAvailable - $total)` against £650,000 — so one spouse's chargeable
+     * transfers could consume the other's band. IHTA 1984 s8A transfers the unused
+     * **percentage** of the first-to-die's band and that percentage cannot go below
+     * zero: a £400,000 transfer exhausts that person's own £325,000 and reaches no
+     * further. The old code gave £250,000; s8A gives the survivor their full
+     * £325,000.
+     *
+     * The per-person cap already existed for the chargeable-lifetime-transfer
+     * subtotal (`min($nrbSingle, ...)` below) — it was simply never applied to the
+     * household total. Capping here means the sum across members can never exceed
+     * members × `$nrbSingle`, which is the invariant that was missing.
+     *
+     * @return array<string, float>
+     */
+    private function nrbDeductionForOneMember(User $member, float $nrbSingle): array
     {
         // PETs within 7 years of today (assumed death date for calculation)
-        $petsIn7Years = Gift::where('user_id', $user->id)
+        $petsIn7Years = Gift::where('user_id', $member->id)
             ->where('gift_type', 'pet')
             ->where('gift_date', '>', today()->subYears(7))
             ->sum('gift_value');
 
         // CLTs within 7 years
-        $cltsIn7Years = Gift::where('user_id', $user->id)
+        $cltsIn7Years = Gift::where('user_id', $member->id)
             ->where('gift_type', 'clt')
             ->where('gift_date', '>', today()->subYears(7))
             ->sum('gift_value');
@@ -1654,7 +1664,7 @@ class IHTCalculationService
         // 14-year rule (Direction B): CLTs made 7-14 years before death
         // These CLTs don't incur IHT themselves (outside 7-year window),
         // but they DO reduce the NRB available for PETs in the final 7 years
-        $clts7to14Years = Gift::where('user_id', $user->id)
+        $clts7to14Years = Gift::where('user_id', $member->id)
             ->where('gift_type', 'clt')
             ->where('gift_date', '>', today()->subYears(14))
             ->where('gift_date', '<=', today()->subYears(7))
@@ -1667,17 +1677,57 @@ class IHTCalculationService
         $nrbRemainingForPETs = max(0, $nrbSingle - $nrbUsedByCLTs);
         $nrbUsedByPETs = min($nrbRemainingForPETs, (float) $petsIn7Years);
 
-        $totalNRBUsed = $nrbUsedByCLTs + $nrbUsedByPETs;
-
         return [
-            'pets_in_7_years' => round((float) $petsIn7Years, 2),
-            'clts_in_7_years' => round((float) $cltsIn7Years, 2),
-            'clts_7_to_14_years' => round((float) $clts7to14Years, 2),
-            'nrb_used_by_clts' => round($nrbUsedByCLTs, 2),
-            'nrb_used_by_pets' => round($nrbUsedByPETs, 2),
-            'total_nrb_used' => round($totalNRBUsed, 2),
-            'fourteen_year_rule_applied' => $clts7to14Years > 0,
+            'pets_in_7_years' => (float) $petsIn7Years,
+            'clts_in_7_years' => (float) $cltsIn7Years,
+            'clts_7_to_14_years' => (float) $clts7to14Years,
+            'nrb_used_by_clts' => $nrbUsedByCLTs,
+            'nrb_used_by_pets' => $nrbUsedByPETs,
+            'total_nrb_used' => $nrbUsedByCLTs + $nrbUsedByPETs,
         ];
+    }
+
+    /**
+     * The people whose records this calculation covers.
+     *
+     * ONE decision, used by assets, liabilities, gifts, transferred allowances and
+     * wills alike (W-0154). The predicate matches the one the asset and liability
+     * pooling already used, which is what makes the inputs consistent with the
+     * estate they are being applied to.
+     *
+     * @return list<User>
+     */
+    private function pooledMembers(User $user, ?User $spouse, bool $isMarried, bool $dataSharingEnabled): array
+    {
+        return ($isMarried && $spouse !== null && $dataSharingEnabled) ? [$user, $spouse] : [$user];
+    }
+
+    /**
+     * Whose estate the second-death model lands on.
+     *
+     * The service already models a married couple to the second death, so the estate
+     * being taxed is the survivor's, and the charitable rate test must run against
+     * that person's will.
+     *
+     * **Rule 20, stated rather than done:** `calculateProjectedValues()` holds an
+     * equivalent comparison inline (the `max()` of the two life expectancies, and
+     * whose age to project from). It is deliberately not refactored onto this helper
+     * here — that method is `W-0137`'s territory and was under investigation by
+     * another batch when this landed. **Converging the two belongs with W-0137**, and
+     * the behaviour is identical today so nothing is broken by the wait.
+     *
+     * Falls back to the primary user whenever the spouse's life expectancy cannot be
+     * computed, which is the same guard the projection applies.
+     */
+    private function survivingMember(User $user, ?User $spouse, bool $poolsSpouse): User
+    {
+        if (! $poolsSpouse || $spouse === null || ! $spouse->date_of_birth || ! $spouse->gender) {
+            return $user;
+        }
+
+        return $this->calculateLifeExpectancy($spouse) > $this->calculateLifeExpectancy($user)
+            ? $spouse
+            : $user;
     }
 
     /**

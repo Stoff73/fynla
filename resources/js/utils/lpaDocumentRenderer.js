@@ -1,10 +1,32 @@
 /**
- * LPA Document Renderer
+ * Lasting Power of Attorney — record of details renderer
  *
- * Generates a formatted HTML string for a UK Lasting Power of Attorney
- * in the official Office of the Public Guardian legal format.
+ * Generates a formatted HTML string summarising the Lasting Power of Attorney
+ * details a user has entered, laid out to follow the structure of the official
+ * Office of the Public Guardian forms so the two are easy to read side by side.
+ *
+ * It is NOT the prescribed form. Mental Capacity Act 2005 Sch 1 para 1 requires
+ * a Lasting Power of Attorney to be made in a statutorily prescribed form; an
+ * instrument departing from it is not a defective Lasting Power of Attorney, it
+ * is not one at all — and that failure surfaces at registration, possibly after
+ * the donor has lost capacity. What this file produces is a record, and it says
+ * so at the top of its own output (W-0100).
+ *
+ * Two things this renderer must never do, both removed 2026-08-21:
+ *  - Print anybody's name on a signature line. It previously rendered the donor,
+ *    every attorney and the certificate provider in a script font on the
+ *    signature lines whenever `completed_at` was set — which is set by the user
+ *    clicking "Complete" in the wizard, with no involvement from any of those
+ *    people. That is a facsimile of a third party's signature on a statement
+ *    about the donor's mental capacity. Signature lines are always blank.
+ *  - Assert that the instrument is valid or registered. It previously printed
+ *    "This instrument is now a valid Lasting Power of Attorney under the Mental
+ *    Capacity Act 2005" on the strength of a self-declared checkbox.
+ *
  * All user content is escaped via escapeHtml() to prevent injection.
  */
+
+import { BLANK_DATE_RULE, SIGNATURE_NOT_RECORDED, blankSignatureLine } from './documentSignatures';
 
 function escapeHtml(text) {
   if (!text) return '';
@@ -50,17 +72,18 @@ export function renderLpaDocument(lpa) {
   const primaryAttorneys = (lpa.attorneys || []).filter(a => a.attorney_type === 'primary');
   const replacementAttorneys = (lpa.attorneys || []).filter(a => a.attorney_type === 'replacement');
   const notificationPersons = lpa.notification_persons || [];
-  const signedDate = lpa.completed_at || lpa.registration_date;
   const isRegistered = lpa.is_registered_with_opg;
 
   let html = '';
 
-  // Header
-  html += `<h1>LASTING POWER OF ATTORNEY</h1>`;
+  // Header. The qualification sits with the title, not in a footer, because a
+  // printed page put in a drawer is remembered by its heading.
+  html += `<h1>LASTING POWER OF ATTORNEY — RECORD OF DETAILS</h1>`;
   html += `<h2>${typeName}</h2>`;
   if (isRegistered && lpa.opg_reference) {
-    html += `<p class="opg-ref">Office of the Public Guardian Reference: <strong>${escapeHtml(lpa.opg_reference)}</strong></p>`;
+    html += `<p class="opg-ref">Office of the Public Guardian reference you have given: <strong>${escapeHtml(lpa.opg_reference)}</strong></p>`;
   }
+  html += `<p class="doc-qualification">This is a record of the details you have entered. It is not a Lasting Power of Attorney and cannot be used as one.</p>`;
   html += `<hr class="title-rule" />`;
 
   // Section 1: The Donor
@@ -116,10 +139,16 @@ export function renderLpaDocument(lpa) {
   // Section 4: When attorneys can act (Property only)
   if (isProperty) {
     html += `<h3>SECTION 4 — WHEN ATTORNEYS CAN ACT</h3>`;
+    // Never fall through to an election the donor has not made: an unanswered
+    // field said "only when I have lost mental capacity" until 2026-08-21, which
+    // put a legally operative choice into the document on the user's behalf.
+    // Same shape as the life-sustaining treatment block below.
     if (lpa.when_attorneys_can_act === 'while_has_capacity') {
       html += `<p class="clause">I wish my attorneys to be able to act on my behalf as soon as this Lasting Power of Attorney is registered, <strong>whilst I still have mental capacity</strong>, as well as when I have lost mental capacity.</p>`;
-    } else {
+    } else if (lpa.when_attorneys_can_act === 'only_when_lost_capacity') {
       html += `<p class="clause">I wish my attorneys to be able to act on my behalf <strong>only when I have lost mental capacity</strong> to make decisions about my property and financial affairs.</p>`;
+    } else {
+      html += `<p class="clause">Not specified.</p>`;
     }
   }
 
@@ -181,71 +210,43 @@ export function renderLpaDocument(lpa) {
     });
   }
 
-  // Signatures
+  // Signatures. Every line is blank, always. Fynla has not witnessed anybody
+  // sign anything, and a name rendered on a signature line asserts that they
+  // did — most seriously for the certificate provider, whose block sits under a
+  // statement about the donor's mental capacity and the absence of undue
+  // pressure. See the note at the top of this file.
   html += `<h3>SIGNATURES</h3>`;
+  html += `<p class="clause">To be signed by hand on the official Office of the Public Guardian forms. ${SIGNATURE_NOT_RECORDED}</p>`;
 
-  // Donor signature
-  html += `<div class="signature-block">`;
-  html += `<p class="sig-label">Signed by the Donor</p>`;
-  if (signedDate) {
-    html += `<div class="sig-line"><div class="line signed-name">${donorName}</div></div>`;
-    html += `<p class="sig-meta"><strong>${donorName}</strong> — ${formatDate(signedDate)}</p>`;
-  } else {
-    html += `<div class="sig-line"><div class="line"></div></div>`;
-    html += `<p class="sig-meta">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: ___________</p>`;
-  }
-  html += `</div>`;
+  const signatureBlock = (label) => {
+    let block = `<div class="signature-block">`;
+    block += `<p class="sig-label">${label}</p>`;
+    block += `<div class="sig-line">${blankSignatureLine()}</div>`;
+    block += `<p class="sig-meta">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: ${BLANK_DATE_RULE}</p>`;
+    block += `</div>`;
+    return block;
+  };
 
-  // Attorney signatures
+  html += signatureBlock('Signed by the Donor');
   primaryAttorneys.forEach((att, i) => {
-    html += `<div class="signature-block">`;
-    html += `<p class="sig-label">Signed by Attorney ${i + 1}</p>`;
-    if (signedDate) {
-      html += `<div class="sig-line"><div class="line signed-name">${escapeHtml(att.full_name)}</div></div>`;
-      html += `<p class="sig-meta"><strong>${escapeHtml(att.full_name)}</strong> — ${formatDate(signedDate)}</p>`;
-    } else {
-      html += `<div class="sig-line"><div class="line"></div></div>`;
-      html += `<p class="sig-meta">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: ___________</p>`;
-    }
-    html += `</div>`;
+    html += signatureBlock(`Signed by Attorney ${i + 1}`);
   });
-
-  // Replacement attorney signatures
   replacementAttorneys.forEach((att, i) => {
-    html += `<div class="signature-block">`;
-    html += `<p class="sig-label">Signed by Replacement Attorney ${i + 1}</p>`;
-    if (signedDate) {
-      html += `<div class="sig-line"><div class="line signed-name">${escapeHtml(att.full_name)}</div></div>`;
-      html += `<p class="sig-meta"><strong>${escapeHtml(att.full_name)}</strong> — ${formatDate(signedDate)}</p>`;
-    } else {
-      html += `<div class="sig-line"><div class="line"></div></div>`;
-      html += `<p class="sig-meta">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: ___________</p>`;
-    }
-    html += `</div>`;
+    html += signatureBlock(`Signed by Replacement Attorney ${i + 1}`);
   });
+  html += signatureBlock('Signed by the Certificate Provider');
 
-  // Certificate provider signature
-  html += `<div class="signature-block">`;
-  html += `<p class="sig-label">Signed by the Certificate Provider</p>`;
-  if (signedDate) {
-    html += `<div class="sig-line"><div class="line signed-name">${escapeHtml(lpa.certificate_provider_name)}</div></div>`;
-    html += `<p class="sig-meta"><strong>${escapeHtml(lpa.certificate_provider_name)}</strong> — ${formatDate(signedDate)}</p>`;
-  } else {
-    html += `<div class="sig-line"><div class="line"></div></div>`;
-    html += `<p class="sig-meta">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: ___________</p>`;
-  }
-  html += `</div>`;
-
-  // Registration stamp
+  // Registration. Both the date and the reference are values the user typed in;
+  // Fynla has not checked either with anybody. Report what they told us, and say
+  // that is all this is.
   if (isRegistered) {
     html += `<div class="registration-stamp">`;
     html += `<h3>REGISTRATION</h3>`;
-    html += `<p class="clause">This Lasting Power of Attorney was registered by the Office of the Public Guardian on <strong>${formatDate(lpa.registration_date)}</strong>.`;
+    html += `<p class="clause">You have recorded that this was registered with the Office of the Public Guardian on <strong>${formatDate(lpa.registration_date)}</strong>`;
     if (lpa.opg_reference) {
-      html += ` Reference: <strong>${escapeHtml(lpa.opg_reference)}</strong>.`;
+      html += `, reference <strong>${escapeHtml(lpa.opg_reference)}</strong>`;
     }
-    html += `</p>`;
-    html += `<p class="clause">This instrument is now a valid Lasting Power of Attorney under the Mental Capacity Act 2005.</p>`;
+    html += `. Fynla has not verified this with the Office of the Public Guardian.</p>`;
     html += `</div>`;
   }
 
@@ -276,6 +277,7 @@ export function getLpaDocumentStyles() {
     h3 { font-size: 12pt; text-transform: uppercase; letter-spacing: 1px; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
     .title-rule { border: none; border-top: 2px solid #1F2A44; margin: 15px 0 25px; }
     .opg-ref { text-align: center; font-size: 11pt; margin-bottom: 5px; }
+    .doc-qualification { text-align: center; font-family: 'Segoe UI', sans-serif; font-size: 10pt; color: #717171; margin: 10px 0 0; }
     .clause { text-indent: 0; margin-bottom: 12px; text-align: justify; }
     .clause-indent { margin-left: 20px; font-style: italic; }
     .sub-heading { font-weight: 700; font-size: 11pt; margin-top: 12px; margin-bottom: 4px; text-decoration: underline; }
@@ -288,7 +290,6 @@ export function getLpaDocumentStyles() {
     .sig-line { margin-bottom: 4px; }
     .sig-line .line { border-bottom: 1px solid #000; width: 300px; height: 35px; }
     .sig-meta { font-size: 10pt; color: #555; }
-    .signed-name { font-family: 'Brush Script MT', 'Segoe Script', cursive; font-size: 18pt; padding-left: 6px; }
     .registration-stamp { margin-top: 30px; padding: 15px; border: 2px solid #1F2A44; border-radius: 4px; }
     .registration-stamp h3 { border-bottom: none; margin-top: 0; }
     .disclaimer {
@@ -308,7 +309,7 @@ export function getLpaDocumentStyles() {
 }
 
 /**
- * Opens a print window with the rendered LPA document.
+ * Opens a print window with the rendered record of details.
  * Content is fully escaped via escapeHtml() - safe for print rendering.
  * Follows the same DOMParser + srcdoc pattern used for will documents.
  */
@@ -332,9 +333,8 @@ export function printLpaDocument(lpa) {
     '</div>',
     content,
     '<div class="disclaimer">',
-    'This document was prepared using Fynla and is a record of your Lasting Power of Attorney details.',
-    ' To make your LPA legally valid, you must print and sign the official forms and register them',
-    ' with the Office of the Public Guardian (gov.uk/lasting-power-of-attorney).',
+    'To make a Lasting Power of Attorney, you must complete, print and sign the official forms and',
+    ' register them with the Office of the Public Guardian (gov.uk/lasting-power-of-attorney).',
     '</div>',
     '</body>',
     '</html>',

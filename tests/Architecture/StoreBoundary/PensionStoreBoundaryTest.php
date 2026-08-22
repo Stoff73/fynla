@@ -181,8 +181,10 @@ $pensionConsumers = [
     // encryption console command. Kept allowlisted as out-of-scope
     // read/infra references; a future pass may route them through the
     // store, but Pass 3 does not.
-    'App\Observers\NetWorthCacheObserver',
-    'App\Observers\RecommendationCacheObserver',
+    // The two cache observers that used to sit here were consolidated into
+    // App\Observers\UserDataCacheObserver (W-0239), which types against
+    // Illuminate\Database\Eloquent\Model and names no pension class, so it
+    // needs no allowlist entry.
     'App\Jobs\RecalculateRiskProfileJob',
 ];
 

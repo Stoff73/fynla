@@ -24,6 +24,7 @@ use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use App\Services\Auth\RegistrationHandoffService;
 use App\Services\Auth\SessionService;
+use App\Services\Consent\CookieConsentService;
 use App\Services\Gamification\PointsService;
 use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
@@ -653,6 +654,12 @@ class AuthController extends Controller
                 UserConsent::TYPE_DATA_PROCESSING => true,
                 UserConsent::TYPE_AI_CHAT => true,
             ]);
+
+            // Cookie consent was given before this account existed — on the
+            // landing page, by a visitor with no user row. Claim that record
+            // onto the new user so it can be evidenced for them, rather than
+            // re-recording it and losing the moment it was actually given.
+            app(CookieConsentService::class)->claimFor($request, $user);
 
             // Link referral if user registered with a referral code
             if ($pending->referral_code) {

@@ -27,6 +27,74 @@
         </div>
       </div>
 
+      <!-- Retirement target (W-0035). Same endpoint as the web card, same store
+           behind it — /m does not get its own write path (Rule 20). -->
+      <section class="m-card mr-target">
+        <div class="mr-target__head">
+          <p class="m-section-label" style="margin-top:0">Your retirement target</p>
+          <button
+            v-if="!editingTarget"
+            type="button"
+            class="m-btn-ghost mr-target__edit"
+            data-testid="retirement-target-edit"
+            @click="startEditingTarget"
+          >{{ targetIsStated ? 'Change' : 'Set' }}</button>
+        </div>
+
+        <p v-if="targetError" class="m-err" role="alert" data-testid="retirement-target-error">{{ targetError }}</p>
+
+        <template v-if="!editingTarget">
+          <div class="m-detail-row">
+            <span class="m-detail-key">Income you want each year</span>
+            <span class="m-detail-value" data-testid="retirement-target-income">{{ hasTargetIncome ? fmt(targetIncome) : 'Not set' }}</span>
+          </div>
+          <div class="m-detail-row">
+            <span class="m-detail-key">Age you want to retire</span>
+            <span class="m-detail-value" data-testid="retirement-target-age">{{ targetRetirementAge || 'Not set' }}</span>
+          </div>
+          <p class="m-sub mr-target__caption">{{ targetCaption }}</p>
+        </template>
+
+        <form v-else class="mr-target__form" @submit.prevent="saveTarget">
+          <label class="mr-target__field">
+            <span class="mr-target__label">Income you want each year</span>
+            <input
+              v-model="targetForm.target_retirement_income"
+              type="number"
+              min="0"
+              step="500"
+              inputmode="numeric"
+              class="mr-target__input"
+              data-testid="retirement-target-income-input"
+            />
+          </label>
+
+          <label class="mr-target__field">
+            <span class="mr-target__label">Age you want to retire</span>
+            <input
+              v-model="targetForm.target_retirement_age"
+              type="number"
+              min="50"
+              max="100"
+              inputmode="numeric"
+              class="mr-target__input"
+              data-testid="retirement-target-age-input"
+            />
+          </label>
+
+          <p class="m-sub mr-target__caption">
+            Every figure on this screen is built on this target.
+          </p>
+
+          <div class="mr-target__actions">
+            <button type="button" class="m-btn-ghost" :disabled="savingTarget" @click="cancelEditingTarget">Cancel</button>
+            <button type="submit" class="m-btn" :disabled="savingTarget" data-testid="retirement-target-save">
+              {{ savingTarget ? 'Saving…' : 'Save target' }}
+            </button>
+          </div>
+        </form>
+      </section>
+
       <!-- Pensions list (CSJ: pension account cards near the top, under the hero) -->
       <div class="m-card">
         <div class="m-cap-head" style="margin-top:0">
@@ -143,7 +211,7 @@
 
 <script>
 import { store } from '../../store.js';
-import { apiGet, apiPost } from '../../api.js';
+import { apiGet, apiPost, apiPut } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
@@ -175,6 +243,12 @@ export default {
     planningProjection: null,
     projError: '',
     loadGeneration: 0,
+    // W-0035 — the retirement target, and whether the user chose it.
+    requiredCapital: null,
+    editingTarget: false,
+    savingTarget: false,
+    targetError: '',
+    targetForm: { target_retirement_income: null, target_retirement_age: null },
   }),
   computed: {
     profile() { return this.data?.profile || null; },
@@ -211,9 +285,33 @@ export default {
       const target = Number(this.analysisReady
         ? this.analysis?.target_income
         : this.profile?.target_retirement_income);
-      return Number.isFinite(target) && target > 0 ? target : null;
+      if (Number.isFinite(target) && target > 0) return target;
+
+      // W-0035. The analysis reads retirement_profiles directly with no fallback,
+      // so /m showed "—" where the web app showed a derived figure. Same source as
+      // the web app now — RequiredCapitalCalculator, one endpoint — and the caption
+      // below says which of the two it is.
+      const derived = Number(this.requiredCapital?.required_income);
+      return Number.isFinite(derived) && derived > 0 ? derived : null;
     },
     hasTargetIncome() { return this.targetIncome != null; },
+    /**
+     * 'profile' when the user stated a target, 'calculated' when the calculator
+     * fell back to a proportion of their income. Presenting the second as the
+     * user's own figure is the defect W-0035 fixed.
+     */
+    targetIsStated() {
+      return this.requiredCapital?.income_source === 'profile'
+        || Number(this.profile?.target_retirement_income) > 0;
+    },
+    targetCaption() {
+      if (!this.hasTargetIncome) {
+        return 'Tell us what you want to retire on — every projection here is built on it.';
+      }
+      return this.targetIsStated
+        ? 'The figure you told us you want.'
+        : 'Worked out from your income, because you have not set a target yet.';
+    },
     incomeGap() {
       if (!this.hasTargetIncome || this.projectedIncome == null) return null;
       return this.targetIncome - this.projectedIncome;
@@ -315,6 +413,67 @@ export default {
     openPension(p) {
       this.$router.push({ name: 'm-retirement-pension', params: { type: p.type, id: String(p.id) } });
     },
+
+    startEditingTarget() {
+      this.targetError = '';
+      this.targetForm = {
+        // Only a stated figure pre-fills. Putting the derived one in the box would
+        // turn "we worked this out" into "you chose this" the moment they save.
+        target_retirement_income: Number(this.profile?.target_retirement_income) > 0
+          ? Number(this.profile.target_retirement_income)
+          : null,
+        target_retirement_age: this.targetRetirementAge ?? null,
+      };
+      this.editingTarget = true;
+    },
+
+    cancelEditingTarget() {
+      this.editingTarget = false;
+      this.targetError = '';
+    },
+
+    /**
+     * Same endpoint and same store as the desktop card — PUT /api/retirement/goals
+     * -> RetirementProfileStore (Rule 20). Omitted values are left alone rather
+     * than cleared, so only what the user answered is sent.
+     */
+    async saveTarget() {
+      const income = this.toNumberOrNull(this.targetForm.target_retirement_income);
+      const age = this.toNumberOrNull(this.targetForm.target_retirement_age);
+
+      if (income === null && age === null) {
+        this.targetError = 'Enter a target income, a target retirement age, or both.';
+        return;
+      }
+
+      const payload = {};
+      if (income !== null) payload.target_retirement_income = income;
+      if (age !== null) payload.target_retirement_age = age;
+
+      this.savingTarget = true;
+      this.targetError = '';
+      try {
+        const { ok, status, data } = await apiPut('/api/retirement/goals', payload, store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
+        if (!ok) {
+          this.targetError = data?.message || 'We could not save your retirement target.';
+          return;
+        }
+        this.editingTarget = false;
+        // Every figure on this screen derives from the target, so reload the lot.
+        await this.load();
+      } catch {
+        this.targetError = 'Network error. Please try again.';
+      } finally {
+        this.savingTarget = false;
+      }
+    },
+
+    toNumberOrNull(value) {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    },
     async load() {
       const generation = ++this.loadGeneration;
       this.loading = true;
@@ -326,12 +485,19 @@ export default {
       this.incomeDrawdown = null;
       this.planningProjection = null;
       this.projError = '';
+      this.requiredCapital = null;
       try {
-        const [indexRes, analyzeRes] = await Promise.all([
+        const [indexRes, analyzeRes, requiredCapitalRes] = await Promise.all([
           apiGet('/api/retirement', store.token),
           apiPost('/api/retirement/analyze', {}, store.token),
+          // W-0035. Supplies the derived target and, crucially, `income_source` —
+          // the flag that says whether the user chose the figure or we did.
+          apiGet('/api/retirement/required-capital', store.token),
         ]);
         if (generation !== this.loadGeneration) return;
+        if (requiredCapitalRes.ok) {
+          this.requiredCapital = requiredCapitalRes.data?.data || null;
+        }
         if (handleAuthExpiry(indexRes, this.$router)) return;
         if (indexRes.ok) {
           this.data = indexRes.data?.data || indexRes.data || {};
@@ -374,6 +540,16 @@ export default {
 </script>
 
 <style scoped>
+/* Retirement target (W-0035) — mirrors the profile screen's inline edit pattern. */
+.mr-target__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mr-target__edit { flex: 0 0 auto; padding: 6px 12px; }
+.mr-target__caption { margin: 10px 0 0; }
+.mr-target__form { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.mr-target__field { display: block; }
+.mr-target__label { display: block; font-size: 13px; color: var(--horizon-300); margin-bottom: 6px; }
+.mr-target__input { width: 100%; padding: 12px; border: 1px solid var(--horizon-200); border-radius: 8px; background: var(--white); color: var(--horizon-500); font-size: 15px; }
+.mr-target__actions { display: flex; justify-content: flex-end; gap: 10px; }
+
 .mr-hero-per { font-size: 14px; font-weight: 600; color: var(--horizon-300); margin-left: 6px; }
 .mr-hero-split { display: flex; gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--horizon-400); }
 .mr-hero-stat { flex: 1; }

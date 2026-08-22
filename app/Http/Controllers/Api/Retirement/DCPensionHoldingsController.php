@@ -10,6 +10,7 @@ use App\Models\DCPension;
 use App\Models\Investment\Holding;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\PensionStore;
+use App\Support\HoldingValuation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -93,10 +94,11 @@ class DCPensionHoldingsController extends Controller
         $validated['holdable_id'] = $pension->id;
         $validated['holdable_type'] = DCPension::class;
 
-        // Calculate cost basis if missing
-        if (isset($validated['quantity']) && isset($validated['purchase_price'])) {
-            $validated['cost_basis'] = $validated['quantity'] * $validated['purchase_price'];
-        }
+        // Units, price, value and cost basis are reconciled in the ONE place every
+        // holding write path reads (Rule 20, W-0126). This carried its own
+        // `cost_basis = quantity x purchase_price`, written out line for line, and
+        // derived no unit count at all when the caller gave a value and a price.
+        $validated = HoldingValuation::reconcile($validated);
 
         $holding = Holding::create($validated);
 
@@ -141,14 +143,13 @@ class DCPensionHoldingsController extends Controller
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        // Recalculate cost basis if quantity or purchase price changed
-        if (isset($validated['quantity']) || isset($validated['purchase_price'])) {
-            $quantity = $validated['quantity'] ?? $holding->quantity;
-            $purchasePrice = $validated['purchase_price'] ?? $holding->purchase_price;
-            if ($quantity && $purchasePrice) {
-                $validated['cost_basis'] = $quantity * $purchasePrice;
-            }
-        }
+        // The same ONE reconciliation as the create path, resolved against the stored
+        // holding so a partial edit keeps the fields it left alone. This hand-rolled
+        // that fallback — `$validated['quantity'] ?? $holding->quantity` — which is
+        // precisely the construct that let an inherited unit count overwrite a value
+        // the user had just typed (W-0121). Resolving it here means the shared class
+        // decides which of the two the caller actually asserted.
+        $validated = HoldingValuation::reconcile($validated, $holding);
 
         $holding->update($validated);
 
@@ -217,11 +218,20 @@ class DCPensionHoldingsController extends Controller
                     ->where('holdable_type', DCPension::class)
                     ->firstOrFail();
 
-                $holding->update([
-                    'current_value' => $holdingData['current_value'],
-                    'current_price' => $holdingData['current_price'] ?? $holding->current_price,
-                    'allocation_percent' => $holdingData['allocation_percent'] ?? $holding->allocation_percent,
-                ]);
+                // A bulk re-valuation states a new value and sometimes a new price.
+                // It never states units, so the value the user typed stands and the
+                // unit count is back-calculated from it — rather than being left to
+                // contradict the figure now stored beside it (W-0121). Fields the
+                // caller omitted are not written at all; the shared rule resolves
+                // them against the stored row.
+                $payload = ['current_value' => $holdingData['current_value']];
+                foreach (['current_price', 'allocation_percent'] as $field) {
+                    if (isset($holdingData[$field])) {
+                        $payload[$field] = $holdingData[$field];
+                    }
+                }
+
+                $holding->update(HoldingValuation::reconcile($payload, $holding));
             }
 
             DB::commit();

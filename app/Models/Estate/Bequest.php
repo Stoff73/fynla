@@ -17,6 +17,7 @@ class Bequest extends Model
 
     protected $fillable = [
         'will_id',
+        'will_document_id',
         'user_id',
         'beneficiary_name',
         'beneficiary_user_id',
@@ -69,6 +70,19 @@ class Bequest extends Model
      * - beneficiary_type is 'charity'
      * - Has a charity registration number
      * - Beneficiary name contains charity indicators
+     *
+     * The ONE home for this decision (Rule 20). WillAnalysisService carried a
+     * near-identical private copy until 2026-08-21, and the two had already
+     * drifted: that copy also treated 'trust' as a charity indicator, so a
+     * "Smith Family Trust" counted toward the charitable total and could push a
+     * user onto the reduced Inheritance Tax rate they do not qualify for. A
+     * gift into a family trust is a chargeable transfer, not an exempt one —
+     * 'trust' is a structure word, not a charity word, and must not come back.
+     *
+     * Known limitation: the two structured checks above are the reliable ones,
+     * but no write path in the application populates beneficiary_type or
+     * charity_registration_number today, so in practice every determination
+     * falls through to the name list.
      */
     public function isCharitable(): bool
     {

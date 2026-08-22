@@ -1,0 +1,999 @@
+<title>How Fyn Thinks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+
+<style>
+  :root {
+    --ground: #F7F6F4;
+    --surface: #FFFFFF;
+    --surface-sunk: #F1EFEC;
+    --ink: #1F2A44;
+    --ink-muted: #5C6880;
+    --ink-faint: #8B95A8;
+    --rule: #DFDBD5;
+    --rule-strong: #C4BEB6;
+
+    --read: #157F60;
+    --write: #C4295A;
+    --memory: #4B47CC;
+    --gate: #8A7359;
+
+    --read-wash: #E8F6F0;
+    --write-wash: #FBEAF0;
+    --memory-wash: #ECEBFB;
+    --gate-wash: #F6F0E8;
+
+    --display: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+    --body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #10141F;
+      --surface: #1A2033;
+      --surface-sunk: #151B2B;
+      --ink: #E5E9F0;
+      --ink-muted: #A3ADC2;
+      --ink-faint: #77839B;
+      --rule: #2E3852;
+      --rule-strong: #445071;
+
+      --read: #3FD3A3;
+      --write: #FF7BA3;
+      --memory: #9C97FF;
+      --gate: #D9BE96;
+
+      --read-wash: #14352C;
+      --write-wash: #3B1C29;
+      --memory-wash: #221F45;
+      --gate-wash: #322A20;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #10141F;
+    --surface: #1A2033;
+    --surface-sunk: #151B2B;
+    --ink: #E5E9F0;
+    --ink-muted: #A3ADC2;
+    --ink-faint: #77839B;
+    --rule: #2E3852;
+    --rule-strong: #445071;
+
+    --read: #3FD3A3;
+    --write: #FF7BA3;
+    --memory: #9C97FF;
+    --gate: #D9BE96;
+
+    --read-wash: #14352C;
+    --write-wash: #3B1C29;
+    --memory-wash: #221F45;
+    --gate-wash: #322A20;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 24px 120px;
+  }
+
+  .col {
+    max-width: 68ch;
+    margin-inline: auto;
+  }
+
+  /* ── Masthead ─────────────────────────────────────────── */
+
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 72px 0 28px;
+    margin-bottom: 56px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 22px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(46px, 9vw, 104px);
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+    margin: 0 0 24px;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: clamp(19px, 2.2vw, 23px);
+    line-height: 1.5;
+    color: var(--ink-muted);
+    max-width: 40ch;
+    margin: 0;
+  }
+
+  .masthead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 34px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Structure ────────────────────────────────────────── */
+
+  section { margin-bottom: 84px; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 21px;
+    line-height: 1.2;
+    letter-spacing: -0.012em;
+    margin: 40px 0 10px;
+  }
+
+  .section-lede {
+    color: var(--ink-muted);
+    font-size: 18px;
+    margin: 0 0 32px;
+  }
+
+  p { margin: 0 0 18px; }
+  p + h3 { margin-top: 44px; }
+
+  strong { font-weight: 600; }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.82em;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--surface-sunk);
+    border: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  .tag.read   { color: var(--read);   background: var(--read-wash);   border-color: transparent; }
+  .tag.write  { color: var(--write);  background: var(--write-wash);  border-color: transparent; }
+  .tag.memory { color: var(--memory); background: var(--memory-wash); border-color: transparent; }
+  .tag.gate   { color: var(--gate);   background: var(--gate-wash);   border-color: transparent; }
+
+  /* ── Figures ──────────────────────────────────────────── */
+
+  figure {
+    margin: 40px 0 44px;
+  }
+
+  .plate {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  .plate svg {
+    display: block;
+    min-width: 900px;
+    width: 100%;
+    height: auto;
+  }
+
+  figcaption {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-muted);
+    margin-top: 14px;
+    max-width: 84ch;
+  }
+
+  figcaption b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ── Legend ───────────────────────────────────────────── */
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin: 0 0 18px;
+    letter-spacing: 0.02em;
+  }
+
+  .legend span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .swatch {
+    width: 22px;
+    height: 10px;
+    border-radius: 2px;
+    flex: none;
+  }
+
+  /* ── Key-fact rows ────────────────────────────────────── */
+
+  .rows {
+    border-top: 1px solid var(--rule);
+    margin: 28px 0 0;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: minmax(150px, 190px) 1fr;
+    gap: 6px 28px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: baseline;
+  }
+
+  .row dt {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .row dd {
+    margin: 0;
+    font-size: 16.5px;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 620px) {
+    .row { grid-template-columns: 1fr; }
+  }
+
+  /* ── Walkthrough ──────────────────────────────────────── */
+
+  .walk {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--rule-strong);
+    border-radius: 4px;
+    padding: 26px 30px 8px;
+    margin: 0 0 28px;
+  }
+  .walk.onboard { border-left-color: var(--memory); }
+  .walk.entry   { border-left-color: var(--write); }
+  .walk.advice  { border-left-color: var(--read); }
+
+  .walk-said {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.28;
+    letter-spacing: -0.012em;
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+
+  .walk-where {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 22px;
+  }
+
+  ol.steps {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+    margin: 0;
+  }
+
+  ol.steps > li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 4px 14px;
+    padding: 0 0 20px;
+    position: relative;
+  }
+
+  ol.steps > li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    padding-top: 5px;
+  }
+
+  ol.steps > li > .what {
+    font-size: 16.5px;
+    line-height: 1.55;
+  }
+
+  .who {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-right: 8px;
+    vertical-align: 2px;
+    white-space: nowrap;
+  }
+  .who.fixed { background: var(--surface-sunk); color: var(--ink-muted); }
+  .who.model { background: var(--memory-wash); color: var(--memory); }
+  .who.saves { background: var(--write-wash);  color: var(--write); }
+  .who.reads { background: var(--read-wash);   color: var(--read); }
+
+  .outcome {
+    grid-column: 2;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+    padding: 10px 14px;
+    background: var(--surface-sunk);
+    border-radius: 3px;
+    margin-top: 4px;
+  }
+
+  /* ── Pull note ────────────────────────────────────────── */
+
+  .note {
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--rule);
+    padding: 22px 0;
+    margin: 40px 0;
+  }
+
+  .note p {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(19px, 2.6vw, 25px);
+    line-height: 1.32;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  ul.plain {
+    padding-left: 20px;
+    margin: 0 0 18px;
+  }
+  ul.plain li { margin-bottom: 9px; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color 120ms ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="col">
+      <p class="eyebrow">Fynla &middot; Stakeholder briefing</p>
+      <h1>How Fyn Thinks</h1>
+      <p class="standfirst">Two maps of the assistant behind Fynla &mdash; what it is made of, and what happens in the seconds after someone presses send.</p>
+      <div class="masthead-meta">
+        <span>Written for a non-technical reader</span>
+        <span>Reflects the system as built, August 2026</span>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>The one idea to hold on to</h2>
+      <p class="section-lede">Everything below is a consequence of a single design decision.</p>
+
+      <p>Fyn looks like one chat window, and to the person using it, it is one assistant with one personality and one memory. Underneath, Fyn runs in <strong>two states</strong>, and the difference between them is not personality &mdash; it is <strong>permission</strong>.</p>
+
+      <p>The <span class="tag read">guidance state</span> answers questions. It can read everything about the user and can run every calculation the app owns, but it is <em>physically incapable</em> of changing a single record. The tools that write to the database are removed from its toolbox before it is ever asked a question, and a second check rejects them again at the moment of use.</p>
+
+      <p>The <span class="tag write">capture state</span> is the only part of the system that ever enters or edits information. It runs onboarding, and it handles every &ldquo;add my new ISA&rdquo; moment afterwards.</p>
+
+      <p>When someone in the middle of a conversation asks Fyn to save something, the guidance state hands the turn to the capture state, the record is written, and the reply comes back in the same breath. <strong>The user never sees the handover.</strong> No badge changes, no mode switch, no second window. That invisibility is deliberate, and it is tested.</p>
+
+      <div class="note">
+        <p>One assistant to the user. Two states to the system. The line between them is a permission boundary, and it is enforced by machinery rather than by asking the model nicely.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Map one: the whole system</h2>
+      <p class="section-lede">Every moving part, grouped by the job it does. Read top to bottom &mdash; that is the order a message travels.</p>
+    </div>
+
+    <div class="legend col">
+      <span><i class="swatch" style="background: var(--gate)"></i> Fixed rules &mdash; no AI involved</span>
+      <span><i class="swatch" style="background: var(--memory)"></i> Memory and retrieval</span>
+      <span><i class="swatch" style="background: var(--read)"></i> Read-only path</span>
+      <span><i class="swatch" style="background: var(--write)"></i> Write path</span>
+    </div>
+
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 1240 1470" role="img" aria-label="Layered map of the Fyn system. Three user surfaces send to one endpoint. Four fixed entry checks follow: consent, daily budget, one-turn lock, and which state owns the turn. The turn goes to either the read-only guidance state or the write-capable capture state, which can hand over to each other invisibly. Both draw on four memory stores and the app's calculation engines, which are composed into one instruction set, a context block assembled for this turn, and a tool list for this turn. Model calls follow: a short planning call and the answering call, plus background summarising and gated learning. Exit checks re-reject write tools, apply the duplicate rule, validate values and read records back. Finally records are written, figures recalculated, the turn stored as an episode and an audit entry sealed.">
+          <defs>
+            <marker id="m1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <g font-family="'IBM Plex Mono', monospace" color="var(--ink)">
+
+            <!-- BAND A : surfaces -->
+            <text x="30" y="24" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--ink-faint)">WHERE THE PERSON IS</text>
+            <rect x="30" y="36" width="1180" height="70" rx="4" fill="var(--surface-sunk)" stroke="var(--rule)"/>
+            <g font-size="13" text-anchor="middle">
+              <rect x="60" y="54" width="240" height="34" rx="3" fill="var(--surface)" stroke="var(--rule-strong)"/>
+              <text x="180" y="76" fill="var(--ink)">Desktop web app</text>
+              <rect x="500" y="54" width="240" height="34" rx="3" fill="var(--surface)" stroke="var(--rule-strong)"/>
+              <text x="620" y="76" fill="var(--ink)">Mobile web &ndash; /m</text>
+              <rect x="940" y="54" width="240" height="34" rx="3" fill="var(--surface)" stroke="var(--rule-strong)"/>
+              <text x="1060" y="76" fill="var(--ink)">iPhone app</text>
+            </g>
+
+            <path d="M 620 106 L 620 140" stroke="currentColor" stroke-width="1.5" marker-end="url(#m1-arrow)"/>
+            <text x="634" y="130" font-size="11.5" fill="var(--ink-muted)">all three send to one address &mdash; nothing about read or write is decided on the device</text>
+
+            <!-- BAND B : entry checks -->
+            <text x="30" y="166" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--gate)">THE DOOR &mdash; FIXED CHECKS, NO AI</text>
+            <rect x="30" y="178" width="1180" height="92" rx="4" fill="var(--gate-wash)" stroke="var(--gate)" stroke-opacity="0.45"/>
+            <g font-size="12.5" text-anchor="middle">
+              <rect x="52" y="198" width="264" height="52" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="184" y="217" font-weight="600" fill="var(--ink)">Consent to use Fyn</text>
+              <text x="184" y="235" font-size="11" fill="var(--ink-muted)">re-checked while streaming</text>
+
+              <rect x="340" y="198" width="264" height="52" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="472" y="217" font-weight="600" fill="var(--ink)">Daily usage budget</text>
+              <text x="472" y="235" font-size="11" fill="var(--ink-muted)">soft-degrades, never hard-walls</text>
+
+              <rect x="628" y="198" width="264" height="52" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="760" y="217" font-weight="600" fill="var(--ink)">One turn at a time</text>
+              <text x="760" y="235" font-size="11" fill="var(--ink-muted)">extras queue, up to three</text>
+
+              <rect x="916" y="198" width="264" height="52" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="1048" y="217" font-weight="600" fill="var(--ink)">Which state owns this?</text>
+              <text x="1048" y="235" font-size="11" fill="var(--ink-muted)">three-part test, fails to read-only</text>
+            </g>
+
+            <path d="M 320 270 L 320 306" stroke="var(--write)" stroke-width="1.5" marker-end="url(#m1-arrow)" color="var(--write)"/>
+            <path d="M 920 270 L 920 306" stroke="var(--read)" stroke-width="1.5" marker-end="url(#m1-arrow)" color="var(--read)"/>
+
+            <!-- BAND C : two states -->
+            <text x="30" y="334" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--ink-faint)">TWO STATES, ONE CHAT WINDOW</text>
+            <g font-size="12.5">
+              <rect x="30" y="346" width="580" height="122" rx="4" fill="var(--write-wash)" stroke="var(--write)" stroke-opacity="0.5"/>
+              <text x="52" y="374" font-size="14" font-weight="600" fill="var(--write)">Capture state</text>
+              <text x="52" y="396" fill="var(--ink)">The only part of Fynla that writes or edits records.</text>
+              <text x="52" y="416" fill="var(--ink-muted)">Runs onboarding as a fixed, backend-owned script.</text>
+              <text x="52" y="436" fill="var(--ink-muted)">Holds all twenty-plus create, update and delete tools.</text>
+              <text x="52" y="456" fill="var(--ink-muted)">Reads every entry back to the user for confirmation.</text>
+
+              <rect x="630" y="346" width="580" height="122" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-opacity="0.5"/>
+              <text x="652" y="374" font-size="14" font-weight="600" fill="var(--read)">Guidance state</text>
+              <text x="652" y="396" fill="var(--ink)">Answers questions. Cannot change anything.</text>
+              <text x="652" y="416" fill="var(--ink-muted)">Write tools removed from its list before the turn starts.</text>
+              <text x="652" y="436" fill="var(--ink-muted)">A second check rejects them again if one ever appears.</text>
+              <text x="652" y="456" fill="var(--ink-muted)">Reaches every calculation engine the app owns.</text>
+            </g>
+
+            <path d="M 630 406 L 610 406" stroke="var(--write)" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#m1-arrow)" color="var(--write)"/>
+            <text x="620" y="492" font-size="11.5" text-anchor="middle" fill="var(--write)">when a question turns into &ldquo;save this&rdquo;, the turn is handed left &mdash; invisibly, mid-reply</text>
+
+            <path d="M 320 468 L 320 552" stroke="currentColor" stroke-width="1.5" marker-end="url(#m1-arrow)"/>
+            <path d="M 920 468 L 920 552" stroke="currentColor" stroke-width="1.5" marker-end="url(#m1-arrow)"/>
+            <text x="336" y="536" font-size="11.5" fill="var(--ink-muted)">each state draws on</text>
+
+            <!-- BAND E : sources -->
+            <text x="30" y="582" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--memory)">FOUR KINDS OF MEMORY</text>
+            <text x="640" y="582" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--ink-faint)">AND THE APPLICATION&rsquo;S OWN MACHINERY</text>
+
+            <g font-size="12">
+              <rect x="30" y="594" width="580" height="230" rx="4" fill="var(--memory-wash)" stroke="var(--memory)" stroke-opacity="0.4"/>
+
+              <rect x="48" y="612" width="272" height="96" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="62" y="632" font-weight="600" fill="var(--memory)">What Fyn knows</text>
+              <text x="62" y="650" fill="var(--ink-muted)">A written library of UK tax rules,</text>
+              <text x="62" y="666" fill="var(--ink-muted)">allowances, product facts and the</text>
+              <text x="62" y="682" fill="var(--ink-muted)">house view. Date-stamped, so an</text>
+              <text x="62" y="698" fill="var(--ink-muted)">old year gets the old answer.</text>
+
+              <rect x="336" y="612" width="258" height="96" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="350" y="632" font-weight="600" fill="var(--memory)">How Fyn works</text>
+              <text x="350" y="650" fill="var(--ink-muted)">Authored procedures &mdash; steps for</text>
+              <text x="350" y="666" fill="var(--ink-muted)">handling a situation, and the</text>
+              <text x="350" y="682" fill="var(--ink-muted)">onboarding script itself. Only the</text>
+              <text x="350" y="698" fill="var(--ink-muted)">relevant ones load per turn.</text>
+
+              <rect x="48" y="720" width="272" height="88" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="62" y="740" font-weight="600" fill="var(--memory)">What happened</text>
+              <text x="62" y="758" fill="var(--ink-muted)">Every past turn, written down in</text>
+              <text x="62" y="774" fill="var(--ink-muted)">full and recallable. This is what</text>
+              <text x="62" y="790" fill="var(--ink-muted)">lets Fyn continue a conversation</text>
+              <text x="62" y="804" fill="var(--ink-muted)">rather than restart one.</text>
+
+              <rect x="336" y="720" width="258" height="88" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="350" y="740" font-weight="600" fill="var(--memory)">What we know about you</text>
+              <text x="350" y="758" fill="var(--ink-muted)">Four sources merged in order:</text>
+              <text x="350" y="774" fill="var(--ink-muted)">the record, this flow, this chat,</text>
+              <text x="350" y="790" fill="var(--ink-muted)">earlier chats. Stops Fyn asking</text>
+              <text x="350" y="804" fill="var(--ink-muted)">for the same thing twice.</text>
+
+              <rect x="630" y="594" width="580" height="230" rx="4" fill="var(--surface-sunk)" stroke="var(--rule)"/>
+
+              <rect x="648" y="612" width="272" height="96" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="662" y="632" font-weight="600" fill="var(--ink)">Eight module engines</text>
+              <text x="662" y="650" fill="var(--ink-muted)">Protection, savings, investment,</text>
+              <text x="662" y="666" fill="var(--ink-muted)">retirement, estate, goals, tax,</text>
+              <text x="662" y="682" fill="var(--ink-muted)">coordination. Fyn asks them for</text>
+              <text x="662" y="698" fill="var(--ink-muted)">numbers &mdash; it never invents them.</text>
+
+              <rect x="936" y="612" width="258" height="96" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="950" y="632" font-weight="600" fill="var(--ink)">Live figures on demand</text>
+              <text x="950" y="650" fill="var(--ink-muted)">Fyn holds pointers, not copies.</text>
+              <text x="950" y="666" fill="var(--ink-muted)">Asked about a plan, it fetches</text>
+              <text x="950" y="682" fill="var(--ink-muted)">today&rsquo;s figure at that moment, so</text>
+              <text x="950" y="698" fill="var(--ink-muted)">nothing is quoted from memory.</text>
+
+              <rect x="648" y="720" width="272" height="88" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="662" y="740" font-weight="600" fill="var(--ink)">The tax rulebook</text>
+              <text x="662" y="758" fill="var(--ink-muted)">Every rate, band and allowance</text>
+              <text x="662" y="774" fill="var(--ink-muted)">comes from one configured source.</text>
+              <text x="662" y="790" fill="var(--ink-muted)">No tax figure is ever written into</text>
+              <text x="662" y="804" fill="var(--ink-muted)">the assistant&rsquo;s instructions.</text>
+
+              <rect x="936" y="720" width="258" height="88" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="950" y="740" font-weight="600" fill="var(--ink)">The user&rsquo;s records</text>
+              <text x="950" y="758" fill="var(--ink-muted)">Accounts, pensions, policies,</text>
+              <text x="950" y="774" fill="var(--ink-muted)">property, family, goals. The</text>
+              <text x="950" y="790" fill="var(--ink-muted)">single source of truth about</text>
+              <text x="950" y="804" fill="var(--ink-muted)">this household.</text>
+            </g>
+
+            <path d="M 320 824 L 320 866" stroke="var(--memory)" stroke-width="1.5" marker-end="url(#m1-arrow)" color="var(--memory)"/>
+            <path d="M 920 824 L 920 866" stroke="var(--memory)" stroke-width="1.5" marker-end="url(#m1-arrow)" color="var(--memory)"/>
+            <text x="336" y="850" font-size="11.5" fill="var(--ink-muted)">selected for this message, then composed into</text>
+
+            <!-- BAND D : what fyn is handed -->
+            <text x="30" y="894" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--ink-faint)">WHAT FYN IS HANDED FOR THIS ONE TURN</text>
+            <rect x="30" y="906" width="1180" height="98" rx="4" fill="var(--surface-sunk)" stroke="var(--rule)"/>
+            <g font-size="12.5" text-anchor="middle">
+              <rect x="52" y="926" width="360" height="58" rx="3" fill="var(--surface)" stroke="var(--rule-strong)"/>
+              <text x="232" y="948" font-weight="600" fill="var(--ink)">One set of instructions</text>
+              <text x="232" y="967" font-size="11" fill="var(--ink-muted)">identical in both states &mdash; identity, tone,</text>
+              <text x="232" y="981" font-size="11" fill="var(--ink-muted)">compliance rules, the six-step advice method</text>
+
+              <rect x="440" y="926" width="360" height="58" rx="3" fill="var(--surface)" stroke="var(--memory)" stroke-opacity="0.55"/>
+              <text x="620" y="948" font-weight="600" fill="var(--memory)">Context assembled now</text>
+              <text x="620" y="967" font-size="11" fill="var(--ink-muted)">who they are, their position, what data is</text>
+              <text x="620" y="981" font-size="11" fill="var(--ink-muted)">missing, what Fyn already knows &mdash; built fresh</text>
+
+              <rect x="828" y="926" width="360" height="58" rx="3" fill="var(--surface)" stroke="var(--rule-strong)"/>
+              <text x="1008" y="948" font-weight="600" fill="var(--ink)">A tool list for this turn</text>
+              <text x="1008" y="967" font-size="11" fill="var(--ink-muted)">narrowed to the job in hand &mdash; this is where</text>
+              <text x="1008" y="981" font-size="11" fill="var(--ink-muted)">the read-only boundary is actually enforced</text>
+            </g>
+
+            <path d="M 620 1004 L 620 1044" stroke="currentColor" stroke-width="1.5" marker-end="url(#m1-arrow)"/>
+
+            <!-- BAND F : model calls -->
+            <text x="30" y="1072" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--read)">THE MODEL CALLS &mdash; THE ONLY PLACE AI IS USED</text>
+            <rect x="30" y="1084" width="1180" height="112" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-opacity="0.4"/>
+            <g font-size="12">
+              <rect x="52" y="1104" width="264" height="74" rx="3" fill="var(--surface)" stroke="var(--read)" stroke-opacity="0.5"/>
+              <text x="66" y="1124" font-weight="600" fill="var(--read)">Plan the next move</text>
+              <text x="66" y="1142" fill="var(--ink-muted)">One short call. Answer now,</text>
+              <text x="66" y="1158" fill="var(--ink-muted)">or fetch more first. Capped,</text>
+              <text x="66" y="1172" fill="var(--ink-muted)">so a turn cannot spiral.</text>
+
+              <rect x="340" y="1104" width="264" height="74" rx="3" fill="var(--surface)" stroke="var(--read)" stroke-opacity="0.5"/>
+              <text x="354" y="1124" font-weight="600" fill="var(--read)">Answer, or name a tool</text>
+              <text x="354" y="1142" fill="var(--ink-muted)">The streamed reply. Reaches</text>
+              <text x="354" y="1158" fill="var(--ink-muted)">for engines and figures, and</text>
+              <text x="354" y="1172" fill="var(--ink-muted)">in capture, for a save.</text>
+
+              <rect x="628" y="1104" width="264" height="74" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="642" y="1124" font-weight="600" fill="var(--ink)">Summarise, afterwards</text>
+              <text x="642" y="1142" fill="var(--ink-muted)">A background call condenses</text>
+              <text x="642" y="1158" fill="var(--ink-muted)">the conversation so a later</text>
+              <text x="642" y="1172" fill="var(--ink-muted)">one can pick it up.</text>
+
+              <rect x="916" y="1104" width="264" height="74" rx="3" fill="var(--surface)" stroke="var(--rule)" stroke-dasharray="4 3"/>
+              <text x="930" y="1124" font-weight="600" fill="var(--ink-faint)">Propose a lesson</text>
+              <text x="930" y="1142" fill="var(--ink-muted)">Off by default. Anything Fyn</text>
+              <text x="930" y="1158" fill="var(--ink-muted)">learns queues for human</text>
+              <text x="930" y="1172" fill="var(--ink-muted)">review &mdash; never auto-applied.</text>
+            </g>
+
+            <path d="M 620 1196 L 620 1236" stroke="currentColor" stroke-width="1.5" marker-end="url(#m1-arrow)"/>
+
+            <!-- BAND G : exit checks -->
+            <text x="30" y="1264" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--gate)">ON THE WAY OUT &mdash; FIXED CHECKS AGAIN</text>
+            <rect x="30" y="1276" width="1180" height="76" rx="4" fill="var(--gate-wash)" stroke="var(--gate)" stroke-opacity="0.45"/>
+            <g font-size="12" text-anchor="middle">
+              <rect x="52" y="1294" width="264" height="42" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="184" y="1311" font-weight="600" fill="var(--ink)">Write attempt in read-only?</text>
+              <text x="184" y="1327" font-size="11" fill="var(--ink-muted)">rejected and logged</text>
+
+              <rect x="340" y="1294" width="264" height="42" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="472" y="1311" font-weight="600" fill="var(--ink)">Already have this record?</text>
+              <text x="472" y="1327" font-size="11" fill="var(--ink-muted)">update, ask, or skip &mdash; one rule</text>
+
+              <rect x="628" y="1294" width="264" height="42" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="760" y="1311" font-weight="600" fill="var(--ink)">Are the values sound?</text>
+              <text x="760" y="1327" font-size="11" fill="var(--ink-muted)">validated in code, can refuse</text>
+
+              <rect x="916" y="1294" width="264" height="42" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="1048" y="1311" font-weight="600" fill="var(--ink)">Read it back</text>
+              <text x="1048" y="1327" font-size="11" fill="var(--ink-muted)">every entry, without exception</text>
+            </g>
+
+            <path d="M 620 1352 L 620 1392" stroke="currentColor" stroke-width="1.5" marker-end="url(#m1-arrow)"/>
+
+            <!-- BAND H : what is kept -->
+            <text x="30" y="1420" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--ink-faint)">WHAT IS KEPT &mdash; AUTOMATIC, EVERY TURN</text>
+            <rect x="30" y="1432" width="1180" height="26" rx="4" fill="var(--surface-sunk)" stroke="var(--rule)"/>
+            <g font-size="12" text-anchor="middle">
+              <text x="184" y="1449" fill="var(--ink)">Records created or changed</text>
+              <text x="472" y="1449" fill="var(--ink)">Figures recalculated</text>
+              <text x="760" y="1449" fill="var(--ink)">The turn written to memory</text>
+              <text x="1048" y="1449" fill="var(--ink)">Tamper-evident audit entry</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <figcaption><b>Map one.</b> The bands are the order of travel. Note where the AI actually sits: it is one box in the middle. Everything above it and everything below it is fixed rules, and the boundary between reading and writing is drawn by the tool list, not by an instruction in the prompt.</figcaption>
+    </figure>
+
+    <div class="col">
+      <h3>What the model actually does &mdash; and what it never does</h3>
+      <p>It is worth being precise about this, because it is where most misunderstanding sits.</p>
+
+      <dl class="rows">
+        <div class="row"><dt>The model decides</dt><dd>What the person meant, which of the available tools to reach for, and how to word the reply.</dd></div>
+        <div class="row"><dt>The model never decides</dt><dd>Whether it is allowed to write. Whether the user has enough data on file to be given advice. What a tax allowance is. What a recommendation is. Those are all settled before or after it is asked.</dd></div>
+        <div class="row"><dt>The numbers</dt><dd>Come from the app&rsquo;s calculation engines and the tax rulebook, handed to the model as results. The model narrates them; it does not compute them.</dd></div>
+        <div class="row"><dt>The write</dt><dd>Is performed by application code after the model names a tool. The code re-checks for duplicates, validates the values, and can refuse.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Map two: one message, end to end</h2>
+      <p class="section-lede">The same system, viewed as a journey. Four checks apply to everything; then the path forks by what the message actually is.</p>
+    </div>
+
+    <figure>
+      <div class="plate">
+        <svg viewBox="0 0 1240 720" role="img" aria-label="Flow map of a single message: four shared entry checks, then three tracks. The onboarding track runs a fixed script and calls the model only for open-ended capture steps. The data-entry track detects a write intent before any model call, checks for duplicates, and hands off invisibly to capture. The guidance track classifies the question, applies a data-readiness gate, assembles context, plans, then answers using the calculation engines. All three converge on writing the episode and audit entry and streaming the reply.">
+          <defs>
+            <marker id="m2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <g font-family="'IBM Plex Mono', monospace" font-size="12">
+
+            <!-- shared spine -->
+            <text x="30" y="26" font-size="11" font-weight="600" letter-spacing="1.4" fill="var(--gate)">EVERY MESSAGE, WITHOUT EXCEPTION &mdash; FIXED RULES</text>
+            <g text-anchor="middle" color="var(--ink)">
+              <rect x="30" y="38" width="196" height="46" rx="3" fill="var(--gate-wash)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="128" y="58" fill="var(--ink)" font-weight="600">Consent held?</text>
+              <text x="128" y="74" font-size="10.5" fill="var(--ink-muted)">else nothing opens</text>
+
+              <path d="M 226 61 L 268 61" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="272" y="38" width="196" height="46" rx="3" fill="var(--gate-wash)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="370" y="58" fill="var(--ink)" font-weight="600">Within budget?</text>
+              <text x="370" y="74" font-size="10.5" fill="var(--ink-muted)">or answer more briefly</text>
+
+              <path d="M 468 61 L 510 61" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="514" y="38" width="196" height="46" rx="3" fill="var(--gate-wash)" stroke="var(--gate)" stroke-opacity="0.5"/>
+              <text x="612" y="58" fill="var(--ink)" font-weight="600">Turn already running?</text>
+              <text x="612" y="74" font-size="10.5" fill="var(--ink-muted)">then queue this one</text>
+
+              <path d="M 710 61 L 752 61" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="756" y="38" width="240" height="46" rx="3" fill="var(--gate-wash)" stroke="var(--gate)" stroke-opacity="0.7"/>
+              <text x="876" y="58" fill="var(--ink)" font-weight="600">Which state owns this?</text>
+              <text x="876" y="74" font-size="10.5" fill="var(--ink-muted)">mid-flow with a saved step, or not</text>
+            </g>
+
+            <path d="M 876 84 L 876 104 L 210 104 L 210 140" stroke="var(--memory)" stroke-width="1.4" fill="none" marker-end="url(#m2-arrow)" color="var(--memory)"/>
+            <path d="M 876 104 L 620 104 L 620 140" stroke="var(--write)" stroke-width="1.4" fill="none" marker-end="url(#m2-arrow)" color="var(--write)"/>
+            <path d="M 876 104 L 1030 104 L 1030 140" stroke="var(--read)" stroke-width="1.4" fill="none" marker-end="url(#m2-arrow)" color="var(--read)"/>
+
+            <!-- TRACK 1 : onboarding -->
+            <rect x="30" y="140" width="360" height="440" rx="4" fill="var(--memory-wash)" stroke="var(--memory)" stroke-opacity="0.35"/>
+            <text x="48" y="164" font-size="11" font-weight="600" letter-spacing="1.2" fill="var(--memory)">TRACK A &mdash; ONBOARDING</text>
+            <text x="48" y="182" font-size="11" fill="var(--ink-muted)">the person is being walked through setup</text>
+
+            <g text-anchor="middle" color="var(--memory)">
+              <rect x="50" y="198" width="320" height="44" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="210" y="216" fill="var(--ink)" font-weight="600">Look up the current step</text>
+              <text x="210" y="232" font-size="10.5" fill="var(--ink-muted)">a fixed script the backend owns, not the model</text>
+              <path d="M 210 242 L 210 268" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="50" y="272" width="320" height="44" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="210" y="290" fill="var(--ink)" font-weight="600">Is this step a fixed question?</text>
+              <text x="210" y="306" font-size="10.5" fill="var(--ink-muted)">buttons and simple answers need no AI at all</text>
+              <path d="M 210 316 L 210 342" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="50" y="346" width="320" height="58" rx="3" fill="var(--surface)" stroke="var(--memory)" stroke-opacity="0.6"/>
+              <text x="210" y="366" fill="var(--memory)" font-weight="600">MODEL CALL &mdash; open-ended steps only</text>
+              <text x="210" y="382" font-size="10.5" fill="var(--ink-muted)">&ldquo;tell me about your pensions&rdquo; is read by the model,</text>
+              <text x="210" y="396" font-size="10.5" fill="var(--ink-muted)">with only the tools for the current topic offered</text>
+              <path d="M 210 404 L 210 430" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="50" y="434" width="320" height="44" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="210" y="452" fill="var(--ink)" font-weight="600">Already have this record?</text>
+              <text x="210" y="468" font-size="10.5" fill="var(--ink-muted)">one rule decides: update, ask, or skip</text>
+              <path d="M 210 478 L 210 504" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="50" y="508" width="320" height="52" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="210" y="528" fill="var(--ink)" font-weight="600">Save, read it back, advance</text>
+              <text x="210" y="544" font-size="10.5" fill="var(--ink-muted)">every entry is repeated to the user for confirmation</text>
+            </g>
+
+            <!-- TRACK 2 : data entry -->
+            <rect x="410" y="140" width="360" height="440" rx="4" fill="var(--write-wash)" stroke="var(--write)" stroke-opacity="0.35"/>
+            <text x="428" y="164" font-size="11" font-weight="600" letter-spacing="1.2" fill="var(--write)">TRACK B &mdash; ENTERING DATA LATER</text>
+            <text x="428" y="182" font-size="11" fill="var(--ink-muted)">setup is done; they want to add something</text>
+
+            <g text-anchor="middle" color="var(--write)">
+              <rect x="430" y="198" width="320" height="44" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="590" y="216" fill="var(--ink)" font-weight="600">Does this sound like a save?</text>
+              <text x="590" y="232" font-size="10.5" fill="var(--ink-muted)">pattern-matched before any AI is involved</text>
+              <path d="M 590 242 L 590 268" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="430" y="272" width="320" height="44" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="590" y="290" fill="var(--ink)" font-weight="600">Do they already have it?</text>
+              <text x="590" y="306" font-size="10.5" fill="var(--ink-muted)">if so, say so plainly &mdash; no AI, no false &ldquo;saved!&rdquo;</text>
+              <path d="M 590 316 L 590 342" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="430" y="346" width="320" height="58" rx="3" fill="var(--surface)" stroke="var(--write)" stroke-opacity="0.6"/>
+              <text x="590" y="366" fill="var(--write)" font-weight="600">Hand over to the capture state</text>
+              <text x="590" y="382" font-size="10.5" fill="var(--ink-muted)">the one crossing of the permission boundary,</text>
+              <text x="590" y="396" font-size="10.5" fill="var(--ink-muted)">and it never reaches the screen</text>
+              <path d="M 590 404 L 590 430" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="430" y="434" width="320" height="44" rx="3" fill="var(--surface)" stroke="var(--write)" stroke-opacity="0.6"/>
+              <text x="590" y="452" fill="var(--write)" font-weight="600">MODEL CALL &mdash; with write tools</text>
+              <text x="590" y="468" font-size="10.5" fill="var(--ink-muted)">it names the record type and the values</text>
+              <path d="M 590 478 L 590 504" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="430" y="508" width="320" height="52" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="590" y="528" fill="var(--ink)" font-weight="600">Code validates, then saves</text>
+              <text x="590" y="544" font-size="10.5" fill="var(--ink-muted)">the page it landed on is named back to the user</text>
+            </g>
+
+            <!-- TRACK 3 : guidance -->
+            <rect x="790" y="140" width="420" height="440" rx="4" fill="var(--read-wash)" stroke="var(--read)" stroke-opacity="0.35"/>
+            <text x="808" y="164" font-size="11" font-weight="600" letter-spacing="1.2" fill="var(--read)">TRACK C &mdash; ASKING FOR GUIDANCE</text>
+            <text x="808" y="182" font-size="11" fill="var(--ink-muted)">a question about their position or their options</text>
+
+            <g text-anchor="middle" color="var(--read)">
+              <rect x="810" y="198" width="380" height="44" rx="3" fill="var(--surface)" stroke="var(--rule)"/>
+              <text x="1000" y="216" fill="var(--ink)" font-weight="600">What kind of question is it?</text>
+              <text x="1000" y="232" font-size="10.5" fill="var(--ink-muted)">keyword rules; anything non-financial is declined here</text>
+              <path d="M 1000 242 L 1000 268" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="810" y="272" width="380" height="58" rx="3" fill="var(--surface)" stroke="var(--gate)" stroke-opacity="0.7"/>
+              <text x="1000" y="292" fill="var(--gate)" font-weight="600">READINESS GATE &mdash; enough on file?</text>
+              <text x="1000" y="308" font-size="10.5" fill="var(--ink-muted)">each topic has a required-data list. If something is</text>
+              <text x="1000" y="322" font-size="10.5" fill="var(--ink-muted)">missing, Fyn names it and stops. It does not guess.</text>
+              <path d="M 1000 330 L 1000 356" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="810" y="360" width="380" height="58" rx="3" fill="var(--surface)" stroke="var(--memory)" stroke-opacity="0.5"/>
+              <text x="1000" y="380" fill="var(--memory)" font-weight="600">RETRIEVE &mdash; assemble what is relevant</text>
+              <text x="1000" y="396" font-size="10.5" fill="var(--ink-muted)">known facts, matching rules from the library, past</text>
+              <text x="1000" y="410" font-size="10.5" fill="var(--ink-muted)">turns, and live figures fetched from the engines</text>
+              <path d="M 1000 418 L 1000 444" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="810" y="448" width="380" height="44" rx="3" fill="var(--surface)" stroke="var(--read)" stroke-opacity="0.6"/>
+              <text x="1000" y="466" fill="var(--read)" font-weight="600">MODEL CALL 1 &mdash; decide the move</text>
+              <text x="1000" y="482" font-size="10.5" fill="var(--ink-muted)">a short planning step: answer now, or fetch more</text>
+              <path d="M 1000 492 L 1000 518" stroke="currentColor" stroke-width="1.4" marker-end="url(#m2-arrow)"/>
+
+              <rect x="810" y="522" width="380" height="44" rx="3" fill="var(--surface)" stroke="var(--read)" stroke-opacity="0.6"/>
+              <text x="1000" y="540" fill="var(--read)" font-weight="600">MODEL CALL 2 &mdash; write the answer</text>
+              <text x="1000" y="556" font-size="10.5" fill="var(--ink-muted)">streamed word by word, with no write tool in reach</text>
+            </g>
+
+            <!-- convergence -->
+            <path d="M 210 560 L 210 604 L 620 604" stroke="var(--memory)" stroke-width="1.4" fill="none" color="var(--memory)"/>
+            <path d="M 590 560 L 590 604" stroke="var(--write)" stroke-width="1.4" fill="none" color="var(--write)"/>
+            <path d="M 1000 566 L 1000 604 L 620 604" stroke="var(--read)" stroke-width="1.4" fill="none" color="var(--read)"/>
+            <path d="M 620 604 L 620 630" stroke="currentColor" stroke-width="1.5" color="var(--ink)" marker-end="url(#m2-arrow)"/>
+
+            <rect x="30" y="634" width="1180" height="66" rx="4" fill="var(--surface-sunk)" stroke="var(--rule)"/>
+            <g text-anchor="middle" color="var(--ink)">
+              <text x="620" y="656" font-size="11" font-weight="600" letter-spacing="1.2" fill="var(--ink-faint)">ALL THREE TRACKS END THE SAME WAY</text>
+              <text x="228" y="682" fill="var(--ink)">Reply streams to the screen</text>
+              <text x="560" y="682" fill="var(--ink)">Affected figures recalculate</text>
+              <text x="860" y="682" fill="var(--ink)">The turn is written to memory</text>
+              <text x="1110" y="682" fill="var(--ink)">Audit entry sealed</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <figcaption><b>Map two.</b> Three tracks, one shared entrance and one shared exit. The thing worth noticing is how much happens with no model call at all &mdash; a whole onboarding step, a duplicate detection, a readiness refusal. The AI is asked only where judgement about language is genuinely needed.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Three journeys, in full</h2>
+      <p class="section-lede">The same three tracks, walked step by step with a real sentence at the top of each.</p>
+    </div>
+
+    <div class="col">
+      <div class="walk onboard">
+        <p class="walk-said">&ldquo;I&rsquo;ve got a workplace pension with Aviva, worth about £40,000.&rdquo;</p>
+        <p class="walk-where">Track A &middot; During onboarding</p>
+        <ol class="steps">
+          <li><span class="what"><span class="who fixed">fixed</span>Consent, budget and the one-turn lock clear. The routing test finds this person mid-flow with a saved step, so the turn belongs to the capture state.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>The script says the current step is the open-ended pensions question. Most steps are buttons or a single value and are answered without any AI. This one is not.</span></li>
+          <li><span class="what"><span class="who model">model</span>Fyn is handed its standard instructions, the facts already known about this household, and <em>only</em> the tools for recording pensions. It reads the sentence and names one: create a pension, provider Aviva, workplace, £40,000.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>Before anything is written, one rule checks whether a matching pension already exists. Update it, ask about it, or create it &mdash; that decision is made in code, in one place, for all twenty-odd record types.</span></li>
+          <li><span class="what"><span class="who saves">saves</span>The record is written. The screen is told a pension was created and which page it lives on, so the confirmation can link straight to it.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>Fyn reads the entry back &mdash; provider, type, value &mdash; and offers to correct it. Every single piece of data entered gets this treatment; it is not reserved for the ones we thought were risky.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>Net worth, retirement projections and the risk profile recalculate on their own, triggered by the record appearing.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>The script advances to the next step and asks the next question. The whole turn is written to memory and sealed into the audit chain.</span></li>
+        </ol>
+        <p class="outcome">Model calls: one. Everything else was fixed rules.</p>
+      </div>
+
+      <div class="walk entry">
+        <p class="walk-said">&ldquo;Add my new stocks and shares ISA &mdash; £8,000 with Vanguard.&rdquo;</p>
+        <p class="walk-where">Track B &middot; Months after setup, mid-conversation</p>
+        <ol class="steps">
+          <li><span class="what"><span class="who fixed">fixed</span>The routing test sends this to the guidance state, because setup is complete. The guidance state cannot write. On its own that would be a dead end.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>Before any AI is involved, a pattern check reads the sentence as a save: an action word plus a record type. This deliberately does not depend on the model behaving well.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>A duplicate check runs against their actual accounts. If they already had this ISA, Fyn would say so in plain words &mdash; written by code, not the model, so it can never accidentally imply something was saved when it was not.</span></li>
+          <li><span class="what"><span class="who saves">handoff</span>The turn is handed to the capture state. This is the only crossing of the permission boundary in the system, and the user sees nothing: no mode badge, no second message, no change in the input box.</span></li>
+          <li><span class="what"><span class="who model">model</span>Now holding write tools, Fyn names the record: investment account, stocks and shares ISA, Vanguard, £8,000.</span></li>
+          <li><span class="what"><span class="who saves">saves</span>Application code validates the values, applies the duplicate rule again, and writes the account. Ownership, tax wrapper and contribution tracking are set from the values given.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>The reply confirms what was saved and where it now lives. Recalculation, memory and audit follow as always.</span></li>
+        </ol>
+        <p class="outcome">If the pattern check at step two misses, the model itself raises the same handoff mid-answer and lands in exactly the same place. Two doors, one room.</p>
+      </div>
+
+      <div class="walk advice">
+        <p class="walk-said">&ldquo;Am I saving enough for retirement?&rdquo;</p>
+        <p class="walk-where">Track C &middot; The guidance state, read-only throughout</p>
+        <ol class="steps">
+          <li><span class="what"><span class="who fixed">fixed</span>The question is classified as retirement readiness. That single label decides what happens for the rest of the turn: which data is required, which engine runs, and how much context to assemble.</span></li>
+          <li><span class="what"><span class="who gate">gate</span><span class="who fixed">fixed</span>The readiness gate checks the required list for that topic &mdash; date of birth, income, expenditure, a retirement target. If any is missing, Fyn says exactly what it needs and points at the page to add it. It will not produce an answer built on assumptions.</span></li>
+          <li><span class="what"><span class="who reads">retrieve</span>With the gate passed, context is assembled fresh: who they are, their financial position, what data is still thin, and the facts Fyn already holds so it never re-asks. Relevant rules are pulled from the written library by keyword and filtered to the current tax year.</span></li>
+          <li><span class="what"><span class="who reads">retrieve</span>Live figures are fetched, not remembered. Fyn holds a pointer to &ldquo;this user&rsquo;s retirement plan&rdquo; and follows it at the moment of asking, so the number quoted is the number the app would show on screen right now.</span></li>
+          <li><span class="what"><span class="who model">model</span>A short planning call decides the next move &mdash; answer now, or retrieve more first. It is capped, so a turn can never spiral.</span></li>
+          <li><span class="what"><span class="who reads">engine</span>The retirement engine runs and returns the actual analysis: projected pot, shortfall, contribution headroom. Fyn is explicitly instructed not to invent recommendations &mdash; it uses what the engine calculated.</span></li>
+          <li><span class="what"><span class="who model">model</span>The answer streams out, shaped by the six-step method: check the data, fetch current figures, analyse the position, recommend specific actions with amounts, explain how to act, and signpost regulated advice.</span></li>
+          <li><span class="what"><span class="who fixed">fixed</span>Throughout, no write tool exists on this turn. Had one somehow been named, a second check would have rejected it at the point of use and logged the attempt.</span></li>
+        </ol>
+        <p class="outcome">If they reply &ldquo;OK, put my contribution up to £600 a month&rdquo;, the turn leaves Track C and joins Track B at step two.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>The four memories, in plain terms</h2>
+      <p class="section-lede">&ldquo;Memory&rdquo; is doing four different jobs in this system, and conflating them causes most of the confusion.</p>
+
+      <dl class="rows">
+        <div class="row">
+          <dt>What Fyn knows</dt>
+          <dd>A written library of UK tax rules, allowances, product characteristics and Fynla&rsquo;s house view, authored deliberately and version-controlled. It is searched by keyword rather than by similarity &mdash; a simple approach chosen on purpose, and sufficient at current scale. Facts carry dates, so a question about a past year gets that year&rsquo;s answer.</dd>
+        </div>
+        <div class="row">
+          <dt>How Fyn works</dt>
+          <dd>Written procedures describing how to handle a situation, including the onboarding script itself. Only the procedures relevant to the message load into a given turn, which keeps the assistant focused rather than drowning it in instructions.</dd>
+        </div>
+        <div class="row">
+          <dt>What happened</dt>
+          <dd>Every turn is written out in full &mdash; the instructions given, the context assembled, the tools used, the result. Past turns can be recalled into a later conversation. This file is also the compliance record: it is what lets anyone reconstruct why Fyn said what it said on a particular day.</dd>
+        </div>
+        <div class="row">
+          <dt>What we know about you</dt>
+          <dd>Merged from four sources in strict order &mdash; the saved record first, then what was volunteered earlier in this flow, then this conversation, then earlier conversations. Later sources only fill gaps; they never override the record. This is the machinery behind &ldquo;Fyn doesn&rsquo;t ask me the same thing twice&rdquo;.</dd>
+        </div>
+      </dl>
+
+      <h3>A fifth kind, deliberately switched off</h3>
+      <p>Fyn can also propose new facts it has learned about a specific user, and propose amendments to its own procedures. Neither is applied automatically. Both queue for human review, and the whole pipeline is off by default in production. Nothing Fyn learns changes how Fyn behaves without a person approving it.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Where the guardrails actually are</h2>
+      <p class="section-lede">Regulated financial guidance needs its safety to be structural. Asking a model to behave is not a control.</p>
+
+      <dl class="rows">
+        <div class="row"><dt>Read-only means read-only</dt><dd>Write tools are removed from the guidance state&rsquo;s list before the turn begins, and a separate check rejects them again at the moment of use. Two independent mechanisms, one shared definition of what counts as a write.</dd></div>
+        <div class="row"><dt>No advice without data</dt><dd>Each topic has a required-data list. Fyn stops and says what is missing rather than filling gaps with assumptions.</dd></div>
+        <div class="row"><dt>No invented numbers</dt><dd>Tax values come from one configured source; analysis comes from the engines. Neither is written into the assistant&rsquo;s instructions, so neither can drift or go stale in the prompt.</dd></div>
+        <div class="row"><dt>No false confirmations</dt><dd>When a record already exists, the acknowledgement is generated by code, not by the model &mdash; so &ldquo;you already have this&rdquo; can never be phrased in a way that sounds like &ldquo;saved&rdquo;.</dd></div>
+        <div class="row"><dt>Nothing outside remit</dt><dd>Non-financial questions are declined by a rule before the model is ever consulted.</dd></div>
+        <div class="row"><dt>Consent is live</dt><dd>Checked at the door and re-checked every couple of seconds while a reply is streaming. Withdraw consent mid-answer and the answer stops.</dd></div>
+        <div class="row"><dt>Tamper-evident record</dt><dd>Each audit entry is hashed together with the one before it, so the chain can be walked and any alteration located. It cannot be quietly edited after the fact.</dd></div>
+        <div class="row"><dt>Bounded by design</dt><dd>Planning steps are capped, retrieval is capped, queued messages are capped, and locks expire on their own &mdash; so a conversation cannot spiral or wedge.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Where this is heading</h2>
+      <p>The two states already share one instruction set, one turn loop, one memory system and one set of write handlers. What still differs is which tools each is handed. The direction of travel is to collapse them into a single Fyn whose permissions are decided entirely at the moment a tool is reached for &mdash; which is already how the safety check works today.</p>
+      <p>For a stakeholder, the practical point is that this is a consolidation, not a rebuild. It removes a seam; it does not change what Fyn does, what it remembers, or where the guardrails sit.</p>
+    </div>
+  </section>
+
+  <footer class="col">
+    <p>Fynla &middot; How Fyn Thinks &middot; Prepared August 2026<br>
+    Describes the system as it stands on the development branch. Simplified for a non-technical audience; every mechanism shown exists in the codebase.</p>
+  </footer>
+
+</div>

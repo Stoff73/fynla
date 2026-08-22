@@ -51,9 +51,11 @@ Retain a pension-model reference that is NOT a statically-resolvable query/mutat
 ### Out-of-sub-project-1-scope read / infra references
 Read-only cache observers, async risk-recalc job — never in the Pass 3 read-consumer migration scope:
 
-- `App\Observers\NetWorthCacheObserver`
-- `App\Observers\RecommendationCacheObserver`
 - `App\Jobs\RecalculateRiskProfileJob`
+
+(The two cache observers formerly listed here were consolidated into
+`App\Observers\UserDataCacheObserver`, which types against `Model` and names no
+pension class, so it is not an allowlisted consumer.)
 
 Adding a new direct-model consumer requires either routing through the store (preferred) or adding to this allowlist with written justification.
 

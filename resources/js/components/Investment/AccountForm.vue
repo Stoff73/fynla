@@ -102,8 +102,6 @@
               :risk-levels="allowedRiskLevels"
               :main-risk-level="mainRiskLevel"
               :fee-percentage-warning="feePercentageWarning"
-              :cash-isa-used="cashISAUsed"
-              :total-stocks-isa-used="totalStocksISAUsed"
               :account="account"
               :highlighted-field="highlightedField"
               @confirm-fee="confirmFeeAndSubmit"
@@ -170,7 +168,8 @@
           :holding="editingHoldingDetail"
           :accounts="account ? [account] : []"
           :default-account-id="account?.id"
-          @close="showHoldingDetailModal = false; editingHoldingDetail = null"
+          :save-error="holdingSaveError"
+          @close="showHoldingDetailModal = false; editingHoldingDetail = null; holdingSaveError = null"
           @save="handleHoldingDetailSave"
         />
       </div>
@@ -187,6 +186,7 @@ import InlineHoldingsEditor from './InlineHoldingsEditor.vue';
 import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { isaAllowanceMixin } from '@/mixins/isaAllowanceMixin';
 import logger from '@/utils/logger';
 
 const HOLDABLE_ACCOUNT_TYPES = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
@@ -196,7 +196,7 @@ export default {
 
   emits: ['save', 'close'],
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, isaAllowanceMixin],
 
   components: {
     PrivateInvestmentFields,
@@ -244,6 +244,7 @@ export default {
         platform_fee_amount: null,
         platform_fee_type: 'percentage',
         platform_fee_frequency: 'annually',
+        advisor_fee_percent: null,
         isa_type: 'stocks_and_shares',
         isa_subscription_current_year: null,
         ownership_type: 'individual',
@@ -382,6 +383,7 @@ export default {
       submitting: false,
       feePercentageWarning: false,
       showHoldingDetailModal: false,
+      holdingSaveError: null,
       editingHoldingDetail: null,
       // Risk profile state
       mainRiskLevel: null,
@@ -563,16 +565,6 @@ export default {
     remainingContributionsForYear() {
       const amount = this.formData.monthly_contribution_amount || 0;
       return this.paymentsRemainingThisTaxYear * amount;
-    },
-
-    // Get Cash ISA usage from savings store
-    cashISAUsed() {
-      return this.$store.getters['savings/currentYearISASubscription'] || 0;
-    },
-
-    // Get total S&S ISA usage from investment store
-    totalStocksISAUsed() {
-      return this.$store.getters['investment/investmentISASubscription'] || 0;
     },
 
     // Get other S&S ISA usage (excluding this account if editing)
@@ -930,6 +922,7 @@ export default {
         || f.planned_lump_sum_date
         || (f.platform_fee_percent !== null && f.platform_fee_percent !== '')
         || (f.platform_fee_amount !== null && f.platform_fee_amount !== '')
+        || (f.advisor_fee_percent !== null && f.advisor_fee_percent !== '' && f.advisor_fee_percent !== 0)
         || (f.holdings && f.holdings.length > 0)
       );
     },
@@ -975,6 +968,7 @@ export default {
         submitData.planned_lump_sum_date = null;
         submitData.platform_fee_percent = null;
         submitData.platform_fee_amount = null;
+        submitData.advisor_fee_percent = null;
         submitData.holdings = [];
       }
 
@@ -995,7 +989,7 @@ export default {
         'account_type', 'account_type_other', 'provider', 'platform', 'country',
         'current_value', 'contributions_ytd', 'monthly_contribution_amount',
         'contribution_frequency', 'planned_lump_sum_amount', 'planned_lump_sum_date',
-        'platform_fee_percent', 'platform_fee_amount', 'platform_fee_type', 'platform_fee_frequency',
+        'platform_fee_percent', 'platform_fee_amount', 'platform_fee_type', 'platform_fee_frequency', 'advisor_fee_percent',
         'isa_type', 'isa_subscription_current_year',
         'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id',
         'risk_preference',
@@ -1052,6 +1046,17 @@ export default {
         if (submitData[key] !== null && typeof submitData[key] === 'object' && !Array.isArray(submitData[key]) && !(submitData[key] instanceof Date)) {
           delete submitData[key];
         }
+      }
+
+      // State a share only where this form lets the user set one (W-0040).
+      // This form has no ownership-share input at all, so any percentage sitting
+      // in submitData came off the account resource on edit — inherited, never
+      // chosen. Switching an individual account (100) to joint therefore sent a
+      // stated 100 on a joint payload, which the boundary now refuses and which
+      // the user has no field to correct. Omitting it lets the server default a
+      // create to 50/50 and leave an existing record's share alone.
+      if (['joint', 'tenants_in_common'].includes(submitData.ownership_type)) {
+        delete submitData.ownership_percentage;
       }
 
       // Emit save event - parent will close modal after successful save
@@ -1168,6 +1173,7 @@ export default {
 
     openHoldingDetails(holding) {
       this.editingHoldingDetail = holding;
+      this.holdingSaveError = null;
       this.showHoldingDetailModal = true;
     },
 
@@ -1180,9 +1186,15 @@ export default {
           });
           await this.$store.dispatch('investment/fetchInvestmentData');
         } catch (error) {
+          // Closing the modal on failure is how a discarded edit looked like a
+          // successful one (W-0009). Keep it open and say what went wrong.
           logger.error('Failed to update holding:', error);
+          this.holdingSaveError = error.response?.data?.message
+            || 'Failed to save the holding. Please try again.';
+          return;
         }
       }
+      this.holdingSaveError = null;
       this.showHoldingDetailModal = false;
       this.editingHoldingDetail = null;
     },
@@ -1204,6 +1216,7 @@ export default {
         platform_fee_amount: null,
         platform_fee_type: 'percentage',
         platform_fee_frequency: 'annually',
+        advisor_fee_percent: null,
         isa_type: 'stocks_and_shares',
         isa_subscription_current_year: null,
         ownership_type: 'individual',

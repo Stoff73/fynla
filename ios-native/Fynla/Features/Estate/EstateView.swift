@@ -9,6 +9,15 @@ struct EstateView: View {
     let model: EstateModel
     let onOpenFyn: (String) -> Void
     let onOpenSubscription: () -> Void
+    /// Obtains a one-time web handoff and presents the Will Builder in the shared
+    /// Safari sheet. W-0044: there is no native Will Builder, and until this landed
+    /// there was no route to the web one either — the screen W-0019 and W-0024
+    /// govern was unreachable from this app by any path. Copy and behaviour follow
+    /// `/m`'s `EstateBequests.vue`, which is the same handoff for the same screen.
+    let onOpenWillPlanning: @MainActor () async throws -> Void
+
+    @State private var isOpeningWillPlanning = false
+    @State private var willPlanningError: String?
 
     var body: some View {
         Group {
@@ -175,11 +184,60 @@ struct EstateView: View {
                     : FynlaColor.Token.violet500.color,
                 showsDivider: false
             )
+
+            willPlanningHandoff
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // The route to the Will Builder. Wording matches /m's EstateBequests.vue
+    // verbatim — same handoff, same screen, so the same sentence. Rule 15: this is
+    // an estate detail view, so the button is text only.
+    private var willPlanningHandoff: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Writing and editing your will is part of will planning in the full app.")
+                .font(.system(size: 13))
+                .foregroundStyle(FynlaColor.Token.neutral600.color)
+
+            Button {
+                openWillPlanning()
+            } label: {
+                Text(isOpeningWillPlanning ? "Opening…" : "Manage your will in the full app")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 9)
+                    .background(FynlaColor.Token.raspberry500.color)
+                    .clipShape(Capsule())
+            }
+            .disabled(isOpeningWillPlanning)
+            .accessibilityIdentifier("estate.will.handoff")
+
+            if let willPlanningError {
+                Text(willPlanningError)
+                    .font(.system(size: 13))
+                    .foregroundStyle(FynlaColor.Token.raspberry600.color)
+                    .accessibilityIdentifier("estate.will.handoff.error")
+            }
+        }
+        .padding(.top, 14)
+    }
+
+    private func openWillPlanning() {
+        guard !isOpeningWillPlanning else { return }
+        isOpeningWillPlanning = true
+        willPlanningError = nil
+        Task { @MainActor in
+            defer { isOpeningWillPlanning = false }
+            do {
+                try await onOpenWillPlanning()
+            } catch {
+                willPlanningError = "We could not open the full app. Please try again."
+            }
+        }
     }
 
     // me-row: label 14 neutral, value 14/700 horizon, light hairline.

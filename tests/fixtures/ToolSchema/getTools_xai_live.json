@@ -748,9 +748,10 @@
                         "personal_pension",
                         "stakeholder",
                         "final_salary",
-                        "career_average"
+                        "career_average",
+                        "public_sector"
                     ],
-                    "description": "Internal wire value — never shown to the user. Pot-of-money pensions: \"workplace\" (employer contributes), \"sipp\" (Self-Invested Personal Pension), \"personal_pension\", \"stakeholder\". Guaranteed-income pensions: \"final_salary\", \"career_average\". Must be one of these exact lowercase values. When the user has not made the type clear, send \"personal_pension\"."
+                    "description": "Internal wire value — never shown to the user. Pot-of-money pensions: \"workplace\" (employer contributes), \"sipp\" (Self-Invested Personal Pension), \"personal_pension\", \"stakeholder\". Guaranteed-income pensions: \"final_salary\", \"career_average\" (benefits build up on each year's own salary — the NHS 2015, Teachers and Civil Service Alpha schemes are career average), \"public_sector\". Must be one of these exact lowercase values. When the user has not made the type clear, send \"personal_pension\"."
                 },
                 "provider": {
                     "type": "string",
@@ -779,6 +780,24 @@
                 "pensionable_service_years": {
                     "type": "number",
                     "description": "Years of pensionable service. Guaranteed-income pensions only."
+                },
+                "spouse_pension_percent": {
+                    "type": "number",
+                    "description": "Percentage of the pension that continues to the user's spouse or partner after their death, in percentage points (send 50 for 50%, not 0.5). Guaranteed-income pensions only. Send only when the user states it — the household death projection assumes 50% when it is unknown."
+                },
+                "inflation_protection": {
+                    "type": "string",
+                    "enum": [
+                        "cpi",
+                        "rpi",
+                        "fixed",
+                        "none"
+                    ],
+                    "description": "Internal wire value — never shown to the user. How the scheme increases the pension before it comes into payment: \"cpi\" for Consumer Prices Index, \"rpi\" for Retail Prices Index, \"fixed\" for a fixed percentage each year, \"none\" for no increases. Guaranteed-income pensions only. Send only when the user states it — do not guess, because \"none\" materially understates the pension."
+                },
+                "lump_sum_entitlement": {
+                    "type": "number",
+                    "description": "Tax-free lump sum available at retirement, in pounds (the Pension Commencement Lump Sum). Guaranteed-income pensions only."
                 }
             },
             "required": [
@@ -1282,7 +1301,7 @@
     },
     {
         "name": "create_family_member",
-        "description": "Add a family member (spouse, child, dependent). Use when the user mentions family members who affect their financial planning. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+        "description": "Add a family member (spouse, child, dependent). Use when the user mentions family members who affect their financial planning. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values. SPOUSE: adding a spouse creates or links a real Fynla account for them, which is what connects the household's finances, so \"email\" is REQUIRED when relationship is \"spouse\". If the user asks to add their spouse and has not given an email address, ask for it before calling this tool — never invent one. Adding the same spouse again updates the existing record rather than creating a second one.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1304,6 +1323,10 @@
                         "other"
                     ],
                     "description": "Relationship to the user"
+                },
+                "email": {
+                    "type": "string",
+                    "description": "The spouse's own email address. Required when relationship is \"spouse\" — their account is created or linked with it, and without it the household is not linked. Omit for every other relationship."
                 },
                 "date_of_birth": {
                     "type": "string",
@@ -1403,6 +1426,10 @@
                 "annual_profit": {
                     "type": "number",
                     "description": "Annual profit/drawings (£)"
+                },
+                "company_number": {
+                    "type": "string",
+                    "description": "Companies House registration number for a UK-registered company or LLP — eight characters, either eight digits (e.g. \"12248522\") or two letters and six digits (e.g. \"SC123456\"). Supply it only if the user states it; never guess or derive it from the business name. Omit for a sole trader, a partnership, or a business registered outside the United Kingdom."
                 }
             },
             "required": [
@@ -1965,6 +1992,54 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "scheme_type": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "spouse_pension_percent": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "inflation_protection": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "revaluation_method": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "lump_sum_entitlement": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "scheme_status": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -2209,6 +2284,14 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "policy_end_date": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -2268,6 +2351,14 @@
                                     ]
                                 },
                                 "deferred_period_weeks": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "policy_end_date": {
                                     "type": [
                                         "string",
                                         "number",
@@ -2642,6 +2733,14 @@
                                     ]
                                 },
                                 "annual_profit": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "company_number": {
                                     "type": [
                                         "string",
                                         "number",

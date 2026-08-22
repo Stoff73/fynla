@@ -9,7 +9,7 @@
 
 `04-product-strategy.md` §5 (the trade-off table, in full, with its reasons) ·
 `app/Services/AI/Prompts/CoreIdentity.php` · `ComplianceRules.php` ·
-`CLAUDE.md` Rules 2, 9, 12, 14, 15, 16, 19, 20 · `Articles/pension-tracker.md` ·
+`CLAUDE.md` Rules 2, 9, 12, 14, 15, 16, 19, 20 · `docs/reference/Articles/pension-tracker.md` ·
 `01-mission.md` as ratified yesterday
 
 **There is no values document anywhere in either tree.** But there is a great deal
@@ -73,7 +73,7 @@ personas spanning student to widow.
 **Evidence:** Rule 12 bans scores because "they oversimplify and mislead" — you
 banned a metric that would have made the product *more* engaging. Hedging language
 is mandatory in `ComplianceRules.php`. "We never recommend specific providers or
-products" (`Articles/pension-tracker.md:91`).
+products" (`docs/reference/Articles/pension-tracker.md:91`).
 
 ### V3 — Never adversarial to the customer
 
@@ -143,7 +143,7 @@ carries its reason.
 ### B1 — One that may have moved
 
 The table says **subscription over "freemium with ads / AUM fees"**. But
-`CSJTODO-freemium-series.md` exists in the repo root.
+`docs/archive/CSJTODO-freemium-series.md` exists in the repo root.
 
 The reason given is specifically *ads* and *AUM fees* — both V3 violations. **A
 free tier with neither is not obviously ruled out.** Which is it: no freemium at

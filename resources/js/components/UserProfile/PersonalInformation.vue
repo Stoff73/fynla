@@ -325,12 +325,9 @@
               class="input-field"
             >
               <option value="">Select level</option>
-              <option value="undergraduate">Undergraduate</option>
-              <option value="postgraduate">Postgraduate</option>
-              <option value="doctorate">Doctorate</option>
-              <option value="foundation">Foundation Year</option>
-              <option value="hnd">Higher National Diploma</option>
-              <option value="other">Other</option>
+              <option v-for="option in educationLevelOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
           </div>
         </div>
@@ -602,6 +599,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
+import { EDUCATION_LEVEL_OPTIONS } from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
 // Preview mode message
@@ -1019,6 +1017,9 @@ export default {
 
     return {
       form,
+      // This select used to offer three levels the column cannot hold (a 500 on
+      // save) and omit three it can — W-0031.
+      educationLevelOptions: EDUCATION_LEVEL_OPTIONS,
       isEditing,
       submitting,
       successMessage,

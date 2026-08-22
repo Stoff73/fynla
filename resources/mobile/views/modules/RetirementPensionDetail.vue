@@ -63,6 +63,10 @@
           <span class="m-detail-value">{{ dbSchemeTypeLabel(pension.scheme_type) }}</span>
         </div>
         <div class="m-detail-row">
+          <span class="m-detail-key">Scheme status</span>
+          <span class="m-detail-value">{{ schemeStatusLabel(pension.scheme_status) }}</span>
+        </div>
+        <div class="m-detail-row">
           <span class="m-detail-key">Accrued annual pension</span>
           <span class="m-detail-value">{{ fmt(pension.accrued_annual_pension) }}</span>
         </div>
@@ -148,6 +152,10 @@ import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import CanonicalPortfolio from '../../components/CanonicalPortfolio.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
+// The same mapper the web Defined Benefit forms and detail view read, imported
+// rather than copied (Rule 20). Pure JavaScript with no Vue or store dependency,
+// so it crosses the bundle boundary the way ownership.js already does.
+import { formatSchemeStatus } from '../../../js/components/Retirement/dbPensionFields.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -260,6 +268,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     schemeTypeLabel(t) { return SCHEME_TYPES[t] || t || '—'; },
     dbSchemeTypeLabel(t) { return DB_SCHEME_TYPES[t] || t || '—'; },
+    schemeStatusLabel: formatSchemeStatus,
     goBack() { this.$router.push({ name: 'm-retirement' }); },
     async load() {
       this.loading = true;

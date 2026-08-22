@@ -1,0 +1,134 @@
+---
+id: W-0157
+title: The will signing step states three unsourced facts to the user and one of them is wrong by more than a factor of three
+mission: M-0002-persona-fidelity
+branch: branches/fixes/F-0008-batch-g-lpa.md
+owner: build-lead
+reviewers: [compliance-lead]
+status: handoff
+handoff_to: quality-lead
+claimed_by: fix-batch-G
+severity: high
+surfaces: [web]
+created: 2026-08-21T20:30:00Z
+claimed: 2026-08-21T19:55:00Z
+blocked_by: []
+gate: null
+prior_art_checked: 2026-08-21
+prior_art_found: ["W-0143 same file - the sentence-shape inversion at :11 and :17", "W-0153 legal rules stated in Fynla's own unattributed voice", "W-0109 the Lasting Power of Attorney registration fee, same shape, first occurrence", "workforce/core/registry/sources.md rows C3 and A14"]
+prior_art_outcome: extend
+constitution_refs: [05-perimeter, 07-quality-bar]
+source: found by compliance-lead while ruling W-0143, scanning the whole component rather than the two strings it was sent to; routed to team-lead because compliance holds no ID block
+---
+
+## Intent
+
+**Raised separately from W-0143 deliberately.** W-0143 is the *sentence shape* — a
+checklist framed as complete instructions for making a will valid. These are **facts
+stated to the user**, and they fail differently. Same file, same fix window, different
+mechanism. Sequence them together; do not fold them.
+
+### 1. The will storage fee is wrong by more than threefold — `:50`
+
+The step tells the user *"a fee of **£75**"*. HM Courts and Tribunals Service publishes
+**£24**: *"There is a one-off charge of £24 to deposit a will or its codicil."*
+
+**Verified against the page itself, not a search summary** (compliance-lead, 2026-08-21),
+and **that page displays "Updated 13 July 2026"** — so unlike the Office of the Public
+Guardian timescale in W-0109, **route 1 is available: source it and cite the date.**
+Registered as **row C3** in `registry/sources.md`.
+
+This is **W-0109's shape, third occurrence** — money stated to a user, wrong, unsourced,
+for an unknown period. The first cost £10; this one costs £51 in the user's expectation,
+in the direction that makes them think a service is unaffordable when it is not.
+
+### 2. An unconditional legal consequence in Fynla's own voice — `:44`
+
+*"If a beneficiary or their spouse witnesses your will, their inheritance is
+**automatically** void."*
+
+Wills Act 1837 s.15 does say *"utterly null and void"* — **but s.15 as displayed carries
+amendments, including Wills Act 1968 s.1** (registered as **row A14**). Compliance has
+**not** adjudicated what that amendment does to any given gift, and neither should
+anyone here.
+
+**Within competence:** Fynla states an **unconditional** consequence, for an **amended**
+provision, **unsourced**, in its own voice. **The word carrying the risk is
+"automatically."** This is `W-0153`'s shape and **should be handled under that item's
+answer** — attribute-and-re-approve, or record-the-divergence-with-a-reason — rather than
+patched alone here.
+
+### 3. An unsourced requirement — `:41`
+
+*"18 years or older"* for witnesses. **s.9 states no witness age**, and compliance could
+not establish where the figure comes from.
+
+**This is flagged, not ruled. It is not asserted to be wrong.** It is unsourced and
+unverified. **Source it or soften it — do not keep it because it sounds right.** That is
+the whole of the finding.
+
+## Acceptance
+
+- [ ] The storage fee is correct and **sourced with the date the source was read**, added
+      to `registry/sources.md` as a class C row with its re-check trigger.
+- [ ] The "automatically void" sentence is resolved **under W-0153's answer**, not
+      independently — the point of W-0153 is that Fynla has no rule about stating legal
+      rules in its own voice, and patching one instance leaves that true.
+- [ ] The witness age is sourced or softened. **If it cannot be sourced, it says less.**
+- [ ] Nothing new is asserted that Fynla is not entitled to assert — the act-not-object
+      test, applied **mechanically to every string in the component**, which is how these
+      three were found in the first place.
+- [ ] Rule 9: no acronyms in user-facing text.
+
+## Working notes
+
+(append-only)
+
+- 2026-08-21 team-lead: filed on compliance-lead's findings, in its framing, from the
+  coordinator block. **Found because it scanned the whole component rather than the two
+  strings it was sent to look at** — the same method that found W-0143 itself, and the
+  same method that found the original overclaim. Worth noting as a pattern: **every
+  string in a user-facing legal component, not the one you were sent for.**
+- 2026-08-21 team-lead: three wrong or unsourced numbers reached users today from three
+  different components — the Lasting Power of Attorney registration fee (£82 against £92,
+  W-0109), this storage fee (£75 against £24), and the registration timescale with its
+  condition dropped. **None of them was caught by a test, a review or a sweep**; all three
+  were caught by one agent reading the instrument or the publisher's page. That is the
+  argument for `registry/sources.md` having re-check triggers rather than just citations.
+
+- 2026-08-21 fix-batch-G (build-lead): **two of the three resolved; the third deliberately
+  left alone.** Same pass as W-0143. Branch document:
+  `workforce/branches/fixes/F-0008-batch-g-lpa.md` §5.
+
+  **1. The storage fee — fixed, and moved out of an inline string.** £75 → **£24**, per
+  row **C3**. It is now a module constant, `WILL_STORAGE_FEE`, whose docblock carries the
+  publisher, the verbatim quote, the date read (2026-08-21), the page's own
+  "Updated 13 July 2026", the row id, and the instruction that **changing the number means
+  updating `sources.md` row C3 in the same edit**. The provenance travels with the value
+  rather than sitting in a register nobody opens next to a string nobody suspects — which
+  is how £75 survived. Copy also now says "one-off charge", matching the publisher.
+
+  **2. "Automatically void" — NOT touched, on instruction.** Compliance supplied interim
+  wording and both compliance and team-lead were explicit that this is **W-0153's shape**
+  and must be handled under that item's answer: patching this one instance would leave
+  true the thing W-0153 exists to fix — that nothing requires a legal statement in
+  user-facing copy to carry its source. **The interim wording is ready to apply the moment
+  W-0153 lands**, and I have not improvised around it. Worth stating plainly: this leaves
+  an unconditional consequence, for an amended provision (row A14), live in Fynla's own
+  voice — a known, recorded exposure, not an oversight.
+
+  **3. The witness age — softened, because it could not be sourced.** s.9 sets no witness
+  age and compliance could not establish where the figure came from. `18 years or older`
+  → `Adults`, plus a line saying the Wills Act does not set an age and that suggesting
+  adults is Fynla's guidance rather than a legal requirement. **That keeps the practical
+  steer while removing the assertion**, which is the "say less" route the acceptance
+  names. A comment in the file says not to restore a number without a source.
+  **`Of sound mind` in the same list is the same shape and was not flagged** — I have not
+  touched it and am not asserting it is wrong; recording it here so it is not lost.
+
+  **Verified:** `WillBuilderSigningStep.spec.js` pins £24, the absence of £75, and the
+  absence of the unsourced age. 37 Vitest tests pass across this and the renderer specs.
+  ESLint clean. **Not browser-verified.**
+
+  **Registry:** row C3 already existed — compliance registered it when it ruled. No new
+  row was needed and none was added.

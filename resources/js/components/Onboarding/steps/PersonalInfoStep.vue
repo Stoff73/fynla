@@ -171,11 +171,9 @@
             </label>
             <select id="health_status" v-model="formData.health_status" class="onb-input" @focus="emitWhyField($event,'health_status')">
               <option value="">Select...</option>
-              <option value="yes">Yes</option>
-              <option value="yes_previous">Yes, previous health conditions</option>
-              <option value="no_previous">No, previous health conditions</option>
-              <option value="no_existing">No, existing health conditions</option>
-              <option value="no_both">No, previous and existing health conditions</option>
+              <option v-for="option in healthStatusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
           </div>
 
@@ -186,10 +184,9 @@
             </label>
             <select id="smoking_status" v-model="formData.smoking_status" class="onb-input" @focus="emitWhyField($event,'smoking_status')">
               <option value="">Select...</option>
-              <option value="never">Never smoked</option>
-              <option value="quit_recent">No, gave up 12 months or sooner</option>
-              <option value="quit_long_ago">No, gave up more than 12 months ago</option>
-              <option value="yes">Yes</option>
+              <option v-for="option in smokingStatusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
           </div>
 
@@ -200,12 +197,9 @@
             </label>
             <select id="education_level" v-model="formData.education_level" class="onb-input" @focus="emitWhyField($event,'education_level')">
               <option value="">Select...</option>
-              <option value="secondary">Secondary (GCSE/O-Levels)</option>
-              <option value="a_level">A-Levels/Vocational</option>
-              <option value="undergraduate">Undergraduate Degree</option>
-              <option value="postgraduate">Postgraduate Degree</option>
-              <option value="professional">Professional Qualification</option>
-              <option value="other">Other</option>
+              <option v-for="option in educationLevelOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
           </div>
         </div>
@@ -222,6 +216,11 @@ import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import UsefulResources from '../UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
+import {
+  HEALTH_STATUS_OPTIONS,
+  SMOKING_STATUS_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+} from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
 export default {
@@ -446,6 +445,9 @@ export default {
     });
 
     return {
+      healthStatusOptions: HEALTH_STATUS_OPTIONS,
+      smokingStatusOptions: SMOKING_STATUS_OPTIONS,
+      educationLevelOptions: EDUCATION_LEVEL_OPTIONS,
       formData,
       loading,
       error,

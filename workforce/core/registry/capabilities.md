@@ -77,7 +77,7 @@ Two failures, both avoidable:
 | Concern | Canonical | Not |
 |---|---|---|
 | Tax values | `TaxConfigService` | Anything hardcoded |
-| **Personas** | **`PreviewController::VALID_PERSONAS`** — what the API returns and the user sees. `PreviewUserSeeder::PERSONAS` agrees. | Any `'widow'` string in the seeder file (dead code); `appMapping/v083/05-FRONTEND-ARCHITECTURE.md` (says seven — wrong) |
+| **Personas** | **`PreviewController::VALID_PERSONAS`** — what the API returns and the user sees. `PreviewUserSeeder::PERSONAS` agrees. | Any `'widow'` string in the seeder file (dead code); `docs/archive/appMapping/v083/05-FRONTEND-ARCHITECTURE.md` (says seven — wrong) |
 | Entitlement | `TierResolver`, `PremiumEntitlementResolver` | `SubscriptionPlanSeeder` |
 | Prices, caps, AI budgets | `TierConfigurationSeeder` → `tier_configurations` | Any prose |
 

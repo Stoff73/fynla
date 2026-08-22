@@ -61,6 +61,7 @@
       :show="showModal"
       :holding="selectedHolding"
       :accounts="accounts"
+      :save-error="error"
       @save="handleSubmit"
       @close="closeModal"
     />
@@ -223,6 +224,7 @@ export default {
           // Update existing holding (store action handles analysis)
           await this.updateHolding({ id: formData.id, data: formData });
           this.successMessage = 'Holding updated successfully';
+
         } else {
           // Create new holding (store action handles analysis)
           await this.createHolding(formData);
@@ -233,6 +235,10 @@ export default {
         if (this.$store.state.aiFormFill.pendingFill) {
           this.$store.dispatch('aiFormFill/completeFill');
         }
+
+        // Close only once the save has actually succeeded — HoldingForm no
+        // longer closes itself (W-0009).
+        this.closeModal();
 
         // Refresh data to get latest from server
         // Note: analyseInvestment() is already called by the store actions above

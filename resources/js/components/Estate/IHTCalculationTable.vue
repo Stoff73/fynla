@@ -113,347 +113,111 @@
           <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatCurrency(totals.netEstate.plus5) }}</td>
         </tr>
 
-        <!-- ============================================== -->
-        <!-- CHARITABLE BEQUEST OFF: Combined Allowances   -->
-        <!-- ============================================== -->
-        <template v-if="!charitableBequest">
-          <!-- Allowances Section Header (Collapsible) -->
-          <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleAllowances">
-            <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
-              <span class="inline-flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': expandedAllowances }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                Less: Tax-Free Allowances
-              </span>
+        <!--
+          W-0132 — one layout, the user's own position.
+
+          These rows used to be the "charitable bequest OFF" half of a `v-if` /
+          `v-else` pair. Answering Yes to a toggle on /estate swapped in a second
+          allowance layout that deducted an ASSUMED donation of 10% of baseline and
+          applied the reduced rate to the result — a client-side model of a gift the
+          user had not made, standing in for their real position, on the page whose
+          job is to show their real position.
+
+          The server reads the recorded will, pools the household's legacies for the
+          IHTA 1984 s23 exemption and runs the 10% test against the survivor's
+          estate. That is the answer, and this table now renders it and computes
+          nothing.
+        -->
+        <!-- Allowances Section Header (Collapsible) -->
+        <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleAllowances">
+          <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
+            <span class="inline-flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': expandedAllowances }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+              Less: Tax-Free Allowances
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.now) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.minus5) }}</td>
+          <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.projected) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.plus5) }}</td>
+        </tr>
+
+        <!--
+          W-0134 — the allowance rows are built by `allowanceRows()` rather than
+          written out per marital branch, because they have to ADD UP and fourteen
+          near-identical hand-written rows across four branches did not.
+
+          What the reader saw before: four rows of £325,000 / £325,000 / £175,000 /
+          £175,000 summing to £1,000,000, above a subtotal of £850,000. The £150,000
+          of chargeable transfers that produced the difference had no row anywhere
+          and lived only in a sentence appended to a message string, and the single
+          and widowed branches printed a nil-rate-band figure that was ALREADY net
+          of that deduction with the deduction then shown again beneath it.
+
+          Every row now carries its own value for each column. That matters more
+          than it used to: since W-0136 the residence band is assessed against the
+          estate it applies to, so the projected allowance is genuinely a different
+          number from today's and one figure printed beside both columns is wrong
+          in at least one of them.
+        -->
+        <template v-if="expandedAllowances">
+          <tr v-for="row in allowanceRows" :key="row.key" class="bg-eggshell-500">
+            <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
+              {{ row.label }}
+              <span v-if="row.note" class="block text-xs text-neutral-500 mt-0.5">{{ row.note }}</span>
             </td>
-            <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
-            <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
+            <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ row.sign }}{{ formatCurrency(row.now) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ row.sign }}{{ formatCurrency(row.minus5) }}</td>
+            <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ row.sign }}{{ formatCurrency(row.projected) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ row.sign }}{{ formatCurrency(row.plus5) }}</td>
           </tr>
-
-          <!-- Allowances Detail (Expanded) - Combined NRB + RNRB -->
-          <template v-if="expandedAllowances">
-            <!-- NRB Allowances -->
-            <template v-if="showSpouse">
-              <template v-if="allowances.showSeparateSpouseAllowances">
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Tax-Free Allowance (Individual)</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                </tr>
-                <tr v-if="allowances.nrbFromSpouse > 0" class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
-                    Tax-Free Allowance from Spouse
-                    <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-neutral-500 font-normal">(Default)</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                </tr>
-              </template>
-              <template v-else>
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name }}'s Tax-Free Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                </tr>
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.spouse?.name }}'s Tax-Free Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                </tr>
-              </template>
-            </template>
-            <!-- Single user with transferred allowances (widow/widower) -->
-            <template v-else-if="allowances.showSeparateSpouseAllowances">
-              <tr class="bg-eggshell-500">
-                <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name || 'Your' }} Tax-Free Allowance</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-              </tr>
-              <tr v-if="allowances.nrbFromSpouse > 0" class="bg-eggshell-500">
-                <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Transferred from Late Spouse's Estate</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-              </tr>
-            </template>
-            <!-- Single user without transferred allowances -->
-            <template v-else>
-              <tr class="bg-eggshell-500">
-                <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Tax-Free Allowance (Nil Rate Band)</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-              </tr>
-            </template>
-
-            <!-- RNRB Allowances -->
-            <template v-if="allowances.rnrbEligible && allowances.totalRnrb > 0">
-              <template v-if="showSpouse && allowances.showSeparateSpouseAllowances">
-                <tr v-if="allowances.rnrbIndividual > 0" class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Home Allowance (Individual)</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                </tr>
-                <tr v-if="allowances.rnrbFromSpouse > 0" class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
-                    Home Allowance from Spouse
-                    <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-neutral-500 font-normal">(Default)</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                </tr>
-              </template>
-              <template v-else-if="showSpouse">
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name }}'s Home Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                </tr>
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.spouse?.name }}'s Home Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                </tr>
-              </template>
-              <!-- Single user with transferred RNRB (widow/widower) -->
-              <template v-else-if="allowances.showSeparateSpouseAllowances">
-                <tr v-if="allowances.rnrbIndividual > 0" class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name || 'Your' }} Home Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                </tr>
-                <tr v-if="allowances.rnrbFromSpouse > 0" class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Transferred from Late Spouse's Estate</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                </tr>
-              </template>
-              <!-- Single user without transferred RNRB -->
-              <template v-else>
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Home Allowance (Residence Nil Rate Band)</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                </tr>
-              </template>
-            </template>
-
-            <!-- Residence Nil Rate Band Not Available Message -->
-            <tr v-if="!allowances.rnrbEligible" class="bg-eggshell-500">
-              <td :colspan="columnCount" class="px-4 py-2 text-xs text-neutral-500 pl-8">
-                <strong>Note:</strong> Home allowance not available - no main residence identified or not left to direct descendants
-              </td>
-            </tr>
-
-            <!-- RNRB Taper Warning -->
-            <tr v-if="allowances.rnrbTapered" class="bg-eggshell-500">
-              <td :colspan="columnCount" class="px-4 py-2 text-xs text-neutral-500 pl-8">
-                <strong>Home Allowance Reduced:</strong> Estate value exceeds {{ formatCurrency(allowances.rnrbTaperThreshold || 2000000) }} threshold.
-                <span v-if="allowances.totalRnrb === 0">Allowance completely removed.</span>
-                <span v-else>Reduced by {{ formatCurrency(allowances.rnrbTaperAmount || 0) }}.</span>
-              </td>
-            </tr>
-
-            <!-- Allowances Subtotal -->
-            <tr class="bg-white ">
-              <td class="px-4 py-2 text-sm font-semibold text-horizon-500 pl-8">Subtotal</td>
-              <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
-              <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
-            </tr>
-          </template>
-        </template>
-
-        <!-- ============================================== -->
-        <!-- CHARITABLE BEQUEST ON: Split Allowances       -->
-        <!-- Order: NRB -> Baseline -> Charitable -> RNRB  -->
-        <!-- ============================================== -->
-        <template v-else>
-          <!-- NRB Section Header (Collapsible) -->
-          <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleNRB">
-            <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
-              <span class="inline-flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': expandedNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                Less: Tax-Free Allowance (Nil Rate Band)
-              </span>
-            </td>
-            <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-            <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalNrb) }}</td>
-          </tr>
-
-          <!-- NRB Detail (Expanded) -->
-          <template v-if="expandedNRB">
-            <template v-if="showSpouse && allowances.showSeparateSpouseAllowances">
-              <tr class="bg-eggshell-500">
-                <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Tax-Free Allowance (Individual)</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrb) }}</td>
-              </tr>
-              <tr v-if="allowances.nrbFromSpouse > 0" class="bg-eggshell-500">
-                <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
-                  Tax-Free Allowance from Spouse
-                  <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-neutral-500 font-normal">(Default)</span>
-                </td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.nrbFromSpouse) }}</td>
-              </tr>
-            </template>
-            <template v-else-if="showSpouse">
-              <tr class="bg-eggshell-500">
-                <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name }}'s Tax-Free Allowance</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-              </tr>
-              <tr class="bg-eggshell-500">
-                <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.spouse?.name }}'s Tax-Free Allowance</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
-              </tr>
-            </template>
-          </template>
-
-          <!-- Estate after NRB (charitable bequest baseline) -->
-          <tr class="bg-violet-50 ">
-            <td class="px-4 py-3 text-sm font-semibold text-violet-800">
-              Estate after Tax-Free Allowance{{ showSpouse ? 's' : '' }}
-              <span class="block text-xs font-normal text-violet-600 mt-0.5">Charitable bequest baseline (10% calculated from this)</span>
-            </td>
-            <td class="px-4 py-3 text-sm text-right font-bold text-violet-800">{{ formatCurrency(estateAfterNRB.now) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-violet-800">{{ formatCurrency(estateAfterNRB.minus5) }}</td>
-            <td class="px-4 py-3 text-sm text-right font-bold text-violet-800">{{ formatCurrency(estateAfterNRB.projected) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-violet-800">{{ formatCurrency(estateAfterNRB.plus5) }}</td>
-          </tr>
-
-          <!-- Charitable Bequest (deducted from estate) -->
-          <tr class="bg-spring-50 ">
-            <td class="px-4 py-3 text-sm font-semibold text-spring-800">
-              Less: Charitable Bequest (10% minimum)
-              <span class="block text-xs font-normal text-spring-600 mt-0.5">Deducted from estate, qualifies for 36% rate</span>
-            </td>
-            <td class="px-4 py-3 text-sm text-right font-semibold text-spring-800">-{{ formatCurrency(charitableDonation.now) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-spring-800">-{{ formatCurrency(charitableDonation.minus5) }}</td>
-            <td class="px-4 py-3 text-sm text-right font-semibold text-spring-800">-{{ formatCurrency(charitableDonation.projected) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-spring-800">-{{ formatCurrency(charitableDonation.plus5) }}</td>
-          </tr>
-
-          <!-- RNRB Section Header (Collapsible) - only if eligible -->
-          <template v-if="allowances.rnrbEligible && allowances.totalRnrb > 0">
-            <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleRNRB">
-              <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
-                <span class="inline-flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': expandedRNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                  Less: Home Allowance (Residence Nil Rate Band)
-                </span>
-              </td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-              <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-              <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-            </tr>
-
-            <!-- RNRB Detail (Expanded) -->
-            <template v-if="expandedRNRB">
-              <template v-if="showSpouse && allowances.showSeparateSpouseAllowances">
-                <tr v-if="allowances.rnrbIndividual > 0" class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Home Allowance (Individual)</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbIndividual) }}</td>
-                </tr>
-                <tr v-if="allowances.rnrbFromSpouse > 0" class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
-                    Home Allowance from Spouse
-                    <span v-if="!hasSpouseLinked" class="ml-2 text-xs text-neutral-500 font-normal">(Default)</span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.rnrbFromSpouse) }}</td>
-                </tr>
-              </template>
-              <template v-else-if="showSpouse">
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name }}'s Home Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                </tr>
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.spouse?.name }}'s Home Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb / 2) }}</td>
-                </tr>
-              </template>
-              <template v-else>
-                <tr class="bg-eggshell-500">
-                  <td class="px-4 py-2 text-sm text-neutral-500 pl-8">Home Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(allowances.totalRnrb) }}</td>
-                </tr>
-              </template>
-
-              <!-- RNRB Taper Warning -->
-              <tr v-if="allowances.rnrbTapered" class="bg-eggshell-500">
-                <td :colspan="columnCount" class="px-4 py-2 text-xs text-neutral-500 pl-8">
-                  <strong>Home Allowance Reduced:</strong> Estate value exceeds {{ formatCurrency(allowances.rnrbTaperThreshold || 2000000) }} threshold.
-                  <span v-if="allowances.totalRnrb === 0">Allowance completely removed.</span>
-                  <span v-else>Reduced by {{ formatCurrency(allowances.rnrbTaperAmount || 0) }}.</span>
-                </td>
-              </tr>
-            </template>
-          </template>
 
           <!-- Residence Nil Rate Band Not Available Message -->
-          <tr v-else class="bg-eggshell-500">
-            <td :colspan="columnCount" class="px-4 py-2 text-xs text-neutral-500">
+          <tr v-if="!allowances.rnrbEligible && !projectedAllowances.rnrbEligible" class="bg-eggshell-500">
+            <td :colspan="columnCount" class="px-4 py-2 text-xs text-neutral-500 pl-8">
               <strong>Note:</strong> Home allowance not available - no main residence identified or not left to direct descendants
             </td>
           </tr>
+
+          <!-- Residence band reduction note, stated per column because the two differ -->
+          <tr v-if="residenceBandNote" class="bg-eggshell-500">
+            <td :colspan="columnCount" class="px-4 py-2 text-xs text-neutral-500 pl-8">
+              <strong>Home Allowance Reduced:</strong> {{ residenceBandNote }}
+            </td>
+          </tr>
+
+          <!-- Allowances Subtotal -->
+          <tr class="bg-white ">
+            <td class="px-4 py-2 text-sm font-semibold text-horizon-500 pl-8">Subtotal</td>
+            <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.now) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.minus5) }}</td>
+            <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.projected) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances.plus5) }}</td>
+          </tr>
         </template>
+
+        <!--
+          W-0134 — the charitable exemption, as its own row BELOW the allowance
+          block and outside it.
+
+          It is not an allowance. IHTA 1984 s23 removes the legacy from the estate's
+          transferable value; putting it inside the allowance subtotal would make the
+          column add up while misstating the law. It is rendered whenever the server
+          applied one. The old row was gated on the `charitableBequest` what-if
+          toggle, so a deduction the server had already made was invisible on the
+          page that made it and the column came out £20,000 short between Net Estate
+          and Taxable Estate. That toggle no longer exists (W-0132).
+        -->
+        <tr v-if="hasCharitableExemption" class="bg-white ">
+          <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
+            Less: Charitable Legacies
+            <span class="block text-xs font-normal text-neutral-500 mt-0.5">Exempt from Inheritance Tax</span>
+          </td>
+          <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(charitableExemption.now) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(charitableExemption.minus5) }}</td>
+          <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(charitableExemption.projected) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(charitableExemption.plus5) }}</td>
+        </tr>
 
         <!-- Taxable Estate -->
         <tr class="bg-eggshell-500">
@@ -467,8 +231,7 @@
         <!-- Inheritance Tax Liability -->
         <tr class="bg-white ">
           <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
-            Inheritance Tax Liability ({{ effectiveIHTRateLabel }})
-            <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-spring-600">(Reduced rate)</span>
+            Inheritance Tax Liability<span v-if="ihtRateLabel"> ({{ ihtRateLabel }})</span>
           </td>
           <td class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatCurrency(ihtLiability.now) }}</td>
           <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatCurrency(ihtLiability.minus5) }}</td>
@@ -481,7 +244,6 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import IHTAssetBreakdown from './IHTAssetBreakdown.vue';
 import IHTLiabilityBreakdown from './IHTLiabilityBreakdown.vue';
@@ -516,11 +278,30 @@ export default {
       // Expected: { grossAssets: {now, minus5, projected, plus5}, liabilities: {...}, netEstate: {...} }
     },
 
-    // Allowances
+    // Allowances as they stand TODAY.
     allowances: {
       type: Object,
       required: true,
-      // Expected: { nrb, nrbFromSpouse, totalNrb, rnrbIndividual, rnrbFromSpouse, totalRnrb, rnrbEligible, rnrbTapered, rnrbTaperThreshold, rnrbTaperAmount, showSeparateSpouseAllowances }
+      // Expected: { nrb, nrbFromSpouseModelled, nrbFromSpouse, nrbGiftDeduction, totalNrb,
+      //   rnrbIndividual, rnrbFromSpouse, totalRnrb, rnrbEligible, rnrbStatus,
+      //   rnrbTaperThreshold, showSeparateSpouseAllowances }
+    },
+
+    // Allowances AT DEATH. Same shape. Omitting it falls back to the current set,
+    // which is what every caller effectively asserted before W-0136 — and it was
+    // wrong for any household projected past the £2,000,000 residence-band taper
+    // threshold, which is most of the ones that owe Inheritance Tax at all.
+    allowancesProjected: {
+      type: Object,
+      default: null,
+    },
+
+    // The charitable legacies the server actually deducted (IHTA 1984 s23). The
+    // `charitableDonation` what-if amount this was distinguished from is gone —
+    // see W-0132 on the allowance block above.
+    charitableExemption: {
+      type: Object,
+      default: () => ({ now: 0, minus5: 0, projected: 0, plus5: 0 }),
     },
 
     // Estate after NRB (pre-computed in parent)
@@ -544,18 +325,17 @@ export default {
       // Expected: { now, minus5, projected, plus5 }
     },
 
-    // Charitable bequest
-    charitableBequest: {
-      type: Boolean,
-      default: false,
-    },
-    charitableDonation: {
-      type: Object,
-      default: () => ({ now: 0, minus5: 0, projected: 0, plus5: 0 }),
-    },
-    effectiveIHTRateLabel: {
+    // W-0132 — the rate the liability beside it was calculated at, as the server
+    // reported it, stating the current and projected columns separately when they
+    // differ. This was `effectiveIHTRateLabel`, a string the parent built from two
+    // HARDCODED literals ('36%' / '40%') chosen by a user toggle — so the row
+    // labelled its own figure with a rate that figure had not been computed at, and
+    // bypassed the configured rates entirely (Rule 2). Its default of '40%' meant a
+    // caller that passed nothing still asserted a rate. There is no default now: no
+    // rate, no label.
+    ihtRateLabel: {
       type: String,
-      default: '40%',
+      default: null,
     },
 
     // Display options
@@ -618,27 +398,202 @@ export default {
       expandedAssets: {},
       expandedLiabilities: {},
       expandedAllowances: false,
-      expandedNRB: false,
-      expandedRNRB: false,
     };
   },
 
   computed: {
-    ...mapGetters('taxConfig', ['ihtNilRateBand']),
-
     columnCount() {
       return 2 + (this.showMinus5Years ? 1 : 0) + (this.showPlus5Years ? 1 : 0);
     },
-    totalAllowances() {
-      return this.allowances.totalNrb + this.allowances.totalRnrb;
+
+    projectedAllowances() {
+      return this.allowancesProjected || this.allowances;
     },
+
+    // Kept from the per-branch markup this replaced: a widow with no linked spouse
+    // record is shown an assumed transfer, and needs telling that it is assumed.
+    transferredAllowanceNote() {
+      return this.hasSpouseLinked ? null : 'Default assumption — no spouse record is linked.';
+    },
+
+    totalAllowances() {
+      const now = this.allowances.totalNrb + this.allowances.totalRnrb;
+      const projected = this.projectedAllowances.totalNrb + this.projectedAllowances.totalRnrb;
+
+      return { now, minus5: now, projected, plus5: projected };
+    },
+
+    /**
+     * Every itemised allowance row, with its own value in every column.
+     *
+     * W-0134. The invariant this enforces, in all four marital branches:
+     *
+     *   individual band
+     *     + modelled spouse band (married) or transferred band (widowed)
+     *     − chargeable transfers in the last seven years
+     *     + residence band
+     *     = the subtotal printed beneath
+     *
+     * The individual row deliberately shows the GROSS band. It used to show
+     * `totalNrb` in the single and widowed branches — already net of the gift
+     * deduction — with the deduction then rendered again below it, so those two
+     * branches double-counted it and could not be added by hand either.
+     */
+    allowanceRows() {
+      return [...this.nilRateBandRows, ...this.residenceBandRows];
+    },
+
+    nilRateBandRows() {
+      const now = this.allowances;
+      const proj = this.projectedAllowances;
+      const rows = [];
+      const push = (key, label, nowValue, projValue, sign = '-', note = null) => {
+        rows.push({
+          key,
+          label,
+          note,
+          sign,
+          now: nowValue || 0,
+          minus5: nowValue || 0,
+          projected: projValue || 0,
+          plus5: projValue || 0,
+        });
+      };
+
+      const userName = this.assetsBreakdown.user?.name;
+      const spouseName = this.assetsBreakdown.spouse?.name;
+
+      if (now.showSeparateSpouseAllowances) {
+        // Widowed: an individual band plus a band actually transferred on the
+        // first death (IHTA 1984 s8A). This one IS an allowance held today.
+        push('nrb-individual', 'Tax-Free Allowance (Individual)', now.nrb, proj.nrb);
+        if ((now.nrbFromSpouse || 0) > 0 || (proj.nrbFromSpouse || 0) > 0) {
+          push('nrb-transferred', "Transferred from Late Spouse's Estate", now.nrbFromSpouse, proj.nrbFromSpouse, '-', this.transferredAllowanceNote);
+        }
+      } else if (this.showSpouse) {
+        push('nrb-individual', userName ? `${userName}'s Tax-Free Allowance` : 'Your Tax-Free Allowance', now.nrb, proj.nrb);
+        // W-0134(b). This row is NOT an allowance the household holds today.
+        // There is no transferable nil rate band while both spouses are alive; the
+        // claim arises on the survivor's death, and this service models to that
+        // second death. Labelling it is the fix — writing it into `nrb_transferred`
+        // would make the column add up and the payload wrong.
+        push(
+          'nrb-spouse-modelled',
+          spouseName ? `${spouseName}'s Tax-Free Allowance` : "Spouse's Tax-Free Allowance",
+          now.nrbFromSpouseModelled,
+          proj.nrbFromSpouseModelled,
+          '-',
+          'Modelled on second death — there is no transferable allowance while you are both alive.',
+        );
+      } else {
+        push('nrb-individual', 'Tax-Free Allowance (Nil Rate Band)', now.nrb, proj.nrb);
+      }
+
+      // Gifts in the last seven years reduce the band, so this is an ADDITION to
+      // the taxable estate and is signed the opposite way to the rows above it.
+      if ((now.nrbGiftDeduction || 0) > 0 || (proj.nrbGiftDeduction || 0) > 0) {
+        push(
+          'nrb-gift-deduction',
+          'Less allowance used by gifts in the last 7 years',
+          now.nrbGiftDeduction,
+          proj.nrbGiftDeduction,
+          '+',
+        );
+      }
+
+      return rows;
+    },
+
+    residenceBandRows() {
+      const now = this.allowances;
+      const proj = this.projectedAllowances;
+      const rows = [];
+      const push = (key, label, nowValue, projValue, sign = '-', note = null) => {
+        rows.push({
+          key,
+          label,
+          note,
+          sign,
+          now: nowValue || 0,
+          minus5: nowValue || 0,
+          projected: projValue || 0,
+          plus5: projValue || 0,
+        });
+      };
+
+      const userName = this.assetsBreakdown.user?.name;
+      const spouseName = this.assetsBreakdown.spouse?.name;
+
+      if (now.rnrbEligible || proj.rnrbEligible) {
+        if (now.showSeparateSpouseAllowances) {
+          // The gross components can exceed what is available once the residence
+          // cap or the estate taper bites, so the reduction gets its own row
+          // rather than leaving the reader with a subtotal they cannot reach.
+          push('rnrb-individual', 'Home Allowance (Individual)', now.rnrbIndividual, proj.rnrbIndividual);
+          if ((now.rnrbFromSpouse || 0) > 0 || (proj.rnrbFromSpouse || 0) > 0) {
+            push('rnrb-transferred', "Home Allowance Transferred from Late Spouse's Estate", now.rnrbFromSpouse, proj.rnrbFromSpouse, '-', this.transferredAllowanceNote);
+          }
+          const nowReduction = Math.max(0, (now.rnrbIndividual || 0) + (now.rnrbFromSpouse || 0) - (now.totalRnrb || 0));
+          const projReduction = Math.max(0, (proj.rnrbIndividual || 0) + (proj.rnrbFromSpouse || 0) - (proj.totalRnrb || 0));
+          if (nowReduction > 0.5 || projReduction > 0.5) {
+            push('rnrb-reduction', 'Less home allowance reduced by the value of your estate', nowReduction, projReduction, '+');
+          }
+        } else if (this.showSpouse) {
+          push('rnrb-user', userName ? `${userName}'s Home Allowance` : 'Your Home Allowance', (now.totalRnrb || 0) / 2, (proj.totalRnrb || 0) / 2);
+          push('rnrb-spouse', spouseName ? `${spouseName}'s Home Allowance` : "Spouse's Home Allowance", (now.totalRnrb || 0) / 2, (proj.totalRnrb || 0) / 2);
+        } else {
+          push('rnrb-single', 'Home Allowance (Residence Nil Rate Band)', now.totalRnrb, proj.totalRnrb);
+        }
+      }
+
+      return rows;
+    },
+
+    /**
+     * Why the residence band is lower than its maximum — stated per column,
+     * because since W-0136 the two columns can differ. The footnote beneath the
+     * table asserted "your combined estate is below the £2,000,000 taper
+     * threshold" while the projected column showed £4.37m.
+     */
+    residenceBandNote() {
+      const threshold = this.formatCurrency(this.allowances.rnrbTaperThreshold || 2000000);
+      const describe = (allowances) => {
+        if (allowances.rnrbStatus === 'tapered') {
+          return (allowances.totalRnrb || 0) === 0
+            ? `above the ${threshold} taper threshold, removing the home allowance entirely`
+            : `above the ${threshold} taper threshold, reducing the home allowance to ${this.formatCurrency(allowances.totalRnrb)}`;
+        }
+        if (allowances.rnrbStatus === 'residence_capped') {
+          return `capped at the net value of your main residence, ${this.formatCurrency(allowances.totalRnrb)}`;
+        }
+
+        return null;
+      };
+
+      const nowNote = describe(this.allowances);
+      const projectedNote = describe(this.projectedAllowances);
+
+      if (!nowNote && !projectedNote) return null;
+      if (nowNote && projectedNote && nowNote === projectedNote) return `Your estate is ${nowNote}.`;
+
+      const parts = [];
+      if (nowNote) parts.push(`Today your estate is ${nowNote}.`);
+      if (projectedNote) parts.push(`At age ${this.estimatedAge} your estate is ${projectedNote}.`);
+
+      return parts.join(' ');
+    },
+
+    hasCharitableExemption() {
+      return (this.charitableExemption.now || 0) > 0 || (this.charitableExemption.projected || 0) > 0;
+    },
+
     allExpanded() {
       // Check if all expandable sections are expanded
       const hasExpandedAssets = Object.keys(this.expandedAssets).length > 0 &&
         Object.values(this.expandedAssets).some(v => v);
       const hasExpandedLiabilities = Object.keys(this.expandedLiabilities).length > 0 &&
         Object.values(this.expandedLiabilities).some(v => v);
-      const hasExpandedAllowances = this.expandedAllowances || this.expandedNRB || this.expandedRNRB;
+      const hasExpandedAllowances = this.expandedAllowances;
 
       return hasExpandedAssets || hasExpandedLiabilities || hasExpandedAllowances;
     },
@@ -655,14 +610,6 @@ export default {
 
     toggleAllowances() {
       this.expandedAllowances = !this.expandedAllowances;
-    },
-
-    toggleNRB() {
-      this.expandedNRB = !this.expandedNRB;
-    },
-
-    toggleRNRB() {
-      this.expandedRNRB = !this.expandedRNRB;
     },
 
     toggleExpandAll() {
@@ -687,10 +634,10 @@ export default {
       });
       this.expandedLiabilities = newExpandedLiabilities;
 
-      // Toggle allowances
+      // Toggle allowances. There is one allowance section now — the separate
+      // nil-rate-band and residence-band sections belonged to the what-if layout
+      // deleted under W-0132.
       this.expandedAllowances = shouldExpand;
-      this.expandedNRB = shouldExpand;
-      this.expandedRNRB = shouldExpand;
     },
 
     getProjectedValueMinus5(currentValue) {

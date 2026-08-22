@@ -73,6 +73,17 @@ final class UpdateRecordAllowlist
         'db_pension' => [
             'scheme_name', 'accrued_annual_pension', 'normal_retirement_age',
             'pensionable_salary', 'pensionable_service_years',
+            // W-0017: the scheme type, the spouse's continuing pension, the
+            // inflation protection and the tax-free lump sum were all
+            // uncorrectable through Fyn — the only entry route /m and native
+            // have — even though PensionStore validates and writes every one.
+            'scheme_type', 'spouse_pension_percent', 'inflation_protection',
+            'revaluation_method', 'lump_sum_entitlement',
+            // W-0032: the scheme status decides whether the pension counts as
+            // income today. Leaving it off here would mean /m and native users —
+            // whose only entry route is Fyn — could state it once and never
+            // correct it, which is the gap W-0017 closed for the four above.
+            'scheme_status',
         ],
         'property' => [
             'current_value', 'property_type', 'address_line_1',
@@ -88,10 +99,16 @@ final class UpdateRecordAllowlist
         ],
         'critical_illness' => [
             'provider', 'sum_assured', 'premium_amount', 'premium_frequency',
+            // W-0026: life_insurance already allowed the end date; these two did
+            // not, and the create tool schema has never carried one. Fyn is the
+            // only entry route /m and native have, so the expiry date of a
+            // critical illness or income protection policy could not be recorded
+            // there at all. The end date drives coverage-expiry modelling.
+            'policy_end_date',
         ],
         'income_protection' => [
             'provider', 'benefit_amount', 'premium_amount', 'premium_frequency',
-            'deferred_period_weeks',
+            'deferred_period_weeks', 'policy_end_date',
         ],
         'estate_asset' => [
             'asset_name', 'asset_type', 'current_value',
@@ -112,7 +129,7 @@ final class UpdateRecordAllowlist
         ],
         'business_interest' => [
             'business_name', 'ownership_percentage', 'current_valuation',
-            'annual_revenue', 'annual_profit',
+            'annual_revenue', 'annual_profit', 'company_number',
         ],
         'chattel' => [
             'name', 'description', 'current_value', 'chattel_type',

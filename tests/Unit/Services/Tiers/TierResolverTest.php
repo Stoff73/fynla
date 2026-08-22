@@ -58,3 +58,24 @@ it('does not grandfather a stale legacy plan slug without a subscription record'
     $u = User::factory()->create(['plan' => 'pro', 'tier' => null]);
     expect($this->resolver->isGrandfatheredLegacyPaid($u))->toBeFalse();
 });
+
+it('treats a canonical users tier as a migration-cohort marker, not a grant (W-0018)', function () {
+    // The one legitimate read of `users.tier`. CSJ ruled 2026-08-21 that the
+    // column never grants entitlement (option (b) on W-0018) — it caches the last
+    // provider outcome and marks whether a user has been migrated onto the new
+    // tier scheme. This pins BOTH halves of that in one test, because the two
+    // together are what the docblock had been contradicting.
+    $legacy = User::factory()->create(['plan' => 'pro', 'tier' => null]);
+    $legacy->subscription()->create(['plan' => 'pro', 'status' => 'active', 'amount' => 0]);
+
+    // Same user, same live legacy subscription, but already migrated: a canonical
+    // value in the column answers "yes, migrated", so grandfathering stops.
+    $migrated = User::factory()->create(['plan' => 'pro', 'tier' => 'premium']);
+    $migrated->subscription()->create(['plan' => 'pro', 'status' => 'active', 'amount' => 0]);
+
+    expect($this->resolver->isGrandfatheredLegacyPaid($legacy->fresh()))->toBeTrue()
+        ->and($this->resolver->isGrandfatheredLegacyPaid($migrated->fresh()))->toBeFalse()
+        // ...and the marker still confers nothing: a legacy 'pro' plan is not a
+        // live provider grant, so gating stays free on both sides of the marker.
+        ->and($this->resolver->resolve($migrated->fresh()))->toBe('free');
+});

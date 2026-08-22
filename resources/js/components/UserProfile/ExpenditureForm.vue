@@ -63,7 +63,7 @@
               <span v-if="isMarried"> · {{ useSeparateExpenditure ? 'Separate' : 'Joint (50/50)' }} expenditure</span>
             </p>
           </div>
-          <button type="button" @click="isEditing = true" class="btn-secondary">
+          <button type="button" @click="beginEditing" class="btn-secondary">
             Edit
           </button>
         </div>
@@ -394,8 +394,10 @@
           </p>
         </div>
 
-        <!-- Entry Mode Toggle -->
-        <div class="bg-white border border-light-gray rounded-lg p-4 flex-1">
+        <!-- Entry Mode Toggle. Hidden entirely without the detailed capability —
+             offering a Detailed View the API will refuse to save is worse than
+             not offering it (W-0011). -->
+        <div v-if="canUseDetailedExpenditure" class="bg-white border border-light-gray rounded-lg p-4 flex-1">
           <div class="inline-flex rounded-full border border-neutral-300 p-0.5 bg-neutral-100">
             <button
               type="button"
@@ -1366,7 +1368,12 @@ export default {
     const store = useStore();
     const activeBudgetTab = ref('current');
     const isEditing = ref(props.startInEditMode);
-    const useSimpleEntry = ref(props.isOnboarding ? true : false);
+    // The 15-category breakdown is Premium (`expenditure_detailed`); the monthly
+    // total is not. Without the capability the form is Simple View only.
+    const canUseDetailedExpenditure = computed(
+      () => store.getters['auth/hasCapability']('expenditure_detailed')
+    );
+    const useSimpleEntry = ref(props.isOnboarding || !canUseDetailedExpenditure.value);
     const useSeparateExpenditure = ref(false);
     const activePersonTab = ref('user');
     const simpleMonthlyExpenditure = ref(0);
@@ -2202,9 +2209,12 @@ export default {
     const initializeFromProps = () => {
       if (props.initialData) {
         useSeparateExpenditure.value = props.initialData.expenditure_sharing_mode === 'separate';
-        useSimpleEntry.value = props.initialData.expenditure_entry_mode
-          ? props.initialData.expenditure_entry_mode === 'simple'
-          : (props.isOnboarding ? true : false);
+        // A stored mode of 'category' must not put a user without the detailed
+        // capability into a view they cannot save.
+        useSimpleEntry.value = !canUseDetailedExpenditure.value
+          || (props.initialData.expenditure_entry_mode
+            ? props.initialData.expenditure_entry_mode === 'simple'
+            : props.isOnboarding);
         simpleMonthlyExpenditure.value = props.initialData.monthly_expenditure || 0;
 
         const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
@@ -2241,9 +2251,15 @@ export default {
         annual_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value * 12 : totalMonthlyExpenditure.value * 12,
       };
 
-      allFields.forEach(field => {
-        saveData[field.key] = formData.value[field.key] || 0;
-      });
+      // Simple View has no category inputs, so sending them would post 22 zeros
+      // the user never entered — which also read as a detailed-entry attempt and
+      // tripped the Premium gate, leaving free-tier users unable to record any
+      // expenditure at all (W-0011).
+      if (!useSimpleEntry.value) {
+        allFields.forEach(field => {
+          saveData[field.key] = formData.value[field.key] || 0;
+        });
+      }
 
       // Include budget overrides if user has customised them
       if (Object.keys(retiredBudgetOverrides.value).length > 0) {
@@ -2261,9 +2277,11 @@ export default {
           annual_expenditure: useSimpleEntry.value ? spouseSimpleMonthlyExpenditure.value * 12 : spouseTotalMonthlyExpenditure.value * 12,
         };
 
-        allFields.forEach(field => {
-          spouseData[field.key] = spouseFormData.value[field.key] || 0;
-        });
+        if (!useSimpleEntry.value) {
+          allFields.forEach(field => {
+            spouseData[field.key] = spouseFormData.value[field.key] || 0;
+          });
+        }
 
         emit('save', {
           userData: saveData,
@@ -2277,9 +2295,11 @@ export default {
           annual_expenditure: saveData.annual_expenditure,
         };
 
-        allFields.forEach(field => {
-          spouseData[field.key] = formData.value[field.key] || 0;
-        });
+        if (!useSimpleEntry.value) {
+          allFields.forEach(field => {
+            spouseData[field.key] = formData.value[field.key] || 0;
+          });
+        }
 
         emit('save', {
           userData: saveData,
@@ -2304,7 +2324,37 @@ export default {
 
       if (!props.isOnboarding) {
         isEditing.value = false;
+        // The summary below shows per-person shares; the form was holding the
+        // household figure. Restore from the stored rows until the refreshed
+        // profile arrives and re-initialises them.
+        initializeFromProps();
       }
+    };
+
+    // The stored figures are each account's SHARE of the household's spending under
+    // a joint mode (W-0190) — the columns in the summary above are per person. The
+    // form asks for what the HOUSEHOLD spends, so lift the two shares back into one
+    // household figure before editing. Without this the form would offer the user
+    // their own half as though it were the household total, and every save would
+    // halve it again.
+    //
+    // The lift is addition, not a second copy of the one-half rule: user's share
+    // plus spouse's share IS the household figure, which is exactly what the
+    // Household column already displays.
+    const beginEditing = () => {
+      if (isEditing.value) return;
+
+      if (props.isMarried && !useSeparateExpenditure.value) {
+        const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
+        allFields.forEach(field => {
+          formData.value[field.key] = (parseFloat(formData.value[field.key]) || 0)
+            + (parseFloat(spouseFormData.value[field.key]) || 0);
+        });
+        simpleMonthlyExpenditure.value = (parseFloat(simpleMonthlyExpenditure.value) || 0)
+          + (parseFloat(spouseSimpleMonthlyExpenditure.value) || 0);
+      }
+
+      isEditing.value = true;
     };
 
     const handleCancel = () => {
@@ -2356,9 +2406,11 @@ export default {
 
     watch(pendingFill, (fill) => {
       if (fill && fill.entityType === 'expenditure' && fill.fields) {
-        // Auto-enter edit mode and use detailed entry
-        isEditing.value = true;
-        useSimpleEntry.value = false;
+        // Auto-enter edit mode and use detailed entry — but only where the
+        // detailed view is available to save at all. Through beginEditing so the
+        // household figures are lifted the same way the Edit button does it.
+        beginEditing();
+        useSimpleEntry.value = !canUseDetailedExpenditure.value;
         activeBudgetTab.value = 'current';
         // Start field sequence
         const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
@@ -2388,6 +2440,7 @@ export default {
       activePersonTab,
       isEditing,
       useSimpleEntry,
+      canUseDetailedExpenditure,
       useSeparateExpenditure,
       simpleMonthlyExpenditure,
       spouseSimpleMonthlyExpenditure,
@@ -2443,6 +2496,7 @@ export default {
       spouseHasLiabilityCommitments,
       formatCurrency,
       handleSave,
+      beginEditing,
       handleCancel,
       // Retired Budget
       isEditingRetired,

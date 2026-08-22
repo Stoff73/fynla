@@ -6,6 +6,7 @@ namespace App\Services\Protection;
 
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
@@ -19,7 +20,8 @@ class CoverageGapAnalyzer
 
     public function __construct(
         private UKTaxCalculator $taxCalculator,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly CrossModuleAssetAggregator $assetAggregator
     ) {}
 
     /**
@@ -44,6 +46,20 @@ class CoverageGapAnalyzer
     /**
      * Calculate debt protection need.
      * Uses ProtectionProfile fields if provided, otherwise pulls from actual records.
+     *
+     * **A protection need is personal, so it is the user's SHARE of each debt.**
+     * This read the whole of every record the user was primary owner of, at 100%:
+     * a joint mortgage charged him his wife's half as well, and a tenants-in-common
+     * mortgage charged him the share belonging to a co-owner who has no account
+     * here at all (W-0187). Counting a third party's debt as cover a user must buy
+     * is the same class of error as putting their share of a property into his
+     * estate, which the property and estate modules already refuse to do.
+     *
+     * Both halves now come from CrossModuleAssetAggregator, the one home for
+     * "what does this user owe" — reach-complete (it picks up a mortgage on a
+     * jointly-owned property even where the user is not the borrower) and
+     * fraction-correct (a share belonging to someone with no account reduces the
+     * user's figure without being credited to anyone).
      */
     public function calculateDebtProtectionNeed(ProtectionProfile $profile): float
     {
@@ -56,16 +72,8 @@ class CoverageGapAnalyzer
             return $mortgageBalance + $otherDebts;
         }
 
-        // Otherwise, pull from actual records
-        $user = $profile->user;
-
-        // Get total mortgage debt from mortgages table
-        $totalMortgageDebt = (float) $user->mortgages()->sum('outstanding_balance');
-
-        // Get total other liabilities from liabilities table
-        $totalOtherDebt = (float) $user->liabilities()->sum('current_balance');
-
-        return $totalMortgageDebt + $totalOtherDebt;
+        // Otherwise, pull from actual records — at the user's share of each.
+        return $this->assetAggregator->calculateLiabilityTotals((int) $profile->user_id)['total'];
     }
 
     /**

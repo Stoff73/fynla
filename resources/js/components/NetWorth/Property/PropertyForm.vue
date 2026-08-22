@@ -1842,6 +1842,21 @@ export default {
         cleanedProperty.lease_remaining_years = null;
       }
 
+      // State a share only where this form lets the user set one (W-0040).
+      // The share input exists for tenants in common and nowhere else, so on
+      // every other ownership type the 100 sitting in form data is an uncleared
+      // default, not a figure anyone chose. Sending it made a stated share and
+      // an inherited one indistinguishable server-side, which is what forced
+      // SharedOwnership to rewrite a stated 100 to 50. Omitting it lets the
+      // server default a create and leave an existing record's share alone.
+      if (cleanedProperty.ownership_type !== 'tenants_in_common') {
+        delete cleanedProperty.ownership_percentage;
+      }
+      // The mortgage section has no share input at all.
+      if (cleanedMortgage) {
+        delete cleanedMortgage.ownership_percentage;
+      }
+
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)
       this.$emit('save', {
         property: cleanedProperty,

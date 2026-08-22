@@ -20,6 +20,12 @@ use Illuminate\Support\Collection;
  */
 class WillAnalysisService
 {
+    /**
+     * Shown instead of a "give another £X" instruction when the will leaves an
+     * asset or a residuary share to charity — see hasUnvaluedCharitableGifts().
+     */
+    public const UNVALUED_CHARITABLE_GIFTS_MESSAGE = 'Your will also leaves an asset, or a share of what remains, to charity. We cannot put a figure on that here, so we cannot tell you whether you have reached the 10% needed for the reduced Inheritance Tax rate. A solicitor can.';
+
     public function __construct(
         private readonly TaxConfigService $taxConfig
     ) {}
@@ -34,21 +40,27 @@ class WillAnalysisService
      * @param  float  $netEstate  Total net estate value
      * @return array Analysis with status, amounts, and potential savings
      */
-    public function analyzeCharitableBequests(User $user, float $netEstate): array
+    public function analyzeCharitableBequests(User $user, float $netEstate, ?float $nrbAvailable = null): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = $ihtConfig['nil_rate_band'];
 
-        // Baseline calculation: Net Estate - NRB (RNRB is excluded per HMRC rules)
+        // Baseline calculation: Net Estate - the AVAILABLE NRB (RNRB excluded
+        // per IHTA 1984 Sch 1A para 6). The caller passes the available figure
+        // because a surviving spouse's band includes the transferred NRB — up
+        // to £650,000 — and re-deriving a single band here made this service
+        // disagree with IHTCalculationService about the same household.
+        $nrb = $nrbAvailable ?? (float) $ihtConfig['nil_rate_band'];
+
         $baseline = max(0, $netEstate - $nrb);
-        $threshold = $baseline * 0.10;
+        $threshold = $baseline * $this->taxConfig->getCharitableThresholdPercent();
 
         // Get total charitable bequests
         $charitableBequests = $this->getCharitableBequestTotal($user, $netEstate);
+        $hasUnvalued = $this->hasUnvaluedCharitableGifts($user);
 
         if ($charitableBequests >= $threshold && $threshold > 0) {
             $status = $charitableBequests > $threshold * 1.01 ? 'above' : 'at';
-            $effectiveRate = $ihtConfig['reduced_rate_charity'] ?? 0.36;
+            $effectiveRate = $this->taxConfig->getCharitableReducedRate();
             $shortfall = 0;
             $excess = $charitableBequests - $threshold;
         } else {
@@ -72,8 +84,81 @@ class WillAnalysisService
             'effective_rate_percent' => round($effectiveRate * 100, 0),
             'potential_saving' => $status === 'below' ? round($potentialSaving, 2) : 0,
             'current_saving' => $status !== 'below' ? round($potentialSaving, 2) : 0,
-            'message' => $this->getCharitableStatusMessage($status, $shortfall, $excess, $threshold, $potentialSaving),
+            'has_unvalued_charitable_gifts' => $hasUnvalued,
+            'message' => $hasUnvalued
+                ? self::UNVALUED_CHARITABLE_GIFTS_MESSAGE
+                : $this->getCharitableStatusMessage($status, $shortfall, $excess, $threshold, $potentialSaving),
         ];
+    }
+
+    /**
+     * Does this user leave an asset, or a share of what remains, to charity?
+     *
+     * Both qualify for the exemption in law (IHTA 1984 s.23) and both count
+     * toward the 10% component, but neither row carries a figure this service
+     * can total — an asset gift holds a description, a residuary gift a share
+     * of an amount that is not known here.
+     *
+     * Where one exists we go quiet rather than tell the user to increase their
+     * giving by a figure that assumes it is worth nothing. Telling someone to
+     * give away another £40,000 to buy a relief they may already hold is a
+     * worse failure than saying we cannot tell.
+     */
+    /**
+     * Whether this person is leaving anything to charity, and what.
+     *
+     * W-0132. `/settings/family` asked "Do you wish to leave anything to charity?"
+     * and answered "Not set" on an account with a £10,000 charitable legacy the
+     * estate calculation was already using. It was reading `users.charitable_bequest`
+     * — a column written by a toggle on `/estate` and never loaded back — so it was
+     * a FOURTH answer to a question the will already answers, and it disagreed with
+     * the other three.
+     *
+     * The will is the instrument HMRC reads and it is the one home for this
+     * (`determineIHTRate()` was moved onto it by W-0020). This method exists so no
+     * screen has to re-derive the answer from raw bequest rows: `isCharitable()` is
+     * a heuristic on the model, and a second copy of it in a Vue component is
+     * exactly the drift Rule 20 forbids.
+     *
+     * **No totalling of estate-dependent gifts.** A percentage or residuary gift is
+     * worth nothing until an estate is valued, and a settings page has no business
+     * running an estate calculation to render a card. Fixed sums are totalled;
+     * anything whose value depends on the estate is flagged rather than counted as
+     * zero, so the card never prints a total that quietly omits a gift.
+     *
+     * @return array{has_bequests: bool, count: int, fixed_total: float, has_estate_share: bool}
+     */
+    public function charitableBequestSummary(User $user): array
+    {
+        $will = Will::where('user_id', $user->id)->with('bequests')->first();
+
+        $charitable = $will
+            ? $will->bequests->filter(fn (Bequest $bequest) => $bequest->isCharitable())
+            : collect();
+
+        return [
+            'has_bequests' => $charitable->isNotEmpty(),
+            'count' => $charitable->count(),
+            'fixed_total' => round((float) $charitable
+                ->where('bequest_type', 'specific_amount')
+                ->sum('specific_amount'), 2),
+            'has_estate_share' => $charitable->contains(
+                fn (Bequest $bequest) => in_array($bequest->bequest_type, ['percentage', 'specific_asset', 'residuary'], true)
+            ),
+        ];
+    }
+
+    public function hasUnvaluedCharitableGifts(User $user): bool
+    {
+        $will = Will::where('user_id', $user->id)->with('bequests')->first();
+
+        if (! $will) {
+            return false;
+        }
+
+        return $will->bequests
+            ->filter(fn (Bequest $bequest) => $bequest->isCharitable())
+            ->contains(fn (Bequest $bequest) => in_array($bequest->bequest_type, ['specific_asset', 'residuary'], true));
     }
 
     /**
@@ -97,13 +182,28 @@ class WillAnalysisService
 
         foreach ($will->bequests as $bequest) {
             // Check if bequest is to a charity
-            if (! $this->isCharitableBequest($bequest)) {
+            if (! $bequest->isCharitable()) {
                 continue;
             }
 
+            // 'specific_asset' and 'residuary' are absent below deliberately,
+            // not by oversight. Both DO count toward the 10% component in law
+            // (IHTA 1984 s.23 / Sch 1A) — they are excluded because neither row
+            // carries a figure this service can total, not because they fail to
+            // qualify. An asset gift holds only a description; a residuary gift
+            // is a share of an amount not known here. Where either exists,
+            // hasUnvaluedCharitableGifts() suppresses the "give another £X"
+            // instruction, because a total that assumes they are worth nothing
+            // must not become advice.
             if ($bequest->bequest_type === 'percentage' && $bequest->percentage_of_estate) {
                 $total += $netEstate * ($bequest->percentage_of_estate / 100);
-            } elseif ($bequest->bequest_type === 'specific' && $bequest->specific_amount) {
+            } elseif ($bequest->bequest_type === 'specific_amount' && $bequest->specific_amount) {
+                // W-0020: this read 'specific' until 2026-08-21 — a value the
+                // bequest_type enum has never been able to hold, so the branch
+                // was dead and a charitable CASH legacy contributed nothing.
+                // Only a percentage gift could ever reach the reduced rate,
+                // which is the opposite of how charitable legacies are usually
+                // written.
                 $total += (float) $bequest->specific_amount;
             }
         }
@@ -165,56 +265,7 @@ class WillAnalysisService
             return collect();
         }
 
-        return $will->bequests->filter(fn ($bequest) => $this->isCharitableBequest($bequest));
-    }
-
-    /**
-     * Check if a bequest is charitable
-     *
-     * @param  Bequest  $bequest  The bequest to check
-     * @return bool True if charitable
-     */
-    private function isCharitableBequest(Bequest $bequest): bool
-    {
-        // Check beneficiary_type if set (new field)
-        if (isset($bequest->beneficiary_type) && $bequest->beneficiary_type === 'charity') {
-            return true;
-        }
-
-        // Check charity registration number
-        if (! empty($bequest->charity_registration_number)) {
-            return true;
-        }
-
-        // Check beneficiary name for charity indicators
-        $name = strtolower($bequest->beneficiary_name ?? '');
-        $charityIndicators = [
-            'charity',
-            'charitable',
-            'foundation',
-            'trust',
-            'cancer',
-            'heart',
-            'hospice',
-            'nspcc',
-            'rspca',
-            'oxfam',
-            'red cross',
-            'british heart',
-            'macmillan',
-            'marie curie',
-            'shelter',
-            'save the children',
-            'unicef',
-        ];
-
-        foreach ($charityIndicators as $indicator) {
-            if (str_contains($name, $indicator)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $will->bequests->filter(fn (Bequest $bequest) => $bequest->isCharitable());
     }
 
     /**

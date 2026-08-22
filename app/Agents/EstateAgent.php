@@ -19,6 +19,7 @@ use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\LifeCoverCalculator;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 use App\Services\Estate\WillAnalysisService;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
 
@@ -50,7 +51,8 @@ class EstateAgent extends BaseAgent
         private readonly TaxConfigService $taxConfig,
         private readonly RecommendationPersonaliser $personaliser,
         private readonly EstateDataReadinessService $readinessService,
-        private readonly LifeCoverCalculator $lifeCoverCalculator
+        private readonly LifeCoverCalculator $lifeCoverCalculator,
+        private readonly LifeCoverReach $lifeCoverReach
     ) {}
 
     /**
@@ -108,12 +110,14 @@ class EstateAgent extends BaseAgent
                 $lifePoliciesInTrust = $allLifePolicies->where('in_trust', true);
                 $lifePoliciesNotInTrust = $allLifePolicies->filter(fn ($p) => ! $p->in_trust);
 
-                $spouseLifeCoverInTrust = 0;
-                if ($user->spouse) {
-                    $spouseLifeCoverInTrust = LifeInsurancePolicy::where('user_id', $user->spouse->id)
-                        ->where('in_trust', true)
-                        ->sum('sum_assured');
-                }
+                // The household's in-trust cover AND the policies behind it, from one
+                // pass over one set. This summed the user's cover and the spouse's,
+                // then printed the count of the user's OWN policies beside it — so a
+                // spouse with no policy of her own read "Cover in Trust £500,000 ·
+                // Total Policies 0" (W-0186). A total and its count now cannot
+                // disagree, because they come from the same place.
+                $householdCoverInTrust = $this->lifeCoverReach->householdCoverInTrust($user);
+                $spouseLifeCoverInTrust = $householdCoverInTrust['spouse_amount'];
 
                 // Aggregate all estate assets into summary
                 $assetSummary = $this->buildAssetSummary($user);
@@ -191,7 +195,16 @@ class EstateAgent extends BaseAgent
                 $charitableAnalysis = [];
                 try {
                     $netEstate = $assetSummary['net_estate'] ?? 0;
-                    $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests($user, $netEstate);
+                    // Pass the AVAILABLE nil rate band, which for a surviving
+                    // spouse includes the transferred band. Without it the
+                    // charitable baseline was computed from a single band while
+                    // the Inheritance Tax calculation on the same screen used
+                    // the combined one — two thresholds for one household.
+                    $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests(
+                        $user,
+                        $netEstate,
+                        isset($ihtCalculation['nrb_available']) ? (float) $ihtCalculation['nrb_available'] : null,
+                    );
                 } catch (\Throwable $e) {
                     report($e);
                     // Continue without charitable analysis
@@ -313,11 +326,15 @@ class EstateAgent extends BaseAgent
                         'charitable_analysis' => $charitableAnalysis,
                         'will_review_status' => $willReviewStatus,
                         'life_cover' => [
-                            'user_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured'),
-                            'spouse_cover_in_trust' => (float) $spouseLifeCoverInTrust,
-                            'total_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured') + $spouseLifeCoverInTrust,
+                            'user_cover_in_trust' => $householdCoverInTrust['user_amount'],
+                            'spouse_cover_in_trust' => $householdCoverInTrust['spouse_amount'],
+                            'total_cover_in_trust' => $householdCoverInTrust['total'],
                             'total_cover_not_in_trust' => (float) $lifePoliciesNotInTrust->sum('sum_assured'),
-                            'policy_count' => $lifePoliciesInTrust->count(),
+                            // Counts the policies behind `total_cover_in_trust` — the
+                            // household's, because that figure is the household's.
+                            'policy_count' => $householdCoverInTrust['count'],
+                            // Deliberately individual: this figure drives "place this
+                            // policy in trust", which only the policy's owner can do.
                             'policies_not_in_trust_count' => $lifePoliciesNotInTrust->count(),
                             'policy_assessment' => $policyAssessment,
                         ],

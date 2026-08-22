@@ -44,6 +44,13 @@ beforeEach(function () {
         'monthly' => 2000.0,
         'net_income' => 50000.0,
         'annual_expenditure' => 26000.0,
+        // W-0140: the accessor's contract now carries what the figure is made of.
+        'expenditure_composition' => [
+            'recorded_annual' => 18000.0,
+            'commitments_annual' => 8000.0,
+            'has_recorded_expenditure' => true,
+            'basis' => 'Category entries plus financial commitments',
+        ],
     ]);
 
     // Mock IHTFormattingService

@@ -11,7 +11,7 @@ per-user distilled facts are a reserved future layer (see below).
 > is reached at the moment of need via a **pointer in `procedural/`** to that live
 > source. The `tax` / `allowance` / `product` categories therefore hold *narrative
 > only* (how a regime works), and the live number rides a procedural pointer. See
-> `fynla-coala-implementation-plan.md` → "v0.5 amendment" and `../procedural/README.md`.
+> `docs/archive/fynla-coala-implementation-plan.md` → "v0.5 amendment" and `../procedural/README.md`.
 
 ## What this is
 

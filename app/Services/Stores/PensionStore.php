@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Stores;
 
+use App\Constants\PensionEnums;
 use App\Events\Pension\DBPensionCreated;
 use App\Events\Pension\DBPensionDeleted;
 use App\Events\Pension\DBPensionRestored;
@@ -607,6 +608,10 @@ class PensionStore
         $rules = [
             'scheme_name' => ($partial ? 'sometimes|' : 'required|').'string|max:255',
             'scheme_type' => ($partial ? 'sometimes|' : 'required|').'in:final_salary,career_average,public_sector',
+            // W-0032. Optional and nullable: null means the user has not stated a
+            // status, which DBPension::isInPayment() reads as "fall back to age".
+            // The vocabulary comes from PensionEnums, not from a list retyped here.
+            'scheme_status' => 'sometimes|nullable|in:'.implode(',', PensionEnums::SCHEME_STATUSES),
             'accrued_annual_pension' => 'sometimes|nullable|numeric|min:0|max:999999.99',
             'pensionable_service_years' => 'sometimes|nullable|numeric|min:0|max:99',
             'pensionable_salary' => 'sometimes|nullable|numeric|min:0|max:999999.99',
@@ -614,7 +619,9 @@ class PensionStore
             'revaluation_method' => 'sometimes|nullable|string|max:64',
             'spouse_pension_percent' => 'sometimes|nullable|numeric|min:0|max:100',
             'lump_sum_entitlement' => 'sometimes|nullable|numeric|min:0',
-            'inflation_protection' => 'sometimes|nullable|string|max:64',
+            // The column is enum('cpi','rpi','fixed','none') NOT NULL — any other
+            // string got past `string|max:64` and died as a QueryException.
+            'inflation_protection' => 'sometimes|nullable|in:cpi,rpi,fixed,none',
         ];
 
         $validator = Validator::make($data, $rules);

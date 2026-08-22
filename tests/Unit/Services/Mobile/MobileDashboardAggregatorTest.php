@@ -15,7 +15,9 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use App\Services\Mobile\MobileDashboardAggregator;
+use App\Services\Retirement\PensionProjector;
 use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Facades\Cache;
@@ -31,6 +33,8 @@ beforeEach(function () {
     $this->savingsStore = app(SavingsStore::class);
     $this->propertyStore = app(PropertyStore::class);
     $this->mortgageStore = app(MortgageStore::class);
+    $this->pensionStore = app(PensionStore::class);
+    $this->pensionProjector = app(PensionProjector::class);
 
     $this->service = new MobileDashboardAggregator(
         $this->protectionAgent,
@@ -43,6 +47,8 @@ beforeEach(function () {
         $this->savingsStore,
         $this->propertyStore,
         $this->mortgageStore,
+        $this->pensionStore,
+        $this->pensionProjector,
     );
 
     // Clear cache before each test
@@ -112,7 +118,12 @@ describe('getAggregatedDashboard', function () {
         expect($result['modules']['retirement']['pot_value'])->toBe(45000.0);
     });
 
-    it('retains the known pension pot when retirement goals are not configured', function () {
+    it('reports a real pension pot as active even when there is no retirement profile', function () {
+        // Was 'retains the known pension pot when retirement goals are not
+        // configured', and asserted status 'not_configured' beside a pot of
+        // £47,500 — a card telling a user to set up their retirement while
+        // printing the pot it had just found. The status now follows whether the
+        // user HAS provision, not whether they have stated a target (W-0238).
         $user = User::factory()->create();
         DCPension::factory()->create([
             'user_id' => $user->id,
@@ -134,7 +145,7 @@ describe('getAggregatedDashboard', function () {
 
         $result = $this->service->getAggregatedDashboard($user->id);
 
-        expect($result['modules']['retirement']['status'])->toBe('not_configured')
+        expect($result['modules']['retirement']['status'])->toBe('active')
             ->and($result['modules']['retirement']['pot_value'])->toBe(47500.0)
             ->and($result['net_worth']['breakdown']['assets']['pensions'])->toBe(47500.0);
     });

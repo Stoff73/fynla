@@ -8,12 +8,12 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Protection\AdequacyScorer;
 use App\Services\Protection\CoverageGapAnalyzer;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
-use App\Services\Stores\MortgageStore;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UserProfile\ProfileCompletenessChecker;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
@@ -32,8 +32,9 @@ beforeEach(function () {
         'warnings' => [],
         'info' => [],
     ])->byDefault();
-    $this->mortgageStore = Mockery::mock(MortgageStore::class);
-    $this->mortgageStore->shouldReceive('forUserPrimaryOnly')->andReturn(new Collection)->byDefault();
+    $this->assetAggregator = Mockery::mock(CrossModuleAssetAggregator::class);
+    $this->assetAggregator->shouldReceive('calculateLiabilityTotals')
+        ->andReturn(['mortgages' => 0.0, 'other' => 0.0, 'total' => 0.0])->byDefault();
 
     // Create agent with mocked dependencies
     $this->agent = new ProtectionAgent(
@@ -44,7 +45,8 @@ beforeEach(function () {
         $this->completenessChecker,
         $this->personaliser,
         $this->readinessService,
-        $this->mortgageStore
+        $this->assetAggregator,
+        app(LifeCoverReach::class)
     );
 });
 
@@ -433,7 +435,8 @@ describe('invalidateCache', function () {
             Mockery::mock(ProfileCompletenessChecker::class),
             $personaliserMock,
             $readinessMock,
-            Mockery::mock(MortgageStore::class)
+            Mockery::mock(CrossModuleAssetAggregator::class),
+            app(LifeCoverReach::class)
         );
 
         // Invalidate the cache

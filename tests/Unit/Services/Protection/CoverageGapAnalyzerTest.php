@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Protection\CoverageGapAnalyzer;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
@@ -87,7 +88,9 @@ beforeEach(function () {
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
 
     // Create CoverageGapAnalyzer with mocked TaxConfigService (for both tax calc and protection config)
-    $this->analyzer = new CoverageGapAnalyzer($taxCalculator, $mockTaxConfig);
+    // The asset aggregator is the REAL one — these tests use real records, and a
+    // mocked debt total would assert only what the mock was told to say.
+    $this->analyzer = new CoverageGapAnalyzer($taxCalculator, $mockTaxConfig, app(CrossModuleAssetAggregator::class));
 });
 
 afterEach(function () {

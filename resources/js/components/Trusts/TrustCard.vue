@@ -24,7 +24,7 @@
       <div class="item-row">
         <span class="item-name">
           {{ formatTrustType(trust.trust_type, trust.other_type_description) }}
-          <span v-if="trust.is_relevant_property_trust" class="badge rpt">RPT</span>
+          <span v-if="trust.is_relevant_property_trust" class="badge rpt">Relevant Property Trust</span>
           <span :class="['badge', trust.is_active ? 'active' : 'inactive']">
             {{ trust.is_active ? 'Active' : 'Inactive' }}
           </span>
@@ -212,7 +212,10 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  /* Wraps so the spelled-out "Relevant Property Trust" badge (Rule 9) has
+     somewhere to go on a narrow card instead of overflowing the row. */
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .item-value {
@@ -229,16 +232,17 @@ export default {
   border-radius: 4px;
   font-weight: 500;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .badge.rpt {
-  @apply bg-blue-100;
-  @apply text-blue-700;
+  @apply bg-light-blue-100;
+  @apply text-horizon-500;
 }
 
 .badge.active {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-700;
 }
 
 .badge.inactive {

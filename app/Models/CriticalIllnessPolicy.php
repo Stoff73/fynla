@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\AwardsDataEntryPoints;
+use App\Models\Concerns\RecordsPolicyDates;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CriticalIllnessPolicy extends Model
 {
-    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, RecordsPolicyDates, SoftDeletes;
 
     public function gamificationCategory(): string
     {
@@ -33,7 +34,6 @@ class CriticalIllnessPolicy extends Model
         'sum_assured',
         'premium_amount',
         'premium_frequency',
-        'policy_start_date',
         'policy_term_years',
         'conditions_covered',
     ];
@@ -46,7 +46,6 @@ class CriticalIllnessPolicy extends Model
     protected $casts = [
         'sum_assured' => 'decimal:2',
         'premium_amount' => 'decimal:2',
-        'policy_start_date' => 'date',
         'policy_term_years' => 'integer',
         'conditions_covered' => 'array',
     ];

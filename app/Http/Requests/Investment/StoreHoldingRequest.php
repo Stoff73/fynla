@@ -37,6 +37,10 @@ class StoreHoldingRequest extends FormRequest
             'purchase_date' => 'nullable|date',
             'current_price' => 'nullable|numeric|min:0',
             'current_value' => 'sometimes|numeric|min:0',
+            // Units are the fact a user actually holds; the value is derived from
+            // them (App\Support\HoldingValuation). Every holding in the persona
+            // carries a unit count and none of them could be entered (W-0039).
+            'quantity' => ['nullable', 'numeric', 'min:0'],
             'dividend_yield' => 'nullable|numeric|min:0|max:100',
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];

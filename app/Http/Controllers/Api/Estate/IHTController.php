@@ -110,9 +110,15 @@ class IHTController extends Controller
                     'net_estate' => $calculation['total_net_estate'],
                     'gross_assets' => $calculation['total_gross_assets'],
                     'liabilities' => $calculation['total_liabilities'],
+                    // W-0154 F2: the summary carried three of the five figures, so the
+                    // breakdown the user is shown could not be reconciled. The modelled
+                    // second-death spouse band and the gift deduction both existed in
+                    // the raw calculation and had no way to reach a screen.
                     'nrb_available' => $calculation['nrb_available'],
                     'nrb_individual' => $calculation['nrb_individual'],
+                    'nrb_spouse_modelled' => $calculation['nrb_spouse_modelled'],
                     'nrb_transferred' => $calculation['nrb_transferred'],
+                    'nrb_gift_deduction' => $calculation['nrb_gift_deduction'],
                     'nrb_message' => $calculation['nrb_message'],
                     'rnrb_available' => $calculation['rnrb_available'],
                     'rnrb_individual' => $calculation['rnrb_individual'],
@@ -120,16 +126,49 @@ class IHTController extends Controller
                     'rnrb_status' => $calculation['rnrb_status'],
                     'rnrb_message' => $calculation['rnrb_message'],
                     'total_allowances' => $calculation['total_allowances'],
+                    // W-0134: the charitable exemption reduces the estate's value; it
+                    // is NOT an allowance and does not belong in the total above. It
+                    // reached no screen at all until now, which is why the column
+                    // between Net Estate and Taxable Estate was £20,000 short.
+                    'charitable_deduction' => $calculation['charitable_deduction'],
                     'taxable_estate' => $calculation['taxable_estate'],
                     'iht_liability' => $calculation['iht_liability'],
+                    'iht_rate' => $calculation['iht_rate'],
+                    'iht_rate_percent' => $calculation['iht_rate_percent'],
+                    // W-0132: the rate the liability beside it was calculated at, and
+                    // the server's own explanation of why. The summary published the
+                    // percentage but not the type or the message, so the only screen
+                    // that could state the rate correctly was `/plans/estate`, which
+                    // reads the raw calculation. `IHTPlanning.vue` was left deciding
+                    // the rate itself from a user toggle and got it wrong.
+                    'iht_rate_type' => $calculation['iht_rate_type'],
+                    'iht_rate_message' => $calculation['iht_rate_message'],
                     'effective_rate' => $calculation['effective_rate'],
                 ],
                 'projected' => [
                     'net_estate' => $calculation['projected_net_estate'],
                     'gross_assets' => $calculation['projected_gross_assets'],
                     'liabilities' => $calculation['projected_liabilities'],
+                    // W-0136 — the projection has its OWN allowances. The residence
+                    // band tapers away above £2,000,000 and the charitable exemption
+                    // is re-assessed against the projected estate, so the projected
+                    // column cannot be reconciled against the current figures.
+                    'nrb_available' => $calculation['projected_nrb_available'],
+                    'nrb_individual' => $calculation['nrb_individual'],
+                    'nrb_spouse_modelled' => $calculation['nrb_spouse_modelled'],
+                    'nrb_transferred' => $calculation['nrb_transferred'],
+                    'nrb_gift_deduction' => $calculation['nrb_gift_deduction'],
+                    'rnrb_available' => $calculation['projected_rnrb_available'],
+                    'rnrb_individual' => $calculation['projected_rnrb_individual'],
+                    'rnrb_transferred' => $calculation['projected_rnrb_transferred'],
+                    'rnrb_status' => $calculation['projected_rnrb_status'],
+                    'rnrb_message' => $calculation['projected_rnrb_message'],
+                    'total_allowances' => $calculation['projected_total_allowances'],
+                    'charitable_deduction' => $calculation['projected_charitable_deduction'],
                     'taxable_estate' => $calculation['projected_taxable_estate'],
                     'iht_liability' => $calculation['projected_iht_liability'],
+                    'iht_rate' => $calculation['projected_iht_rate'],
+                    'iht_rate_percent' => $calculation['projected_iht_rate_percent'],
                     'years_to_death' => $calculation['years_to_death'],
                     'estimated_age_at_death' => $calculation['estimated_age_at_death'],
                     'retirement_age' => $calculation['retirement_age'] ?? null,

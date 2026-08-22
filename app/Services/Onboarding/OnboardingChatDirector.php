@@ -5630,6 +5630,14 @@ PROMPT;
         return sprintf('Recorded — around £%s a year through Gift Aid.', number_format($amount, 0));
     }
 
+    /**
+     * Never claim a link the row does not carry. The free-text spouse capture
+     * (createSpouseFamilyMember, above) writes a row with no account behind it,
+     * and this acknowledgement told the user their accounts were linked anyway
+     * — so they walked away believing the household was set up when
+     * `users.spouse_id` was still NULL (W-0051). One predicate answers it:
+     * FamilyMember::isLinkedAccount().
+     */
     private function spouseAck(User $user): string
     {
         $spouse = FamilyMember::where('user_id', $user->id)
@@ -5639,6 +5647,10 @@ PROMPT;
 
         if ($spouse === null || $spouse->first_name === null) {
             return 'Got it — your spouse is now on file.';
+        }
+
+        if (! $spouse->isLinkedAccount()) {
+            return "Got it — I've added {$spouse->first_name}. Their own account isn't linked yet, so I'm only working from what you tell me. You can link it later from your family settings.";
         }
 
         return "Got it — I've added {$spouse->first_name} and linked the two of you.";

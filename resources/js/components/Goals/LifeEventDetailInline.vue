@@ -60,7 +60,10 @@
           <div class="bg-savannah-100 rounded-lg p-4">
             <p class="text-sm text-neutral-500">Expected Date</p>
             <p class="text-2xl font-bold text-horizon-500">{{ formatDateDisplay(event.expected_date) }}</p>
-            <p v-if="yearsUntil !== null" class="text-xs text-neutral-500 mt-1">
+            <p v-if="event.has_occurred" class="text-xs text-neutral-500 mt-1">
+              {{ occurredLabel }}
+            </p>
+            <p v-else-if="yearsUntil !== null" class="text-xs text-neutral-500 mt-1">
               In {{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}
             </p>
           </div>
@@ -150,7 +153,11 @@
                     <dt class="text-sm text-neutral-500">Show in Projection:</dt>
                     <dd class="text-sm font-medium text-horizon-500 sm:text-right">{{ event.show_in_projection ? 'Yes' : 'No' }}</dd>
                   </div>
-                  <div v-if="yearsUntil !== null" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                  <div v-if="event.has_occurred" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                    <dt class="text-sm text-neutral-500">Timing:</dt>
+                    <dd class="text-sm font-medium text-horizon-500 sm:text-right">{{ occurredLabel }}</dd>
+                  </div>
+                  <div v-else-if="yearsUntil !== null" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <dt class="text-sm text-neutral-500">Time Until Event:</dt>
                     <dd class="text-sm font-medium text-horizon-500 sm:text-right">{{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}</dd>
                   </div>
@@ -251,6 +258,7 @@ import { previewModeMixin } from '@/mixins/previewModeMixin';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
 import { formatDateLong } from '@/utils/dateFormatter';
 import LifeEventAllocationTab from '@/components/Goals/LifeEventAllocationTab.vue';
+import { OCCURRED_LABEL } from '../../../mobile/utils/lifeEvents.js';
 
 export default {
   name: 'LifeEventDetailInline',
@@ -317,6 +325,11 @@ export default {
 
     yearsUntil() {
       return this.event.years_until_event ?? null;
+    },
+
+    // W-0207: an event whose date has passed is not "In 0 years" away.
+    occurredLabel() {
+      return OCCURRED_LABEL;
     },
   },
 

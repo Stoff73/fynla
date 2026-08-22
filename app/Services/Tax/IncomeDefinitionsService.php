@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\Models\User;
-use App\Services\Stores\PropertyStore;
+use App\Services\Property\PropertyService;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesIncome;
 
 class IncomeDefinitionsService
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
-        private readonly PropertyStore $propertyStore,
+        private readonly PropertyService $propertyService,
     ) {}
 
     public function calculate(int $userId): array
@@ -38,11 +41,18 @@ class IncomeDefinitionsService
         // 4. Threshold Income (FA 2004 s228ZA) — total income less net-pay
         // employee contributions only, deducted once. Gift Aid and the Blind
         // Person's Allowance do NOT reduce it (those belong to Adjusted Net Income).
+        //
+        // W-0189: this branches from TOTAL income, not from the adjusted net income
+        // computed above it, and the employee contribution it deducts is the same
+        // one already taken out at step 2 — deducted once across the two, never
+        // twice. The panel presented these five figures as a single running column,
+        // so the deduction appeared to be applied a second time and produce an
+        // unchanged total. The figures were right; the chain was the lie.
         $thresholdIncome = $totalIncome - $pensionContributions['employee'];
 
         // 5. Adjusted Income (FA 2004 s228ZA) — total income plus employer
         // contributions (equivalently threshold income plus both the employee
-        // and employer pension inputs).
+        // and employer pension inputs). Also branches from total income.
         $adjustedIncome = $totalIncome + $pensionContributions['employer'];
 
         // Ensure no negative values
@@ -61,6 +71,10 @@ class IncomeDefinitionsService
             'threshold_income' => round($thresholdIncome, 2),
             'adjusted_income' => round($adjustedIncome, 2),
             'components' => $components,
+            // W-0189 acceptance 2 — the arrangement the deduction was made under,
+            // so the panel can name it instead of the reader having to guess why
+            // £11,600 is deducted once rather than at both steps that mention it.
+            'pension_arrangement' => $pensionContributions['arrangement'],
             'deductions' => [
                 'pension_relief' => round($pensionRelief, 2),
                 'gift_aid_gross' => round($giftAidGross, 2),
@@ -87,72 +101,84 @@ class IncomeDefinitionsService
     }
 
     /**
-     * Calculate annual rental income from buy-to-let properties.
-     * Uses monthly_rental_income from Property model, applying ownership share.
+     * The user's annual rental profit, from the one home for that figure.
+     *
+     * This used to re-derive a GROSS rent figure with its own copy of the
+     * ownership-share arithmetic, so the income page's allowance panel tested
+     * the £100,000 taper against a different rental figure from the one the tax
+     * computation on the same screen was taxing — £10,800 against £8,880 for the
+     * peak_earners persona (W-0175). Property income enters total income as the
+     * profits of the property business (ITA 2007 s23 Step 1 over ITTOIA 2005
+     * Part 3), which is what adjusted net income and threshold income build on,
+     * so the profit is the correct base here as well as there.
+     *
+     * @see PropertyService::annualRentalTaxPosition()
      */
     private function calculateRentalIncome(User $user): float
     {
-        // PropertyStore::forUserByType is joint-aware (user_id = ? OR joint_owner_id = ?)
-        // + property_type filter. The loop below applies ownership_percentage per row so
-        // joint records correctly contribute the user's share — joint-aware is intentional,
-        // no primary-only filter. Same pattern as UserProfileService:197 (PR 5d).
-        $properties = $this->propertyStore->forUserByType($user, 'buy_to_let');
-
-        $total = 0.0;
-        foreach ($properties as $property) {
-            $monthlyRental = (float) ($property->monthly_rental_income ?? 0);
-            $annualRental = $monthlyRental * 12;
-
-            // Apply ownership share for joint properties
-            if ($property->joint_owner_id && $property->ownership_percentage) {
-                $share = $property->user_id === $user->id
-                    ? (float) $property->ownership_percentage / 100
-                    : (100 - (float) $property->ownership_percentage) / 100;
-                $annualRental *= $share;
-            }
-
-            $total += $annualRental;
-        }
-
-        return $total;
+        return (float) $this->propertyService->annualRentalTaxPosition($user)['total'];
     }
 
     /**
      * Calculate annual pension income from DB pensions in payment and state pension.
+     *
+     * Shares one implementation with UserProfileService and PersonalAccountsService
+     * (W-0036). This is the tax-facing consumer, so the defect it carried was not a
+     * retirement display bug: a not-yet-payable Defined Benefit pension counted as
+     * income here moved the user's taxable income, Personal Allowance taper and
+     * Child Benefit position.
      */
     private function calculatePensionIncome(User $user): float
     {
-        $income = 0.0;
-
-        // DB pensions in payment
-        foreach ($user->dbPensions as $dbPension) {
-            if ($dbPension->accrued_annual_pension > 0) {
-                $income += (float) $dbPension->accrued_annual_pension;
-            }
-        }
-
-        // State pension if receiving
-        if ($user->statePension && $user->statePension->already_receiving) {
-            $income += (float) ($user->statePension->state_pension_forecast_annual ?? 0);
-        }
-
-        return $income;
+        return $this->resolvePensionIncomeInPayment($user);
     }
 
+    /**
+     * Employee and employer pension inputs, and the arrangement they are made under.
+     *
+     * `arrangement` describes what this method DID, not a regime it verified:
+     *
+     *   * `none`    — no employee contributions to deduct.
+     *   * `net_pay` — contributions deducted from total income once. No workplace
+     *                 pension is flagged as salary sacrifice, and the application
+     *                 has no relief-at-source flag, so net pay is the treatment.
+     *   * `salary_sacrifice` — at least one workplace pension is flagged as salary
+     *                 sacrifice. The deduction is UNCHANGED: the sacrificed pay is
+     *                 not added back to threshold income under FA 2004 s228ZA(3),
+     *                 because nothing records whether `annual_employment_income` is
+     *                 the pre- or post-sacrifice figure, and assuming one would move
+     *                 a user's taper position on a guess. The panel names the
+     *                 arrangement rather than claiming a treatment that was applied.
+     *
+     * @return array{employee: float, employer: float, arrangement: string}
+     */
     private function getPensionContributions(User $user): array
     {
         $employee = 0.0;
         $employer = 0.0;
+        $sacrifices = false;
 
         foreach ($user->dcPensions as $pension) {
             $salary = (float) ($pension->annual_salary ?? 0);
-            $employee += $salary * ((float) ($pension->employee_contribution_percent ?? 0) / 100);
+            $contribution = $salary * ((float) ($pension->employee_contribution_percent ?? 0) / 100);
+            $employee += $contribution;
             $employer += $salary * ((float) ($pension->employer_contribution_percent ?? 0) / 100);
+
+            if ($contribution > 0 && $pension->salary_sacrifice) {
+                $sacrifices = true;
+            }
         }
 
+        $employee = round($employee, 2);
+
         return [
-            'employee' => round($employee, 2),
+            'employee' => $employee,
             'employer' => round($employer, 2),
+            'arrangement' => match (true) {
+                $employee <= 0 => 'none',
+                $sacrifices => 'salary_sacrifice',
+                default => 'net_pay',
+            },
         ];
     }
 

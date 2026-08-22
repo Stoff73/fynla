@@ -105,3 +105,30 @@ throw FinancialCalculationException::taxConfigError('config_type', 'reason');
 ```
 
 Available factories: `divisionByZero`, `missingData`, `invalidInput`, `taxConfigError`, `projectionError`, `ihtCalculationError`, `pensionCalculationError`, `investmentCalculationError`, `protectionCalculationError`, `insufficientData`, `timeout`.
+
+
+## One money basis — and know which one every figure is already in
+
+**Added 2026-08-22**, from the estate cash-flow projection.
+
+A projection loop carries figures in one basis — today's money, inflated once per year.
+**Figures arriving from another module are not necessarily in the same money, and
+nothing in a `float` says which.**
+
+The worked case: `PensionProjector::projectTotalRetirementIncome()` returns private
+pension income **nominal at retirement** (a pot grown at its own rate) and the State
+Pension forecast in **today's money** — *both in the same returned array*. Feeding the
+first into a loop that inflates annually would inflate it a second time for the whole of
+retirement.
+
+**Convert at the boundary, once, in the open.** Deflate what is nominal; leave what is
+already real. Say so at the call site, because **a double-inflated figure never looks
+wrong** — it is smooth, plausible and directionally sensible, and it compounds.
+
+**Treat a division that looks unnecessary as suspicious before deleting it.** This is
+exactly the shape a later "simplification" removes: a lone `pow(1 + inflation, years)`
+with no obvious purpose to a reader who does not know the two bases exist.
+
+**Related:** the same module carried three phantom column names swallowed by `?? 0`, and
+a hardcoded rate beside a configured one that was never read. **A float carries no units,
+no provenance and no absence** — whatever you rely on, state it where it is consumed.

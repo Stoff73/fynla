@@ -420,10 +420,20 @@ class EstatePlanService extends BasePlanService
         $ihtCalc['projected_liabilities'] = $projectedLiabilities;
         $ihtCalc['projected_net_estate'] = ($ihtCalc['projected_gross_assets'] ?? 0) - $projectedLiabilities;
 
-        $totalAllowances = ($ihtCalc['nrb_available'] ?? 0) + ($ihtCalc['rnrb_available'] ?? 0);
-        $ihtCalc['projected_taxable_estate'] = max(0, $ihtCalc['projected_net_estate'] - $totalAllowances);
-        $ihtRate = (float) ($ihtCalc['iht_rate'] ?? $this->taxConfig->getInheritanceTax()['standard_rate'] ?? 0.40);
-        $ihtCalc['projected_iht_liability'] = $ihtCalc['projected_taxable_estate'] * $ihtRate;
+        // W-0135 — the projected taxable estate and tax used to be RECOMPUTED here,
+        // and that is why `/plans/estate` and `/estate/inheritance-tax` showed the
+        // same user two different projected bills minutes apart with nothing touched.
+        //
+        // Rule 20: one question, one mechanism. `IHTCalculationService` assesses the
+        // projected estate — residence-band taper, charitable exemption, rate — and
+        // `IHTController` has always let that stand. This service subtracted the
+        // CURRENT allowances and applied the CURRENT rate to the projected estate,
+        // ignoring the exemption entirely, so it reported a different answer whose
+        // only merit was that it happened to reconcile to its own two rows.
+        //
+        // The values now pass through untouched, exactly as they do on the other
+        // surface. Do not reintroduce arithmetic here: a second derivation of a
+        // figure the service already publishes is the defect, not a safeguard.
 
         // Build iht_summary matching IHTController response shape
         $ihtSummary = [
@@ -431,9 +441,15 @@ class EstatePlanService extends BasePlanService
                 'net_estate' => $ihtCalc['total_net_estate'] ?? 0,
                 'gross_assets' => $ihtCalc['total_gross_assets'] ?? 0,
                 'liabilities' => $ihtCalc['total_liabilities'] ?? 0,
+                // W-0134 — the five nil-rate-band figures a reader needs to check the
+                // column by hand, and the charitable deduction that sits below it.
+                // This block carried three of them, so the plan's table could not be
+                // added up any more than the drill-down's could.
                 'nrb_available' => $ihtCalc['nrb_available'] ?? 0,
                 'nrb_individual' => $ihtCalc['nrb_individual'] ?? 0,
+                'nrb_spouse_modelled' => $ihtCalc['nrb_spouse_modelled'] ?? 0,
                 'nrb_transferred' => $ihtCalc['nrb_transferred'] ?? 0,
+                'nrb_gift_deduction' => $ihtCalc['nrb_gift_deduction'] ?? 0,
                 'nrb_message' => $ihtCalc['nrb_message'] ?? '',
                 'rnrb_available' => $ihtCalc['rnrb_available'] ?? 0,
                 'rnrb_individual' => $ihtCalc['rnrb_individual'] ?? 0,
@@ -441,16 +457,37 @@ class EstatePlanService extends BasePlanService
                 'rnrb_status' => $ihtCalc['rnrb_status'] ?? 'none',
                 'rnrb_message' => $ihtCalc['rnrb_message'] ?? '',
                 'total_allowances' => $ihtCalc['total_allowances'] ?? 0,
+                'charitable_deduction' => $ihtCalc['charitable_deduction'] ?? 0,
                 'taxable_estate' => $ihtCalc['taxable_estate'] ?? 0,
                 'iht_liability' => $ihtCalc['iht_liability'] ?? 0,
+                'iht_rate' => $ihtCalc['iht_rate'] ?? 0,
+                'iht_rate_percent' => $ihtCalc['iht_rate_percent'] ?? 0,
                 'effective_rate' => $ihtCalc['effective_rate'] ?? 0,
             ],
             'projected' => [
                 'net_estate' => $ihtCalc['projected_net_estate'] ?? 0,
                 'gross_assets' => $ihtCalc['projected_gross_assets'] ?? 0,
                 'liabilities' => $ihtCalc['projected_liabilities'] ?? 0,
+                // W-0136 — the projection has its OWN allowances. The residence band
+                // tapers away above £2,000,000 and the charitable exemption is
+                // re-assessed against the projected estate, so publishing only the
+                // current figures leaves the projected column unable to add up.
+                'nrb_available' => $ihtCalc['projected_nrb_available'] ?? 0,
+                'nrb_individual' => $ihtCalc['nrb_individual'] ?? 0,
+                'nrb_spouse_modelled' => $ihtCalc['nrb_spouse_modelled'] ?? 0,
+                'nrb_transferred' => $ihtCalc['nrb_transferred'] ?? 0,
+                'nrb_gift_deduction' => $ihtCalc['nrb_gift_deduction'] ?? 0,
+                'rnrb_available' => $ihtCalc['projected_rnrb_available'] ?? 0,
+                'rnrb_individual' => $ihtCalc['projected_rnrb_individual'] ?? 0,
+                'rnrb_transferred' => $ihtCalc['projected_rnrb_transferred'] ?? 0,
+                'rnrb_status' => $ihtCalc['projected_rnrb_status'] ?? 'none',
+                'rnrb_message' => $ihtCalc['projected_rnrb_message'] ?? '',
+                'total_allowances' => $ihtCalc['projected_total_allowances'] ?? 0,
+                'charitable_deduction' => $ihtCalc['projected_charitable_deduction'] ?? 0,
                 'taxable_estate' => $ihtCalc['projected_taxable_estate'] ?? 0,
                 'iht_liability' => $ihtCalc['projected_iht_liability'] ?? 0,
+                'iht_rate' => $ihtCalc['projected_iht_rate'] ?? 0,
+                'iht_rate_percent' => $ihtCalc['projected_iht_rate_percent'] ?? 0,
                 'years_to_death' => $ihtCalc['years_to_death'] ?? 0,
                 'estimated_age_at_death' => $ihtCalc['estimated_age_at_death'] ?? 0,
                 'cash' => $ihtCalc['projected_cash'] ?? null,
@@ -467,26 +504,32 @@ class EstatePlanService extends BasePlanService
         $ihtStandardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $charitableRate = (float) ($ihtConfig['reduced_rate_charity'] ?? TaxDefaults::IHT_CHARITABLE_RATE);
 
+        // WillAnalysisService::analyzeCharitableBequests() returns 'below',
+        // 'at' or 'above' — never 'qualifies'. This comparison was the same bug
+        // class as W-0020, one hop downstream: a string tested against a value
+        // the producer cannot emit, so the plan always read "Standard rate
+        // applies" even for a user who had qualified. It became reachable the
+        // moment a charitable CASH legacy could count toward the total.
         $charitableStatus = $charitableAnalysis['status'] ?? 'none';
-        $appliedRateType = $charitableStatus === 'qualifies' ? 'charitable' : 'standard';
-        $appliedRateMessage = $charitableStatus === 'qualifies'
+        $qualifies = in_array($charitableStatus, ['at', 'above'], true);
+        $appliedRateType = $qualifies ? 'charitable' : 'standard';
+        $appliedRateMessage = $qualifies
             ? sprintf('Reduced rate of %d%% applies as 10%% or more of the net estate is left to charity.', (int) round($charitableRate * 100))
             : sprintf('Standard Inheritance Tax rate of %d%% applies.', (int) round($ihtStandardRate * 100));
 
-        $isMarried = $profile['has_spouse'] ?? false;
-        $isWidowed = ($profile['marital_status'] ?? '') === 'widowed'
-            || ($ihtCalc['transferable_nrb'] ?? 0) > 0;
-
-        $nrb = (float) ($ihtCalc['nrb_available'] ?? 0);
-        $rnrb = (float) ($ihtCalc['rnrb_available'] ?? 0);
-
-        $nrbMessage = $isWidowed
-            ? 'Includes transferred Nil Rate Band from deceased spouse.'
-            : ($isMarried ? 'Individual Nil Rate Band. On second death, up to double may be available.' : 'Individual Nil Rate Band.');
-
-        $rnrbMessage = $rnrb > 0
-            ? 'Residence Nil Rate Band available as your estate includes a qualifying residential property passing to direct descendants.'
-            : 'Residence Nil Rate Band is not available. This may be because your estate does not include a qualifying residential property, or it does not pass to direct descendants.';
+        // W-0135 / Rule 20 — the allowance explanations come from the calculation
+        // that produced the figures, not from a second set written here.
+        //
+        // This service used to compose its own: a married couple was told
+        // "Individual Nil Rate Band. On second death, up to double may be
+        // available." on `/plans/estate` while `/estate/inheritance-tax` told them
+        // "Combined Nil Rate Band of £650,000 available … Reduced by £150,000 due to
+        // gifts made within the last 7 years." Same household, same instant, two
+        // different accounts of the same allowance, and only one of them mentioned
+        // the deduction the arithmetic had already applied.
+        $nrbMessage = $ihtCalc['nrb_message'] ?? '';
+        $rnrbMessage = $ihtCalc['rnrb_message'] ?? '';
+        $projectedRnrbMessage = $ihtCalc['projected_rnrb_message'] ?? '';
 
         return [
             // Full IHT calculation (pass-through for frontend)
@@ -508,6 +551,7 @@ class EstatePlanService extends BasePlanService
             'iht_rate_message' => $appliedRateMessage,
             'nrb_message' => $nrbMessage,
             'rnrb_message' => $rnrbMessage,
+            'projected_rnrb_message' => $projectedRnrbMessage,
 
             // Keep existing supplementary cards (unchanged)
             'asset_breakdown' => [
@@ -524,13 +568,31 @@ class EstatePlanService extends BasePlanService
             ],
             'charitable_giving' => [
                 'status' => $charitableStatus,
-                'current_percentage' => round((float) ($charitableAnalysis['current_percentage'] ?? 0), 1),
+                // The analysis returns charitable_total and baseline, not a
+                // percentage — reading a key it never emits pinned this to 0.0.
+                'current_percentage' => round($this->charitablePercentage($charitableAnalysis), 1),
                 'threshold' => $this->planConfig->getCharitableGivingThreshold(),
                 'shortfall' => $this->roundToPenny((float) ($charitableAnalysis['shortfall'] ?? 0)),
                 'potential_saving' => $this->roundToPenny((float) ($charitableAnalysis['potential_saving'] ?? 0)),
             ],
             'linked_accounts' => $this->buildLinkedAccountsList($user),
         ];
+    }
+
+    /**
+     * Charitable giving as a percentage of the baseline amount.
+     *
+     * @param  array<string, mixed>  $charitableAnalysis
+     */
+    private function charitablePercentage(array $charitableAnalysis): float
+    {
+        $baseline = (float) ($charitableAnalysis['baseline'] ?? 0);
+
+        if ($baseline <= 0) {
+            return 0.0;
+        }
+
+        return ((float) ($charitableAnalysis['charitable_total'] ?? 0) / $baseline) * 100;
     }
 
     /**
@@ -587,6 +649,9 @@ class EstatePlanService extends BasePlanService
             'gross_income' => $this->roundToPenny($grossIncome),
             'net_income' => $this->roundToPenny($incomeData['net_income']),
             'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            // W-0140: what the figure above is made of. One composition, from the
+            // profile, shown identically on every plan surface.
+            'expenditure_composition' => $incomeData['expenditure_composition'],
             'disposable_income' => $this->roundToPenny($incomeData['annual']),
             'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
             'estimated_age_at_death' => $ihtCalc['estimated_age_at_death'] ?? null,

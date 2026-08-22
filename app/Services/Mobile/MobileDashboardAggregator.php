@@ -15,7 +15,9 @@ use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
+use App\Services\Retirement\PensionProjector;
 use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
@@ -25,16 +27,29 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Aggregates all module summaries, net worth, alerts, and Fyn insight
- * into a single response optimised for the mobile app.
+ * into a single response. Served to the web dashboard (`GamifiedDashboard.vue`),
+ * the `/m` dashboard and native iOS from the one endpoint
+ * `GET /api/v1/mobile/dashboard` — so every figure here is a figure on three
+ * surfaces (Rule 19/20).
  *
- * Uses a 5-minute cache per user.
+ * **The cache is a backstop, not the freshness mechanism.** The blob is
+ * invalidated on data change by `UserDataCacheObserver` →
+ * `CacheInvalidationService`, which clears it for the owner, the joint owner and
+ * both spouses. The TTL exists only so an entry cannot live forever if every
+ * invalidation path is missed.
+ *
+ * The docblock here used to read "Uses a 5-minute cache per user" beside a
+ * constant of 86,400 seconds. It was wrong for long enough that a wrong
+ * dashboard was served for 21 hours and a shipped fix stayed invisible, because
+ * everyone reading the class believed the comment (W-0239).
  */
 class MobileDashboardAggregator
 {
     use CalculatesOwnershipShare;
     use StructuredLogging;
 
-    private const CACHE_TTL = 86400; // 24 hours — invalidated on data change
+    /** Backstop only — freshness comes from invalidation, not expiry. See the class docblock. */
+    private const CACHE_TTL = 86400;
 
     public function __construct(
         private readonly ProtectionAgent $protectionAgent,
@@ -47,6 +62,8 @@ class MobileDashboardAggregator
         private readonly SavingsStore $savingsStore,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly PensionStore $pensionStore,
+        private readonly PensionProjector $pensionProjector,
     ) {}
 
     /**
@@ -61,12 +78,14 @@ class MobileDashboardAggregator
             $modules = $this->aggregateModules($userId);
             $netWorth = $this->calculateNetWorth($userId);
 
-            $knownPensionValue = (float) ($netWorth['breakdown']['assets']['pensions'] ?? 0);
-            if ($knownPensionValue > 0
-                && (float) ($modules['retirement']['pot_value'] ?? 0) <= 0) {
-                $modules['retirement']['pot_value'] = round($knownPensionValue, 2);
-            }
-
+            // The retirement card used to be patched here, after the fact, from
+            // `net_worth…pensions`. That patch could only ever help a user whose
+            // provision has a capital value: it reads dbPensions->sum('transfer_value'),
+            // and db_pensions has no transfer_value column, so a spouse whose whole
+            // retirement is a defined benefit scheme scored zero and was told to
+            // "Plan your retirement" beside a page showing her £35,000 a year
+            // (W-0238). extractRetirementSummary now reads the pension records
+            // directly, so the patch has nothing left to do.
             $alerts = $this->getAlerts($userId);
             $fynInsight = $this->generateFynInsight($modules, $netWorth);
 
@@ -100,7 +119,7 @@ class MobileDashboardAggregator
         foreach ($agentMap as $moduleName => $agent) {
             try {
                 $analysis = $agent->analyze($userId);
-                $modules[$moduleName] = $this->extractModuleSummary($moduleName, $analysis);
+                $modules[$moduleName] = $this->extractModuleSummary($moduleName, $analysis, $userId);
             } catch (\Throwable $e) {
                 $this->logError("Mobile dashboard: failed to load {$moduleName} module", [
                     'user_id' => $userId,
@@ -124,7 +143,7 @@ class MobileDashboardAggregator
      * - BaseAgent::response() format: ['success', 'message', 'data', 'timestamp']
      * - Raw array format (SavingsAgent, InvestmentAgent, GoalsAgent)
      */
-    private function extractModuleSummary(string $module, array $analysis): array
+    private function extractModuleSummary(string $module, array $analysis, int $userId): array
     {
         // Unwrap BaseAgent::response() envelope if present
         $data = isset($analysis['success']) ? ($analysis['data'] ?? []) : $analysis;
@@ -133,7 +152,7 @@ class MobileDashboardAggregator
             'protection' => $this->extractProtectionSummary($data, $analysis),
             'savings' => $this->extractSavingsSummary($data),
             'investment' => $this->extractInvestmentSummary($data),
-            'retirement' => $this->extractRetirementSummary($data, $analysis),
+            'retirement' => $this->extractRetirementSummary($data, $analysis, $userId),
             'estate' => $this->extractEstateSummary($data, $analysis),
             'goals' => $this->extractGoalsSummary($data),
             default => ['status' => 'unknown'],
@@ -230,32 +249,97 @@ class MobileDashboardAggregator
     /**
      * Extract retirement module summary.
      */
-    private function extractRetirementSummary(array $data, array $raw): array
+    private function extractRetirementSummary(array $data, array $raw, int $userId): array
     {
-        // Handle case where retirement profile doesn't exist, or the readiness
-        // gate blocked analysis (success=true, can_proceed=false, summary=null).
-        if ((isset($raw['success']) && $raw['success'] === false)
-            || ($data['can_proceed'] ?? true) === false) {
+        // What the user HAS is a fact about their pension records. What they are
+        // AIMING AT is a fact about their retirement profile, and RetirementAgent
+        // returns success=false without one. Reading both from the analysis meant
+        // a household with half a million in pensions and a defined benefit scheme
+        // paying £35,000 a year was shown "Plan your retirement" on the strength of
+        // a missing target — so the two are now read separately (W-0238).
+        $pensions = $this->pensionProvision($userId);
+
+        $profileMissing = (isset($raw['success']) && $raw['success'] === false)
+            || ($data['can_proceed'] ?? true) === false;
+
+        if ($profileMissing && $pensions['total_pensions'] === 0) {
             return [
                 'status' => 'not_configured',
                 'message' => 'Retirement profile not yet set up.',
             ];
         }
 
-        $summary = $data['summary'] ?? $data;
+        $summary = $profileMissing ? [] : ($data['summary'] ?? $data);
 
         return [
             'status' => 'active',
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),
-            // Current DC pot value — the card headline. Without this the card fell
-            // back to income_gap, which is 0 whenever target_retirement_income is
-            // unset (never captured at onboarding), so it showed £0 despite a pot.
-            'pot_value' => round((float) ($summary['current_dc_value'] ?? 0), 2),
+            // Current defined contribution pot — the card headline where there is
+            // one. The agent's own figure whenever the agent answered, so this is
+            // not a second mechanism; the records are read directly only when
+            // there is no retirement profile and the agent returns nothing at all.
+            'pot_value' => $profileMissing
+                ? $pensions['pot_value']
+                : round((float) ($summary['current_dc_value'] ?? 0), 2),
+            // Annual income already secured, for the user whose provision has no
+            // pot to show: a defined benefit scheme and the State Pension are worth
+            // an income, not a balance, and a card that can only render a balance
+            // shows them nothing.
+            'guaranteed_income' => $pensions['guaranteed_income'],
             'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
             'target_income' => round((float) ($summary['target_retirement_income'] ?? 0), 2),
             'income_gap' => round((float) ($summary['income_gap'] ?? 0), 2),
-            'total_pensions' => (int) ($summary['total_pensions_count'] ?? 0),
+            'total_pensions' => (int) ($summary['total_pensions_count'] ?? $pensions['total_pensions']),
         ];
+    }
+
+    /**
+     * What retirement provision this user actually holds, independent of whether
+     * they have told us what they are aiming for.
+     *
+     * Both figures come from `PensionProjector::projectTotalRetirementIncome`, the
+     * one home `RetirementAgent` itself reads, so the card and the module page
+     * cannot give different answers.
+     *
+     * **Basis caveat, stated where it is consumed** (`app/Services/CLAUDE.md`): the
+     * defined benefit component is nominal at retirement and the State Pension
+     * component is in today's money. Summing them is what every other consumer of
+     * this projector already does; this does not introduce the mixing, and it is
+     * raised separately rather than changed silently here.
+     *
+     * @return array{pot_value: float, guaranteed_income: float, total_pensions: int}
+     */
+    private function pensionProvision(int $userId): array
+    {
+        try {
+            $user = User::find($userId);
+
+            if (! $user) {
+                return ['pot_value' => 0.0, 'guaranteed_income' => 0.0, 'total_pensions' => 0];
+            }
+
+            $dcPensions = $this->pensionStore->forUserByType($user, 'dc');
+            $dbPensions = $this->pensionStore->forUserByType($user, 'db');
+            $statePension = $this->pensionStore->statePension($user);
+
+            $projection = $this->pensionProjector->projectTotalRetirementIncome($userId);
+
+            return [
+                'pot_value' => round((float) $dcPensions->sum('current_fund_value'), 2),
+                'guaranteed_income' => round(
+                    (float) ($projection['db_annual_income'] ?? 0)
+                    + (float) ($projection['state_pension_income'] ?? 0),
+                    2
+                ),
+                'total_pensions' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
+            ];
+        } catch (\Throwable $e) {
+            $this->logError('Mobile dashboard: failed to read pension provision', [
+                'user_id' => $userId,
+            ], $e);
+
+            return ['pot_value' => 0.0, 'guaranteed_income' => 0.0, 'total_pensions' => 0];
+        }
     }
 
     /**

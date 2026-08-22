@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Tiers\TeaserGate;
 use App\Services\UserProfile\UserProfileService;
+use App\Support\SharedExpenditure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,9 +24,18 @@ class UserProfileController extends Controller
 {
     use SanitizedErrorResponse;
 
+    /**
+     * The per-category breakdown — the only Premium part of expenditure.
+     * `expenditure_detailed` is `none` on Free and `full` on Premium
+     * (TierConfigurationSeeder); plain `expenditure` is `full` on both, so the
+     * monthly total is never gated.
+     *
+     * The entry-mode flags `use_simple_entry` / `use_separate_expenditure` used
+     * to be listed here. `use_simple_entry` is the very flag that says "no
+     * categories in this payload", so gating on it made a Simple View save
+     * indistinguishable from a detailed one (W-0011).
+     */
     private const DETAILED_EXPENDITURE_FIELDS = [
-        'use_simple_entry',
-        'use_separate_expenditure',
         'food_groceries',
         'transport_fuel',
         'healthcare_medical',
@@ -144,9 +154,8 @@ class UserProfileController extends Controller
     {
         $user = $request->user();
 
-        if (! $this->canUseDetailedExpenditure($user)
-            && array_intersect(array_keys($request->all()), self::DETAILED_EXPENDITURE_FIELDS) !== []) {
-            return $this->detailedExpenditureDenial();
+        if ($denial = $this->guardDetailedExpenditure($request, $user)) {
+            return $denial;
         }
 
         $validated = $request->validate([
@@ -188,7 +197,9 @@ class UserProfileController extends Controller
             unset($updateData['use_simple_entry']);
         }
         if (isset($validated['use_separate_expenditure'])) {
-            $updateData['expenditure_sharing_mode'] = $validated['use_separate_expenditure'] ? 'separate' : 'joint';
+            $updateData['expenditure_sharing_mode'] = $validated['use_separate_expenditure']
+                ? SharedExpenditure::MODE_SEPARATE
+                : SharedExpenditure::MODE_JOINT;
             unset($updateData['use_separate_expenditure']);
         }
 
@@ -197,11 +208,30 @@ class UserProfileController extends Controller
             $updateData['annual_expenditure'] = (float) $updateData['monthly_expenditure'] * 12;
         }
 
+        // Apply the household's declared sharing rule, which this path never did.
+        // The form sends what the household spends; each account stores ITS SHARE.
+        // Storing the whole of it here is what let the expenditure table announce
+        // "Joint (50/50) expenditure" and then charge one spouse £2,450 and the
+        // other £0, beside a financial-commitments row that IS split (W-0190).
+        // Same home as the onboarding path — App\Support\SharedExpenditure.
+        $householdMode = $updateData['expenditure_sharing_mode'] ?? $user->expenditure_sharing_mode;
+        $sharesWithSpouse = $user->spouse_id !== null && SharedExpenditure::isShared($householdMode);
+        $updateData = SharedExpenditure::shareOf($updateData, $sharesWithSpouse);
+
         $user->update($updateData);
 
+        // The sharing mode is a fact about the HOUSEHOLD, not about one row. Left
+        // on one account it can drift: the spouse's row would keep saying `joint`
+        // while this one says `separate`, and the two halves of a single save would
+        // then be divided by different rules. The onboarding path has always written
+        // it to both; this one now does too.
+        if (isset($updateData['expenditure_sharing_mode']) && $user->liveSpouseId() !== null) {
+            $user->spouse?->update(['expenditure_sharing_mode' => $updateData['expenditure_sharing_mode']]);
+        }
+
         // Create/update expenditure profile with the total
-        if ($validated['monthly_expenditure'] ?? null) {
-            $monthly = $validated['monthly_expenditure'];
+        if ($updateData['monthly_expenditure'] ?? null) {
+            $monthly = $updateData['monthly_expenditure'];
 
             ExpenditureProfile::updateOrCreate(
                 ['user_id' => $user->id],
@@ -375,9 +405,8 @@ class UserProfileController extends Controller
     {
         $currentUser = $request->user();
 
-        if (! $this->canUseDetailedExpenditure($currentUser)
-            && array_intersect(array_keys($request->all()), self::DETAILED_EXPENDITURE_FIELDS) !== []) {
-            return $this->detailedExpenditureDenial();
+        if ($denial = $this->guardDetailedExpenditure($request, $currentUser)) {
+            return $denial;
         }
 
         // Only allow updating a LIVE spouse's expenditure. A retained record
@@ -437,11 +466,23 @@ class UserProfileController extends Controller
             $updateData['annual_expenditure'] = (float) $updateData['monthly_expenditure'] * 12;
         }
 
+        // The spouse's account stores THEIR share, by the household's declared rule
+        // — the same rule and the same home as the account beside it. Under a joint
+        // mode the caller sends the household's figures and both halves are stored;
+        // under separate the spouse's own figures are stored whole (W-0190).
+        // The acting user's mode is the household's — they are the one who just
+        // declared it. Reading it off the spouse's row would divide the two halves
+        // of one save by two different rules if that row had not caught up yet.
+        $updateData = SharedExpenditure::shareOf(
+            $updateData,
+            SharedExpenditure::isShared($currentUser->expenditure_sharing_mode)
+        );
+
         $spouse->update($updateData);
 
         // Create/update expenditure profile with the total
-        if ($validated['monthly_expenditure'] ?? null) {
-            $monthly = $validated['monthly_expenditure'];
+        if ($updateData['monthly_expenditure'] ?? null) {
+            $monthly = $updateData['monthly_expenditure'];
 
             ExpenditureProfile::updateOrCreate(
                 ['user_id' => $spouse->id],
@@ -467,6 +508,51 @@ class UserProfileController extends Controller
                 'user' => new UserResource($spouse->fresh()),
             ],
         ]);
+    }
+
+    /**
+     * Gate the Premium category breakdown without gating the monthly total.
+     *
+     * Returns a denial for a genuine detailed-entry attempt, and null when the
+     * request may proceed. For a simple-entry request from a user without the
+     * capability the category keys are stripped in place: the Expenditure form
+     * builds one payload for both modes, so Simple View arrives carrying all 22
+     * categories as zeros, and denying on key presence locked Free users out of
+     * recording any expenditure at all (W-0011).
+     *
+     * This matches what Fyn already does on /m and native — CoordinatingAgent's
+     * update_profile writes a simple monthly total for any tier and only
+     * set_expenditure (the category tool) checks `expenditure_detailed`.
+     */
+    private function guardDetailedExpenditure(Request $request, User $user): ?JsonResponse
+    {
+        if ($this->canUseDetailedExpenditure($user)) {
+            return null;
+        }
+
+        $detailedKeys = array_intersect(array_keys($request->all()), self::DETAILED_EXPENDITURE_FIELDS);
+
+        if ($detailedKeys === []) {
+            return null;
+        }
+
+        if (! $this->isSimpleExpenditureEntry($request)) {
+            return $this->detailedExpenditureDenial();
+        }
+
+        foreach ($detailedKeys as $key) {
+            $request->request->remove($key);
+            $request->query->remove($key);
+        }
+        $request->merge(['use_simple_entry' => true]);
+
+        return null;
+    }
+
+    private function isSimpleExpenditureEntry(Request $request): bool
+    {
+        return $request->boolean('use_simple_entry')
+            || $request->input('expenditure_entry_mode') === 'simple';
     }
 
     private function detailedExpenditureDenial(): JsonResponse

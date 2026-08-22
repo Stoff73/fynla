@@ -1,22 +1,27 @@
+<!--
+  Renders the result of the Lasting Power of Attorney checks.
+
+  W-0100: this component must never tell the user their Lasting Power of
+  Attorney is compliant, approved, valid or sufficient. It reports what was
+  checked, what was not, and what the checks found. Every word below comes from
+  the API payload, which composes it in `LpaCheckPolicy` — the one home for this
+  wording (Rule 20). Do not hardcode a label, a heading or a disclosure here,
+  and do not render the outcome as a coloured badge: green carries "approved"
+  without a word being written, which is the claim this component exists not to
+  make.
+-->
 <template>
   <div class="lpa-compliance-checklist">
     <div v-if="loading" class="text-center py-6">
       <div class="w-8 h-8 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto"></div>
-      <p class="mt-2 text-sm text-neutral-500">Running compliance checks...</p>
+      <p class="mt-2 text-sm text-neutral-500">Running checks...</p>
     </div>
 
     <div v-else-if="compliance" class="space-y-3">
-      <!-- Overall Status -->
-      <div class="flex items-center justify-between mb-4">
-        <h4 class="text-sm font-bold text-horizon-500">Compliance Status</h4>
-        <span
-          :class="[
-            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-            overallStatusClass,
-          ]"
-        >
-          {{ overallStatusLabel }}
-        </span>
+      <!-- What the checks found. Plain text, never a badge — see the note above. -->
+      <div class="mb-4">
+        <h4 class="text-sm font-bold text-horizon-500">{{ compliance.heading }}</h4>
+        <p class="text-sm text-neutral-600 mt-1">{{ compliance.outcome_label }}</p>
       </div>
 
       <!-- Individual Checks -->
@@ -62,6 +67,23 @@
           </span>
         </div>
       </div>
+
+      <!-- What we did not check. Shown here, with the result — not in a footer. -->
+      <div class="mt-4 pt-3 border-t border-light-gray">
+        <h4 class="text-sm font-bold text-horizon-500 mb-1">{{ compliance.not_checked_heading }}</h4>
+        <p class="text-xs text-neutral-500">{{ compliance.not_checked_intro }}</p>
+        <ul class="mt-2 space-y-1 list-disc list-inside">
+          <li
+            v-for="item in compliance.not_checked"
+            :key="item"
+            class="text-xs text-neutral-500"
+          >
+            {{ item }}
+          </li>
+        </ul>
+        <p class="text-xs text-neutral-500 mt-2">{{ compliance.not_checked_close }}</p>
+        <p class="text-xs text-neutral-500 mt-2">{{ compliance.referral }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -78,27 +100,6 @@ export default {
     loading: {
       type: Boolean,
       default: false,
-    },
-  },
-
-  computed: {
-    overallStatusClass() {
-      if (!this.compliance) return '';
-      switch (this.compliance.overall_status) {
-        case 'compliant': return 'bg-spring-100 text-spring-800';
-        case 'review_needed': return 'bg-violet-100 text-violet-800';
-        case 'incomplete': return 'bg-raspberry-100 text-raspberry-800';
-        default: return 'bg-neutral-100 text-neutral-600';
-      }
-    },
-    overallStatusLabel() {
-      if (!this.compliance) return '';
-      switch (this.compliance.overall_status) {
-        case 'compliant': return 'Compliant';
-        case 'review_needed': return 'Review Needed';
-        case 'incomplete': return 'Incomplete';
-        default: return 'Unknown';
-      }
     },
   },
 };

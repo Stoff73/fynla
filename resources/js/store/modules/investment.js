@@ -1,5 +1,6 @@
 import investmentService from '@/services/investmentService';
 import { pollMonteCarloJob } from '@/utils/poller';
+import { calculateTotalUserShare } from '@/utils/ownership';
 
 const state = {
     accounts: [],
@@ -49,15 +50,11 @@ const getters = {
      * @returns {number} Total portfolio value in GBP
      */
     totalPortfolioValue: (state) => {
-        return state.accounts.reduce((sum, account) => {
-            const fullValue = parseFloat(account.current_value || 0);
-            // For joint accounts, only count the user's share
-            if (account.ownership_type === 'joint') {
-                const percentage = parseFloat(account.ownership_percentage || 50) / 100;
-                return sum + (fullValue * percentage);
-            }
-            return sum + fullValue;
-        }, 0);
+        // Via the ONE ownership helper: it reads the API's user_share, which is
+        // the joint owner's complementary share when the viewer is not the
+        // primary owner. The arithmetic that used to live here gave the FULL
+        // value to both spouses of a joint account (W-0015).
+        return calculateTotalUserShare(state.accounts, { valueField: 'current_value' });
     },
 
     /**
@@ -520,12 +517,16 @@ const actions = {
         }
     },
 
-    async updateHolding({ commit, dispatch }, { id, holdingData }) {
+    // Callers send { id, data } — AccountForm.vue, InvestmentHoldings.vue and
+    // InvestmentProjections.vue all agree on that key. This action destructured
+    // `holdingData`, so the payload was always undefined and axios sent an empty
+    // body: a 200 OK, a modal that closed, and an untouched row (W-0009).
+    async updateHolding({ commit, dispatch }, { id, data }) {
         commit('setLoading', true);
         commit('setError', null);
 
         try {
-            const response = await investmentService.updateHolding(id, holdingData);
+            const response = await investmentService.updateHolding(id, data);
             commit('updateHolding', response.data);
             await dispatch('analyseInvestment');
             return response;

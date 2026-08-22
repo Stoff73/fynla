@@ -355,6 +355,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import chattelService from '@/services/chattelService';
 
 import logger from '@/utils/logger';
+import { coOwnerName, getOwnershipLabel, isSharedRecord, userSharePercent } from '@/utils/ownership';
 export default {
   name: 'ChattelDetailInline',
 
@@ -468,10 +469,19 @@ export default {
     },
 
     formatOwnership(chattel) {
-      if (chattel.ownership_type === 'joint' && chattel.joint_owner) {
-        return `Joint with ${chattel.joint_owner.first_name || 'spouse'} (${chattel.ownership_percentage}%)`;
+      // Percentage and counterparty from the ONE ownership helper: the stored
+      // percentage is the PRIMARY owner's, and naming the record's joint owner
+      // unconditionally names the viewer back to herself (W-0016).
+      if (!isSharedRecord(chattel)) {
+        return 'Individual (100%)';
       }
-      return 'Individual (100%)';
+
+      const percent = userSharePercent(chattel).toFixed(2);
+      const other = coOwnerName(chattel);
+
+      return other
+        ? `${getOwnershipLabel(chattel.ownership_type)} with ${other} (${percent}%)`
+        : `${getOwnershipLabel(chattel.ownership_type)} (${percent}%)`;
     },
 
     formatDate(date) {

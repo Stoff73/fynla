@@ -61,6 +61,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { userSharePercent } from '../../../js/utils/ownership.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -134,7 +135,21 @@ export default {
         if (this.categoryKey === 'pensions' && it.annual_pension) fields.push(`${this.fmt(it.annual_pension)} a year`);
         if (this.categoryKey === 'business') {
           if (it.business_type) fields.push(titleCase(it.business_type));
-          if (it.ownership_percentage != null) fields.push(`${Math.round(Number(it.ownership_percentage))}% owned`);
+          // The viewer's share, not the record's stored primary-owner share —
+          // the joint owner holds the complement (W-0015).
+          if (it.ownership_percentage != null) fields.push(`${Math.round(userSharePercent(it))}% owned`);
+          // Companies House filing deadline, once close enough to act on.
+          // next_filing is computed server-side (NetWorthService) so this
+          // matches the web card exactly rather than re-deriving it here.
+          const filing = it.next_filing;
+          if (filing && filing.days_until <= 30) {
+            const label = filing.type === 'accounts' ? 'Accounts' : 'Confirmation statement';
+            const days = filing.days_until;
+            if (days < 0) fields.push(`${label} overdue by ${Math.abs(days)} ${Math.abs(days) === 1 ? 'day' : 'days'}`);
+            else if (days === 0) fields.push(`${label} due today`);
+            else if (days === 1) fields.push(`${label} due tomorrow`);
+            else fields.push(`${label} due in ${days} days`);
+          }
         }
         if (this.categoryKey === 'chattels') {
           if (it.chattel_type) fields.push(titleCase(it.chattel_type));

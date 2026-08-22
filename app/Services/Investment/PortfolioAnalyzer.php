@@ -11,13 +11,17 @@ use Illuminate\Support\Collection;
 
 class PortfolioAnalyzer
 {
-    /**
-     * Calculate total portfolio value across all accounts
+    /*
+     * `calculateTotalValue(Collection $accounts)` was deleted here (W-0238).
+     *
+     * It summed `current_value` across a collection at 100%, which is the right
+     * answer only when nothing in the collection is shared. Because it took a
+     * collection rather than a user, it could not know whose portfolio it was
+     * being asked about, and so could not apply an ownership share even in
+     * principle. Its single caller now reads
+     * CrossModuleAssetAggregator::calculateInvestmentTotal($userId) — the one
+     * home the wealth summary, net worth and /m already used.
      */
-    public function calculateTotalValue(Collection $accounts): float
-    {
-        return $accounts->sum('current_value');
-    }
 
     /**
      * Calculate portfolio returns (total, YTD, 1-year)

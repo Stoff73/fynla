@@ -218,7 +218,16 @@ class WillController extends Controller
         // Invalidate cache
         $this->cacheInvalidation->invalidateForUser($user->id);
 
-        return response()->noContent();
+        // The house convention for a delete is 200 with a success body (see
+        // SavingsController::destroyAccount, PropertyController::destroy and
+        // app/Http/CLAUDE.md). This returned noContent() against the declared
+        // : JsonResponse type, so every delete removed the row and THEN threw a
+        // TypeError — the user was shown an error for an action that had already
+        // succeeded, and would reasonably retry (W-0041, second instance).
+        return response()->json([
+            'success' => true,
+            'message' => 'Bequest deleted successfully',
+        ]);
     }
 
     /**

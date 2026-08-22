@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Constants\TaxDefaults;
 use App\Services\Stores\TaxConfigStore;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
@@ -284,6 +285,34 @@ class TaxConfigService
     public function getCLTLifetimeRate(): float
     {
         return (float) ($this->get('inheritance_tax.chargeable_lifetime_transfers.lifetime_rate') ?? 0.20);
+    }
+
+    /**
+     * The reduced Inheritance Tax rate for a qualifying charitable estate
+     * (IHTA 1984 s.7(1A)).
+     *
+     * Centralised following the same precedent as getCLTLifetimeRate(): the
+     * `?? 0.36` lookup was duplicated across WillAnalysisService (×2),
+     * IHTCalculationService, EstateAgent, GiftingStrategy and
+     * TaxSettingsController, alongside a seventh consumer reading
+     * TaxDefaults::IHT_CHARITABLE_RATE — two fallback conventions, seven sites.
+     */
+    public function getCharitableReducedRate(): float
+    {
+        return (float) ($this->get('inheritance_tax.reduced_rate_charity') ?? TaxDefaults::IHT_CHARITABLE_RATE);
+    }
+
+    /**
+     * The proportion of the baseline amount that must pass to charity for the
+     * reduced rate to apply (IHTA 1984 Sch 1A) — 10%.
+     *
+     * Read from configuration because the key is seeded AND rendered in the
+     * admin Tax Settings screen as though it governs the calculation. Until
+     * this accessor existed nothing read it, so the admin control was inert.
+     */
+    public function getCharitableThresholdPercent(): float
+    {
+        return (float) ($this->get('inheritance_tax.charity_threshold_percent') ?? TaxDefaults::IHT_CHARITY_THRESHOLD);
     }
 
     /**

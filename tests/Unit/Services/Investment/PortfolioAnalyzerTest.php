@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Models\Investment\Holding;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Services\Investment\PortfolioAnalyzer;
 
@@ -11,38 +10,15 @@ beforeEach(function () {
     $this->analyzer = new PortfolioAnalyzer;
 });
 
-describe('calculateTotalValue', function () {
-    it('calculates total value across all accounts', function () {
-        $accounts = collect([
-            new InvestmentAccount(['current_value' => 50000]),
-            new InvestmentAccount(['current_value' => 75000]),
-            new InvestmentAccount(['current_value' => 25000]),
-        ]);
-
-        $total = $this->analyzer->calculateTotalValue($accounts);
-
-        expect($total)->toBe(150000.0);
-    });
-
-    it('returns zero for empty accounts collection', function () {
-        $accounts = collect([]);
-
-        $total = $this->analyzer->calculateTotalValue($accounts);
-
-        expect($total)->toBe(0.0);
-    });
-
-    it('handles decimal values correctly', function () {
-        $accounts = collect([
-            new InvestmentAccount(['current_value' => 12345.67]),
-            new InvestmentAccount(['current_value' => 23456.78]),
-        ]);
-
-        $total = $this->analyzer->calculateTotalValue($accounts);
-
-        expect($total)->toBe(35802.45);
-    });
-});
+/*
+ * The `calculateTotalValue` describe block was deleted with the method it
+ * covered (W-0238). Its three tests each asserted that a collection of accounts
+ * sums to the whole of their values — true of the arithmetic, and the wrong
+ * question, because a jointly held account is not wholly the viewer's. The
+ * behaviour now lives in CrossModuleAssetAggregator::calculateInvestmentTotal,
+ * which is covered against a real household in
+ * tests/Feature/Dashboard/ModuleTotalsMatchNetWorthTest.php.
+ */
 
 describe('calculateReturns', function () {
     it('calculates gains and returns for holdings', function () {

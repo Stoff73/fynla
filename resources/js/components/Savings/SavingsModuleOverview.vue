@@ -42,9 +42,13 @@
                   <span class="detail-value">{{ formatCurrency(getFullBalance(account)) }}</span>
                 </div>
 
-                <div v-if="account.ownership_type === 'joint'" class="detail-row">
-                  <span class="detail-label">Your Share ({{ account.ownership_percentage }}%)</span>
+                <div v-if="isSharedRecord(account)" class="detail-row">
+                  <span class="detail-label">Your Share ({{ formatSharePercent(account) }})</span>
                   <span class="detail-value">{{ formatCurrency(getUserShare(account)) }}</span>
+                </div>
+                <div v-if="coOwnerOf(account)" class="detail-row">
+                  <span class="detail-label">Held with</span>
+                  <span class="detail-value">{{ coOwnerOf(account) }}</span>
                 </div>
 
                 <div v-if="account.interest_rate > 0" class="detail-row">
@@ -162,6 +166,7 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
+import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
 export default {
   name: 'SavingsModuleOverview',
 
@@ -235,16 +240,20 @@ export default {
       return account.full_value ?? account.current_balance ?? 0;
     },
 
+    // Ownership display via resources/js/utils/ownership.js — the ONE home,
+    // shared with the investment, property and chattel cards (W-0015).
+    isSharedRecord,
+
     getUserShare(account) {
-      // Single-record pattern: API provides user_share, or calculate from full balance
-      if (account.user_share !== undefined) {
-        return account.user_share;
-      }
-      // Fallback: calculate from full balance
-      if (account.ownership_type === 'joint' && account.ownership_percentage) {
-        return this.getFullBalance(account) * (account.ownership_percentage / 100);
-      }
-      return this.getFullBalance(account);
+      return calculateUserShare(account, { valueField: 'current_balance' });
+    },
+
+    formatSharePercent(account) {
+      return `${userSharePercent(account).toFixed(2)}%`;
+    },
+
+    coOwnerOf(account) {
+      return coOwnerName(account);
     },
 
     formatAccountType(type) {

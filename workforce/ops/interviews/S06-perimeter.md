@@ -46,7 +46,7 @@
 `ComplianceRules.php` `<regulatory_compliance>` in full (seven numbered rules) ·
 `ComplianceRules.php` `<instructions>` · `CoreIdentity.php` ·
 `docs/superpowers/plans/2026-07-10-online-readiness-programme.md` global
-constraints · `FCA/sandbox.md` and the two sandbox application drafts ·
+constraints · `docs/reference/FCA/sandbox.md` and the two sandbox application drafts ·
 `AiAdviceLog.php` · `fynlaBrain/April/April24Updates/audit-{evidence,synthesis}.md` ·
 `02-values.md`, `03-hard-nos.md`, `04-voice.md` as ratified
 

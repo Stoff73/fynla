@@ -176,6 +176,31 @@ const actions = {
         }
     },
 
+    /**
+     * Load the ISA allowance if it is not already in the store.
+     *
+     * The allowance used to arrive ONLY as part of the big /api/savings payload,
+     * so any screen that did not fetch that — the investment account modal —
+     * read `cash_isa_used: 0` from the null state and silently withheld the
+     * over-subscription warning on a statutory limit (W-0007). This is the ONE
+     * place either modal loads it from; both read the same state and getters.
+     */
+    async ensureISAAllowance({ commit, state }, { force = false } = {}) {
+        if (state.isaAllowance && !force) {
+            return state.isaAllowance;
+        }
+
+        try {
+            const response = await savingsService.getISAAllowance();
+            const allowance = response?.data ?? null;
+            commit('setISAAllowance', allowance);
+            return allowance;
+        } catch (error) {
+            logger.error('ISA allowance fetch error:', error);
+            return null;
+        }
+    },
+
     // Analyse savings
     async analyseSavings({ commit }, data) {
         commit('setLoading', true);

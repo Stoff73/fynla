@@ -101,6 +101,11 @@ describe('RNRB direct-descendant gate (Fix 1)', function () {
     });
 });
 
+// W-0154 F3: these three cases are about a MARRIED COUPLE's combined £350,000
+// maximum, so they now pass `dataSharingEnabled: true` explicitly. The argument used
+// to make no difference to the allowance � the doubling gated on marriage alone while
+// the assets gated on sharing, which is the defect F3 records. Every expected figure
+// below is unchanged; only the precondition is now stated.
 describe('RNRB residence-value cap (Fix 2)', function () {
     it('caps a married couple\'s RNRB at a £200k home value (not £350k)', function () {
         $user = User::factory()->create(['marital_status' => 'married']);
@@ -116,7 +121,7 @@ describe('RNRB residence-value cap (Fix 2)', function () {
 
         FamilyMember::factory()->child()->create(['user_id' => $user->id]);
 
-        $result = $this->service->calculate($user, $spouse);
+        $result = $this->service->calculate($user, $spouse, dataSharingEnabled: true);
 
         expect($result['rnrb_available'])->toBe(200_000.0)
             ->and($result['rnrb_available'])->not->toBe(350_000.0)
@@ -139,7 +144,7 @@ describe('RNRB residence-value cap (Fix 2)', function () {
 
         FamilyMember::factory()->child()->create(['user_id' => $user->id]);
 
-        $result = $this->service->calculate($user, $spouse);
+        $result = $this->service->calculate($user, $spouse, dataSharingEnabled: true);
 
         expect($result['rnrb_available'])->toBe(350_000.0)
             ->and($result['rnrb_status'])->toBe('full');
@@ -168,7 +173,7 @@ describe('RNRB residence-value cap (Fix 2)', function () {
 
         FamilyMember::factory()->child()->create(['user_id' => $user->id]);
 
-        $result = $this->service->calculate($user, $spouse);
+        $result = $this->service->calculate($user, $spouse, dataSharingEnabled: true);
 
         expect($result['rnrb_available'])->toBe(150_000.0)
             ->and($result['rnrb_status'])->toBe('residence_capped');

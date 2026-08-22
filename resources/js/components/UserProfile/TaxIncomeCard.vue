@@ -35,7 +35,7 @@
           </span>
         </div>
         <!-- Per-property rental breakdown -->
-        <template v-if="component.label === 'Rental Income' && rentalBreakdown?.properties?.length > 0">
+        <template v-if="component.key === 'rental' && rentalBreakdown?.properties?.length > 0">
           <div
             v-for="(property, pIndex) in rentalBreakdown.properties"
             :key="'prop-' + pIndex"

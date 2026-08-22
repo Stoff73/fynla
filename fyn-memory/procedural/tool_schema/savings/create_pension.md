@@ -2,9 +2,9 @@
 procedure_id: 'savings.tool.create_pension'
 kind: tool_schema
 module: savings
-version: 3
+version: 4
 active: true
-effective_from: 2026-06-02
+effective_from: 2026-08-21
 ---
 
 ```json
@@ -34,9 +34,10 @@ effective_from: 2026-06-02
                     "personal_pension",
                     "stakeholder",
                     "final_salary",
-                    "career_average"
+                    "career_average",
+                    "public_sector"
                 ],
-                "description": "Internal wire value — never shown to the user. Pot-of-money pensions: \"workplace\" (employer contributes), \"sipp\" (Self-Invested Personal Pension), \"personal_pension\", \"stakeholder\". Guaranteed-income pensions: \"final_salary\", \"career_average\". Must be one of these exact lowercase values. When the user has not made the type clear, send \"personal_pension\"."
+                "description": "Internal wire value — never shown to the user. Pot-of-money pensions: \"workplace\" (employer contributes), \"sipp\" (Self-Invested Personal Pension), \"personal_pension\", \"stakeholder\". Guaranteed-income pensions: \"final_salary\", \"career_average\" (benefits build up on each year's own salary — the NHS 2015, Teachers and Civil Service Alpha schemes are career average), \"public_sector\". Must be one of these exact lowercase values. When the user has not made the type clear, send \"personal_pension\"."
             },
             "provider": {
                 "type": "string",
@@ -65,6 +66,24 @@ effective_from: 2026-06-02
             "pensionable_service_years": {
                 "type": "number",
                 "description": "Years of pensionable service. Guaranteed-income pensions only."
+            },
+            "spouse_pension_percent": {
+                "type": "number",
+                "description": "Percentage of the pension that continues to the user's spouse or partner after their death, in percentage points (send 50 for 50%, not 0.5). Guaranteed-income pensions only. Send only when the user states it — the household death projection assumes 50% when it is unknown."
+            },
+            "inflation_protection": {
+                "type": "string",
+                "enum": [
+                    "cpi",
+                    "rpi",
+                    "fixed",
+                    "none"
+                ],
+                "description": "Internal wire value — never shown to the user. How the scheme increases the pension before it comes into payment: \"cpi\" for Consumer Prices Index, \"rpi\" for Retail Prices Index, \"fixed\" for a fixed percentage each year, \"none\" for no increases. Guaranteed-income pensions only. Send only when the user states it — do not guess, because \"none\" materially understates the pension."
+            },
+            "lump_sum_entitlement": {
+                "type": "number",
+                "description": "Tax-free lump sum available at retirement, in pounds (the Pension Commencement Lump Sum). Guaranteed-income pensions only."
             }
         },
         "required": [

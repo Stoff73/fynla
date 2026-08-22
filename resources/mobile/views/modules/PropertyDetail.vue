@@ -6,8 +6,10 @@
     </div>
     <template v-else-if="property">
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Current value</p>
+        <p class="m-sub m-label">{{ isShared ? 'Full property value' : 'Current value' }}</p>
         <p class="m-metric">{{ fmt(property.current_value) }}</p>
+        <p v-if="isShared" class="m-hero-sub">Your share ({{ sharePercent }}): {{ fmt(userShare) }}</p>
+        <p v-if="coOwner" class="m-hero-sub">Held with {{ coOwner }}</p>
         <p v-if="Number(property.outstanding_mortgage) > 0" class="m-hero-sub pd-debt">Mortgage {{ fmt(property.outstanding_mortgage) }}</p>
       </div>
       <div class="m-card m-detail-rows">
@@ -31,6 +33,7 @@ import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
+import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 const fmt = (value) => value == null || isNaN(Number(value)) ? '—' : new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
 const label = (value) => value ? String(value).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) : '—';
@@ -45,6 +48,12 @@ export default {
   components: { MobileChrome },
   data: () => ({ loading: true, error: '', property: null }),
   computed: {
+
+    // Ownership display via the ONE home shared with the desktop SPA (Rule 19 + Rule 20).
+    isShared() { return isSharedRecord(this.property); },
+    userShare() { return calculateUserShare(this.property, { valueField: 'current_value' }); },
+    sharePercent() { return `${userSharePercent(this.property).toFixed(2)}%`; },
+    coOwner() { return coOwnerName(this.property); },
     recordId() { return Number(this.$route.params.id); },
     heading() { return this.property?.address_line_1 || 'Property'; },
     canEdit() { return this.property?.is_primary_owner !== false; },

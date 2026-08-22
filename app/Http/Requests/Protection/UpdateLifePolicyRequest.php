@@ -13,6 +13,7 @@ class UpdateLifePolicyRequest extends BasePolicyRequest
         $specificRules = [
             'policy_type' => ['sometimes', Rule::in(['term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'level_term'])],
             'in_trust' => ['sometimes', 'boolean'],
+            'joint_life' => ['sometimes', 'boolean'],
             'is_mortgage_protection' => ['sometimes', 'boolean'],
             'beneficiaries' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'indexation_rate' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:0.10'],

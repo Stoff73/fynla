@@ -132,14 +132,15 @@ class PropertyStore
         $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data, $user, $source) {
             $property->fill($data);
             $dirty = $property->getDirty();
+            $previous = array_intersect_key($property->getOriginal(), $dirty);
             $property->save();
             $fresh = $property->fresh();
             $this->recalculateDerived($fresh, $user, $source, 'update');
 
-            return ['fresh' => $fresh, 'dirty' => $dirty];
+            return ['fresh' => $fresh, 'dirty' => $dirty, 'previous' => $previous];
         }));
 
-        event(new PropertyUpdated($result['fresh'], $result['dirty'], $user, $source));
+        event(new PropertyUpdated($result['fresh'], $result['dirty'], $user, $source, $result['previous']));
 
         return $result['fresh'];
     }
@@ -158,9 +159,10 @@ class PropertyStore
     public function delete(int $id, User $user, string $reason): void
     {
         $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $jointOwnerId = $property->joint_owner_id === null ? null : (int) $property->joint_owner_id;
         $property->delete();
 
-        event(new PropertyDeleted($id, $user, $reason));
+        event(new PropertyDeleted($id, $user, $reason, $jointOwnerId));
     }
 
     public function restore(int $id, User $user): Property
@@ -197,7 +199,7 @@ class PropertyStore
 
     /**
      * Persists derived columns via `forceFill + saveQuietly`. Observer-dedup
-     * note: NetWorthCacheObserver / RecommendationCacheObserver / PropertyRiskObserver
+     * note: UserDataCacheObserver / PropertyRiskObserver
      * already fire from the originating store write (create/update) OR from the
      * originating Mortgage write that triggered the cross-store listener. The
      * derived-column write is a second persistence step that must NOT re-trigger

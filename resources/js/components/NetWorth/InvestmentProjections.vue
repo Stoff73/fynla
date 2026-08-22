@@ -454,6 +454,7 @@
       :holding="editingHolding"
       :accounts="[account]"
       :default-account-id="account.id"
+      :save-error="holdingSaveError"
       @close="closeHoldingModal"
       @save="handleHoldingSave"
     />
@@ -534,6 +535,7 @@ export default {
       showEditModal: false,
       showDeleteConfirm: false,
       showHoldingModal: false,
+      holdingSaveError: null,
       editingHolding: null,
 
       // Projection data
@@ -1149,12 +1151,14 @@ export default {
 
     openHoldingModal(holding = null) {
       this.editingHolding = holding;
+      this.holdingSaveError = null;
       this.showHoldingModal = true;
     },
 
     closeHoldingModal() {
       this.showHoldingModal = false;
       this.editingHolding = null;
+      this.holdingSaveError = null;
     },
 
     async handleHoldingSave(holdingData) {
@@ -1171,7 +1175,11 @@ export default {
         await this.fetchInvestmentData();
         this.$emit('updated');
       } catch (error) {
+        // The modal stays open and says so, rather than closing on a discarded
+        // edit (W-0009).
         logger.error('Error saving holding:', error);
+        this.holdingSaveError = error.response?.data?.message
+          || 'Failed to save the holding. Please try again.';
       }
     },
   },

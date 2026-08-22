@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Estate\Will;
 use App\Models\Estate\WillDocument;
 use App\Models\User;
+use App\Services\Estate\WillTypePolicy;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 
@@ -14,6 +15,35 @@ beforeEach(function () {
     // must be on a full-Estate tier. Tier config seeded so TeaserGate resolves.
     $this->seed(TierConfigurationSeeder::class);
 });
+
+/**
+ * A premium, reciprocally-linked married pair — the shape W-0019 governs.
+ *
+ * @return array{0: User, 1: User}
+ */
+function premiumMarriedCouple(): array
+{
+    $spouse = User::factory()->withActivePremiumSubscription()->create([
+        'tier' => 'premium',
+        'first_name' => 'Sarah',
+        'middle_name' => null,
+        'surname' => 'Jones',
+        'marital_status' => 'married',
+    ]);
+
+    $user = User::factory()->withActivePremiumSubscription()->create([
+        'tier' => 'premium',
+        'first_name' => 'David',
+        'middle_name' => null,
+        'surname' => 'Jones',
+        'marital_status' => 'married',
+        'spouse_id' => $spouse->id,
+    ]);
+
+    $spouse->update(['spouse_id' => $user->id]);
+
+    return [$user->fresh(), $spouse->fresh()];
+}
 
 describe('Will Builder API', function () {
     describe('GET /estate/will-builder/pre-populate', function () {
@@ -250,6 +280,93 @@ describe('Will Builder API', function () {
                     'success' => true,
                     'data' => ['has_errors' => true],
                 ]);
+        });
+    });
+    describe('married users are offered mirror wills only (W-0019)', function () {
+        it('refuses to create a simple will, and names a solicitor', function () {
+            [$user] = premiumMarriedCouple();
+
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [
+                'will_type' => 'simple',
+                'testator_full_name' => 'David Jones',
+            ]);
+
+            $response->assertStatus(422)
+                ->assertJson(['success' => false])
+                ->assertJsonPath('data.refusal_heading', WillTypePolicy::REFUSAL_HEADING);
+
+            expect($response->json('message'))->toContain('solicitor');
+            expect(WillDocument::where('user_id', $user->id)->count())->toBe(0);
+        });
+
+        it('creates the mirror will it does offer', function () {
+            [$user] = premiumMarriedCouple();
+
+            $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [
+                'will_type' => 'mirror',
+                'testator_full_name' => 'David Jones',
+            ])->assertCreated();
+        });
+
+        it('refuses a switch to a simple will after the draft exists', function () {
+            [$user] = premiumMarriedCouple();
+
+            $doc = WillDocument::factory()->create([
+                'user_id' => $user->id,
+                'will_type' => 'mirror',
+            ]);
+
+            $this->actingAs($user, 'sanctum')
+                ->putJson("/api/estate/will-builder/{$doc->id}", [
+                    'step' => 'intro',
+                    'will_type' => 'simple',
+                ])
+                ->assertStatus(422);
+
+            expect($doc->fresh()->will_type)->toBe('mirror');
+        });
+
+        it('leaves an unmarried user\'s simple will alone', function () {
+            $user = User::factory()->withActivePremiumSubscription()->create([
+                'tier' => 'premium',
+                'marital_status' => 'single',
+                'spouse_id' => null,
+            ]);
+
+            $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [
+                'will_type' => 'simple',
+                'testator_full_name' => 'John Morgan',
+            ])->assertCreated();
+        });
+
+        it('hands every client the same policy through pre-populate', function () {
+            [$user] = premiumMarriedCouple();
+
+            $this->actingAs($user, 'sanctum')
+                ->getJson('/api/estate/will-builder/pre-populate')
+                ->assertOk()
+                ->assertJsonPath('data.will_type_policy.married', true)
+                ->assertJsonPath('data.will_type_policy.allowed_will_types', ['mirror'])
+                ->assertJsonPath('data.will_type_policy.refusal', WillTypePolicy::REFUSAL_MARRIED);
+        });
+
+        it('tells a married user with no partner account they cannot build here', function () {
+            $user = User::factory()->withActivePremiumSubscription()->create([
+                'tier' => 'premium',
+                'marital_status' => 'married',
+                'spouse_id' => null,
+            ]);
+
+            $this->actingAs($user, 'sanctum')
+                ->getJson('/api/estate/will-builder/pre-populate')
+                ->assertOk()
+                ->assertJsonPath('data.will_type_policy.can_build', false)
+                ->assertJsonPath('data.will_type_policy.refusal', WillTypePolicy::REFUSAL_NO_MIRROR_PARTNER);
+
+            $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [
+                'will_type' => 'mirror',
+                'testator_full_name' => 'David Jones',
+            ])->assertStatus(422);
         });
     });
 });

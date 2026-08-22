@@ -1,4 +1,5 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { EXPENDITURE_COMPOSITION_LABELS, expenditureCompositionNote, expenditureCompositionRows } from '@/utils/expenditureComposition';
 /**
  * Mixin for printing/PDF export of plans.
  * Follows the Letter to Spouse pattern for print window generation.
@@ -2025,10 +2026,17 @@ export const planPrintMixin = {
         familyRows.push(['Children', 'None']);
       }
 
+      // W-0140: the same composition the plan panels show, from the same source.
+      const compositionRows = expenditureCompositionRows(info.expenditure_composition)
+        .map(row => [row.label, row.text || this.fmtCurrency(row.amount)]);
+      const compositionNote = expenditureCompositionNote(info.expenditure_composition);
+      if (compositionNote) compositionRows.push([EXPENDITURE_COMPOSITION_LABELS.basis, compositionNote]);
+
       const financialRows = [
         ['Gross Income', this.fmtCurrency(info.gross_income)],
         ['Net Income', this.fmtCurrency(info.net_income)],
         ['Annual Expenditure', this.fmtCurrency(info.annual_expenditure)],
+        ...compositionRows,
         ['Disposable Income', `${this.fmtCurrency(info.disposable_income)} / year (${this.fmtCurrency(info.monthly_disposable)} / month)`],
       ].filter(([, v]) => v && v !== 'N/A');
 

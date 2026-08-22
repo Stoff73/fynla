@@ -61,7 +61,7 @@
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                 :class="getRelationshipBadgeClass(member.relationship)"
               >
-                {{ formatRelationship(member.relationship) }}
+                {{ familyMemberRelationshipLabel(member) }}
               </span>
               <span
                 v-if="member.is_dependent"
@@ -81,8 +81,9 @@
               >
                 Child Benefit
               </span>
+              <!-- Reads the link, never the relationship (W-0051) -->
               <span
-                v-if="member.relationship === 'spouse' && member.email"
+                v-if="isLinkedAccount(member)"
                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-spring-100 text-spring-800"
               >
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -93,7 +94,7 @@
             </div>
           </div>
 
-          <div v-if="!member.is_shared && member.relationship !== 'spouse'" class="flex space-x-2 flex-shrink-0">
+          <div v-if="canManageFamilyMember(member)" class="flex space-x-2 flex-shrink-0">
             <button
               v-preview-disabled="'edit'"
               @click="openEditModal(member)"
@@ -135,12 +136,9 @@
           <p class="text-body-sm text-horizon-500">{{ member.notes }}</p>
         </div>
 
-        <!-- Linked account notice -->
-        <p v-if="member.relationship === 'spouse'" class="mt-3 text-body-xs text-neutral-500 italic border-t border-light-gray pt-3">
-          Linked account — can only be edited or deleted by logging into the spouse's account
-        </p>
-        <p v-else-if="member.is_shared" class="mt-3 text-body-xs text-neutral-500 italic border-t border-light-gray pt-3">
-          Managed by spouse
+        <!-- Why this record is or is not the viewer's to manage -->
+        <p v-if="familyMemberManagementNotice(member)" class="mt-3 text-body-xs text-neutral-500 italic border-t border-light-gray pt-3">
+          {{ familyMemberManagementNotice(member) }}
         </p>
       </div>
       </div>
@@ -158,18 +156,34 @@
       </div>
     </div>
 
-    <!-- Charitable Bequest -->
+    <!--
+      W-0132. This card asked "Do you wish to leave anything to charity?" and
+      answered "Not set" for a user with a £10,000 charitable legacy in their will
+      that the estate calculation was already using to apply the reduced rate.
+
+      It was reading `users.charitable_bequest` — a column written by a toggle on
+      /estate and never loaded back into the client — so it was a fourth answer to
+      a question three other mechanisms already answer, and the only one that got
+      it wrong. It also could not tell "we have not asked you" from "you told us
+      no": NULL and false are both falsy, and both rendered the same.
+
+      The will is the instrument, so the card now states what is recorded in it
+      (Rule 20 — one answer, one home, `WillAnalysisService::charitableBequestSummary`).
+      There is no longer a tri-state to render, because there is no longer a toggle
+      standing between the user and their own will.
+    -->
     <div class="card p-6 mt-6">
       <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Charitable Bequest</h3>
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-body text-neutral-500 mb-1">Do you wish to leave anything to charity?</p>
+          <p class="text-body text-neutral-500 mb-1">{{ charitableBequestAnswer }}</p>
           <p class="text-body-sm text-neutral-500">
-            Leaving 10% or more to charity can reduce your Inheritance Tax rate from 40% to 36%
+            Leaving 10% or more to charity can reduce your Inheritance Tax rate from 40% to 36%.
+            Charitable gifts are recorded in your will.
           </p>
         </div>
-        <div class="text-body font-medium" :class="charitableBequest ? 'text-spring-600' : 'text-neutral-500'">
-          {{ charitableBequest ? 'Yes' : charitableBequest === false ? 'No' : 'Not set' }}
+        <div class="text-body font-medium" :class="charitableBequests?.has_bequests ? 'text-spring-600' : 'text-neutral-500'">
+          {{ charitableBequests?.has_bequests ? 'Yes' : 'None recorded' }}
         </div>
       </div>
     </div>
@@ -242,6 +256,12 @@ import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
 import familyMembersService from '@/services/familyMembersService';
 import { formatCurrency } from '@/utils/currency';
+import {
+  canManageFamilyMember,
+  familyMemberManagementNotice,
+  familyMemberRelationshipLabel,
+  isLinkedAccount,
+} from '@/utils/familyMember';
 
 import logger from '@/utils/logger';
 // Preview mode messages
@@ -283,7 +303,40 @@ export default {
       }
     }, { immediate: true });
 
-    const charitableBequest = computed(() => store.state.auth.user?.charitable_bequest);
+    // W-0132 — read from the will, via the profile this page already loads, not
+    // from `users.charitable_bequest`. Published by
+    // `WillAnalysisService::charitableBequestSummary()`, the one home for the
+    // question, so this card cannot disagree with the estate module about whether
+    // the same person is leaving money to charity.
+    const charitableBequests = computed(() => store.state.userProfile.profile?.charitable_bequests);
+
+    /**
+     * What is recorded, stated as a fact rather than asked as a question.
+     *
+     * Estate-dependent gifts (a percentage, a named asset, a share of the residue)
+     * are named but never totalled — their value is not known until the estate is
+     * valued, and printing a total that silently omitted them would be the same
+     * class of defect this card is being fixed for.
+     */
+    const charitableBequestAnswer = computed(() => {
+      const summary = charitableBequests.value;
+
+      if (!summary?.has_bequests) {
+        return 'Your will records no gifts to charity.';
+      }
+
+      const gifts = summary.count === 1 ? 'one charitable gift' : `${summary.count} charitable gifts`;
+
+      if (summary.fixed_total > 0 && summary.has_estate_share) {
+        return `Your will records ${gifts}: ${formatCurrency(summary.fixed_total)} in fixed sums, plus a share of your estate.`;
+      }
+
+      if (summary.has_estate_share) {
+        return `Your will records ${gifts}, given as a share of your estate.`;
+      }
+
+      return `Your will records ${gifts}, totalling ${formatCurrency(summary.fixed_total)}.`;
+    });
 
     const loadFamilyMembers = async (forceRefresh = false) => {
       // First try to use store data (from fetchProfile) which includes spouse
@@ -324,11 +377,6 @@ export default {
         age--;
       }
       return age;
-    };
-
-    const formatRelationship = (relationship) => {
-      if (!relationship) return '';
-      return relationship.replace('_', ' ');
     };
 
     const getRelationshipBadgeClass = (relationship) => {
@@ -539,7 +587,8 @@ export default {
 
     return {
       familyMembers,
-      charitableBequest,
+      charitableBequests,
+      charitableBequestAnswer,
       showModal,
       selectedMember,
       successMessage,
@@ -553,8 +602,11 @@ export default {
       formatDate,
       calculateAge,
       formatCurrency,
-      formatRelationship,
       getRelationshipBadgeClass,
+      canManageFamilyMember,
+      familyMemberRelationshipLabel,
+      familyMemberManagementNotice,
+      isLinkedAccount,
       openAddModal,
       openEditModal,
       closeModal,

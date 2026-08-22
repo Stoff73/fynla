@@ -635,7 +635,8 @@ private struct UnlockedView: View {
                     onOpenContextualFyn: presentContextualFyn,
                     onOpenConversation: presentConversation,
                     onOpenRoute: openTopLevel,
-                    onRoute: navigate
+                    onRoute: navigate,
+                    onOpenWillPlanning: openWillPlanning
                 )
                 // /m has no system navigation bar anywhere — the shell header
                 // (hamburger + greeting) and per-page hero replace it.
@@ -826,6 +827,15 @@ private struct UnlockedView: View {
                 adminError = "The Admin Panel could not be opened securely."
             }
         }
+    }
+
+    // W-0044. The same one-time-handoff-then-Safari-sheet route as openAdmin, for
+    // the Will Builder, which has no native screen. EstateView owns the in-flight
+    // and error state, so this only throws — it does not report.
+    @MainActor
+    private func openWillPlanning() async throws {
+        let url = try await webHandoffClient.issue(.estateWill)
+        browserItem = SafariSheetItem(url: url)
     }
 
     private var navigationPath: Binding<[AppRoute]> {

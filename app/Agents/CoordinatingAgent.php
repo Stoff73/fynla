@@ -17,6 +17,7 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
+use App\Models\Concerns\RecordsPolicyDates;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -62,6 +63,7 @@ use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\Estate\WillDocumentService;
 use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
@@ -85,6 +87,7 @@ use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\Stores\RetirementProfileStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\Tax\IncomeDefinitionsService;
@@ -92,6 +95,8 @@ use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
 use App\Services\WhatIf\WhatIfScenarioService;
+use App\Support\HoldingValuation;
+use App\Support\SharedOwnership;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
 use Carbon\Carbon;
@@ -157,10 +162,16 @@ class CoordinatingAgent extends BaseAgent
      * After any Fyn write (the ~10 capture handlers below all call this), clear
      * the full set of the user's caches — not just this agent's. The mobile /m
      * surface is served entirely from CacheInvalidationService-managed keys
-     * (mobile_dashboard_*, mobile_module_*, mobile_level_actions_*), and the Fyn
-     * capture path is its ONLY writer, so a Fyn write must invalidate them or the
-     * /m dashboard + drill-downs stay stale for up to 24h. BaseAgent's version
-     * only clears v1_{agent}_* keys.
+     * (mobile_dashboard_*, mobile_module_*, mobile_level_actions_*), which live
+     * for 24 hours, so a write that does not invalidate them leaves the /m
+     * dashboard and drill-downs stale for a day. BaseAgent's version only clears
+     * v1_{agent}_* keys.
+     *
+     * **This is no longer the only writer, and the note that said so was how the
+     * gap hid.** `UserDataCacheObserver` now invalidates on every financial model
+     * write, whichever surface made it — so this call is the belt to that
+     * observer's braces for the handful of Fyn paths that write outside a model
+     * event, not the sole mechanism it was described as (W-0239).
      */
     public function invalidateUserCache(int $userId, array $additionalKeys = []): void
     {
@@ -1746,33 +1757,30 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'message' => 'Invalid spouse date_of_birth'];
         }
 
-        $service = app(SpouseLinkingService::class);
+        $outcome = $this->linkSpouseAccount($user, [
+            'first_name' => $firstName,
+            'last_name' => trim((string) ($input['last_name'] ?? '')),
+            'date_of_birth' => $dobFormatted,
+            'email' => $email,
+            'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
+        ]);
 
-        try {
-            $result = $service->linkOrCreateSpouse($user, [
-                'first_name' => $firstName,
-                'last_name' => trim((string) ($input['last_name'] ?? '')),
-                'date_of_birth' => $dobFormatted,
-                'email' => $email,
-                'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
-            ]);
-        } catch (SpouseCollisionException $e) {
+        if (! $outcome['ok']) {
             // FR-M13 — distinguish the "email belongs to another household"
             // case so the director can emit a targeted terminal error
             // instead of the generic grouped_extract retry copy.
-            return [
-                'onboarding_capture_error' => true,
-                'field_group' => 'spouse',
-                'error_type' => 'spouse_collision',
-                'message' => "That email's already registered with another Fynla household. Want to use a different address for your partner, or ask them to link their own account?",
-            ];
-        } catch (\InvalidArgumentException $e) {
-            return ['error' => true, 'message' => $e->getMessage()];
-        } catch (\Throwable $e) {
-            Log::error('[CoordinatingAgent] handleCaptureSpouseDetails failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
+            if ($outcome['kind'] === 'collision') {
+                return [
+                    'onboarding_capture_error' => true,
+                    'field_group' => 'spouse',
+                    'error_type' => 'spouse_collision',
+                    'message' => "That email's already registered with another Fynla household. Want to use a different address for your partner, or ask them to link their own account?",
+                ];
+            }
+
+            if ($outcome['kind'] === 'invalid') {
+                return ['error' => true, 'message' => $outcome['message']];
+            }
 
             // As a plain error this reached the user as the grouped_extract
             // retry copy — "I need a first name, date of birth, and email
@@ -1787,6 +1795,8 @@ class CoordinatingAgent extends BaseAgent
                 'message' => "I could not link your partner's account just then, and I have not saved anything. Try a different email address for them, or come back to this later.",
             ];
         }
+
+        $result = $outcome['result'];
 
         return [
             'onboarding_capture' => true,
@@ -1804,6 +1814,63 @@ class CoordinatingAgent extends BaseAgent
                 'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
             ],
         ];
+    }
+
+    /**
+     * THE one path from a Fyn tool to a spouse account link (Rule 20).
+     *
+     * Two tools can express "this person is my spouse": `capture_spouse_details`
+     * during onboarding, and `create_family_member` everywhere else — and on the
+     * advice → delegate_to_capture turn the model is offered BOTH
+     * (`OnboardingChatDirector::captureToolSet()` returns
+     * `AdviceFyn::WRITE_TOOLS`, which contains the pair) and picks. Only one of
+     * them could establish the link; the other wrote a bare `family_members`
+     * row. So which tool the model happened to reach for decided whether the
+     * household was linked at all (W-0113).
+     *
+     * Both tools now enter here, and here enters `SpouseLinkingService` — the
+     * same single home the settings form and the onboarding wizard use. Callers
+     * keep their own input contracts and their own response shapes, because
+     * their consumers differ; what they must not keep is their own idea of what
+     * linking a spouse means.
+     *
+     * @param  array<string, mixed>  $data  first_name, email; optionally
+     *                                      last_name, date_of_birth, annual_income
+     * @return array{ok: true, result: array<string, mixed>}|array{ok: false, kind: string, message: string}
+     */
+    private function linkSpouseAccount(User $user, array $data): array
+    {
+        // Lowercase at the entry point so every downstream lookup (account
+        // search, creation, FamilyMember linkage) sees the canonical form.
+        // P0.8 — case-mismatched emails were either rejecting the legitimate
+        // spouse's existing account or creating a duplicate on case-sensitive
+        // collations.
+        $email = strtolower(trim((string) ($data['email'] ?? '')));
+
+        if ($email === '') {
+            return ['ok' => false, 'kind' => 'invalid', 'message' => 'A spouse email address is required.'];
+        }
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'kind' => 'invalid', 'message' => 'Invalid spouse email address'];
+        }
+
+        $data['email'] = $email;
+
+        try {
+            return ['ok' => true, 'result' => app(SpouseLinkingService::class)->linkOrCreateSpouse($user, $data)];
+        } catch (SpouseCollisionException $e) {
+            return ['ok' => false, 'kind' => 'collision', 'message' => $e->getMessage()];
+        } catch (\InvalidArgumentException $e) {
+            return ['ok' => false, 'kind' => 'invalid', 'message' => $e->getMessage()];
+        } catch (\Throwable $e) {
+            Log::error('[CoordinatingAgent] Spouse linking failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['ok' => false, 'kind' => 'failed', 'message' => $e->getMessage()];
+        }
     }
 
     /**
@@ -2089,11 +2156,11 @@ class CoordinatingAgent extends BaseAgent
                 break;
             case 'critical_illness':
                 $items = CriticalIllnessPolicy::where('user_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'policy_type' => $p->policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'policy_term_years' => $p->policy_term_years, 'ownership_type' => $p->ownership_type])->toArray();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'policy_type' => $p->policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'policy_end_date' => $p->policy_end_date?->format('Y-m-d'), 'policy_term_years' => $p->policy_term_years, 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'income_protection':
                 $items = IncomeProtectionPolicy::where('user_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'benefit_amount' => (float) $p->benefit_amount, 'benefit_frequency' => $p->benefit_frequency, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'deferred_period_weeks' => $p->deferred_period_weeks, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'ownership_type' => $p->ownership_type])->toArray();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'benefit_amount' => (float) $p->benefit_amount, 'benefit_frequency' => $p->benefit_frequency, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'deferred_period_weeks' => $p->deferred_period_weeks, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'policy_end_date' => $p->policy_end_date?->format('Y-m-d'), 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'trust':
                 $items = Trust::where('user_id', $userId)->get();
@@ -2668,7 +2735,12 @@ class CoordinatingAgent extends BaseAgent
         $validationError = $this->validateToolInput($input, [
             'name' => 'required|string|max:255',
             'target_amount' => 'required|numeric|min:0|max:999999999.99',
-            'target_date' => 'required|date|after:today',
+            // W-0029: matches StoreGoalRequest, which no longer rejects a date on
+            // or before today. Fyn is the only goal entry route /m and native
+            // have, so an `after:today` here would keep a missed goal
+            // unrecordable there after the form stopped rejecting one. The life
+            // event handler below has always accepted any date.
+            'target_date' => 'required|date',
             'priority' => ['required', Rule::in(['critical', 'high', 'medium', 'low'])],
             'goal_type' => ['required', Rule::in(['emergency_fund', 'home_deposit', 'property_purchase', 'holiday', 'education', 'wedding', 'car_purchase', 'retirement', 'wealth_accumulation', 'debt_repayment', 'custom'])],
             'monthly_contribution' => 'nullable|numeric|min:0|max:999999.99',
@@ -3023,9 +3095,14 @@ class CoordinatingAgent extends BaseAgent
             'account_type' => $dbAccountType,
             'current_value' => (float) $input['current_value'],
             'ownership_type' => $ownershipType,
-            'ownership_percentage' => isset($input['ownership_percentage'])
-                ? (float) $input['ownership_percentage']
-                : 100.00,
+            // One shared rule (App\Support\SharedOwnership). The literal 100
+            // that used to sit here was only ever corrected because the
+            // normaliser downstream rewrote it; a joint account must not depend
+            // on being rescued (W-0040).
+            'ownership_percentage' => SharedOwnership::primaryOwnerPercentage(
+                $ownershipType,
+                $input['ownership_percentage'] ?? null,
+            ),
             'joint_owner_id' => $input['joint_owner_id'] ?? null,
         ];
 
@@ -3163,20 +3240,17 @@ class CoordinatingAgent extends BaseAgent
 
         $allocationPct = isset($input['allocation_percent']) ? (float) $input['allocation_percent'] : null;
         $accountCurrentValue = (float) ($account->current_value ?? 0);
-        $currentValue = $allocationPct !== null
-            ? round(($allocationPct / 100) * $accountCurrentValue, 2)
-            : 0.0;
 
         $payload = [
             'holdable_id' => $account->id,
             'holdable_type' => InvestmentAccount::class,
             'security_name' => $input['security_name'],
             'asset_type' => $input['asset_type'],
-            'current_value' => $currentValue,
         ];
 
         if ($allocationPct !== null) {
             $payload['allocation_percent'] = $allocationPct;
+            $payload['current_value'] = round(($allocationPct / 100) * $accountCurrentValue, 2);
         }
         foreach (['ticker', 'isin'] as $field) {
             if (isset($input[$field]) && $input[$field] !== '') {
@@ -3191,6 +3265,27 @@ class CoordinatingAgent extends BaseAgent
         if (isset($input['purchase_date']) && $input['purchase_date'] !== '') {
             $payload['purchase_date'] = $input['purchase_date'];
         }
+
+        // Units, price and value are reconciled in the ONE place both controller
+        // paths read (Rule 20, W-0122). This handler used to derive the value from
+        // an allocation percentage inline and never write a unit count at all, so
+        // the same security entered by talking to Fyn and entered on a form came
+        // out as two different shapes of row. The allocation is still where the
+        // value comes from when that is all anyone said — it is an input to the
+        // shared rule now, not a competing one.
+        //
+        // `create_holding` carries no units parameter, so in practice this
+        // back-calculates the unit count from the value and price. Giving Fyn a
+        // way to state units at all means changing the tool schema, which is
+        // golden-mastered and is its own piece of work.
+        $payload = HoldingValuation::reconcile($payload);
+
+        // holdings.current_value is NOT NULL with no database default. Where
+        // nothing was said about allocation, units or price there is no valuation
+        // to derive and the column takes zero — a storage constraint, not a
+        // valuation rule, which is why it sits after the reconciliation and not
+        // inside it.
+        $payload['current_value'] ??= 0.0;
 
         $recapture = $this->guardRecapture('investment_holding', $payload, $input, $user);
         if ($recapture !== null) {
@@ -3347,6 +3442,9 @@ class CoordinatingAgent extends BaseAgent
             'employer_contribution_percent' => 'nullable|numeric|min:0|max:100',
             'accrued_annual_pension' => 'nullable|numeric|min:0|max:999999.99',
             'normal_retirement_age' => 'nullable|integer|min:50|max:75',
+            'spouse_pension_percent' => 'nullable|numeric|min:0|max:100',
+            'inflation_protection' => ['nullable', Rule::in(['cpi', 'rpi', 'fixed', 'none'])],
+            'lump_sum_entitlement' => 'nullable|numeric|min:0|max:999999999.99',
         ]);
         if ($validationError) {
             return $validationError;
@@ -3456,12 +3554,13 @@ class CoordinatingAgent extends BaseAgent
         // is a UX-display default, not a constraint workaround.
         $propertyType = $input['property_type'];
         $ownershipType = $input['ownership_type'] ?? 'individual';
-        $ownershipPct = isset($input['ownership_percentage'])
-            ? (float) $input['ownership_percentage']
-            : match ($ownershipType) {
-                'joint', 'tenants_in_common' => 50.0,
-                default => 100.0,
-            };
+        // The share comes from the ONE shared rule (App\Support\SharedOwnership),
+        // not from a copy of it here. This handler used to carry its own
+        // shared-versus-individual match (W-0040).
+        $ownershipPct = SharedOwnership::primaryOwnerPercentage(
+            $ownershipType,
+            $input['ownership_percentage'] ?? null,
+        );
 
         // array_merge with defaults FIRST + $input SECOND so Fyn's actual values
         // override the placeholders. Equivalent to array_replace($defaults, $input).
@@ -3707,7 +3806,7 @@ class CoordinatingAgent extends BaseAgent
         // parses it deterministically (Carbon handles "today", "yesterday",
         // "26 April 2026", "last Monday", etc.). Bad strings drop to null
         // rather than 500 the request.
-        foreach (['policy_start_date', 'policy_end_date'] as $dateField) {
+        foreach (RecordsPolicyDates::$policyDateFields as $dateField) {
             if (isset($input[$dateField]) && is_string($input[$dateField]) && $input[$dateField] !== '') {
                 try {
                     $input[$dateField] = Carbon::parse($input[$dateField])->toDateString();
@@ -3727,7 +3826,7 @@ class CoordinatingAgent extends BaseAgent
                     : $sumAssured,
                 'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
             ];
-            foreach (['provider', 'policy_number', 'policy_start_date', 'policy_end_date'] as $f) {
+            foreach (['provider', 'policy_number', ...RecordsPolicyDates::$policyDateFields] as $f) {
                 if (isset($input[$f]) && $input[$f] !== '') {
                     $payload[$f] = $input[$f];
                 }
@@ -3798,7 +3897,7 @@ class CoordinatingAgent extends BaseAgent
                 'sum_assured' => $sumAssured,
                 'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
             ];
-            foreach (['provider', 'policy_number', 'policy_start_date'] as $f) {
+            foreach (['provider', 'policy_number', ...RecordsPolicyDates::$policyDateFields] as $f) {
                 if (isset($input[$f]) && $input[$f] !== '') {
                     $payload[$f] = $input[$f];
                 }
@@ -3849,7 +3948,7 @@ class CoordinatingAgent extends BaseAgent
                 'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
                 'benefit_frequency' => $input['benefit_frequency'] ?? 'monthly',
             ];
-            foreach (['provider', 'policy_number', 'occupation_class', 'policy_start_date'] as $f) {
+            foreach (['provider', 'policy_number', 'occupation_class', ...RecordsPolicyDates::$policyDateFields] as $f) {
                 if (isset($input[$f]) && $input[$f] !== '') {
                     $payload[$f] = $input[$f];
                 }
@@ -3989,7 +4088,14 @@ class CoordinatingAgent extends BaseAgent
             'liability_type' => $dbLiabilityType,
             'current_balance' => (float) $input['current_balance'],
             'ownership_type' => $input['ownership_type'] ?? 'individual',
-            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100.0,
+            // One shared rule (App\Support\SharedOwnership). The literal 100
+            // here reached the database unaltered — LiabilityStore's own default
+            // cannot fire on a key that is already set — so every joint
+            // liability Fyn created was stored at 100/0 (W-0161).
+            'ownership_percentage' => SharedOwnership::primaryOwnerPercentage(
+                $input['ownership_type'] ?? 'individual',
+                $input['ownership_percentage'] ?? null,
+            ),
             'joint_owner_id' => $input['joint_owner_id'] ?? null,
             'trust_id' => $input['trust_id'] ?? null,
         ];
@@ -4081,6 +4187,39 @@ class CoordinatingAgent extends BaseAgent
 
     // ─── Estate planning documents (Will + LPA) ──────────────────────
 
+    /**
+     * A will cannot appoint its own testator as executor (W-0024).
+     *
+     * The will builder blocks this in WillDocumentService::validateDocument();
+     * Fyn is the other path to a will record, so it asks the same question of
+     * the same helper, in the same words, rather than growing a second rule.
+     */
+    private function refuseSelfAppointedExecutor(?string $executorName, User $user): ?array
+    {
+        if ($executorName === null || trim($executorName) === '') {
+            return null;
+        }
+
+        $ownNames = array_filter([
+            trim(implode(' ', array_filter([$user->first_name, $user->middle_name, $user->surname]))),
+            (string) $user->name,
+        ]);
+
+        foreach (explode(',', $executorName) as $candidate) {
+            foreach ($ownNames as $ownName) {
+                if (WillDocumentService::isSameParty($candidate, $ownName)) {
+                    return [
+                        'error' => true,
+                        'error_type' => 'executor_is_testator',
+                        'message' => WillDocumentService::EXECUTOR_IS_TESTATOR_MESSAGE,
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
     private function handleCreateWill(array $input, User $user, bool $isPreview): array
     {
         if ($isPreview) {
@@ -4096,6 +4235,10 @@ class CoordinatingAgent extends BaseAgent
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        if ($selfExecutor = $this->refuseSelfAppointedExecutor($input['executor_name'] ?? null, $user)) {
+            return $selfExecutor;
         }
 
         // Default spouse_primary_beneficiary true for married users when not specified.
@@ -4152,6 +4295,10 @@ class CoordinatingAgent extends BaseAgent
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        if ($selfExecutor = $this->refuseSelfAppointedExecutor($input['executor_name'] ?? null, $user)) {
+            return $selfExecutor;
         }
 
         $will = Will::where('user_id', $user->id)->first();
@@ -4629,6 +4776,7 @@ class CoordinatingAgent extends BaseAgent
             'first_name' => 'required|string|max:255',
             'relationship' => ['required', Rule::in(['spouse', 'partner', 'child', 'step_child', 'parent', 'other_dependent'])],
             'surname' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
             'date_of_birth' => 'nullable|date',
             'gender' => ['nullable', Rule::in(['male', 'female', 'other', 'prefer_not_to_say'])],
             'is_dependent' => 'nullable|boolean',
@@ -4640,23 +4788,27 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
+        // A spouse is not an ordinary family member: the row IS the household's
+        // account link, and `users.spouse_id`, both SpousePermission rows and
+        // everything joint hang off it. This handler used to write a bare row
+        // and call it done, so "add my wife Sarah" left the household unlinked
+        // while the same request phrased another way reached
+        // capture_spouse_details and linked it (W-0113). One path now.
+        if ($input['relationship'] === 'spouse') {
+            return $this->createSpouseFamilyMember($input, $user);
+        }
+
         // Default surname to user's surname if not provided
         $surname = $input['surname'] ?? $user->surname;
 
-        // Map relationships to DB-compatible values (DB enum: spouse, child, parent, other_dependent)
+        // Map relationships to the values the column holds. This mapping used
+        // to live here alone, which is why Fyn could add a step-child and the
+        // family form 500ed on one (W-0114). FamilyMember owns the column and
+        // now owns the translation; both paths read it.
         $relationship = $input['relationship'];
-        $dbRelationship = match ($relationship) {
-            'step_child' => 'child',
-            'partner' => 'other_dependent',
-            default => $relationship,
-        };
-
-        // Add note for mapped relationships
-        $mappingNote = match ($relationship) {
-            'step_child' => 'Step child',
-            'partner' => 'Partner (unmarried)',
-            default => null,
-        };
+        $resolved = FamilyMember::resolveRelationship($relationship);
+        $dbRelationship = $resolved['relationship'];
+        $mappingNote = $resolved['note'];
 
         // Default is_dependent for children and dependents
         $isDependent = $input['is_dependent'] ?? in_array($relationship, ['child', 'step_child', 'other_dependent']);
@@ -4664,6 +4816,9 @@ class CoordinatingAgent extends BaseAgent
         $payload = [
             'user_id' => $user->id,
             'relationship' => $dbRelationship,
+            // What the user actually said, so the card can show it rather than
+            // the alias it had to be stored as (W-0114).
+            'stated_relationship' => $resolved['stated'],
             'first_name' => $input['first_name'],
             'last_name' => $surname,
             'is_dependent' => $isDependent,
@@ -4677,11 +4832,9 @@ class CoordinatingAgent extends BaseAgent
 
         // Notes: combine the relationship-mapping note with any AI-supplied
         // notes (in that order so the mapping context comes first).
-        $aiNotes = $input['notes'] ?? '';
-        if ($mappingNote) {
-            $payload['notes'] = trim($mappingNote.($aiNotes !== '' ? '. '.$aiNotes : ''));
-        } elseif ($aiNotes !== '') {
-            $payload['notes'] = $aiNotes;
+        $notes = FamilyMember::composeRelationshipNotes($mappingNote, $input['notes'] ?? null);
+        if ($notes !== null) {
+            $payload['notes'] = $notes;
         }
 
         // Child-specific: education_status (inferred from DOB if absent).
@@ -4727,6 +4880,73 @@ class CoordinatingAgent extends BaseAgent
             'name' => trim($member->first_name.' '.($member->last_name ?? '')),
             'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
             'message' => "I've added {$input['first_name']} as your {$relationship}.",
+        ];
+    }
+
+    /**
+     * `create_family_member` with relationship=spouse — the same link the
+     * settings form, the onboarding wizard and `capture_spouse_details` make,
+     * through the same service. See linkSpouseAccount() for why.
+     *
+     * The email is required here for the reason it is required on the form: a
+     * spouse row without it claims a relationship nothing established. Refusing
+     * with a message the model can act on turns that into one more question in
+     * the conversation, which is the right shape for this surface.
+     *
+     * `guardRecapture` is deliberately not consulted on this branch. It exists
+     * to stop a second identical row being written; the linking service already
+     * adopts an existing spouse row rather than inserting beside it (W-0051), so
+     * re-linking the same spouse updates one record instead of duplicating it.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function createSpouseFamilyMember(array $input, User $user): array
+    {
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+
+        if ($email === '') {
+            return [
+                'error' => true,
+                'message' => "I need your spouse's email address before I can add them. Adding a spouse creates or links their own Fynla account, which is what connects your finances — ask the user for it, then call this tool again.",
+            ];
+        }
+
+        $outcome = $this->linkSpouseAccount($user, [
+            'first_name' => trim((string) $input['first_name']),
+            'last_name' => trim((string) ($input['surname'] ?? $user->surname ?? '')),
+            'date_of_birth' => $input['date_of_birth'] ?? null,
+            'gender' => $input['gender'] ?? null,
+            'email' => $email,
+            'notes' => $input['notes'] ?? null,
+        ]);
+
+        if (! $outcome['ok']) {
+            return [
+                'error' => true,
+                'message' => match ($outcome['kind']) {
+                    'collision' => 'That email address is already linked to another Fynla household, so I have not saved anything. Ask the user for a different address, or for their spouse to link their own account.',
+                    'invalid' => $outcome['message'],
+                    default => "I could not link your spouse's account just then, and I have not saved anything.",
+                },
+            ];
+        }
+
+        $result = $outcome['result'];
+        $member = $result['family_member'];
+
+        $this->invalidateUserCache($user->id);
+
+        return [
+            'success' => true,
+            'created' => true,
+            'entity_type' => 'family_member',
+            'entity_id' => $member->id,
+            'name' => trim($member->first_name.' '.($member->last_name ?? '')),
+            'persisted_fields' => ['relationship', 'first_name', 'last_name', 'date_of_birth', 'gender', 'linked_user_id'],
+            'message' => $result['created_new_user']
+                ? "I've added {$input['first_name']} as your spouse and set up their account — they'll get an email with login instructions."
+                : "I've added {$input['first_name']} as your spouse and linked your accounts.",
         ];
     }
 
@@ -4826,6 +5046,7 @@ class CoordinatingAgent extends BaseAgent
             'annual_profit' => 'nullable|numeric|min:-999999999.99|max:999999999.99',
             'annual_dividend_income' => 'nullable|numeric|min:0|max:999999999.99',
             'employee_count' => 'nullable|integer|min:0|max:99999',
+            'company_number' => 'nullable|string|max:50',
         ]);
         if ($validationError) {
             return $validationError;
@@ -4849,7 +5070,7 @@ class CoordinatingAgent extends BaseAgent
         if (isset($input['employee_count']) && is_numeric($input['employee_count'])) {
             $payload['employee_count'] = (int) $input['employee_count'];
         }
-        foreach (['description', 'notes'] as $f) {
+        foreach (['description', 'notes', 'company_number'] as $f) {
             if (isset($input[$f]) && $input[$f] !== '') {
                 $payload[$f] = $input[$f];
             }
@@ -5568,24 +5789,37 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'not_found', 'message' => 'No retirement goals are on file to update.'];
         }
 
-        if ($existing !== null) {
-            $updates = array_filter(['target_retirement_age' => $age, 'target_retirement_income' => $income], fn ($v) => $v !== null);
-            $existing->update($updates);
-        } elseif ($age !== null) {
+        if ($existing !== null || $age !== null) {
             // On the first turn only income may have been provided (the partial-retry
             // protocol kept us on this state). Merge any parked income so it is not
             // silently dropped when the LLM re-calls the tool with age only.
-            if ($income === null) {
+            if ($income === null && $existing === null) {
                 $income = $this->retrieveParkedRetirementGoalIncome($conversationId);
             }
-            $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 30;
-            $creates = array_filter(['target_retirement_income' => $income], fn ($v) => $v !== null);
-            RetirementProfile::create([
-                'user_id' => $user->id,
-                'current_age' => $currentAge,
-                'target_retirement_age' => $age,
-                ...$creates,
-            ]);
+
+            // One store writes retirement goals, whichever surface asked (Rule 20).
+            // Fyn used to create the row itself, which is why the mirror onto
+            // users.target_retirement_age below it was Fyn-only and the web endpoint
+            // added in W-0035 shipped without it. The branch decision above stays
+            // here because it is conversational protocol, not persistence: the store
+            // would happily fall back to users.target_retirement_age when creating,
+            // and Fyn must ask rather than assume.
+            try {
+                app(RetirementProfileStore::class)->updateGoals($user, $age, $income);
+            } catch (StoreValidationException $e) {
+                // Reached only when the profile has to be created and the user has no
+                // date of birth. This used to write a fabricated current_age of 30 —
+                // and PensionProjector::getCurrentAge() prefers current_age over the
+                // date of birth, so that quietly shifted every projection the user
+                // ever saw. Asking is the honest answer.
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $e->errors,
+                    'message' => 'Validation failed for retirement goals.',
+                ];
+            }
+
             // Clear the parked income — it has now been committed to the profile.
             $this->clearParkedRetirementGoalIncome($conversationId);
         } else {
@@ -5602,15 +5836,9 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        // Mirror the age onto users.target_retirement_age. The retirement store is
-        // retirement_profiles, but the /retirement page (RetirementProjectionService),
-        // the "When you want to retire" data-requirement, and ModuleAvailabilityProvider
-        // all read users.target_retirement_age — leaving it null showed the default
-        // age (67) and kept the checklist item outstanding despite the goal being set.
-        if ($age !== null) {
-            $user->target_retirement_age = $age;
-            $user->save();
-        }
+        // The mirror onto users.target_retirement_age now lives in
+        // RetirementProfileStore, so the web and /m forms get it too — it was
+        // Fyn-only for as long as Fyn was the only writer.
 
         // Bust the user's caches so the synthesis, /retirement page and dashboards
         // recompute against the new goal. The retirement analysis is remembered
@@ -5870,7 +6098,15 @@ class CoordinatingAgent extends BaseAgent
                 $store = app(PensionStore::class);
                 $pension = $entityType === 'dc_pension'
                     ? $store->updateDc($entityId, $fields, $user, IngestSource::FYN_AI)
-                    : $store->updateDb($entityId, $fields, $user, IngestSource::FYN_AI);
+                    // A correction skips the from* normalisers, so shape the fields
+                    // that have a stored vocabulary here rather than letting this be
+                    // the one write path with its own idea of them (W-0032).
+                    : $store->updateDb(
+                        $entityId,
+                        app(PensionNormaliser::class)->normaliseDbFields($fields),
+                        $user,
+                        IngestSource::FYN_AI,
+                    );
             } catch (ModelNotFoundException $e) {
                 return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
             } catch (StoreValidationException $e) {

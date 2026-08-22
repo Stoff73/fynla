@@ -159,3 +159,51 @@ it('schedules web handoff pruning every day', function (): void {
         ->expectsOutputToContain('model:prune')
         ->assertSuccessful();
 });
+
+// W-0044. This enum is mirrored by hand in the native app
+// (`ios-native/Fynla/Core/Navigation/WebHandoffClient.swift`) and consumed by name
+// on /m (`resources/mobile/views/modules/EstateBequests.vue` sends 'estate_will').
+// `estate_will` was added here and never added to the native mirror, so the native
+// app had no route to the Will Builder at all — and the Swift test that claimed to
+// assert "the server allowlist" was itself a frozen copy, so nothing caught it.
+//
+// If this test fails because you added a destination, that is the point: add it to
+// the native enum and to `WebHandoffClientTests.exposesOnlyTheServerAllowlistedSemanticDestinations`
+// in the same change.
+it('keeps the destination allowlist in step with the native mirror', function (): void {
+    expect(array_map(
+        fn (WebHandoffDestination $case): string => $case->value,
+        WebHandoffDestination::cases()
+    ))->toBe([
+        'admin', 'subscription', 'settings', 'privacy', 'notifications', 'estate_will',
+    ]);
+});
+
+// Swift derives an enum's raw value from the case name unless told otherwise, so a
+// multi-word destination silently ships as camelCase and is rejected here as a 422.
+// Every value must be snake_case for the mirror to be writable safely.
+it('uses only snake_case destination values the native mirror can reproduce', function (): void {
+    foreach (WebHandoffDestination::cases() as $case) {
+        expect($case->value)->toMatch('/^[a-z]+(_[a-z]+)*$/');
+    }
+});
+
+it('issues the will builder handoff the native app has no screen for', function (): void {
+    $user = User::factory()->create(['is_admin' => false]);
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/v1/mobile/web-handoffs', [
+        'destination' => 'estate_will',
+    ])->assertCreated()->assertJsonPath('success', true);
+
+    expect(WebHandoff::query()->sole()->destination)
+        ->toBe(WebHandoffDestination::ESTATE_WILL);
+});
+
+it('rejects a camelCase destination, which is what an unmirrored Swift enum sends', function (): void {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->postJson('/api/v1/mobile/web-handoffs', [
+        'destination' => 'estateWill',
+    ])->assertStatus(422);
+});

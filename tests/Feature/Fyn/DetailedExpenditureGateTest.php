@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
+use App\Models\ExpenditureProfile;
 use App\Models\User;
 use App\Services\Tiers\TeaserGate;
 use Database\Seeders\RolesPermissionsSeeder;
@@ -77,4 +78,76 @@ it('lets an admin through on both paths, as the write path always did', function
         ->invoke(app(CoordinatingAgent::class), ['food_groceries' => 250], $admin, false);
 
     expect((float) $admin->fresh()->food_groceries)->toBe(250.0);
+});
+
+/**
+ * W-0011. The Expenditure form builds ONE payload for both entry modes, so a
+ * Simple View save arrived carrying all 22 category keys as zeros. The gate
+ * fired on key presence, so a Free user could not record any expenditure at
+ * all by any route — and `use_simple_entry`, the flag that says "no categories
+ * here", was itself listed as a detailed field.
+ *
+ * `expenditure` is `full` on Free and only `expenditure_detailed` is `none`
+ * (TierConfigurationSeeder), and Fyn's own update_profile handler already
+ * writes a simple monthly total for any tier. This pins the endpoint to that.
+ */
+it('lets a free user save a simple monthly total even when the payload carries zeroed categories', function (): void {
+    $free = User::factory()->create();
+
+    $this->actingAs($free, 'sanctum')
+        ->putJson('/api/user/profile/expenditure', [
+            'use_simple_entry' => true,
+            'expenditure_entry_mode' => 'simple',
+            'use_separate_expenditure' => false,
+            'monthly_expenditure' => 2500,
+            'annual_expenditure' => 30000,
+            'food_groceries' => 0,
+            'transport_fuel' => 0,
+            'healthcare_medical' => 0,
+            'insurance' => 0,
+            'subscriptions' => 0,
+            'other_expenditure' => 0,
+        ])
+        ->assertOk();
+
+    $free->refresh();
+
+    expect((float) $free->monthly_expenditure)->toBe(2500.0)
+        ->and((float) $free->annual_expenditure)->toBe(30000.0)
+        ->and($free->expenditure_entry_mode)->toBe('simple');
+
+    expect(ExpenditureProfile::where('user_id', $free->id)->value('total_monthly_expenditure'))
+        ->toEqual(2500.0);
+});
+
+it('still refuses a free user a genuine detailed save', function (): void {
+    $free = User::factory()->create();
+
+    $this->actingAs($free, 'sanctum')
+        ->putJson('/api/user/profile/expenditure', [
+            'use_simple_entry' => false,
+            'expenditure_entry_mode' => 'category',
+            'monthly_expenditure' => 2500,
+            'food_groceries' => 400,
+        ])
+        ->assertStatus(403)
+        ->assertJsonPath('error', 'capability_denied');
+
+    expect($free->fresh()->monthly_expenditure)->toBeNull();
+});
+
+it('does not write the incidental category zeros a simple save carries', function (): void {
+    $free = User::factory()->create(['food_groceries' => 123.45]);
+
+    $this->actingAs($free, 'sanctum')
+        ->putJson('/api/user/profile/expenditure', [
+            'use_simple_entry' => true,
+            'monthly_expenditure' => 900,
+            'food_groceries' => 0,
+        ])
+        ->assertOk();
+
+    // Stripped, not applied — a Free user's stored categories are not theirs to
+    // clear through a form that never showed them.
+    expect((float) $free->fresh()->food_groceries)->toBe(123.45);
 });

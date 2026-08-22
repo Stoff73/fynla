@@ -13,7 +13,7 @@
           <div class="account-name-row">
             <span class="account-name">{{ getAccountName(account) }}</span>
             <span v-if="isJointAccount(account)" class="joint-badge">
-              Joint ({{ account.ownership_percentage }}%)
+              {{ getOwnershipLabel(account.ownership_type) }} ({{ formatSharePercent(account) }})
             </span>
           </div>
           <span class="account-provider">{{ getProvider(account) }}</span>
@@ -50,6 +50,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { calculateUserShare, getOwnershipLabel, isSharedRecord, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'AccountGroupList',
@@ -112,16 +113,19 @@ export default {
       return types[type] || type;
     },
 
+    // Ownership display via resources/js/utils/ownership.js — the ONE home (W-0015).
+    getOwnershipLabel,
+
     isJointAccount(account) {
-      return account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
+      return isSharedRecord(account);
+    },
+
+    formatSharePercent(account) {
+      return `${userSharePercent(account).toFixed(2)}%`;
     },
 
     getUserShare(account) {
-      const balance = account.current_balance || 0;
-      if (this.isJointAccount(account) && account.ownership_percentage) {
-        return balance * (account.ownership_percentage / 100);
-      }
-      return balance;
+      return calculateUserShare(account, { valueField: 'current_balance' });
     },
 
     formatUserShare(account) {

@@ -189,7 +189,26 @@ class EstateAssetAggregatorService
                 'ownership_percentage' => 100,
                 'is_primary_owner' => true,
                 'is_iht_exempt' => true,
-                'annual_income' => $pension->expected_annual_pension ?? 0, // For income projections
+                // W-0154. Was `$pension->expected_annual_pension ?? 0` — a column that
+                // has never existed on `db_pensions`, so this was 0 for every Defined
+                // Benefit pension in the application. The derived column is preferred
+                // because it is the revalued figure at the scheme's Normal Retirement
+                // Age; it is null until a write triggers recalculation, hence the
+                // fallback to the accrued figure the form actually captures.
+                //
+                // Stated plainly: **nothing reads this field today.** No consumer of
+                // `gatherUserAssets()` touches `annual_income` on a `db_pension` row —
+                // the estate's own retirement income projection
+                // (`IHTCalculationService::getRetirementIncome()`) reads no pension at
+                // all, which is the larger defect and is tracked separately as W-0154
+                // R1. Corrected here so the field is truthful when something does read
+                // it, rather than left as a value that would be wrong the day it was
+                // wired up.
+                'annual_income' => (float) (
+                    $pension->projected_annual_pension_at_nra_gbp
+                    ?? $pension->accrued_annual_pension
+                    ?? 0
+                ),
             ];
         });
 

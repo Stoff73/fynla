@@ -192,7 +192,7 @@
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-neutral-500">Scheme Status:</dt>
-                  <dd class="text-sm font-medium text-horizon-500">{{ pension.scheme_status || 'Active' }}</dd>
+                  <dd class="text-sm font-medium text-horizon-500">{{ formatSchemeStatus(pension.scheme_status) }}</dd>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                   <dt class="text-sm text-neutral-500">Accrual Rate:</dt>
@@ -319,6 +319,7 @@ import { mapState } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
+import { formatSchemeStatus } from '@/components/Retirement/dbPensionFields';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import retirementService from '@/services/retirementService';
 
@@ -378,6 +379,12 @@ export default {
   },
 
   methods: {
+    // Shared with both Defined Benefit forms so the label a user picks is the
+    // label they read back (W-0032). It used to render `scheme_status || 'Active'`,
+    // which showed "Active" for every pension ever saved because the value was
+    // discarded on write and the column did not exist.
+    formatSchemeStatus,
+
     goBack() {
       this.$router.push('/net-worth/retirement');
     },

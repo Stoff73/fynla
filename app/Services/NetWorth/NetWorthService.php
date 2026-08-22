@@ -98,15 +98,7 @@ class NetWorthService
      */
     private function calculateBusinessValue(int $userId): float
     {
-        $businesses = BusinessInterest::forUserOrJoint($userId)
-            ->get();
-
-        $total = 0.0;
-        foreach ($businesses as $business) {
-            $total += $this->calculateUserShare($business, $userId);
-        }
-
-        return $total;
+        return $this->assetAggregator->calculateBusinessTotal($userId);
     }
 
     /**
@@ -116,18 +108,13 @@ class NetWorthService
      * - Database stores FULL chattel value in current_value
      * - Query includes records where user is owner OR joint_owner
      * - User's share is calculated from ownership_percentage
+     *
+     * W-0138: the share arithmetic now lives once, in CrossModuleAssetAggregator,
+     * alongside property/investment/cash. Same query, same trait, same result.
      */
     private function calculateChattelValue(int $userId): float
     {
-        $chattels = Chattel::forUserOrJoint($userId)
-            ->get();
-
-        $total = 0.0;
-        foreach ($chattels as $chattel) {
-            $total += $this->calculateUserShare($chattel, $userId);
-        }
-
-        return $total;
+        return $this->assetAggregator->calculateChattelTotal($userId);
     }
 
     /**
@@ -443,6 +430,8 @@ class NetWorthService
                 'annual_revenue' => (float) ($business->annual_revenue ?? 0),
                 'annual_profit' => (float) ($business->annual_profit ?? 0),
                 'is_primary_owner' => $business->user_id === $userId,
+                // Soonest Companies House filing deadline; null until synced.
+                'next_filing' => $business->nextFiling(),
             ];
         })->toArray();
 

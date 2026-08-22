@@ -16,6 +16,16 @@ the literal path of one of them, so a move breaks the test suite.
 Session handovers and working notes live in `{Month}/{Month}{D}Updates/`.
 This file is the bridge between the two conventions.
 
+Undated material filed off the repo root on 2026-08-21 is **not** listed below
+(this table is dated docs only):
+
+| Tree | Holds |
+|---|---|
+| `docs/reference/` | Live non-code reference: `prompts/` (Fyn system prompt corpus), `tools/` (Fyn tool catalogue), `Articles/`, `FCA/`, `fyn/`, `campaigns/`, `investmentTree/`, `fynlaFeaturesModules/`, plus loose reference docs (`Persona Data.md`, `System Map.md`, `sshCLI.md`, the `.docx` templates). |
+| `docs/archive/` | Superseded and historical: `appMapping/`, `revolut/`, `awin/`, `brettTesting/`, plus finished plans and one-off notes. |
+| `docs/assets/templates/` | Social/marketing image templates (`ImageRendererService`). |
+| `docs/dashboards/` | Dashboard screenshot history. |
+
 Regenerate after adding docs:
 
 ```bash

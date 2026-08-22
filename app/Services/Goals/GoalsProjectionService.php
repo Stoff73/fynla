@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Goals;
 
 use App\Models\Goal;
+use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Settings\AssumptionsService;
-use App\Services\Stores\MortgageStore;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UKTaxCalculator;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -28,7 +30,7 @@ use Illuminate\Support\Facades\Cache;
  */
 class GoalsProjectionService
 {
-    use ResolvesIncome;
+    use CalculatesOwnershipShare, ResolvesIncome;
 
     private const DEFAULT_RETIREMENT_AGE = 68;
 
@@ -41,7 +43,7 @@ class GoalsProjectionService
         private readonly LifeEventService $lifeEventService,
         private readonly AssumptionsService $assumptionsService,
         private readonly UKTaxCalculator $taxCalculator,
-        private readonly MortgageStore $mortgageStore
+        private readonly CrossModuleAssetAggregator $assetAggregator
     ) {}
 
     /**
@@ -98,7 +100,7 @@ class GoalsProjectionService
                 'yearly_data' => $yearlyData,
                 'events' => $events,
                 'assumptions' => $assumptions,
-                'summary' => $this->buildSummary($yearlyData, $events, $retirementAge),
+                'summary' => $this->buildSummary($yearlyData, $events, $lifeEvents, $retirementAge),
                 'is_household' => $household,
             ];
         });
@@ -135,7 +137,6 @@ class GoalsProjectionService
             + ($netWorth['breakdown']['chattels'] ?? 0);
         $property = $netWorth['breakdown']['property'] ?? 0;
         $pensions = $netWorth['breakdown']['pensions'] ?? 0;
-        $mortgage = $netWorth['liabilities_breakdown']['mortgages'] ?? 0;
 
         // Annual income and expenditure
         $annualNetIncome = $this->getAnnualNetIncome($user, $household);
@@ -256,53 +257,76 @@ class GoalsProjectionService
     }
 
     /**
-     * Get mortgage parameters from the user's actual mortgage records.
+     * Mortgage parameters for the projection, at each owner's own share.
+     *
+     * W-0206: this was a fourth implementation of "what does this user owe on
+     * mortgages", and it got both halves of the question wrong at once.
+     *
+     * Reach — it read `forUserPrimaryOnly`, so it saw only mortgages the user is
+     * the borrower on. A spouse who is the joint owner of every household
+     * mortgage and the borrower on none got an empty set, a zero balance, and a
+     * projection that subtracted her liabilities exactly zero times.
+     *
+     * Fraction — it summed `outstanding_balance` at face value, so the borrower
+     * was charged the whole household debt, including the share belonging to a
+     * co-owner who has no account here at all.
+     *
+     * Both halves now come from the homes F-0019 established: the reach from
+     * CrossModuleAssetAggregator::getMortgages(), the fraction from
+     * CalculatesOwnershipShare::calculateUserMortgageShare(). Summing that
+     * fraction over that set is by construction the same figure as
+     * calculateMortgageTotal(), which is what the dashboard subtracts — so year
+     * zero of the projection now agrees with the dashboard instead of
+     * contradicting it in both directions at once.
+     *
+     * The rate is weighted by each owner's share rather than by the full
+     * balance, so borrowing that belongs to a third party no longer drags the
+     * household's average rate towards its own.
      *
      * @return array{original_balance: float, annual_rate: float, remaining_years: int, mortgage_type: string}
      */
     private function getMortgageParameters(User $user, bool $household): array
     {
-        $mortgages = $this->mortgageStore->forUserPrimaryOnly($user);
+        $owners = [$user];
 
         if ($household && $user->spouse) {
-            $spouseMortgages = $this->mortgageStore->forUserPrimaryOnly($user->spouse);
-            $mortgages = $mortgages->merge($spouseMortgages);
+            $owners[] = $user->spouse;
         }
 
-        if ($mortgages->isEmpty()) {
+        // Aggregate every owner's share into a weighted average
+        $totalBalance = 0.0;
+        $weightedRate = 0.0;
+        $maxRemainingMonths = 0;
+        $primaryType = 'repayment';
+
+        foreach ($owners as $owner) {
+            foreach ($this->assetAggregator->getMortgages($owner->id) as $mortgage) {
+                $balance = $this->calculateUserMortgageShare($mortgage, $owner->id);
+                if ($balance <= 0) {
+                    continue;
+                }
+
+                $totalBalance += $balance;
+                $rate = (float) ($mortgage->interest_rate ?? 4.0);
+                $weightedRate += $balance * ($rate / 100);
+                $remainingMonths = (int) ($mortgage->remaining_term_months ?? 300);
+                $maxRemainingMonths = max($maxRemainingMonths, $remainingMonths);
+                $primaryType = $mortgage->mortgage_type ?? 'repayment';
+            }
+        }
+
+        if ($totalBalance <= 0) {
             return [
-                'original_balance' => 0,
+                'original_balance' => 0.0,
                 'annual_rate' => 0.04,
                 'remaining_years' => 0,
                 'mortgage_type' => 'repayment',
             ];
         }
 
-        // Aggregate all mortgages into a weighted average
-        $totalBalance = 0.0;
-        $weightedRate = 0.0;
-        $maxRemainingMonths = 0;
-        $primaryType = 'repayment';
-
-        foreach ($mortgages as $mortgage) {
-            $balance = (float) ($mortgage->outstanding_balance ?? 0);
-            if ($balance <= 0) {
-                continue;
-            }
-
-            $totalBalance += $balance;
-            $rate = (float) ($mortgage->interest_rate ?? 4.0);
-            $weightedRate += $balance * ($rate / 100);
-            $remainingMonths = (int) ($mortgage->remaining_term_months ?? 300);
-            $maxRemainingMonths = max($maxRemainingMonths, $remainingMonths);
-            $primaryType = $mortgage->mortgage_type ?? 'repayment';
-        }
-
-        $annualRate = $totalBalance > 0 ? $weightedRate / $totalBalance : 0.04;
-
         return [
             'original_balance' => $totalBalance,
-            'annual_rate' => $annualRate,
+            'annual_rate' => $weightedRate / $totalBalance,
             'remaining_years' => max(0, (int) ceil($maxRemainingMonths / 12)),
             'mortgage_type' => $primaryType,
         ];
@@ -429,7 +453,11 @@ class GoalsProjectionService
                 'icon' => $event->icon ?? $this->getLifeEventIcon($event->event_type),
                 'color' => $this->getLifeEventColor($event->event_type, $event->impact_type),
                 'certainty' => $event->certainty,
-                'is_completed' => $event->status === 'completed' || $age < $currentAge,
+                // W-0207: the model owns this question. The old test here
+                // ($age < $currentAge) missed an event from earlier in the
+                // user's current age year, which is precisely the window a
+                // just-passed event sits in.
+                'is_completed' => $event->hasOccurred(),
             ];
         }
 
@@ -441,8 +469,30 @@ class GoalsProjectionService
 
     /**
      * Build summary statistics.
+     *
+     * The card these figures feed is titled "Life Events", so they count life
+     * events. Two separate faults used to make them count something else:
+     *
+     * W-0210 — the partition was by `impact`, and buildEventsArray() stamps
+     * every goal with `impact => 'expense'`. So a goal, which is money the user
+     * is saving *towards*, was counted and totalled as a cash outflow event.
+     * One user with a single £400,000 savings target and no life events at all
+     * read "1 cash outflow events £400K"; her husband read "9 cash outflow
+     * events £1.1M" against 6 real events worth £355,000, the difference being
+     * his three goals. One cause, both accounts — not a double count.
+     *
+     * W-0207 — nothing excluded events that had already happened, so a 2020
+     * inheritance sat inside a forward-looking total.
+     *
+     * Both are fixed by asking LifeEventService for the answer instead of
+     * deriving a fifth one here. The projection arithmetic is untouched: goals
+     * still land as outflows in the yearly data, because that is what the chart
+     * models. It is only the labelled count that stops calling a goal a life
+     * event.
+     *
+     * @param  Collection<int, LifeEvent>  $lifeEvents
      */
-    private function buildSummary(array $yearlyData, array $events, int $retirementAge): array
+    private function buildSummary(array $yearlyData, array $events, Collection $lifeEvents, int $retirementAge): array
     {
         if (empty($yearlyData)) {
             return [
@@ -473,10 +523,9 @@ class GoalsProjectionService
             }
         }
 
-        $incomeEvents = array_filter($events, fn ($e) => $e['impact'] === 'income');
-        $expenseEvents = array_filter($events, fn ($e) => $e['impact'] === 'expense');
         $goalEvents = array_filter($events, fn ($e) => $e['type'] === 'goal');
         $lifeEventList = array_filter($events, fn ($e) => $e['type'] === 'life_event');
+        $eventTotals = $this->lifeEventService->summariseUpcoming($lifeEvents);
 
         return [
             'starting_net_worth' => $yearlyData[0]['net_worth'],
@@ -485,10 +534,10 @@ class GoalsProjectionService
             'retirement_age' => $retirementAge,
             'peak_net_worth' => max($netWorths),
             'peak_age' => $yearlyData[$peakIndex]['age'],
-            'total_income_events' => array_sum(array_column($incomeEvents, 'amount')),
-            'total_expense_events' => array_sum(array_column($expenseEvents, 'amount')),
-            'income_event_count' => count($incomeEvents),
-            'expense_event_count' => count($expenseEvents),
+            'total_income_events' => $eventTotals['expected_income'],
+            'total_expense_events' => $eventTotals['expected_expense'],
+            'income_event_count' => $eventTotals['income_count'],
+            'expense_event_count' => $eventTotals['expense_count'],
             'goal_count' => count($goalEvents),
             'life_event_count' => count($lifeEventList),
         ];

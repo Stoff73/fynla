@@ -56,7 +56,7 @@ Rhythm and formality vary. **The constants never do.**
 **Amends `CLAUDE.md` Rule 9.** Rule 9 bans acronyms in user-facing text, ISA
 excepted. That rule was written for the product and is right there. It broke on
 discovery surfaces: nobody searches "Self-Invested Personal Pension", and
-`Articles/pension-tracker.md` already targets "SIPP" as a keyword. A title tag and
+`docs/reference/Articles/pension-tracker.md` already targets "SIPP" as a keyword. A title tag and
 meta description are user-facing — they appear in search results.
 
 **The rule:**

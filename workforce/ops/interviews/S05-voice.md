@@ -34,8 +34,8 @@ If it is implemented, go and read it.
 ## What I read first
 
 `CoreIdentity.php` `<personality>` and `<response_format>` in full ·
-`ComplianceRules.php` `<instructions>` in full · `Articles/pension-tracker.md` ·
-`Articles/` index · `CLAUDE.md` Rules 9 and 12 · `02-values.md` as ratified
+`ComplianceRules.php` `<instructions>` in full · `docs/reference/Articles/pension-tracker.md` ·
+`docs/reference/Articles/` index · `CLAUDE.md` Rules 9 and 12 · `02-values.md` as ratified
 
 ---
 
@@ -94,7 +94,7 @@ tied to the user's real figures.
 The shipped marketing copy is **not** that voice, and correctly so:
 
 > **Headline:** Every Pension. One Dashboard. Finally.
-> — `Articles/pension-tracker.md`
+> — `docs/reference/Articles/pension-tracker.md`
 
 Three sentence fragments. Fyn would never write that, and a landing page should.
 
@@ -144,7 +144,7 @@ Same voice, different rhythm. **Only rhythm and formality vary. The constants ne
 Rule 9 bans acronyms in user-facing text, ISA excepted. `ComplianceRules.php`
 enumerates twenty of them.
 
-But `Articles/pension-tracker.md` targets **"SIPP"** as a keyword — because that is
+But `docs/reference/Articles/pension-tracker.md` targets **"SIPP"** as a keyword — because that is
 what people type into Google. Nobody searches "Self-Invested Personal Pension". And
 a title tag and meta description *are* user-facing: they appear in search results.
 
@@ -157,7 +157,7 @@ explicit yes rather than my inference.
 
 ### Q2 — Existing marketing targets segments you overturned
 
-`Articles/pension-tracker.md` states its audience as **"Mid-Career Professionals
+`docs/reference/Articles/pension-tracker.md` states its audience as **"Mid-Career Professionals
 (35-50), Pre-Retirees (55-65)"** — age bands.
 
 Session 3 ruled that clients are defined by situation, not income, and the personas

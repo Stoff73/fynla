@@ -82,6 +82,20 @@ class FireAwinConversionJob implements ShouldQueue
             return;
         }
 
+        // Consent gate (W-0049). awin_cks is the affiliate click reference
+        // captured from the awc cookie at order creation, and that cookie is
+        // now set only for a visitor who accepted tracking. No reference means
+        // either no affiliate click or no consent — in both cases nothing may
+        // be sent to Awin. Reading it here rather than re-checking consent
+        // keeps the decision in one place: the cookie the visitor controls.
+        if (blank($payment->awin_cks)) {
+            $this->logInfo('[awin] job: no click reference, skipping', [
+                'payment_id' => $payment->id,
+            ]);
+
+            return;
+        }
+
         $claimedAt = now();
         $claimed = Payment::query()
             ->whereKey($payment->id)

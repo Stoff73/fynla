@@ -29,6 +29,13 @@ class UserResource extends JsonResource
             'date_of_birth' => $this->date_of_birth,
             'gender' => $this->gender,
             'marital_status' => $this->marital_status,
+            // Health & Lifestyle. This resource is the single source every client
+            // reads for them (web, /m, native all consume GET /api/auth/user), so
+            // they belong here rather than behind a second per-page fetch — without
+            // them the Health page rendered a persisted value as "Not specified".
+            'health_status' => $this->health_status,
+            'smoking_status' => $this->smoking_status,
+            'education_level' => $this->education_level,
             'life_stage' => $this->life_stage,
             'onboarding_completed' => $this->onboarding_completed,
             'onboarding_stage' => $this->onboarding_stage,

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use App\Support\SharedOwnership;
+use Illuminate\Support\Collection;
+
 /**
  * Trait for calculating user's share of jointly-owned assets.
  *
@@ -69,21 +72,106 @@ trait CalculatesOwnershipShare
             return $asset->user_id === $userId ? $fullValue : 0.0;
         }
 
-        // Joint or tenants_in_common ownership - use ownership_percentage (default 50)
-        $jointPercentage = $percentage !== 100.0 ? $percentage : 50.0;
-
+        // Joint or tenants_in_common ownership - the stored ownership_percentage IS
+        // the primary owner's share. This used to silently rewrite a stored 100 to 50,
+        // which masked the write-side bug that stored joint assets at 100/0 (W-0014)
+        // and made every non-trait consumer disagree with every trait consumer
+        // (W-0015). SharedOwnership normalises the share on the way IN instead.
         if ($asset->user_id === $userId) {
             // Primary owner gets their ownership_percentage
-            return $fullValue * ($jointPercentage / 100);
+            return $fullValue * ($percentage / 100);
         }
 
         if (($asset->joint_owner_id ?? null) === $userId) {
             // Secondary owner gets the complementary share
-            return $fullValue * ((100 - $jointPercentage) / 100);
+            return $fullValue * (SharedOwnership::jointOwnerPercentage($percentage) / 100);
         }
 
         // User not associated with this asset
         return 0.0;
+    }
+
+    /**
+     * The user's own view of a set of records: the same records, each carrying
+     * THIS user's share in place of the full value.
+     *
+     * A module analysis derives dozens of figures from one collection — a
+     * liquidity ladder, a rate comparison, a deposit-protection exposure. Every
+     * one of them sums the value column, so handing them the raw records charges
+     * the recording owner with the whole of a jointly-held account and shows the
+     * co-owner nothing (W-0238). Applying the share once, here, keeps every
+     * derived figure at the user's fraction without each analyzer learning about
+     * ownership.
+     *
+     * **The returned models are read-only presentation copies.** They are clones
+     * carrying a value the database does not hold, so saving one would write a
+     * half-balance over a whole one. Every consumer of this method must be a pure
+     * reader; nothing here may be persisted.
+     *
+     * @param  iterable<int, object>  $assets
+     * @return Collection<int, object>
+     */
+    protected function atUserShare(iterable $assets, int $userId): Collection
+    {
+        // Keep the caller's collection class. An Eloquent collection of models
+        // maps to an Eloquent collection, which is what the analyzers type-hint;
+        // a bare collect() would hand them a base collection and TypeError.
+        $collection = $assets instanceof Collection ? $assets : collect($assets);
+
+        return $collection->map(function (object $asset) use ($userId): object {
+            $view = clone $asset;
+            $view->{$this->userShareColumn($asset)} = $this->calculateUserShare($asset, $userId);
+
+            return $view;
+        });
+    }
+
+    /**
+     * What proportion of a record belongs to this user, as a multiplier in 0..1.
+     *
+     * For figures that hang off a record without carrying ownership columns of
+     * their own — a holding belongs to an investment account, and the account is
+     * what is jointly held. Asking `calculateUserShare` for the record's value
+     * and dividing would break on a record valued at zero, so this asks the same
+     * question of a unit-valued probe instead. One home, one set of rules; only
+     * the value it is asked about differs.
+     */
+    protected function userShareFraction(object $asset, int $userId): float
+    {
+        $probe = (object) [
+            'user_id' => $asset->user_id ?? null,
+            'joint_owner_id' => $asset->joint_owner_id ?? null,
+            'ownership_type' => $asset->ownership_type ?? 'individual',
+            'ownership_percentage' => $asset->ownership_percentage ?? 100,
+        ];
+
+        // A business interest's percentage is a shareholding and applies even
+        // when individually held, which calculateUserShare detects from these two
+        // fields being present together. The probe has to look like one or the
+        // rule it is asking about would not fire.
+        if (isset($asset->current_valuation, $asset->business_name)) {
+            $probe->current_valuation = 1.0;
+            $probe->business_name = $asset->business_name;
+        } else {
+            $probe->current_value = 1.0;
+        }
+
+        return $this->calculateUserShare($probe, $userId);
+    }
+
+    /**
+     * Which attribute holds the value that a share applies to. Mirrors the
+     * fallback chain in calculateUserShare/getFullValue so the two cannot drift.
+     */
+    private function userShareColumn(object $asset): string
+    {
+        return match (true) {
+            isset($asset->current_value) => 'current_value',
+            isset($asset->current_balance) => 'current_balance',
+            isset($asset->current_valuation) => 'current_valuation',
+            isset($asset->outstanding_balance) => 'outstanding_balance',
+            default => 'current_value',
+        };
     }
 
     /**
@@ -173,9 +261,7 @@ trait CalculatesOwnershipShare
      */
     protected function isSharedOwnership(object $asset): bool
     {
-        $ownershipType = $asset->ownership_type ?? 'individual';
-
-        return in_array($ownershipType, ['joint', 'tenants_in_common'], true);
+        return SharedOwnership::isShared($asset->ownership_type ?? 'individual');
     }
 
     /**

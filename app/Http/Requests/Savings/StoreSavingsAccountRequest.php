@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Savings;
 
+use App\Http\Traits\ValidatesSharedOwnership;
+use App\Support\SharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class StoreSavingsAccountRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     public function authorize(): bool
     {
         return true;
@@ -25,6 +29,7 @@ class StoreSavingsAccountRequest extends FormRequest
         if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
             $this->offsetUnset('country');
         }
+
     }
 
     public function rules(): array
@@ -75,14 +80,11 @@ class StoreSavingsAccountRequest extends FormRequest
             $ownershipType = $this->input('ownership_type');
             $isJoint = in_array($ownershipType, ['joint', 'tenants_in_common'], true) || $this->filled('joint_owner_id');
 
-            if (in_array($ownershipType, ['joint', 'tenants_in_common'], true) && ! $this->filled('ownership_percentage')) {
-                $v->errors()->add('ownership_percentage', 'An explicit ownership share is required for a shared account.');
-            } elseif (in_array($ownershipType, ['joint', 'tenants_in_common'], true)) {
-                $share = (float) $this->input('ownership_percentage');
-                if ($share <= 0 || $share >= 100) {
-                    $v->errors()->add('ownership_percentage', 'The ownership share must be between 0% and 100% for a shared account.');
-                }
-            }
+            // A share the caller STATED is checked; one they said nothing about
+            // is defaulted downstream by SharedOwnership and is not an assertion
+            // to refuse. The modal has no share input and sends nothing, which is
+            // what made joint savings accounts impossible to create (W-0013).
+            $this->validateSharedOwnershipSplit($v, $ownershipType, $this->input('ownership_percentage'));
 
             if ($isIsa && $isJoint) {
                 $v->errors()->add('ownership_type', 'ISAs cannot be jointly owned — every ISA is held in a single name under UK law.');
