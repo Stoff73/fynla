@@ -25,7 +25,7 @@ site](#7-porting-to-a-new-site) — everything else is intended to be general.
 1. [Workflow map](#1-workflow-map)
 2. [Stage detail](#2-stage-detail)
 3. [Technologies and integrations (current)](#3-technologies-and-integrations-current)
-4. [Retired and alternative technologies](#4-retired-and-alternative-technologies)
+4. [Retired and alternative technologies, options checked, and how to research a tool](#4-retired-and-alternative-technologies)
 5. [Scheduling, timelines and rules](#5-scheduling-timelines-and-rules)
 6. [Approval gates and emails](#6-approval-gates-and-emails)
 7. [Porting to a new site](#7-porting-to-a-new-site)
@@ -209,6 +209,71 @@ above it and do not care which scheduler is underneath.
 | **Metricool** | **Trialled outside the codebase** — an account is held, but it was never integrated in code | A ready alternative for a new site, and the account already exists. Stronger native analytics than Buffer, which could also replace part of the analytics feed used for slot selection |
 | **Later**, **Hootsuite**, **Sprout Social**, **Publer** | Not evaluated | Conventional alternatives, all with scheduling APIs |
 | **Direct platform APIs** | Not used | Removes a subscription and a dependency, but means owning each platform's app review, token refresh and rate limits separately — which is why a scheduler was chosen here |
+
+### Options previously checked
+
+Recorded so a new site does not repeat the evaluation. "Checked" means it was
+built, configured, trialled, or deliberately rejected — not merely imagined.
+
+| Area | Options checked | Chosen | Why |
+|---|---|---|---|
+| **Video generation** | HeyGen (built and shipped), real human recording | Human recording | Trust in regulated financial content. HeyGen remains the answer where no presenter exists |
+| **Transcription** | Local Whisper (Python package), paid transcription APIs | **Local Whisper** | Free, no API calls, no per-minute cost, no data leaving the host. Costs a host dependency instead |
+| **LLM provider** | Anthropic Claude, xAI Grok | Both — switchable | A runtime `AI_PROVIDER` switch with an **admin-panel override** and a written migration plan. Also carries a cheaper "degrade" model tier for when a budget ceiling is hit |
+| **Social scheduling** | Buffer REST v1, Buffer GraphQL v2, Metricool, direct platform APIs | **Buffer GraphQL v2** | REST v1 rejects new Personal Keys. Metricool was trialled outside the codebase. Direct APIs mean owning app review, token refresh and rate limits per platform |
+| **Email transport** | SMTP (Gmail), **Mailgun**, **Postmark**, **Amazon SES** — all three configured and ready | SMTP for now | The alternatives are wired up in config and need only credentials. Move to a real transactional provider before any volume: SMTP has poor deliverability and no bounce handling |
+| **Content acquisition** | Author in cloud storage, scrape published URLs (HTTP + Playwright fallback) | Authoring | You own the source, so scraping is redundant. Scraping is retained in the tree for syndication use cases |
+| **Article imagery** | Generated templates (Python renderer), stock photo API (Pexels), manual upload | **Pexels + manual** | Templated text-cards read as low-effort for editorial content. Unsplash and Pixabay are drop-in swaps |
+| **Video aspect ratios** | 9:16 only, or 9:16 + 1:1 + 16:9 | **9:16 only** | Short-form platforms only. The multi-aspect cutter still exists if feed or long-form is added |
+| **Orchestration** | One monolithic command, per-stage queued jobs | **Queued jobs** | Retryable, observable, independently gated. The monolith was easier to develop against — worth keeping as a dev-only path |
+
+### How to research a tool for a new site
+
+The framework survives provider changes because every external service sits
+behind one client class. Before adopting anything, check the following — most of
+these are lessons from §8, where the cost of *not* checking is recorded.
+
+1. **Does it have a change webhook, or must you poll?** Push detection is the
+   difference between minutes and a day. If polling is the only option, budget
+   for the latency in the schedule rather than pretending it is real-time.
+2. **What happens to authorisation per environment?** If the token is per
+   environment, every environment needs its own consent and its own registered
+   redirect URI. This is the single most common setup failure — see §9.
+3. **Is the API versioned, and is the current version the one the documentation
+   shows?** Buffer's own documentation outlived its REST v1 endpoint, which now
+   rejects newly issued keys.
+4. **Can you run it dry?** Anything that publishes, sends, or charges must have
+   a mock or sandbox mode that is **on by default** outside production. If it
+   does not, build the mock yourself before wiring it in.
+5. **Is it a host dependency or a deployed dependency?** Anything installed on
+   the machine — FFmpeg, Whisper, a Python package — will not travel with a
+   deploy and must be provisioned per host.
+6. **What does it cost per unit, and can you cap it?** Per-request and per-day
+   ceilings must be enforceable in your own code; do not rely on the vendor's
+   billing alerts, which tell you after the fact.
+7. **What is the smallest observable output?** Prefer a tool you can verify from
+   a single call over one that only proves itself end-to-end.
+8. **How is it removed?** If the client class is the only thing that knows the
+   vendor exists, removal is a one-file change. Name the abstraction after the
+   role, never after the vendor — see the Anthropic-named class currently
+   calling Grok.
+
+### Investigation method that worked
+
+When adopting or debugging an integration, the sequence that repeatedly caught
+real problems in this build:
+
+1. **Read the vendor's element or response shape from a real payload**, not from
+   its documentation. Three features here were documented as working and had
+   never worked.
+2. **Build a fixture the way the real producer builds it.** A round-trip through
+   the same library you parse with can both hide real bugs and invent false
+   ones. Hand-build the awkward case.
+3. **Grep the whole codebase for parallel implementations** before fixing one.
+   A shared module that only three of twenty-six templates actually used looked
+   like a system-wide fix and was not.
+4. **Check the history before calling something a regression.** Several
+   "regressions" here had never worked at all.
 
 ---
 
@@ -465,4 +530,5 @@ Update this document **in the same change** that does any of the following:
 | Date | Change | By |
 |---|---|---|
 | 2026-08-22 | Initial version. Captured the workflow map, current and retired technologies, scheduling rules, approval gates, challenges and guardrails. | Handover from the Fynla marketing pipeline build |
+| 2026-08-22 | Added to §4: a table of options previously checked in each area with the reason for the choice, a checklist for researching a new tool, and the investigation method that caught real problems. | Handover |
 | 2026-08-22 | Scheduler options promoted to their own table in §4 and named in the §3 swap column. Metricool corrected: an account is held and it was trialled outside the codebase, not merely considered. | CSJ |
