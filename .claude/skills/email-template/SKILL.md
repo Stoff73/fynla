@@ -97,6 +97,50 @@ The area **outside** the 600px email container (the `<body>` and any full-width 
 - Module defaults (`$outerBg` on every module) default to `#f5f0eb`.
 - **Rule 2 still applies.** If the flip creates two consecutive eggshell `<tr>`s that represent distinct sections, resolve by: (a) merging them into one logical `<tr>` when the content belongs together, (b) swapping one for a different accent bg (pink or dark), or (c) inserting a non-eggshell intermezzo (stats panels, discount panels, or a gradient header are natural breaks). **Consecutive same-bg `<tr>`s are acceptable when they render as one continuous visual band** — e.g., a section heading `<tr>` directly above its content `<tr>`. What's disallowed is two separately-conceived sections meeting at the same bg colour.
 
+### Rule 8 — Buttons are table cells, and every image carries width and height
+
+Outlook on Windows renders with the Word engine, not a browser engine. Two
+consequences have already shipped broken emails.
+
+**Buttons.** Word ignores `display:inline-block` and `padding` on an `<a>`, but
+still applies `background` and `color`. A CSS-styled anchor button therefore
+collapses into a run of coloured text with no shape — white-on-navy, hugging the
+label. Build every button as a one-cell table: the `<td>` carries `bgcolor` (the
+attribute, not only the style), the padding and the radius; the `<a>` carries
+only colour, font and `text-decoration`.
+
+```html
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"
+       style="margin: 0 auto; border-collapse: separate;">
+  <tr>
+    <td align="center" bgcolor="#e74c6f"
+        style="background: #e74c6f; padding: 14px 40px; border-radius: 12px;">
+      <a href="..." style="color: #ffffff; font-size: 16px; font-weight: 700;
+         text-decoration: none;">Label</a>
+    </td>
+  </tr>
+</table>
+```
+
+Word ignores `border-radius`, so Outlook shows square corners while every other
+client rounds them. That is the intended degradation. Do **not** reach for VML
+`roundrect` to force rounded corners in Outlook — it needs a fixed pixel width
+per button, which is fragile with variable labels.
+
+**Images.** Word ignores CSS sizing on `<img>` and falls back to the file's
+intrinsic dimensions. A footer logo sized only with `style="height: 28px; width:
+auto"` rendered at its native 1760x795 and turned the footer into a full-height
+block. Every `<img>` must carry HTML `width` and `height` attributes as well as
+the style.
+
+**Why:** both faults are invisible in a browser preview and in most webmail
+clients. They were caught only when someone opened the email in Outlook desktop.
+
+**How to apply:** use `emails.modules.cta` rather than hand-rolling an anchor —
+a hand-rolled button is how 23 of 26 templates ended up broken while the shared
+module was correct. If a button genuinely cannot use the module, copy the table
+pattern above verbatim. Test in Outlook desktop, not only in webmail.
+
 ## Master Layout
 
 ```blade
@@ -352,12 +396,15 @@ Run through this checklist:
 - [ ] Rule 5 — every section heading in the body is an `<h3>` at 20px / weight 700 / `#1F2A44`, sentence case, no uppercase or tracking.
 - [ ] Rule 6 — every hero subtitle is ≤ 55 characters so it stays on one line at 600px width.
 - [ ] Rule 7 — `<body>` bg is `#ffffff`; inner container bg is `#f5f0eb`; the only `#ffffff` section inside the container is the top logo bar (no other white internal sections). Adjacent `<tr>`s never share an eggshell bg unless they render as one continuous visual band.
+- [ ] Rule 8 — every button is a table cell with `bgcolor` and cell padding (or uses `emails.modules.cta`), and every `<img>` carries HTML `width` and `height` attributes.
 - [ ] `$preheader` set on the master layout (one sentence, under 90 characters — this is what shows in inbox previews).
 - [ ] All CTA URLs are absolute and point at `https://fynla.org/...` (not `/relative/paths`).
 - [ ] Tested by rendering the view via a route or `Mail::fake()` + a Pest test, and eyeballed in a browser or mail preview tool.
 
 ## What NOT to Do
 
+- Do **not** style a button as an `<a>` with `display:inline-block` and padding (Rule 8) — Outlook collapses it into plain coloured text with no shape.
+- Do **not** size an image with CSS alone (Rule 8) — Outlook falls back to the file's native dimensions.
 - Do **not** create a new module by copy-pasting inline markup into a template. Add a new partial under `resources/views/emails/modules/` and reuse it.
 - Do **not** inline a gradient or hero background in an email Blade — use the header modules.
 - Do **not** pass colour overrides to `hero-header` / `gradient-header` (Rule 1).
