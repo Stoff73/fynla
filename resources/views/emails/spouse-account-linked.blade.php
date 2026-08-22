@@ -50,7 +50,7 @@
                 {{-- CTA Block: Light Pink --}}
                 <tr><td style="background: #fce4ec; padding: 28px 36px; text-align: center;">
                     <p style="color: #1F2A44; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">See your household dashboard</p>
-                    <a href="https://fynla.org/dashboard" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #d9a0b0;">View household</a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding: 14px 40px; border-radius: 12px; background: #e74c6f; box-shadow: 0 4px 14px #d9a0b0;"><a href="https://fynla.org/dashboard" style="font-size: 16px; font-weight: 700; color: #ffffff;">View household</a></td></tr></table>
                 </td></tr>
 
                 {{-- Footer --}}

@@ -29,25 +29,42 @@
     </tr>
 
     <tr>
-        <td bgcolor="#fce4ec" style="background:#fce4ec;padding:28px 36px;">
+        <td bgcolor="#fce4ec" style="background:#fce4ec;padding:28px 36px 0;">
             <h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:#1F2A44;line-height:1.2;">The video script</h3>
-            <p style="margin:0 0 18px;font-size:14px;color:#1F2A44;line-height:1.6;">
+            <p style="margin:0 0 4px;font-size:14px;color:#1F2A44;line-height:1.6;">
                 Open it in Google Docs to read, edit or comment. Then record the video and drop it
                 into the Marketing Automation &rsaquo; Videos folder.
             </p>
-            <a href="{{ $scriptUrl }}" style="display:inline-block;padding:12px 28px;background:#e74c6f;color:#ffffff;font-size:14px;font-weight:700;border-radius:10px;text-decoration:none;">Open script in Google Docs</a>
         </td>
+    </tr>
+    {{-- Same pink band as the section above — its own button, not a new section. --}}
+    @include('emails.modules.cta', [
+        'outerBg' => '#fce4ec',
+        'buttons' => [
+            ['label' => 'Open script in Google Docs', 'url' => $scriptUrl, 'variant' => 'raspberry'],
+        ],
+    ])
+    <tr>
+        <td bgcolor="#fce4ec" style="background:#fce4ec;padding:0 36px 28px;font-size:0;line-height:0;">&nbsp;</td>
     </tr>
 
     <tr>
-        <td style="background:#f5f0eb;padding:28px 36px;">
+        <td style="background:#f5f0eb;padding:28px 36px 0;">
             <h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:#1F2A44;line-height:1.2;">Review &amp; publish the article</h3>
-            <p style="margin:0 0 18px;font-size:14px;color:#1F2A44;line-height:1.6;">
+            <p style="margin:0 0 4px;font-size:14px;color:#1F2A44;line-height:1.6;">
                 Check the formatting in the admin panel, then push it local &rarr; dev &rarr; live.
             </p>
-            <a href="{{ $adminUrl }}" style="display:inline-block;padding:12px 28px;background:#1F2A44;color:#ffffff;font-size:14px;font-weight:700;border-radius:10px;text-decoration:none;">Open in the admin panel</a>
-
-            <p style="margin:18px 0 0;font-size:12px;color:#7a7a7a;line-height:1.5;">
+        </td>
+    </tr>
+    @include('emails.modules.cta', [
+        'outerBg' => '#f5f0eb',
+        'buttons' => [
+            ['label' => 'Open in the admin panel', 'url' => $adminUrl, 'variant' => 'dark'],
+        ],
+    ])
+    <tr>
+        <td style="background:#f5f0eb;padding:2px 36px 28px;">
+            <p style="margin:0;font-size:12px;color:#7a7a7a;line-height:1.5;">
                 Article slug: <code style="background:#e8e2db;padding:1px 4px;border-radius:3px;">{{ $articleSlug }}</code>
                 @if($model)<br/>Model: {{ $model }} &middot; Cost: &pound;{{ $costGbp }}@endif
             </p>
@@ -57,7 +74,7 @@
 
 @section('signoff')
     @include('emails.modules.signoff', [
-        'signoffText' => 'The Fynla Marketing Pipeline',
+        'team' => 'The Fynla Marketing Pipeline',
     ])
 @endsection
 

@@ -33,7 +33,7 @@
             <p style="margin:0 0 18px;font-size:14px;color:#1F2A44;line-height:1.6;">
                 Direct link filtered to this article. Log in as an admin if prompted.
             </p>
-            <a href="{{ $approvalUrl }}" style="display:inline-block;padding:12px 28px;background:#e74c6f;color:#ffffff;font-size:14px;font-weight:700;border-radius:10px;text-decoration:none;">Review posts</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:12px 28px; background:#e74c6f; border-radius:10px;"><a href="{{ $approvalUrl }}" style="color:#ffffff; font-size:14px; font-weight:700; text-decoration:none;">Review posts</a></td></tr></table>
         </td>
     </tr>
 

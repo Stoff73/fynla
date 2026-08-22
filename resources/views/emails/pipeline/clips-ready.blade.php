@@ -34,9 +34,9 @@
             </p>
             @foreach($clipUrls as $index => $url)
                 <div style="margin-bottom:10px;">
-                    <a href="{{ $url }}" style="display:inline-block;padding:10px 20px;background:#e74c6f;color:#ffffff;font-size:14px;font-weight:700;border-radius:8px;text-decoration:none;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:10px 20px; background:#e74c6f; border-radius:8px;"><a href="{{ $url }}" style="color:#ffffff; font-size:14px; font-weight:700; text-decoration:none;">
                         Clip {{ $index + 1 }} ({{ pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_BASENAME) }})
-                    </a>
+                    </a></td></tr></table>
                 </div>
             @endforeach
         </td>

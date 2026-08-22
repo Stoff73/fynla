@@ -36,7 +36,7 @@
     <tr>
         <td bgcolor="#fce4ec" style="background:#fce4ec;padding:28px 36px;text-align:center;">
             <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#1F2A44;line-height:1.5;">Ready to start? Pick up where you left off.</p>
-            <a href="{{ $dashboardUrl }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Go to my dashboard</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $dashboardUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Go to my dashboard</a></td></tr></table>
         </td>
     </tr>
 
@@ -62,7 +62,7 @@
 
     <tr>
         <td bgcolor="#fce4ec" style="background:#fce4ec;padding:28px 36px;text-align:center;">
-            <a href="{{ $fynUrl }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Get help from Fyn</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $fynUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Get help from Fyn</a></td></tr></table>
             <p style="margin:10px 0 0;font-size:12px;color:#1F2A44;">Fyn will guide you through each module &mdash; no exact details needed for now.</p>
         </td>
     </tr>

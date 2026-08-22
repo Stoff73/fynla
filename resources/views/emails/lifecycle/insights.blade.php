@@ -39,7 +39,7 @@
                 </tr>
             </table>
             <div style="text-align:center;margin-top:22px;">
-                <a href="{{ $finishUrl }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Finish your dashboard</a>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $finishUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Finish your dashboard</a></td></tr></table>
             </div>
         </td>
     </tr>
@@ -93,7 +93,7 @@
                 </table>
             @endforeach
             <div style="text-align:center;">
-                <a href="{{ $continueUrl }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Continue my plan</a>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $continueUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Continue my plan</a></td></tr></table>
             </div>
         </td>
     </tr>
