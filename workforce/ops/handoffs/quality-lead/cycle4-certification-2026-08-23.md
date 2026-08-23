@@ -12,7 +12,7 @@ finishes — never held in context and written at the end.
 
 ---
 
-## FINDING 0 — STRUCTURAL, applies to all 149 items
+## FINDING 0 — STRUCTURAL, applies to every item judged
 
 **Not one evidence pack exists.** `08-process.md` §2 requires the pack at
 `workforce/branches/<type>/<slug>/evidence/`, permalinked from the PR before merge.
@@ -44,7 +44,7 @@ unverified — it is not a lie, but it is not the pack either.
 
 ---
 
-## FINDING 1 — the format split, and why 26 items cannot be certified at all
+## FINDING 1 — the format split, and what an acceptance list is worth on this board
 
 | Item shape | Count | Consequence |
 |---|---|---|
