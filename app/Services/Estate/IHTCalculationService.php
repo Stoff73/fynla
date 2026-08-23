@@ -83,6 +83,7 @@ class IHTCalculationService
         private readonly WillAnalysisService $willAnalysis,
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
         private readonly CrossModuleAssetAggregator $crossModuleAggregator,
+        private readonly FailedGiftTaxCalculator $failedGiftTax,
     ) {}
 
     /**
@@ -355,6 +356,18 @@ class IHTCalculationService
             // of them — published unconditionally so a screen that shows it does
             // not have to decide whether the key exists.
             'business_relief_deduction' => round($businessReliefDeduction, 2),
+            // Tax on gifts the seven-year window did not save, after taper relief.
+            //
+            // Deliberately NOT added to `iht_liability`. That figure is the ESTATE's
+            // bill; tax on a failed gift is the recipient's, falling back on the
+            // estate only if it goes unpaid for twelve months. Folding it in would
+            // silently move the headline number for every user holding a large
+            // gift, and quoting one figure that is really two liabilities owed by
+            // two different people is the kind of unexplainable total this module
+            // has just spent a cycle removing.
+            'failed_gift_tax' => round((float) ($nrbDeduction['failed_gift_tax'] ?? 0), 2),
+            'failed_gift_taper_saving' => round((float) ($nrbDeduction['failed_gift_taper_saving'] ?? 0), 2),
+            'failed_gifts' => $nrbDeduction['failed_gifts'] ?? [],
             'charitable_deduction' => round($charitableAmount, 2),
             'taxable_estate' => round($taxableEstate, 2),
             'iht_rate' => $ihtRate,
@@ -2053,92 +2066,29 @@ class IHTCalculationService
             'nrb_used_by_clts' => 0.0,
             'nrb_used_by_pets' => 0.0,
             'total_nrb_used' => 0.0,
+            // Tax on gifts the seven-year window did not save, after taper.
+            'failed_gift_tax' => 0.0,
+            'failed_gift_taper_saving' => 0.0,
         ];
+        $failedGifts = [];
 
         foreach ($members as $member) {
-            $memberDeduction = $this->nrbDeductionForOneMember($member, $nrbSingle);
+            $memberDeduction = $this->failedGiftTax->forMember($member, $nrbSingle);
 
             foreach (array_keys($totals) as $key) {
                 $totals[$key] += $memberDeduction[$key];
             }
+
+            foreach ($memberDeduction['failed_gifts'] as $gift) {
+                $failedGifts[] = $gift + ['member_id' => $member->id, 'member_first_name' => $member->first_name];
+            }
         }
 
         return array_map(fn (float $value): float => round($value, 2), $totals)
-            + ['fourteen_year_rule_applied' => $totals['clts_7_to_14_years'] > 0];
-    }
-
-    /**
-     * One person's gift deduction, capped at their OWN nil rate band.
-     *
-     * **The cap is the point, and it is why this is per member.** The deduction used
-     * to be summed and then taken off the POOLED band —
-     * `max(0, $nrbAvailable - $total)` against £650,000 — so one spouse's chargeable
-     * transfers could consume the other's band. IHTA 1984 s8A transfers the unused
-     * **percentage** of the first-to-die's band and that percentage cannot go below
-     * zero: a £400,000 transfer exhausts that person's own £325,000 and reaches no
-     * further. The old code gave £250,000; s8A gives the survivor their full
-     * £325,000.
-     *
-     * The per-person cap already existed for the chargeable-lifetime-transfer
-     * subtotal (`min($nrbSingle, ...)` below) — it was simply never applied to the
-     * household total. Capping here means the sum across members can never exceed
-     * members × `$nrbSingle`, which is the invariant that was missing.
-     *
-     * @return array<string, float>
-     */
-    private function nrbDeductionForOneMember(User $member, float $nrbSingle): array
-    {
-        // W-0463 / Rule 2 — the windows are configured, and were hardcoded here as
-        // `subYears(7)` three times and `subYears(14)` once. `years_to_exemption`
-        // and `cumulation_period` were seeded, dated and read by nothing, so an
-        // administrator changing the seven-year rule would have changed the
-        // configuration and not the calculation.
-        $petRules = $this->taxConfig->getPETRules();
-        $cltRules = $this->taxConfig->getCLTRules();
-
-        $petWindow = (int) ($petRules['years_to_exemption'] ?? 7);
-        $cltWindow = (int) ($cltRules['lookback_period'] ?? 7);
-        // The 14-year reach is the CLT lookback plus the cumulation period that
-        // runs before it — expressed as a sum rather than a second literal, so the
-        // two cannot drift apart.
-        $cltCumulativeWindow = $cltWindow + (int) ($cltRules['cumulation_period'] ?? 7);
-
-        // PETs within the exemption window of today (assumed death date)
-        $petsIn7Years = Gift::where('user_id', $member->id)
-            ->where('gift_type', 'pet')
-            ->where('gift_date', '>', today()->subYears($petWindow))
-            ->sum('gift_value');
-
-        // CLTs within the lookback window
-        $cltsIn7Years = Gift::where('user_id', $member->id)
-            ->where('gift_type', 'clt')
-            ->where('gift_date', '>', today()->subYears($cltWindow))
-            ->sum('gift_value');
-
-        // 14-year rule (Direction B): CLTs made between the lookback and the full
-        // cumulative window. These CLTs don't incur IHT themselves (outside the
-        // lookback), but they DO reduce the NRB available for PETs inside it.
-        $clts7to14Years = Gift::where('user_id', $member->id)
-            ->where('gift_type', 'clt')
-            ->where('gift_date', '>', today()->subYears($cltCumulativeWindow))
-            ->where('gift_date', '<=', today()->subYears($cltWindow))
-            ->sum('gift_value');
-
-        // CLTs (both recent and historical) consume NRB first
-        $nrbUsedByCLTs = min($nrbSingle, (float) $cltsIn7Years + (float) $clts7to14Years);
-
-        // Remaining NRB available for PETs after CLT consumption
-        $nrbRemainingForPETs = max(0, $nrbSingle - $nrbUsedByCLTs);
-        $nrbUsedByPETs = min($nrbRemainingForPETs, (float) $petsIn7Years);
-
-        return [
-            'pets_in_7_years' => (float) $petsIn7Years,
-            'clts_in_7_years' => (float) $cltsIn7Years,
-            'clts_7_to_14_years' => (float) $clts7to14Years,
-            'nrb_used_by_clts' => $nrbUsedByCLTs,
-            'nrb_used_by_pets' => $nrbUsedByPETs,
-            'total_nrb_used' => $nrbUsedByCLTs + $nrbUsedByPETs,
-        ];
+            + [
+                'fourteen_year_rule_applied' => $totals['clts_7_to_14_years'] > 0,
+                'failed_gifts' => $failedGifts,
+            ];
     }
 
     /**

@@ -4,23 +4,37 @@ declare(strict_types=1);
 
 namespace App\Services\Tiers;
 
-use App\Constants\TaxDefaults;
 use App\Models\User;
+use App\Services\Estate\IHTCalculationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\TaxConfigService;
 
 /**
- * Cheap Inheritance Tax exposure signal for the Free Estate teaser.
+ * The Inheritance Tax exposure signal behind the Free Estate teaser.
  *
- * Intentionally avoids running the full Estate engine — it uses the canonical
- * net-worth figure (spec §10.2) and NRB/RNRB from TaxConfigService (Rule #3).
- * Returns currency and a plain headline only — no scores (Rule #13).
+ * **This used to compute its own answer**, and its docblock said so as a virtue:
+ * *"Intentionally avoids running the full Estate engine."* What it actually did was
+ * `(netWorth − NRB − RNRB) × 40%` on the LOGGED-IN USER ALONE — single-person
+ * allowances always, and no pooling, no gifts, no charitable exemption, no residence
+ * cap, no £2m taper, no business relief. It was the only Inheritance Tax figure `/m`
+ * ever displayed, so a married household could be quoted one number on the web and a
+ * materially different one on their phone (W-0464).
+ *
+ * **CSJ, 2026-08-23: `/m` must never work anything out.** It shows what the engine
+ * computed. So this asks `IHTCalculationService` — the one mechanism — and decides
+ * only what to DISPLAY.
+ *
+ * The performance worry the old comment was answering is real and is handled by the
+ * engine's own cache: `calculate()` returns a stored result unless the assets or
+ * liabilities hash has moved, so the teaser costs a full run once per data change,
+ * not once per page view.
  */
 class EstateIhtExposureDetector
 {
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly NetWorthService $netWorthService,
+        private readonly IHTCalculationService $ihtCalculation,
     ) {}
 
     /**
@@ -30,30 +44,27 @@ class EstateIhtExposureDetector
      */
     public function detect(User $user): array
     {
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        // Resolved exactly as `IHTController::calculateIHT` resolves them, or this
+        // reads a married couple as single and reintroduces the defect it is here
+        // to remove.
+        $calculation = $this->ihtCalculation->calculate(
+            $user,
+            $user->liveSpouse(),
+            $user->hasAcceptedSpousePermission(),
+        );
 
-        // IHT rate from TaxConfigService, fallback to TaxDefaults constant (Rule #3).
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $estimatedLiabilityGbp = round((float) ($calculation['iht_liability'] ?? 0.0), 2);
+        $netEstate = (float) ($calculation['total_net_estate'] ?? 0.0);
+        $threshold = (float) ($calculation['total_allowances'] ?? 0.0);
 
-        // NRB/RNRB fallback to TaxDefaults constants, not raw literals (Rule #3).
-        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
-        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
-        $threshold = $nrb + $rnrb;
-
-        $netWorthData = $this->netWorthService->calculateNetWorth($user);
-        $netWorth = (float) ($netWorthData['net_worth'] ?? 0.0);
-
-        // Exposure flag uses NRB+RNRB threshold (consistent with liability calc below).
-        $exposed = $netWorth > $threshold;
-        $estimatedLiabilityGbp = $exposed
-            ? max(0.0, round(($netWorth - $threshold) * $ihtRate, 2))
-            : 0.0;
-
-        $headline = $this->buildHeadline($exposed, $netWorth, $threshold, $estimatedLiabilityGbp);
+        // "Exposed" is now the engine's own answer — an estate over its allowances
+        // with a bill to show — rather than a second threshold test that could
+        // disagree with the figure printed beside it.
+        $exposed = $estimatedLiabilityGbp > 0.0;
 
         return [
             'exposed' => $exposed,
-            'headline' => $headline,
+            'headline' => $this->buildHeadline($exposed, $netEstate, $threshold, $estimatedLiabilityGbp),
             'estimated_liability_gbp' => $estimatedLiabilityGbp,
         ];
     }

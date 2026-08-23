@@ -45,21 +45,34 @@ class GiftingStrategy
         $now = Carbon::now();
 
         // Filter to PET gifts within 7 years
-        $activePets = $gifts->filter(function ($gift) use ($now) {
+        // W-0463 — the window comes from configuration, not a literal 7.
+        $petWindow = (int) ($this->taxConfig->getPETRules()['years_to_exemption'] ?? 7);
+
+        $activePets = $gifts->filter(function ($gift) use ($now, $petWindow) {
             if (($gift->gift_type ?? '') !== 'pet') {
                 return false;
             }
 
-            $giftDate = Carbon::parse($gift->gift_date);
-            $yearsAgo = $giftDate->diffInYears($now);
-
-            return $yearsAgo < 7;
+            return Carbon::parse($gift->gift_date)->floatDiffInYears($now) < $petWindow;
         });
 
-        $petsData = $activePets->map(function ($gift) use ($now) {
+        $petsData = $activePets->map(function ($gift) use ($now, $petWindow) {
             $giftDate = Carbon::parse($gift->gift_date);
-            $yearsAgo = (int) $giftDate->diffInYears($now);
-            $yearsRemaining = 7 - $yearsAgo;
+            $yearsExact = $giftDate->floatDiffInYears($now);
+            $yearsAgo = (int) $yearsExact;
+
+            // W-0463 — this said `'taper_relief_applicable' => $yearsAgo >= 3` and
+            // stopped there, while the graduated schedule sat configured and unread.
+            // "Applicable" told a user nothing they could act on: the whole question
+            // is how much, and the answer moves every year they survive.
+            //
+            // The RATE is a fact about the gift's age and can be stated here. The
+            // TAX cannot: it depends on how much nil rate band earlier gifts have
+            // already consumed, which is a fact about the whole estate and is
+            // answered once, in `FailedGiftTaxCalculator`. Publishing a per-gift tax
+            // figure from here would be a second answer to that question.
+            $taperedRate = $this->taxConfig->getGiftTaxRate($yearsExact, 'pet');
+            $fullRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? 0.40);
 
             return [
                 'id' => $gift->id,
@@ -67,8 +80,15 @@ class GiftingStrategy
                 'recipient' => $gift->recipient,
                 'gift_value' => (float) ($gift->gift_value ?? 0),
                 'years_ago' => $yearsAgo,
-                'years_remaining' => max(0, $yearsRemaining),
-                'taper_relief_applicable' => $yearsAgo >= 3,
+                'years_remaining' => max(0, $petWindow - $yearsAgo),
+                'taper_relief_applicable' => $taperedRate < $fullRate,
+                // The rate this gift would actually be charged at today, and how
+                // much of the full rate taper has already taken off it.
+                'taper_relief_rate' => $taperedRate,
+                'taper_relief_rate_percent' => round($taperedRate * 100, 1),
+                'taper_relief_percent' => $fullRate > 0
+                    ? round((1 - ($taperedRate / $fullRate)) * 100, 1)
+                    : 0.0,
             ];
         })->values();
 

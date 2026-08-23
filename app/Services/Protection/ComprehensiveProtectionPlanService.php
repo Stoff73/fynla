@@ -10,6 +10,7 @@ use App\Exceptions\FinancialCalculationException;
 use App\Models\FamilyMember;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Support\PremiumAnnualiser;
 use App\Traits\FormatsCurrency;
 use Carbon\Carbon;
 
@@ -754,12 +755,10 @@ class ComprehensiveProtectionPlanService
 
     private function convertToAnnualPremium(float $amount, string $frequency): float
     {
-        return match ($frequency) {
-            'monthly' => $amount * 12,
-            'quarterly' => $amount * 4,
-            'annually', 'annual' => $amount,
-            default => $amount * 12,
-        };
+        // Kept as a named method because a dozen call sites read better for it, but
+        // the mapping itself lives in ONE place now — `/m` was carrying a second
+        // copy in a Vue computed property (Rule 20).
+        return PremiumAnnualiser::toAnnual($amount, $frequency);
     }
 
     private function estimateLifePremium(float $coverage, int $age, bool $smoker): float

@@ -47,16 +47,42 @@ it('returns no score — only currency and a plain string headline', function ()
     expect(array_keys($result))->toEqual(['exposed', 'headline', 'estimated_liability_gbp']);
 });
 
-it('returns exposed=false when net worth equals exactly NRB+RNRB threshold', function () {
-    // Derive threshold from TaxConfigService the same way the detector does — stays correct
-    // if config changes.
+it('does not hand the residence allowance to someone with no residence', function () {
+    // W-0464. This test used to assert `exposed=false` for £500,000 of savings,
+    // on the reasoning that £500,000 equals the nil rate band plus the residence
+    // nil rate band. **It encoded the defect.** The residence band requires a main
+    // residence passing to direct descendants (IHTA 1984 s8E–s8H) and this user has
+    // neither, so their allowance is £325,000 and £175,000 of the estate is taxable.
+    //
+    // The old detector granted the band to everyone by adding it into a threshold,
+    // which is exactly the kind of second, simpler model CSJ's "/m must never work
+    // anything out" rule removes.
     $ihtConfig = app(TaxConfigService::class)->getInheritanceTax();
-    $threshold = (float) ($ihtConfig['nil_rate_band'] ?? 325000) + (float) ($ihtConfig['residence_nil_rate_band'] ?? 175000);
+    $nrb = (float) ($ihtConfig['nil_rate_band'] ?? 325000);
+    $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? 175000);
 
     $user = User::factory()->create();
     SavingsAccount::factory()->create([
         'user_id' => $user->id,
-        'current_balance' => $threshold, // exactly at boundary — predicate is >, not >=
+        'current_balance' => $nrb + $rnrb,
+    ]);
+
+    $result = app(EstateIhtExposureDetector::class)->detect($user);
+
+    $expectedRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+
+    expect($result['exposed'])->toBeTrue()
+        ->and($result['estimated_liability_gbp'])->toEqualWithDelta($rnrb * $expectedRate, 0.01);
+});
+
+it('reports no exposure when the allowances actually cover the estate', function () {
+    $ihtConfig = app(TaxConfigService::class)->getInheritanceTax();
+    $nrb = (float) ($ihtConfig['nil_rate_band'] ?? 325000);
+
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => $nrb,
     ]);
 
     $result = app(EstateIhtExposureDetector::class)->detect($user);

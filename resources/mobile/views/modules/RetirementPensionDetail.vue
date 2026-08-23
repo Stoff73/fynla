@@ -229,13 +229,12 @@ export default {
       // Mirrors RetirementProjectionService: salary-percentage schemes derive
       // the monthly figure from contribution percentages, otherwise use the
       // flat monthly amount.
-      const p = this.pension;
-      if (!p) return 0;
-      if (Number(p.employee_contribution_percent) > 0 && Number(p.annual_salary) > 0) {
-        const pct = Number(p.employee_contribution_percent || 0) + Number(p.employer_contribution_percent || 0);
-        return (pct * Number(p.annual_salary)) / 100 / 12;
-      }
-      return Number(p.monthly_contribution_amount || 0);
+      // CSJ 2026-08-23: /m never works anything out. This derived the monthly
+      // figure from the contribution percentages, preferring them over the flat
+      // amount — the OPPOSITE precedence to the backend, so a pension holding both
+      // was described differently here than everywhere else. `monthly_contribution`
+      // is appended by the model now (Rule 20).
+      return Number(this.pension?.monthly_contribution ?? 0);
     },
     heroLabel() {
       if (this.type === 'db') return 'Accrued annual pension';

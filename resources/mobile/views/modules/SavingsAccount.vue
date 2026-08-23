@@ -160,10 +160,12 @@ export default {
       return coOwnerName(this.account);
     },
     rateNum() { return Number(this.account?.interest_rate || 0); },
-    annualInterest() {
-      return Number(this.fullBalance) * (this.rateNum / 100);
-    },
-    monthlyInterest() { return this.annualInterest / 12; },
+    // CSJ 2026-08-23: /m never works anything out. These were
+    // `balance * (rate / 100)` and `/ 12` in the client; the model appends both
+    // now, so this screen and the Personal Savings Allowance work cannot disagree
+    // about what an account earns (Rule 20).
+    annualInterest() { return Number(this.account?.annual_interest ?? 0); },
+    monthlyInterest() { return Number(this.account?.monthly_interest ?? 0); },
     tags() {
       const out = [];
       if (this.account?.is_emergency_fund) out.push({ label: 'Emergency fund', cls: 'msa-tag--ef' });

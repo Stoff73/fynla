@@ -3,17 +3,17 @@ id: W-0464
 title: The Free-tier estate teaser runs a second, independent Inheritance Tax calculation that ignores pooling, gifts, charitable exemption, the residence cap and the taper
 mission: persona-run-peak_earners-2026-08-20
 branch: null
-owner: null
+owner: main-inference
 reviewers: [tax-compliance-reviewer, product-lead]
-status: queued
+status: handoff
 claimed_by: null
-severity: medium
+severity: high
 surfaces: [m, web]
 created: 2026-08-23T13:20:00Z
 claimed: null
 blocked_by: []
 gate: tax-compliance-reviewer
-handoff_to: null
+handoff_to: quality-lead
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0154, W-0463]
 prior_art_outcome: extend
@@ -79,3 +79,57 @@ decision**, which is why this is filed rather than quietly consolidated.
 - 2026-08-23 — Raised while verifying W-0154 reached `/m` (Rule 19). Not fixed in that
   batch deliberately: consolidating it changes what a whole pricing tier is shown, and
   that is CSJ's call rather than a fix-batch decision.
+
+
+## Resolution — 2026-08-23
+
+**CSJ answered acceptance 1 and made it a standing rule, not a per-item decision:**
+
+> the /m must not do anything different other than show in an iFrame for mobile.
+> It MUST NEVER work anything out.
+
+So option (a): `/m` shows the figure the engine computed. `EstateIhtExposureDetector`
+now calls `IHTCalculationService::calculate()` with the spouse and sharing flag
+resolved exactly as `IHTController` resolves them, and decides only what to display.
+
+**The performance rationale the old code carried — *"intentionally avoids running the
+full Estate engine"* — is answered by the engine's own cache:** `calculate()` returns
+a stored result unless the assets or liabilities hash has moved, so the teaser costs
+a full run once per data change rather than once per page view. That comment was the
+reason nobody questioned the second model; it is replaced with what actually happens.
+
+**A test had encoded the defect.** `EstateIhtExposureDetectorTest` asserted
+`exposed=false` for £500,000 of savings, reasoning that £500,000 equals the nil rate
+band plus the residence nil rate band. The residence band requires a main residence
+passing to direct descendants, and that user has neither — so their allowance is
+£325,000 and £175,000 is taxable. The old detector handed the residence band to
+everyone by folding it into a threshold. The test now asserts the correct behaviour
+and a second test covers the genuinely-covered case.
+
+### The rule applied beyond this item
+
+`/m` was working three other things out. Each is now computed once, server-side:
+
+| Was computed in `/m` | Now |
+|---|---|
+| `ProtectionPolicy.vue` annualised the premium with its own `switch` | `App\Support\PremiumAnnualiser` — one mapping, used by `ComprehensiveProtectionPlanService` and published as `annual_premium` on all five policy resources |
+| `SavingsAccount.vue` computed `balance × rate ÷ 100` and `÷ 12` | `annual_interest` / `monthly_interest` appended by the `SavingsAccount` model |
+| `RetirementPensionDetail.vue` derived a monthly contribution from salary percentages | `monthly_contribution` appended by the `DCPension` model |
+
+**The pension one was not just duplication — the two disagreed.** The backend takes
+the flat monthly amount first and falls back to percentages; `/m` took the
+**percentages first**. A pension recording both was described differently depending
+which screen you were on. The model's accessor is now the single answer and
+`RetirementStrategyService` reads it too.
+
+### NOT done
+
+- **The remaining `/m` arithmetic is presentational and was left**: percentage-of-total
+  for progress bars in `Goals.vue`, `NetWorth.vue` and `Savings.vue`, and min/max for a
+  sparkline's scale in `CanonicalPortfolio.vue`. None of them produces a financial
+  figure a user could act on, and none has a backend counterpart to disagree with.
+  **Named here rather than silently judged in scope** — if the rule is meant to cover
+  those too, they are a small follow-up.
+- Not browser-verified on `/m`: the teaser is a **Free-tier** surface and the personas
+  are Premium, so the screen could not be reached without changing a tier. Covered by
+  the service tests. **I COULD NOT BROWSER-TEST THE TEASER.**

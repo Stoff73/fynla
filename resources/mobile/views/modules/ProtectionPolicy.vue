@@ -235,15 +235,11 @@ export default {
       if (!sub) return null;
       return LIFE_SUBTYPES[sub] || sub;
     },
-    annualCost() {
-      if (!this.policy?.premium_amount) return 0;
-      const amount = parseFloat(this.policy.premium_amount);
-      switch (this.policy.premium_frequency) {
-        case 'quarterly': return amount * 4;
-        case 'annually': case 'annual': case 'yearly': return amount;
-        default: return amount * 12;
-      }
-    },
+    // CSJ 2026-08-23: /m never works anything out — it shows what the backend
+    // computed. This annualised the premium itself, a second copy of the mapping
+    // in `PremiumAnnualiser`, so a frequency added to one would have been missed
+    // by the other. The server sends `annual_premium` now.
+    annualCost() { return Number(this.policy?.annual_premium ?? 0); },
     conditions() {
       const raw = this.policy?.conditions_covered;
       if (!raw) return [];

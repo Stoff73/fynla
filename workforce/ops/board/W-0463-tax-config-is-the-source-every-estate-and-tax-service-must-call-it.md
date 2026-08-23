@@ -214,3 +214,81 @@ wolf gets switched off.
   register somebody has actually reviewed; doing it speculatively would produce exactly
   the unreviewed list this item exists to prevent.
 - `tax-compliance-reviewer` has **not** run on any of this.
+
+
+## Taper relief on failed gifts — done, 2026-08-23
+
+**CSJ: critical.** It was listed under "NOT done" above; it is done now.
+
+`app/Services/Estate/FailedGiftTaxCalculator.php` — one home for both "how much nil
+rate band have these gifts consumed" and "what tax is due on them", because they come
+out of the same chronological walk and answering them separately is how they drift.
+
+### What it implements
+
+- Gifts inside the exemption window are chargeable; those outside drop out, except a
+  chargeable lifetime transfer still inside the cumulation window, which consumes band
+  for later gifts without being taxed itself (the fourteen-year rule).
+- **Chronological cumulation.** Each gift consumes the band remaining at its own date.
+  Order is load-bearing: two gifts of £300,000 (6.5 years ago) and £200,000 (1 year
+  ago) against a £325,000 band produce £70,000 of tax taken earliest-first, and about
+  a quarter of that taken the other way round, because the old gift would be charged
+  at 8% instead of the recent one at 40%. There is a test on exactly that.
+- **Tax falls only on the excess above the band, and taper reduces the TAX.** A gift
+  the band covers bears none, and therefore gets no taper however long ago it was
+  made — the rule most easily got wrong, and its own test.
+- Rates from the configured schedule via `getGiftTaxRate()`, which existed, was
+  correct, and had zero callers.
+
+### A second bug found on the way
+
+**Taper never applied to a chargeable lifetime transfer at all.** The two schedules
+are shaped differently: the potentially-exempt-transfer bands carry `tax_rate`
+outright (0.32 = "80% of 40%"), the chargeable-lifetime-transfer bands carry
+`tax_percent` — the percentage of the death rate still payable — and no `tax_rate`.
+So `getGiftTaxRate($years, 'clt')` matched no band and fell through to its default:
+**every such transfer was rated at the full 40% however long the donor survived.**
+Measured before the fix: 0.4 at every year from 0 to 8. Handled in the calculator,
+with a test.
+
+### Where it surfaces
+
+- `failed_gift_tax`, `failed_gift_taper_saving` and a per-gift `failed_gifts`
+  breakdown (value, years survived, how much the allowance covered, chargeable
+  amount, rate, taper saving, tax due) published from `IHTCalculationService`.
+- `GiftingStrategy` no longer emits `'taper_relief_applicable' => $yearsAgo >= 3` with
+  no figure beside it. It publishes the rate the gift would actually be charged at and
+  the percentage taper has already taken off. It states the RATE, not the tax — tax
+  depends on how much band earlier gifts consumed, which is a fact about the whole
+  estate and is answered in one place.
+- `GiftingStrategyOptimizer`'s hardcoded `'taper_relief_from_year' => 3` and
+  "survive 3-7 years" prose are derived from the schedule now.
+
+### Deliberately NOT folded into `iht_liability`
+
+Tax on a failed gift is the recipient's, falling on the estate only if unpaid after
+twelve months. Adding it to the headline would move the number for every user holding
+a large gift and would quote one figure that is really two liabilities owed by two
+different people — the kind of unexplainable total this module has just spent a cycle
+removing. Published beside it instead. **If it should be combined, that is a product
+decision and it is not this item's to take.**
+
+### Verified
+
+13 tests in `tests/Feature/Estate/FailedGiftTaperReliefTest.php` covering every band
+(40/32/24/16/8/0), the covered-gift case, chronological ordering, the chargeable
+lifetime transfer path, the per-person cap, and a Rule 2 test that moves a band to a
+rate nothing else uses.
+
+**No persona exercises any of this** — every persona gift sits under the nil rate
+band, so gift tax is correctly £0 for all of them and the personas' figures did not
+move (David and Sarah remain £343,512). That is exactly why it went unnoticed, and why
+the tests are purpose-built rather than persona-driven.
+
+### Stated assumption, not a silent one
+
+**Lifetime tax already paid on a chargeable lifetime transfer is not credited against
+the death charge.** A CLT over the band attracts 20% when made and that is set against
+the death tax. `lifetime_rate` is configured, but `gifts` holds no record of tax
+actually paid, so crediting it would be inventing a payment. Recorded in the class
+docblock. **Needs a data-model decision before it can be modelled.**

@@ -72,6 +72,33 @@ class SavingsAccount extends Model
         'account_number',
     ];
 
+    /**
+     * The interest this account earns in a year at its stated rate (Rule 20).
+     *
+     * `/m`'s `SavingsAccount.vue` computed `balance * (rate / 100)` and
+     * `annualInterest / 12` in Vue computed properties. CSJ, 2026-08-23: `/m`
+     * displays what the backend computed, it never works anything out — a client
+     * that calculates is a second answer waiting to disagree, and the Personal
+     * Savings Allowance work already reads an `annual_interest` of its own.
+     *
+     * Simple interest on the CURRENT balance, deliberately: it answers "what is this
+     * account earning me", not "what will it be worth" — compounding, contributions
+     * and rate changes belong to the projection services, not to a balance readout.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['annual_interest', 'monthly_interest'];
+
+    public function getAnnualInterestAttribute(): float
+    {
+        return round((float) ($this->current_balance ?? 0) * ((float) ($this->interest_rate ?? 0) / 100), 2);
+    }
+
+    public function getMonthlyInterestAttribute(): float
+    {
+        return round($this->annual_interest / 12, 2);
+    }
+
     protected $casts = [
         'current_balance' => 'decimal:2',
         'interest_rate' => 'decimal:4',

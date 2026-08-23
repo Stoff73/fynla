@@ -168,3 +168,18 @@ now one instance of **W-0463**, which carries CSJ's standing instruction that
 `TaxConfigService` is the source for every estate and tax service, and — more
 importantly — the coverage guard without which this defect recurs. Fixing this item
 alone leaves 19 other configured rules with no consumer.
+
+
+## Business Property Relief — done, 2026-08-23
+
+Implemented under W-0463: `EstateAssetAggregatorService::applyBusinessPropertyRelief()`
+allocates one shared cap across the estate, 100% to £2,500,000 and 50% above, gated on
+`allowance_cap_effective_date`. Eight tests including the £6m worked example from this
+item (£4.25m relieved, £1.75m chargeable).
+
+**Agricultural Property Relief is NOT done and is not implementable as the schema
+stands** — there is no agricultural asset type or flag in the data model. Registered in
+the W-0463 exclusions register with that reason. When it becomes expressible it must
+join the existing allocation, not get a second cap (`cap_shared_with_bpr`).
+
+`tax-compliance-reviewer` has not run.
