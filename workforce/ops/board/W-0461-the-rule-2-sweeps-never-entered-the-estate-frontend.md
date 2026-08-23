@@ -196,3 +196,11 @@ fourth way a completion claim stops a reader looking:
 > **A grep-based check degrades as the fix it checks for gets documented.**
 
 It took one cycle to appear.
+
+
+## Rolled under W-0463 — 2026-08-23
+
+The frontend scope gap recorded here is folded into **W-0463** acceptance 2. This item
+found that both Rule 2 sweeps read PHP and one Vue file; W-0463 adds the other half —
+a configured rule with NO consumer emits no literal to find and no output to move, so
+it is invisible to `RateLiteralsComeFromConfigurationTest` as well as to a grep.

@@ -12,7 +12,7 @@ surfaces: [web, m, ios]
 created: 2026-08-21T20:40:00Z
 claimed: null
 blocked_by: []
-gate: null
+gate: tax-compliance-reviewer
 handoff_to: null
 prior_art_checked: 2026-08-21
 prior_art_found: ["W-0154 (F6 — configured but read by nothing)", "2026-08-21-iht-calculation-audit.md F6"]
@@ -122,3 +122,49 @@ rather than building one inside a phantom-column fix.
   (`workforce/ops/reports/2026-08-21-iht-calculation-audit.md`) — it records the gov.uk
   provenance of the £2.5m figure and the wider list of configured-but-unread values, of
   which this is the largest.
+
+
+## Merged from W-0362 — 2026-08-23 (CSJ direction: remove the duplicate)
+
+W-0362 raised the same defect two days later from the tax-compliance review of W-0333
+and is now closed as a duplicate of this item. What it added, kept here:
+
+**Agricultural Property Relief is absent entirely — worse than the cap.**
+`TaxConfigService::getAgriculturalRelief()` is populated with the same capped structure
+(`allowance_cap: 2500000`, `cap_in_effect: true`, `relief_above_cap: 0.5`,
+`cap_shared_with_bpr: true`, `allowance_cap_effective_date: "2026-04-06"`) and has **no
+caller in the estate path at all**. Agricultural property receives no relief whatsoever,
+which errs in the OPPOSITE direction to the Business Property Relief defect: it
+overstates tax rather than understating it.
+
+**The cap is shared between the two reliefs**, so they cannot be fixed independently —
+`cap_shared_with_bpr: true` means one £2.5m allowance covers both, and a fix that
+applies the cap to Business Property Relief alone will over-relieve any estate holding
+both.
+
+**Where it reaches the Inheritance Tax figure:** `$userGrossAssets`
+(`IHTCalculationService:158`) and `$projectedBusiness` (`:485-496`), both reading
+`is_iht_exempt` straight from the boolean.
+
+### Acceptance (extends the list above)
+
+1. Relief computed from `getBusinessRelief()` / `getAgriculturalRelief()`, cap and rates
+   included — never a boolean.
+2. `allowance_cap_effective_date` decides whether the cap applies, so the answer follows
+   the configuration rather than the calendar in someone's head (Rule 2).
+3. AIM shares at 50%, outside the cap.
+4. The shared cap is modelled once across both reliefs, not twice.
+5. **`tax-compliance-reviewer` on the fix** — gate now set on this item.
+6. Before/after on a household holding a business above the cap. **The persona holds no
+   business interests at all** and cannot exercise any of this; the largest business
+   interest on the dev database is £750,000, so nothing on that data is currently wrong.
+   The defect is latent, not live — that bears on sequencing, not on whether it is real.
+
+
+## Rolled under W-0463 — 2026-08-23
+
+This item stays open and is still the Business/Agricultural Property Relief fix. It is
+now one instance of **W-0463**, which carries CSJ's standing instruction that
+`TaxConfigService` is the source for every estate and tax service, and — more
+importantly — the coverage guard without which this defect recurs. Fixing this item
+alone leaves 19 other configured rules with no consumer.

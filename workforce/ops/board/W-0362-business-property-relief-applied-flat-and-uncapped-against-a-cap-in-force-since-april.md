@@ -4,7 +4,9 @@ title: Business Property Relief is applied flat and uncapped while the configure
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: queued
+duplicate_of: W-0091
+closed: 2026-08-23T12:45:00Z
+status: closed_duplicate
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -66,3 +68,17 @@ from the flag.
 4. Before/after on a household holding a business above the cap — **the persona holds
    no business interests at all** and cannot exercise any of this.
 5. **`tax-compliance-reviewer` on the fix.**
+
+
+## Closed as a duplicate of W-0091 — 2026-08-23
+
+CSJ's direction. W-0091 raised the same defect on 2026-08-21 from the W-0154 fix batch,
+two days before this item was raised from the tax-compliance review of W-0333; the
+earlier id survives so the prior-art chain back to W-0154 F6 stays intact.
+
+**Everything unique to this item has been merged into W-0091** — the Agricultural
+Property Relief absence, the shared cap (`cap_shared_with_bpr`), the
+`IHTCalculationService` reach, and the acceptance criteria including the
+`tax-compliance-reviewer` gate, which is now set on W-0091.
+
+**Work W-0091. Nothing is lost by ignoring this file.**
