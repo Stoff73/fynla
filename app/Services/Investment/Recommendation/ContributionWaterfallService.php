@@ -152,7 +152,18 @@ class ContributionWaterfallService
         $lisaAllowances = $this->taxConfig->getISAAllowances()['lifetime_isa'] ?? [];
         $lisaLimit = is_array($lisaAllowances) ? ($lisaAllowances['annual_allowance'] ?? TaxDefaults::LISA_ALLOWANCE) : $lisaAllowances;
         $allocation = min($remaining, $lisaLimit);
-        $bonus = $allocation * 0.25;
+
+        // W-0451 / Rule 2. The line above reads the Lifetime ISA configuration
+        // and this one hardcoded `0.25` — the government bonus rate, sitting in
+        // arithmetic immediately beside the config that supplies it. The
+        // allowance moved with configuration and the bonus did not, so a change
+        // to the rate would have produced a correct allocation and a wrong
+        // bonus, in a figure the waterfall then explains to the user in pounds.
+        $bonusRate = is_array($lisaAllowances)
+            ? (float) ($lisaAllowances['government_bonus_rate'] ?? 0.25)
+            : 0.25;
+        $bonus = $allocation * $bonusRate;
+        $bonusRateLabel = rtrim(rtrim(number_format($bonusRate * 100, 2), '0'), '.').'%';
         $yearsEligible = max(0, 50 - $age);
 
         $trace = [];
@@ -181,7 +192,7 @@ class ContributionWaterfallService
             'data_value' => 'Yes',
             'threshold' => 'Yes',
             'passed' => true,
-            'explanation' => 'First-time buyer goal found — Lifetime ISA prioritised for the 25% government bonus.',
+            'explanation' => 'First-time buyer goal found — Lifetime ISA prioritised for the '.$bonusRateLabel.' government bonus.',
         ];
 
         $trace[] = [
@@ -190,13 +201,18 @@ class ContributionWaterfallService
             'data_value' => 'min(£'.number_format($remaining, 0).', £'.number_format($lisaLimit, 0).') = £'.number_format($allocation, 0),
             'threshold' => '£'.number_format($lisaLimit, 0).' annual limit',
             'passed' => true,
-            'explanation' => '£'.number_format($allocation, 0).' allocated. Government bonus: £'.number_format($allocation, 0).' × 25% = £'.number_format($bonus, 0).'. Total invested: £'.number_format($allocation + $bonus, 0).'.',
+            'explanation' => '£'.number_format($allocation, 0).' allocated. Government bonus: £'.number_format($allocation, 0).' × '.$bonusRateLabel.' = £'.number_format($bonus, 0).'. Total invested: £'.number_format($allocation + $bonus, 0).'.',
         ];
 
         $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Contribute to Lifetime ISA',
+            // W-0451: the headline the user actually reads hardcoded the bonus
+            // rate too — a THIRD literal in this one step, alongside the
+            // arithmetic and the two trace entries. Found by writing a test that
+            // drives the service rather than one that reads the config key.
             'explanation' => sprintf(
-                'As a first-time buyer under 40, the Lifetime ISA adds a 25%% government bonus on contributions up to £%s per year. On £%s that is a £%s bonus.',
+                'As a first-time buyer under 40, the Lifetime ISA adds a %s government bonus on contributions up to £%s per year. On £%s that is a £%s bonus.',
+                $bonusRateLabel,
                 number_format($lisaLimit, 0, '.', ','),
                 number_format($allocation, 0, '.', ','),
                 number_format($bonus, 0, '.', ',')

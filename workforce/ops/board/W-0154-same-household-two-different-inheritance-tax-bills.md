@@ -758,3 +758,36 @@ and that near-miss is recorded in the working notes below.
   resurrect a pre-fix answer — but they must still fix the fingerprint's `user_id`
   scope in the same change, because that one goes live the moment persistence does.
 
+
+## Working note — 2026-08-23, added by build-lead (`fix-cycle4-figures`) under W-0451 verdict condition C6
+
+**The two entry points derive the pooling predicate differently, and as of today
+the charitable figures depend on it.**
+
+| Entry point | Predicate |
+|---|---|
+| `app/Http/Controllers/Api/Estate/IHTController.php:52` | `liveSpouseId() !== null && hasAcceptedSpousePermission()` |
+| `app/Agents/EstateAgent.php:146` | `$spouse !== null` |
+
+A household where the two disagree — a linked spouse whose data-sharing
+permission is **not** accepted — gets a **pooled** calculation on `/plans/estate`
+(via `EstateAgent`) and an **individual** one on `/estate` (via `IHTController`).
+Different net estate, different available nil rate band, **different Schedule 1A
+baseline, different threshold, a different SURVIVOR, and a different saving.**
+
+**Pre-existing, not introduced by W-0451/W-0452** — but **newly load-bearing**,
+because before that batch `/plans/estate`'s charitable panel did not come from
+`$ihtCalculation` at all. The batch consolidated the charitable formula into one
+home; **it did not consolidate the predicate that feeds it**, so "one figure on
+three surfaces" holds only while the two entry points agree about who is in the
+household.
+
+**Not reachable on today's data.** The reviewer enumerated all **12 linked users**
+in the local database: every one is mutually `married` with a reciprocal
+`spouse_id` and an accepted permission, so the two predicates agree everywhere.
+**Reachable by any household that links a spouse and does not accept sharing.**
+
+**This belongs to W-0154's first acceptance criterion** — *"One household produces
+one answer"* — because it is the same defect at the predicate layer rather than
+the arithmetic layer. Whoever claims W-0154 should consolidate the predicate, not
+merely align the two call sites.

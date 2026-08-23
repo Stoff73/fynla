@@ -63,8 +63,11 @@ class UKTaxCalculator
         $totalTax = 0;
         $totalNI = 0;
 
-        // Combined "Earned Income" card - employment, self-employment, rental, pension income
-        // These all use the same tax bands (20%/40%/45%)
+        // One card for employment, self-employment, rental profit and pension
+        // income in payment: they share the same tax bands (20%/40%/45%). It is
+        // NOT four earned incomes, which is what calling it the "Earned Income"
+        // card led the header to assert (W-0423) — `combinedIncomeLabel` names
+        // whichever of them is present.
         $hasEarnedIncome = $employmentIncome > 0 || $selfEmploymentIncome > 0 || $rentalIncome > 0 || $pensionIncome > 0;
 
         if ($hasEarnedIncome) {
@@ -148,7 +151,7 @@ class UKTaxCalculator
 
             $incomeBreakdowns[] = [
                 'income_type' => 'earned',
-                'income_type_label' => 'Earned Income',
+                'income_type_label' => $this->combinedIncomeLabel($employmentIncome, $selfEmploymentIncome, $rentalIncome, $pensionIncome),
                 'gross_amount' => round($grossEarnedIncome, 2),
                 'income_components' => $incomeComponents,
                 'taxable_income' => round($totalTaxableEarnedIncome, 2),
@@ -246,6 +249,50 @@ class UKTaxCalculator
     }
 
     /**
+     * What to call the card that holds every income taxed at the main rates.
+     *
+     * It was called "Earned Income" whatever was in it, and it holds four things:
+     * employment, self-employment, **rental profit** and **pension income in
+     * payment**. The last two are not earned income, so a landlord read a header
+     * saying "Earned Income £159,290" over a figure that was £145,000 of salary
+     * and £14,290 of rent — a mislabelled header over a right number, on the one
+     * page whose whole value is that the reader can check it (W-0423).
+     *
+     * The label names what is present rather than asserting a category, so it
+     * stays true as the mix changes and cannot drift back.
+     */
+    private function combinedIncomeLabel(
+        float $employmentIncome,
+        float $selfEmploymentIncome,
+        float $rentalIncome,
+        float $pensionIncome
+    ): string {
+        $kinds = [];
+
+        if ($employmentIncome > 0 || $selfEmploymentIncome > 0) {
+            $kinds[] = 'Earned';
+        }
+        if ($rentalIncome > 0) {
+            $kinds[] = 'Rental';
+        }
+        if ($pensionIncome > 0) {
+            $kinds[] = 'Pension';
+        }
+
+        if ($kinds === []) {
+            return 'Earned Income';
+        }
+
+        if (count($kinds) === 1) {
+            return $kinds[0].' Income';
+        }
+
+        $last = array_pop($kinds);
+
+        return implode(', ', $kinds).' and '.$last.' Income';
+    }
+
+    /**
      * Calculate Class 1 NI with detailed breakdown
      */
     private function calculateClass1NIDetailed(float $employmentIncome): array
@@ -260,6 +307,13 @@ class UKTaxCalculator
 
         $breakdown = [
             'class' => 'Class 1',
+            // What National Insurance is actually charged on. The card header
+            // used to sit a flat "NI Applies" badge beside the COMBINED earned
+            // figure, which on a landlord with a workplace salary asserted
+            // National Insurance over rental profit — neither earned income nor
+            // liable to it (W-0423). The bands below cannot answer this: they
+            // start at the primary threshold, so they sum to less than the pay.
+            'base' => round($employmentIncome, 2),
             'main_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $mainRate],
             'additional_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $additionalRate],
             'total_ni' => 0,
@@ -303,6 +357,7 @@ class UKTaxCalculator
 
         $breakdown = [
             'class' => 'Class 4',
+            'base' => round($selfEmploymentIncome, 2),
             'main_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $mainRate],
             'additional_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $additionalRate],
             'total_ni' => 0,

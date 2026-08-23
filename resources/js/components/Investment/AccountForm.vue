@@ -140,6 +140,31 @@
 
           </div>
 
+          <!--
+            W-0257 — why the save did not happen.
+
+            The over-allocation message also appears at the holdings themselves,
+            but that section collapses, and a user who cannot see it was left
+            with a button that did nothing at all. A blocked submit says so
+            where the user is looking when they press it.
+
+            `errors.holdings` records that a submit WAS blocked;
+            `holdingsAllocationError` is the LIVE state. Both are required, and
+            the live one supplies the text — otherwise the message keeps naming
+            the old total after the user has corrected it. Caught in the browser:
+            the field-level message vanished at 100% while this one still read
+            "103.1%", which is a stale instruction to fix something already
+            fixed, and only marginally better than the silence it replaced.
+          -->
+          <p
+            v-if="errors.holdings && holdingsAllocationError"
+            class="px-6 pt-2 text-sm text-raspberry-600"
+            role="alert"
+            data-testid="account-form-blocked"
+          >
+            {{ holdingsAllocationError }}
+          </p>
+
           <!-- Footer -->
           <div :class="context === 'onboarding' ? 'mt-6 flex justify-end gap-3' : 'bg-eggshell-500 px-6 py-4 flex justify-end gap-3'">
             <button
@@ -183,6 +208,7 @@ import PrivateInvestmentFields from './PrivateInvestmentFields.vue';
 import EmployeeShareSchemeFields from './EmployeeShareSchemeFields.vue';
 import StandardInvestmentFields from './StandardInvestmentFields.vue';
 import InlineHoldingsEditor from './InlineHoldingsEditor.vue';
+import { allocationErrorMessage } from '@/utils/holdingsAllocation';
 import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -577,6 +603,31 @@ export default {
       return Math.max(0, this.totalStocksISAUsed - thisAccountOriginal);
     },
 
+    // The holdings the user can actually see and correct on this form (W-0257).
+    //
+    // Deliberately gated on the editor's OWN render condition rather than on
+    // `formData.holdings`. `showHoldingsEditor` is false for a non-holdable
+    // account type or a current value of zero, and `formData.holdings` can still
+    // carry rows in either case — a user who sets the value to 0, or switches
+    // account type, keeps whatever was entered before.
+    //
+    // Blocking a save over holdings that are nowhere on screen would be a new
+    // dead button with an unexplained message: **exactly the defect this fix
+    // exists to remove.** The guard only fires where the user has a control to
+    // act on.
+    visibleHoldings() {
+      if (!this.showHoldingsEditor || !this.showAdditionalInfo) return [];
+
+      return this.formData.holdings || [];
+    },
+
+    // The live over-allocation message, or null. Same single source as the
+    // holdings editor's own message (Rule 20), so the two cannot disagree about
+    // the total — which is precisely how the footer went stale.
+    holdingsAllocationError() {
+      return allocationErrorMessage(this.visibleHoldings);
+    },
+
     // This account's subscription amount
     thisAccountSubscription() {
       return this.formData.isa_subscription_current_year || 0;
@@ -969,7 +1020,21 @@ export default {
         submitData.platform_fee_percent = null;
         submitData.platform_fee_amount = null;
         submitData.advisor_fee_percent = null;
-        submitData.holdings = [];
+        // NOT `submitData.holdings = []` (W-0322, found while fixing W-0257).
+        //
+        // `InvestmentController::update` reads `$holdings = $validated['holdings']
+        // ?? null` and syncs `if ($holdings !== null)` — and an empty array is not
+        // null. Sending `[]` therefore ran `$account->holdings()->delete()`, wrote
+        // nothing back, and then auto-created a single 100% "Cash" holding for the
+        // remainder. Collapsing this section and pressing Update replaced every
+        // holding on the account with Cash, silently.
+        //
+        // Omitting the key entirely is the honest statement: this form is not
+        // showing holdings, so it is saying nothing about them. Clearing them
+        // remains possible the way a user would expect — expand the section,
+        // delete the rows, save; that sends a real empty array from a visible
+        // control.
+        delete submitData.holdings;
       }
 
       // For ISA accounts, keep isa_subscription_current_year (backend expects this field)
@@ -1067,6 +1132,19 @@ export default {
 
     validateForm() {
       let isValid = true;
+
+      // W-0257 — the holdings total is a fact about the set, so it is checked
+      // once here rather than encoded into each input's `max`, where it made the
+      // form unsatisfiable and the Update button silently inert.
+      //
+      // Checked against what the user can SEE and fix — see `visibleHoldings`.
+      // A blocked save the user has no control to unblock is the same dead
+      // button in a different costume.
+      const holdingsError = allocationErrorMessage(this.visibleHoldings);
+      if (holdingsError) {
+        this.errors.holdings = holdingsError;
+        isValid = false;
+      }
 
       if (!this.formData.account_type) {
         this.errors.account_type = 'Account type is required';

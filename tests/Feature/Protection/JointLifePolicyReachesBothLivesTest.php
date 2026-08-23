@@ -120,8 +120,23 @@ it('reports no cover and no policies when the household has neither', function (
 it('does not put the same policy into both estates', function () {
     // Covering a life is not owning the contract. The proceeds fall into the
     // estate of the person who holds it, once.
+    //
+    // This asserted `getExistingLifeCover($spouse) === 0.0` and called that the
+    // guard against a double count. It was guarding the wrong method: a life policy
+    // never enters the estate asset aggregation at all — `gatherUserAssets()` does
+    // not read `LifeInsurancePolicy`, from either account, so the double count it
+    // described was not reachable by that route. What the £0 actually did was tell
+    // Sarah her estate plan had no life cover behind it, on the one product insuring
+    // her life (W-0341). The real guard is the one below, asserted directly.
     $estate = app(EstateAssetAggregatorService::class);
 
+    foreach ([$this->owner, $this->spouse] as $party) {
+        $assetTypes = $estate->gatherUserAssets($party)->pluck('asset_type')->all();
+
+        expect($assetTypes)->not->toContain('life_insurance');
+    }
+
+    // And the cover figure now reaches the life it covers, from both accounts.
     expect($estate->getExistingLifeCover($this->owner))->toBe(500000.0)
-        ->and($estate->getExistingLifeCover($this->spouse))->toBe(0.0);
+        ->and($estate->getExistingLifeCover($this->spouse))->toBe(500000.0);
 });

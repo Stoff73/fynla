@@ -92,6 +92,22 @@
             <p class="text-sm font-bold text-spring-700">{{ formatCurrency(situation.charitable_giving.potential_saving) }}</p>
           </div>
         </div>
+        <!--
+          W-0451 C1. Every figure above describes the survivor's will, and this
+          panel said so nowhere — so read from the other spouse's account it
+          presented that person's charitable position as the reader's own.
+
+          The sentence is composed by the server and printed verbatim. It is NOT
+          written here, because `planPrintMixin.js` draws the same panel for the
+          printed plan and two copies of one sentence is the drift Rule 20
+          forbids — the pair already duplicates the "Threshold for 36% Rate"
+          label, which is filed as W-0461.
+
+          Empty for a single person, and whenever the reader IS the survivor.
+        -->
+        <p v-if="situation.charitable_giving.basis" class="text-xs text-neutral-500 mt-3">
+          {{ situation.charitable_giving.basis }}
+        </p>
       </div>
     </div>
   </div>

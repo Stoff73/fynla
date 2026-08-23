@@ -610,7 +610,11 @@ class UserProfileService
             'income_tax' => $simpleTax['income_tax'],
             'national_insurance' => $simpleTax['national_insurance'],
             'total_deductions' => $simpleTax['total_deductions'],
-            // Use detailed net_income (includes pension contributions) for consistency with TaxSummaryCard
+            // Total income less income tax and National Insurance, plus any
+            // Section 24 credit. Employee pension contributions are NOT deducted
+            // here — they reduce the tax, not this figure — and the comment that
+            // used to sit on this line said they were (W-0422). The label on the
+            // Income tab now states the same three deductions this makes.
             'net_income' => $netIncome,
             'effective_tax_rate' => $simpleTax['effective_tax_rate'],
             'breakdown' => $simpleTax['breakdown'],
@@ -692,9 +696,15 @@ class UserProfileService
     }
 
     /**
-     * Calculate total liabilities for the user
+     * Calculate total liabilities for the user.
+     *
+     * Public because it is the one itemisation of this user's debts at their own
+     * share, and a third surface now reads it: the Letter to Loved Ones, which
+     * had been summing raw balances at 100% and charging the household £72,000
+     * belonging to an off-platform co-owner (W-0421). Routed here rather than
+     * given a fourth implementation.
      */
-    private function calculateLiabilitiesSummary(User $user): array
+    public function calculateLiabilitiesSummary(User $user): array
     {
         // Every figure here is the user's SHARE of the debt, not the whole of every
         // record they happen to be primary owner of. This read `forUserPrimaryOnly`

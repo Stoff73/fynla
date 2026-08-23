@@ -56,6 +56,47 @@ namespace App\Support;
 final class HoldingValuation
 {
     /**
+     * Every `holdings` column that is NOT NULL, carries a database default, AND
+     * can be reached from a client payload.
+     *
+     * A null for any of these must be DROPPED, never passed through: the column
+     * cannot store it, and omitting the key is what lets the default apply.
+     *
+     * This is the third occurrence of one class of bug and the second generalised
+     * fix of it. `investment_accounts` learned it at W-0052, where a `nullable`
+     * validation rule on a NOT NULL column let the form's explicit null reach the
+     * database and 500 every create; the fix there is
+     * `InvestmentAccountNormaliser::NOT_NULL_WITH_DEFAULT`. `holdings` repeated it
+     * exactly (W-0261): `dividend_yield` is labelled "(Optional)" on the form,
+     * `HoldingForm` sends it as an explicit null when left blank, and both
+     * `StoreHoldingRequest` and `UpdateHoldingRequest` validate it `nullable` —
+     * so leaving the optional field blank raised
+     * `Integrity constraint violation: 1048 Column 'dividend_yield' cannot be null`
+     * and no holding could be created. `ocf_percent` is the identical column and
+     * carried the identical latent failure.
+     *
+     * Zero is the right resting value for both: they are rates, the column's own
+     * default is `0.0000`, and "not stated" and "zero" are the same fact for a
+     * dividend yield or an ongoing charge. That is a per-column judgement, not a
+     * blanket rule — a NOT NULL column with no default (`current_value`,
+     * `security_name`, `asset_type`) is deliberately absent from this list,
+     * because there is no default to fall back to and inventing one would
+     * fabricate a figure.
+     *
+     * It lives here rather than in the two form requests because this is the one
+     * boundary every holding write already crosses — the investment form, the
+     * pension holdings controller, the account seeding paths and Fyn's
+     * `create_holding` all call `reconcile()` before `Holding::create`. Fixing it
+     * in the validators would have covered two of those five.
+     *
+     * @var list<string>
+     */
+    public const NOT_NULL_WITH_DEFAULT = [
+        'dividend_yield',
+        'ocf_percent',
+    ];
+
+    /**
      * Resolve `quantity`, `current_value` and `cost_basis` from whatever is known.
      *
      * Only keys this method actually derives are written back, so a partial
@@ -67,6 +108,16 @@ final class HoldingValuation
      */
     public static function reconcile(array $data, ?object $existing = null): array
     {
+        // Drop nulls a NOT NULL column cannot take, so its default applies. This
+        // runs FIRST: every branch below casts with `(float)`, and `(float) null`
+        // is `0.0`, which would write a zero the caller never asked for instead of
+        // leaving the stored value alone on an update.
+        foreach (self::NOT_NULL_WITH_DEFAULT as $field) {
+            if (array_key_exists($field, $data) && ($data[$field] === null || $data[$field] === '')) {
+                unset($data[$field]);
+            }
+        }
+
         $quantity = self::resolve($data, $existing, 'quantity');
         $currentPrice = self::resolve($data, $existing, 'current_price');
         $purchasePrice = self::resolve($data, $existing, 'purchase_price');

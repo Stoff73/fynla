@@ -9,11 +9,11 @@ use App\Models\Estate\Gift;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Settings\AssumptionsService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
@@ -30,6 +30,41 @@ use Illuminate\Support\Collection;
  * - Investments: Monte Carlo (80% confidence) or custom rate
  * - Properties: Configurable growth rate (default 3%)
  * - Liabilities: Amortisation to end date (default retirement age)
+ *
+ * WHOSE RECORDS, AND HOW MUCH OF EACH — one answer, used by the headline and the
+ * projection alike (W-0331).
+ *
+ * This service reports two estates in one response: the estate as it stands and
+ * the estate projected to the second death. They must be the same household seen
+ * at two moments, and they used to be assembled by two different rules.
+ *
+ * The rule, declared by the headline at `calculate()` step 3 and now read by the
+ * projection too: **the union of the pooled members' records, each record counted
+ * ONCE, at the share each member actually owns.** `gatherUserAssets()` and
+ * `CrossModuleAssetAggregator` both express it as `forUserOrJoint` reach times
+ * `calculateUserShare` fraction, per member.
+ *
+ * Two consequences worth stating because the wrong shapes look plausible:
+ *   - Summing each member's records at 100% is NOT equivalent. It agrees only
+ *     when every shared record is shared between the two members themselves. A
+ *     record shared with a THIRD PARTY (`tenants_in_common`, `joint_owner_id`
+ *     NULL) carries a stranger's share into the household's estate, and a
+ *     stranger's money is not taxable on this death.
+ *   - A member's own total already includes their share of records the OTHER
+ *     member records, so the two members' totals add to the household exactly
+ *     once. Adding a joint record again "for the other side" would double it.
+ *
+ * **What is NOT yet closed, stated so this docblock cannot be read as a clean
+ * bill of health (W-0340).** The two halves now agree about WHOSE SHARE of each
+ * record they take. They still disagree about WHICH PEOPLE are in the household:
+ * the headline pools on `$isMarried && $dataSharingEnabled` (`pooledMembers()`),
+ * every projection branch on `$dataSharingEnabled && $spouse` alone. Neither
+ * `liveSpouse()` nor `hasAcceptedSpousePermission()` consults `marital_status`,
+ * so an unmarried couple who have linked accounts and accepted sharing get a
+ * headline taxing one estate and a projection pooling two — against a SINGLE
+ * nil rate band and no spouse exemption, which unmarried partners do not get.
+ * That is W-0154's F3 defect still alive in the projection path, and it moves a
+ * real figure, so it is its own item rather than a quiet edit here.
  */
 class IHTCalculationService
 {
@@ -47,6 +82,7 @@ class IHTCalculationService
         private readonly PropertyStore $propertyStore,
         private readonly WillAnalysisService $willAnalysis,
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
+        private readonly CrossModuleAssetAggregator $crossModuleAggregator,
     ) {}
 
     /**
@@ -300,8 +336,51 @@ class IHTCalculationService
             'iht_rate_type' => $ihtRateData['type'],
             'iht_rate_message' => $ihtRateData['message'],
             'charitable_giving_percent' => $ihtRateData['charitable_percent'],
+            // The two charitable figures answer DIFFERENT questions and are not
+            // interchangeable (tax-compliance-reviewer, 2026-08-21, ruling quoted
+            // in determineIHTRate()):
+            //   charitable_deduction        — the s23(1) exemption. POOLED across
+            //                                 the household, because every member's
+            //                                 legacy leaves the combined estate.
+            //   charitable_rate_test_amount — what Sch 1A's 10% test compares. The
+            //                                 SURVIVOR's will alone; summing both
+            //                                 would over-qualify households for 36%.
+            // They coincide for a single person and differ whenever both spouses
+            // left a legacy, which is precisely when publishing only one of them
+            // misleads. W-0399.
+            'charitable_rate_test_amount' => round($current['charitable_rate_test_amount'] ?? $charitableAmount, 2),
             'charitable_baseline' => $ihtRateData['baseline'],
             'charitable_threshold' => $ihtRateData['threshold'],
+
+            // W-0451 / W-0452 — the household's charitable rate position, settled
+            // once in `determineIHTRate()` / `assessTaxPosition()` and published
+            // whole, so that no second reader has to re-derive any part of it
+            // from a different estate.
+            //
+            // It used to be re-derived. `EstateAgent` handed
+            // `WillAnalysisService` the INDIVIDUAL's net estate with the
+            // HOUSEHOLD's available nil rate band — one person's assets against
+            // two people's band — and that mongrel baseline reached
+            // `/plans/estate` as "Current Charitable Rate 4.2%" on a page whose
+            // own Net Estate row read £1,728,780, while `/estate` said 0.8% for
+            // the same household in the same session. Same numerator, two
+            // denominators, five times apart.
+            //
+            // Every consumer now reads these keys. Nothing downstream computes a
+            // baseline, a threshold, a shortfall or a saving of its own.
+            'charitable_shortfall' => $ihtRateData['shortfall'],
+            'charitable_rate_qualifies' => $ihtRateData['qualifies'],
+            // W-0451 C1. Whose will the 10% test reads. Published beside the
+            // amount it reads, so no sentence has to guess whose position it is
+            // describing — see the note in `determineIHTRate()`.
+            'charitable_rate_test_member_id' => $ihtRateData['rate_test_member_id'],
+            'charitable_rate_test_member_first_name' => $ihtRateData['rate_test_member_first_name'],
+            'charitable_rate_test_is_requesting_user' => $ihtRateData['rate_test_member_is_requesting_user'],
+            'charitable_has_unvalued_gifts' => $ihtRateData['has_unvalued_charitable_gifts'],
+            'charitable_taxable_estate_if_qualifying' => round($current['charitable_taxable_estate_if_qualifying'], 2),
+            'charitable_tax_at_standard_rate' => round($current['charitable_tax_at_standard_rate'], 2),
+            'charitable_tax_at_reduced_rate' => round($current['charitable_tax_at_reduced_rate'], 2),
+            'charitable_rate_saving' => round($current['charitable_rate_saving'], 2),
             'iht_liability' => round($ihtLiability, 2),
             'effective_rate' => round($effectiveRate, 2),
 
@@ -604,10 +683,77 @@ class IHTCalculationService
         $totalAllowances = (float) $ctx['nrb_available'] + (float) $rnrbData['rnrb_available'];
         $taxableEstate = max(0, $netEstate - $totalAllowances - $charitableDeduction);
 
+        // W-0451 — THE ONE DEFINITION OF WHAT THE REDUCED CHARITABLE RATE SAVES.
+        //
+        // Three mechanisms answered this and no two agreed. `EstateAgent` printed
+        // the differential on the taxable estate; `WillAnalysisService` published
+        // the differential on the BASELINE — a quantity that over-includes by
+        // exactly the charitable gift plus the residence band. So a decision
+        // trace whose whole purpose is auditability read:
+        //
+        //   "On the taxable estate of £858,780: at 40% = £343,512,
+        //    at 36% = £309,161 — saving £19,580."
+        //
+        // £343,512 − £309,161 = £34,351. The sentence published £19,580 — a 43%
+        // error a reader can check on a calculator. Neither figure answered the
+        // question the sentence asks.
+        //
+        // **The question is what the ACTION saves**, so the answer is the
+        // difference between two Inheritance Tax bills:
+        //
+        //   * at the standard rate on the estate as the will stands today; and
+        //   * at the reduced rate on the estate once the gift is increased to
+        //     the Schedule 1A threshold — the gift itself leaves the estate
+        //     under the s23(1) exemption, so the chargeable estate falls by the
+        //     shortfall as the rate falls.
+        //
+        // The threshold does not move when the gift grows: Sch 1A para 5 adds the
+        // donated amount back into the baseline, so `baseline = netEstate − NRB`
+        // is independent of what is given. That is what makes one subtraction
+        // the whole answer.
+        //
+        // For an estate ALREADY qualifying the shortfall is zero, the two bills
+        // sit on the same chargeable estate, and the difference collapses to the
+        // rate differential on that estate — which is what "the reduced rate is
+        // worth" means for someone who already has it. **One formula, both
+        // branches**, and in both of them one of the two bills is the actual
+        // `iht_liability` and the other is the counterfactual.
+        //
+        // The error it replaces changed SIGN with the household — the baseline
+        // exceeded the taxable estate on one path and fell below it on another —
+        // so it could never be defended as conservative.
+        // Read exactly as `determineIHTRate()` reads it three lines above, from the
+        // same array, so the two bills cannot be struck at different rates. No
+        // `??` fallback for the standard rate: that method reads the key
+        // unguarded, so a missing key has already fataled before this line.
+        $standardRate = (float) $ctx['iht_config']['standard_rate'];
+        $reducedRate = $this->taxConfig->getCharitableReducedRate();
+        $charitableShortfall = (float) ($rateData['shortfall'] ?? 0);
+
+        $taxableEstateIfQualifying = max(0, $taxableEstate - $charitableShortfall);
+
+        $taxAtStandardRate = $taxableEstate * $standardRate;
+        $taxAtReducedRate = $taxableEstateIfQualifying * $reducedRate;
+
         return [
             'rnrb' => $rnrbData,
             'rate' => $rateData,
             'charitable_deduction' => $charitableDeduction,
+            // Published rather than left to be subtracted downstream, so that a
+            // sentence saying "36% of £X" can print the £X it multiplied. A
+            // reader who cannot see the second base cannot check the second bill,
+            // which is the whole failure this item exists to close.
+            'charitable_taxable_estate_if_qualifying' => $taxableEstateIfQualifying,
+            'charitable_tax_at_standard_rate' => $taxAtStandardRate,
+            'charitable_tax_at_reduced_rate' => $taxAtReducedRate,
+            'charitable_rate_saving' => max(0, $taxAtStandardRate - $taxAtReducedRate),
+            // W-0399. determineIHTRate() separates the pooled s23(1) exemption
+            // from the survivor-only Sch 1A rate-test amount — the distinction
+            // tax-compliance-reviewer ruled on — and then the rate-test figure
+            // was read by NOTHING. It died in that method, so the only charitable
+            // figure reaching a screen was the pooled exemption, rendered under
+            // the words "Your will leaves …". Each will leaves half of it.
+            'charitable_rate_test_amount' => (float) ($rateData['charitable_rate_test_amount'] ?? $charitableDeduction),
             'total_allowances' => $totalAllowances,
             'taxable_estate' => $taxableEstate,
             'iht_liability' => $taxableEstate * $rateData['rate'],
@@ -649,7 +795,7 @@ class IHTCalculationService
                     );
 
                     $mortgageShare = (float) $property->mortgages->sum(function ($mortgage) use ($member, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
-                        $endDate = $mortgage->end_date;
+                        $endDate = $mortgage->maturity_date;
 
                         return $this->projectSingleLiability(
                             (float) $this->calculateUserMortgageShare($mortgage, $member->id),
@@ -718,17 +864,40 @@ class IHTCalculationService
     }
 
     /**
-     * Get current total investment value
+     * The household's current investment value — every record the pooled members
+     * touch, counted once, at the share each of them owns.
+     *
+     * See the class docblock for the rule. This used to be
+     * `where('user_id', $user->id)` plus `where('user_id', $spouse->id)`, each at
+     * 100%. Those two queries are disjoint, so nothing was ever counted twice —
+     * but a member's own account was taken whole regardless of who else owns it,
+     * and their share of an account the OTHER member records was not taken at
+     * all. Married with sharing on, the two errors cancel; with sharing off they
+     * do not, and the household's joint General Investment Account landed
+     * entirely in the recording spouse's estate.
      */
     private function getCurrentInvestmentValue(User $user, ?User $spouse, bool $dataSharingEnabled): float
     {
-        $value = InvestmentAccount::where('user_id', $user->id)->sum('current_value');
+        $value = $this->memberInvestmentValue($user);
 
         if ($dataSharingEnabled && $spouse) {
-            $value += InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
+            $value += $this->memberInvestmentValue($spouse);
         }
 
-        return (float) $value;
+        return $value;
+    }
+
+    /**
+     * One member's investment value: reach-complete, at their own share.
+     *
+     * Routed to `CrossModuleAssetAggregator` (Rule 20) rather than re-derived —
+     * it is the same reader the headline estate uses through
+     * `EstateAssetAggregatorService::gatherUserAssets()`, so the projection and
+     * the headline cannot drift apart again.
+     */
+    private function memberInvestmentValue(User $member): float
+    {
+        return $this->crossModuleAggregator->calculateInvestmentTotal($member->id);
     }
 
     /**
@@ -740,55 +909,94 @@ class IHTCalculationService
         int $yearsToProject,
         bool $dataSharingEnabled
     ): float {
-        $projectedValue = 0;
-
+        // The growth assumption is the household's, so the same rate applies to
+        // both members — it is read from the signed-in user's assumptions record
+        // exactly as before.
         $fallbackRate = $this->getFallbackGrowthRate($user);
 
-        // Get user's investment projections
-        try {
-            $userProjections = $this->investmentProjectionService->getPortfolioProjections(
-                $user,
-                [$yearsToProject]
-            );
+        $projectedValue = $this->projectMemberInvestments($user, $yearsToProject, $fallbackRate);
 
-            if (isset($userProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'])) {
-                $projectedValue += $userProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'];
-            } else {
-                // Fallback: compound at fallback rate instead of zero growth
-                $currentValue = (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
-                $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
-            }
-        } catch (\Exception $e) {
-            // Fallback: compound at fallback rate instead of zero growth
-            $currentValue = (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
-            $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
-        }
-
-        // Include spouse's investments
+        // Include the spouse's investments. Each member's figure is already at
+        // that member's own share, so the two add to the household exactly once.
         if ($dataSharingEnabled && $spouse) {
-            try {
-                $spouseProjections = $this->investmentProjectionService->getPortfolioProjections(
-                    $spouse,
-                    [$yearsToProject]
-                );
-
-                if (isset($spouseProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'])) {
-                    $projectedValue += $spouseProjections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'];
-                } else {
-                    $currentValue = (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
-                    $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
-                }
-            } catch (\Exception $e) {
-                $currentValue = (float) InvestmentAccount::where('user_id', $spouse->id)->sum('current_value');
-                $projectedValue += $this->futureValueCalculator->calculateFutureValue($currentValue, $fallbackRate, $yearsToProject);
-            }
+            $projectedValue += $this->projectMemberInvestments($spouse, $yearsToProject, $fallbackRate);
         }
 
         return $projectedValue;
     }
 
     /**
+     * One member's projected investment value, simulated where possible and
+     * compounded where not.
+     *
+     * The simulation and the fallback have to measure the SAME thing, and they
+     * did not. `getPortfolioProjections()` is reach-complete at the member's
+     * share; the fallback took `where('user_id', $member->id)` at 100%. So a run
+     * where one member's simulation succeeded and the other's did not counted a
+     * joint account at one and a half times its value — the simulated member's
+     * half plus the whole of it again from the member who fell back. Both sides
+     * now read the same ownership rule, so which branch is taken changes the
+     * growth applied and nothing about whose money it is.
+     *
+     * Four copies of this block existed, two per member. Editing them in step is
+     * how they drifted; there is one now (Rule 20).
+     */
+    private function projectMemberInvestments(User $member, int $yearsToProject, float $fallbackRate): float
+    {
+        try {
+            $projections = $this->investmentProjectionService->getPortfolioProjections(
+                $member,
+                [$yearsToProject]
+            );
+
+            $simulated = $projections['portfolio']['projections'][$yearsToProject]['percentiles']['p20'] ?? null;
+
+            if ($simulated !== null) {
+                return (float) $simulated;
+            }
+        } catch (\Exception $e) {
+            // Fall through to the compounded figure below rather than contributing
+            // nothing — a member whose simulation fails still owns their portfolio.
+        }
+
+        // Fallback: compound at the fallback rate instead of zero growth.
+        return $this->futureValueCalculator->calculateFutureValue(
+            $this->memberInvestmentValue($member),
+            $fallbackRate,
+            $yearsToProject
+        );
+    }
+
+    /**
      * Project properties using configurable growth rate (default 3%)
+     *
+     * W-0333. This **completes** `5278a2457`, it does not reverse it.
+     *
+     * That commit found `PropertyStore::forUser` is joint-aware
+     * (`user_id = ? OR joint_owner_id = ?`), so calling it for both members
+     * matched a joint property TWICE, and pinned each side to its own primary
+     * rows to stop it. The double count was real and this method must not
+     * reintroduce it.
+     *
+     * But primary rows were then taken at **100%**, and that is where a THIRD
+     * PARTY gets in. A property held `tenants_in_common` with someone who has no
+     * account here carries their share into this household's estate — £177,000 of
+     * a stranger's money inside an inheritance tax figure, on the persona
+     * household alone. Three approaches, two failure modes:
+     *
+     * | approach | joint counted twice | third party's share included |
+     * |---|---|---|
+     * | `forUser` on both sides | **yes** | no |
+     * | `user_id` at 100% | no | **yes** |
+     * | reach + share, per member | **no** | **no** |
+     *
+     * `5278a2457` named the third option itself: it left
+     * `EstateAssetAggregatorService` alone *"because that consumer applies
+     * calculateUserShare on each row so joint properties correctly contribute the
+     * user's share"*. The right answer was written in the commit that introduced
+     * the defect; it simply was not applied here. It is now — and it is the same
+     * reader the headline estate uses, so the projection and the figure above it
+     * can no longer disagree about what this household owns.
      */
     private function projectProperties(
         User $user,
@@ -799,21 +1007,13 @@ class IHTCalculationService
     ): float {
         $propertyGrowthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
 
-        // PropertyStore::forUser is joint-aware (user_id = ? OR joint_owner_id = ?).
-        // Filter to primary-owner-only here to preserve the pre-PR-5a single-count semantics:
-        // a joint property A+B is summed under A (primary) ONCE — never double-counted under
-        // both A and B in the data-sharing branch. Mirrors SavingsReadConsumerParityTest pattern.
-        $currentPropertyValue = (float) $this->propertyStore
-            ->forUser($user)
-            ->where('user_id', $user->id)
-            ->sum('current_value');
+        $currentPropertyValue = $this->crossModuleAggregator->calculatePropertyTotal($user->id);
 
-        // Include spouse properties if data sharing enabled
+        // Include spouse properties if data sharing enabled. Each member's figure
+        // is already at that member's own share, so a property they hold together
+        // contributes its whole value exactly once.
         if ($dataSharingEnabled && $spouse) {
-            $currentPropertyValue += (float) $this->propertyStore
-                ->forUser($spouse)
-                ->where('user_id', $spouse->id)
-                ->sum('current_value');
+            $currentPropertyValue += $this->crossModuleAggregator->calculatePropertyTotal($spouse->id);
         }
 
         if ($yearsToProject <= 0) {
@@ -836,64 +1036,96 @@ class IHTCalculationService
         int $deathAge,
         bool $dataSharingEnabled
     ): float {
-        $projectedLiabilities = 0;
-        $currentYear = now()->year;
-        $yearsToProject = $deathAge - $currentAge;
+        $projectedLiabilities = $this->projectMemberLiabilities(
+            $user, $currentAge, $retirementAge, $deathAge
+        );
 
-        // Project mortgages
-        foreach ($user->mortgages as $mortgage) {
-            $endDate = $mortgage->end_date;
-            $projectedLiabilities += $this->projectSingleLiability(
-                (float) ($mortgage->outstanding_balance ?? 0),
-                $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
-                $currentAge,
-                $retirementAge,
-                $yearsToProject,
-                $currentYear
-            );
-        }
-
-        // Project other liabilities
-        foreach ($user->liabilities as $liability) {
-            $endDate = $liability->maturity_date ?? $this->estimatePayoffDate($liability);
-            $projectedLiabilities += $this->projectSingleLiability(
-                (float) ($liability->current_balance ?? 0),
-                $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
-                $currentAge,
-                $retirementAge,
-                $yearsToProject,
-                $currentYear
-            );
-        }
-
-        // Include spouse liabilities if data sharing enabled
+        // Include spouse liabilities if data sharing enabled. Each member's debts
+        // are already at that member's own share, so a debt they hold together is
+        // discharged once, not twice.
         if ($dataSharingEnabled && $spouse) {
-            foreach ($spouse->mortgages as $mortgage) {
-                $endDate = $mortgage->end_date;
-                $projectedLiabilities += $this->projectSingleLiability(
-                    (float) ($mortgage->outstanding_balance ?? 0),
-                    $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
-                    $currentAge,
-                    $retirementAge,
-                    $yearsToProject,
-                    $currentYear
-                );
-            }
-
-            foreach ($spouse->liabilities as $liability) {
-                $endDate = $liability->maturity_date ?? $this->estimatePayoffDate($liability);
-                $projectedLiabilities += $this->projectSingleLiability(
-                    (float) ($liability->current_balance ?? 0),
-                    $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
-                    $currentAge,
-                    $retirementAge,
-                    $yearsToProject,
-                    $currentYear
-                );
-            }
+            $projectedLiabilities += $this->projectMemberLiabilities(
+                $spouse, $currentAge, $retirementAge, $deathAge
+            );
         }
 
         return $projectedLiabilities;
+    }
+
+    /**
+     * One member's debts, amortised to the household horizon.
+     *
+     * W-0336, the third member of the W-0331 / W-0333 family, and the one that
+     * fails in the OTHER direction: an over-counted debt reduces the estate, so
+     * this understated tax rather than overstating it. Correcting property alone
+     * would have left the estate right on the asset side and wrong on the debt
+     * side.
+     *
+     * Two departures from the headline, both closed here:
+     *
+     *   * **Reach.** `$user->mortgages` and `$user->liabilities` are plain
+     *     `user_id` relations, so a debt the OTHER member records was invisible
+     *     to this one.
+     *
+     *     Mortgages need the **two-leg** reader, not the one-leg one, and the
+     *     difference is not cosmetic. A mortgage is REACHED by the mortgage row's
+     *     own `user_id`/`joint_owner_id`, but its share is resolved from the
+     *     SECURING PROPERTY (W-0228). When those disagree, debt disappears: a home
+     *     owned 50/50 with a mortgage row naming one spouse only gives that spouse
+     *     50% and the other spouse nothing, so half the debt is deducted by
+     *     nobody and the estate — and the tax — comes out too big. The old code
+     *     took the row at 100% and happened to recover the whole debt for that
+     *     shape, so switching to the share alone would have been a regression.
+     *     `CrossModuleAssetAggregator::getMortgages()` exists for precisely this
+     *     case: its second leg picks up mortgages on the user's properties that
+     *     the mortgage row does not name. Found by the tax-compliance review of
+     *     this change, filed as W-0338 against the headline, which still reads the
+     *     one-leg version.
+     *   * **Fraction.** Every balance was taken at 100%. `calculateUserShare` and
+     *     `calculateUserMortgageShare` are the one home for the split, and the
+     *     mortgage rule in particular is not guessable: **a debt is shared
+     *     exactly as the asset securing it is shared** (CSJ's W-0228 ruling), not
+     *     as the mortgage record's own percentage. Deriving it here would have
+     *     re-created the bug that ruling settled.
+     *
+     * Four loops, two per member, became one. Editing them in step is how the
+     * two members' branches were free to drift apart (Rule 20).
+     */
+    private function projectMemberLiabilities(
+        User $member,
+        int $currentAge,
+        int $retirementAge,
+        int $deathAge
+    ): float {
+        $currentYear = now()->year;
+        $yearsToProject = $deathAge - $currentAge;
+        $projected = 0.0;
+
+        foreach ($this->crossModuleAggregator->getMortgages($member->id) as $mortgage) {
+            $endDate = $mortgage->maturity_date;
+            $projected += $this->projectSingleLiability(
+                $this->calculateUserMortgageShare($mortgage, $member->id),
+                $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
+                $currentAge,
+                $retirementAge,
+                $yearsToProject,
+                $currentYear
+            );
+        }
+
+        foreach ($this->aggregator->getUserLiabilities($member) as $liability) {
+            $endDate = $liability->maturity_date ?? $this->estimatePayoffDate($liability);
+            $projected += $this->projectSingleLiability(
+                $this->calculateUserShare($liability, $member->id),
+                $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
+                $currentAge,
+                $retirementAge,
+                $yearsToProject,
+                $currentYear
+            );
+        }
+
+        return $projected;
     }
 
     /**
@@ -1116,6 +1348,18 @@ class IHTCalculationService
         $standardRate = $ihtConfig['standard_rate']; // 0.40 (40%)
         $reducedRate = $this->taxConfig->getCharitableReducedRate();
 
+        // W-0431 / Rule 2. Every rate in the sentences below was a hardcoded
+        // literal — "40%", "36%", "10%" — beside a calculation reading the real
+        // figure from TaxConfigService. That is the W-0132 defect this file
+        // already documents, one layer over: a label asserting a rate the figure
+        // next to it was not computed at. Change the reduced rate in
+        // configuration and the message would keep saying 36% while the estate
+        // was charged something else. The sentences now quote what was used.
+        $asPercent = static fn (float $rate): string => rtrim(rtrim(number_format($rate * 100, 2), '0'), '.').'%';
+        $standardRateLabel = $asPercent($standardRate);
+        $reducedRateLabel = $asPercent($reducedRate);
+        $thresholdLabel = $asPercent($this->taxConfig->getCharitableThresholdPercent());
+
         // W-0154 F1 — the exemption and the rate test do NOT use the same set of
         // wills, and conflating them is the intuitive fix that is wrong.
         //
@@ -1183,7 +1427,24 @@ class IHTCalculationService
         if ($bequestTotal > 0) {
             $charitableAmount = $bequestTotal;
             $rateTestAmount = $survivorBequestTotal;
-            $charitablePercent = $netEstate > 0 ? ($survivorBequestTotal / $netEstate) * 100 : 0;
+            // W-0433. This divided by the NET ESTATE while the threshold beside
+            // it in every message is 10% of the BASELINE — so the sentence
+            // invited the user to compare two percentages of different things.
+            // On the peak_earners household it showed 0.6% against a 10%
+            // threshold where the statutory figure is 0.81%.
+            //
+            // The baseline is Schedule 1A's own denominator, and it is already
+            // computed above.
+            //
+            // W-0452 finished the job. W-0433 pointed this card at the baseline
+            // and left `EstatePlanService` computing its own percentage from a
+            // baseline `EstateAgent` had struck on the individual's net estate —
+            // matching denominators in name and not in value, which is how one
+            // page came to publish 4.2% while this one published 0.8% for the
+            // same household. That second division is gone; the one computed
+            // below, after both branches, is now the only division producing
+            // this percentage anywhere in the application, and both surfaces
+            // read its answer.
         }
 
         // `$charitableAmount` is the s23(1) exemption the caller deducts from the
@@ -1193,44 +1454,108 @@ class IHTCalculationService
         // rate-test figure, because the comparison they describe is the rate test.
         $rateTestAmount ??= $charitableAmount;
 
+        // C2 of the 2026-08-23 verdict. W-0433's fix lived INSIDE the
+        // recorded-bequest branch, so `charitable_giving_percent` had two
+        // definitions depending on which branch ran: a percentage of the
+        // BASELINE when a will recorded a legacy, and the user's typed
+        // Inheritance Tax profile figure — a percentage of the NET ESTATE —
+        // when it did not. Both were then quoted against a baseline threshold
+        // in the same sentence.
+        //
+        // No seeded profile carries a non-zero value, so no fixture reached the
+        // second branch. Any user can enter one.
+        //
+        // Computed ONCE here, after both branches, from the amount the rate test
+        // actually compares and the denominator Schedule 1A actually uses. The
+        // profile percentage remains what it always was — an INPUT for deriving
+        // the intended amount above — and is no longer mistaken for the output.
+        $charitablePercent = $baseline > 0 ? ($rateTestAmount / $baseline) * 100 : 0;
+
+        $qualifies = $charitablePercent > 0 && $rateTestAmount >= $threshold && $baseline > 0;
+        $shortfall = max(0, $threshold - $rateTestAmount);
+
+        // W-0451. Whether the survivor's will leaves an ASSET or a residuary
+        // share to charity is a property of the estate being rate-tested, so it
+        // is settled here beside the amount and the threshold rather than by a
+        // second reader asking the same question of a different person.
+        //
+        // `WillAnalysisService` asked it of whoever was logged in. On a
+        // household where the first-to-die left the unvalued gift and the
+        // survivor did not, that suppressed a shortfall instruction the survivor
+        // could act on; the mirror case invented one the survivor could not.
+        $hasUnvaluedCharitableGifts = $this->willAnalysis->hasUnvaluedCharitableGifts($survivor);
+
+        // W-0451 / Rule 20. Every branch answers every question, structurally.
+        //
+        // The three returns below each re-listed the same five keys, and the
+        // third one carries a comment recording the last time a key was added to
+        // two of them and forgotten in the third — a rate-test figure that
+        // reached no screen. A shared array cannot be forgotten in one branch,
+        // so the next key added here is published on all three by construction
+        // rather than by the author remembering.
+        $position = [
+            // W-0451 C1 — WHOSE will the rate test reads, published beside WHAT
+            // it reads, from the one resolution that decides it.
+            //
+            // The batch that moved the numerator to the survivor published the
+            // AMOUNTS and the BOOLEANS and not the IDENTITY, on the premise that
+            // no second caller would need to know who the survivor was. The
+            // premise was false and the code proved it: `EstateAgent` writes
+            // sentences with a name in them, had nothing to name, and defaulted
+            // to whoever was logged in — so the survivor's charitable position
+            // was reported under the first-to-die's name, with an instruction to
+            // add a legacy to the wrong will. Following it raises the pooled
+            // exemption and leaves `$rateTestAmount` untouched, so the rate never
+            // moves and the same instruction is issued again.
+            //
+            // Published rather than exposing `survivingMember()`: a second caller
+            // would have to re-derive the pooling predicate to call it, which is
+            // a second copy of the decision that selects the survivor. One
+            // resolution, its answer published whole.
+            'rate_test_member_id' => $survivor->id,
+            'rate_test_member_first_name' => $survivor->first_name,
+            // Answered here rather than left to a consumer comparing ids: this
+            // method holds both the requesting user and the survivor, and a
+            // consumer that has to match them up is a place for them to diverge.
+            'rate_test_member_is_requesting_user' => $survivor->id === $user->id,
+            // Always the computed figure. The third branch used to publish a
+            // literal 0 here; it is reached only when `$charitablePercent` is
+            // already 0, so the literal said nothing the variable did not.
+            'charitable_percent' => $charitablePercent,
+            'charitable_amount' => round($charitableAmount, 2),
+            'charitable_rate_test_amount' => round($rateTestAmount, 2),
+            'baseline' => round($baseline, 2),
+            'threshold' => round($threshold, 2),
+            'shortfall' => round($shortfall, 2),
+            'qualifies' => $qualifies,
+            'has_unvalued_charitable_gifts' => $hasUnvaluedCharitableGifts,
+        ];
+
         // Check if charitable giving meets the 10% of baseline threshold
-        if ($charitablePercent > 0 && $rateTestAmount >= $threshold && $baseline > 0) {
+        if ($qualifies) {
             return [
                 'rate' => $reducedRate,
                 'type' => 'reduced',
-                'message' => 'Reduced IHT rate of 36% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($rateTestAmount).') meets the 10% threshold of £'.number_format($threshold).' (10% of baseline £'.number_format($baseline).').',
-                'charitable_percent' => $charitablePercent,
-                'charitable_amount' => round($charitableAmount, 2),
-                'charitable_rate_test_amount' => round($rateTestAmount, 2),
-                'baseline' => round($baseline, 2),
-                'threshold' => round($threshold, 2),
+                'message' => 'Reduced Inheritance Tax rate of '.$reducedRateLabel.' applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($rateTestAmount).') meets the '.$thresholdLabel.' threshold of £'.number_format($threshold).' ('.$thresholdLabel.' of baseline £'.number_format($baseline).').',
+                ...$position,
             ];
         }
 
         // Standard rate applies
         if ($charitablePercent > 0 && $baseline > 0) {
-            $shortfall = $threshold - $rateTestAmount;
-
             return [
                 'rate' => $standardRate,
                 'type' => 'standard',
-                'message' => 'Standard IHT rate of 40% applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($rateTestAmount).') is below the 10% threshold of £'.number_format($threshold).'. Increase by £'.number_format($shortfall).' to qualify for 36% rate.',
-                'charitable_percent' => $charitablePercent,
-                'charitable_amount' => round($charitableAmount, 2),
-                'charitable_rate_test_amount' => round($rateTestAmount, 2),
-                'baseline' => round($baseline, 2),
-                'threshold' => round($threshold, 2),
+                'message' => 'Standard Inheritance Tax rate of '.$standardRateLabel.' applies. Your charitable giving of '.number_format($charitablePercent, 1).'% (£'.number_format($rateTestAmount).') is below the '.$thresholdLabel.' threshold of £'.number_format($threshold).'. Increase by £'.number_format($shortfall).' to qualify for the '.$reducedRateLabel.' rate.',
+                ...$position,
             ];
         }
 
         return [
             'rate' => $standardRate,
             'type' => 'standard',
-            'message' => 'Standard IHT rate of 40% applies. Leave 10%+ of your baseline estate (£'.number_format($baseline).') to charity to qualify for the reduced 36% rate.',
-            'charitable_percent' => 0,
-            'charitable_amount' => round($charitableAmount, 2),
-            'baseline' => round($baseline, 2),
-            'threshold' => round($threshold, 2),
+            'message' => 'Standard Inheritance Tax rate of '.$standardRateLabel.' applies. Leave '.$thresholdLabel.'+ of your baseline estate (£'.number_format($baseline).') to charity to qualify for the reduced '.$reducedRateLabel.' rate.',
+            ...$position,
         ];
     }
 

@@ -215,10 +215,38 @@
           -->
           <div class="space-y-3">
             <div class="text-xs">
+              <!--
+                W-0399. This read "Your will leaves {charitable_deduction} to
+                charity" — and `charitable_deduction` is the POOLED household
+                exemption, not this user's will. Both spouses were told their own
+                will left £20,000 when each leaves £10,000, directly above a
+                message quoting the survivor's £10,000. Two correct figures, one
+                false label, and nothing saying they answer different questions.
+
+                Neither figure is "your will" on a married household:
+                `charitable_deduction` is the household's, and
+                `charitable_rate_test_amount` is the SURVIVOR's — which is not
+                the logged-in user half the time. The copy therefore names what
+                each figure IS rather than whose it is.
+
+                Both spouses on this persona leave £10,000 EACH, and that is
+                exactly why the two figures do NOT coincide: the exemption pools
+                to £20,000 while the rate test stays at the survivor's £10,000.
+                Two wills holding the same amount is not the same thing as two
+                FIGURES holding the same amount, and confusing those was how this
+                comment previously claimed the opposite. The wording still cannot
+                rely on them being equal — for a single person, or a couple where
+                only one partner left a legacy, they are.
+              -->
               <p v-if="charitableLegacyRecorded" class="text-neutral-500">
-                Your will leaves <span class="font-semibold text-horizon-500">{{ formatCurrency(ihtData.charitable_deduction) }}</span> to charity.
+                <span class="font-semibold text-horizon-500">{{ formatCurrency(ihtData.charitable_deduction) }}</span>
+                is left to charity{{ charitableFiguresDiffer ? ' across your household' : '' }}, and comes out of the estate before Inheritance Tax is worked out.
               </p>
-              <p v-else class="text-neutral-500">Your will records no gifts to charity.</p>
+              <p v-if="charitableFiguresDiffer" class="text-neutral-500 mt-1">
+                The 10% test that decides the reduced rate looks only at the will operating on the second death, which leaves
+                <span class="font-semibold text-horizon-500">{{ formatCurrency(ihtData.charitable_rate_test_amount) }}</span>.
+              </p>
+              <p v-else-if="!charitableLegacyRecorded" class="text-neutral-500">Your will records no gifts to charity.</p>
               <p v-if="ihtData.iht_rate_message" class="text-neutral-500 mt-2">{{ ihtData.iht_rate_message }}</p>
             </div>
             <div v-if="!qualifiesForReducedRate && charitableBequestSavings > 0" class="text-xs border-t border-light-gray pt-3">
@@ -568,7 +596,14 @@
             </p>
             <ul class="list-disc list-inside space-y-1">
               <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ annualGiftExemption.toLocaleString() }}/year)</li>
-              <li>Charitable giving (can reduce Inheritance Tax rate from 40% to 36% if ≥10% to charity)</li>
+              <!--
+                W-0451. Three rate literals in one line, in the component whose
+                sentence two cards above now moves with configuration. Under a
+                31%/12% configuration this card would have read "Reduced
+                Inheritance Tax rate of 31% applies" and "from 40% to 36%" at the
+                same time.
+              -->
+              <li>Charitable giving (can reduce Inheritance Tax rate from {{ formatPercent(ihtStandardRate) }} to {{ formatPercent(ihtReducedRate) }} if {{ charitableThresholdLabel }} or more goes to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
               <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
               <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to £175,000)</li>
@@ -925,11 +960,28 @@ export default {
     },
 
     charitableBequestSavings() {
-      // Calculate potential IHT savings if 10%+ is left to charity (rate drops from 40% to 36%)
-      const taxableEstate = this.ihtData?.taxable_estate || 0;
-      const currentIHT = taxableEstate * this.ihtStandardRate;
-      const reducedIHT = taxableEstate * this.ihtReducedRate;
-      return currentIHT - reducedIHT;
+      /*
+       * W-0451 — THE FOURTH MECHANISM, and the one that made this a Rule 20 fix
+       * rather than a service fix.
+       *
+       * This computed the saving in the browser as the rate differential on the
+       * chargeable estate, and rendered it under "If you left £X or more, your
+       * rate would fall to 36% and your estate would pay about £Y less". Two
+       * things were wrong with that, and neither is visible from this file:
+       *
+       *   1. It is the wrong answer to the sentence above it. Leaving £X does not
+       *      only change the RATE — the gift itself leaves the estate under the
+       *      section 23(1) exemption, so the reduced rate applies to a smaller
+       *      estate. Holding the estate still understates the saving.
+       *   2. It was a fourth answer. `EstateAgent`'s decision trace and
+       *      `/plans/estate` each published their own, and all three differed.
+       *
+       * The server settles it once, from the chargeable estate and the shortfall
+       * (`IHTCalculationService::assessTaxPosition()`), and publishes the two
+       * Inheritance Tax bills alongside it so the figure can be checked. This
+       * card reads that answer. It computes nothing.
+       */
+      return Number(this.ihtData?.charitable_rate_saving ?? 0);
     },
 
     /**
@@ -947,6 +999,48 @@ export default {
 
     qualifiesForReducedRate() {
       return this.ihtData?.iht_rate_type === 'reduced';
+    },
+
+    /**
+     * Do the two charitable figures answer with different numbers?
+     *
+     * W-0399. `charitable_deduction` is the pooled section 23(1) exemption —
+     * every household member's legacy leaves the combined estate.
+     * `charitable_rate_test_amount` is what Schedule 1A's 10% test compares, and
+     * that is the survivor's will alone, because the statute tests one deceased
+     * person's estate. Summing both wills for the rate test would over-qualify
+     * households for the reduced rate.
+     *
+     * They coincide for a single person, and for a couple where only one partner
+     * left a legacy. They diverge exactly when both did — which is the case the
+     * old copy got wrong, and the case this persona cannot demonstrate, because
+     * both spouses happen to leave the same £10,000.
+     */
+    /**
+     * The Schedule 1A threshold as a label, from the server's own figures.
+     *
+     * W-0451. `charitable_threshold` is the cash amount; the PERCENTAGE it
+     * represents was hardcoded as "10%" in the strategies list. Derived from the
+     * two figures the payload already carries rather than re-reading config on
+     * the client, so the label cannot disagree with the amount beside it.
+     */
+    charitableThresholdLabel() {
+      const threshold = Number(this.ihtData?.charitable_threshold ?? 0);
+      const baseline = Number(this.ihtData?.charitable_baseline ?? 0);
+
+      if (!baseline || !threshold) return '10%';
+
+      const percent = (threshold / baseline) * 100;
+      return `${Number(percent.toFixed(2))}%`;
+    },
+
+    charitableFiguresDiffer() {
+      const exemption = this.ihtData?.charitable_deduction || 0;
+      const rateTest = this.ihtData?.charitable_rate_test_amount;
+
+      if (rateTest === undefined || rateTest === null) return false;
+
+      return Math.round(exemption) !== Math.round(rateTest);
     },
 
     /**
@@ -1625,6 +1719,17 @@ export default {
               rnrb_message: response.iht_summary.current.rnrb_message,
               total_allowance: response.iht_summary.current.total_allowances,
               charitable_deduction: response.iht_summary.current.charitable_deduction || 0,
+              // W-0399, and the third instance of the same shape in one batch:
+              // the service computed this, the controller published it, and this
+              // hand-written mapping — which does not spread the payload, it
+              // enumerates it — dropped it one layer before the card. A field
+              // absent from an allowlist is invisible in exactly the way a field
+              // absent from a Resource is (`app/Http/CLAUDE.md` axis 7).
+              //
+              // `?? null` rather than `|| 0`: the card distinguishes "no
+              // distinction to draw" from "nothing given to charity", and a
+              // zero-coalescing default would collapse those two into one.
+              charitable_rate_test_amount: response.iht_summary.current.charitable_rate_test_amount ?? null,
               taxable_estate: response.iht_summary.current.taxable_estate,
               estate_iht_liability: response.iht_summary.current.iht_liability,
               // W-0132. This read `effective_rate / 100`, which is NOT the
@@ -1640,6 +1745,20 @@ export default {
               iht_rate_type: response.iht_summary.current.iht_rate_type,
               iht_rate_message: response.iht_summary.current.iht_rate_message,
               charitable_threshold: response.calculation?.charitable_threshold ?? 0,
+              // W-0451, and the FOURTH time this batch has hit the same shape —
+              // caught before shipping this time, not after. `charitableThresholdLabel`
+              // derives the Schedule 1A percentage from these two figures, and
+              // the baseline was published by the service, carried on
+              // `calculation`, and absent from this allowlist. Adding a computed
+              // that reads a key means checking the key arrives.
+              charitable_baseline: response.calculation?.charitable_baseline ?? 0,
+              // W-0451, and the FIFTH instance of the allowlist shape. Adding a
+              // computed that reads a key means checking the key arrives — so
+              // this line and `charitableBequestSavings` were written together,
+              // not one after the other. Without it the card would render
+              // "£0 less" and the block would vanish behind its own `v-if`,
+              // which is the quietest way this failure can present.
+              charitable_rate_saving: response.calculation?.charitable_rate_saving ?? 0,
               liabilities: response.calculation?.total_liabilities || 0,
 
               // Projected values. W-0136: the projection has its OWN allowances —

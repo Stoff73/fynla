@@ -212,7 +212,10 @@ class EstatePlanService extends BasePlanService
             'charitable_bequest' => [
                 'steps' => [
                     'Review your current will with a solicitor.',
-                    'Discuss adding or increasing charitable bequests to reach the 10% threshold.',
+                    // W-0451 / C4: the threshold in a step a user is told to
+                    // follow, hardcoded where the rest of this class reads it
+                    // from configuration.
+                    'Discuss adding or increasing charitable bequests to reach the '.self::formatRate($this->taxConfig->getCharitableThresholdPercent() * 100).' threshold.',
                     'Ensure charities named are registered with the Charity Commission.',
                     'Update your will and store a copy securely.',
                 ],
@@ -513,9 +516,28 @@ class EstatePlanService extends BasePlanService
         $charitableStatus = $charitableAnalysis['status'] ?? 'none';
         $qualifies = in_array($charitableStatus, ['at', 'above'], true);
         $appliedRateType = $qualifies ? 'charitable' : 'standard';
+        // W-0451. This said "10% or more of the NET ESTATE", and Schedule 1A
+        // compares the donated amount against the BASELINE — the estate less the
+        // available nil rate band. As a statement of law it was wrong as
+        // written, and it is what `/plans/estate` renders and what printed plans
+        // carry. The threshold was hardcoded beside it, so an admin moving the
+        // configured figure changed the calculation and not the sentence.
+        //
+        // "the estate above the nil rate band" is the baseline in plain words:
+        // the same quantity `IHTCalculationService::determineIHTRate()` computes
+        // and publishes as `charitable_baseline`, said in a way a reader can
+        // follow. (This named `WillAnalysisService:55` until W-0452 moved the
+        // computation to its one home; that service reads the published figure
+        // now and computes no baseline of its own.)
+        $charitableThresholdPercent = $this->taxConfig->getCharitableThresholdPercent() * 100;
+
         $appliedRateMessage = $qualifies
-            ? sprintf('Reduced rate of %d%% applies as 10%% or more of the net estate is left to charity.', (int) round($charitableRate * 100))
-            : sprintf('Standard Inheritance Tax rate of %d%% applies.', (int) round($ihtStandardRate * 100));
+            ? sprintf(
+                'Reduced rate of %s applies: %s or more of the estate above the nil rate band is left to charity.',
+                self::formatRate($charitableRate * 100),
+                self::formatRate($charitableThresholdPercent),
+            )
+            : sprintf('Standard Inheritance Tax rate of %s applies.', self::formatRate($ihtStandardRate * 100));
 
         // W-0135 / Rule 20 — the allowance explanations come from the calculation
         // that produced the figures, not from a second set written here.
@@ -568,31 +590,60 @@ class EstatePlanService extends BasePlanService
             ],
             'charitable_giving' => [
                 'status' => $charitableStatus,
-                // The analysis returns charitable_total and baseline, not a
-                // percentage — reading a key it never emits pinned this to 0.0.
-                'current_percentage' => round($this->charitablePercentage($charitableAnalysis), 1),
+                // W-0452. This divided `charitable_total` by `baseline` — a third
+                // computation of a figure `/estate` already published, against a
+                // baseline `EstateAgent` had struck on the INDIVIDUAL's net estate
+                // with the HOUSEHOLD's nil rate band. It rendered "Current
+                // Charitable Rate 4.2%" on a page whose own Net Estate row read
+                // £1,728,780, where `/estate` said 0.8% for the same household in
+                // the same session — a percentage no arithmetic on this page could
+                // produce.
+                //
+                // There is now one division, in `determineIHTRate()`, and both
+                // surfaces read its answer.
+                'current_percentage' => round((float) ($charitableAnalysis['charitable_percent'] ?? 0), 1),
                 'threshold' => $this->planConfig->getCharitableGivingThreshold(),
                 'shortfall' => $this->roundToPenny((float) ($charitableAnalysis['shortfall'] ?? 0)),
                 'potential_saving' => $this->roundToPenny((float) ($charitableAnalysis['potential_saving'] ?? 0)),
+                // W-0451 C1. Every figure in this panel describes the SURVIVOR's
+                // will — Schedule 1A tests the estate of one deceased person and
+                // this service models to the second death — and the panel said so
+                // nowhere. Read from the other spouse's account it presented that
+                // person's charitable position as the reader's own.
+                //
+                // Composed HERE, once, and rendered verbatim by both consumers.
+                // `EstateCurrentSituation.vue` and `planPrintMixin.js` are two
+                // mechanisms drawing one panel; writing the sentence in each of
+                // them would be the drift Rule 20 forbids, and the reviewer has
+                // already flagged that pair for duplicating a label.
+                'basis' => $this->charitableBasisSentence($charitableAnalysis),
             ],
             'linked_accounts' => $this->buildLinkedAccountsList($user),
         ];
     }
 
     /**
-     * Charitable giving as a percentage of the baseline amount.
+     * Whose will the figures in the charitable panel describe.
+     *
+     * W-0451 C1. Returns an empty string for a single person, and for a household
+     * whose reader IS the survivor — there is nothing to disclose when the will
+     * being tested is the reader's own, and a sentence that always fires would
+     * train the reader to skip it.
      *
      * @param  array<string, mixed>  $charitableAnalysis
      */
-    private function charitablePercentage(array $charitableAnalysis): float
+    private function charitableBasisSentence(array $charitableAnalysis): string
     {
-        $baseline = (float) ($charitableAnalysis['baseline'] ?? 0);
+        $name = $charitableAnalysis['rate_test_member_first_name'] ?? null;
 
-        if ($baseline <= 0) {
-            return 0.0;
+        if ($name === null || ($charitableAnalysis['rate_test_is_requesting_user'] ?? true)) {
+            return '';
         }
 
-        return ((float) ($charitableAnalysis['charitable_total'] ?? 0) / $baseline) * 100;
+        $threshold = self::formatRate($this->taxConfig->getCharitableThresholdPercent() * 100);
+
+        return 'These figures are for '.$name.'\'s will. The '.$threshold
+            .' test that decides the reduced rate looks only at the will operating on the second death.';
     }
 
     /**
@@ -784,6 +835,18 @@ class EstatePlanService extends BasePlanService
             ],
             'spouse_exemption_note' => 'Assets passing between spouses are exempt from Inheritance Tax. The Inheritance Tax liability shown is calculated on the second death.',
         ];
+    }
+
+    /**
+     * A configured rate as a percentage a user can read.
+     *
+     * W-0451. Trailing zeros trimmed so a 36% rate reads "36%" and not
+     * "36.00%", while a rate configuration could express with decimals still
+     * survives — `%d` would have silently truncated 36.5% to "36%".
+     */
+    private static function formatRate(float $percent): string
+    {
+        return rtrim(rtrim(number_format($percent, 2), '0'), '.').'%';
     }
 
     private function buildWhatIfData(array $data, array $enabledActions): array

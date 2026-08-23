@@ -33,6 +33,7 @@ use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Investment\ReturnCalculationService;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
@@ -76,6 +77,7 @@ class InvestmentController extends Controller
         private readonly InvestmentAccountStore $investmentAccountStore,
         private readonly TierGate $tierGate,
         private readonly PortfolioPresentationService $portfolioPresentation,
+        private readonly RiskPreferenceService $riskPreferenceService,
     ) {}
 
     /**
@@ -1086,10 +1088,13 @@ class InvestmentController extends Controller
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
         $userRiskLevel = $riskProfile ? $this->diversificationAnalyzer->normalizeRiskLevel($riskProfile->risk_level ?? $riskProfile->risk_tolerance) : 3;
 
-        // Get account-level risk override if set
+        // Get account-level risk override if set. Read from the preference itself, not
+        // the `has_custom_risk` flag beside it — nothing writes that flag on an
+        // investment account, so gating on it discarded every override a user had set.
         $accountRiskLevel = null;
-        if ($account->has_custom_risk && $account->risk_preference) {
-            $accountRiskLevel = $this->diversificationAnalyzer->normalizeRiskLevel($account->risk_preference);
+        $accountRiskOverride = $this->riskPreferenceService->getProductRiskOverride($account);
+        if ($accountRiskOverride !== null) {
+            $accountRiskLevel = $this->diversificationAnalyzer->normalizeRiskLevel($accountRiskOverride);
         }
 
         // Run full analysis

@@ -189,6 +189,11 @@
                       <span class="text-body-sm text-neutral-500">{{ netIncomeLabel }}</span>
                       <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(incomeOccupation.net_income) }}</span>
                     </div>
+                    <p v-if="annualPensionContributions > 0" class="text-xs text-neutral-500">
+                      Your pension contributions of {{ formatCurrency(annualPensionContributions) }} are not deducted
+                      here. They reduce the tax above; the money itself goes into your pension rather than your bank
+                      account, so it is not available to spend.
+                    </p>
                     <div class="flex justify-between">
                       <span class="text-body-sm text-neutral-500">Annual Expenditure:</span>
                       <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(totalAnnualExpenditure) }}</span>
@@ -557,19 +562,38 @@ export default {
       return netIncome - totalAnnualExpenditure.value;
     });
 
-    // Dynamic label for net income based on what deductions apply
+    /**
+     * The label states the deductions this figure MAKES.
+     *
+     * It used to say "after tax, pension contributions and tax credits" while the
+     * figure was Total Income less income tax and National Insurance, plus the
+     * Section 24 credit — the pension was never deducted from it. On this
+     * household that was £102,496 described as being net of an £11,600
+     * contribution it does not subtract (W-0422). The pension reduces the TAX,
+     * which is why income tax here is charged on Threshold Income three panels
+     * above; it does not reduce this line.
+     *
+     * National Insurance was missing from every variant and is always deducted,
+     * so it is named unconditionally.
+     */
     const netIncomeLabel = computed(() => {
-      const hasPensionContributions = (incomeOccupation.value?.annual_pension_contributions || 0) > 0;
       const hasTaxCredits = (incomeOccupation.value?.detailed_tax_breakdown?.summary?.section_24_credit || 0) > 0;
 
-      if (hasPensionContributions && hasTaxCredits) {
-        return 'Net Income (after tax, pension contributions and tax credits):';
-      } else if (hasPensionContributions) {
-        return 'Net Income (after tax and pension contributions):';
-      } else if (hasTaxCredits) {
-        return 'Net Income (after tax and tax credits):';
-      }
-      return 'Net Income (after tax):';
+      return hasTaxCredits
+        ? 'Net Income (after tax and National Insurance, including tax credits):'
+        : 'Net Income (after tax and National Insurance):';
+    });
+
+    /**
+     * Employee pension contributions, for the note beside Net Income.
+     *
+     * Stated because the figure above does not deduct them and the line below
+     * spends what is left: contributions leave the pay packet before it arrives,
+     * so a reader comparing Disposable Income against their bank account needs to
+     * know this much of it is already in a pension.
+     */
+    const annualPensionContributions = computed(() => {
+      return Number(incomeOccupation.value?.annual_pension_contributions || 0);
     });
 
     const monthlyDisposable = computed(() => {
@@ -714,6 +738,7 @@ export default {
       incomeNeedsUpdate,
       previousStatusLabel,
       netIncomeLabel,
+      annualPensionContributions,
       childBenefitAmount,
       hicbcApplies,
       hicbcCharge,

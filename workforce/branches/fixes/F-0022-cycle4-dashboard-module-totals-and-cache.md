@@ -395,3 +395,255 @@ in the test file:**
 
 **None of the three was a red test made green.** Each asserted a behaviour this work
 deliberately changed, and each now asserts the new one explicitly.
+
+---
+
+# Part 2 — W-0228 / W-0236 / W-0237: a debt is shared as the asset securing it
+
+**Second dispatch to the same agent, after the cycle-4 dashboard work above.**
+**Board items:** W-0228, W-0236, W-0237 · same ID block.
+
+**The ruling is settled and is NOT open** (CSJ, 2026-08-22, recorded in full at the
+bottom of `workforce/ops/board/W-0228-…md`):
+
+> **A debt is shared exactly as the asset securing it is shared.**
+
+## 10. The principle
+
+The Manchester unit is held `tenants_in_common` at **40%**; the mortgage secured on
+it was stored `joint` at **50%**. **Both records carried a share and they
+disagreed**, so whichever record a given screen happened to read decided what the
+user was told they owed. All of this was live on one household simultaneously:
+
+| Surface | Read | Source |
+|---|---|---|
+| property detail | "Your Mortgage Share (40%) £48,000" | the property |
+| Liabilities page | £48,000 | the property |
+| Mortgage tab | "Your mortgage liability £60,000" **beside** "Your Share (40%): £300" | both, in one panel |
+| property list card | £60,000 | the mortgage row |
+| Wealth Summary | £182,500 | the mortgage row |
+
+**This is not a missing-share defect.** It is the failure mode one step past it:
+the share was applied everywhere, from two different records, and nothing made the
+disagreement audible.
+
+## 11. Prior art — four mechanisms, not two, and one with no callers at all
+
+The dispatch named two. The check found **four** in the backend and a **fifth** on
+the client. The count is recorded because it is the finding, not a detail:
+
+| # | Site | Behaviour before |
+|---|---|---|
+| 1 | `CalculatesOwnershipShare::calculateUserMortgageAmountShare` | read the ownership pair off the **mortgage row** — **the bug** |
+| 2 | `EstateController::index:102-113` | copied the property's pair onto the mortgage array — right, and a second implementation |
+| 3 | `PropertyService::calculateTaxPosition:180-201` | its own inline `$ownershipMultiplier` over the property — right, and a third. Charges rental income **and mortgage interest**, so it is the site the tester's "rental already applies 40% correctly" evidence pointed at |
+| 4 | `PropertyService::calculateUserEquity:111-133` | inline copy again — right, a fourth, and **zero callers anywhere in the codebase** |
+| 5 | `LiabilityCard.vue::userShare()` | `balance * pct / 100` client-side, **assuming the viewer is always the primary owner** |
+
+**#4 is worth pausing on.** A byte-equivalent copy of the share rule with no
+callers, kept correct by hand through every ownership change this codebase has
+had. Dead code that is *maintained* is worse than dead code that is obviously
+stale: it reads as load-bearing, and the next person to need a property share
+copies it.
+
+**#5 is not an arithmetic slip.** `ownership_percentage` is the **primary owner's**
+share. At the persona's 50/50 it is right for both parties by symmetry, which is
+why it survived. At 40/60 the co-owner is shown the **other party's** share — one
+household member reading a figure that describes someone else's position. Severity
+recorded on the board item accordingly.
+
+**Outcome: route, for all five.** No new share arithmetic exists anywhere in this
+work. One reader was added — `SecuringPropertyResolver`, which resolves *which
+record* the share is read from — and `calculateUserShare` still answers *what the
+share is*.
+
+## 12. The trap: a `static` declared in a trait is PER USING CLASS
+
+**Recorded at team-lead's request as a trap in its own right, not as a note on
+this fix. The next person reaching for a memo inside a trait will hit it
+identically.**
+
+The property lookup needs memoising: every mortgage share resolves the property
+securing it, and around twenty services ask, several within one dashboard request.
+The obvious place was a `private static array $cache` on
+`CalculatesOwnershipShare`, with a `public static function forget()` beside it.
+
+**That is silently wrong.** PHP gives **each class that uses a trait its own copy
+of the trait's static properties.** `CalculatesOwnershipShare` is used by a dozen
+services, so the "one cache" was a dozen independent caches — and
+`CalculatesOwnershipShare::forget()` called on the trait name clears none of the
+copies a consumer actually holds.
+
+**Nothing about it looks wrong.** The code reads exactly like a working
+request-scoped memo. It even *behaves* correctly for reads: each class populates
+its own cache with the same answers. The only symptom is that the cache cannot be
+cleared, which never matters until something changes underneath it.
+
+**What caught it, on the first run, was the test shape team-lead insisted on.**
+The "assert the answer MOVES when the share moves" case changed a property from
+40% to 60%, cleared what it believed was the cache, and read **48,000 back instead
+of 72,000**. A test that had merely set up 40% and asserted £48,000 would have
+passed, and would have gone on passing against a permanently unclearable cache.
+
+**Countermeasure:** state that a trait cannot own mutable shared state. Where a
+trait's behaviour needs a memo, the memo belongs in a collaborator with one
+instance — here `App\Support\SecuringPropertyResolver`, bound `scoped()` so it is
+one cache with one lifetime and one `forget()`.
+
+**This is the third variant of "a test that shares the code's assumption cannot
+fail" now on record** (mock, clamp, fixture — F-0019 §4). It is a fourth and
+different one: **the assertion, the fixture and the data were all fine. The test
+could not distinguish the two hypotheses**, because 40% was both the right answer
+and the stale one.
+
+## 13. The boundary objected, and it was right
+
+`PropertyStoreBoundaryTest` failed the new resolver for reading `Property`
+directly. The store's own documentation offers two ways out — *"routing through
+the store (preferred) or adding to this allowlist with written justification"* —
+and preferred was available, so preferred was taken.
+
+`PropertyStore::findOwnershipBasis(int $propertyId)` is new and deliberately
+narrow:
+
+- **Unscoped by user, on purpose.** `find()` takes a `User` and would return null
+  in exactly the case the ruling exists to handle — a mortgage on a property the
+  viewer co-owns but did not record. **A reviewer will read "unscoped by user" as
+  the bug, so the reasoning is in the method's docblock, not only here.**
+- **Selects only the ownership columns.** That is the guard: it cannot return an
+  address, a valuation or a rental figure, so it cannot become a general route
+  around the user scope for anything but the question it is named for.
+
+A second, smaller boundary note: the resolver types its memo `array<int,
+object|null>` rather than importing `Property`. Importing the model would make it
+a direct model consumer again — and `object` is the more truthful type anyway,
+since `for()` returns the mortgage itself when nothing secures it. Pint's
+`fully_qualified_strict_types` fixer rewrites a fully-qualified name in a docblock
+back into an import, so writing the FQN is not a way around this.
+
+## 14. The reach had to move with the fraction
+
+**Fixing the share alone would have produced a correct share of an incomplete
+set.** `MobileDashboardAggregator::sumMortgageShares()` and
+`sumMortgageJointOwnerShares()` reached mortgages by the owner columns **on the
+mortgage row** — one via `$user->mortgages`, the other by filtering
+`joint_owner_id`. Under the ruling a user can owe part of a mortgage whose row
+names someone else entirely, and a mortgage-keyed reach cannot see it.
+
+Both deleted. The aggregator reads
+`CrossModuleAssetAggregator::calculateMortgageTotal()`, which already reaches both
+legs — mortgages the user holds, and mortgages on properties the user owns — and
+is what `/net-worth` and the wealth summary read. **This closes the cross-link edge
+raised in Part 1** rather than leaving it orphaned. `MortgageStore` became an
+unused constructor dependency of the aggregator and was removed with it.
+
+## 15. Measured
+
+| Figure | Before | After | Ruling says |
+|---|---|---|---|
+| David's share of mortgage 16 | £60,000 | **£48,000** | £48,000 |
+| David's mortgages | £182,500 | **£170,500** | £170,500 |
+| Sarah's mortgages | £122,500 | £122,500 | £122,500 |
+| Household debt | £305,000 | **£293,000** | £293,000 |
+| David's net worth | £1,477,500 | **£1,489,500** | +£12,000, no longer carrying a third party's debt |
+
+**W-0237, browser-verified on David's `/net-worth/liabilities`:** TOTAL BALANCE
+OWED **£170,500** (was £365,000); TOTAL MONTHLY PAYMENTS **£900/mo** (was £1,950 —
+it summed full payments); the Manchester unit reads **40.00% yours · Your Share
+£48,000**.
+
+## 16. F-0021's sign-off is corrected, and what else inherits it
+
+F-0021 §3 signed off *"David £182,500 + Sarah £122,500 = £305,000, not £365,000"*
+as proof that a third party's share was excluded. **The exclusion was real and
+remains correct; the size of Mike Barrett's share was taken from the wrong
+record.** A marked correction block now sits in that document with the before and
+after.
+
+**Inheriting the error, listed so nobody re-verifies against it:**
+
+| Document | What inherits |
+|---|---|
+| `F-0021` §5 projection note | contrasts "£122,500 flat" against "£182,500 amortising" — the order-dependence it describes is real and unaffected; **only the number moved** |
+| `F-0021` W-0206 evidence table | David mortgages £182,500 → £170,500 |
+| `W-0187` board item | its verification reads *"£182,500 — exactly the figure the item expected"*. **Left as written**: it is F-0019's handed-off item and it records what was true when measured. Quality should not re-verify £182,500 against it |
+| `W-0206`, `W-0136`, `W-0138`, `W-0172` | all quote £182,500 / £305,000 as observed at the time. **Historical record, deliberately not rewritten** |
+
+**Only F-0021 was edited**, because it is the only one that *signed a figure off as
+correct* rather than recording an observation.
+
+## 17. Accepted limitation — do not "fix" it
+
+**This model cannot express a mortgage held in one spouse's sole name against a
+jointly-owned property.** CSJ accepted that trade-off knowingly. Do not add a
+borrower-split field to work around it, and do not raise it as a defect.
+
+## 18. Files this part owns
+
+**New:** `app/Support/SecuringPropertyResolver.php` ·
+`tests/Feature/NetWorth/MortgageShareFollowsThePropertyTest.php`
+
+**Deleted:** `MobileDashboardAggregator::sumMortgageShares()` and
+`sumMortgageJointOwnerShares()` · `PropertyForm.vue`'s borrower controls and
+`handleMortgageJointOwnerSelection()` · the inline share blocks in
+`PropertyService::calculateUserEquity()` and `calculateTaxPosition()`
+
+**Modified — backend:** `app/Traits/CalculatesOwnershipShare.php` ·
+`app/Services/Stores/PropertyStore.php` (new `findOwnershipBasis`) ·
+`app/Services/Property/PropertyService.php` ·
+`app/Http/Controllers/Api/EstateController.php` ·
+`app/Http/Resources/Estate/LiabilityResource.php` ·
+`app/Services/Mobile/MobileDashboardAggregator.php` ·
+`app/Providers/AppServiceProvider.php`
+
+**Modified — frontend:** `resources/js/components/NetWorth/LiabilitiesList.vue` ·
+`resources/js/components/NetWorth/LiabilityCard.vue` ·
+`resources/js/components/NetWorth/Property/PropertyForm.vue`
+
+**Modified — docs:** `workforce/branches/fixes/F-0021-…md` (correction block)
+
+## 19. Browser verification — what was seen, and the one cell that was not
+
+`localhost:8000`, every per-user cache key cleared first, both logins driven
+through the MFA gate.
+
+### Web
+
+| | David (16) | Sarah (17) |
+|---|---|---|
+| Liabilities · TOTAL BALANCE OWED | **£170,500** (was £365,000) | **£122,500** |
+| Liabilities · TOTAL MONTHLY PAYMENTS | **£900/mo** (was £1,950) | **£600/mo** |
+| Manchester row | **"Tenants in Common (40% yours)"** · Your Share **£48,000** | absent — she has no share, correctly |
+| Property card, Manchester | Your Share (40.00%) £118,000 · **mortgage liability £48,000** · Equity **£70,000** | — |
+| Dashboard net worth | **£1,489,500** (was £1,477,500) | £739,280 |
+| Dashboard savings / investment | £99,750 / £172,500 | £31,030 / £132,500 |
+
+**The equity line is the tell that the fix is coherent, not just smaller.**
+£118,000 − £48,000 = £70,000 reconciles on screen. Before, the same card showed
+£118,000 and £60,000 against an equity that could not be derived from either.
+
+Per-row shares £90,000 + £48,000 + £32,500 sum exactly to David's £170,500, and
+£90,000 + £32,500 to Sarah's £122,500. Household **£293,000**.
+
+### `/m` (bundle rebuilt by team-lead, `main-CZna18Nr.js`, confirmed to contain the change)
+
+| | Sarah (17) |
+|---|---|
+| Retirement card | **£35,000/year · "Guaranteed retirement income"** — the Part 1 item that was blocked on the rebuild |
+| Bank Accounts / Investment | £31,030 / £132,500 |
+| Net worth | £739,280 |
+| Liabilities screen | **Total owed £122,500**, components £32,500 + £90,000 summing exactly |
+
+**David's `/m` liabilities screen: I COULD NOT VERIFY THIS.** Repeated `/m` logins
+for him bounced to the desktop SPA — his desktop session was live in the same
+browser and the `/m` login handed off to it (the known desktop↔`/m` bridge
+behaviour, `reference_m_verification_path`). An auth quirk, not a defect in this
+work, and I stopped rather than keep grinding on it.
+
+**What that leaves unproven, precisely:** only that David's `/m` liabilities screen
+renders £170,500. The figure itself is confirmed at the source
+(`NetWorthService::getCachedNetWorth(16).total_liabilities = 170500`), and Sarah's
+`/m` liabilities screen proves that screen renders the backend figure faithfully
+with components that sum. His `/m` dashboard was verified earlier at 20:08 — but
+**that was before Part 2 landed**, so it is not evidence for this part.
+

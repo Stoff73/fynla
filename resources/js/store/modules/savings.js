@@ -1,6 +1,7 @@
 import savingsService from '@/services/savingsService';
 
 import logger from '@/utils/logger';
+import { calculateTotalUserShare } from '@/utils/ownership';
 const state = {
     accounts: [],
     expenditureProfile: null,
@@ -18,36 +19,57 @@ const state = {
 };
 
 const getters = {
-    // Get total savings across all accounts (user's share for joint accounts)
-    totalSavings: (state) => {
-        return state.accounts.reduce((sum, account) => {
-            const balance = parseFloat(account.current_balance || 0);
-            const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
-            if (isJoint && account.ownership_percentage) {
-                return sum + (balance * (account.ownership_percentage / 100));
-            }
-            return sum + balance;
-        }, 0);
-    },
+    // The cash this viewer owns.
+    //
+    // `calculateTotalUserShare` adds up the `user_share` the API already put on
+    // every account — the backend's own `calculateUserShare()` figure, one per
+    // record — so this getter transports a total, it does not re-derive one
+    // (Rule 20). The arithmetic it replaced applied `ownership_percentage`
+    // whichever side of the record the viewer was on, so the CO-OWNER of a joint
+    // account was charged the PRIMARY owner's share. On a 75/25 account the
+    // co-owner saw 75% of money that was 25% theirs; only a 50/50 split hid it,
+    // which is why this survived every earlier sweep (W-0274, F-0019 "fraction").
+    totalSavings: (state) => calculateTotalUserShare(state.accounts),
 
-    // Get total emergency fund (only accounts marked as emergency fund, user's share for joint)
-    emergencyFundTotal: (state) => {
-        return state.accounts
-            .filter(account => account.is_emergency_fund)
-            .reduce((sum, account) => {
-                const balance = parseFloat(account.current_balance || 0);
-                const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
-                if (isJoint && account.ownership_percentage) {
-                    return sum + (balance * (account.ownership_percentage / 100));
-                }
-                return sum + balance;
-            }, 0);
-    },
+    // The emergency fund.
+    //
+    // It is the same cash. `is_emergency_fund` is a DESIGNATION — "which account
+    // has the user nominated" — not a definition of what the fund contains, and
+    // filtering on it here was the fourth surviving answer to "how much emergency
+    // fund does this household have" (W-0271, W-0274). A household with £130,780
+    // of cash and no ticked boxes does not have a £0 emergency fund, but that is
+    // exactly what `/savings` showed while the dashboard, `/m` and `/risk-profile`
+    // all read the backend's answer and showed 79.8 and 25.3 months.
+    //
+    // Deliberately identical to `totalSavings` rather than aliased: the two
+    // answer different questions that currently have the same answer, and a
+    // future narrowing (W-0276 — cash the user cannot actually reach) belongs to
+    // the backend's `CrossModuleAssetAggregator::calculateCashTotal()`, which
+    // both figures ultimately come from.
+    emergencyFundTotal: (state) => calculateTotalUserShare(state.accounts),
 
-    // Get emergency fund runway in months
+    // Months of runway.
+    //
+    // The backend's figure when the payload carries it: `SavingsAgent` divides
+    // `calculateCashTotal()` by RESOLVED monthly expenditure — a priority chain,
+    // not a single column — and that resolution is the part the browser cannot
+    // reproduce. This household proves the chain is live: David's expenditure
+    // resolves from `expenditure_profile` and Sarah's from `user_monthly`.
+    //
+    // Where the payload has no analysis block the division falls back to the
+    // profile's own monthly figure. That keeps the fund value and the runway
+    // consistent with each other; it can still differ from the dashboard if the
+    // resolver took a different branch, which is why the backend figure wins
+    // whenever it is present.
     emergencyFundRunway: (state, getters) => {
+        const resolved = state.analysis?.emergency_fund?.runway_months;
+        if (resolved !== undefined && resolved !== null) {
+            return parseFloat(resolved) || 0;
+        }
+
         const monthlyExpenditure = getters.monthlyExpenditure;
-        if (monthlyExpenditure === 0) return 0;
+        if (!monthlyExpenditure) return 0;
+
         return getters.emergencyFundTotal / monthlyExpenditure;
     },
 
@@ -83,19 +105,13 @@ const getters = {
         return state.isaAllowance?.cash_isa_used || 0;
     },
 
-    // Get total ISA balances (user's share for joint accounts)
-    totalISABalance: (state) => {
-        return state.accounts
-            .filter(account => account.is_isa)
-            .reduce((sum, account) => {
-                const balance = parseFloat(account.current_balance || 0);
-                const isJoint = account.ownership_type === 'joint' || account.ownership_type === 'tenants_in_common';
-                if (isJoint && account.ownership_percentage) {
-                    return sum + (balance * (account.ownership_percentage / 100));
-                }
-                return sum + balance;
-            }, 0);
-    },
+    // Total ISA balances, at this viewer's share.
+    //
+    // The third copy of the same wrong-side arithmetic. A joint ISA does not
+    // exist in UK law, so the split should never fire here — but the copy did,
+    // and a rule with three implementations has three chances to be edited into
+    // disagreement (Rule 20).
+    totalISABalance: (state) => calculateTotalUserShare(state.accounts.filter(account => account.is_isa)),
 
     // Get accounts by access type
     accountsByAccessType: (state) => {
@@ -220,7 +236,12 @@ const actions = {
 
             commit('SET_CAN_PROCEED', true);
             commit('SET_READINESS_CHECKS', null);
-            commit('setAnalysis', responseData.analysis);
+            // `responseData` IS the analysis — `/savings/analyze` returns it under
+            // `data`, which `savingsService` has already unwrapped. Reading
+            // `.analysis` off it committed `undefined` on every call, which the
+            // guard three lines above proves: it reads `can_proceed` and
+            // `readiness_checks` off `responseData` directly (W-0335).
+            commit('setAnalysis', responseData);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Analysis failed';

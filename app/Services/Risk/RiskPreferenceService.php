@@ -276,6 +276,44 @@ class RiskPreferenceService
     }
 
     /**
+     * The per-product risk override a product carries, or null if it carries none.
+     *
+     * **This is the one home for that question, and it reads the preference itself
+     * rather than the `has_custom_risk` flag beside it.** Choosing a level on the form
+     * IS the act of overriding; a separate flag saying "and mean it" is a second
+     * mechanism the user must operate to make the first one work.
+     *
+     * That flag has no client writer on the investment side — 16 accounts carry a
+     * `risk_preference` and 2 carry the flag — so every reader that gated on
+     * `has_custom_risk && risk_preference` silently ignored an override the user had
+     * set and fell back to their main profile. `risk_preference` is nullable, so it
+     * already encodes presence and absence on its own; the flag is a second column
+     * holding one fact, which is how the two drifted apart.
+     *
+     * @param  object  $product  Anything carrying a nullable `risk_preference`
+     */
+    public function getProductRiskOverride(object $product): ?string
+    {
+        $preference = $product->risk_preference ?? null;
+
+        return ($preference === null || $preference === '') ? null : (string) $preference;
+    }
+
+    /**
+     * The risk level that actually applies to a product.
+     *
+     * Its own override if it has one, otherwise the user's main profile, otherwise
+     * medium. Every caller that needs "what rate and volatility does this product
+     * compound at" resolves it here rather than rebuilding the chain.
+     */
+    public function resolveProductRiskLevel(object $product, int $userId): string
+    {
+        return $this->getProductRiskOverride($product)
+            ?? $this->getMainRiskLevel($userId)
+            ?? 'medium';
+    }
+
+    /**
      * Check if a product risk level differs from the user's main profile
      */
     public function isCustomRiskLevel(int $userId, string $productRiskLevel): bool

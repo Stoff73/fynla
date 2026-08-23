@@ -679,53 +679,24 @@
               </div>
             </div>
 
-            <!-- Mortgage liability section -->
+            <!-- Mortgage liability section.
+
+                 This used to ask "Borrower(s)" — Me only / Joint borrowers — and
+                 hardcode a 50% split, under the heading "This can be different
+                 from the property ownership split". A debt is shared exactly as
+                 the asset securing it is shared (CSJ ruling, W-0228), so it
+                 cannot be different, and collecting a value the server derives
+                 from somewhere else only lets the two disagree — which is how the
+                 Manchester unit came to be a 40% property carrying a 50%
+                 mortgage. It is now stated, not asked. -->
             <div class="space-y-4 pt-4 border-t border-light-gray">
               <h5 class="text-sm font-semibold text-horizon-500">Mortgage liability</h5>
-              <p class="text-xs text-neutral-500">Choose who is legally responsible for this mortgage. This can be different from the property ownership split.</p>
+              <p class="text-xs text-neutral-500">
+                A mortgage is shared the same way as the property securing it, so this follows the ownership you set for this property.
+              </p>
 
-              <div>
-                <label for="mortgage_ownership_type" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Borrower(s)
-                </label>
-                <select
-                  id="mortgage_ownership_type"
-                  v-model="mortgageForm.ownership_type"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                >
-                  <option value="individual">Me only</option>
-                  <option value="joint">Joint borrowers</option>
-                </select>
-              </div>
-
-              <div v-if="mortgageForm.ownership_type === 'joint'">
-                <label for="mortgage_joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Joint borrower
-                </label>
-                <select
-                  id="mortgage_joint_owner_selection"
-                  v-model="mortgageJointOwnerSelection"
-                  @change="handleMortgageJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                >
-                  <option value="">Select joint borrower</option>
-                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
-                  <option value="other">Other (Enter Name)</option>
-                </select>
-              </div>
-
-              <!-- Free Text Joint Owner Name -->
-              <div v-if="mortgageJointOwnerSelection === 'other'">
-                <label for="mortgage_joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Joint borrower name
-                </label>
-                <input
-                  id="mortgage_joint_owner_name"
-                  v-model="mortgageForm.joint_owner_name"
-                  type="text"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                  placeholder="Enter joint owner's name"
-                />
+              <div class="rounded-md border border-horizon-200 bg-savannah-100 p-3">
+                <p class="text-sm text-horizon-500">{{ mortgageLiabilityShareSummary }}</p>
               </div>
             </div>
           </div>
@@ -1214,6 +1185,27 @@ export default {
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
 
+    // Says what the user's share of the mortgage will be, derived from the
+    // property ownership they have already set on this form (W-0228/W-0236).
+    // Read-only by design — see the template comment.
+    mortgageLiabilityShareSummary() {
+      const type = this.form.ownership_type;
+
+      if (type !== 'joint' && type !== 'tenants_in_common') {
+        return 'You are responsible for the whole of this mortgage.';
+      }
+
+      const share = Number(this.form.ownership_percentage);
+      const yourShare = Number.isFinite(share) && share > 0 ? share : 50;
+      const coOwner = this.form.joint_owner_name
+        || (this.spouse && this.spouse.name)
+        || 'your co-owner';
+
+      return `You are responsible for ${this.trimPercent(yourShare)}% of this mortgage, `
+        + `matching your share of the property. The remaining ${this.trimPercent(100 - yourShare)}% `
+        + `belongs to ${coOwner}.`;
+    },
+
     isEditMode() {
       return this.property !== null;
     },
@@ -1372,24 +1364,26 @@ export default {
         }
       }
 
+      this.mirrorPropertyOwnershipToMortgage();
     },
 
-    'mortgageForm.ownership_type'(newVal) {
-      if (newVal === 'joint') {
-        if (!this.mortgageForm.ownership_percentage || this.mortgageForm.ownership_percentage === 100) {
-          this.mortgageForm.ownership_percentage = 50;
-        }
-        return;
-      }
-
-      this.mortgageForm.ownership_percentage = 100;
-      this.mortgageForm.joint_owner_id = null;
-      this.mortgageForm.joint_owner_name = '';
-      this.mortgageJointOwnerSelection = '';
+    // The mortgage's ownership MIRRORS the property's, so the row that gets
+    // stored agrees with the property securing it (W-0228). The server derives
+    // the share from the property either way, so a mortgage row saying something
+    // different would not change any figure — it would just sit there
+    // contradicting the property, which is the state this defect was found in.
+    //
+    // Percentage and co-owner get their own watchers because either can change
+    // without the type changing: tenants-in-common 40 to 60, or a different
+    // co-owner on the same basis. The type's mirror call lives in the existing
+    // watcher above rather than a second entry with the same key, which would
+    // have silently replaced it.
+    'form.ownership_percentage'() {
+      this.mirrorPropertyOwnershipToMortgage();
     },
 
-    mortgageJointOwnerSelection() {
-      this.handleMortgageJointOwnerSelection();
+    'form.joint_owner_id'() {
+      this.mirrorPropertyOwnershipToMortgage();
     },
 
     // When property type changes, adjust current step if we're on BTL step and it's no longer BTL
@@ -1702,19 +1696,28 @@ export default {
       }
     },
 
-    handleMortgageJointOwnerSelection() {
-      if (this.mortgageJointOwnerSelection.startsWith('linked_')) {
-        // Extract ID and set mortgage joint_owner_id
-        this.mortgageForm.joint_owner_id = parseInt(this.mortgageJointOwnerSelection.replace('linked_', ''));
-        this.mortgageForm.joint_owner_name = ''; // Clear free text field
-      } else if (this.mortgageJointOwnerSelection === 'spouse_name') {
-        // Spouse without linked account — use their name
-        this.mortgageForm.joint_owner_id = null;
-        this.mortgageForm.joint_owner_name = this.spouse?.name || '';
-      } else if (this.mortgageJointOwnerSelection === 'other') {
-        // Clear linked ID when using free text
-        this.mortgageForm.joint_owner_id = null;
+    // Replaces handleMortgageJointOwnerSelection(), which existed to service the
+    // borrower controls this form no longer shows. Nothing chooses a borrower any
+    // more; the property decides (W-0228/W-0236).
+    mirrorPropertyOwnershipToMortgage() {
+      this.mortgageForm.ownership_type = this.form.ownership_type;
+      this.mortgageForm.ownership_percentage = this.form.ownership_percentage;
+      this.mortgageForm.joint_owner_id = this.form.joint_owner_id;
+      this.mortgageForm.joint_owner_name = this.form.joint_owner_name;
+      this.mortgageJointOwnerSelection = this.jointOwnerSelection;
+    },
+
+    // 40.00 reads as 40, 33.33 keeps its decimals. The column is decimal(5,2),
+    // so a whole percentage arrives as "40.00" and would otherwise be printed
+    // that way in a sentence.
+    trimPercent(value) {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return '0';
       }
+
+      return String(Math.round(number * 100) / 100);
     },
 
     handleTrustSelection() {

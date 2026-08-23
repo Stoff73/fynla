@@ -787,6 +787,7 @@
 import { mapState, mapGetters } from 'vuex';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import InlineHoldingsEditor from '@/components/Investment/InlineHoldingsEditor.vue';
+import { allocationErrorMessage } from '@/utils/holdingsAllocation';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
@@ -1268,6 +1269,22 @@ export default {
         return;
       }
 
+      // W-0257 — this form shares InlineHoldingsEditor with AccountForm, so it
+      // shared the defect: each allocation input carried a `max` derived from
+      // the other holdings, and once the total passed 100 every input was below
+      // its own value and the browser refused to submit with no message at all.
+      //
+      // Checked against what will be SENT: buildDcPayload clears holdings when
+      // "Additional information" is collapsed, and blocking a save over a set
+      // about to be discarded would be a second dead button.
+      const holdingsError = allocationErrorMessage(
+        this.showAdditionalInfo ? this.formData.holdings : []
+      );
+      if (holdingsError) {
+        this.validationError = holdingsError;
+        return;
+      }
+
       // Build a DC-only payload — strip the db_* and state_* fields so they
       // can't leak into dc_pensions records.
       const payload = this.buildDCPayload();
@@ -1303,7 +1320,11 @@ export default {
         payload.advisor_fee_percent = null;
         payload.beneficiary_id = null;
         payload.beneficiary_name = '';
-        payload.holdings = [];
+        // NOT `payload.holdings = []` (W-0322). RetirementController:469 syncs
+        // `if ($holdings !== null)` and an empty array is not null, so sending
+        // `[]` deleted every holding on the pension. Omitting the key says "this
+        // form is not showing holdings" instead of "the user removed them all".
+        delete payload.holdings;
       }
 
       return payload;

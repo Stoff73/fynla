@@ -2,16 +2,16 @@
 id: W-0217
 title: A £85,000 medium-risk portfolio projects higher than a £220,000 portfolio containing an upper-medium account — the lower risk produces the higher return, at the conservative percentile
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: branches/fixes/F-0024-cycle4-investment-projection.md
 owner: build-lead
-status: queued
+status: handoff
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T08:10:00Z
-claimed: null
+claimed: 2026-08-22T20:05:00Z
 blocked_by: []
 gate: null
-handoff_to: null
+handoff_to: quality-lead
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0137, F-0018]
 prior_art_outcome: none
@@ -127,3 +127,56 @@ Clearing that cache may move them, and the projected estate and tax with them. T
 per-login *agreement* does not depend on the cache — both members' portfolios are summed
 regardless of who is signed in — but the *magnitude* can move, so pin figures with the
 cache state recorded.
+
+
+---
+
+## Resolution — build-lead, 2026-08-22 (F-0024)
+
+**Two causes, both now fixed, and neither was the Monte Carlo.**
+
+1. **David's side was deflated by a stale cache** (W-0251). His 36-year figure was
+   projected from a cached simulation of **£47,500 at 6.5%**, not his £172,500 at 7.07%.
+2. **Sarah's side was inflated by contributions she never entered** (W-0254). The estimator
+   assumed the full ISA allowance, £1,667 a month for 36 years — **£720,144** of invented
+   savings on an account with `monthly_contribution_amount = null`.
+
+### The comparison, re-measured
+
+| | Sarah (17) | David (16) |
+|---|---:|---:|
+| Capital | £132,500 (was read as £85,000 — W-0256) | £172,500 |
+| 36-year p20 **before** | **£1,577,731** | £1,025,964 |
+| 36-year p20 **after** | **£261,740** | **£1,148,134** |
+
+**39% of the capital no longer produces 61% of the value.** The larger, higher-risk
+portfolio out-projects the smaller one.
+
+### Against the five acceptance criteria
+
+1. **Explained and corrected** — see above. The model was not at fault; the store and the
+   contribution assumption were.
+2. **A higher risk preference produces a higher return at every percentile — NOT MET, and
+   should not be.** The median and upside rise monotonically with risk; the 20th percentile
+   is hump-shaped, because volatility widens the downside faster than expected return lifts
+   it. Building monotonicity would mean breaking the model. **Raised as W-0259 with the
+   measured table and a product decision for CSJ.**
+3. **An account with no holdings has a deliberate treatment** — the lead did not hold.
+   Holdings play no part in the projection at all: rate and volatility come from the
+   account's `risk_preference` via `RiskPreferenceService`, never from asset allocation. A
+   holdings-less account is not treated as cash and never was. David's ISA 26 (0 holdings)
+   and GIA 14 (1 holding) are projected by the same rule.
+4. **The twentieth percentile is defensible** — it is now a measured percentile rather than
+   a linear interpolation between the 10th and 25th (W-0255).
+5. **Symmetry across spouse logins holds** — the joint account contributes £55,257 at ten
+   years to **both** logins, by construction rather than coincidence. W-0188 does not reopen.
+
+### The cache note in the original item
+
+*"`MonteCarloSimulator` caches, so these figures are stable between runs today. Clearing
+that cache may move them."* — correct, and it was the whole story. Figures above were taken
+with both personas' cache rows cleared; they are now reproducible because the simulation is
+seeded from its inputs (F-0024 §3.3).
+
+**`projected_investments` in the estate calculation moves as a consequence.** F-0018's
+pinned £2,603,695 is no longer a valid baseline — see F-0024 §10.1.

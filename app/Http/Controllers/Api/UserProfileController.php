@@ -13,6 +13,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Tiers\TeaserGate;
 use App\Services\UserProfile\UserProfileService;
 use App\Support\SharedExpenditure;
@@ -65,6 +66,7 @@ class UserProfileController extends Controller
         private readonly UserProfileService $userProfileService,
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly TeaserGate $teaserGate,
+        private readonly HouseholdExpenditureWriter $expenditureWriter,
     ) {}
 
     /**
@@ -208,47 +210,14 @@ class UserProfileController extends Controller
             $updateData['annual_expenditure'] = (float) $updateData['monthly_expenditure'] * 12;
         }
 
-        // Apply the household's declared sharing rule, which this path never did.
-        // The form sends what the household spends; each account stores ITS SHARE.
-        // Storing the whole of it here is what let the expenditure table announce
-        // "Joint (50/50) expenditure" and then charge one spouse £2,450 and the
-        // other £0, beside a financial-commitments row that IS split (W-0190).
-        // Same home as the onboarding path — App\Support\SharedExpenditure.
-        $householdMode = $updateData['expenditure_sharing_mode'] ?? $user->expenditure_sharing_mode;
-        $sharesWithSpouse = $user->spouse_id !== null && SharedExpenditure::isShared($householdMode);
-        $updateData = SharedExpenditure::shareOf($updateData, $sharesWithSpouse);
-
-        $user->update($updateData);
-
-        // The sharing mode is a fact about the HOUSEHOLD, not about one row. Left
-        // on one account it can drift: the spouse's row would keep saying `joint`
-        // while this one says `separate`, and the two halves of a single save would
-        // then be divided by different rules. The onboarding path has always written
-        // it to both; this one now does too.
-        if (isset($updateData['expenditure_sharing_mode']) && $user->liveSpouseId() !== null) {
-            $user->spouse?->update(['expenditure_sharing_mode' => $updateData['expenditure_sharing_mode']]);
-        }
-
-        // Create/update expenditure profile with the total
-        if ($updateData['monthly_expenditure'] ?? null) {
-            $monthly = $updateData['monthly_expenditure'];
-
-            ExpenditureProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'monthly_housing' => 0,
-                    'monthly_food' => 0,
-                    'monthly_utilities' => 0,
-                    'monthly_transport' => 0,
-                    'monthly_insurance' => 0,
-                    'monthly_loans' => 0,
-                    'monthly_discretionary' => 0,
-                    'total_monthly_expenditure' => $monthly,
-                ]
-            );
-        }
-
-        $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $user->spouse_id);
+        // The form sends what the HOUSEHOLD spends; each account stores ITS
+        // SHARE, and both shares are derived from that one household figure in
+        // one transaction. W-0190 applied the rule here but left the spouse's
+        // half to a separate request from the frontend; when that request did
+        // not arrive the household total quietly inherited the difference
+        // (W-0412). One home for the write — App\Services\Expenditure\
+        // HouseholdExpenditureWriter, which invalidates both accounts' caches.
+        $this->expenditureWriter->write($user, $updateData);
 
         return response()->json([
             'success' => true,
@@ -466,18 +435,30 @@ class UserProfileController extends Controller
             $updateData['annual_expenditure'] = (float) $updateData['monthly_expenditure'] * 12;
         }
 
-        // The spouse's account stores THEIR share, by the household's declared rule
-        // — the same rule and the same home as the account beside it. Under a joint
-        // mode the caller sends the household's figures and both halves are stored;
-        // under separate the spouse's own figures are stored whole (W-0190).
+        // Under a JOINT mode the caller is sending the household's figures, and
+        // a household figure has exactly one home to be written from — the one
+        // that derives both halves together. Routing this endpoint through it
+        // makes the call idempotent with the acting user's own save rather than
+        // a second, independent chance to get one row wrong (W-0412).
+        //
         // The acting user's mode is the household's — they are the one who just
-        // declared it. Reading it off the spouse's row would divide the two halves
-        // of one save by two different rules if that row had not caught up yet.
-        $updateData = SharedExpenditure::shareOf(
-            $updateData,
-            SharedExpenditure::isShared($currentUser->expenditure_sharing_mode)
-        );
+        // declared it. Reading it off the spouse's row would divide the two
+        // halves of one save by two different rules if that row had not caught
+        // up yet.
+        if (SharedExpenditure::isShared($currentUser->expenditure_sharing_mode)) {
+            $this->expenditureWriter->write($currentUser, $updateData);
 
+            return response()->json([
+                'success' => true,
+                'message' => 'Spouse expenditure information updated successfully',
+                'data' => [
+                    'user' => new UserResource($spouse->fresh()),
+                ],
+            ]);
+        }
+
+        // Separate spending: the spouse's own figures, stored whole, on the
+        // spouse's own row.
         $spouse->update($updateData);
 
         // Create/update expenditure profile with the total

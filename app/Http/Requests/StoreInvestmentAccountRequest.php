@@ -56,7 +56,13 @@ class StoreInvestmentAccountRequest extends FormRequest
             'tax_year' => 'nullable|string|max:10',
 
             // Platform fees
-            'platform_fee_percent' => 'nullable|numeric|min:0',
+            // `max:10` was missing entirely, which made `investment_accounts.
+            // platform_fee_percent` — decimal(5,4) at the time, so physically
+            // capped at 9.9999 — the only thing between a typed 12 and
+            // `SQLSTATE[22003]`. W-0263 widened the column to decimal(7,4) and
+            // gives the rule the same upper bound its sibling `advisor_fee_percent`
+            // already carried, so the two fee fields on this form now agree.
+            'platform_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
             // Same rule shape as StoreDCPensionRequest — the column and every
             // display of it already existed, only the way to enter it did not (W-0008).
             'advisor_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
@@ -97,6 +103,12 @@ class StoreInvestmentAccountRequest extends FormRequest
             ])],
             'holdings.*.allocation_percent' => 'required_with:holdings|numeric|min:0|max:100',
             'holdings.*.cost_basis' => 'nullable|numeric|min:0',
+            // `holdings.ocf_percent` is written by four paths: here, the sibling
+            // Update request, StoreDCPensionRequest, and the standalone
+            // Investment\Store/UpdateHoldingRequest. This bound was a live
+            // `SQLSTATE[22003]` while the column was decimal(5,4) — W-0263 widened
+            // it to decimal(7,4), which is what makes `max:100` true here rather
+            // than merely written down. Keep all four in step (Rule 20).
             'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];
     }

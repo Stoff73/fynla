@@ -92,9 +92,19 @@ completed that** — check each branch document's mtime before trusting it.
    itself mandates.
 5. **The §1 regime map** (`workforce/ops/reports/2026-08-21-perimeter-regime-map-proposal.md`)
    — adopt, and where it lives. Trunk unamended.
-6. **Persona file self-contradictions** — expenditure headline £2,500 vs categories
-   summing £2,450; net-worth range only fits excluding pensions. In the source PDF, not
+6. **Persona file self-contradictions** — ~~expenditure headline £2,500 vs categories
+   summing £2,450~~; net-worth range only fits excluding pensions. In the source PDF, not
    the transcription.
+
+   > **SUPERSEDED 2026-08-22 — the expenditure half of this was never real and is now
+   > CLOSED.** The persona's fifteen categories sum to **£2,500**, matching its headline
+   > exactly. `PASS-PLAYBOOK.md` had transcribed Healthcare & Medical as £50 against the
+   > persona's £100 (`tests/Persona/peak_earners.md:506`); the "contradiction" was the
+   > playbook's own arithmetic. The playbook is corrected. **This needs no CSJ decision
+   > and must not be re-raised.** Consequence: every run figure derived from £2,450 or a
+   > £1,225 half-share is £50/month light — emergency-fund runway, the retirement
+   > target, the monthly surplus factor — and must be re-derived from £2,500. Only the
+   > net-worth-range half of this item remains open.
 7. **W-0018 Spec §5.2** — no such spec exists in the repo; it is the only route by
    which `users.tier` could be meant to win.
 

@@ -18,7 +18,7 @@ is described here *and* elsewhere, this file is wrong.
 `00-precedence` · `01-mission` who we serve · `02-values` · `03-hard-nos` ·
 `04-voice` · `05-perimeter` · `06-commercials` · `07-quality-bar` · `08-process`
 
-## Where things live — `registry/`
+## Where things live — `workforce/core/registry/`
 
 `systems` · `storage` · `comms` · `tools` · `access` · `people` · `rhythm` ·
 `meetings` · `capabilities` **← read before building anything**

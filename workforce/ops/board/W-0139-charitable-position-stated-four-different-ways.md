@@ -103,3 +103,32 @@ legacies sit near the threshold, halving the total changes the rate.
 5. Verified in a browser on both persona accounts; then again on a household whose
    legacies cross the 10% threshold, to prove the rate flips once and identically on both
    logins.
+
+
+---
+
+## SUPERSEDED IN PART — 2026-08-23, by a statutory ruling
+
+**Acceptance criterion 1 is partly wrong in law and must not be built as written.**
+
+It asks that the **£20,000 household charitable total feed the rate test.** The
+tax-compliance ruling of **2026-08-21** (recorded verbatim at
+`IHTCalculationService::determineIHTRate():1240-1258`, and re-confirmed on the statute by
+the **2026-08-23** verdict at `workforce/ops/handoffs/W-0399/`) holds the opposite:
+
+- **s23(1) exemption — pooled** across both wills (£20,000). Correct as this item assumes.
+- **Schedule 1A 10% rate test — the survivor's will ALONE** (£10,000), because the statute
+  tests the estate of **one** deceased person and the first-to-die's legacy was already
+  tested against a nil estate under spouse exemption. **"Summing both wills for the 10% test
+  would over-qualify households for the 36% rate."**
+
+**So "one number everywhere" is the wrong target for this pair.** Two figures answering two
+statutory questions is correct; the defect was that only one of them reached the card, under
+a label claiming it was the other. That half is fixed (W-0399, `handoff`).
+
+**Criterion 4 stands and is being delivered** — the percentage on `/plans/estate` and
+`charitable_giving_percent` becoming the same number is the subject of **W-0452**, in flight
+on `F-0033`. Whoever picks this item up should **re-word criterion 1 before claiming it**,
+and treat criterion 4 as advanced rather than open.
+
+*Recorded by team-lead after the agent working F-0033 declined to edit an item it did not own.*

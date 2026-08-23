@@ -8,6 +8,7 @@ use App\Constants\InvestmentDefaults;
 use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
+use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
@@ -17,6 +18,7 @@ class PortfolioPresentationService
 
     public function __construct(
         private readonly PortfolioExposureService $exposureService,
+        private readonly RiskPreferenceService $riskService,
     ) {}
 
     public function forInvestmentAccount(
@@ -201,9 +203,11 @@ class PortfolioPresentationService
 
     private function recommendedAllocation(InvestmentAccount|DCPension $wrapper, ?RiskProfile $riskProfile): ?array
     {
-        $risk = ($wrapper->has_custom_risk && $wrapper->risk_preference)
-            ? $wrapper->risk_preference
-            : ($riskProfile?->risk_level ?: $riskProfile?->risk_tolerance);
+        // Reads the preference itself, not the `has_custom_risk` flag beside it — no
+        // client writes that flag on an investment account, so gating on it discarded
+        // every override a user had set. See RiskPreferenceService::getProductRiskOverride.
+        $risk = $this->riskService->getProductRiskOverride($wrapper)
+            ?: ($riskProfile?->risk_level ?: $riskProfile?->risk_tolerance);
 
         if (! $risk) {
             return null;

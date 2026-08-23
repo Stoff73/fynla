@@ -385,11 +385,23 @@ class WillDocumentService
         // the primary named their partner, the mirror names the primary. Before
         // W-0024 only the residuary got this treatment, so the partner's will
         // appointed her as her own executor and described her as her own spouse.
+        //
+        // W-0396: matched on ONE spelling of each name, and the two sides were
+        // built differently — the primary's from `testator_full_name` (what the
+        // will says) and the partner's from first + middle + surname (what the
+        // profile holds). A partner with a middle name recorded, named in the
+        // will without it, matched neither, so nothing was swapped and W-0024's
+        // exact symptom came back for that household. Both sides now carry every
+        // spelling the person's own records give them; the first is the one
+        // written.
+        $primaryNames = self::nameVariants($user, (string) $primary->testator_full_name);
+        $spouseNames = self::nameVariants($spouse);
+
         $swap = fn (array $rows, string $nameKey): array => $this->swapPartiesForMirror(
             $rows,
             $nameKey,
-            (string) $primary->testator_full_name,
-            $spouseFullName
+            $primaryNames,
+            $spouseNames
         );
 
         $mirrorResiduary = $swap($primary->residuary_estate ?? [], 'beneficiary_name');
@@ -463,18 +475,12 @@ class WillDocumentService
             ['has_will' => true]
         );
 
-        // Build executor name string from WillDocument executors JSON
-        $executorNames = collect($doc->executors ?? [])
-            ->pluck('name')
-            ->filter()
-            ->implode(', ');
-
         $will->update([
             'has_will' => true,
             'will_last_updated' => now(),
             'last_reviewed_date' => now(),
             'will_document_id' => $doc->id,
-            'executor_name' => $executorNames ?: null,
+            'executor_name' => self::executorNameFor($doc),
         ]);
 
         $doc->update(['will_id' => $will->id]);
@@ -484,6 +490,248 @@ class WillDocumentService
         $this->cacheInvalidation->invalidateForUser($doc->user_id);
 
         return $doc->fresh();
+    }
+
+    /**
+     * Every spelling this person's own records give them, most authoritative first.
+     *
+     * W-0396. The mirror generator matched each partner on ONE spelling, and
+     * built the two sides differently: the primary's from the will's
+     * `testator_full_name`, the partner's from first + middle + surname off the
+     * profile. A partner with a middle name recorded but named in the will
+     * without it matched neither, so the swap found nothing to do and the
+     * partner's mirror appointed her as her own executor — W-0024's exact
+     * symptom, still reachable after W-0024 was fixed.
+     *
+     * This is NOT a loosening of isSameParty(), which stays deliberately
+     * conservative because two people can share a name and guessing at nicknames
+     * in a legal document would be worse than the bug. Every candidate here is a
+     * name the SAME person's own record already holds — the will's own spelling,
+     * the full profile name, and the same name without the middle. Nothing is
+     * inferred, abbreviated or guessed.
+     *
+     * @return list<string>
+     */
+    public static function nameVariants(?User $person, ?string $asWritten = null): array
+    {
+        $full = $person === null ? '' : trim(implode(' ', array_filter([
+            $person->first_name,
+            $person->middle_name,
+            $person->surname,
+        ])));
+
+        $withoutMiddle = $person === null ? '' : trim(implode(' ', array_filter([
+            $person->first_name,
+            $person->surname,
+        ])));
+
+        $candidates = array_filter(
+            [$asWritten === null ? '' : trim($asWritten), $full, $withoutMiddle],
+            static fn (string $name): bool => $name !== '',
+        );
+
+        return array_values(array_unique($candidates));
+    }
+
+    /**
+     * The spelling of the partner's name that this will already uses.
+     *
+     * A repair rewords a legal instrument, so it should reword it as little as
+     * possible: if Sarah's will already calls him "David Jones" in the residuary,
+     * her executor clause should say "David Jones" too — not "David Michael
+     * Jones" because that is what his profile happens to hold. The document's own
+     * wording comes first, then the paired will's, then the profile as a last
+     * resort.
+     */
+    private function partnerNameAsThisWillWritesIt(WillDocument $doc, User $spouse): string
+    {
+        $partnerNames = self::nameVariants($spouse);
+
+        $alreadyWritten = [
+            [$doc->executors ?? [], 'name'],
+            [$doc->guardians ?? [], 'name'],
+            [$doc->residuary_estate ?? [], 'beneficiary_name'],
+        ];
+
+        foreach ($alreadyWritten as [$rows, $key]) {
+            foreach ($rows as $row) {
+                $name = is_array($row) ? trim((string) ($row[$key] ?? '')) : '';
+
+                if ($name !== '' && self::matchesAnyName($name, $partnerNames)) {
+                    return $name;
+                }
+            }
+        }
+
+        $pairedName = $doc->mirror_document_id !== null
+            ? WillDocument::whereKey($doc->mirror_document_id)->value('testator_full_name')
+            : null;
+
+        if (is_string($pairedName) && trim($pairedName) !== '' && self::matchesAnyName($pairedName, $partnerNames)) {
+            return trim($pairedName);
+        }
+
+        return $partnerNames[0] ?? '';
+    }
+
+    /**
+     * Does this document name its own testator as a party?
+     *
+     * The one home for the defect's definition, shared by the repair below and
+     * by `estate:backfill-mirror-parties`. A document is broken exactly when it
+     * names its testator — whatever produced it, whatever its type, whatever its
+     * date. That catches pre-W-0024 mirrors and every other route to the same
+     * state, and it cannot match a correct document.
+     *
+     * Deliberately NOT the same test `validateDocument()` applies before letting
+     * a user complete a will. That one compares a single spelling, because it
+     * BLOCKS: a false positive there stops someone finishing their will, and a
+     * father and son can share a name where only one has a middle name recorded.
+     * This one only selects candidates for a repair whose alternative is a
+     * document that appoints its author as their own executor. The costs of
+     * being wrong are not the same, so the tests are not the same.
+     */
+    public function namesItsOwnTestator(WillDocument $doc): bool
+    {
+        $testatorNames = self::nameVariants($doc->user, (string) $doc->testator_full_name);
+
+        $lists = [
+            [$doc->executors ?? [], 'name'],
+            [$doc->guardians ?? [], 'name'],
+            [$doc->residuary_estate ?? [], 'beneficiary_name'],
+        ];
+
+        foreach ($lists as [$rows, $key]) {
+            foreach ($rows as $row) {
+                if (is_array($row) && self::matchesAnyName((string) ($row[$key] ?? ''), $testatorNames)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<string>  $names
+     */
+    private static function matchesAnyName(string $name, array $names): bool
+    {
+        foreach ($names as $candidate) {
+            if (self::isSameParty($name, $candidate)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The `wills.executor_name` string a document implies.
+     *
+     * The one home for it. `markComplete()` built this inline, so nothing else
+     * could produce the same string and the repair below would have been a
+     * second implementation of the same derivation (Rule 20).
+     */
+    public static function executorNameFor(WillDocument $doc): ?string
+    {
+        $names = collect($doc->executors ?? [])
+            ->pluck('name')
+            ->filter()
+            ->implode(', ');
+
+        return $names ?: null;
+    }
+
+    /**
+     * Repair a will that names its own testator as a party.
+     *
+     * W-0395 — the backfill half of W-0024. That fix corrected the mirror
+     * GENERATOR; it could not correct documents already generated. Every mirror
+     * created before it landed carries the primary's party lists verbatim, so
+     * the partner's own will appoints HER as her executor, describes her as her
+     * own spouse, and — because `markComplete()` derives `wills.executor_name`
+     * from those lists — persisted that into Fynla's record of the household's
+     * intentions, where the estate model reads it.
+     *
+     * Deliberately one-directional, and NOT the generator's swap. Running
+     * `swapPartiesForMirror()` over an already-correct document would exchange
+     * the partners back and make the primary his own executor — turning a
+     * repair into the very defect it repairs. This replaces the testator's own
+     * name with their partner's, wherever it appears as a party, and touches
+     * nothing else: a professional executor, a sibling and a charity all keep
+     * their name and their recorded relationship.
+     *
+     * It shares `isSameParty()` and `nameVariants()` with the generator and the
+     * validator, so all three agree on when two names are one person.
+     *
+     * Returns true when something changed. Idempotent: a repaired document no
+     * longer names its testator, so a second run finds nothing to do.
+     */
+    public function repairSelfNamedParties(WillDocument $doc): bool
+    {
+        $user = $doc->user;
+        $spouse = $user?->spouse_id ? User::find($user->spouse_id) : null;
+
+        if ($spouse === null) {
+            return false;
+        }
+
+        $partnerName = $this->partnerNameAsThisWillWritesIt($doc, $spouse);
+
+        if ($partnerName === '') {
+            return false;
+        }
+
+        $testatorNames = self::nameVariants($user, (string) $doc->testator_full_name);
+        $changed = false;
+
+        // Legacy rows, so nothing is assumed about the JSON's shape: a row that
+        // is not an array is passed through untouched rather than crashing a
+        // sweep over every completed will in the database.
+        $replaceSelf = function (array $rows, string $nameKey) use ($testatorNames, $partnerName, &$changed): array {
+            return array_values(array_map(function ($row) use ($nameKey, $testatorNames, $partnerName, &$changed) {
+                if (! is_array($row)) {
+                    return $row;
+                }
+
+                if (self::matchesAnyName((string) ($row[$nameKey] ?? ''), $testatorNames)) {
+                    $row[$nameKey] = $partnerName;
+                    $row['relationship'] = 'Spouse';
+                    $changed = true;
+                }
+
+                return $row;
+            }, $rows));
+        };
+
+        $executors = $replaceSelf($doc->executors ?? [], 'name');
+        $guardians = $replaceSelf($doc->guardians ?? [], 'name');
+        $residuary = $replaceSelf($doc->residuary_estate ?? [], 'beneficiary_name');
+
+        if (! $changed) {
+            return false;
+        }
+
+        $doc->update([
+            'executors' => $executors,
+            'guardians' => $guardians,
+            'residuary_estate' => $residuary,
+        ]);
+
+        // The wrong names did not stay on the document — `markComplete()` wrote
+        // them into `wills.executor_name`, which is what the will planning
+        // screen reads. Repairing the document without this leaves the screen
+        // showing the defect it just fixed.
+        $will = $doc->will_id ? Will::find($doc->will_id) : Will::where('user_id', $doc->user_id)->first();
+
+        if ($will !== null) {
+            $will->update(['executor_name' => self::executorNameFor($doc->fresh())]);
+        }
+
+        $this->cacheInvalidation->invalidateForUser($doc->user_id);
+
+        return true;
     }
 
     /**
@@ -573,6 +821,14 @@ class WillDocumentService
                 'will_document_id' => $doc->id,
                 'user_id' => $doc->user_id,
                 'beneficiary_name' => $beneficiary,
+                // W-0394. Left unset, this took the column default `individual`,
+                // so a charitable legacy entered in the will builder was stored
+                // as a gift to a person — including both of the peak_earners
+                // household's. Bequest::isCharitable() re-derived the truth from
+                // the name on every read, which hid it for the charities its
+                // name list happens to know and hid nothing for the ones it does
+                // not. Same one home as WillController::classifyBeneficiary().
+                'beneficiary_type' => Bequest::inferBeneficiaryType($beneficiary),
                 'bequest_type' => $isCash ? 'specific_amount' : 'specific_asset',
                 'specific_amount' => $isCash && $amount !== null ? (float) $amount : null,
                 'specific_asset_description' => $isCash ? null : ($description !== '' ? $description : null),
@@ -622,19 +878,26 @@ class WillDocumentService
      * relatives, which is why every copied gift is flagged for review rather
      * than presented as settled.
      *
+     * Each partner arrives as a list of the spellings their own records give
+     * them (W-0396). The FIRST entry is the one written into the mirror; the
+     * rest exist only so a party recorded under a different spelling of the same
+     * person is still recognised as that person.
+     *
      * @param  list<array<string, mixed>>  $rows
+     * @param  list<string>  $primaryNames
+     * @param  list<string>  $spouseNames
      * @return list<array<string, mixed>>
      */
-    private function swapPartiesForMirror(array $rows, string $nameKey, string $primaryName, string $spouseName): array
+    private function swapPartiesForMirror(array $rows, string $nameKey, array $primaryNames, array $spouseNames): array
     {
-        return array_values(array_map(function (array $row) use ($nameKey, $primaryName, $spouseName) {
+        return array_values(array_map(function (array $row) use ($nameKey, $primaryNames, $spouseNames) {
             $name = (string) ($row[$nameKey] ?? '');
 
-            if (self::isSameParty($name, $spouseName)) {
-                $row[$nameKey] = $primaryName;
+            if (self::matchesAnyName($name, $spouseNames)) {
+                $row[$nameKey] = $primaryNames[0] ?? $name;
                 $row['relationship'] = 'Spouse';
-            } elseif (self::isSameParty($name, $primaryName)) {
-                $row[$nameKey] = $spouseName;
+            } elseif (self::matchesAnyName($name, $primaryNames)) {
+                $row[$nameKey] = $spouseNames[0] ?? $name;
                 $row['relationship'] = 'Spouse';
             }
 

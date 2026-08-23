@@ -91,20 +91,63 @@ describe('getCharitableBequestTotal', function () {
     });
 });
 
-describe('the reduced rate for charitable legacies', function () {
-    it('moves a cash legacy of a tenth of the baseline to the reduced rate', function () {
-        $user = User::factory()->create();
+/**
+ * A single person whose whole estate is cash, so the residence nil rate band is
+ * £0 and the baseline is unambiguous: net estate less the single nil rate band.
+ */
+function cashOnlyTestator(float $balance = 1_000_000): User
+{
+    $user = User::factory()->create([
+        'marital_status' => 'single',
+        'date_of_birth' => '1960-06-01',
+        'gender' => 'female',
+    ]);
 
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+        'current_balance' => $balance,
+        'is_isa' => false,
+    ]);
+
+    return $user;
+}
+
+function charitableAnalysisFor(User $user, ?User $spouse = null): array
+{
+    $calculation = app(IHTCalculationService::class)->calculate($user->fresh(), $spouse?->fresh(), $spouse !== null);
+
+    return app(WillAnalysisService::class)->analyzeCharitableBequests($calculation);
+}
+
+describe('the reduced rate for charitable legacies', function () {
+    /*
+     * W-0452 CHANGED HOW THESE CASES REACH THE SERVICE, and it is worth saying
+     * why rather than leaving the next reader to infer it from a signature.
+     *
+     * They used to hand `analyzeCharitableBequests()` a net estate and a nil rate
+     * band directly, and it struck its own baseline from them. That was the
+     * defect: the caller in production passed the INDIVIDUAL's net estate with
+     * the HOUSEHOLD's available band, and no test could see it, because every
+     * test supplied both numbers itself. **A test that supplies the input cannot
+     * catch a caller supplying the wrong one** (`tests/CLAUDE.md` §4, Mock).
+     *
+     * The position is now settled once in `IHTCalculationService` and expressed
+     * here, so these cases drive the real calculation and read what it published.
+     */
+    it('moves a cash legacy of a tenth of the baseline to the reduced rate', function () {
         // Baseline is the net estate less the nil rate band; the residence nil
         // rate band is excluded (IHTA 1984 Sch 1A).
-        $netEstate = 1_000_000.0;
-        $baseline = $netEstate - (float) $this->iht['nil_rate_band'];
+        $user = cashOnlyTestator();
+        $baseline = 1_000_000.0 - (float) $this->iht['nil_rate_band'];
         $threshold = $baseline * app(TaxConfigService::class)->getCharitableThresholdPercent();
 
         charitableBequest($user, 'specific_amount', ['specific_amount' => $threshold + 1]);
 
-        $analysis = $this->service->analyzeCharitableBequests($user, $netEstate);
+        $analysis = charitableAnalysisFor($user);
 
+        expect($analysis['baseline'])->toBe(round($baseline, 2));
         expect($analysis['status'])->not->toBe('below');
         expect($analysis['effective_rate'])->toBe(app(TaxConfigService::class)->getCharitableReducedRate());
     });
@@ -119,59 +162,80 @@ describe('the reduced rate for charitable legacies', function () {
         $config->update(['config_data' => $data]);
         app()->forgetInstance(TaxConfigService::class);
 
-        $user = User::factory()->create();
+        $user = cashOnlyTestator();
         $iht = app(TaxConfigService::class)->getInheritanceTax();
-        $netEstate = 1_000_000.0;
-        $baseline = $netEstate - (float) $iht['nil_rate_band'];
+        $baseline = 1_000_000.0 - (float) $iht['nil_rate_band'];
 
         charitableBequest($user, 'specific_amount', [
             'specific_amount' => $baseline * app(TaxConfigService::class)->getCharitableThresholdPercent() + 1,
         ]);
 
-        $analysis = app(WillAnalysisService::class)->analyzeCharitableBequests($user, $netEstate);
-
-        expect($analysis['effective_rate'])->toBe(0.30);
+        expect(charitableAnalysisFor($user)['effective_rate'])->toBe(0.30);
     });
 
-    it('uses the available nil rate band the caller passes, not a single band', function () {
-        $user = User::factory()->create();
+    it('strikes the baseline against the household\'s AVAILABLE nil rate band, not a single band', function () {
+        // The same intent as the case this replaces — a surviving spouse's band
+        // includes the transferred band, so a baseline computed from a single
+        // £325,000 disagrees with the Inheritance Tax calculation about the same
+        // household — but asserted on the layer where the decision now lives.
+        // The old case passed the combined band in as an argument and asserted it
+        // came back out, which proves subtraction and nothing about the household.
+        $spouse = User::factory()->create([
+            'marital_status' => 'married',
+            'date_of_birth' => '1955-01-01',
+            'gender' => 'male',
+        ]);
+        $user = User::factory()->create([
+            'marital_status' => 'married',
+            'date_of_birth' => '1962-01-01',
+            'gender' => 'female',
+            'spouse_id' => $spouse->id,
+        ]);
+        $spouse->update(['spouse_id' => $user->id]);
 
-        $netEstate = 1_000_000.0;
+        SavingsAccount::factory()->create([
+            'user_id' => $user->id,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'current_balance' => 1_000_000,
+            'is_isa' => false,
+        ]);
+
         $singleNrb = (float) $this->iht['nil_rate_band'];
-        $combinedNrb = $singleNrb * 2;
+        $analysis = charitableAnalysisFor($user, $spouse);
 
-        $analysis = $this->service->analyzeCharitableBequests($user, $netEstate, $combinedNrb);
-
-        expect($analysis['baseline'])->toBe(round($netEstate - $combinedNrb, 2));
+        expect($analysis['baseline'])->toBe(round(1_000_000.0 - $singleNrb * 2, 2))
+            ->and($analysis['baseline'])->not->toBe(round(1_000_000.0 - $singleNrb, 2));
     });
 
     it('goes quiet rather than naming a shortfall it cannot compute', function () {
         // An asset gift to charity DOES count in law but carries no figure, so
         // telling the user to give another £X would assume it is worth nothing.
-        $user = User::factory()->create();
+        $user = cashOnlyTestator();
         charitableBequest($user, 'specific_asset', ['specific_asset_description' => 'My art collection']);
 
-        $analysis = $this->service->analyzeCharitableBequests($user, 1_000_000);
+        $analysis = charitableAnalysisFor($user);
 
         expect($analysis['has_unvalued_charitable_gifts'])->toBeTrue();
-        expect($analysis['message'])->toBe(WillAnalysisService::UNVALUED_CHARITABLE_GIFTS_MESSAGE);
+        expect($analysis['message'])->toBe(app(WillAnalysisService::class)->unvaluedCharitableGiftsMessage());
         expect($analysis['message'])->not->toContain('Increase');
     });
 
     it('leaves a smaller cash legacy on the standard rate, with the shortfall named', function () {
-        $user = User::factory()->create();
-
-        $netEstate = 1_000_000.0;
-        $baseline = $netEstate - (float) $this->iht['nil_rate_band'];
+        $user = cashOnlyTestator();
+        $baseline = 1_000_000.0 - (float) $this->iht['nil_rate_band'];
         $threshold = $baseline * app(TaxConfigService::class)->getCharitableThresholdPercent();
 
         charitableBequest($user, 'specific_amount', ['specific_amount' => $threshold / 2]);
 
-        $analysis = $this->service->analyzeCharitableBequests($user, $netEstate);
+        $analysis = charitableAnalysisFor($user);
 
         expect($analysis['status'])->toBe('below');
         expect($analysis['effective_rate'])->toBe($this->iht['standard_rate']);
         expect($analysis['shortfall'])->toBeGreaterThan(0.0);
+        // The shortfall names what is missing from the THRESHOLD, and the message
+        // asks for exactly that much — the pair a user acts on.
+        expect($analysis['shortfall'])->toBe(round($threshold / 2, 2));
     });
 });
 

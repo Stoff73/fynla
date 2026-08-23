@@ -811,6 +811,11 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'total_pension_value' => $summary['current_dc_value'] ?? 0,
+            // A household whose whole provision is a final salary scheme has a
+            // defined contribution pot of zero and is not thereby without
+            // retirement provision. Carrying the secured income in the flat shape
+            // stops `total_pension_value: 0` reading as "nothing here" (W-0244).
+            'guaranteed_annual_income' => $summary['guaranteed_annual_income'] ?? 0,
             'projected_annual_income' => $summary['projected_retirement_income'] ?? 0,
             'target_income' => $summary['target_retirement_income'] ?? 0,
             'income_gap' => $summary['income_gap'] ?? 0,
@@ -2229,6 +2234,8 @@ class CoordinatingAgent extends BaseAgent
                 'remaining' => round(max(0, (float) $g->target_amount - (float) $g->current_amount), 2),
                 'progress_percentage' => $g->progress_percentage,
                 'is_on_track' => $g->is_on_track,
+                'is_overdue' => $g->is_overdue,
+                'status_label' => $g->status_label,
                 'monthly_contribution' => round((float) ($g->monthly_contribution ?? 0), 2),
                 'target_date' => $g->target_date?->format('Y-m-d'),
                 'assigned_module' => $g->assigned_module,
@@ -5219,6 +5226,25 @@ class CoordinatingAgent extends BaseAgent
         $updateData['monthly_expenditure'] = $total;
         $updateData['annual_expenditure'] = $total * 12;
         $updateData['expenditure_entry_mode'] = 'category';
+
+        // NOT ROUTED THROUGH App\Services\Expenditure\HouseholdExpenditureWriter,
+        // deliberately. This path writes the acting account at 100% and never
+        // touches the spouse, which under a joint household reproduces the very
+        // 100/0 split W-0190 fixed on the profile path. That is **W-0202**, which
+        // is raised, decided by team-lead, and explicitly parked: its acceptance
+        // criterion 1 — make the unanswered sharing state expressible, or
+        // disclose the default — must be settled BEFORE the routing is built.
+        //
+        // The reason is disclosure, not arithmetic. The expenditure form says
+        // "Joint (50/50) expenditure" in its own subheading while the user types;
+        // Fyn says nothing. And `users.expenditure_sharing_mode` is
+        // `NOT NULL DEFAULT 'joint'`, so a household that has never been asked is
+        // indistinguishable from one that chose — 19 users on dev, every one of
+        // them `joint`, not one `separate`. Halving here would silently resolve a
+        // question the user was never asked.
+        //
+        // The writer W-0412 built IS the mechanism W-0202 criterion 2 needs; when
+        // the decision lands, this becomes one call. Until then it stays as it is.
         DB::transaction(function () use ($user, $updateData, $total): void {
             $user->update($updateData);
 
@@ -6486,6 +6512,9 @@ class CoordinatingAgent extends BaseAgent
             $monthly = $hasMonthlyTotal
                 ? (float) $sourceAmount
                 : ((float) $sourceAmount / 12);
+            // Left unrouted for the same reason as handleSetExpenditure above —
+            // this is Fyn, and W-0202 parks the sharing rule on every Fyn write
+            // until its criterion 1 is settled.
             DB::transaction(function () use ($user, $monthly): void {
                 $user->update([
                     'monthly_expenditure' => $monthly,

@@ -14,7 +14,7 @@ color: violet
 **Read `workforce/core/index.md`, then `fynlaDesignGuide.md`** before any UI work —
 it is the single source of truth for colours, typography, components and charts.
 
-**Your escalation founder is Azlan**, not CSJ (`registry/people.md` §3.2).
+**Your escalation founder is Azlan**, not CSJ (`workforce/core/registry/people.md` §3.2).
 
 ## Four rules that override the design guide
 

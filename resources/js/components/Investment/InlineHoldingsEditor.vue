@@ -53,13 +53,28 @@
         <!-- Allocation % -->
         <div class="col-span-2">
           <div class="relative">
+            <!--
+              max is 100, not "100 minus the other holdings" (W-0257).
+
+              The headroom form encoded a constraint about the WHOLE SET on each
+              individual input, and a native `max` that a field's own current
+              value already breaches cannot be satisfied in place. The moment the
+              total went over 100 — which needs nothing more exotic than raising
+              one holding before lowering another — every input was below its own
+              value, the browser refused to fire submit, and the Update button
+              simply stopped working with no message of any kind.
+
+              A per-field bound says what is true of a field on its own. The
+              total is a fact about the set, so it is reported as one, below.
+            -->
             <input
               v-model.number="holding.allocation_percent"
               type="number"
               min="0"
-              :max="maxAllocation(index)"
+              max="100"
               step="0.1"
-              class="w-full border border-horizon-300 rounded-md px-2 py-1.5 text-sm text-right pr-6 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              class="w-full border rounded-md px-2 py-1.5 text-sm text-right pr-6 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              :class="overAllocated ? 'border-raspberry-500' : 'border-horizon-300'"
               placeholder="0"
               @input="onAllocationChange(index)"
             />
@@ -123,6 +138,21 @@
       + Add Holding
     </button>
 
+    <!--
+      Over-allocation (W-0257). The sibling "Cash (auto-allocated)" row below is
+      driven by `remainingPercent`, which is `Math.max(0, 100 - total)` — so an
+      account 5% over and an account exactly full both rendered as "nothing left
+      over", and the row just vanished. This says the thing the clamp discards.
+    -->
+    <div
+      v-if="allocationError"
+      class="mt-2 px-3 py-2 bg-raspberry-50 border border-raspberry-300 rounded-md text-sm text-raspberry-700"
+      role="alert"
+      data-testid="holdings-over-allocated"
+    >
+      {{ allocationError }}
+    </div>
+
     <!-- Cash Remainder -->
     <div
       v-if="remainingPercent > 0"
@@ -144,6 +174,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { allocationErrorMessage, isOverAllocated } from '@/utils/holdingsAllocation';
 
 const ASSET_TYPES = [
     { value: 'equity', label: 'Equity' },
@@ -194,6 +225,17 @@ export default {
 
     remainingPercent() {
       return Math.max(0, 100 - this.totalAllocated);
+    },
+
+    // W-0257 — the same total, measured on the side of 100 the clamp above
+    // throws away. `allocationErrorMessage` returns null when there is nothing
+    // wrong, so this whole block disappears when the account is valid.
+    allocationError() {
+      return allocationErrorMessage(this.localHoldings);
+    },
+
+    overAllocated() {
+      return isOverAllocated(this.localHoldings);
     },
 
     remainingValue() {
@@ -277,14 +319,6 @@ export default {
         allocation_percent: h.allocation_percent,
         cost_basis: h.cost_basis,
       }));
-    },
-
-    maxAllocation(index) {
-      const otherTotal = this.localHoldings.reduce((sum, h, i) => {
-        if (i === index) return sum;
-        return sum + (parseFloat(h.allocation_percent) || 0);
-      }, 0);
-      return Math.max(0, 100 - otherTotal);
     },
 
     holdingValue(holding) {

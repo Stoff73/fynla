@@ -150,3 +150,42 @@ not arithmetic.
 4. Verified from Fyn on web AND `/m`, on both accounts of a linked household. **`/m` is
    the one that matters**: its expenditure screen is read-only, so Fyn is the only
    expenditure edit door there.
+
+---
+
+## Update — 2026-08-23, build-lead (`fix-cycle4-goals-expenditure`)
+
+**Criterion 2's mechanism now exists, and criterion 3's obstacle is gone. Criterion 1 is
+still the blocker, and this item stays `queued`.**
+
+W-0412 built `app/Services/Expenditure/HouseholdExpenditureWriter` — one household payload
+in, both accounts' shares derived from it and written in one transaction, both
+`ExpenditureProfile` rows synced, both caches invalidated. `UserProfileController`'s two
+expenditure endpoints route through it now.
+
+- **Criterion 2** becomes a single call per path:
+  `app(HouseholdExpenditureWriter::class)->write($user, $updateData);` at
+  `CoordinatingAgent::handleSetExpenditure`, and the same at the `update_profile`
+  `section: expenditure` simple-total path — **which is a fourth door this item does not
+  currently name, and has the identical shape.**
+- **Criterion 3 is resolved without reconciling the field lists.** The writer mirrors to
+  the spouse **only** the fields `SharedExpenditure` actually divides, so `rent`,
+  `utilities` and `charitable_donations` stay whole on the acting row and the household
+  still sums correctly. Routing Fyn therefore does **not** force a second behaviour change,
+  and the "two items" split this criterion anticipated is not needed. (`rent` and
+  `utilities` never persisting at all from the form is separately raised as **W-0413**.)
+- **One extra step the implementation will need, not currently in this item.**
+  `handleSetExpenditure` recomposes the monthly total from every **stored** category, and
+  under a shared household those stored values are **halves**. They must be read back to
+  household scale (`÷ SharedExpenditure::JOINT_SHARE`) before the total is recomposed, or
+  one named category arrives at household scale and the twenty-one untouched ones at half
+  scale and the total is neither figure.
+
+**Criterion 1 remains unsettled and is why this was reverted rather than shipped.** The
+routing was built during F-0029 and backed out on finding this item; see
+`workforce/branches/fixes/F-0029-cycle4-goals-and-expenditure-split.md` §4.4. Current
+behaviour is now pinned by a test —
+`tests/Unit/Agents/CoordinatingAgentHandleSetExpenditureTest.php`, *"writes the acting
+account at 100% and leaves the spouse untouched"* — so that when this item is built the
+change surfaces as a deliberate red test rather than a silent diff. **It pins the current
+behaviour; it does not endorse it, and the docblock says so.**

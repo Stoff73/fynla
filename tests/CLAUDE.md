@@ -230,13 +230,15 @@ residual of a `max()`.
 **A green test against a clamped value is the same class of defect as a green test
 against a hardcoded literal: nothing in it can fail.**
 
-**Three shapes of one family — *a test that shares the code's misconception cannot fail*:**
+**Five shapes of one family — *a test that shares the code's misconception cannot fail*:**
 
 | Variant | The misconception lives in | Why it cannot fail |
 |---|---|---|
 | **Mock** | the value the test supplies | it asserts what the mock was told |
 | **Clamp** | the value the code can return | the output cannot vary |
 | **Fixture** | **the data the test sets up** | **the branch is never entered** |
+| **Collision** | **nothing — the test is fine** | **the right answer and the wrong answer are the same number** |
+| **Decoy** | **the test's NAME** | **it never calls the code it is named after** |
 
 **The fixture variant is the hardest to see.** A mock and a clamp are visible in the test
 file — you can read them and ask what they hide. **A fixture's absence of a row is
@@ -254,6 +256,129 @@ no business interests, and no third-party chattels** — so every test built fro
 silently strong in three areas and silently blind in three others. That is a fact about
 the whole test strategy, not about one batch. **When a persona is the fixture, its gaps
 are the suite's gaps.**
+
+**The fourth variant — Collision — added 2026-08-22, from the W-0228 mortgage-share fix.**
+
+**This one is unlike the other three: the assertion, the fixture and the data are all
+correct.** Nothing in the test file is wrong, so no amount of reading it will reveal the
+problem. It fails to catch the bug because **the value it expects is also the value the
+bug produces.**
+
+The worked case: a property share was memoised in a `static` declared on a **trait**. A
+static in a trait is **per using class**, so a dozen services each got their own private
+cache with no single handle to clear any of them. The test changed the property to 60%,
+cleared "the" cache, and read **40%** back — and 40% was *both* the correct answer for
+the original state *and* the stale one. **The test could not distinguish the two
+hypotheses**, so it passed while the memo was unclearable.
+
+**How to spot it before it bites:** ask *"if the mechanism I am testing did nothing at
+all, would this assertion still pass?"* If the expected value coincides with the
+pre-change value, the default, the fallback, or a symmetric case, the answer is yes —
+and the test proves nothing.
+
+**Symmetry is the commonest source.** A joint 50/50 split makes the primary owner's
+share and the co-owner's share the same number, so a card that always shows the primary
+owner's share is **correct for both parties** and no test built on that persona can fail.
+`LiabilityCard.vue` survived exactly this way, and only broke into view at 40/60 — see
+the corollary above about a persona's gaps being the suite's gaps.
+
+**The countermeasure is to move the input to a value where the two hypotheses diverge**
+— an asymmetric split, a non-default rate, a second write after the first. If every case
+in a suite uses 50/50, the suite cannot see a whole class of ownership bug.
+
+**The fifth variant — Decoy — added 2026-08-23, from the estate-projection fix.**
+
+**The test never calls the code it is named after.** `PropertyReadConsumerParityTest`
+carried a case titled *"IHTCalculationService projected properties does NOT double-count
+joint property across spouse pair"* which **never invoked `IHTCalculationService`.** It
+reproduced the query pattern inline and asserted arithmetic the test itself had written.
+It would have stayed green through the change that put **£177,000 of a stranger's money
+into an estate**.
+
+**This is worse than the other four, and worse than having no test at all** — because no
+test does not tell you the service is guarded. A green case with that title does.
+
+**It gets written in good faith.** This one was born in a refactor that changed a query
+*pattern* across five consumers, and was written to lock the pattern — which was
+reasonable. **The defect is the name.** Once the name existed, nobody re-read the body.
+
+**The check:** for every test named after a class or method, confirm the body **resolves
+and calls it**. `grep` the test file for the class name — if it appears only in the title,
+the case proves nothing about it.
+
+**Related, one layer down — the same signature in code rather than in tests.** A missing
+attribute read off a **collection** returns `null` silently, while a **query-builder** read
+of the same name throws. So the identical defect is invisible in the idiomatic half and
+fatal in the other, and it survives precisely where the code reads well: `db_pensions.
+transfer_value` (twice) and `mortgages.end_date` (which is `maturity_date`) were three
+instances in one cycle. **When a column name proves not to exist, grep for every reader and
+check which kind each one is** — the throwing ones are already known, the silent ones are
+the backlog.
+
+**A reconciliation check verifies the NUMBERS and is blind to the SUBJECT of the sentence.**
+Added 2026-08-23. An agent built a check that parsed a rendered decision trace and proved
+four properties: each rate against its own printed base, the subtraction against the printed
+saving, and the second base against the first less the printed shortfall. **All four true.
+The sentence was about the wrong person** — it reported one spouse's charitable position
+under the other's name, with an instruction to amend the wrong will.
+
+Its own account: *"I read that sentence four times, checked its arithmetic to the penny, and
+**never asked whose will it was about.** The arithmetic check I built is blind to the subject
+of the sentence."*
+
+**Internal consistency is not correctness.** A self-consistent statement about the wrong
+entity passes every reconciliation you can write, and the screenshot proving the arithmetic
+also photographs the defect. **When a figure belongs to a person, an account or a household,
+assert WHOSE it is as a separate property from what it equals** — and render it from the
+session where the two differ.
+
+**Rendering from the right session is NECESSARY AND NOT SUFFICIENT, and the agent proved it
+on itself.** It had already read **both** accounts on its first pass. The defect was fully
+visible in the screenshot it filed as evidence of the fix — *"If **David** increases
+charitable bequests…"* printed over the other spouse's figures. **It looked straight at the
+defect and did not see it, because the check's scope excluded the axis.** A wider sample
+would not have helped; **only asking a different question would have.**
+
+**The guard that works asserts the subject explicitly** — that the right name appears, **that
+the wrong name does not**, and that the prescribed action names the right person's
+instrument — **rendered from the session where those differ.** Then mutate the attribution
+and confirm exactly that case reddens.
+
+**An asymmetric fixture is only asymmetric along the AXIS YOU VARIED.** Added 2026-08-23.
+A fixture varied the two spouses' charitable legacies (£30,000 against £5,000) — genuinely
+asymmetric — but **always read from the survivor's session**, so it could not express a
+defect about *whose* will is read. **The variation and the hypothesis were on different
+axes.** Before trusting an asymmetric fixture, name the axis the defect lives on and check
+you varied *that* one.
+
+**`Model::fresh()` queries WITHOUT global scopes — so it returns a soft-deleted row as
+happily as a live one.** Added 2026-08-23. An assertion that a row "still exists" after a
+save passed **whether the row survived or was annihilated and rebuilt with the same id** —
+which was precisely the behaviour under test. **Query for a live row instead.** Found by
+mutation testing, not by reading the file: it is a Collision (the right answer and the wrong
+answer are the same object) and nothing in the test looks wrong.
+
+**And tighten a `toBeCloseTo` until the hypotheses part.** In the same batch,
+`toBeCloseTo(0.305, 3)` passed under both readings — weighting an allocation-derived
+£160,000 instead of the stored £160,018 gives 0.305 exactly. **A tolerance wide enough to
+span both answers is a Collision you wrote yourself.**
+
+**Component specs: `setData` injects PAST the layer you are trying to prove.**
+Added 2026-08-23. Injecting a view-model into a component that loads its own data supplies
+**the object the mapping was supposed to build** — so the case proves the template and
+**skips the mapping entirely.** Seven green cases sat over a card that rendered wrong on the
+live page; a Feature test separately proved the endpoint published the field. **Neither
+covered the join.**
+
+**It is not wrong — it is the right tool for testing a template.** But it needs a **sibling
+case that drives the real lifecycle** with an endpoint-shaped payload, or the mapping
+between endpoint and template is untested by construction.
+
+**This is the Fixture variant on an integration seam, and it is the hard one for the reason
+above: nothing in the file says "and no mapping runs here."** A mock or a clamp is visible
+when you read the test. An injection point that bypasses a layer looks exactly like sensible
+setup. The agent that wrote those cases put it plainly: *"I would not have found that by
+reading my own test file; the browser found it."*
 
 **In every variant the countermeasure is the same: assert that the answer MOVES when the
 real input moves**, rather than asserting the answer equals a value the test itself

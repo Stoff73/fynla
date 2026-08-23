@@ -131,6 +131,13 @@ class IHTController extends Controller
                     // reached no screen at all until now, which is why the column
                     // between Net Estate and Taxable Estate was £20,000 short.
                     'charitable_deduction' => $calculation['charitable_deduction'],
+                    // W-0399. The engine separates the pooled s23(1) exemption from
+                    // the survivor-only Sch 1A rate-test amount; this summary
+                    // published only the first, so `IHTPlanning.vue` rendered the
+                    // HOUSEHOLD's £20,000 under the words "Your will leaves …"
+                    // while the message beside it quoted the survivor's £10,000.
+                    // Both figures were correct and neither was labelled.
+                    'charitable_rate_test_amount' => $calculation['charitable_rate_test_amount'],
                     'taxable_estate' => $calculation['taxable_estate'],
                     'iht_liability' => $calculation['iht_liability'],
                     'iht_rate' => $calculation['iht_rate'],

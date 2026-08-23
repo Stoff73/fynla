@@ -85,9 +85,36 @@ commands, open PRs and in-flight branches, the vault, and `.claude/skills|agents
 
 ## 3. Constraints honoured
 
-- **A third-party counterparty is not a user.** Mike Barrett's £60,000 is charged
-  to nobody: David £182,500 + Sarah £122,500 = £305,000, not £365,000. It does not
-  fall through to the spouse.
+- **A third-party counterparty is not a user.** Mike Barrett's share is charged to
+  nobody, and does not fall through to the spouse.
+
+  > **CORRECTED 2026-08-22 by `cycle4-dashboard` (F-0022, W-0228).** This bullet
+  > originally read *"David £182,500 + Sarah £122,500 = £305,000, not £365,000"*
+  > and signed those figures off as correct. **They are wrong**, and the fix here
+  > was not what made them wrong — it inherited them.
+  >
+  > The Manchester property is held `tenants_in_common` at **40%** while the
+  > mortgage secured on it was stored `joint` at **50%**, and every consumer read
+  > the mortgage's own pair. CSJ has since ruled that **a debt is shared exactly as
+  > the asset securing it is shared**, which makes the property authoritative:
+  >
+  > | | Signed off here | Correct under the ruling |
+  > |---|---|---|
+  > | David's share of the Manchester mortgage | £60,000 | **£48,000** |
+  > | David's mortgages | £182,500 | **£170,500** |
+  > | Sarah's mortgages | £122,500 | £122,500 (unchanged — she is not a party to it) |
+  > | Household debt | £305,000 | **£293,000** |
+  >
+  > **The £12,000 difference is a third party's debt**, which is precisely what
+  > this bullet claims to have excluded. The exclusion of Mike Barrett's share was
+  > real and remains correct; the *size* of his share was taken from the wrong
+  > record. Verified against the live local database after the fix:
+  > `calculateMortgageTotal(16) = 170,500.00`, `(17) = 122,500.00`.
+  >
+  > **Anything in this document resting on £305,000 or £182,500 inherits the
+  > error** — the mortgage figures in the W-0206 evidence, and the projection note
+  > in §5 that contrasts "£122,500 flat" against "£182,500 amortising" (the
+  > order-dependence it describes is real and unaffected; only the number moved).
 - **Users 16 and 17 were never written to.** Every test uses factories. The only
   writes anywhere near them were `Cache::forget` on projection keys, cleared again
   afterwards.

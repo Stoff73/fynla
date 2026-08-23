@@ -323,6 +323,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     // Letter to Spouse
     Route::get('/letter-to-spouse', [LetterToSpouseController::class, 'show']);
     Route::get('/letter-to-spouse/exists', [LetterToSpouseController::class, 'exists']);
+    Route::get('/letter-to-spouse/financial-position', [LetterToSpouseController::class, 'financialPosition']);
     Route::get('/letter-to-spouse/spouse', [LetterToSpouseController::class, 'showSpouse']);
     Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update']);
 

@@ -10,6 +10,7 @@ use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Coordination\PlanSources\Adapters\ProtectionRecommendationAdapter;
 use App\Services\Protection\CoverageGapAnalyzer;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\Protection\RecommendationEngine;
 use Illuminate\Support\Collection;
 use Throwable;
@@ -28,6 +29,7 @@ final class ProtectionStrategySource implements ModuleStrategySource
 {
     public function __construct(
         private readonly CoverageGapAnalyzer $gapAnalyzer,
+        private readonly LifeCoverReach $lifeCoverReach,
         private readonly RecommendationEngine $recommendationEngine,
         private readonly ProtectionRecommendationAdapter $adapter,
         private readonly ModuleAvailabilityProvider $availability,
@@ -65,8 +67,23 @@ final class ProtectionStrategySource implements ModuleStrategySource
             }
 
             $needs = $this->gapAnalyzer->calculateProtectionNeeds($profile);
+
+            // The policies covering this user's LIFE. This class "mirrors
+            // ProtectionAgent::analyze()" by its own docblock — but the agent was routed
+            // to the reach in W-0186 and the mirror was not, so the non-owning spouse was
+            // recommended cover she already holds: `recommendations(Sarah)` returned
+            // "Add decreasing term cover for debts" while the agent, feeding the SAME
+            // RecommendationEngine, reported `debt_protection_gap = 0` (W-0401).
+            //
+            // A joint-life policy covers both spouses and is recorded once, on the account
+            // that entered it, so the plain `user_id` hasMany stops at the owner.
+            // `LifeCoverReach` is the one home for the question (Rule 20).
+            //
+            // **Critical illness stays the plain relation.** `critical_illness_policies`
+            // has no `joint_life`, no `joint_owner_id` and no ownership columns at all
+            // (verified with `SHOW COLUMNS`), so it covers only its owner.
             $coverage = $this->gapAnalyzer->calculateTotalCoverage(
-                $user->lifeInsurancePolicies,
+                $this->lifeCoverReach->policiesCovering($user),
                 $user->criticalIllnessPolicies,
                 $user->incomeProtectionPolicies,
                 $user->disabilityPolicies,

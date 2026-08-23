@@ -9,15 +9,15 @@
       <div class="flex flex-col items-end gap-1">
         <span
           v-if="hasNI"
-          class="px-2 py-1 text-xs font-medium rounded bg-light-blue-100 text-horizon-600"
+          class="px-2 py-1 text-xs font-medium rounded bg-light-blue-100 text-horizon-600 text-right"
         >
-          NI Applies
+          {{ nationalInsuranceBadge }}
         </span>
         <span
           v-else
           class="px-2 py-1 text-xs font-medium rounded bg-savannah-100 text-neutral-500"
         >
-          No NI
+          No National Insurance
         </span>
       </div>
     </div>
@@ -321,6 +321,28 @@ const totalIncomeTax = computed(() => {
 const adjustedNetIncome = computed(() => {
   const credit = props.section24?.applied_credit ?? 0;
   return (props.breakdown.net_income ?? 0) + credit;
+});
+
+/**
+ * What National Insurance is charged on — named, not asserted over the whole card.
+ *
+ * The badge read "NI Applies" and sat beside the card's GROSS figure, which for
+ * this card combines employment, self-employment, rental profit and pension
+ * income. On a landlord with a salary that asserted National Insurance over
+ * £14,290 of rent, which is neither earned income nor liable to it (W-0423). The
+ * computation underneath was always right — it is labelled "Class 1 (Employment)"
+ * and works on the salary alone — so only the header claimed anything false.
+ *
+ * `base` comes from the calculator rather than being summed from the bands: the
+ * bands start at the primary threshold and add up to less than the pay.
+ */
+const nationalInsuranceBadge = computed(() => {
+  const ni = props.breakdown.ni_breakdown ?? {};
+  const base = (ni.class_1?.base ?? 0) + (ni.class_4?.base ?? 0);
+
+  if (base <= 0) return 'National Insurance applies';
+
+  return `National Insurance on ${formatCurrency(base)}`;
 });
 
 // Check if NI applies

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use App\Exceptions\FinancialCalculationException;
+use App\Models\Mortgage;
+use App\Support\SecuringPropertyResolver;
 use App\Support\SharedOwnership;
 use Illuminate\Support\Collection;
 
@@ -135,9 +138,31 @@ trait CalculatesOwnershipShare
      * and dividing would break on a record valued at zero, so this asks the same
      * question of a unit-valued probe instead. One home, one set of rules; only
      * the value it is asked about differs.
+     *
+     * **The probe copies the ownership pair and nothing else, so this method is
+     * only sound while a share is a pure function of the columns ON the record.**
+     * A mortgage is not: CSJ's ruling makes its share follow the property
+     * securing it (W-0228), and a probe built here would have discarded
+     * `property_id` — the one field that rule needs — and returned a confidently
+     * wrong fraction with nothing to indicate it. That is why the guard below
+     * throws rather than falling through: a silent wrong share is the failure
+     * mode this whole family of defects is made of.
+     *
+     * @throws FinancialCalculationException when asked about a record whose share
+     *                                       depends on a related record
      */
     protected function userShareFraction(object $asset, int $userId): float
     {
+        if (isset($asset->property_id) || $asset instanceof Mortgage) {
+            throw FinancialCalculationException::invalidInput(
+                'asset',
+                $asset::class,
+                'A mortgage share follows the property securing it (W-0228), not the '
+                .'ownership columns on the mortgage row, so it cannot be answered from '
+                .'a probe. Use calculateUserMortgageShare, which resolves the property.'
+            );
+        }
+
         $probe = (object) [
             'user_id' => $asset->user_id ?? null,
             'joint_owner_id' => $asset->joint_owner_id ?? null,
@@ -190,9 +215,6 @@ trait CalculatesOwnershipShare
 
     /**
      * Calculate the user's share of a mortgage monthly payment.
-     *
-     * Mortgage liability follows the mortgage borrower(s), not the ownership
-     * percentage recorded on the linked property.
      */
     protected function calculateUserMortgageMonthlyPaymentShare(object $mortgage, int $userId): float
     {
@@ -202,30 +224,86 @@ trait CalculatesOwnershipShare
     }
 
     /**
-     * Calculate the user's share of a mortgage amount using the mortgage's
-     * borrower configuration.
+     * **A debt is shared exactly as the asset securing it is shared** — CSJ's
+     * ruling, 2026-08-22, recorded in full on W-0228. Not open to
+     * re-litigation.
+     *
+     * The docblock that used to sit here said the opposite: *"mortgage liability
+     * follows the mortgage borrower(s), not the ownership percentage recorded on
+     * the linked property."* It was wrong, and it was the load-bearing part —
+     * the code below matched it exactly, so a reviewer checking one against the
+     * other passed it. Deleted rather than corrected, because the rule now lives
+     * in the code as `propertyOwnershipFor()`, not in prose beside it.
+     *
+     * What the mismatch cost, live on one household at once: the property detail
+     * read "Your Mortgage Share (40%) £48,000" while the Mortgage tab read
+     * "Your mortgage liability £60,000" — two figures for one debt, four inches
+     * apart, because the property said tenants-in-common 40% and the mortgage row
+     * said joint 50%.
+     *
+     * **The property is authoritative.** Where a mortgage has no property to
+     * resolve against, the mortgage's own columns are the only information that
+     * exists and are used — stated here so the fallback is not mistaken for the
+     * rule.
+     *
+     * **Accepted limitation (CSJ, knowingly):** this cannot express a mortgage in
+     * one spouse's sole name against a jointly-owned property. Do not add a
+     * borrower-split field to work around it, and do not raise it as a defect.
      */
     private function calculateUserMortgageAmountShare(object $mortgage, int $userId, float $fullAmount): float
     {
-        $ownershipType = $mortgage->ownership_type ?? 'individual';
+        $securing = $this->propertyOwnershipFor($mortgage);
+
+        $ownershipType = $securing->ownership_type ?? 'individual';
 
         // Individual ownership
         if ($ownershipType === 'individual' || $ownershipType === 'trust') {
-            return $mortgage->user_id === $userId ? $fullAmount : 0.0;
+            return $securing->user_id === $userId ? $fullAmount : 0.0;
         }
 
         // Joint ownership
-        $percentage = (float) ($mortgage->ownership_percentage ?? 50);
+        $percentage = (float) ($securing->ownership_percentage ?? 50);
 
-        if ($mortgage->user_id === $userId) {
+        if ($securing->user_id === $userId) {
             return $fullAmount * ($percentage / 100);
         }
 
-        if (($mortgage->joint_owner_id ?? null) === $userId) {
+        if (($securing->joint_owner_id ?? null) === $userId) {
             return $fullAmount * ((100 - $percentage) / 100);
         }
 
         return 0.0;
+    }
+
+    /**
+     * The ownership a mortgage inherits from the property securing it — the ONE
+     * reader for that question (Rule 20).
+     *
+     * Four mechanisms answered it before, and they did not agree:
+     *
+     * | Mechanism | Behaviour |
+     * |---|---|
+     * | `calculateUserMortgageAmountShare` | read the pair off the **mortgage row** — the bug |
+     * | `EstateController::index` | copied the property's pair onto the mortgage — right, and a second implementation |
+     * | `PropertyService::calculateTaxPosition` | its own inline `$ownershipMultiplier` over the property — right, and a third |
+     * | `PropertyService::calculateUserEquity` | its own inline copy again — right, and a fourth |
+     *
+     * All four now compose from this. Nothing here re-derives a share: it
+     * resolves WHICH record the share is read from, and `calculateUserShare`
+     * still answers what the share is.
+     *
+     * The resolution itself lives in `SecuringPropertyResolver`, a container
+     * singleton, because it has to memoise and **a `static` declared in a trait
+     * is per using class** — a dozen services use this trait, so a static here
+     * would be a dozen caches with no single way to clear any of them.
+     *
+     * @return object carrying user_id, joint_owner_id, ownership_type and
+     *                ownership_percentage — the property's where one secures the
+     *                mortgage, the mortgage's own where none does
+     */
+    private function propertyOwnershipFor(object $mortgage): object
+    {
+        return app(SecuringPropertyResolver::class)->for($mortgage);
     }
 
     /**

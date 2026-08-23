@@ -16,6 +16,7 @@ class ProtectionGapPresentationService
     public function __construct(
         private readonly CoverageGapAnalyzer $gapAnalyzer,
         private readonly TaxConfigService $taxConfig,
+        private readonly LifeCoverReach $lifeCoverReach,
     ) {}
 
     public function forUser(User $user, ProtectionProfile $profile): array
@@ -28,9 +29,28 @@ class ProtectionGapPresentationService
             'sicknessIllnessPolicies',
         ]);
 
+        // The policies covering this user's LIFE — the per-life question, which is
+        // not the same set as the policies they own. A joint-life policy covers both
+        // spouses and is recorded once, on the account that entered it, so reading
+        // the `user_id` hasMany showed the other life assured **£0 of cover directly
+        // above the £500,000 policy the same card counted** (W-0384). W-0186 routed
+        // the policy LIST to the reach and left this total behind it, which is how a
+        // total and its own count came to disagree on one card for a second time.
+        //
+        // `LifeCoverReach` is the one home for the question (Rule 20); this reads it
+        // ONCE and both halves of the card are built from that single read, so they
+        // cannot drift apart again.
+        //
+        // **Critical illness stays the plain relation, deliberately.**
+        // `critical_illness_policies` carries no `joint_life`, no `joint_owner_id`
+        // and no ownership columns at all (verified with `SHOW COLUMNS`, not inferred
+        // from the model), so a critical illness policy covers only its owner and
+        // there is nothing to reach with.
+        $lifePoliciesCovering = $this->lifeCoverReach->policiesCovering($user);
+
         $needs = $this->gapAnalyzer->calculateProtectionNeeds($profile);
         $coverage = $this->gapAnalyzer->calculateTotalCoverage(
-            $user->lifeInsurancePolicies,
+            $lifePoliciesCovering,
             $user->criticalIllnessPolicies,
             $user->incomeProtectionPolicies,
             $user->disabilityPolicies,
@@ -39,7 +59,7 @@ class ProtectionGapPresentationService
             $user,
         );
         $gaps = $this->gapAnalyzer->calculateCoverageGap($needs, $coverage);
-        $lifePolicies = $this->lifePolicyReferences($user->lifeInsurancePolicies);
+        $lifePolicies = $this->lifePolicyReferences($lifePoliciesCovering);
         $incomePolicies = $this->incomePolicyReferences(
             $user->incomeProtectionPolicies,
             $user->disabilityPolicies,

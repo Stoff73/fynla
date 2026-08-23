@@ -296,6 +296,54 @@ class TaxConfigService
      * IHTCalculationService, EstateAgent, GiftingStrategy and
      * TaxSettingsController, alongside a seventh consumer reading
      * TaxDefaults::IHT_CHARITABLE_RATE — two fallback conventions, seven sites.
+     *
+     * **THIS NOTE NO LONGER ASSERTS A COUNT, BECAUSE EVERY COUNT OF IT HAS BEEN
+     * WRONG (W-0451).**
+     *
+     * The paragraph above claimed the consolidation was complete; it was not.
+     * The first correction named ONE survivor; there were two. The
+     * tax-compliance gate named TWO; `grep -rn '?? 0.36' app/` then found
+     * **four** — `WillAnalysisService`, `GiftingStrategy`, `EstateAgent:694`,
+     * and `TaxSettingsController:330`, the last inside the admin screen that
+     * displays the tax settings themselves, hardcoding "10%+" in the same
+     * sentence.
+     *
+     * **Three successive statements of the number, by three different authors,
+     * each confident and each wrong.** The number is not the durable thing. The
+     * check is:
+     *
+     *     grep -rn '?? 0\.36' app/ | grep -v ':\s*\*\|// '   # the literal fallback
+     *     grep -rn 'reduced_rate_charity' app/               # every direct array read
+     *
+     * A direct array read is a survivor only when it falls back to a LITERAL.
+     * Falling back to `TaxDefaults::IHT_CHARITABLE_RATE` is the sanctioned
+     * convention — `EstatePlanService:508` and `TaxConfigSnapshotService:90` do
+     * that and must not be "fixed".
+     *
+     * **THE FILTER IS NOT COSMETIC.** The unfiltered grep now returns five hits
+     * and four of them are the COMMENTS written to explain the fixes — including
+     * two lines of this docblock. **A grep-based check degrades as the fix it
+     * checks for gets documented**, which is a fourth way for a completion claim
+     * to stop the next reader looking, and it took one cycle to appear.
+     *
+     * **WHAT THE LAST PASS ACTUALLY DID, because naming four and fixing three is
+     * how this note went wrong the previous three times (W-0451 gate, C4):**
+     *
+     *     WillAnalysisService   routed
+     *     GiftingStrategy       routed
+     *     EstateAgent:705       routed
+     *     TaxSettingsController:330   **NAMED AND LEFT STANDING** — still there
+     *
+     * It is admin-facing, so lower severity than the user-facing three, but it is
+     * the **Tax Settings screen**: the one place a hardcoded rate contradicts the
+     * very configuration it is rendering, and its sentence hardcodes the 10%
+     * threshold as well. Filed as **W-0461**.
+     *
+     * **A completion note is load-bearing: if a consolidation leaves a survivor,
+     * the note is the thing that hides it** — a reader checking whether the
+     * duplication was dealt with finds a docblock saying it was, and stops.
+     * **So this one records the command, the exclusions, and the one it did not
+     * fix.** A conclusion goes stale; a command plus a known survivor does not.
      */
     public function getCharitableReducedRate(): float
     {

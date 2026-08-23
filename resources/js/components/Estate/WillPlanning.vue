@@ -132,8 +132,18 @@
               </div>
               <div v-if="willDocument.specific_gifts && willDocument.specific_gifts.length > 0">
                 <div class="text-sm font-medium text-neutral-500 mb-1">Specific Gifts</div>
+                <!--
+                  W-0393. This read `gift.recipient`, which no write path has
+                  ever produced: the will builder, the mirror generator and
+                  WillDocumentService::syncBequests() all store the name under
+                  `beneficiary_name`. The key resolved to undefined, so every
+                  gift rendered as an amount followed by "to " and nothing —
+                  a legacy with no legatee, on a legal document. The /m screen
+                  (resources/mobile/views/modules/EstateBequests.vue:26) already
+                  reads `beneficiary_name` and was never affected.
+                -->
                 <div v-for="(gift, i) in willDocument.specific_gifts" :key="i" class="text-sm text-horizon-500">
-                  {{ gift.type === 'cash' ? formatCurrency(gift.amount) : gift.description }} to {{ gift.recipient }}
+                  {{ gift.type === 'cash' ? formatCurrency(gift.amount) : gift.description }} to {{ gift.beneficiary_name || 'a beneficiary you have not named yet' }}
                 </div>
               </div>
               <div v-if="willDocument.funeral_preference">
@@ -147,7 +157,7 @@
               <div class="text-sm font-medium text-neutral-500 mb-1">Spouse as Primary Beneficiary</div>
               <p class="text-sm text-horizon-500">{{ form.spouse_primary_beneficiary ? 'Yes' : 'No' }}</p>
               <p v-if="form.spouse_primary_beneficiary" class="text-sm text-neutral-500 mt-1">
-                {{ form.spouse_bequest_percentage }}% to spouse ({{ formatCurrency(spouseAmount) }})
+                {{ form.spouse_bequest_percentage }}% of your own estate to your spouse ({{ formatCurrency(spouseAmount) }})
               </p>
             </div>
 
@@ -619,18 +629,34 @@ export default {
     },
 
     async loadNetEstateValue() {
-      // Preview users are real DB users - use normal API
+      // W-0391. This page describes ONE person's will — what this testator
+      // leaves, and to whom. It must therefore read this user's OWN estate.
+      //
+      // It read `iht_summary.current.net_estate`, which is the COMBINED
+      // second-death household estate the Inheritance Tax engine models for a
+      // married couple: the same number for both spouses, counting each
+      // partner's assets as passing from the other. Both wills in a mirror pair
+      // rendered "100% to spouse (£1,728,780)" — a figure that matched neither
+      // testator's estate and overstated Sarah Jones's by 2.3 times.
+      //
+      // `calculation.user_net_estate` is the per-user figure, computed by the
+      // same engine on the same response (IHTCalculationService.php:307), and
+      // it agrees to the pound with NetWorthAnalyzer::generateSummary(), which
+      // is what the /m estate screen shows. No second mechanism is introduced
+      // here; the page is routed onto the one that already answers this
+      // question (Rule 20).
+      //
+      // Known limit, stated rather than hidden: this figure excludes assets
+      // flagged `is_iht_exempt` — a pension with a nominated beneficiary, which
+      // genuinely passes outside the will, but also a trading business
+      // qualifying for Business Property Relief, which does not. The relief
+      // removes it from the tax, not from the estate. Raised as W-0392.
       try {
         const response = await api.post('/estate/calculate-iht');
-        // NEW: Use iht_summary.current.net_estate from unified structure
-        if (response.data?.iht_summary?.current?.net_estate !== undefined) {
-          this.netEstateValue = response.data.iht_summary.current.net_estate;
-        } else if (response.data?.data?.net_estate_value !== undefined) {
-          // OLD: Fallback for old structure
-          this.netEstateValue = response.data.data.net_estate_value;
-        } else {
-          this.netEstateValue = 0;
-        }
+        const userNetEstate = response.data?.calculation?.user_net_estate;
+        this.netEstateValue = userNetEstate === undefined || userNetEstate === null
+          ? 0
+          : Number(userNetEstate);
       } catch (error) {
         logger.error('Failed to load estate value:', error);
         this.netEstateValue = 0;

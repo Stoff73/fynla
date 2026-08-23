@@ -2287,25 +2287,21 @@ export default {
           userData: saveData,
           spouseData: spouseData,
         });
-      } else if (props.isMarried) {
-        // Joint mode — spouse gets the same expenditure values
-        const spouseData = {
-          use_simple_entry: useSimpleEntry.value,
-          monthly_expenditure: saveData.monthly_expenditure,
-          annual_expenditure: saveData.annual_expenditure,
-        };
-
-        if (!useSimpleEntry.value) {
-          allFields.forEach(field => {
-            spouseData[field.key] = formData.value[field.key] || 0;
-          });
-        }
-
-        emit('save', {
-          userData: saveData,
-          spouseData: spouseData,
-        });
       } else {
+        // Joint mode, or nobody to share with — ONE payload, carrying what the
+        // HOUSEHOLD spends. The server divides it and writes both accounts'
+        // halves together (HouseholdExpenditureWriter).
+        //
+        // This used to emit `{ userData, spouseData }` here too, carrying the
+        // same figures twice, and that shape did two kinds of damage. On the
+        // profile page it made the spouse's half depend on a SECOND HTTP request
+        // that the backend never required and could not compensate for — when it
+        // did not arrive, the household total silently inherited the difference
+        // (W-0412). In onboarding it was worse: `OnboardingService::
+        // processExpenditureInfo` routes on the presence of those two keys, so a
+        // JOINT household took its SEPARATE branch and had the full household
+        // figure written whole to both accounts — the double count W-0190 was
+        // meant to have ended.
         emit('save', saveData);
       }
 

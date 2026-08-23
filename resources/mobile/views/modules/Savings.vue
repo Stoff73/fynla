@@ -45,7 +45,8 @@
               </span>
             </div>
             <div class="ms-acct__right">
-              <span class="ms-acct__balance">{{ fmt(balanceOf(acct)) }}</span>
+              <span class="ms-acct__balance">{{ fmt(userShareOf(acct)) }}</span>
+              <span v-if="isShared(acct)" class="ms-acct__share">Your {{ sharePercent(acct) }} of {{ fmt(balanceOf(acct)) }}</span>
               <span class="ms-acct__view">View</span>
             </div>
           </button>
@@ -71,7 +72,8 @@
               </span>
             </div>
             <div class="ms-acct__right">
-              <span class="ms-acct__balance">{{ fmt(balanceOf(acct)) }}</span>
+              <span class="ms-acct__balance">{{ fmt(userShareOf(acct)) }}</span>
+              <span v-if="isShared(acct)" class="ms-acct__share">Your {{ sharePercent(acct) }} of {{ fmt(balanceOf(acct)) }}</span>
               <span class="ms-acct__view">View</span>
             </div>
           </button>
@@ -138,6 +140,10 @@ import MobileChrome from '../../components/MobileChrome.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+// The one home for the ownership-share rule, shared with the desktop bundle
+// (Rule 20). `/m` reaches it by relative path, as the investment, property and
+// savings-account screens already do.
+import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -172,8 +178,15 @@ export default {
     emergencyTargetData() { return this.payload?.emergency_fund_target || null; },
     expenditure() { return this.payload?.expenditure_profile || null; },
 
+    // The cash this viewer owns, not the cash on the records they can see.
+    //
+    // This summed `full_balance`, so a joint account was counted whole against
+    // BOTH spouses — and every figure below it (runway, the bar, "% of target")
+    // inherited that. The account detail screen has always shown the share, so
+    // `/m` contradicted itself one tap apart. Mirrors the `/m` investment list,
+    // which already reads this helper.
     totalCash() {
-      return this.accounts.reduce((sum, a) => sum + (Number(this.balanceOf(a)) || 0), 0);
+      return calculateTotalUserShare(this.accounts, { valueField: 'current_balance' });
     },
     accountCountLabel() {
       const n = this.accounts.length;
@@ -252,9 +265,15 @@ export default {
       if (r == null || isNaN(Number(r))) return '—';
       return `${Number(r).toFixed(2)}%`;
     },
+    // The FULL balance on the record — the context line only, never a total.
     balanceOf(a) {
       return a.full_balance ?? a.current_balance ?? 0;
     },
+    // What this viewer owns of it. Prefers the API's `user_share`; the helper
+    // falls back to the share arithmetic only for payloads without it.
+    userShareOf(a) { return calculateUserShare(a, { valueField: 'current_balance' }); },
+    isShared(a) { return isSharedRecord(a); },
+    sharePercent(a) { return `${userSharePercent(a).toFixed(2)}%`; },
     openAccount(id) { this.$router.push(`/savings/account/${id}`); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     async load() {
@@ -315,5 +334,6 @@ export default {
 .ms-acct__rate { font-size: 12px; color: var(--neutral-500); }
 .ms-acct__right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
 .ms-acct__balance { font-size: 15px; font-weight: 700; color: var(--horizon-500); white-space: nowrap; }
+.ms-acct__share { display: block; font-size: 12px; color: var(--neutral-500); }
 .ms-acct__view { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--raspberry-500); }
 </style>

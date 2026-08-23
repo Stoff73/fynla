@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Risk;
 
-use App\Models\FamilyMember;
-use App\Models\Investment\InvestmentAccount;
+use App\Constants\PensionDisclosure;
 use App\Models\Investment\RiskProfile;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
-use App\Services\Stores\PensionStore;
+use App\Services\Savings\EmergencyFundCalculator;
+use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Shared\DependantsReach;
+use App\Traits\ResolvesExpenditure;
 use Carbon\Carbon;
 
 /**
@@ -22,17 +23,39 @@ use Carbon\Carbon;
  * 3. Investment Knowledge - Self-assessed knowledge level (novice/intermediate/experienced)
  * 4. Dependants - Number of dependent family members
  * 5. Employment - Employment status
- * 6. Emergency Cash - Emergency fund runway months
+ * 6. Emergency Cash - Cash runway in months
  * 7. Surplus Cash - Monthly income minus expenditure
  * 8. Age - Recovery time based on current age
  * 9. Income Stability - Employment type stability assessment
  *
  * Final risk level is determined by mode (most recurring level).
+ *
+ * **Every figure here is read from the home that already answers it, and from
+ * nowhere else (Rule 20).** This calculator used to derive four of its inputs
+ * itself, with `user_id`-only queries and no ownership share, and so contradicted
+ * the surfaces the same user had just read:
+ *
+ * | Figure | Was | Is |
+ * |---|---|---|
+ * | Cash available in an emergency | savings accounts flagged `is_emergency_fund`, at 100% | `CrossModuleAssetAggregator::calculateCashTotal()` |
+ * | Monthly expenditure | `users.monthly_expenditure` only | `ResolvesExpenditure` — the same chain the savings module resolves |
+ * | Runway arithmetic | an inline division with its own no-expenditure rule | `EmergencyFundCalculator::calculateRunway()` |
+ * | Investments | `InvestmentAccount::where('user_id', …)->sum()` | the net worth breakdown, at the user's share |
+ * | Dependants | `FamilyMember::where('user_id', …)` | `DependantsReach` — reaches the linked spouse's children |
+ *
+ * The risk level these factors produce drives every projection in the
+ * application, so a figure that disagrees with the dashboard does not merely look
+ * wrong on one page — it changes the advice everywhere.
  */
 class AutoRiskCalculator
 {
+    use ResolvesExpenditure;
+
     public function __construct(
-        private readonly NetWorthService $netWorthService
+        private readonly NetWorthService $netWorthService,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly EmergencyFundCalculator $emergencyFundCalculator,
+        private readonly DependantsReach $dependantsReach,
     ) {}
 
     private const RISK_LEVEL_ORDER = [
@@ -122,13 +145,35 @@ class AutoRiskCalculator
      */
     private function calculateCapacityForLoss(User $user): array
     {
+        // Numerator and denominator from ONE pass over ONE set. Both halves used
+        // to be derived here — investments from a `user_id`-only sum at 100% of a
+        // joint account, so David was charged the whole of a portfolio Sarah could
+        // not see any of (£220,000 against £172,500; £85,000 against £132,500).
+        // The net worth breakdown is the same reach-complete, share-correct figure
+        // `/net-worth` and the dashboard read, and taking the ratio's two terms
+        // from one response means they cannot describe different sets (W-0273).
         $netWorthData = $this->netWorthService->calculateNetWorth($user);
         $netWorth = $netWorthData['net_worth'];
 
-        // Sum investments and pensions
-        $investmentsTotal = InvestmentAccount::where('user_id', $user->id)->sum('current_value');
-        $pensionsTotal = app(PensionStore::class)->forUserByType($user, 'dc')->sum('current_fund_value');
+        $investmentsTotal = $netWorthData['breakdown']['investments'];
+        $pensionsTotal = $netWorthData['breakdown']['pensions'];
         $atRiskAssets = $investmentsTotal + $pensionsTotal;
+
+        // A Defined Benefit scheme is excluded from capital, per CSJ's settled
+        // ruling on W-0241 — exclude and DISCLOSE. It is the correct exclusion for
+        // this factor twice over: the scheme has no capital value to place at
+        // risk, and a guaranteed income carries no market risk to lose. What it
+        // must never do is read as "no pension provision at all" beside a £0,
+        // which is what an undisclosed exclusion says to a member of one.
+        //
+        // **This is not a second flag.** It is the one that already exists —
+        // `NetWorthService::calculatePensionBreakdown()['has_db']`, which
+        // `calculateNetWorth()` returns as `has_db_pensions` in the response this
+        // method is already reading. Asking the breakdown separately would be a
+        // second query for a value already in hand; inferring it from
+        // `pensions_total === 0` would be inferring provision from a zero, which is
+        // the exact mistake the disclosure exists to prevent.
+        $hasDefinedBenefitPension = $netWorthData['has_db_pensions'];
 
         // Calculate ratio
         $ratio = $netWorth > 0 ? ($atRiskAssets / $netWorth) * 100 : 0;
@@ -149,6 +194,22 @@ class AutoRiskCalculator
             $description = $roundedRatio.'% of your net worth is in investments/pensions, indicating low capacity to absorb losses.';
         }
 
+        // The sentence is READ, never re-typed. `PensionDisclosure` is the one home
+        // for what the application says about an excluded Defined Benefit scheme
+        // (W-0241), and the SHORT form is deliberate: it is a complete sentence
+        // sized for a caption, not a truncation of the long one.
+        //
+        // It is returned as its OWN field rather than appended to `description`,
+        // and that is not tidiness — it is the disclosure surviving. Appended, it
+        // was **measured clipped** on the summary card: `FactorBreakdownCard`
+        // applies `line-clamp-2`, and ratio-sentence-plus-disclosure renders three
+        // lines (scrollHeight 48 against clientHeight 32), so the user saw the
+        // ratio and lost the reason for the £0. A clipped disclosure is not a
+        // disclosure. On its own line neither sentence competes with the other.
+        $disclosure = $hasDefinedBenefitPension
+            ? PensionDisclosure::DEFINED_BENEFIT_EXCLUDED_SHORT
+            : null;
+
         return [
             'factor' => 'capacity_for_loss',
             'display_name' => 'Capacity for Loss',
@@ -156,11 +217,16 @@ class AutoRiskCalculator
             'value' => $roundedRatio.'%',
             'raw_value' => $roundedRatio,
             'description' => $description,
+            // Every factor returns this key. Null for the eight that have nothing
+            // to disclose, so a surface renders it unconditionally without asking
+            // which factor it is holding.
+            'disclosure' => $disclosure,
             'icon' => 'shield',
             'components' => [
                 'investments_total' => round((float) $investmentsTotal, 2),
                 'pensions_total' => round((float) $pensionsTotal, 2),
                 'net_worth' => round((float) $netWorth, 2),
+                'has_defined_benefit_pension' => $hasDefinedBenefitPension,
             ],
         ];
     }
@@ -209,6 +275,7 @@ class AutoRiskCalculator
             'value' => $value,
             'raw_value' => $yearsToRetirement ?? 0,
             'description' => $description,
+            'disclosure' => null,
             'icon' => 'clock',
             'components' => [
                 'current_age' => $age,
@@ -253,6 +320,7 @@ class AutoRiskCalculator
             'value' => $displayValue,
             'raw_value' => $knowledgeLevel,
             'description' => $description,
+            'disclosure' => null,
             'icon' => 'academic-cap',
             'components' => [
                 'knowledge_level' => $knowledgeLevel,
@@ -270,13 +338,14 @@ class AutoRiskCalculator
      */
     private function calculateDependantsFactor(User $user): array
     {
-        // `stated_relationship` is selected because `display_relationship` is
-        // computed from it — a partial select without it would silently fall
-        // back to the stored enum and print "Other Dependent" for someone's
-        // partner, on the one page about their financial dependants (W-0115).
-        $dependants = FamilyMember::where('user_id', $user->id)
-            ->where('is_dependent', true)
-            ->get(['first_name', 'relationship', 'stated_relationship']);
+        // The one home for "who depends on this user" (Rule 20). It was a
+        // `user_id`-only query, so the parent who did not type the children in was
+        // assessed as childless and told they could afford MORE investment risk —
+        // on the strength of the same two children that told their spouse to
+        // prioritise stability (W-0272). `DependantsReach` follows the live
+        // account link, drops the row describing the reader, and de-duplicates a
+        // child both parents entered.
+        $dependants = $this->dependantsReach->dependantsOf($user);
 
         $dependantCount = $dependants->count();
 
@@ -298,6 +367,7 @@ class AutoRiskCalculator
             'value' => (string) $dependantCount,
             'raw_value' => $dependantCount,
             'description' => $description,
+            'disclosure' => null,
             'icon' => 'users',
             'components' => [
                 'count' => $dependantCount,
@@ -347,6 +417,7 @@ class AutoRiskCalculator
             'value' => $displayValue,
             'raw_value' => $employmentStatus,
             'description' => $description,
+            'disclosure' => null,
             'icon' => 'briefcase',
             'components' => [
                 'employment_status' => $employmentStatus,
@@ -357,39 +428,69 @@ class AutoRiskCalculator
 
     /**
      * Factor 6: Emergency Cash
-     * Emergency fund runway in months
+     * How many months this user's cash would cover
      *
      * 0-3 months = LOWER_MEDIUM
      * 3-6 months = MEDIUM
      * 6+ months = UPPER_MEDIUM
+     * expenditure not recorded = MEDIUM (nothing is known; nothing is asserted)
+     *
+     * **`is_emergency_fund` is a designation, not a definition — decided W-0271.**
+     * This factor used to count only accounts the user had ticked as their
+     * emergency fund. Nobody ticks it: on the household that surfaced this, all
+     * six accounts held the flag at 0, so the risk engine saw £0 against £130,780
+     * of real cash and told two people with over six years of runway apiece to
+     * "keep investments more conservative" — while the dashboard, the savings
+     * module and `/net-worth/cash` called the same money "well-funded, excellent"
+     * on the same screen refresh.
+     *
+     * The flag keeps every job it does elsewhere: the badge on the account, the
+     * "designate an emergency fund" action, and which account a life event draws
+     * from first. What it no longer decides is whether the user has ANY runway at
+     * all. Money in an instant-access account is available in an emergency whether
+     * or not somebody ticked a box about it, and a household cannot have both
+     * "81 months" and "0 months" of the same cash.
      */
     private function calculateEmergencyCashFactor(User $user): array
     {
-        // Get emergency fund savings
-        $emergencyFundTotal = SavingsAccount::where('user_id', $user->id)
-            ->where('is_emergency_fund', true)
-            ->sum('current_balance');
+        // Both terms from the homes the savings module already reads, so the two
+        // answers agree to the month by construction rather than by coincidence.
+        //
+        // The denominator is routed as well as the numerator, and that is
+        // structural rather than corrective: measured on the persona today, the
+        // raw column and the resolved chain return the SAME figure for each user,
+        // so this moved no number here. It removes the second mechanism. The chain
+        // prefers an `expenditure_profiles` row over `users.monthly_expenditure`,
+        // and those two CAN differ — they did historically, which is how a stale
+        // 41.6-month reading survived beside a live 83.3. Leaving this factor on
+        // the raw column would have meant agreement that held only while nothing
+        // wrote to a cashflow profile.
+        $cashTotal = $this->assetAggregator->calculateCashTotal($user->id);
+        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
+        $runwayMonths = $this->emergencyFundCalculator->calculateRunway($cashTotal, $monthlyExpenditure);
 
-        // Get monthly expenditure
-        $monthlyExpenditure = $user->monthly_expenditure ?? 0;
-
-        // Calculate runway
-        $runwayMonths = $monthlyExpenditure > 0
-            ? $emergencyFundTotal / $monthlyExpenditure
-            : ($emergencyFundTotal > 0 ? 12 : 0); // Assume 12 months if no expenditure set but has funds
-
-        if ($runwayMonths < 3) {
+        if ($monthlyExpenditure <= 0) {
+            // The previous code invented "12 months" here whenever there were any
+            // funds at all — a figure with no basis, printed to the user as though
+            // measured. Saying "less than 3 months" instead would be the opposite
+            // lie. Nothing is known, so nothing is claimed, and the factor takes
+            // the balanced default this class already uses for an unknown age.
+            $level = 'medium';
+            $description = 'Your cash runway cannot be worked out until your monthly spending is recorded, so a balanced approach is assumed.';
+            $value = 'Not calculated';
+        } elseif ($runwayMonths < 3) {
             $level = 'lower_medium';
-            $description = 'Less than 3 months emergency fund suggests keeping investments more conservative.';
+            $description = 'Less than 3 months of expenses in cash suggests keeping investments more conservative.';
+            $value = round($runwayMonths, 1).' months';
         } elseif ($runwayMonths < 6) {
             $level = 'medium';
-            $description = '3-6 months emergency fund provides reasonable buffer for investment risk.';
+            $description = '3-6 months of expenses in cash provides reasonable buffer for investment risk.';
+            $value = round($runwayMonths, 1).' months';
         } else {
             $level = 'upper_medium';
-            $description = '6+ months emergency fund gives you cushion to ride out market volatility.';
+            $description = '6+ months of expenses in cash gives you cushion to ride out market volatility.';
+            $value = round($runwayMonths, 1).' months';
         }
-
-        $value = round($runwayMonths, 1).' months';
 
         return [
             'factor' => 'emergency_cash',
@@ -398,10 +499,14 @@ class AutoRiskCalculator
             'value' => $value,
             'raw_value' => round($runwayMonths, 1),
             'description' => $description,
+            'disclosure' => null,
             'icon' => 'cash',
             'components' => [
-                'emergency_fund_total' => round((float) $emergencyFundTotal, 2),
-                'monthly_expenditure' => round((float) $monthlyExpenditure, 2),
+                // The key is unchanged so every existing consumer keeps working;
+                // what it holds is now this user's share of all their cash, which
+                // is what the surfaces beside it have always shown.
+                'emergency_fund_total' => round($cashTotal, 2),
+                'monthly_expenditure' => round($monthlyExpenditure, 2),
                 'runway_months' => round($runwayMonths, 1),
             ],
         ];
@@ -453,6 +558,7 @@ class AutoRiskCalculator
             'value' => $surplus >= 0 ? '£'.number_format($surplus, 0) : '-£'.number_format(abs($surplus), 0),
             'raw_value' => round($surplus, 2),
             'description' => $description,
+            'disclosure' => null,
             'icon' => 'trending-up',
             'components' => [
                 'annual_income' => round($annualIncome, 2),
@@ -511,6 +617,7 @@ class AutoRiskCalculator
             'value' => $value,
             'raw_value' => $age,
             'description' => $description,
+            'disclosure' => null,
             'icon' => 'calendar',
             'components' => [
                 'age' => $age,
@@ -558,6 +665,7 @@ class AutoRiskCalculator
             'value' => $config['label'],
             'raw_value' => $employmentStatus,
             'description' => $config['description'],
+            'disclosure' => null,
             'icon' => 'currency-pound',
             'components' => [
                 'employment_status' => $employmentStatus,

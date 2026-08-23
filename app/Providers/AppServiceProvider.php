@@ -48,6 +48,7 @@ use App\Services\Plans\PlanConfigService;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\DbTierGate;
+use App\Support\SecuringPropertyResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 
@@ -77,6 +78,13 @@ class AppServiceProvider extends ServiceProvider
         // composes the tax plan once (strategy unlocks) and milestone
         // detection reuses it via forUserIfComputed().
         $this->app->scoped(ComposedTaxPlanService::class);
+
+        // W-0228 — scoped so its memo is ONE cache for the whole request. Every
+        // mortgage share resolves the property securing it, and around twenty
+        // services ask in a single dashboard read. It cannot be a static on
+        // CalculatesOwnershipShare: a static in a trait is per using class, so
+        // that would be a dozen caches and no way to clear them.
+        $this->app->scoped(SecuringPropertyResolver::class);
 
         // Register both AI client singletons — runtime provider selection happens
         // in HasAiChat/HasAiGuardrails via cache check (admin toggle)

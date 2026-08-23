@@ -22,6 +22,10 @@
         <p class="m-hero-sub">{{ heroSub }}</p>
       </div>
 
+      <!-- The exclusion, stated where the figure is shown. Full sentence, its own
+           block, no clamp — a disclosure that is clipped is not a disclosure. -->
+      <p v-if="disclosure" class="m-sub mnwc-disclosure" data-testid="pension-disclosure">{{ disclosure }}</p>
+
       <!-- Items list -->
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">{{ isLiabilities ? 'Breakdown' : 'Items' }}</p>
@@ -86,7 +90,12 @@ function ownershipLabel(value) {
 const CONFIG = {
   property: { title: 'Property', sub: 'Homes and other property you own', source: 'detailed' },
   investments: { title: 'Investments', sub: 'Investment accounts and ISAs', source: 'detailed' },
-  pensions: { title: 'Pensions', sub: 'Accessible pension capital', source: 'detailed' },
+  // The pensions subtitle and disclosure come from the BACKEND
+  // (`App\Constants\PensionDisclosure`), not from here. `sub` is the fallback for a
+  // payload that predates them. It used to read "Accessible pension capital", which
+  // is the sentence that made a £0 line beside a £35,000-a-year NHS scheme read as a
+  // lost record rather than a statement (W-0241).
+  pensions: { title: 'Pensions', sub: 'What your pensions are worth as capital', source: 'detailed' },
   cash: { title: 'Cash & savings', sub: 'Savings accounts and cash', source: 'detailed' },
   business: { title: 'Business interests', sub: 'Your share of business holdings', source: 'detailed' },
   chattels: { title: 'Valuables', sub: 'Valuable personal possessions', source: 'detailed' },
@@ -102,7 +111,18 @@ export default {
     config() { return CONFIG[this.categoryKey] || { title: 'Net Worth', sub: '', source: 'detailed' }; },
     isLiabilities() { return this.categoryKey === 'liabilities'; },
     title() { return this.config.title; },
-    subtitle() { return this.config.sub; },
+    subtitle() {
+      // One home for the wording (Rule 20): the backend sends it with the figure it
+      // qualifies, so web, /m and native cannot drift into three different sentences.
+      return this.payload?.[this.categoryKey]?.subtitle || this.config.sub;
+    },
+    /**
+     * The Defined Benefit exclusion, as sent by the backend beside the figure.
+     *
+     * Null unless this household actually holds a Defined Benefit scheme — a
+     * disclosure shown to everyone explains nothing.
+     */
+    disclosure() { return this.payload?.[this.categoryKey]?.disclosure || ''; },
     total() {
       if (this.isLiabilities) return this.payload?.liabilities?.total_value ?? 0;
       return this.payload?.[this.categoryKey]?.total_value ?? 0;
@@ -216,6 +236,7 @@ export default {
 </script>
 
 <style scoped>
+.mnwc-disclosure { margin: -4px 4px 14px; font-size: 13px; line-height: 1.5; color: var(--neutral-600); }
 .mnwc-item { display: block; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--horizon-200); background: transparent; text-align: left; }
 .mnwc-item--link { cursor: pointer; }
 .mnwc-item--link:active { opacity: 0.72; }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Investment;
 
+use App\Constants\HoldingSubTypes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -83,17 +84,14 @@ class UpdateHoldingRequest extends FormRequest
 
     /**
      * Get valid sub types for fund holdings.
+     *
+     * Reads the one home rather than holding a copy — see the note on
+     * `StoreHoldingRequest::getSubTypes()`.
+     *
+     * @return list<string>
      */
     private function getSubTypes(): array
     {
-        return [
-            'equity_fund',
-            'bond_fund',
-            'mixed_fund',
-            'income_fund',
-            'index_fund',
-            'money_market_fund',
-            'property_fund',
-        ];
+        return HoldingSubTypes::ALL;
     }
 }

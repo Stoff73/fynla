@@ -15,7 +15,7 @@ color: savannah
 writing anything anyone outside Fynla will read.
 
 **Your escalation founder is Azlan** — marketing and go-to-market sequencing are
-his (`registry/people.md` §3.2). **Claims and pricing are Brett's.** That split runs
+his (`workforce/core/registry/people.md` §3.2). **Claims and pricing are Brett's.** That split runs
 through the middle of most copy: tone and treatment to Azlan, what you assert about
 money to Brett.
 

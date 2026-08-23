@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services\UserProfile;
 
+use App\Models\Investment\InvestmentAccount;
 use App\Models\LetterToSpouse;
 use App\Models\User;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Support\SharedOwnership;
+use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class LetterToSpouseService
 {
+    use CalculatesOwnershipShare;
+
     /**
      * Sections Fynla fills in from the user's records. Everything else on the
      * letter is theirs from the start.
@@ -49,6 +55,9 @@ class LetterToSpouseService
     public function __construct(
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly SavingsStore $savingsStore,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly UserProfileService $profileService,
     ) {}
 
     /**
@@ -170,22 +179,250 @@ class LetterToSpouseService
     }
 
     /**
+     * The one financial position this letter states.
+     *
+     * The cards, the printed document and the generated prose all read this and
+     * nothing else. Before it the letter answered the question three separate
+     * times and agreed with nobody: six `reduce()` calls in
+     * `LetterToSpouse.vue` summing `current_balance` / `current_value` at 100%,
+     * per-item values taken straight off the same records, and the generators
+     * below listing raw record values in prose. None of the three applied an
+     * ownership share.
+     *
+     * What that cost, on one live household: the letter told the bereaved spouse
+     * the estate held £1,570,000 of property where this user's share is
+     * £755,500, and £365,000 of debt where his share is £170,500. £177,000 of
+     * that property and £72,000 of that debt belong to a co-owner who has no
+     * account here. A third party's money, handed to the estate, in a document
+     * addressed to the survivor and exportable as a PDF — and a wrong figure in
+     * a printed document outlives every later fix.
+     *
+     * Nothing here re-derives a share. Reach and fraction come from
+     * `CrossModuleAssetAggregator`; the debt side comes from
+     * `UserProfileService::calculateLiabilitiesSummary`, the same itemisation the
+     * profile and `/protection` read, whose mortgage share follows the property
+     * securing it (W-0228) rather than the mortgage's own columns.
+     *
+     * **Pensions and protection are deliberately not here.** A defined-
+     * contribution pension is individual, so no share applies to it; and which
+     * policies reach a given user is the protection module's question, answered
+     * by its own reader after W-0186/W-0384. Answering either again here would be
+     * exactly the parallel mechanism this method exists to remove, so the letter
+     * goes on reading both from their own modules.
+     *
+     * @return array{
+     *     savings: array{total: float, items: list<array<string, mixed>>},
+     *     investments: array{total: float, items: list<array<string, mixed>>},
+     *     properties: array{total: float, items: list<array<string, mixed>>},
+     *     liabilities: array{total: float, items: list<array<string, mixed>>}
+     * }
+     */
+    public function financialPosition(User $user): array
+    {
+        $userId = (int) $user->id;
+
+        $savingsRecords = $this->savingsStore->forUser($user)->keyBy('id');
+        $investmentRecords = InvestmentAccount::forUserOrJoint($userId)->get()->keyBy('id');
+        $propertyRecords = $this->propertyStore->forUserWithJointOwner($user)->keyBy('id');
+
+        $debts = $this->profileService->calculateLiabilitiesSummary($user);
+        $mortgageItems = collect($debts['mortgages']['items']);
+
+        // What this user owes against each of their properties — their share of
+        // it, not the whole of the borrowing. `properties.outstanding_mortgage`
+        // is the denormalised full balance and was what the prose printed.
+        $mortgageByProperty = $mortgageItems
+            ->filter(fn (array $item): bool => $item['property_id'] !== null)
+            ->groupBy('property_id')
+            ->map(fn (Collection $items): float => round((float) $items->sum('outstanding_balance'), 2));
+
+        $savings = $this->assetAggregator->getSavingsAssets($userId)
+            ->map(function (object $asset) use ($savingsRecords): array {
+                $record = $savingsRecords->get($asset->source_id);
+
+                return $this->positionItem($asset, [
+                    'name' => $record?->account_name ?: ($record?->institution ?: $asset->asset_name),
+                    'subtext' => (string) ($record?->institution ?? ''),
+                    'account_type' => $asset->account_type,
+                    'is_isa' => (bool) ($record?->is_isa ?? false),
+                ]);
+            })
+            ->values()
+            ->all();
+
+        $investments = $this->assetAggregator->getInvestmentAssets($userId)
+            ->map(function (object $asset) use ($investmentRecords): array {
+                $record = $investmentRecords->get($asset->source_id);
+
+                return $this->positionItem($asset, [
+                    'name' => $record?->account_name ?: ($record?->provider ?: $asset->asset_name),
+                    'subtext' => (string) ($record?->provider ?? ''),
+                    'account_type' => $asset->account_type,
+                    // `investment_accounts.account_type` holds `isa`, never
+                    // `stocks_and_shares_isa` — that is an `isa_type` value, and
+                    // `TaxProductInfoService:52` maps the two together. The card's
+                    // ISA badge was tested against the wrong one, so it has never
+                    // fired on an investment account. Both accepted rather than
+                    // swapped, since the pair is treated as one elsewhere.
+                    'is_isa' => in_array($asset->account_type, ['isa', 'stocks_and_shares_isa'], true),
+                ]);
+            })
+            ->values()
+            ->all();
+
+        $properties = $this->assetAggregator->getPropertyAssets($userId)
+            ->map(function (object $asset) use ($propertyRecords, $mortgageByProperty): array {
+                $record = $propertyRecords->get($asset->source_id);
+
+                // `property_name` is not a column on `properties` and never was,
+                // so the card's `property_name || address_line_1` fallback only
+                // ever reached the address. Named directly rather than left as a
+                // read that looks like it does something.
+                return $this->positionItem($asset, [
+                    'name' => (string) ($record?->address_line_1 ?? $asset->asset_name),
+                    'subtext' => (string) ($record?->property_type ?? ''),
+                    'property_type' => (string) ($record?->property_type ?? ''),
+                    'city' => (string) ($record?->city ?? ''),
+                    'postcode' => (string) ($record?->postcode ?? ''),
+                    'mortgage_balance' => (float) $mortgageByProperty->get($asset->source_id, 0.0),
+                ]);
+            })
+            ->values()
+            ->all();
+
+        $liabilities = $mortgageItems
+            ->map(function (array $item) use ($propertyRecords, $userId): array {
+                $securing = $item['property_id'] === null
+                    ? null
+                    : $propertyRecords->get($item['property_id']);
+
+                return [
+                    'id' => 'mortgage-'.$item['id'],
+                    'name' => $item['lender'] ?: 'Mortgage — lender not recorded',
+                    'subtext' => 'Mortgage',
+                    'liability_type' => 'mortgage',
+                    'value' => round((float) $item['outstanding_balance'], 2),
+                    'monthly_payment' => $item['monthly_payment'],
+                    // A mortgage is shared as the property securing it is shared
+                    // (W-0228), so the badge names the property's ownership, not
+                    // the mortgage row's — the two disagree on this household.
+                    'ownership_type' => (string) ($securing->ownership_type ?? 'individual'),
+                    'ownership_percentage' => $this->securingSharePercentage($securing, $userId),
+                ];
+            })
+            ->concat($this->otherLiabilityItems($debts, $userId))
+            ->values()
+            ->all();
+
+        return [
+            'savings' => [
+                'total' => round($this->assetAggregator->calculateCashTotal($userId), 2),
+                'items' => $savings,
+            ],
+            'investments' => [
+                'total' => round($this->assetAggregator->calculateInvestmentTotal($userId), 2),
+                'items' => $investments,
+            ],
+            'properties' => [
+                'total' => round($this->assetAggregator->calculatePropertyTotal($userId), 2),
+                'items' => $properties,
+            ],
+            'liabilities' => [
+                'total' => round((float) $debts['total'], 2),
+                'items' => $liabilities,
+            ],
+        ];
+    }
+
+    /**
+     * One item shape for every section, so the cards, the printed document and
+     * the prose cannot drift apart the way they did.
+     *
+     * `value` is always THIS user's share; `full_value` is the whole record. They
+     * are equal on anything individually held, so a reader can tell a shared
+     * record from a wholly-owned one without being told the rules.
+     *
+     * @param  array<string, mixed>  $presentation
+     * @return array<string, mixed>
+     */
+    private function positionItem(object $asset, array $presentation): array
+    {
+        // Nothing in this persona populates `account_name`, so name and subtext
+        // both resolve to the institution and the card reads "HSBC" over "HSBC".
+        // Dropped here rather than in each surface, or two of them would drift.
+        if (($presentation['subtext'] ?? null) === ($presentation['name'] ?? null)) {
+            $presentation['subtext'] = '';
+        }
+
+        return array_merge([
+            'id' => $asset->source_id,
+            'value' => round((float) $asset->current_value, 2),
+            'full_value' => round((float) $asset->full_value, 2),
+            'ownership_type' => (string) $asset->ownership_type,
+            'ownership_percentage' => (float) $asset->ownership_percentage,
+            'is_shared' => (bool) $asset->is_shared,
+        ], $presentation);
+    }
+
+    /**
+     * This user's percentage of the property a mortgage is secured on — for the
+     * ownership badge beside the debt, nothing else. The share itself is already
+     * applied upstream; this only says which side of the split the reader is on.
+     */
+    private function securingSharePercentage(?object $securing, int $userId): float
+    {
+        if ($securing === null) {
+            return 100.0;
+        }
+
+        return $this->isPrimaryOwner($securing, $userId)
+            ? (float) ($securing->ownership_percentage ?? 100)
+            : SharedOwnership::jointOwnerPercentage((float) ($securing->ownership_percentage ?? 50));
+    }
+
+    /**
+     * Non-mortgage debts, already at this user's share.
+     *
+     * @param  array<string, mixed>  $debts
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function otherLiabilityItems(array $debts, int $userId): Collection
+    {
+        return collect($debts['other']['items'])
+            ->map(fn (array $item): array => [
+                'id' => 'liability-'.$item['id'],
+                'name' => $item['liability_name'] ?: 'Not recorded',
+                'subtext' => ucfirst(str_replace('_', ' ', (string) $item['liability_type'])),
+                'liability_type' => (string) $item['liability_type'],
+                'value' => round((float) $item['amount'], 2),
+                'monthly_payment' => $item['monthly_payment'],
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100.0,
+            ]);
+    }
+
+    /**
      * Generate default letter content from user's existing data
      */
     private function generateDefaultData(User $user): array
     {
+        // Read once and hand to every generator below. The prose states the same
+        // figures the cards and the exported document state, because it is the
+        // same answer and not a second reading of the records (W-0421).
+        $position = $this->financialPosition($user);
+
         return [
             // Part 1: Immediate actions - populate what we know
             'immediate_actions' => $this->generateImmediateActions($user),
             'employer_hr_contact' => $user->employer ? "Contact {$user->employer} HR Department" : null,
-            'immediate_funds_access' => $this->generateImmediateFundsInfo($user),
+            'immediate_funds_access' => $this->generateImmediateFundsInfo($position),
 
             // Part 2: Accounts - populate from existing data
-            'bank_accounts_info' => $this->generateBankAccountsInfo($user),
-            'investment_accounts_info' => $this->generateInvestmentAccountsInfo($user),
+            'bank_accounts_info' => $this->generateBankAccountsInfo($position),
+            'investment_accounts_info' => $this->generateInvestmentAccountsInfo($position),
             'insurance_policies_info' => $this->generateInsurancePoliciesInfo($user),
-            'real_estate_info' => $this->generateRealEstateInfo($user),
-            'liabilities_info' => $this->generateLiabilitiesInfo($user),
+            'real_estate_info' => $this->generateRealEstateInfo($position),
+            'liabilities_info' => $this->generateLiabilitiesInfo($position),
 
             // Part 3: Long-term plans
             'beneficiary_info' => $this->generateBeneficiaryInfo($user),
@@ -221,51 +458,58 @@ class LetterToSpouseService
     }
 
     /**
-     * Generate immediate funds access information
+     * Which accounts the survivor can reach on day one.
+     *
+     * **The one figure in this letter deliberately NOT at the user's share.**
+     * Everywhere else, stating the whole of a shared record hands a co-owner's
+     * money to the estate. Here the question is different — what can be drawn
+     * on immediately — and a surviving joint holder reaches the whole balance by
+     * survivorship, not half of it. Halving it would understate what is
+     * available to someone who has funeral costs to meet this week. The line
+     * says which figure it is so it cannot be mistaken for a share.
+     *
+     * @param  array<string, mixed>  $position
      */
-    private function generateImmediateFundsInfo(User $user): ?string
+    private function generateImmediateFundsInfo(array $position): ?string
     {
-        $savingsAccounts = app(SavingsStore::class)
-            ->forUser($user)
-            ->where('user_id', $user->id)
-            ->where('ownership_type', 'joint');
+        $joint = collect($position['savings']['items'])
+            ->filter(fn (array $item): bool => ($item['ownership_type'] ?? 'individual') === 'joint');
 
-        if ($savingsAccounts->isEmpty()) {
+        if ($joint->isEmpty()) {
             return 'Note: Review which accounts are joint accounts that can be accessed immediately.';
         }
 
         $info = "Joint Accounts (Accessible Immediately):\n\n";
 
-        foreach ($savingsAccounts as $account) {
-            $info .= "• {$account->institution} - £".number_format((float) $account->current_balance, 2)."\n";
+        foreach ($joint as $item) {
+            $info .= '• '.($item['subtext'] ?: $item['name']).' - £'
+                .number_format((float) $item['full_value'], 2)." (full account balance)\n";
         }
 
-        $info .= "\nThese joint accounts remain accessible. Individual accounts may be frozen until probate.";
+        $info .= "\nThese joint accounts remain accessible in full to the surviving account holder. "
+            .'Individual accounts may be frozen until probate.';
 
         return $info;
     }
 
     /**
-     * Generate bank accounts information
+     * @param  array<string, mixed>  $position
      */
-    private function generateBankAccountsInfo(User $user): ?string
+    private function generateBankAccountsInfo(array $position): ?string
     {
-        $savingsAccounts = app(SavingsStore::class)
-            ->forUser($user)
-            ->where('user_id', $user->id);
+        $items = $position['savings']['items'];
 
-        if ($savingsAccounts->isEmpty()) {
+        if ($items === []) {
             return null;
         }
 
         $info = "Bank/Savings Accounts:\n\n";
 
-        foreach ($savingsAccounts as $account) {
-            $ownership = ucfirst($account->ownership_type ?? 'individual');
-            $info .= "• {$account->institution}\n";
-            $info .= '  Account Type: '.ucfirst(str_replace('_', ' ', $account->account_type ?? 'savings'))."\n";
-            $info .= "  Ownership: {$ownership}\n";
-            $info .= '  Current Balance: £'.number_format((float) $account->current_balance, 2)."\n";
+        foreach ($items as $item) {
+            $info .= '• '.($item['subtext'] ?: $item['name'])."\n";
+            $info .= '  Account Type: '.$this->accountTypeLabel((string) ($item['account_type'] ?? 'savings'))."\n";
+            $info .= '  Ownership: '.$this->humanise((string) $item['ownership_type'])."\n";
+            $info .= $this->valueLine($item, 'Current Balance');
             $info .= "  Sort Code/Account Number: [Please add]\n\n";
         }
 
@@ -275,24 +519,23 @@ class LetterToSpouseService
     }
 
     /**
-     * Generate investment accounts information
+     * @param  array<string, mixed>  $position
      */
-    private function generateInvestmentAccountsInfo(User $user): ?string
+    private function generateInvestmentAccountsInfo(array $position): ?string
     {
-        $investmentAccounts = $user->investmentAccounts;
+        $items = $position['investments']['items'];
 
-        if ($investmentAccounts->isEmpty()) {
+        if ($items === []) {
             return null;
         }
 
         $info = "Investment Accounts:\n\n";
 
-        foreach ($investmentAccounts as $account) {
-            $ownership = ucfirst($account->ownership_type ?? 'individual');
-            $info .= "• {$account->provider}\n";
-            $info .= '  Account Type: '.strtoupper($account->account_type)."\n";
-            $info .= "  Ownership: {$ownership}\n";
-            $info .= '  Current Value: £'.number_format((float) $account->current_value, 2)."\n";
+        foreach ($items as $item) {
+            $info .= '• '.($item['subtext'] ?: $item['name'])."\n";
+            $info .= '  Account Type: '.$this->accountTypeLabel((string) ($item['account_type'] ?? ''))."\n";
+            $info .= '  Ownership: '.$this->humanise((string) $item['ownership_type'])."\n";
+            $info .= $this->valueLine($item, 'Current Value');
             $info .= "  Account Number: [Please add]\n\n";
         }
 
@@ -361,32 +604,39 @@ class LetterToSpouseService
     }
 
     /**
-     * Generate real estate information
+     * Property, at this user's share and with the same reach as the cards.
+     *
+     * Two changes beyond the figures. The reach was primary-owner-only, so a
+     * spouse recorded as `joint_owner_id` — Sarah on both of this household's
+     * jointly-held homes — got an EMPTY property section in her own letter while
+     * her cards listed two properties. And the `Use:` line read
+     * `$property->property_use`, which is not a column on `properties`, so it
+     * printed "Primary_residence" for every property including the buy-to-let.
+     * Removed rather than corrected: `property_type` already carries that fact
+     * one line above.
+     *
+     * @param  array<string, mixed>  $position
      */
-    private function generateRealEstateInfo(User $user): ?string
+    private function generateRealEstateInfo(array $position): ?string
     {
-        // Primary-owner-only — letter is about $user's directly-owned properties.
-        // PropertyStore::forUser is joint-aware; filter back down to preserve the
-        // pre-PR-5a semantics where joint-only-as-secondary properties were excluded.
-        $properties = $this->propertyStore->forUser($user)
-            ->where('user_id', $user->id);
+        $items = $position['properties']['items'];
 
-        if ($properties->isEmpty()) {
+        if ($items === []) {
             return null;
         }
 
         $info = "Property Ownership:\n\n";
 
-        foreach ($properties as $property) {
-            $ownership = ucfirst($property->ownership_type ?? 'individual');
-            $info .= "• {$property->address_line_1}, {$property->city}, {$property->postcode}\n";
-            $info .= '  Type: '.ucfirst(str_replace('_', ' ', $property->property_type ?? 'residential'))."\n";
-            $info .= "  Ownership: {$ownership}\n";
-            $info .= '  Current Value: £'.number_format((float) $property->current_value, 2)."\n";
-            $info .= '  Use: '.ucfirst($property->property_use ?? 'primary_residence')."\n";
+        foreach ($items as $item) {
+            $address = array_filter([$item['name'], $item['city'] ?? '', $item['postcode'] ?? '']);
+            $info .= '• '.implode(', ', $address)."\n";
+            $info .= '  Type: '.$this->humanise((string) ($item['subtext'] ?: 'residential'))."\n";
+            $info .= '  Ownership: '.$this->humanise((string) $item['ownership_type'])."\n";
+            $info .= $this->valueLine($item, 'Current Value');
 
-            if ($property->outstanding_mortgage > 0) {
-                $info .= '  Outstanding Mortgage: £'.number_format((float) $property->outstanding_mortgage, 2)."\n";
+            if (($item['mortgage_balance'] ?? 0.0) > 0) {
+                $info .= '  Outstanding Mortgage (your share): £'
+                    .number_format((float) $item['mortgage_balance'], 2)."\n";
             }
 
             $info .= "  Title Deeds Location: [Please add]\n\n";
@@ -396,46 +646,100 @@ class LetterToSpouseService
     }
 
     /**
-     * Generate liabilities information
+     * What this user owes, at their share, from the same itemisation the cards
+     * and the profile read.
+     *
+     * The balances here were the whole of every debt the user was primary
+     * borrower on — £365,000 against a household share of £170,500, including
+     * £72,000 owed by an off-platform co-owner of one property. The mortgage
+     * reach also widened with the reader: a mortgage secured on a property the
+     * user co-owns counts even where the borrower record names someone else.
+     *
+     * The empty case is still deliberately empty and not "No outstanding
+     * liabilities recorded." — a section with nothing in it reads as nothing
+     * recorded yet, a sentence asserting the absence reads as a checked fact,
+     * and the reader of this letter cannot ask us which it was (W-0022).
+     *
+     * @param  array<string, mixed>  $position
      */
-    private function generateLiabilitiesInfo(User $user): ?string
+    private function generateLiabilitiesInfo(array $position): ?string
     {
-        ['liabilities' => $liabilities, 'mortgages' => $mortgages] = $this->outstandingLiabilities($user);
+        $items = $position['liabilities']['items'];
 
-        if ($liabilities->isEmpty() && $mortgages->isEmpty()) {
-            // Deliberately empty, not "No outstanding liabilities recorded."
-            // A section with nothing in it reads as nothing recorded yet; a
-            // sentence asserting the absence reads as a checked fact, and the
-            // reader of this letter cannot ask us which it was (W-0022).
+        if ($items === []) {
             return null;
         }
 
         $info = "Outstanding Liabilities:\n\n";
 
-        // Mortgages. `lender_name` — there is no `lender` column, so this line
-        // named no lender at all until W-0022.
-        foreach ($mortgages as $mortgage) {
-            $info .= '• Mortgage - '.($mortgage->lender_name ?: 'lender not recorded')."\n";
-            $info .= '  Outstanding: £'.number_format((float) $mortgage->outstanding_balance, 2)."\n";
-            $info .= '  Monthly Payment: £'.number_format((float) $mortgage->monthly_payment, 2)."\n";
-            $info .= "  Account Number: [Please add]\n\n";
-        }
+        foreach ($items as $item) {
+            $info .= '• '.$item['subtext'].' - '.$item['name']."\n";
+            $info .= '  '.($this->isSharedType((string) $item['ownership_type']) ? 'Your Share' : 'Outstanding')
+                .': £'.number_format((float) $item['value'], 2)."\n";
 
-        // Other liabilities. `liability_name` and `current_balance` — the
-        // columns this loop read (`creditor`, `outstanding_balance`) do not
-        // exist on the table, so every non-mortgage debt was listed with no
-        // name and a balance of £0.00 (W-0022).
-        foreach ($liabilities as $liability) {
-            $info .= '• '.ucfirst(str_replace('_', ' ', $liability->liability_type ?? 'loan'))
-                .' - '.($liability->liability_name ?: 'not recorded')."\n";
-            $info .= '  Outstanding: £'.number_format((float) $liability->current_balance, 2)."\n";
-            if ($liability->monthly_payment) {
-                $info .= '  Monthly Payment: £'.number_format((float) $liability->monthly_payment, 2)."\n";
+            if (($item['monthly_payment'] ?? null) !== null && (float) $item['monthly_payment'] > 0) {
+                $info .= '  Monthly Payment'.($this->isSharedType((string) $item['ownership_type']) ? ' (your share)' : '')
+                    .': £'.number_format((float) $item['monthly_payment'], 2)."\n";
             }
+
             $info .= "  Account Number: [Please add]\n\n";
         }
 
         return $info;
+    }
+
+    /**
+     * A record's value line: one figure when the user owns the whole of it, and
+     * both figures when they do not — so the reader can see their share AND what
+     * the account or property is worth, and can check the section total by hand.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function valueLine(array $item, string $label): string
+    {
+        $value = (float) $item['value'];
+        $full = (float) $item['full_value'];
+
+        if (abs($full - $value) < 0.005) {
+            return '  '.$label.': £'.number_format($value, 2)."\n";
+        }
+
+        return '  Your Share: £'.number_format($value, 2).' of £'.number_format($full, 2)."\n";
+    }
+
+    private function isSharedType(string $ownershipType): bool
+    {
+        return in_array($ownershipType, ['joint', 'tenants_in_common'], true);
+    }
+
+    private function humanise(string $value): string
+    {
+        return ucfirst(str_replace('_', ' ', $value));
+    }
+
+    /**
+     * What to call an account type in a letter someone else will read.
+     *
+     * Generic humanising is wrong for these four: it produced "Gia", "Vct" and
+     * "Isa" — two meaningless acronyms and one that is no longer the acronym.
+     * The code this replaced used `strtoupper`, which at least gave "ISA" but
+     * also "GIA" and "VCT". Rule 9 spells acronyms out in user-facing text and
+     * makes ISA the single exception, which is exactly the shape of this list.
+     *
+     * Everything else humanises — "Current account", "Premium bonds" — as it
+     * always did.
+     */
+    private function accountTypeLabel(string $type): string
+    {
+        return match ($type) {
+            'isa', 'stocks_and_shares_isa' => 'ISA',
+            'cash_isa' => 'Cash ISA',
+            'junior_isa' => 'Junior ISA',
+            'lisa', 'lifetime_isa' => 'Lifetime ISA',
+            'gia' => 'General Investment Account',
+            'vct' => 'Venture Capital Trust',
+            default => $this->humanise($type),
+        };
     }
 
     /**

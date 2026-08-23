@@ -164,7 +164,10 @@ export default {
       const pct = Number(goal.progress_percentage) || 0;
       return pct >= 50 ? 'violet' : 'raspberry';
     },
+    // Served by the same GoalCalculationService the web reads, so /m cannot
+    // drift into calling an overdue goal "Complete" (W-0411, Rules 19 + 20).
     statusLabel(goal) {
+      if (goal.status_label) return goal.status_label;
       if ((Number(goal.progress_percentage) || 0) >= 100 || goal.status === 'completed') return 'Complete';
       return goal.is_on_track ? 'On track' : 'Behind';
     },

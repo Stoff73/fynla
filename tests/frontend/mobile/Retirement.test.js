@@ -39,6 +39,53 @@ describe('mobile Retirement', () => {
     expect(projected).toBe(16315.91);
   });
 
+  it('leads the hero with secured income for a household with no pot, and says which it is', () => {
+    // The persona case (W-0244): an NHS final salary scheme paying £35,000 a year,
+    // no Defined Contribution pot, no retirement target. `planning_projection`
+    // models pots only, so it returns a literal 0 — and the hero used to print
+    // "Projected retirement income £0 a year" over a real £35,000 entitlement.
+    //
+    // Asserting the £0 is gone would prove nothing on its own, since a broken and
+    // a correct pot are both zero here. The load-bearing assertions are the value
+    // that MOVES (£35,000) and the label that changes with it.
+    const vm = {
+      totalPensionWealth: 0,
+      analysisReady: true,
+      analysis: { guaranteed_annual_income: 35000 },
+      projectedIncome: 0,
+    };
+    const headline = Retirement.computed.heroHeadline.call(vm);
+
+    expect(headline.value).toBe(35000);
+    expect(headline.isGuaranteed).toBe(true);
+    expect(headline.label).toBe('Guaranteed retirement income');
+  });
+
+  it('keeps the projected-income hero for a household that has a pot', () => {
+    // The other direction: a pot exists, so the hero stays a projection and must
+    // not be replaced by a guaranteed-income figure.
+    const headline = Retirement.computed.heroHeadline.call({
+      totalPensionWealth: 200000,
+      analysisReady: true,
+      analysis: { guaranteed_annual_income: 8000 },
+      projectedIncome: 18250,
+    });
+
+    expect(headline.value).toBe(18250);
+    expect(headline.isGuaranteed).toBe(false);
+    expect(headline.label).toBe('Projected retirement income');
+  });
+
+  it('measures the income gap against the secured income, not against a pot projection of zero', () => {
+    const vm = {
+      hasTargetIncome: true,
+      targetIncome: 40000,
+      heroHeadline: { value: 35000, isGuaranteed: true, label: 'Guaranteed retirement income' },
+    };
+
+    expect(Retirement.computed.incomeGap.call(vm)).toBe(5000);
+  });
+
   it('uses full analysis income when that analysis is available', () => {
     const projected = Retirement.computed.projectedIncome.call({
       analysisReady: true,
@@ -248,9 +295,27 @@ describe('mobile Retirement', () => {
         },
       };
     });
+    // The agent no longer refuses to answer without a `retirement_profiles` row —
+    // it returns the facts with a null projection (W-0244). Mocking the old
+    // `success: false` shape here would have pinned a response the backend can no
+    // longer produce, so this is the shape `POST /api/retirement/analyze` really
+    // returns for a user with pensions and no target. The nulls matter: the
+    // controller must not coerce them to zero, or the hero reads "£0 a year".
     apiPost.mockResolvedValue({
       ok: true,
-      data: { success: false, message: 'No retirement profile found', data: [] },
+      data: {
+        success: true,
+        message: 'Retirement provision found; no retirement target set yet',
+        data: {
+          projected_income: null,
+          target_income: null,
+          income_gap: null,
+          years_to_retirement: null,
+          has_retirement_target: false,
+          guaranteed_annual_income: 0,
+          total_pension_wealth: 47500,
+        },
+      },
     });
 
     const wrapper = mount(Retirement, {

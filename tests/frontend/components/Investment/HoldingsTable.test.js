@@ -226,4 +226,79 @@ describe('HoldingsTable', () => {
 
     expect(wrapper.text()).toContain('No holdings match the selected filters.');
   });
+
+  /**
+   * W-0442 — the table itself.
+   *
+   * Every case above this point asserts a computed or a method through `vm`.
+   * Not one of them asserted a rendered row, which is how the table sat
+   * unreachable behind a duplicated `v-else-if` for five months while a
+   * twenty-one case suite named after it stayed green.
+   */
+  describe('the rendered table (W-0442)', () => {
+    it('renders the table itself, not only the chart, when holdings exist', () => {
+      const wrapper = mountTable();
+
+      // The discriminating assertion: with the duplicated `v-else-if` this was
+      // false, because the chart branch above consumed the same condition.
+      expect(wrapper.find('table').exists()).toBe(true);
+      expect(wrapper.findAll('tbody tr').length).toBeGreaterThan(0);
+    });
+
+    it('shows the purchase price, current price and units the table stores', () => {
+      const wrapper = mountTable();
+      // Located by content, not by index: the table sorts by security name by
+      // default, so row 0 is not the first fixture entry.
+      const row = wrapper.findAll('tbody tr')
+        .find(tr => tr.text().includes('Vanguard FTSE All-World'))
+        .text();
+
+      // Every figure below is mutually distinct within the fixture — 100 units,
+      // £80.50 in, £95.25 now, £9,525 held — so no two can stand in for each
+      // other and a column reading the wrong field cannot pass.
+      expect(row).toContain('100');
+      expect(row).toContain('£80.50');
+      expect(row).toContain('£95.25');
+      expect(row).toContain('£9,525');
+      // £80.50 and £95.25 in full: `formatCurrency` rounds to whole pounds, which
+      // for a UNIT price destroys the figure — the persona's L&G UK Property is
+      // £1.35 in and £1.28 now, and both rendered as "£1".
+    });
+
+    it('renders the unit count from quantity rather than a placeholder', () => {
+      const wrapper = mountTable();
+      const units = wrapper.findAll('[data-testid="holding-units"]').map(cell => cell.text());
+
+      // 100 / 200 / 150 — the fixture's three unit counts, all distinct from each
+      // other and from every price and value in the same rows. Sorted, because
+      // the assertion is about which values reach the column, not their order.
+      expect([...units].sort()).toEqual(['100', '150', '200']);
+    });
+
+    it('offers per-row edit and delete, which only the table carries', async () => {
+      const wrapper = mountTable();
+      const buttons = wrapper.findAll('tbody tr button');
+
+      expect(buttons.length).toBeGreaterThan(0);
+
+      await buttons[0].trigger('click');
+      expect(wrapper.emitted('edit-holding')).toBeTruthy();
+    });
+
+    it('still shows the chart and legend alongside the table', () => {
+      // The fix must not have swapped one unreachable branch for another.
+      const wrapper = mountTable();
+
+      expect(wrapper.text()).toContain('Holdings Allocation');
+      expect(wrapper.text()).toContain('Holdings Breakdown');
+      expect(wrapper.find('table').exists()).toBe(true);
+    });
+
+    it('shows no table at all when there are no holdings', () => {
+      const wrapper = mountTable({ holdings: [] });
+
+      expect(wrapper.find('table').exists()).toBe(false);
+      expect(wrapper.text()).toContain('No holdings found');
+    });
+  });
 });

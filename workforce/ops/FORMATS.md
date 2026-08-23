@@ -99,7 +99,7 @@ decision: null      # approve|hold
 ```
 
 **Every decision records its author.** A decision that cannot be attributed to a
-named founder is not a decision (`registry/people.md` §3.1).
+named founder is not a decision (`workforce/core/registry/people.md` §3.1).
 
 **Timeout:** 48h → escalate once → park the item and move on. Agents never idle
 waiting on a human. Outside CSJ's contact window the clock pauses.
@@ -163,6 +163,18 @@ the log knows **12 of 69 items** — most notably 2 `handoff` events against 36 
 timestamps are out of order**, so "last line wins" is unsafe. Sort by `ts` before
 deriving a state, and corroborate against the board rather than trusting log silence as
 evidence that nothing happened.
+
+**COORDINATOR OBLIGATION, added 2026-08-23.** The rule below is not self-enforcing and
+was not enforced. In a thirteen-batch run the coordinator **never once asked an agent to
+emit an event**, and emitted none itself; agents reported in messages instead. **The log
+knew 12 of 69 items before that run and it was not the agents' failure alone.**
+
+**Require log events in the dispatch, name them, and treat their absence as a defect** —
+not as a documentation preference. The cost is concrete: for two hours one agent's state
+was derivable only from the messages it sent, which is exactly what led the coordinator to
+ask whether it had browser tools at all. **That diagnostic question was the log's absence
+showing through.** An agent that narrates instead of emitting is invisible to every observer
+that is not personally reading its messages — which is the whole point of the log.
 
 **`progress` matters most.** Liveness is derived from the log, not from reports —
 a working agent emits events, a dead one does not. **If a status cannot be derived
@@ -640,3 +652,180 @@ rediscover it the expensive way.
   reading the item before it is written down — on 2026-08-21 not one survived that check.
 - **`claimed` with no code is correct, not drift.** The coordinator claims at dispatch,
   before the agent has written anything.
+
+---
+
+## The board is prior art — a queued item is a decision, not an absence
+
+**Added 2026-08-23.** An agent ran a full prior-art check — code, artisan commands, open
+PRs, in-flight branches, the vault, skills and agents — **and did not sweep
+`workforce/ops/board/`.** It then built a third of its batch straight through **W-0202**,
+which was `queued` and carried the coordinator's own words: *"NOT to be built this cycle."*
+
+**The coordinator approved that work.** Asked for a veto, it gave an approval instead of
+checking the board. **So the miss was two-sided, and the rule binds both roles.**
+
+> **A queued item is not an absent item — it is a decision someone has already taken, and
+> building past it is not initiative.**
+
+**`workforce/ops/board/` is a mandatory prior-art source.** Sweep it before building, by
+subject, not only by ID. It held 234 items on the day this was written.
+
+**Read a queued item's acceptance criteria in ORDER, and honour their dependencies.**
+W-0202's criterion 1 read *"This must be settled first; branch three is unbuildable until
+it is."* The agent built criterion 2 without criterion 1 — the mechanism without the
+prerequisite it depends on.
+
+**Why that prerequisite was real, and worth generalising:** the blocker was **disclosure,
+not arithmetic.** `users.expenditure_sharing_mode` is `NOT NULL DEFAULT 'joint'`, so **a
+household that has never been asked is indistinguishable from one that chose** — 19 users
+on dev, every one on the default, not one `separate`. The web form may halve on that
+default **because it says so on screen while the user types**; Fyn says nothing. **The
+difference between the two surfaces is disclosure, not arithmetic** — so the same change
+is defensible on one and not the other.
+
+**When you must stop, leave the parked work CHEAPER, not merely untouched:**
+- build the mechanism the parked item will need, and say so;
+- record any obstacle its acceptance anticipated that no longer exists;
+- add any path it does not yet name;
+- **pin current behaviour with a test whose docblock says pinned, not endorsed** — so when
+  the parked item is built, the change surfaces as a deliberate red test rather than a
+  silent diff.
+
+---
+
+## A consolidation stops at the edge of the diff — check every line that READS the thing you centralised
+
+**Added 2026-08-23**, from a Rule 2 sweep that found **nine routings, eight of them in files a
+previous consolidation had already visited.**
+
+- `TaxConfigService`'s own docblock recorded the `?? 0.36` duplication as consolidated
+  across six sites. **Two were still standing** — a record claiming completion is how the
+  next reader stops looking.
+- `WillAnalysisService` **computed** the charitable threshold from configuration at `:55`
+  and **hardcoded** it in the sentence describing that same threshold at `:351`.
+- `ContributionWaterfallService` **read** the Lifetime ISA configuration at `:152` and
+  **hardcoded** the bonus at `:155`.
+
+**The pattern is not "someone forgot".** A fix lands where the defect was noticed and stops
+at the edge of the diff. The author was looking at a bug report, not at the file.
+
+> **Not "check every layer" — check every LINE that reads the thing you just centralised.**
+
+**Three concrete checks when you centralise a value:**
+1. **`grep` the whole repo for the literal**, in prose, in arithmetic, and **in comparisons**
+   — a threshold inside an `if ($x < 10)` gate decides **whether a recommendation is
+   generated at all**, so there is no wrong sentence to notice; **there is no sentence.**
+2. **Read the file you are editing end to end**, not the region around the diff. Two of the
+   worst instances above sat three hundred lines from a correct call in the same class.
+3. **If a docblock or note claims a consolidation is complete, verify it and correct it.**
+   Leaving a false completion note is worse than leaving the duplicate.
+
+**And do not replace one count with another.** On 2026-08-23 the same count was wrong
+**three times by three authors**: the original docblock said complete; the first correction
+named one survivor; a compliance reviewer named two; `grep -rn '?? 0.36' app/` found
+**four** — including one inside the admin screen that displays the tax settings themselves.
+
+> **The number is not the durable thing. The check is.**
+
+**A completion note should record HOW TO VERIFY, not what the answer was** — the two grep
+commands, and any site that legitimately looks like a violation and is not, so nobody
+"fixes" it. A count is stale the moment someone adds a line; a command is not.
+
+**But the command decays too — and faster than anyone expects.** Recorded 2026-08-23, **one
+cycle after the rule above was written.** `grep -rn '?? 0.36' app/` returned five hits, and
+**four were the comments written to explain the fixes — two of them inside the note itself.**
+
+> **A grep-based check degrades as the fix it checks for gets documented.**
+
+**So write the exclusions into the command**, and name any known survivor beside it. A check
+that carries only a pattern becomes noise the moment the codebase starts describing itself:
+```
+grep -rn '?? 0.36' app/ --include='*.php' | grep -v '^\s*//' | grep -v '\*'
+# known and deliberate: TaxSettingsController:330 (not yet routed)
+```
+**A check, its exclusions, and the one thing it did not fix** — all three, or the next reader
+inherits five hits and no way to tell which matter.
+
+**And the ORDER matters — verify FIRST, then correct.** All three wrong counts were written
+the same way: by reasoning about which sites the author remembered touching, then running
+the check afterwards, or not at all. The agent that produced the second one put it plainly:
+*"I corrected, then verified. Had I grepped first there would have been one correction
+instead of two."* **An artefact updated from memory rather than from the codebase is a
+correction that needs correcting** — the same shape as *a correction made in conversation is
+not a correction made in the artefact.*
+
+> **The artefact is the only thing that survives the conversation.**
+
+Written by an agent standing down after four batches, 2026-08-23: *"everything I was right
+about tonight is in a file or a test; everything I merely said is gone."* **A run generates
+far more correct reasoning than it records.** The board item, the branch document, the test
+and the `CLAUDE.md` entry are the run's output; the messages are not. **If a finding matters,
+it goes in a file before the agent that found it stands down.**
+
+**Related:** `app/Http/CLAUDE.md`'s seven rule-versus-schema axes and the read-boundary
+("testing the ends does not test the join") entry. This is the same failure one level up —
+those concern a value's journey between layers; this concerns **every site that reads it.**
+
+---
+
+## The single-browser protocol — handshake, acknowledge, release
+
+**Added 2026-08-23, after two collisions and one false diagnosis cost roughly an hour.**
+
+There is **one** Playwright tab. Two agents driving it interleave: one typed a verification
+code into another's login form; another had the tab taken mid-call.
+
+**Selecting your own tab does NOT isolate you.** An agent opened a second tab, selected it,
+had the selection confirmed, and its very next call still executed against the first —
+because the other driver's navigation re-focuses between calls. **A second tab is more
+dangerous than sharing one, because you believe you are isolated.**
+
+### The protocol
+
+1. **The coordinator allocates. A tab transfers only when the coordinator says so AND the
+   previous holder has confirmed it is off — in words.** No inference from silence.
+2. **"Pass complete" is not a release.** One agent said that, then went back on to take a
+   measurement. **The holder says "I am off."**
+3. **The taker sends a one-line "taking it now" BEFORE starting**, and reports on release.
+4. **Never sign anyone out** to reach a login form until they have confirmed they are off.
+5. **Read the current page before acting.** A form mid-fill, a verification screen or an
+   unsaved edit means someone is mid-flow — back off and report.
+
+### Do not infer availability from quiet
+
+**Silence is not completion.** An agent already logged in and reading four screens issues no
+MFA codes and writes no rows. A coordinator wrote a self-serve rule based on MFA quiet
+**immediately after proving to itself that silence proves nothing**, and it caused a
+collision. **A cheap non-destructive probe** — MFA issuance, row `updated_at`, a git status
+— tells you whether an agent is *working* or *stuck*, which are different states.
+
+### And a silent agent is indistinguishable from a toolless one
+
+**Ask the diagnostic question early: "do you actually HAVE browser tools?"** An agent replied
+six times that it was blocked on the browser while the coordinator granted it six times; the
+grants and its reports were simply crossing, and it had gone quiet for the duration of a
+pass. **The coordinator invented a tool-availability explanation rather than checking the
+ordering.** Its own conclusion: *"a silent agent and a toolless agent look identical, and you
+were right to test which one I was."* **Test it in one line rather than re-sending the
+grant.**
+
+### Session state decays — do not relay it
+
+**Seven coordinator relays of "who is signed in" were wrong in one night** (nobody / Sarah /
+David / nobody / Sarah / nobody / Sarah), and one relay of a file path pointed into a fenced
+directory. **Do not relay session state. Tell the agent to establish it itself:**
+```
+GET /api/auth/user      # on the token in use — NEVER a client store, which goes stale
+```
+**Two token stores on one origin can hold different users simultaneously:**
+`sessionStorage.auth_token` (desktop), `localStorage.m_scaffold_token` (`/m`).
+**Never identify an account by recognising a figure** — the figures are what is under test.
+
+### Two tooling failures that mimic app defects — diagnose before filing
+- **HMR remount:** the field visibly shows your text while the framework's state stays empty
+  and submit fires nothing. Another agent editing the source tree remounts the component
+  mid-interaction. **Make fill-and-click atomic in ONE evaluation.** Tell: request count
+  climbing with no navigation.
+- **Wedged input channel:** `fill()` works while `click()` and `press()` produce **zero**
+  events, and a plain `<a href>` will not navigate. **Open a new tab.**

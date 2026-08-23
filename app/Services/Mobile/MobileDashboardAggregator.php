@@ -10,14 +10,14 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
+use App\Constants\PensionDisclosure;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
-use App\Services\Retirement\PensionProjector;
-use App\Services\Stores\MortgageStore;
-use App\Services\Stores\PensionStore;
+use App\Services\NetWorth\NetWorthService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
@@ -61,9 +61,8 @@ class MobileDashboardAggregator
         private readonly DashboardAggregator $dashboardAggregator,
         private readonly SavingsStore $savingsStore,
         private readonly PropertyStore $propertyStore,
-        private readonly MortgageStore $mortgageStore,
-        private readonly PensionStore $pensionStore,
-        private readonly PensionProjector $pensionProjector,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly NetWorthService $netWorthService,
     ) {}
 
     /**
@@ -78,14 +77,6 @@ class MobileDashboardAggregator
             $modules = $this->aggregateModules($userId);
             $netWorth = $this->calculateNetWorth($userId);
 
-            // The retirement card used to be patched here, after the fact, from
-            // `net_worth…pensions`. That patch could only ever help a user whose
-            // provision has a capital value: it reads dbPensions->sum('transfer_value'),
-            // and db_pensions has no transfer_value column, so a spouse whose whole
-            // retirement is a defined benefit scheme scored zero and was told to
-            // "Plan your retirement" beside a page showing her £35,000 a year
-            // (W-0238). extractRetirementSummary now reads the pension records
-            // directly, so the patch has nothing left to do.
             $alerts = $this->getAlerts($userId);
             $fynInsight = $this->generateFynInsight($modules, $netWorth);
 
@@ -152,7 +143,7 @@ class MobileDashboardAggregator
             'protection' => $this->extractProtectionSummary($data, $analysis),
             'savings' => $this->extractSavingsSummary($data),
             'investment' => $this->extractInvestmentSummary($data),
-            'retirement' => $this->extractRetirementSummary($data, $analysis, $userId),
+            'retirement' => $this->extractRetirementSummary($data, $analysis),
             'estate' => $this->extractEstateSummary($data, $analysis),
             'goals' => $this->extractGoalsSummary($data),
             default => ['status' => 'unknown'],
@@ -248,98 +239,54 @@ class MobileDashboardAggregator
 
     /**
      * Extract retirement module summary.
+     *
+     * **Every figure here comes from `RetirementAgent::analyze()` and nowhere else.**
+     * This method used to read the pension records directly whenever the agent
+     * declined to answer, because without a `retirement_profiles` row the agent
+     * returned `success: false` with an empty data array (W-0238's workaround). The
+     * agent now answers with the facts and a null projection, so the second
+     * mechanism is deleted and the card has one home again (W-0244, Rule 20).
+     *
+     * What the user HAS and what they are AIMING AT are separate facts, and
+     * `summary.has_retirement_target` — not `success` — is what distinguishes them.
      */
-    private function extractRetirementSummary(array $data, array $raw, int $userId): array
+    private function extractRetirementSummary(array $data, array $raw): array
     {
-        // What the user HAS is a fact about their pension records. What they are
-        // AIMING AT is a fact about their retirement profile, and RetirementAgent
-        // returns success=false without one. Reading both from the analysis meant
-        // a household with half a million in pensions and a defined benefit scheme
-        // paying £35,000 a year was shown "Plan your retirement" on the strength of
-        // a missing target — so the two are now read separately (W-0238).
-        $pensions = $this->pensionProvision($userId);
+        // A readiness-blocked response is NOT an empty one. `RetirementAgent` fills
+        // its `summary` with the record-derived facts on that path too, precisely so
+        // a household with an NHS scheme and no income on file is not told it has no
+        // retirement provision. Blanking the summary here would have thrown those
+        // facts away and reinstated the bug one level up (W-0244).
+        $summary = (isset($raw['success']) && $raw['success'] === false)
+            ? []
+            : ($data['summary'] ?? $data);
+        $summary = is_array($summary) ? $summary : [];
+        $totalPensions = (int) ($summary['total_pensions_count'] ?? 0);
 
-        $profileMissing = (isset($raw['success']) && $raw['success'] === false)
-            || ($data['can_proceed'] ?? true) === false;
-
-        if ($profileMissing && $pensions['total_pensions'] === 0) {
+        // "Not set up" means holding nothing, not aiming at nothing. A household
+        // with pensions on file never lands here however incomplete its profile is.
+        if ($totalPensions === 0) {
             return [
                 'status' => 'not_configured',
                 'message' => 'Retirement profile not yet set up.',
             ];
         }
 
-        $summary = $profileMissing ? [] : ($data['summary'] ?? $data);
-
         return [
             'status' => 'active',
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),
-            // Current defined contribution pot — the card headline where there is
-            // one. The agent's own figure whenever the agent answered, so this is
-            // not a second mechanism; the records are read directly only when
-            // there is no retirement profile and the agent returns nothing at all.
-            'pot_value' => $profileMissing
-                ? $pensions['pot_value']
-                : round((float) ($summary['current_dc_value'] ?? 0), 2),
-            // Annual income already secured, for the user whose provision has no
-            // pot to show: a defined benefit scheme and the State Pension are worth
-            // an income, not a balance, and a card that can only render a balance
-            // shows them nothing.
-            'guaranteed_income' => $pensions['guaranteed_income'],
+            // Current defined contribution pot — the card headline where there is one.
+            'pot_value' => round((float) ($summary['current_dc_value'] ?? 0), 2),
+            // Annual income already secured, for the user whose provision has no pot
+            // to show: a defined benefit scheme and the State Pension are worth an
+            // income, not a balance, and a card that can only render a balance shows
+            // them nothing. Computed once, in the agent.
+            'guaranteed_income' => round((float) ($summary['guaranteed_annual_income'] ?? 0), 2),
             'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
             'target_income' => round((float) ($summary['target_retirement_income'] ?? 0), 2),
             'income_gap' => round((float) ($summary['income_gap'] ?? 0), 2),
-            'total_pensions' => (int) ($summary['total_pensions_count'] ?? $pensions['total_pensions']),
+            'total_pensions' => $totalPensions,
         ];
-    }
-
-    /**
-     * What retirement provision this user actually holds, independent of whether
-     * they have told us what they are aiming for.
-     *
-     * Both figures come from `PensionProjector::projectTotalRetirementIncome`, the
-     * one home `RetirementAgent` itself reads, so the card and the module page
-     * cannot give different answers.
-     *
-     * **Basis caveat, stated where it is consumed** (`app/Services/CLAUDE.md`): the
-     * defined benefit component is nominal at retirement and the State Pension
-     * component is in today's money. Summing them is what every other consumer of
-     * this projector already does; this does not introduce the mixing, and it is
-     * raised separately rather than changed silently here.
-     *
-     * @return array{pot_value: float, guaranteed_income: float, total_pensions: int}
-     */
-    private function pensionProvision(int $userId): array
-    {
-        try {
-            $user = User::find($userId);
-
-            if (! $user) {
-                return ['pot_value' => 0.0, 'guaranteed_income' => 0.0, 'total_pensions' => 0];
-            }
-
-            $dcPensions = $this->pensionStore->forUserByType($user, 'dc');
-            $dbPensions = $this->pensionStore->forUserByType($user, 'db');
-            $statePension = $this->pensionStore->statePension($user);
-
-            $projection = $this->pensionProjector->projectTotalRetirementIncome($userId);
-
-            return [
-                'pot_value' => round((float) $dcPensions->sum('current_fund_value'), 2),
-                'guaranteed_income' => round(
-                    (float) ($projection['db_annual_income'] ?? 0)
-                    + (float) ($projection['state_pension_income'] ?? 0),
-                    2
-                ),
-                'total_pensions' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
-            ];
-        } catch (\Throwable $e) {
-            $this->logError('Mobile dashboard: failed to read pension provision', [
-                'user_id' => $userId,
-            ], $e);
-
-            return ['pot_value' => 0.0, 'guaranteed_income' => 0.0, 'total_pensions' => 0];
-        }
     }
 
     /**
@@ -397,8 +344,6 @@ class MobileDashboardAggregator
                 'properties',
                 'savingsAccounts',
                 'investmentAccounts',
-                'dcPensions',
-                'dbPensions',
                 'mortgages',
                 'liabilities',
                 'businessInterests',
@@ -410,6 +355,8 @@ class MobileDashboardAggregator
                 return [
                     'total' => 0.0,
                     'breakdown' => [],
+                    'has_db_pensions' => false,
+                    'db_pension_disclosure' => null,
                 ];
             }
 
@@ -423,9 +370,15 @@ class MobileDashboardAggregator
             $savingsValue += $this->sumSavingsJointOwnerShares($user, $userId);
             $investmentValue += $this->sumJointOwnerShares(InvestmentAccount::class, $userId);
 
-            $dcPensionValue = (float) $user->dcPensions->sum('current_fund_value');
-            $dbPensionValue = (float) $user->dbPensions->sum('transfer_value');
-            $pensionValue = round($dcPensionValue + $dbPensionValue, 2);
+            // What a pension contributes to net worth has one home, and it is
+            // NetWorthService — the same rule `/net-worth` reads on all three
+            // surfaces. This used to be two local sums, the second of which read
+            // `db_pensions.transfer_value`, a column that has never existed. Over a
+            // Collection a missing attribute reads as null, so it silently summed to
+            // £0 for every user, forever, while the code read as though Defined
+            // Benefit schemes were being valued (W-0241).
+            $pensionBreakdown = $this->netWorthService->calculatePensionBreakdown($userId);
+            $pensionValue = round($pensionBreakdown['dc'], 2);
 
             $businessValue = $this->sumUserShares($user->businessInterests, $userId);
             $businessValue += $this->sumJointOwnerShares(BusinessInterest::class, $userId);
@@ -435,9 +388,10 @@ class MobileDashboardAggregator
 
             $cashValue = (float) $user->cashAccounts->sum('current_balance');
 
-            // Calculate liabilities
-            $mortgageBalance = $this->sumMortgageShares($user->mortgages, $userId);
-            $mortgageBalance += $this->sumMortgageJointOwnerShares($user, $userId);
+            // Calculate liabilities. One home for what this user owes on the
+            // mortgages — reach-complete across both legs, and share-correct per
+            // W-0228's ruling.
+            $mortgageBalance = $this->assetAggregator->calculateMortgageTotal($userId);
 
             $liabilityBalance = (float) $user->liabilities->sum('current_balance');
 
@@ -468,6 +422,15 @@ class MobileDashboardAggregator
                     'total_assets' => $totalAssets,
                     'total_liabilities' => $totalLiabilities,
                 ],
+                // Same keys, same meaning, same source as `/net-worth` returns
+                // (W-0241). The pensions figure above is Defined Contribution only;
+                // these are how a surface knows to say so instead of presenting the
+                // total as complete — and the sentence comes from its one home, so
+                // no surface keeps its own copy of the wording (Rule 20).
+                'has_db_pensions' => $pensionBreakdown['has_db'],
+                'db_pension_disclosure' => $pensionBreakdown['has_db']
+                    ? PensionDisclosure::DEFINED_BENEFIT_EXCLUDED
+                    : null,
             ];
         } catch (\Throwable $e) {
             $this->logError('Mobile dashboard: failed to calculate net worth', [
@@ -477,6 +440,8 @@ class MobileDashboardAggregator
             return [
                 'total' => 0.0,
                 'breakdown' => [],
+                'has_db_pensions' => false,
+                'db_pension_disclosure' => null,
             ];
         }
     }
@@ -550,35 +515,23 @@ class MobileDashboardAggregator
         return $total;
     }
 
-    /**
-     * Sum user's share of mortgages (where user is primary owner).
+    /*
+     * `sumMortgageShares()` and `sumMortgageJointOwnerShares()` were deleted here
+     * (W-0228).
+     *
+     * Both reached mortgages by the owner columns on the MORTGAGE row — one
+     * through `$user->mortgages`, the other by filtering `joint_owner_id`. Under
+     * CSJ's ruling a debt is shared as the property securing it is shared, so a
+     * user can owe part of a mortgage whose row names someone else entirely, and
+     * a mortgage-keyed reach cannot see it. The fraction was fixed in
+     * `CalculatesOwnershipShare`; the reach had to move with it, or the figure
+     * would be a correct share of an incomplete set.
+     *
+     * `CrossModuleAssetAggregator::calculateMortgageTotal()` already reaches both
+     * legs — mortgages the user holds, and mortgages on properties the user owns —
+     * and is what `/net-worth` and the wealth summary read. The dashboard now
+     * reads it too, so the two cannot disagree.
      */
-    private function sumMortgageShares($mortgages, int $userId): float
-    {
-        $total = 0.0;
-
-        foreach ($mortgages as $mortgage) {
-            $total += $this->calculateUserMortgageShare($mortgage, $userId);
-        }
-
-        return $total;
-    }
-
-    /**
-     * Sum mortgage joint-owner shares via MortgageStore, filtering to records
-     * where the user is the joint_owner_id (avoids double-counting with
-     * the primary-owner path that reads via $user->mortgages relation).
-     */
-    private function sumMortgageJointOwnerShares(User $user, int $userId): float
-    {
-        $total = 0.0;
-
-        foreach ($this->mortgageStore->forUser($user)->filter(fn ($m) => $m->joint_owner_id === $userId) as $mortgage) {
-            $total += $this->calculateUserMortgageShare($mortgage, $userId);
-        }
-
-        return $total;
-    }
 
     /**
      * Get aggregated alerts from the existing DashboardAggregator.

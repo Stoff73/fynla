@@ -194,7 +194,7 @@ Per **Rule 23** (fixers and testers never overlap — CSJ, 2026-08-22). The test
 | **Persona password** | `password` fails | **`Password1!`** for both. **One attempt** — shared lockout counter. |
 | **Test databases** | 71 failed / 8 passed with 23 assertions | Two processes on one database. **One `laravel_testing_*` per agent**; re-run in isolation before believing a red. |
 
-**`workforce/registry/` does not exist** although `core/index.md` routes to it as prior-art source 1. Filed as W-0415.
+**~~`workforce/registry/` does not exist`~~ — WRONG, corrected 2026-08-23 10:55.** The registry exists in full at **`workforce/core/registry/`** (all nine files plus `sources.md`; `capabilities.md` last updated 2026-08-21). Two agents missed it because every agent definition except `cartographer.md` cited the bare relative `registry/capabilities.md`, which resolves to nothing from the repo root. Paths made absolute; **W-0415 closed invalid.** No prior-art check was ever short a source.
 
 **The event log knows ~13 of 69 items** — agents report in messages and do not emit. **Require log events at dispatch**; their absence is a defect, not a preference.
 

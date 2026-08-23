@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Retirement;
 
+use App\Constants\InvestmentDefaults;
 use App\Services\Stores\PensionStore;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreDCPensionRequest extends FormRequest
 {
@@ -70,6 +72,25 @@ class StoreDCPensionRequest extends FormRequest
             'projected_value_at_retirement' => ['nullable', 'numeric', 'min:0'],
             'has_flexibly_accessed' => ['nullable', 'boolean'],
             'flexible_access_date' => ['nullable', 'date', 'before_or_equal:today'],
+            // Six fields the form binds, the client sends, the model declares
+            // fillable, PensionStore::validateDcCanonical explicitly accepts and
+            // the app reads downstream — and that had no rule here, so
+            // `validated()` stripped every one of them before the controller saw
+            // them (W-0262). Selecting "Upper-Medium" on "Risk Level for This
+            // Pension" saved nothing at all: the row's updated_at moved, the
+            // platform fee in the same submit persisted, and this field alone was
+            // dropped, because a fee HAD a rule and this did not.
+            //
+            // The inner validator's own comment says it "Mirrors
+            // StoreDCPensionRequest". It did not. PensionStoreDcRuleParityTest now
+            // holds the two in step, so the next field added to one and forgotten
+            // in the other fails a test instead of a user's save.
+            'risk_preference' => ['nullable', Rule::in(InvestmentDefaults::RISK_PREFERENCES)],
+            'has_custom_risk' => ['nullable', 'boolean'],
+            'expected_return_percent' => ['nullable', 'numeric', 'min:0', 'max:20'],
+            'salary_sacrifice' => ['nullable', 'boolean'],
+            'employer_matching_limit' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'employer_ni_rebate_pct' => ['nullable', 'numeric', 'min:0', 'max:1'],
             'beneficiary_id' => ['nullable', 'integer', 'exists:users,id'],
             'beneficiary_name' => ['nullable', 'string', 'max:255'],
             // Inline holdings (created alongside pension in a transaction)
@@ -77,7 +98,15 @@ class StoreDCPensionRequest extends FormRequest
             'holdings.*.security_name' => ['required_with:holdings', 'string', 'max:255'],
             'holdings.*.asset_type' => ['required_with:holdings', 'string', 'max:50'],
             'holdings.*.allocation_percent' => ['required_with:holdings', 'numeric', 'min:0', 'max:100'],
-            'holdings.*.ocf_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
+            // Was `max:10`, which overflowed the old decimal(5,4) column at exactly
+            // 10 and — more to the point — disagreed with the three other paths
+            // that write this same column (StoreInvestmentAccountRequest, its
+            // Update sibling, and Investment\Store/UpdateHoldingRequest), all of
+            // which allow 100. One column, one bound (Rule 20): a charge a user
+            // could record on the holdings page but not on the pension form is an
+            // arbitrary difference, not a product decision. W-0263 widened the
+            // column to decimal(7,4), so 100 is now true rather than aspirational.
+            'holdings.*.ocf_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'holdings.*.cost_basis' => ['nullable', 'numeric', 'min:0'],
         ];
 

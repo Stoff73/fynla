@@ -235,7 +235,14 @@ export default {
       return 'bg-violet-500';
     },
 
+    // One vocabulary, served by GoalCalculationService::calculateStatusLabel —
+    // the only place that knows a goal past its date is Overdue rather than
+    // Behind, or Achieved late rather than On track (W-0411). The local fallback
+    // is kept for a payload that predates the field; it is less specific but it
+    // can no longer say "On track" about an overdue goal, because is_on_track is
+    // false for one.
     getGoalStatusLabel(goal) {
+      if (goal.status_label) return goal.status_label;
       if (this.isNotStarted(goal)) return 'Not started';
       if (goal.is_on_track) return 'On track';
       return 'Behind';

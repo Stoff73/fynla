@@ -18,7 +18,7 @@ module you are touching (`CLAUDE.md` vault table — mandatory before module wor
 
 **No item moves from `queued` to `claimed` without it.** Six sources:
 
-1. `registry/capabilities.md`
+1. `workforce/core/registry/capabilities.md`
 2. Code — services, jobs, commands, controllers, config
 3. **Custom artisan commands** — much of Fynla's machinery lives here
 4. **Open PRs and in-flight branches** — catches work not yet on `dev`

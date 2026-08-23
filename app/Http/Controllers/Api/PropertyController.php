@@ -12,6 +12,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Traits\TierLimitResponse;
 use App\Models\JointAccountLog;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\Property\MortgageService;
 use App\Services\Property\PropertyService;
 use App\Services\Property\PropertyTaxService;

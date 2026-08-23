@@ -55,7 +55,7 @@ touching iOS must say so and route to CSJ's device check.
 
 `charter.md` §11. Six sources, three outcomes — none, route, extend. Three shallow
 scans found three pieces of machinery this workforce nearly duplicated, including a
-whole marketing pipeline with its own approver. **Check `registry/capabilities.md`
+whole marketing pipeline with its own approver. **Check `workforce/core/registry/capabilities.md`
 before proposing anything.**
 
 ## Never

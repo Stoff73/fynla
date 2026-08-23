@@ -210,13 +210,20 @@ class GiftingStrategy
 
         // 2. Charitable Giving recommendation (if not already at 10%)
         $charitablePercent = (float) ($profile->charitable_giving_percent ?? 0);
-        $reducedRate = (float) ($this->ihtConfig['reduced_rate_charity'] ?? 0.36);
-        if ($charitablePercent < 10 && $currentIHTLiability > 0) {
+        // W-0451. An eighth site reading the array with its own `?? 0.36`, where
+        // getCharitableReducedRate() is the one home; the Schedule 1A threshold
+        // hardcoded twice — once as the `< 10` gate that decides whether the
+        // recommendation appears at all, and once in the sentence; and "IHT"
+        // unspelled (Rule 9).
+        $reducedRate = $this->taxConfig->getCharitableReducedRate();
+        $thresholdPercent = $this->taxConfig->getCharitableThresholdPercent() * 100;
+        if ($charitablePercent < $thresholdPercent && $currentIHTLiability > 0) {
             $standardRatePercent = round($ihtRate * 100);
             $reducedRatePercent = round($reducedRate * 100);
+            $thresholdLabel = rtrim(rtrim(number_format($thresholdPercent, 2), '0'), '.').'%';
             $recommendations[] = [
                 'strategy' => 'Charitable Giving',
-                'description' => "Leave 10% to charity to reduce IHT rate from {$standardRatePercent}% to {$reducedRatePercent}%",
+                'description' => "Leave {$thresholdLabel} to charity to reduce Inheritance Tax rate from {$standardRatePercent}% to {$reducedRatePercent}%",
                 'potential_savings' => round($taxableEstate * ($ihtRate - $reducedRate), 2),
             ];
             $priority[] = [

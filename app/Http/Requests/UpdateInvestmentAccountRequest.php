@@ -68,7 +68,11 @@ class UpdateInvestmentAccountRequest extends FormRequest
             'tax_year' => 'nullable|string|max:10',
 
             // Platform fees
-            'platform_fee_percent' => 'nullable|numeric|min:0',
+            // See StoreInvestmentAccountRequest: this rule had no upper bound at
+            // all, leaving a decimal(5,4) column as the only limit and a typed 12
+            // as a 500. W-0263 widened the column and matched the bound its
+            // sibling `advisor_fee_percent` already carried.
+            'platform_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
             // Same rule shape as StoreDCPensionRequest — the column and every
             // display of it already existed, only the way to enter it did not (W-0008).
             'advisor_fee_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
@@ -108,6 +112,9 @@ class UpdateInvestmentAccountRequest extends FormRequest
             ])],
             'holdings.*.allocation_percent' => 'required_with:holdings|numeric|min:0|max:100',
             'holdings.*.cost_basis' => 'nullable|numeric|min:0',
+            // One of four paths writing `holdings.ocf_percent` — see
+            // StoreInvestmentAccountRequest. True only because W-0263 widened the
+            // column to decimal(7,4); keep all four in step (Rule 20).
             'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];
     }

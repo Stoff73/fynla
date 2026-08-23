@@ -12,8 +12,8 @@
     <template v-else>
       <!-- Projected income vs target hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Projected retirement income</p>
-        <p class="m-metric">{{ fmt(projectedIncome) }}<span class="mr-hero-per">a year</span></p>
+        <p class="m-sub m-label">{{ heroHeadline.label }}</p>
+        <p class="m-metric">{{ fmt(heroHeadline.value) }}<span class="mr-hero-per">a year</span></p>
         <p class="m-hero-sub">{{ gapNarrative }}</p>
         <div class="mr-hero-split">
           <div class="mr-hero-stat">
@@ -216,6 +216,7 @@ import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+import { retirementIncomeHeadline } from '../../../js/utils/retirementHeadline.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -313,8 +314,10 @@ export default {
         : 'Worked out from your income, because you have not set a target yet.';
     },
     incomeGap() {
-      if (!this.hasTargetIncome || this.projectedIncome == null) return null;
-      return this.targetIncome - this.projectedIncome;
+      // Measured against whatever the hero leads with, so a final-salary household
+      // is compared on its secured income rather than on a pot projection of zero.
+      if (!this.hasTargetIncome || this.heroHeadline.value == null) return null;
+      return this.targetIncome - this.heroHeadline.value;
     },
     isSurplus() { return this.hasTargetIncome && this.incomeGap != null && this.incomeGap <= 0; },
     incomeComparison() {
@@ -356,9 +359,31 @@ export default {
     planningAgeBands() { return this.planningProjection?.age_bands || []; },
     planningAssumptions() { return this.planningProjection?.assumptions || {}; },
     recommendations() { return this.analysis?.recommendations || []; },
+    /**
+     * What the hero leads with, from the ONE home shared with the dashboard card
+     * and named after the rule the web module page already applies: a household
+     * with no defined contribution pot leads with the income its schemes have
+     * already secured, not with a projection of a pot it does not have.
+     *
+     * Before this, the hero preferred `planning_total_at_target_age`, which models
+     * pots only and returns a literal 0 for a final-salary-only household — so the
+     * page read "Projected retirement income £0 a year" to a user holding an NHS
+     * scheme paying £35,000 (W-0244). `guaranteed_annual_income` is computed once
+     * in `RetirementAgent` and never re-derived here.
+     */
+    heroHeadline() {
+      return retirementIncomeHeadline({
+        potValue: this.totalPensionWealth,
+        guaranteedIncome: this.analysisReady ? this.analysis?.guaranteed_annual_income : null,
+        projectedIncome: this.projectedIncome,
+      });
+    },
     gapNarrative() {
+      if (this.heroHeadline.isGuaranteed && !this.hasTargetIncome) {
+        return 'This is the income your defined benefit schemes and State Pension have already secured. Add a target retirement income to see how it compares.';
+      }
       if (!this.hasTargetIncome) return 'Add a target retirement income to see how your projection compares.';
-      if (this.projectedIncome == null) return 'A projected income is not available yet.';
+      if (this.heroHeadline.value == null) return 'A projected income is not available yet.';
       if (this.isSurplus) {
         return `You are on track to exceed your target by ${this.fmt(Math.abs(this.incomeGap))} a year.`;
       }

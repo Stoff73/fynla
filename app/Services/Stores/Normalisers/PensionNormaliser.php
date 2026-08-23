@@ -58,12 +58,66 @@ class PensionNormaliser
         return in_array($candidate, PensionEnums::SCHEME_STATUSES, true) ? $candidate : null;
     }
 
+    /**
+     * Every `dc_pensions` column that is NOT NULL, carries a database default, AND
+     * can be reached from `StoreDCPensionRequest`.
+     *
+     * A null for any of these must be DROPPED, never passed through: the column
+     * cannot store it, and omitting the key is what lets the default apply. Same
+     * rule, same reasoning and the same drift test as
+     * `InvestmentAccountNormaliser::NOT_NULL_WITH_DEFAULT` (W-0052) and
+     * `HoldingValuation::NOT_NULL_WITH_DEFAULT` (W-0261) — this is the third table
+     * to need it.
+     *
+     * It became reachable here the moment W-0262 gave the six dropped fields their
+     * validation rules: before that, `validated()` stripped them and the question
+     * could not arise. The sweep in F-0023 §6.1 already listed
+     * `dc_pensions.current_fund_value` as a column a form sends null for, so this
+     * closes that latent 500 in the same pass rather than waiting for a user.
+     *
+     * @var list<string>
+     */
+    public const DC_NOT_NULL_WITH_DEFAULT = [
+        'current_fund_value',
+        'has_custom_risk',
+        'has_flexibly_accessed',
+        'pension_type',
+        'platform_fee_frequency',
+        'platform_fee_type',
+    ];
+
     public function fromFormDc(array $request): array
     {
         $data = $request;
         $data['type'] = 'dc';
         $data['pension_type'] = $data['pension_type'] ?? 'occupational';
         $data['provider'] = $data['provider'] ?? ($data['scheme_name'] ?? null);
+
+        // `has_custom_risk` is the flag every reader of the per-pension risk
+        // override gates on — RetirementController:865, PensionProjector:291 and
+        // PortfolioPresentationService:204 all test
+        // `has_custom_risk && risk_preference`. No client has ever sent it: before
+        // W-0262 the only writers in the entire codebase were the seeders, so for
+        // every real user the flag sat at its column default of 0 and the override
+        // was inert even where a risk_preference existed. Storing the preference
+        // without this would have fixed the save and left the feature doing
+        // nothing, which is the worse of the two failures because it looks fixed.
+        //
+        // Derived rather than asked for: choosing a level on the form IS the act of
+        // overriding, so a second control saying "and mean it" would be a
+        // mechanism the user has to operate to make the first one work. Only when
+        // the key was sent — an edit that omits it leaves the stored flag alone,
+        // the same discipline as `scheme_status` in fromFormDb below.
+        if (array_key_exists('risk_preference', $data)) {
+            $data['has_custom_risk'] = $data['risk_preference'] !== null && $data['risk_preference'] !== '';
+        }
+
+        // Runs LAST, so it also catches a null the derivation above did not set.
+        foreach (self::DC_NOT_NULL_WITH_DEFAULT as $field) {
+            if (array_key_exists($field, $data) && ($data[$field] === null || $data[$field] === '')) {
+                unset($data[$field]);
+            }
+        }
 
         return $data;
     }

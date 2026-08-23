@@ -146,3 +146,48 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
         expect(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse();
     });
 });
+
+/**
+ * W-0202 — Fyn's expenditure capture does NOT apply the household's declared
+ * sharing rule, and that is the parked state, not an oversight.
+ *
+ * Under a joint household this path writes the acting account at 100% and never
+ * touches the spouse — reproducing the 100/0 split W-0190 fixed on the profile
+ * path, through a different door. W-0202 raises it, team-lead has DECIDED the
+ * behaviour, and its **acceptance criterion 1 must be settled first**: make the
+ * unanswered sharing state expressible, or disclose the default.
+ *
+ * The reason is disclosure, not arithmetic. The expenditure form declares
+ * "Joint (50/50) expenditure" in its own subheading while the user types; Fyn
+ * declares nothing. `users.expenditure_sharing_mode` is `NOT NULL DEFAULT
+ * 'joint'`, so a household that has never been asked reads identically to one
+ * that chose — 19 users on the dev database, every one of them `joint`.
+ *
+ * `HouseholdExpenditureWriter` (built under W-0412) is the mechanism criterion 2
+ * asks for; when the decision lands, this path becomes one call to it. The case
+ * below pins the CURRENT behaviour so the change is deliberate and visible when
+ * it happens, rather than arriving as a silent diff.
+ *
+ * FIXTURE NOTE (tests/CLAUDE.md §4): every other case in this file uses a user
+ * with NO spouse, so none of them enters this branch at all.
+ */
+describe('handleSetExpenditure → a shared household is NOT divided yet (W-0202)', function () {
+    it('writes the acting account at 100% and leaves the spouse untouched', function () {
+        $owner = User::factory()->withActivePremiumSubscription()->create([
+            'is_preview_user' => false,
+            'expenditure_sharing_mode' => 'joint',
+        ]);
+        $partner = User::factory()->withActivePremiumSubscription()->create([
+            'is_preview_user' => false,
+            'expenditure_sharing_mode' => 'joint',
+            'spouse_id' => $owner->id,
+        ]);
+        $owner->update(['spouse_id' => $partner->id]);
+
+        invokeSetExpenditure($owner->fresh(), ['food_groceries' => 450]);
+
+        // Pinned, not endorsed. When W-0202 is built this becomes 225 / 225.
+        expect((float) $owner->fresh()->food_groceries)->toBe(450.0)
+            ->and((float) $partner->fresh()->food_groceries)->toBe(0.0);
+    });
+});

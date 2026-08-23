@@ -11,9 +11,9 @@ use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
 use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -42,6 +42,7 @@ class EstateAssetAggregatorService
     public function __construct(
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly LifeCoverReach $lifeCoverReach,
     ) {}
 
     /**
@@ -270,14 +271,30 @@ class EstateAssetAggregatorService
     }
 
     /**
-     * Get total existing life cover for a user
+     * The protection cover this user's life carries.
+     *
+     * **Per-life, not per-household.** This asked `where('user_id', …)`, so a
+     * joint-life policy reached only the account that typed it: Sarah Jones was
+     * assessed at £0 while David's £500,000 joint-life policy insured her life too,
+     * on the one product whose purpose is covering both of them (W-0341). It now
+     * routes to `LifeCoverReach`, the one home for "which policies cover this life"
+     * (Rule 20) — the same reader `ProtectionAgent`, `ProtectionController` and
+     * `LifeInsurancePolicyResource` use, so the four cannot disagree.
+     *
+     * **Do not add this to a spouse's figure.** The joint-life policy is in both
+     * their answers deliberately and pays out once. `LifeCoverReach::householdCoverInTrust()`
+     * is the household question, and it stays owner-scoped for that reason.
+     *
+     * Critical illness stays `user_id`-scoped because it has nothing to reach with:
+     * `critical_illness_policies` carries no `joint_life` column, no `joint_owner_id`
+     * and no ownership fields — verified against the schema, not inferred. A critical
+     * illness policy insures one life by construction here.
      */
     public function getExistingLifeCover(User $user): float
     {
-        $lifeInsurance = LifeInsurancePolicy::where('user_id', $user->id)
-            ->sum('sum_assured');
+        $lifeInsurance = (float) $this->lifeCoverReach->policiesCovering($user)->sum('sum_assured');
 
-        $criticalIllness = CriticalIllnessPolicy::where('user_id', $user->id)
+        $criticalIllness = (float) CriticalIllnessPolicy::where('user_id', $user->id)
             ->sum('sum_assured');
 
         return $lifeInsurance + $criticalIllness;

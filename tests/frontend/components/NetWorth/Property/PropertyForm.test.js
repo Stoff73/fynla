@@ -25,8 +25,21 @@ const mountForm = () => {
   });
 };
 
-describe('PropertyForm mortgage liability', () => {
-  it('keeps a new mortgage individual when the property is tenants in common', async () => {
+// CSJ ruling, 2026-08-22 (W-0228): a debt is shared exactly as the asset securing
+// it is shared. A mortgage's ownership derives from its property; the form no longer
+// collects a separate borrower split, and the old "Borrower(s)" select and its 50%
+// hardcode are gone (W-0236).
+//
+// The two tests below previously asserted the OPPOSITE — that a new mortgage stayed
+// individual/100 and that choosing joint borrowers produced a separate 50/50 split.
+// They were correct before the ruling and are rewritten to it, not deleted, so the
+// reversal stays legible. Do not restore the old expectations.
+//
+// Every case uses an asymmetric 30% deliberately: at 50/50 the mirrored share and a
+// hardcoded 50 are the same number, so the test could not tell them apart
+// (tests/CLAUDE.md §4, Collision variant).
+describe('PropertyForm mortgage liability follows the property (W-0228)', () => {
+  it('mirrors a tenants-in-common property onto its new mortgage', async () => {
     const wrapper = mountForm();
 
     wrapper.vm.form.ownership_type = 'tenants_in_common';
@@ -34,12 +47,11 @@ describe('PropertyForm mortgage liability', () => {
     wrapper.vm.hasMortgage = true;
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.vm.mortgageForm.ownership_type).toBe('individual');
-    expect(wrapper.vm.mortgageForm.ownership_percentage).toBe(100);
-    expect(wrapper.vm.mortgageForm.joint_owner_id).toBeNull();
+    expect(wrapper.vm.mortgageForm.ownership_type).toBe('tenants_in_common');
+    expect(wrapper.vm.mortgageForm.ownership_percentage).toBe(30);
   });
 
-  it('sets a separate 50/50 split when joint borrowers are selected', async () => {
+  it('does not let a mortgage carry a share its property does not', async () => {
     const wrapper = mountForm();
     wrapper.vm.form.ownership_type = 'tenants_in_common';
     wrapper.vm.form.ownership_percentage = 30;
@@ -47,7 +59,25 @@ describe('PropertyForm mortgage liability', () => {
     wrapper.vm.mortgageForm.ownership_type = 'joint';
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.vm.mortgageForm.ownership_percentage).toBe(50);
+    // Not 50: there is no separate borrower split any more.
+    expect(wrapper.vm.mortgageForm.ownership_percentage).toBe(30);
+  });
+
+  it('moves the mortgage share when the property share moves', async () => {
+    const wrapper = mountForm();
+
+    wrapper.vm.form.ownership_type = 'tenants_in_common';
+    wrapper.vm.form.ownership_percentage = 30;
+    wrapper.vm.hasMortgage = true;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.mortgageForm.ownership_percentage).toBe(30);
+
+    wrapper.vm.form.ownership_percentage = 70;
+    await wrapper.vm.$nextTick();
+
+    // The assertion that fails if the mirroring stops working: the answer must MOVE
+    // when the real input moves, rather than equal a value the test supplied.
+    expect(wrapper.vm.mortgageForm.ownership_percentage).toBe(70);
   });
 });
 

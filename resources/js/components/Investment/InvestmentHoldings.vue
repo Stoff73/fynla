@@ -62,6 +62,7 @@
       :holding="selectedHolding"
       :accounts="accounts"
       :save-error="error"
+      :field-errors="fieldErrors"
       @save="handleSubmit"
       @close="closeModal"
     />
@@ -139,6 +140,7 @@ export default {
       showDeleteModal: false,
       holdingToDelete: null,
       error: null,
+      fieldErrors: null,
       successMessage: null,
       deleting: false,
       successTimeout: null,
@@ -252,6 +254,10 @@ export default {
       } catch (error) {
         logger.error('Error saving holding:', error);
         this.error = error.response?.data?.message || 'Failed to save holding. Please try again.';
+        // A 422 carries the useful part in `errors`, keyed by field. Without
+        // passing it down, the only thing the user saw was the generic banner
+        // at the top of a modal they had scrolled past (W-0261).
+        this.fieldErrors = error.response?.data?.errors || null;
       }
     },
 
@@ -292,6 +298,7 @@ export default {
 
     clearMessages() {
       this.error = null;
+      this.fieldErrors = null;
       this.successMessage = null;
     },
 

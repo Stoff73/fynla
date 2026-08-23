@@ -90,6 +90,23 @@ class LetterToSpouseController extends Controller
     }
 
     /**
+     * The financial position Part 2 of the letter states.
+     *
+     * One request, one answer. The page used to assemble this itself from six
+     * module endpoints and add it up client-side at 100% of every record, so the
+     * document addressed to the bereaved spouse credited the estate with
+     * £177,000 belonging to an off-platform co-owner and charged the household
+     * his £72,000 of mortgage (W-0421).
+     */
+    public function financialPosition(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->letterService->financialPosition($request->user()),
+        ]);
+    }
+
+    /**
      * Get spouse's letter (read-only for current user)
      */
     public function showSpouse(Request $request): JsonResponse

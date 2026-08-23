@@ -106,6 +106,44 @@ describe('/m goals page', () => {
     mockEndpoints();
   });
 
+  // W-0411 — /m read `is_on_track` and composed its own label, so an overdue
+  // goal read "Behind", and an overdue-but-funded one read "Complete". The
+  // server now serves one vocabulary to every surface (Rule 20). FIXTURE NOTE:
+  // the shared GOALS fixture holds one healthy future-dated goal, so nothing
+  // else in this file enters the overdue branch.
+  it('shows the overdue label the server serves, not one it composes itself', async () => {
+    apiGet.mockImplementation((path) => {
+      if (path === '/api/goals') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          data: { data: { goals: [{
+            ...GOALS[0],
+            id: 99,
+            goal_name: "Charlotte's Gap Year Fund",
+            progress_percentage: 80,
+            months_remaining: 0,
+            is_on_track: false,
+            is_overdue: true,
+            status_label: 'Overdue',
+          }] } },
+        });
+      }
+      if (path === '/api/goals/dashboard-overview') {
+        return Promise.resolve({ ok: true, status: 200, data: { data: { total_goals: 1, on_track_count: 0 } } });
+      }
+      return Promise.resolve({ ok: true, status: 200, data: { data: { events: [], count: 0 } } });
+    });
+
+    const wrapper = mountGoals();
+    await flushPromises();
+
+    const text = wrapper.text();
+
+    expect(text).toContain('Overdue');
+    expect(text).not.toContain('On track');
+  });
+
   it('fetches life events alongside goals', async () => {
     mountGoals();
     await flushPromises();

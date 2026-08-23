@@ -116,7 +116,7 @@ are the only requester) · assignment and reassignment · probe and intervene.
 
 **Conflicts between founders resolve by domain**, not by you: engineering,
 regulatory and product to CSJ; design and marketing to Azlan; business and
-financial to Brett (`registry/people.md` §3.2).
+financial to Brett (`workforce/core/registry/people.md` §3.2).
 
 ## Before you judge anything
 

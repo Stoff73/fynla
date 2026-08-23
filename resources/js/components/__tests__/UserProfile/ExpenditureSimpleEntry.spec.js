@@ -48,9 +48,9 @@ function makeStore({ capabilities = {} } = {}) {
   });
 }
 
-async function mountForm({ capabilities, initialData = {} } = {}) {
+async function mountForm({ capabilities, initialData = {}, extraProps = {} } = {}) {
   const wrapper = shallowMount(ExpenditureForm, {
-    props: { initialData, startInEditMode: true },
+    props: { initialData, startInEditMode: true, ...extraProps },
     global: {
       plugins: [makeStore({ capabilities })],
       directives: { 'preview-disabled': {} },
@@ -99,6 +99,50 @@ describe('ExpenditureForm simple entry', () => {
 
     expect(payload.expenditure_entry_mode).toBe('category');
     expect(payload).toHaveProperty('food_groceries');
+  });
+
+  // W-0412. A joint household used to emit `{ userData, spouseData }` here, the
+  // same figures twice. On the profile page that made the spouse's half depend
+  // on a SECOND HTTP request the backend never required — when it did not
+  // arrive the household total silently inherited the difference. In onboarding
+  // it was worse: OnboardingService::processExpenditureInfo routes on the
+  // presence of those two keys, so a JOINT household took its SEPARATE branch
+  // and had the full household figure written whole to BOTH accounts.
+  //
+  // FIXTURE NOTE: every other case in this file mounts an unmarried user, so
+  // none of them could see either shape.
+  it('sends ONE household payload when the household spends jointly', async () => {
+    const wrapper = await mountForm({
+      capabilities: PREMIUM,
+      extraProps: { isMarried: true, spouseName: 'Sarah' },
+    });
+
+    wrapper.vm.useSimpleEntry = false;
+    wrapper.vm.useSeparateExpenditure = false;
+    wrapper.vm.handleSave();
+
+    const payload = wrapper.emitted('save')[0][0];
+
+    expect(payload).not.toHaveProperty('userData');
+    expect(payload).not.toHaveProperty('spouseData');
+    expect(payload.expenditure_entry_mode).toBe('category');
+    expect(payload.use_separate_expenditure).toBe(false);
+  });
+
+  it('still sends both sides when the household spends separately', async () => {
+    const wrapper = await mountForm({
+      capabilities: PREMIUM,
+      extraProps: { isMarried: true, spouseName: 'Sarah' },
+    });
+
+    wrapper.vm.useSimpleEntry = false;
+    wrapper.vm.useSeparateExpenditure = true;
+    wrapper.vm.handleSave();
+
+    const payload = wrapper.emitted('save')[0][0];
+
+    expect(payload).toHaveProperty('userData');
+    expect(payload).toHaveProperty('spouseData');
   });
 
   it('does not offer the Detailed View toggle without the capability', async () => {

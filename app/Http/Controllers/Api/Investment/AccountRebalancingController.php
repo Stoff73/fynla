@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Rebalancing\RebalancingCalculator;
 use App\Services\Investment\Rebalancing\TaxAwareRebalancer;
+use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,8 @@ class AccountRebalancingController extends Controller
     public function __construct(
         private readonly RebalancingCalculator $rebalancingCalculator,
         private readonly TaxAwareRebalancer $taxAwareRebalancer,
-        private readonly DriftAnalyzer $driftAnalyzer
+        private readonly DriftAnalyzer $driftAnalyzer,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
 
     /**
@@ -204,7 +206,7 @@ class AccountRebalancingController extends Controller
      * Resolve the effective risk profile for a single investment account.
      *
      * Combines the user's main risk profile (from risk_profiles) with the
-     * account's optional custom override (`has_custom_risk` + `risk_preference`).
+     * account's optional custom override (`risk_preference`).
      * Extracted from getAccountRebalancing during the controller split
      * (tech-debt audit Warning #1, 2026-05-13 session 3).
      */
@@ -217,10 +219,14 @@ class AccountRebalancingController extends Controller
             : 3;
         $userRiskLabel = $this->getRiskLabel($userRiskLevel);
 
-        $hasCustomRisk = (bool) $account->has_custom_risk;
-        $accountRiskPreference = $account->risk_preference;
+        // The override is the preference itself, not the `has_custom_risk` flag beside
+        // it — nothing writes that flag on an investment account, so gating on it
+        // rebalanced every account to the user's main profile regardless of the level
+        // they had chosen for it.
+        $accountRiskPreference = $this->riskPreferenceService->getProductRiskOverride($account);
+        $hasCustomRisk = $accountRiskPreference !== null;
 
-        if ($hasCustomRisk && $accountRiskPreference) {
+        if ($hasCustomRisk) {
             $effectiveRiskLevel = $this->mapRiskStringToLevel($accountRiskPreference);
             $effectiveRiskLabel = $this->getRiskLabel($effectiveRiskLevel);
         } else {

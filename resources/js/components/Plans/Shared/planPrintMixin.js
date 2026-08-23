@@ -2291,6 +2291,7 @@ export const planPrintMixin = {
             <div class="metric-value">${this.fmtPercentage(cg.threshold)}</div>
             ${(cg.shortfall || 0) > 0 ? `<div class="metric-label" style="margin-top: 4px;">Shortfall to Qualify</div><div class="metric-value">${this.fmtCurrency(cg.shortfall)}</div>` : ''}
             ${(cg.potential_saving || 0) > 0 ? `<div class="metric-label" style="margin-top: 4px;">Potential Saving</div><div class="metric-value" style="color: #15803d;">${this.fmtCurrency(cg.potential_saving)}</div>` : ''}
+            ${cg.basis ? `<div class="metric-label" style="margin-top: 6px; font-style: italic;">${cg.basis}</div>` : ''}
           </div>
         `;
       }

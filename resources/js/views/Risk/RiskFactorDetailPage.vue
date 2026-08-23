@@ -64,6 +64,14 @@
                 </span>
               </div>
             </div>
+            <!-- The factor's own sentences, rendered rather than restated. A
+                 member of a Defined Benefit scheme sees "£0 pensions" in the
+                 formula above, and the reason it is £0 lives in one place — the
+                 backend's PensionDisclosure constant (Rule 20). This page did not
+                 render the description at all before, so the explanation existed
+                 and nobody could read it. -->
+            <p class="text-sm text-neutral-500 text-center">{{ factorData.description }}</p>
+            <p v-if="factorData.disclosure" class="text-sm text-neutral-500 text-center mt-2">{{ factorData.disclosure }}</p>
           </div>
 
           <!-- Inline Thresholds -->
@@ -183,7 +191,7 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-horizon-400 mt-3">Source: Family members marked as dependants</p>
+              <p class="text-xs text-horizon-400 mt-3">Source: Family members marked as dependants, across your household</p>
             </template>
 
             <!-- EMPLOYMENT -->
@@ -217,7 +225,7 @@
                   <div class="flex items-center gap-1 border-b-2 border-horizon-300 pb-2 px-2">
                     <div class="flex flex-col items-center">
                       <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.emergency_fund_total || 0) }}</span>
-                      <span class="text-xs text-horizon-400">emergency fund</span>
+                      <span class="text-xs text-horizon-400">cash savings</span>
                     </div>
                   </div>
                   <div class="flex flex-col items-center pt-2">
@@ -236,7 +244,7 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-horizon-400 text-center">Source: Savings accounts marked as emergency fund &amp; your monthly expenditure</p>
+              <p class="text-xs text-horizon-400 text-center">Source: All your cash savings, at your share of any joint accounts, &amp; your monthly expenditure</p>
             </template>
 
             <!-- SURPLUS CASH -->
@@ -410,7 +418,7 @@ export default {
           ],
         },
         emergency_cash: {
-          what: 'Months of expenses covered by your emergency fund.',
+          what: 'Months of expenses covered by your cash savings.',
           why: 'A strong buffer means you won\'t need to sell investments at a bad time.',
           thresholds: [
             { level: 'upper_medium', range: '6+ months' },

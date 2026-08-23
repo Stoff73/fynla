@@ -48,3 +48,53 @@ export function retirementHeadline(retirement) {
 
   return { value, isAnnualIncome, caption };
 }
+
+/**
+ * What the retirement MODULE PAGE's hero leads with — the same distinction as
+ * the dashboard card above, applied to the module page's inputs.
+ *
+ * The web module page (`components/NetWorth/PensionList.vue`) already swaps its
+ * hero for a "Guaranteed Retirement Income" panel when the household has no
+ * defined contribution pot. `/m` did not: its hero preferred
+ * `planning_projection.planning_total_at_target_age`, which models pots only and
+ * so returns a literal 0 for a household whose whole provision is a final salary
+ * scheme. The page therefore read "Projected retirement income £0 a year" to a
+ * user holding an NHS scheme paying £35,000 (W-0244). **A projection of a pot
+ * that does not exist is not a projection of zero income.**
+ *
+ * `guaranteedIncome` must come from the backend's `guaranteed_annual_income`,
+ * computed once in `RetirementAgent`, never re-derived on a surface.
+ *
+ * @param {object} input
+ * @param {number|null} input.potValue - current defined contribution pot.
+ * @param {number|null} input.guaranteedIncome - annual income already secured by
+ *   defined benefit schemes and the State Pension.
+ * @param {number|null} input.projectedIncome - projected annual income, or null
+ *   when nothing could be projected.
+ * @returns {{value: number|null, isGuaranteed: boolean, label: string}}
+ */
+export function retirementIncomeHeadline({ potValue, guaranteedIncome, projectedIncome } = {}) {
+  const toNumber = (v) => {
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const pot = toNumber(potValue);
+  const guaranteed = toNumber(guaranteedIncome);
+
+  if (pot <= 0 && guaranteed > 0) {
+    return {
+      value: guaranteed,
+      isGuaranteed: true,
+      label: 'Guaranteed retirement income',
+    };
+  }
+
+  const projected = projectedIncome == null ? null : toNumber(projectedIncome);
+
+  return {
+    value: projected,
+    isGuaranteed: false,
+    label: 'Projected retirement income',
+  };
+}

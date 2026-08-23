@@ -267,3 +267,33 @@ Report: `reports/R-06-mirror-will-test.md`.
   taken, dead ends ruled out, and environment state. **Rule 14's loop is NOT closed by
   me on this item** — see §8; the browser evidence recorded above is my own, gathered
   before the no-self-verification policy landed, and needs independent re-verification.
+
+- 2026-08-23 build-lead (`fix-cycle4-wills`, F-0029): **re-verified at team-lead's
+  instruction after cycle 4 saw the symptom again on `wills.id = 12`. VERDICT:
+  this fix STAYS FIXED; that row is pre-fix residue.** Decided by generating a
+  fresh mirror through the live service on a throwaway married pair (transaction
+  rolled back, 0 rows kept) — every party swapped, nobody their own executor.
+  Three supports that document 6 predates the fix: generated 2026-08-21 08:59:21
+  against a 09:40 claim; no `copied_from_partner` marker, which the post-fix
+  generator always writes; residuary already correct, which is the pre-fix
+  behaviour. **The correct charity on Sarah's mirror is NOT evidence of a partial
+  fix** — the post-fix generator would have produced Cancer Research UK with the
+  marker; British Heart Foundation with no marker is the tester's own edit,
+  recorded in these notes above and corroborated by `updated_at` 09:03:33 against
+  `created_at` 08:59:21. Residue cleared by **W-0395**
+  (`estate:backfill-mirror-parties`).
+
+  **But this fix had a hole, now closed as W-0396.** `generateMirrorWill()`
+  matched each partner on ONE spelling, built from different sources on the two
+  sides — the primary's from `testator_full_name`, the partner's from
+  first + middle + surname. A partner with a middle name recorded but named in
+  the will without it matched neither, so nothing swapped and this exact symptom
+  returned. **The 6 tests added here could not see it** (their fixtures give the
+  partner no middle name, so the right and wrong answers are the same string) and
+  neither could the persona. Reducing the candidates back to one spelling leaves
+  all 38 cases in `WillDocumentServiceTest` green against a generator producing a
+  self-appointing will. **The GATE above is therefore LARGER, not resolved:** any
+  pre-fix mirror on production is broken, and so is any post-fix mirror where the
+  partner has a middle name recorded. `estate:backfill-mirror-parties` is the
+  remedy for both. Still not run against production — the `ssh-fynla` MCP is
+  production and cycle 4 is local-only.

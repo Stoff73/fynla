@@ -225,11 +225,22 @@ class RetirementController extends Controller
         $data = $analysis['data'];
         $incomeProjection = $data['income_projection'] ?? [];
 
+        // Target-derived figures pass through as null when the user has not told us
+        // what they are aiming at. They must NOT be coerced to zero: `/m` and the
+        // web both test these for a finite number to decide between showing a figure
+        // and showing "—", and a zero is finite. Coercing here would report a
+        // projected retirement income of £0 to a household holding an NHS scheme
+        // paying £35,000 a year (W-0244). Record-derived figures keep their zero
+        // default, because there a zero is the true answer.
         $flattenedData = [
-            'projected_income' => $data['summary']['projected_retirement_income'] ?? 0,
-            'target_income' => $data['summary']['target_retirement_income'] ?? 0,
-            'income_gap' => $data['summary']['income_gap'] ?? 0,
-            'years_to_retirement' => $data['summary']['years_to_retirement'] ?? 0,
+            'projected_income' => $data['summary']['projected_retirement_income'] ?? null,
+            'target_income' => $data['summary']['target_retirement_income'] ?? null,
+            'income_gap' => $data['summary']['income_gap'] ?? null,
+            'years_to_retirement' => $data['summary']['years_to_retirement'] ?? null,
+            // Whether a retirement target exists at all — the flag every surface
+            // should branch on. `success` is no longer that flag.
+            'has_retirement_target' => $data['summary']['has_retirement_target'] ?? true,
+            'guaranteed_annual_income' => $data['summary']['guaranteed_annual_income'] ?? 0,
             'total_pension_wealth' => $data['summary']['total_dc_value'] ?? 0,
             'recommendations' => $data['recommendations'] ?? [],
             'income_projection' => $incomeProjection,
@@ -366,7 +377,7 @@ class RetirementController extends Controller
                 $canonical = $this->pensionNormaliser->fromFormDc($data);
                 $pension = $this->pensionStore->createDc($canonical, $user, IngestSource::FORM);
 
-                $this->seedHoldingsForDcPension($pension, $holdings);
+                $this->syncHoldingsForDcPension($pension, $holdings);
             });
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
@@ -389,52 +400,122 @@ class RetirementController extends Controller
     }
 
     /**
-     * Holdings seeding helper. Lifted from the original storeDCPension/
-     * updateDCPension bodies. Holdings move into HoldingsStore in Pass 6.
+     * Reconcile the pension's stored holdings against the set this form states.
+     *
+     * **This used to be delete-every-row-and-recreate, and that destroyed data
+     * the form cannot see (W-0441).** The nested `holdings.*` rule set on
+     * `StoreDCPensionRequest` carries five keys — name, asset type, allocation,
+     * ongoing charge and cost basis — and `DCPensionForm` maps stored rows into
+     * exactly those five when it opens. Units, purchase price, current price,
+     * purchase date, ticker and ISIN were dropped on the way in and annihilated
+     * on the way out. Now that those fields are enterable on the pension's
+     * Holdings tab, that is a guaranteed loss on the DEFAULT path: the form
+     * auto-expands "Additional information" whenever holdings exist, so opening
+     * a pension to change a fee and pressing Update was enough.
+     *
+     * A row the incoming set still names is UPDATED IN PLACE. Rows it no longer
+     * names are deleted. Identity is `security_name` + `asset_type`, matched
+     * once each so duplicates pair off in order — the payload cannot carry an
+     * id, because no rule admits one.
+     *
+     * **What an empty array means is deliberately unchanged.** It names nothing,
+     * so everything is deleted and nothing is created, exactly as before. That
+     * contract is W-0322's acceptance 3 and 4 and is not settled here.
+     *
+     * Keeping ids stable is the second gain: the previous behaviour churned them
+     * on every save (W-0322 recorded rows 62/63/64 soft-deleted with 65/66/67
+     * created in the same second, same values).
      */
-    private function seedHoldingsForDcPension(DCPension $pension, array $holdings): void
+    private function syncHoldingsForDcPension(DCPension $pension, array $holdings): void
     {
-        if (empty($holdings)) {
-            return;
-        }
-
+        // The inverse relation is set here rather than left to be lazy-loaded.
+        // `UserDataCacheObserver::affectedUserIds():90` reads `$holding->holdable`
+        // to find whose figures a holding feeds, and it fires on `updated` and
+        // `deleted` — which this method now raises per row, where the previous
+        // `holdings()->delete()` was a builder delete that raised no model events
+        // at all. On a retrieved model that read is a `LazyLoadingViolation`.
+        // The parent is `$pension`, already in hand, so this is the correct value
+        // rather than a workaround, and it costs no query.
+        //
+        // Worth naming as a behaviour change in its own right: cache invalidation
+        // for a removed pension holding did not previously happen, because a
+        // builder delete never reached the observer.
+        $unmatched = $pension->holdings()->get()
+            ->each->setRelation('holdable', $pension)
+            ->all();
+        $desired = [];
         $hasCashHolding = false;
+        $totalAllocated = 0.0;
 
         foreach ($holdings as $holdingData) {
-            $currentValue = ($pension->current_fund_value * $holdingData['allocation_percent']) / 100;
+            $allocation = (float) $holdingData['allocation_percent'];
+            $totalAllocated += $allocation;
 
             if (($holdingData['asset_type'] ?? '') === 'cash') {
                 $hasCashHolding = true;
             }
 
-            // The allocation percentage is where the value comes from when nothing
-            // else is stated — an INPUT to the one shared rule, never a competing
-            // one (Rule 20, W-0126). This form sends no units or prices today, so
-            // the reconciliation is inert; reading the shared class is what means
-            // the day it does, units are handled without anyone remembering to.
-            $pension->holdings()->create(HoldingValuation::reconcile([
-                'holdable_type' => DCPension::class,
-                'holdable_id' => $pension->id,
+            $desired[] = [
                 'security_name' => $holdingData['security_name'],
                 'asset_type' => $holdingData['asset_type'] ?? 'fund',
-                'allocation_percent' => $holdingData['allocation_percent'],
-                'current_value' => $currentValue,
+                'allocation_percent' => $allocation,
                 'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
                 'cost_basis' => $holdingData['cost_basis'] ?? null,
-            ]));
+            ];
         }
 
-        $totalAllocated = collect($holdings)->sum('allocation_percent');
-        if ($totalAllocated < 100 && ! $hasCashHolding) {
+        if ($desired !== [] && ! $hasCashHolding && $totalAllocated < 100) {
             $remainderPercent = 100 - $totalAllocated;
-            $pension->holdings()->create(HoldingValuation::reconcile([
-                'holdable_type' => DCPension::class,
-                'holdable_id' => $pension->id,
+            $desired[] = [
                 'security_name' => 'Cash',
                 'asset_type' => 'cash',
                 'allocation_percent' => $remainderPercent,
-                'current_value' => ($pension->current_fund_value * $remainderPercent) / 100,
+            ];
+        }
+
+        foreach ($desired as $payload) {
+            $existing = null;
+            foreach ($unmatched as $index => $candidate) {
+                if ($candidate->security_name === $payload['security_name']
+                    && $candidate->asset_type === $payload['asset_type']) {
+                    $existing = $candidate;
+                    unset($unmatched[$index]);
+                    break;
+                }
+            }
+
+            // The allocation percentage is where the value comes from when nothing
+            // else is stated — an INPUT to the one shared rule, never a competing
+            // one (Rule 20, W-0126).
+            //
+            // It is stated ONLY when it moved. Allocation is the one value-bearing
+            // fact this form can express, so a row whose allocation is unchanged has
+            // had nothing said about its value — and a form that cannot see units
+            // must not revalue a row that has them. Restating it unconditionally put
+            // the typed value back through `reconcile()`, which by W-0121 keeps the
+            // stated figure and back-calculates the units: 4,211 units at £38.00
+            // became 4,210.53 on a save that touched neither.
+            $allocationMoved = $existing === null
+                || abs((float) $existing->allocation_percent - $payload['allocation_percent']) > 0.0001;
+
+            if ($allocationMoved) {
+                $payload['current_value'] = ($pension->current_fund_value * $payload['allocation_percent']) / 100;
+            }
+
+            if ($existing !== null) {
+                $existing->update(HoldingValuation::reconcile($payload, $existing));
+
+                continue;
+            }
+
+            $pension->holdings()->create(HoldingValuation::reconcile($payload + [
+                'holdable_type' => DCPension::class,
+                'holdable_id' => $pension->id,
             ]));
+        }
+
+        foreach ($unmatched as $stale) {
+            $stale->delete();
         }
     }
 
@@ -456,8 +537,7 @@ class RetirementController extends Controller
                 $updated = $this->pensionStore->updateDc($id, $canonical, $user, IngestSource::FORM);
 
                 if ($holdings !== null) {
-                    $updated->holdings()->delete();
-                    $this->seedHoldingsForDcPension($updated, $holdings);
+                    $this->syncHoldingsForDcPension($updated, $holdings);
                 }
 
                 return $updated;

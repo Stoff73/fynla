@@ -110,26 +110,11 @@ class PropertyService
      */
     public function calculateUserEquity(Property $property, int $userId): float
     {
-        $fullEquity = $this->calculateEquity($property);
-
-        // Apply ownership percentage to get user's share
-        $ownershipType = $property->ownership_type ?? 'individual';
-
-        if ($ownershipType === 'individual' || $ownershipType === 'trust') {
-            return $property->user_id === $userId ? $fullEquity : 0.0;
-        }
-
-        $percentage = (float) ($property->ownership_percentage ?? 50);
-
-        if ($property->user_id === $userId) {
-            return $fullEquity * ($percentage / 100);
-        }
-
-        if (($property->joint_owner_id ?? null) === $userId) {
-            return $fullEquity * ((100 - $percentage) / 100);
-        }
-
-        return 0.0;
+        // Composed from the one home rather than re-derived. This was a
+        // byte-equivalent inline copy of the share rule — the fourth — and it has
+        // no callers today, which is exactly how a copy survives long enough to
+        // drift from the original (W-0228).
+        return $this->calculateEquity($property) * $this->userShareFraction($property, $userId);
     }
 
     /**
@@ -177,28 +162,18 @@ class PropertyService
             }
         }
 
-        // Calculate ownership percentage based on user's role (primary or joint owner)
-        $ownershipMultiplier = 1.0;
-        if ($property->ownership_type === 'joint' || $property->ownership_type === 'tenants_in_common') {
-            $primaryOwnerPercentage = (float) ($property->ownership_percentage ?? 50);
-
-            if ($userId !== null) {
-                // Determine if user is primary owner or joint owner
-                if ($property->user_id === $userId) {
-                    // User is primary owner - use their percentage
-                    $ownershipMultiplier = $primaryOwnerPercentage / 100;
-                } elseif ($property->joint_owner_id === $userId) {
-                    // User is joint owner - use remaining percentage
-                    $ownershipMultiplier = (100 - $primaryOwnerPercentage) / 100;
-                } else {
-                    // User is neither owner - return zero
-                    $ownershipMultiplier = 0.0;
-                }
-            } else {
-                // No user specified - default to primary owner's share (backwards compatible)
-                $ownershipMultiplier = $primaryOwnerPercentage / 100;
-            }
-        }
+        // The share the rental income AND the mortgage interest are both charged
+        // at. This was a third inline copy of the rule; it now composes from the
+        // one home, which is what makes the interest side agree with the mortgage
+        // figures elsewhere under W-0228's ruling — the interest on a debt is
+        // shared exactly as the debt is, and the debt exactly as the property is.
+        //
+        // A null user means "the primary owner", the long-standing default for
+        // callers with no viewer in hand (the property financials tab).
+        $ownershipMultiplier = $this->userShareFraction(
+            $property,
+            $userId ?? (int) $property->user_id
+        );
 
         $userMonthlyTaxable = $monthlyTaxableIncome * $ownershipMultiplier;
         $userMonthlyInterest = $monthlyMortgageInterest * $ownershipMultiplier;

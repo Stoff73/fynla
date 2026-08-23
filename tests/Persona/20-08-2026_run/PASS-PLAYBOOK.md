@@ -75,6 +75,41 @@ Use the persona's own addresses so the DB queries in this file work verbatim:
 
 - David: `david.jones@example.com`
 - Sarah: `sarah.jones@example.com`
+- **Password for BOTH: `Password1!`** — not `password`. Recorded here 2026-08-23 because
+  it appeared in neither this playbook nor `tests/Persona/peak_earners.md`, and an agent
+  lost an attempt to `password` before recovering it with `Hash::check` against the stored
+  hash. **Do not brute-force the login form** — failed attempts burn into the lockout
+  counter. MFA codes come from `email_verification_codes`; fetch them yourself, never ask.
+- **VERIFY IDENTITY FROM THE SERVER, NOT THE CLIENT STORE.** Corrected 2026-08-23: an agent
+  read `fynla-state.auth.user` as instructed, got **Sarah (17)**, and the token was actually
+  authenticated as **David (16)** — the screen was his throughout. **Following that check
+  would have recorded David's £700,000 as Sarah's**, on the very figure the batch existed to
+  change. The store is a client cache and it goes stale across an account switch. Use:
+  ```
+  GET /api/auth/user
+  ```
+  **Never confirm identity by recognising a figure either** — the figures are usually the
+  thing under test, so recognising one is circular.
+- **There are TWO token stores on one origin, and they can hold DIFFERENT users at the same
+  time.** Measured 2026-08-23: `sessionStorage.auth_token` = token **115** (desktop),
+  `localStorage.m_scaffold_token` = token **116** (`/m`). **Check each surface against the
+  server on its OWN token** — `/m` fetches with 116, so verifying with the desktop token
+  tells you nothing about what `/m` is showing you.
+- **Do not trust a relayed session state.** A coordinator handover records a snapshot that
+  decays the moment it is written; three relays were wrong on 2026-08-22/23, one of them
+  reporting two signed-in accounts when the tab was authenticated as **nobody**.
+  **Establish identity yourself, per surface, before believing any screen.**
+- **HMR CAN SILENTLY BREAK PLAYWRIGHT TYPING — and it looks exactly like a broken form.**
+  Found 2026-08-23, cost ~20 minutes and nearly a false bug report. `fill()` and
+  `pressSequentially()` set the DOM `value` correctly (the field *shows* the text) while
+  Vue's reactive `form.email` / `form.password` stay **empty**, so submit fires no request.
+  **`v-model` is fine** — a manually dispatched `input` event updates Vue instantly. The
+  cause is the component **remounting mid-interaction**: Vite HMR reacting to *another
+  agent* editing `resources/js/` in this shared tree. Tell-tale: static request count
+  climbing (125 → 251 → 252) with no navigation.
+  **Fix: make fill-and-click atomic inside ONE `browser_evaluate`.**
+  **Checking `public/hot`'s age does NOT catch this** — Vite was running and serving
+  correctly; the problem is that it was working, on someone else's edit.
 
 ---
 
@@ -365,7 +400,7 @@ Set each with ~400 ms gaps and focus/blur.
 |---|---|
 | Food & Groceries | 450 |
 | Transport & Fuel | 150 |
-| Healthcare & Medical | 50 |
+| Healthcare & Medical | 100 |
 | Insurance | 100 |
 | Mobile Phones | 50 |
 | Internet & TV | 40 |
@@ -378,13 +413,18 @@ Set each with ~400 ms gaps and focus/blur.
 | School Extras | 80 |
 | Children Activities | 100 |
 | Gifts & Charity | 50 |
-| **Sum of categories** | **2450** |
+| **Sum of categories** | **2500** |
 
-> **Persona-file inconsistency — flag, do not fix.** The User Profile table and the
-> Expenditure heading both say **£2,500/month**, but the fifteen categories sum to
-> **£2,450**. Enter the categories as written; expect `monthly_expenditure = 2450` and
-> `annual_expenditure = 29400`. Record the £50 discrepancy for product-lead. Do not
-> edit the persona file, and do not invent a £50 category to make it balance.
+> **CORRECTED 2026-08-22 — there is NO persona inconsistency.** This playbook
+> previously transcribed Healthcare & Medical as **£50**; the persona file says
+> **£100** (`tests/Persona/peak_earners.md:506`). The fifteen categories sum to
+> **£2,500**, matching both the User Profile table and the Expenditure heading
+> exactly. The "£2,500 vs £2,450 contradiction" was this file's arithmetic, not the
+> persona's, and it stood as a pending product-lead decision for two days.
+>
+> Enter the categories as written; expect `monthly_expenditure = 2500` and
+> `annual_expenditure = 30000`. **Any run figure derived from £2,450 or a £1,225
+> half-share is £50/month light and must be re-derived.**
 
 ### 1.8 Trust — `/trusts` → **Create Trust** (premium)
 
@@ -655,9 +695,9 @@ Monthly property commitments (running costs + mortgage), split by ownership:
 
 | Line | Value |
 |---|---|
-| Sum of the 15 categories | **£2,450/month** |
-| `users.monthly_expenditure` | **2450** |
-| `users.annual_expenditure` | **29400** |
+| Sum of the 15 categories | **£2,500/month** |
+| `users.monthly_expenditure` | **2500** |
+| `users.annual_expenditure` | **30000** |
 | `users.expenditure_entry_mode` | `detailed` |
 | Persona's stated headline | £2,500/month — **£50 unexplained** |
 
@@ -973,7 +1013,7 @@ the total happens to be right.
 | `/estate/will-builder` | His mirror will, executors **Sarah Jones + Barclays Wealth**, gift Cancer Research UK £10,000 | Her mirror will, executors **David Jones + Barclays Wealth**, gift British Heart Foundation £10,000 | **Herself named as her own executor** (W-0024) · Cancer Research UK as her charity (W-0024) |
 | `/trusts` | Jones Children's Education Trust £185,000, "Relevant Property Trust" spelled out | Same (she is a trustee) | "RPT" as a bare acronym (W-0021) |
 | `/valuable-info?section=letter` | Liabilities section naming the £65,000 mortgage, not "No outstanding liabilities recorded" (W-0022) | Her own letter | David's letter content |
-| `/valuable-info?section=expenditure` | £2,450/mo, 15 categories | Her own expenditure | David's categories as hers |
+| `/valuable-info?section=expenditure` | £2,500/mo, 15 categories | Her own expenditure | David's categories as hers |
 | `/tax-strategy` | Annual Allowance headroom **£36,800**, saving **£19,101** | Her own headroom, computed from £120,000 and her Defined Benefit accrual | David's figures |
 | `/plans/retirement` | `required_income` **£75,000** once enterable — today £100,050 from the fallback (W-0035, W-0036) | £55,000 — today £116,250 | — |
 
@@ -995,7 +1035,7 @@ in one place, not two.
 | `/m/app/protection` and `/protection/policy/:type/:id` | £500,000 in trust, £200,000, £210/mo, both start/end dates |
 | `/m/app/estate` and `/m/app/estate/bequests` | Estate £1,728,680–£1,728,780 band per §2.5; **all six bequests listed** (W-0023) |
 | `/m/app/goals` | Goals **and life events** — the page is titled "Goals and life events" (W-0028) |
-| `/m/app/expenditure` and `/m/app/income` | £2,450/mo · £145,000 / £120,000 |
+| `/m/app/expenditure` and `/m/app/income` | £2,500/mo · £145,000 / £120,000 |
 | `/m/app/tax-strategy` | £36,800 / £19,101 |
 | `/m/app/personal-information` | Health "Yes, good health", smoking "Never smoked", education "Postgraduate" (W-0006) |
 
@@ -1246,7 +1286,7 @@ chat window including the turn that writes, then confirm the DB row.
 | 18 | "We have a Vitality joint life level term policy for £500,000, £85 a month, written in trust, running from January 2020 to January 2040. Sarah and both children are the beneficiaries." | `create_protection_policy` | £500,000, `in_trust=1`, **`joint_life=1`**, start/end dates, 3 beneficiaries |
 | 19 | "And a Legal & General standalone critical illness policy, £200,000, £125 a month, same dates." | `create_protection_policy` | £200,000, **`policy_end_date = 2040-01-01`** |
 | 20 | "We own a £35,000 art collection jointly, a 1967 Jaguar E-Type worth £85,000 that's mine, a Georgian writing desk worth £8,500 jointly, £4,500 of first edition books that are mine, and a BMW X5 worth £42,000 jointly." | `create_chattel` ×5 | 5 rows; every joint one has `joint_owner_id` set (W-0025) |
-| 21 | "We spend about £2,450 a month — £450 food, £150 transport, £1,000 school fees…" (read the full list) | `set_expenditure` | `monthly_expenditure = 2450`, 15 categories |
+| 21 | "We spend about £2,500 a month — £450 food, £150 transport, £1,000 school fees…" (read the full list) | `set_expenditure` | `monthly_expenditure = 2500`, 15 categories |
 | 22 | "I settled a discretionary trust in September 2020 for the children's education — the Jones Children's Education Trust, now worth £185,000." | `create_trust` | £185,000, discretionary, relevant property trust derived |
 | 23 | "I want a mirror will leaving everything to Sarah, with Sarah and Barclays Wealth as executors." | `create_will` | `wills` row, `will_type='mirror'` |
 | 24 | "Leave £10,000 to Cancer Research UK, and split the rest 50/50 between William and Charlotte, held in trust until they're 25." | `create_estate_gift` | **`bequests` rows** — the W-0023 check on the Fyn path |
@@ -1429,7 +1469,7 @@ Found by reverse-engineering Sarah's £116,250 target: £116,250 ÷ 0.75 = £155
 ### 7.4 Persona-file inconsistencies — for product-lead, not for the tester to fix
 
 1. **Expenditure £50 short.** Headline £2,500/month; the fifteen categories sum to
-   £2,450. (§2.4)
+   £2,500. (§2.4)
 2. **Net worth range.** Header says £1.5m–£2m; the data gives £2,228,780 including
    pensions, £1,728,780 excluding. Only the ex-pensions reading fits. (§2.2)
 3. **Holdings do not sum to account values.** −£85 to +£28 across the four accounts,
@@ -1473,4 +1513,6 @@ run exists to find.
 **`tests/Persona/peak_earners.md` is the only source for persona figures. Never the PDF.**
 Where a precomputed expected value in this playbook disagrees with the markdown, the
 markdown wins and the playbook is corrected. The PDF's internal inconsistencies
-(expenditure £2,500 vs £2,450; the net-worth range) are out of scope and are not defects.
+(the net-worth range) are out of scope and are not defects. The expenditure
+"£2,500 vs £2,450" item was NOT a persona contradiction — it was this playbook's own
+transcription error and is corrected; see §1.7.

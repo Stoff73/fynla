@@ -8,10 +8,14 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Shared\MonteCarloEngine;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Support\Collection;
 
 class InvestmentProjectionService
 {
+    use CalculatesOwnershipShare;
+
     private const DEFAULT_PROJECTION_PERIODS = [5, 10, 20, 30];
 
     private const MONTE_CARLO_ITERATIONS = 1000;
@@ -24,27 +28,51 @@ class InvestmentProjectionService
     ) {}
 
     /**
-     * Get the user's share value for an account (handles joint ownership).
+     * Every investment account this user holds a share of, jointly owned ones included.
+     *
+     * `where('user_id', …)` returns only the accounts this user is the primary owner of,
+     * so a spouse who is the joint owner of an account sees none of it — while the same
+     * household's net worth and dashboard totals, which read the reach-complete
+     * aggregator, count their share. The projection then contradicted the capital figure
+     * printed directly above it on the same card.
      */
-    private function getUserShareValue(InvestmentAccount $account): float
+    private function accountsWithUserShare(User $user): Collection
     {
-        $fullValue = (float) $account->current_value;
+        return InvestmentAccount::forUserOrJoint($user->id)
+            ->with('holdings')
+            ->get();
+    }
 
-        if ($account->ownership_type === 'joint') {
-            $percentage = (float) ($account->ownership_percentage ?? 50) / 100;
+    /**
+     * Get the user's share value for an account (handles joint ownership).
+     *
+     * Delegates to CalculatesOwnershipShare, the one home for the rule, so the co-owner
+     * of a joint account gets the complementary share rather than the primary owner's.
+     */
+    private function getUserShareValue(InvestmentAccount $account, int $userId): float
+    {
+        return $this->calculateUserShare($account, $userId);
+    }
 
-            return $fullValue * $percentage;
-        }
+    /**
+     * Whether the risk level applied to a product came from a stated preference or a
+     * fallback default. Kept beside resolveProductRiskLevel() so the level and its
+     * provenance can never disagree about which branch was taken.
+     */
+    private function riskSourceFor(InvestmentAccount $account, int $userId): string
+    {
+        $stated = $this->riskService->getProductRiskOverride($account) !== null
+            || $this->riskService->getMainRiskLevel($userId) !== null;
 
-        return $fullValue;
+        return $stated ? 'profile' : 'default';
     }
 
     /**
      * Get total portfolio value accounting for joint ownership.
      */
-    private function getTotalPortfolioValue(Collection $accounts): float
+    private function getTotalPortfolioValue(Collection $accounts, int $userId): float
     {
-        return $accounts->sum(fn ($account) => $this->getUserShareValue($account));
+        return $accounts->sum(fn ($account) => $this->getUserShareValue($account, $userId));
     }
 
     /**
@@ -57,9 +85,7 @@ class InvestmentProjectionService
         ?array $contributionOverrides = null,
         ?int $selectedPeriod = null
     ): array {
-        $accounts = InvestmentAccount::where('user_id', $user->id)
-            ->with('holdings')
-            ->get();
+        $accounts = $this->accountsWithUserShare($user);
 
         if ($accounts->isEmpty()) {
             return [
@@ -132,7 +158,7 @@ class InvestmentProjectionService
         array $periods,
         ?array $contributionOverrides
     ): array {
-        $totalValue = $this->getTotalPortfolioValue($accounts);
+        $totalValue = $this->getTotalPortfolioValue($accounts, $user->id);
         $monthlyContribution = $this->contributionEstimator->estimatePortfolioContribution(
             $accounts,
             $contributionOverrides
@@ -169,7 +195,8 @@ class InvestmentProjectionService
                 $years,
                 self::MONTE_CARLO_ITERATIONS,
                 $cacheKey,
-                $scheduledInjections
+                $scheduledInjections,
+                MonteCarloEngine::BAND_PERCENTILES
             );
 
             $yearByYear = $this->extractProbabilityBands($simulation);
@@ -209,25 +236,15 @@ class InvestmentProjectionService
         array $periods,
         ?float $contributionOverride
     ): array {
-        $value = $this->getUserShareValue($account);
+        $value = $this->getUserShareValue($account, $user->id);
         $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution(
             $account,
             $contributionOverride
         );
 
         // Get risk level for this account and track source
-        $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
-        $riskSource = 'default';
-
-        if ($account->risk_preference !== null) {
-            $riskLevel = $account->risk_preference;
-            $riskSource = 'profile';
-        } elseif ($mainRiskLevel !== null) {
-            $riskLevel = $mainRiskLevel;
-            $riskSource = 'profile';
-        } else {
-            $riskLevel = 'medium';
-        }
+        $riskLevel = $this->riskService->resolveProductRiskLevel($account, $user->id);
+        $riskSource = $this->riskSourceFor($account, $user->id);
 
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
@@ -245,7 +262,9 @@ class InvestmentProjectionService
                 $riskParams['volatility'] / 100,
                 $years,
                 self::MONTE_CARLO_ITERATIONS,
-                $cacheKey
+                $cacheKey,
+                [],
+                MonteCarloEngine::BAND_PERCENTILES
             );
 
             $yearByYear = $this->extractProbabilityBands($simulation);
@@ -283,98 +302,19 @@ class InvestmentProjectionService
 
     /**
      * Extract probability bands from Monte Carlo results.
+     *
+     * Delegates to MonteCarloEngine::extractProbabilityBands(), the one home for this
+     * reshape, shared with the retirement projection. Every band it returns is a
+     * percentile the simulation measured.
      */
     private function extractProbabilityBands(array $simulation): array
     {
-        $result = [];
-        $currentYear = (int) date('Y');
-        $startValue = $simulation['summary']['start_value'] ?? 0;
-
-        // Add year 0 (current year) with current value
-        $result[] = [
-            'year' => $currentYear,
-            'year_number' => 0,
-            'percentile_5' => round($startValue, 2),
-            'percentile_10' => round($startValue, 2),
-            'percentile_15' => round($startValue, 2),
-            'percentile_20' => round($startValue, 2),
-            'percentile_25' => round($startValue, 2),
-            'percentile_50' => round($startValue, 2),
-            'percentile_75' => round($startValue, 2),
-            'percentile_90' => round($startValue, 2),
-        ];
-
-        foreach ($simulation['year_by_year'] as $yearData) {
-            $yearIndex = $yearData['year'];
-            $percentiles = $yearData['percentiles'];
-
-            $p10 = $this->getPercentileValue($percentiles, '10th');
-            $p25 = $this->getPercentileValue($percentiles, '25th');
-            $p50 = $this->getPercentileValue($percentiles, '50th');
-            $p75 = $this->getPercentileValue($percentiles, '75th');
-            $p90 = $this->getPercentileValue($percentiles, '90th');
-
-            // Interpolate 15th and 20th percentiles between 10th and 25th
-            $spread = $p25 - $p10;
-            $p15 = $p10 + ($spread * 0.33);
-            $p20 = $p10 + ($spread * 0.67);
-
-            // Extrapolate 5th percentile below 10th (conservative estimate)
-            $p5 = $p10 - ($spread * 0.33);
-
-            // Smooth transition for early years
-            $blendFactor = 1.0;
-            if ($yearIndex === 1) {
-                $blendFactor = 0.7;
-            } elseif ($yearIndex === 2) {
-                $blendFactor = 0.9;
-            }
-
-            $p5 = $this->blendValue($p5, $startValue, $blendFactor);
-            $p10 = $this->blendValue($p10, $startValue, $blendFactor);
-            $p15 = $this->blendValue($p15, $startValue, $blendFactor);
-            $p20 = $this->blendValue($p20, $startValue, $blendFactor);
-            $p25 = $this->blendValue($p25, $startValue, $blendFactor);
-            $p50 = $this->blendValue($p50, $startValue, $blendFactor);
-            $p75 = $this->blendValue($p75, $startValue, $blendFactor);
-            $p90 = $this->blendValue($p90, $startValue, $blendFactor);
-
-            $result[] = [
-                'year' => $currentYear + $yearIndex,
-                'year_number' => $yearIndex,
-                'percentile_5' => round($p5, 2),
-                'percentile_10' => round($p10, 2),
-                'percentile_15' => round($p15, 2),
-                'percentile_20' => round($p20, 2),
-                'percentile_25' => round($p25, 2),
-                'percentile_50' => round($p50, 2),
-                'percentile_75' => round($p75, 2),
-                'percentile_90' => round($p90, 2),
-            ];
-        }
-
-        return $result;
-    }
-
-    private function blendValue(float $monteCarloValue, float $startValue, float $blendFactor): float
-    {
-        return ($monteCarloValue * $blendFactor) + ($startValue * (1 - $blendFactor));
-    }
-
-    private function getPercentileValue(array $percentiles, string $key): float
-    {
-        foreach ($percentiles as $p) {
-            if ($p['percentile'] === $key) {
-                return (float) $p['value'];
-            }
-        }
-
-        return 0.0;
+        return $this->simulator->extractProbabilityBands($simulation);
     }
 
     private function calculatePortfolioRiskWithSource(Collection $accounts, User $user): array
     {
-        $totalValue = $this->getTotalPortfolioValue($accounts);
+        $totalValue = $this->getTotalPortfolioValue($accounts, $user->id);
 
         if ($totalValue <= 0) {
             return [
@@ -393,12 +333,10 @@ class InvestmentProjectionService
         }
 
         foreach ($accounts as $account) {
-            $weight = $this->getUserShareValue($account) / $totalValue;
-            $riskLevel = $account->risk_preference
-                ?? $mainRiskLevel
-                ?? 'medium';
+            $weight = $this->getUserShareValue($account, $user->id) / $totalValue;
+            $riskLevel = $this->riskService->resolveProductRiskLevel($account, $user->id);
 
-            if ($account->risk_preference !== null) {
+            if ($this->riskService->getProductRiskOverride($account) !== null) {
                 $hasProfileRisk = true;
             }
 
@@ -452,12 +390,11 @@ class InvestmentProjectionService
      */
     public function getAccountProjectedValue80(InvestmentAccount $account, User $user, int $years): float
     {
-        $value = $this->getUserShareValue($account);
+        $value = $this->getUserShareValue($account, $user->id);
         $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution($account);
 
         // Get risk level
-        $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
-        $riskLevel = $account->risk_preference ?? $mainRiskLevel ?? 'medium';
+        $riskLevel = $this->riskService->resolveProductRiskLevel($account, $user->id);
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
         // Cache key for this projection
@@ -470,7 +407,9 @@ class InvestmentProjectionService
             $riskParams['volatility'] / 100,
             $years,
             self::MONTE_CARLO_ITERATIONS,
-            $cacheKey
+            $cacheKey,
+            [],
+            MonteCarloEngine::BAND_PERCENTILES
         );
 
         $yearByYear = $this->extractProbabilityBands($simulation);
@@ -500,23 +439,15 @@ class InvestmentProjectionService
         ?string $riskLevelOverride,
         array $periods
     ): array {
-        $value = $this->getUserShareValue($account);
+        $value = $this->getUserShareValue($account, $user->id);
         $monthlyContribution = $this->contributionEstimator->estimateMonthlyContribution($account);
-
-        $mainRiskLevel = $this->riskService->getMainRiskLevel($user->id);
-        $riskSource = 'default';
 
         if ($riskLevelOverride !== null) {
             $riskLevel = $riskLevelOverride;
             $riskSource = 'override';
-        } elseif ($account->risk_preference !== null) {
-            $riskLevel = $account->risk_preference;
-            $riskSource = 'profile';
-        } elseif ($mainRiskLevel !== null) {
-            $riskLevel = $mainRiskLevel;
-            $riskSource = 'profile';
         } else {
-            $riskLevel = 'medium';
+            $riskLevel = $this->riskService->resolveProductRiskLevel($account, $user->id);
+            $riskSource = $this->riskSourceFor($account, $user->id);
         }
 
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
@@ -535,7 +466,9 @@ class InvestmentProjectionService
                 $riskParams['volatility'] / 100,
                 $years,
                 self::MONTE_CARLO_ITERATIONS,
-                $cacheKey
+                $cacheKey,
+                [],
+                MonteCarloEngine::BAND_PERCENTILES
             );
 
             $yearByYear = $this->extractProbabilityBands($simulation);
