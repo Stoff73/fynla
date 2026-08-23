@@ -212,6 +212,23 @@ Not run as a separate pass — the session *was* a defect-fixing run, and everyt
 
 ---
 
+## From the vault sync (post-handover)
+
+**Four Current State docs are stale for modules this session rewrote.** Root `CLAUDE.md` says to read the relevant vault doc **before working on any module** — these will actively mislead:
+
+| Doc | Age |
+|---|---|
+| `Current State/EstatePlanning.md` | **110 days** |
+| `Current State/Investment.md` | **110 days** |
+| `Current State/Protection.md` | **108 days** |
+| `Current State/Savings.md` | **108 days** |
+
+Estate, investment, protection and savings all changed materially overnight — new estate figures, a consolidated charitable position, life-cover reach, projection fixes, the emergency-fund definition. **Refresh these before the tester restarts, or it will read a four-month-old description of code that changed last night.**
+
+**Codebase metrics drifted since 2026-08-13** and were refreshed in the vault: PHP services **462 → 519**, controllers **134 → 147**, models **138 → 151**, Vue components **679 → 690**. Worth confirming root `CLAUDE.md`'s table matches.
+
+**`MEMORY.md` indexes 111 of 112 memory files**, but roughly 80 older files are on disk without an index line — non-critical (they remain discoverable), zero dead references.
+
 ## Branch and deploy state
 
 - **Branch:** `wip/persona-cycle4-snapshot` (created this session; `dev` + one wip commit). **Stay on it.**
