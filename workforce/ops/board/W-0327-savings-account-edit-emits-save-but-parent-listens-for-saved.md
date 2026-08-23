@@ -2,16 +2,16 @@
 id: W-0327
 title: Editing a savings account from its detail page silently does nothing — the modal emits `save`, the page listens for `saved`
 mission: persona-run-peak_earners-2026-08-20
-branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
+branch: estate-copy-and-m-handoff
 owner: build-lead
-status: queued
+status: handoff
 severity: high
 surfaces: [web]
 created: 2026-08-22T23:55:00Z
 claimed: null
 blocked_by: []
 gate: null
-handoff_to: null
+handoff_to: quality-lead
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0257]
 prior_art_outcome: none
@@ -103,3 +103,36 @@ name binding two components together.
 - 2026-08-22 build-lead (`fix-cycle4-columns`): `resources/js/views/Savings/` is
   outside this batch's scope, so reported rather than fixed. The fix is one
   attribute plus a handler.
+
+- 2026-08-23 — **Reproduced in the browser before touching anything.** Signed in as
+  `david.jones@example.com`, opened `/savings/account/27` (HSBC, £25,000), changed the
+  balance to £26,750 and pressed Update Account. Database still `25000.00`, **modal still
+  open, no error, no request.** Exactly as filed.
+
+- 2026-08-23 — **Two faults, and fixing either alone still loses the edit.** The event
+  name was only the first. `handleAccountSaved()` took **no argument and made no
+  request** — it closed the modal and reloaded. So renaming `@saved` to `@save` on its own
+  would have closed the modal and re-rendered the unchanged account: the edit still lost,
+  and now looking as though it had saved. That is a worse failure than the one being
+  fixed. **And `updateAccount` was not in this page's `mapActions`** — a third layer,
+  invisible until something finally tried to call it.
+
+- 2026-08-23 — **Rule 20: mirrored the correct sibling rather than inventing a shape.**
+  `SavingsAccountDetailInline.vue::handleAccountSaved` is the same page in inline form and
+  already does this properly, including the preview-mode branch where the API returns a
+  fake success and the database is deliberately not written (reloading there would show
+  the old value). Copied that, including its `mapActions` line.
+
+- 2026-08-23 — **Five of the six other `SaveAccountModal` consumers already listen for
+  `save`** — `AccountDetails.vue`, `SavingsModuleOverview.vue`,
+  `SavingsAccountDetailInline.vue`, `CashOverview.vue`, `AssetsStep.vue`. This page was the
+  lone outlier, which is why the modal itself was correct (CLAUDE.md Rule 3) and nothing
+  else was affected.
+
+- 2026-08-23 — **Verified in the browser after the fix**, same account and same edit:
+  `savings_accounts.current_balance` = `26750.00`, modal closed, page shows £26,750.
+  Restored to £25,000 afterwards.
+
+- 2026-08-23 — **Rule 19: no `/m` counterpart exists.** `resources/mobile/` contains no
+  savings edit surface at all — no `SaveAccountModal`, no `updateAccount`. Nothing to
+  bring to parity, rather than parity skipped.
