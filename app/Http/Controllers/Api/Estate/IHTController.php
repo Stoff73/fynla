@@ -271,7 +271,9 @@ class IHTController extends Controller
             'has_spouse' => ['nullable', 'boolean'],
             'own_home' => ['nullable', 'boolean'],
             'home_value' => ['nullable', 'numeric', 'min:0'],
-            'nrb_transferred_from_spouse' => ['nullable', 'numeric', 'min:0'],
+            'nrb_transferred_from_spouse' => ['nullable', 'numeric', 'min:0', 'max:'.(int) $this->taxConfig->getInheritanceTax()['nil_rate_band']],
+            // Was absent from this list entirely, so nothing bounded it at any layer.
+            'rnrb_transferred_from_spouse' => ['nullable', 'numeric', 'min:0', 'max:'.(int) $this->taxConfig->getInheritanceTax()['residence_nil_rate_band']],
             'charitable_giving_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 

@@ -230,3 +230,22 @@ it('never lets one person\'s gifts reach past their own allowance', function () 
     expect($r['total_nrb_used'])->toBe(325_000.0)
         ->and($r['failed_gift_tax'])->toBe(230_000.0);
 });
+
+it('does not cumulate a potentially exempt transfer that survived its seven years', function () {
+    gift($this->user, 'pet', 300_000, 8.0);
+    gift($this->user, 'pet', 300_000, 2.0);
+
+    $r = $this->calc->forMember($this->user, $this->nrb);
+
+    expect($r['failed_gift_tax'])->toBe(0.0)
+        ->and($r['total_nrb_used'])->toBe(300_000.0);
+});
+
+it('reduces the estate band by the VALUE of in-window transfers, not the band they used', function () {
+    gift($this->user, 'clt', 200_000, 8.0);
+    gift($this->user, 'pet', 300_000, 2.0);
+
+    $r = $this->calc->forMember($this->user, $this->nrb);
+
+    expect($r['total_nrb_used'])->toBe(300_000.0);
+});

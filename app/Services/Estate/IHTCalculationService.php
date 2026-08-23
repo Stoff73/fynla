@@ -209,9 +209,20 @@ class IHTCalculationService
         // residence band the taper should have removed — it UNDERSTATED tax, the one
         // direction a compliance surface must not lean. Wholly relieved assets are
         // dropped from gross at the filter above, so they are added back here too.
+        // R2 — only the WHOLLY relieved assets need adding back.
+        //
+        // `$totalGrossAssets` already sums every non-exempt asset at full value, and
+        // a PARTLY relieved business is not exempt (`is_iht_exempt` is set only when
+        // relief covers the whole value) — so its full value is in there already.
+        // Adding its relief amount as well counted the relief twice, and those two
+        // terms were character-for-character the definition of
+        // `$businessReliefDeduction`, so the overstatement equalled it exactly:
+        // a £6m business with £4.25m of relief produced an E of £10.25m.
+        //
+        // Wholly relieved assets DO leave the gross filter, so they must come back.
+        // Guarded on `iht_relief_qualifies` so genuinely exempt property — defined
+        // contribution pensions — is not dragged into the taper base with them.
         $estateForTaper = $totalGrossAssets
-            + (float) $userTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0))
-            + (float) $spouseTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0))
             + (float) $userAssets->filter(fn ($a) => ($a->is_iht_exempt ?? false) && ($a->iht_relief_qualifies ?? false))->sum('current_value')
             + (float) $spouseAssets->filter(fn ($a) => ($a->is_iht_exempt ?? false) && ($a->iht_relief_qualifies ?? false))->sum('current_value')
             - $totalLiabilities;
@@ -231,11 +242,28 @@ class IHTCalculationService
         // second-death modelling assumption (see the projection docblock), and it is
         // now labelled as one instead of appearing as £175,000 the user could not
         // account for. Do NOT "fix" this by writing 325,000 into `nrb_transferred`.
-        $nrbSpouseModelled = 0.0;
+        // F19 / F15's twin — the nil rate band was in exactly the state the residence
+        // band was in, and for the same two reasons.
+        //
+        // UNCAPPED: `IHTController:266` validates `nrb_transferred_from_spouse` as
+        // `numeric|min:0` with no ceiling, `:159` SUMS it across pooled members, and
+        // it was added below with no `min()`. A widowed user entering £500,000 was
+        // given an £825,000 band. s8A(3)-(5) transfers the unused PERCENTAGE of the
+        // first-to-die's band and caps the increase at 100% of the maximum, so the
+        // survivor's ceiling is 2 × £325,000 however many predeceased spouses there
+        // are. Capped in the CALCULATION because the pooled sum can breach the
+        // ceiling from individually valid rows.
+        $nrbTransferred = min($nrbTransferred, $nrbSingle);
+
+        // IDENTITY BREAK: when pooling, `$nrbSpouseModelled` was set to the whole
+        // band and `$nrbTransferred` was published from the pooled sum but never
+        // entered the total — the same £325,000-you-cannot-account-for that was just
+        // fixed on the residence side. A real brought-forward band DISPLACES the
+        // modelled one rather than stacking on top of it.
+        $nrbSpouseModelled = $poolsSpouse ? max(0.0, $nrbSingle - $nrbTransferred) : 0.0;
 
         if ($poolsSpouse) {
-            $nrbSpouseModelled = $nrbSingle;
-            $nrbGross = $nrbSingle + $nrbSpouseModelled;
+            $nrbGross = $nrbSingle + $nrbTransferred + $nrbSpouseModelled;
         } elseif ($isWidowed && $nrbTransferred > 0) {
             $nrbGross = $nrbSingle + $nrbTransferred;
         } else {
@@ -1327,7 +1355,7 @@ class IHTCalculationService
      * the projected band was capped at today's house price (W-0136).
      */
     private function calculateRNRB(
-        float $totalNetEstate,
+        float $estateForTaper,
         float $residenceNetValue,
         User $user,
         ?User $spouse,
@@ -1453,8 +1481,8 @@ class IHTCalculationService
         // £250,000, cap does not bite → £250,000. Old order: cap to £300,000, then
         // taper £100,000 → £200,000. £50,000 of allowance, £20,000 of tax.
         // Ref: IHTA 1984 s8D(5)(f)-(g), s8E(2)-(5); IHTM46023, IHTM46026, IHTM46044.
-        $taperReductionRaw = $totalNetEstate > $taperThreshold
-            ? ($totalNetEstate - $taperThreshold) * $taperRate
+        $taperReductionRaw = $estateForTaper > $taperThreshold
+            ? ($estateForTaper - $taperThreshold) * $taperRate
             : 0.0;
 
         // Bounded because s8D(5)(g) ends "but is nil if that amount is greater than
@@ -1475,7 +1503,7 @@ class IHTCalculationService
         // Both reductions are already computed above, in statutory order, so the
         // three branches now only choose WORDING. They used to re-derive the taper,
         // which is how the published components and the applied figure could differ.
-        $excess = max(0.0, $totalNetEstate - $taperThreshold);
+        $excess = max(0.0, $estateForTaper - $taperThreshold);
         $tapered = $taperReduction > 0;
 
         $components = [
@@ -1491,9 +1519,13 @@ class IHTCalculationService
                 'rnrb_available' => 0,
                 ...$components,
                 'rnrb_status' => $tapered ? 'tapered' : 'residence_capped',
-                'rnrb_message' => $tapered
-                    ? 'Residence Nil Rate Band fully tapered away. Your estate of £'.number_format($totalNetEstate).' exceeds the taper threshold of £'.number_format($taperThreshold).' by £'.number_format($excess).', eliminating all Residence Nil Rate Band of £'.number_format($rnrbGross).'.'
-                    : 'Residence Nil Rate Band not available — the main residence passing to your direct descendants has no net value once the mortgage secured on it is deducted.',
+                // R4 — both reductions can be non-zero, and `$tapered` was used as an
+                // either/or: with gross £350,000, no residence value and a £50,000
+                // taper, it credited the taper with removing all £350,000. The
+                // components were right; the sentence was not.
+                'rnrb_message' => $residenceCapReduction >= $taperReduction
+                    ? 'Residence Nil Rate Band not available — the main residence passing to your direct descendants has no net value once the mortgage secured on it is deducted'.($tapered ? ', and your estate is above the £'.number_format($taperThreshold).' taper threshold' : '').'.'
+                    : 'Residence Nil Rate Band fully tapered away. Your estate before reliefs of £'.number_format($estateForTaper).' exceeds the taper threshold of £'.number_format($taperThreshold).' by £'.number_format($excess).', eliminating all £'.number_format($rnrbGross).' of it.',
             ];
         }
 
@@ -1503,7 +1535,7 @@ class IHTCalculationService
         $sentences = ['Residence Nil Rate Band of £'.number_format($fullRNRB).' available from a maximum of £'.number_format($rnrbGross).'.'];
 
         if ($tapered) {
-            $sentences[] = 'Your estate of £'.number_format($totalNetEstate).' exceeds the £'.number_format($taperThreshold).' taper threshold by £'.number_format($excess).', reducing the allowance by £'.number_format($taperReduction).' (£1 for every £2 over the threshold).';
+            $sentences[] = 'Your estate before reliefs of £'.number_format($estateForTaper).' exceeds the £'.number_format($taperThreshold).' taper threshold by £'.number_format($excess).', reducing the allowance by £'.number_format($taperReduction).' (£1 for every £2 over the threshold).';
         }
 
         if ($cappedByResidence) {

@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Models\BusinessInterest;
+use App\Models\Estate\Liability;
+use App\Models\Property;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Estate\EstateAssetAggregatorService;
+use App\Services\Estate\IHTCalculationService;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -170,4 +173,35 @@ it('does not apply the cap before its effective date', function () {
     // someone's head.
     expect((float) businessAssets($this->user)->first()->iht_relief_amount)->toBe(6_000_000.0)
         ->and(businessAssets($this->user)->first()->is_iht_exempt)->toBeTrue();
+});
+
+/**
+ * R2 — the taper base is the estate BEFORE reliefs (IHTM46023), and adding the
+ * relief back on top of assets that never left produced an estate 70% too large.
+ */
+it('measures the residence-band taper on the estate before reliefs, without double counting', function () {
+    // £2.6m business (partly relieved), £100k home, £700k of liabilities.
+    // True taper base = 2.6m + 0.1m − 0.7m = £2.0m — exactly at the threshold, so
+    // no taper. The double count made it £4.55m and tapered the band to nothing.
+    qualifyingBusiness($this->user, 2_600_000);
+
+    Property::factory()->create([
+        'user_id' => $this->user->id,
+        'property_type' => 'main_residence',
+        'current_value' => 100_000,
+        'ownership_percentage' => 100,
+    ]);
+    Liability::factory()->create([
+        'user_id' => $this->user->id,
+        'current_balance' => 700_000,
+    ]);
+
+    $r = app(IHTCalculationService::class)
+        ->calculate($this->user->fresh(), null, false);
+
+    // Relief: £2.5m at 100% + £0.1m at 50% = £2.55m, leaving £50k chargeable.
+    expect((float) $r['business_relief_deduction'])->toBe(2_550_000.0);
+
+    // The taper base is £2.0m, not above the threshold, so the band is not tapered.
+    expect((float) $r['rnrb_taper_reduction'])->toBe(0.0);
 });

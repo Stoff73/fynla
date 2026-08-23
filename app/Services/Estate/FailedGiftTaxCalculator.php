@@ -142,7 +142,7 @@ final class FailedGiftTaxCalculator
             // band of one made last year, INVENTING tax: on a £300,000 transfer
             // thirteen years back and a £300,000 gift last year against a £325,000
             // band, it produced £110,000 where the law produces nil.
-            $deathCumulation = $this->cumulationBefore($gifts, $gift, $deathWindow, includePets: true);
+            $deathCumulation = $this->cumulationBefore($gifts, $gift, $deathWindow, includePets: true, petWindow: $petWindow);
             $bandAtDeath = max(0.0, $nrbSingle - $deathCumulation);
             $chargeableDeath = max(0.0, $gift['value'] - $bandAtDeath);
             $bandUsed = min($gift['value'], $bandAtDeath);
@@ -184,7 +184,7 @@ final class FailedGiftTaxCalculator
             // (IHTM14533).
             $lifetimeCharge = 0.0;
             if ($gift['type'] === 'clt') {
-                $lifetimeCumulation = $this->cumulationBefore($gifts, $gift, $lifetimeLookback, includePets: false);
+                $lifetimeCumulation = $this->cumulationBefore($gifts, $gift, $lifetimeLookback, includePets: false, petWindow: $petWindow);
                 $chargeableLifetime = max(0.0, $gift['value'] - max(0.0, $nrbSingle - $lifetimeCumulation));
                 $lifetimeCharge = $chargeableLifetime * $lifetimeRate;
             }
@@ -215,10 +215,27 @@ final class FailedGiftTaxCalculator
             ];
         }
 
+        // R3 — the estate's nil rate band is reduced by the VALUES transferred by
+        // chargeable transfers in the seven years before death (IHTM14503:
+        // "cumulating the VALUES TRANSFERRED by chargeable transfers in the seven
+        // preceding years"), NOT by the band each transfer happened to have left.
+        //
+        // Those two were the same figure while one running band was used. They
+        // stopped being the same once an out-of-window transfer could eat into an
+        // in-window transfer's band without itself cumulating against the estate —
+        // which understated the cumulation, and so overstated the band, by £175,000
+        // on the reviewer's case.
         $totals['total_nrb_used'] = min(
             $nrbSingle,
-            $totals['nrb_used_by_clts'] + $totals['nrb_used_by_pets'],
+            $totals['pets_in_7_years'] + $totals['clts_in_7_years'],
         );
+
+        // Reported as a chronological split of that same capped figure, so the two
+        // parts and the total reconcile with each other rather than being three
+        // independently-derived numbers.
+        $cltShare = min($totals['clts_in_7_years'], $totals['total_nrb_used']);
+        $totals['nrb_used_by_clts'] = $cltShare;
+        $totals['nrb_used_by_pets'] = $totals['total_nrb_used'] - $cltShare;
 
         return [
             ...array_map(fn (float $v): float => round($v, 2), $totals),
@@ -239,15 +256,36 @@ final class FailedGiftTaxCalculator
      * @param  Collection<int, array<string, mixed>>  $gifts
      * @param  array<string, mixed>  $subject
      */
-    private function cumulationBefore($gifts, array $subject, int $window, bool $includePets): float
+    private function cumulationBefore($gifts, array $subject, int $window, bool $includePets, int $petWindow): float
     {
         return (float) $gifts
-            ->filter(function (array $other) use ($subject, $window, $includePets): bool {
+            ->filter(function (array $other) use ($subject, $window, $includePets, $petWindow): bool {
                 if ($other['model']->id === $subject['model']->id) {
                     return false;
                 }
-                if (! $includePets && $other['type'] !== 'clt') {
-                    return false;
+
+                if ($other['type'] !== 'clt') {
+                    if (! $includePets) {
+                        return false;
+                    }
+
+                    // R1 — a potentially exempt transfer that survived its window is
+                    // EXEMPT and cumulates against nothing. s3A(4): such a transfer
+                    // "IS AN EXEMPT TRANSFER"; IHTM14513 on its worked example — "the
+                    // transfer ... is a successful PET. It is omitted from
+                    // cumulation."
+                    //
+                    // The collection this filters spans the whole fourteen-year search
+                    // bound, and the main loop's out-of-window guard only skips such a
+                    // gift for CHARGING. Without this it was counted here, inventing
+                    // £110,000 on a survived £300,000 gift — the same magnitude as the
+                    // running-band defect it replaced, on the sibling case. THE
+                    // PET/CLT ASYMMETRY IS THE FOURTEEN-YEAR RULE: a chargeable
+                    // lifetime transfer reaches back further because it was chargeable
+                    // when made; a survived potentially exempt transfer reaches nowhere.
+                    if ($other['years'] >= $petWindow) {
+                        return false;
+                    }
                 }
                 // Strictly earlier, and within `$window` years of the subject.
                 $gap = $other['years'] - $subject['years'];
