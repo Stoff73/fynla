@@ -181,6 +181,43 @@ class IHTCalculationService
         $businessReliefDeduction = (float) $userTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0))
             + (float) $spouseTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0));
 
+        // W-0466 — an estate holding farmland or AIM shares is shown a figure that
+        // models NEITHER, and the two errors run in OPPOSITE directions:
+        //   - Agricultural property has no asset type in the schema, so farmland is
+        //     an ordinary asset carrying no relief. OVERSTATES tax, by up to ~40%
+        //     of the land value.
+        //   - AIM shares from 6 April 2026 take 50% relief OUTSIDE the allowance
+        //     (IHTM25570). Recorded as a business interest they take 100% to the
+        //     cap and UNDERSTATE it; held in an investment account they get nothing
+        //     and it is overstated again.
+        //
+        // Registered in `UNIMPLEMENTED_RULES`, which tells the test suite and tells
+        // no user. The reviewer's verdict: defensible as a documented exclusion,
+        // not as a silent gap.
+        //
+        // **The trigger is the half we can actually identify.** A business interest
+        // is a row; agricultural property is not expressible at all — `assets.
+        // asset_type` is enum('property','pension','investment','business','other')
+        // and `properties.property_type` is the three canonical residences. So a
+        // farmer holding land and no company sees nothing, and that residual closes
+        // with the schema change W-0466 records, not here. Widening the trigger to
+        // every estate would breach the "only where it applies" condition and
+        // desensitise the households it IS for.
+        //
+        // Read off the FULL collections, not the taxable ones: a wholly relieved
+        // business is `is_iht_exempt` and has already been rejected above — which
+        // is precisely an estate the caveat is for.
+        // Tested separately rather than merged: `gatherUserAssets()` returns an
+        // ELOQUENT collection carrying plain objects, and `merge()` on one keys the
+        // items by `getKey()` — which a stdClass does not have. It throws.
+        $isBusiness = fn ($asset): bool => ($asset->asset_type ?? null) === 'business';
+        $holdsBusinessInterest = $userAssets->contains($isBusiness)
+            || $spouseAssets->contains($isBusiness);
+
+        $unmodelledReliefCaveat = $holdsBusinessInterest
+            ? 'This figure does not include Agricultural Property Relief, and does not apply the special treatment of AIM-listed shares. If your estate holds farmland or AIM shares, your actual liability could be higher or lower than shown.'
+            : null;
+
         // 4. Fetch and sum liabilities
         $userLiabilities = $this->aggregator->calculateUserLiabilities($user);
         $spouseLiabilities = ($isMarried && $dataSharingEnabled)
@@ -404,6 +441,11 @@ class IHTCalculationService
             // of them — published unconditionally so a screen that shows it does
             // not have to decide whether the key exists.
             'business_relief_deduction' => round($businessReliefDeduction, 2),
+            // W-0466 — the caveat, and the words, live HERE because `/m` computes
+            // nothing (CSJ 2026-08-23) and the two frontends share no constants.
+            // A copy of this sentence in each bundle is a Rule 20 violation waiting
+            // to drift, so both surfaces render what this publishes.
+            'unmodelled_relief_caveat' => $unmodelledReliefCaveat,
             // Tax on gifts the seven-year window did not save, after taper relief.
             //
             // Deliberately NOT added to `iht_liability`. That figure is the ESTATE's
@@ -1956,7 +1998,11 @@ class IHTCalculationService
      */
     private function isCurrentResultShape(array $result): bool
     {
-        foreach (['projected_total_allowances', 'projected_charitable_deduction', 'projected_rnrb_status'] as $key) {
+        // `unmodelled_relief_caveat` is here because it is legitimately NULL for
+        // most estates — so `?? null` at the consumer cannot tell "this engine did
+        // not publish it" from "this estate does not need it", and a stale row
+        // would suppress the caveat until the user's assets happened to change.
+        foreach (['projected_total_allowances', 'projected_charitable_deduction', 'projected_rnrb_status', 'unmodelled_relief_caveat'] as $key) {
             if (! array_key_exists($key, $result)) {
                 return false;
             }

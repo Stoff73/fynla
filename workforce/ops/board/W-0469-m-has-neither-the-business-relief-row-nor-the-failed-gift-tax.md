@@ -2,10 +2,10 @@
 id: W-0469
 title: The business relief row and the failed-gift tax reached web only — /m shows neither, so the same estate reconciles on one surface and not the other
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [quality-lead]
-status: queued
+status: handoff
 claimed_by: null
 severity: medium
 surfaces: [m]
@@ -56,3 +56,21 @@ what the `/m` estate screen is for, and that has not been settled.
 
 - 2026-08-23 — Raised by the coordinator against its own work rather than left buried in a
   commit message. The web half is deployed at `19bd1c83f`; this is the half that is not.
+- 2026-08-23 — **CSJ's decision: the honest summary that hands off to web.** `/m`'s
+  estate screen stays an estate value, a composition and the planning counts; it does
+  NOT gain an allowance breakdown, the business relief row or the failed-gift figures.
+
+- 2026-08-23 — **Implemented.** A card on the `/m` Premium estate screen states plainly
+  that the full breakdown — allowances, business relief, and tax on gifts made in the
+  last seven years — is on the web app, with a button that opens it. So the screen no
+  longer shows a subset silently: it says what it does not show and where the rest is.
+
+- 2026-08-23 — Routed through the existing `issueWebHandoff` mechanism rather than a
+  new one, adding `WebHandoffDestination::ESTATE_IHT` → `/estate/inheritance-tax`.
+  **The W-0044 allowlist guard fired on the first run and was right to:** a destination
+  added to the PHP enum without the native mirror leaves the native app with no route
+  at all, which is exactly how `estate_will` went missing. The Swift enum and its two
+  test assertions were updated in the same change.
+
+- 2026-08-23 — Acceptance 4 holds by construction: `/m` computes nothing here. There is
+  no arithmetic on this card at all now — it renders a sentence and a button.

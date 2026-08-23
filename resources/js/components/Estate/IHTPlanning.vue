@@ -393,6 +393,16 @@
         />
       </div>
 
+      <!--
+        W-0466. Rendered ONLY when the engine publishes it, so a household holding
+        no business interest never meets it. The words are the server's (Rule 20) —
+        web and /m ship separate bundles, and a copy in each drifts.
+      -->
+      <div v-if="!loading && ihtData?.unmodelled_relief_caveat" class="bg-eggshell-500 rounded-lg p-4 mb-8">
+        <h3 class="text-sm font-semibold text-violet-800">What this figure does not include</h3>
+        <p class="mt-2 text-sm text-violet-800">{{ ihtData.unmodelled_relief_caveat }}</p>
+      </div>
+
       <!-- Tax Allowances Information -->
       <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div v-if="ihtData.nrb_message" class="bg-eggshell-500 rounded-lg p-4">
@@ -1728,6 +1738,11 @@ export default {
               rnrb_eligible: response.iht_summary.current.rnrb_available > 0, // Eligible if RNRB > 0
               rnrb_individual: response.iht_summary.current.rnrb_individual || 0,
               business_relief_deduction: response.iht_summary.current.business_relief_deduction || 0,
+              // W-0466. `?? null` deliberately: this mapping ENUMERATES the payload
+              // rather than spreading it, so a field left out here is invisible on
+              // screen no matter what the server publishes — the same defect shape
+              // as W-0134 and W-0399 above.
+              unmodelled_relief_caveat: response.iht_summary.current.unmodelled_relief_caveat ?? null,
               rnrb_spouse_modelled: response.iht_summary.current.rnrb_spouse_modelled || 0,
               rnrb_residence_cap_reduction: response.iht_summary.current.rnrb_residence_cap_reduction || 0,
               rnrb_taper_reduction: response.iht_summary.current.rnrb_taper_reduction || 0,

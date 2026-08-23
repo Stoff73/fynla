@@ -17,6 +17,7 @@
       </div>
       <div class="m-card">
         <p v-if="teaser.headline" class="m-sub" style="margin:0 0 12px">{{ teaser.headline }}</p>
+        <p v-if="teaser.unmodelled_relief_caveat" class="me-caveat">{{ teaser.unmodelled_relief_caveat }}</p>
         <p class="me-note">Full estate planning — assets, gifts, trusts, will and personalised Inheritance Tax planning — is part of Premium.</p>
         <button v-if="paidUpgradeAvailable" type="button" class="m-btn" style="margin-top:16px" @click="goUpgrade">Compare plans</button>
       </div>
@@ -68,6 +69,25 @@
           </span>
         </button>
       </div>
+
+      <!--
+        W-0469. This screen shows an estate value and a composition and NO
+        Inheritance Tax calculation — no allowances, no business relief, no tax on
+        failed gifts. CSJ's decision (2026-08-23) is that it stays a summary and
+        says so, rather than rendering a subset of the web breakdown and letting a
+        reader mistake the part for the whole.
+
+        No W-0466 caveat here: this card shows no Inheritance Tax figure, so there
+        is nothing on it to qualify. The caveat lives where a figure does — the web
+        breakdown, and the Free teaser at the top of this file, which is the only
+        Inheritance Tax number `/m` ever prints.
+      -->
+      <div class="m-card">
+        <p class="m-section-label" style="margin-top:0">Your Inheritance Tax calculation</p>
+        <p class="me-note">The full breakdown — your allowances, any business relief, and tax on gifts made in the last seven years — is on the web app.</p>
+        <button type="button" class="m-btn" style="margin-top:16px" @click="openIhtOnWeb">Open on the web app</button>
+        <p v-if="handoffError" class="m-err" style="margin-top:12px">{{ handoffError }}</p>
+      </div>
     </template>
   </MobileChrome>
 </template>
@@ -78,6 +98,7 @@ import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+import { issueWebHandoff } from '../../navigation/webHandoff.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -90,7 +111,7 @@ export default {
   name: 'MobileEstate',
   components: { MobileChrome },
   mixins: [upgradeMixin],
-  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null, bequests: [] }),
+  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null, bequests: [], handoffError: '' }),
   computed: {
     gifts() { return this.payload?.gifts || []; },
     trusts() { return this.payload?.trusts || []; },
@@ -109,6 +130,14 @@ export default {
     compLabel(type) { return COMP_LABELS[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Assets'); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     openBequests() { this.$router.push({ name: 'm-estate-bequests' }); },
+    async openIhtOnWeb() {
+      this.handoffError = '';
+      try {
+        await issueWebHandoff('estate_iht');
+      } catch {
+        this.handoffError = 'We could not open the web app just now. Please try again.';
+      }
+    },
     async load() {
       this.loading = true;
       this.error = '';
@@ -117,6 +146,7 @@ export default {
       this.payload = null;
       this.netWorth = null;
       this.bequests = [];
+      this.handoffError = '';
       try {
         const { ok, status, data } = await apiGet('/api/estate', store.token);
         if (handleAuthExpiry({ status }, this.$router)) return;
@@ -151,6 +181,7 @@ export default {
 
 <style scoped>
 .me-note { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin: 0; }
+.me-caveat { font-size: 13px; color: var(--violet-800); line-height: 1.5; margin: 0 0 12px; background: var(--eggshell-500); border-radius: 8px; padding: 12px; }
 .me-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--light-gray); }
 .me-row:first-of-type { padding-top: 4px; }
 .me-row:last-of-type { border-bottom: 0; padding-bottom: 0; }

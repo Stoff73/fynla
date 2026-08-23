@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\BusinessInterest;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -43,8 +44,9 @@ it('returns no score — only currency and a plain string headline', function ()
     $u = User::factory()->create();
     $result = app(EstateIhtExposureDetector::class)->detect($u);
 
-    // Rule #13: no scores. Keys must be exactly these three — no 'score', no 'rating'
-    expect(array_keys($result))->toEqual(['exposed', 'headline', 'estimated_liability_gbp']);
+    // Rule #13: no scores. Keys must be exactly these — no 'score', no 'rating'.
+    // `unmodelled_relief_caveat` joined them for W-0466; it is a sentence or null.
+    expect(array_keys($result))->toEqual(['exposed', 'headline', 'estimated_liability_gbp', 'unmodelled_relief_caveat']);
 });
 
 it('does not hand the residence allowance to someone with no residence', function () {
@@ -105,4 +107,76 @@ it('returns exposed=true when net worth is one pound above NRB+RNRB threshold', 
 
     expect($result['exposed'])->toBeTrue()
         ->and($result['estimated_liability_gbp'])->toBeGreaterThan(0.0);
+});
+
+describe('W-0467 — the headline says whose estate and when', function () {
+    it('calls a pooled figure the household on the second death', function () {
+        // Married + sharing accepted is the exact predicate the engine pools on, so
+        // `iht_liability` here covers BOTH estates against doubled allowances and
+        // falls due on the SECOND death. This user's own first-death liability,
+        // with spouse exemption, is £0 — which is why "your estate" was wrong.
+        // Built inline, not via a shared helper: two files declaring one global
+        // test helper made `./vendor/bin/pest` fatal at collection for two days
+        // (fixed 1af23f8e5), and that is a cheap mistake to not repeat.
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $spouse = User::factory()->create(['marital_status' => 'married']);
+        $user->update(['spouse_id' => $spouse->id]);
+        $spouse->update(['spouse_id' => $user->id]);
+
+        // Pooled allowances are doubled, so the estate has to clear both bands
+        // before a bill exists at all — otherwise this asserts on the no-liability
+        // branch and proves nothing about the wording.
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 700_000.00]);
+        SavingsAccount::factory()->create(['user_id' => $spouse->id, 'current_balance' => 700_000.00]);
+
+        $headline = app(EstateIhtExposureDetector::class)->detect($user)['headline'];
+
+        expect($headline)->toContain('Your household')
+            ->and($headline)->toContain('on the second death')
+            ->and($headline)->not->toContain('Your estate could be subject to');
+    });
+
+    it('still says "your estate" to someone whose estate it actually is', function () {
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create([
+            'user_id' => $user->id,
+            'current_balance' => 900_000.00,
+        ]);
+
+        $headline = app(EstateIhtExposureDetector::class)->detect($user)['headline'];
+
+        expect($headline)->toContain('Your estate could be subject to')
+            ->and($headline)->not->toContain('second death');
+    });
+});
+
+describe('W-0466 — the caveat reaches the only Inheritance Tax figure /m shows', function () {
+    it('carries the caveat when the estate holds a business interest', function () {
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+        BusinessInterest::factory()->create([
+            'user_id' => $user->id,
+            'current_valuation' => 400_000.00,
+            'bpr_eligible' => true,
+            'trading_status' => 'trading',
+        ]);
+
+        $result = app(EstateIhtExposureDetector::class)->detect($user);
+
+        expect($result['unmodelled_relief_caveat'])
+            ->toContain('Agricultural Property Relief')
+            ->and($result['unmodelled_relief_caveat'])->toContain('AIM')
+            // Both directions, because the two exclusions bend the figure opposite ways.
+            ->and($result['unmodelled_relief_caveat'])->toContain('higher or lower');
+    });
+
+    it('says nothing to a household the exclusions cannot affect', function () {
+        // The other half of the pair. Without this the caveat could be published
+        // unconditionally and the first case would still pass — "only where it
+        // applies" is the condition that needs a test, not the wording.
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        expect(app(EstateIhtExposureDetector::class)->detect($user)['unmodelled_relief_caveat'])->toBeNull();
+    });
 });

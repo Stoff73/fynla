@@ -40,7 +40,7 @@ class EstateIhtExposureDetector
     /**
      * Detect whether the user has a likely Inheritance Tax exposure.
      *
-     * @return array{exposed: bool, headline: string, estimated_liability_gbp: float}
+     * @return array{exposed: bool, headline: string, estimated_liability_gbp: float, unmodelled_relief_caveat: string|null}
      */
     public function detect(User $user): array
     {
@@ -54,9 +54,6 @@ class EstateIhtExposureDetector
         );
 
         $estimatedLiabilityGbp = round((float) ($calculation['iht_liability'] ?? 0.0), 2);
-        $netEstate = (float) ($calculation['total_net_estate'] ?? 0.0);
-        $threshold = (float) ($calculation['total_allowances'] ?? 0.0);
-
         // "Exposed" is now the engine's own answer — an estate over its allowances
         // with a bill to show — rather than a second threshold test that could
         // disagree with the figure printed beside it.
@@ -64,16 +61,44 @@ class EstateIhtExposureDetector
 
         return [
             'exposed' => $exposed,
-            'headline' => $this->buildHeadline($exposed, $netEstate, $threshold, $estimatedLiabilityGbp),
+            'headline' => $this->buildHeadline(
+                $exposed,
+                $estimatedLiabilityGbp,
+                // W-0467 — whether the figure is one estate or two is the ENGINE's
+                // answer, read back off the result it just returned. Re-deriving
+                // `married && sharing` here would be a second predicate that can
+                // drift from the one the figure was actually computed under.
+                ($calculation['is_married'] ?? false) && ($calculation['data_sharing_enabled'] ?? false),
+            ),
             'estimated_liability_gbp' => $estimatedLiabilityGbp,
+            // W-0466 — the teaser is the ONLY Inheritance Tax figure `/m` shows, so
+            // if the caveat belongs anywhere on that surface it belongs here. Passed
+            // straight through from the engine, words and all: `/m` computes nothing
+            // and there is one home for the sentence (Rule 20).
+            'unmodelled_relief_caveat' => $calculation['unmodelled_relief_caveat'] ?? null,
         ];
     }
 
+    /**
+     * W-0467 — the teaser said "your estate" of a figure that is frequently neither
+     * that person's estate nor payable on their death.
+     *
+     * For a married household with sharing on, `iht_liability` is a POOLED,
+     * SECOND-DEATH figure covering both estates against doubled allowances. The
+     * same user's own first-death liability, with spouse exemption, is typically
+     * £0. "could be subject to up to" hedged the MAGNITUDE and nothing else — the
+     * two things wrong with it were WHOSE and WHEN.
+     *
+     * This is the only Inheritance Tax figure `/m` ever shows, on a Free-tier
+     * conversion surface, to users who cannot open the calculation behind it.
+     *
+     * Wording chosen by CSJ, 2026-08-23. The single/unmarried branch keeps "your
+     * estate" because for them the figure genuinely is their own.
+     */
     private function buildHeadline(
         bool $exposed,
-        float $netWorth,
-        float $threshold,
         float $estimatedLiabilityGbp,
+        bool $pooledHousehold,
     ): string {
         if (! $exposed) {
             return 'Your estate is currently below the Inheritance Tax threshold.';
@@ -84,6 +109,10 @@ class EstateIhtExposureDetector
         }
 
         $formatted = '£'.number_format((int) $estimatedLiabilityGbp);
+
+        if ($pooledHousehold) {
+            return "Your household could face up to {$formatted} in Inheritance Tax on the second death — upgrading unlocks personalised planning to help reduce this.";
+        }
 
         return "Your estate could be subject to up to {$formatted} in Inheritance Tax — upgrading unlocks personalised planning to help reduce this.";
     }

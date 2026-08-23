@@ -169,6 +169,12 @@ class IHTController extends Controller
                     'iht_rate_type' => $calculation['iht_rate_type'],
                     'iht_rate_message' => $calculation['iht_rate_message'],
                     'effective_rate' => $calculation['effective_rate'],
+                    // W-0466 — null for an estate the exclusions cannot affect, so a
+                    // screen renders it with `v-if` and no household sees a caveat
+                    // that does not apply to it. The WORDS come from the engine
+                    // (Rule 20): web and `/m` ship separate bundles that share no
+                    // constants, and `/m` computes nothing.
+                    'unmodelled_relief_caveat' => $calculation['unmodelled_relief_caveat'] ?? null,
                 ],
                 'projected' => [
                     'net_estate' => $calculation['projected_net_estate'],
