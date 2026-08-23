@@ -104,6 +104,26 @@
           <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatLiability(totals.liabilities.plus5) }}</td>
         </tr>
 
+        <!--
+          C3 (tax-compliance-reviewer F3). Business Property Relief takes value out
+          of the chargeable estate, so without this row Gross Assets less Liabilities
+          does not reach Net Estate for anyone holding a qualifying business — the
+          exact defect W-0154 was raised to fix, reproduced one line down. Hidden
+          when zero, which is every estate without one.
+        -->
+        <tr v-if="showBusinessRelief" class="bg-white">
+          <td class="px-4 py-3 text-sm text-horizon-500 pl-8">
+            Less: Business Property Relief
+            <span class="block text-body-xs text-neutral-500">
+              Relief on qualifying business assets. Does not model Agricultural Property Relief or AIM shares.
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatLiability(businessRelief.now) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatLiability(businessRelief.minus5) }}</td>
+          <td class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatLiability(businessRelief.projected) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatLiability(businessRelief.plus5) }}</td>
+        </tr>
+
         <!-- Net Estate -->
         <tr class="bg-white ">
           <td class="px-4 py-3 text-sm font-semibold text-horizon-500">Net Estate</td>
@@ -300,6 +320,14 @@ export default {
     // `charitableDonation` what-if amount this was distinguished from is gone —
     // see W-0132 on the allowance block above.
     charitableExemption: {
+      type: Object,
+      default: () => ({ now: 0, minus5: 0, projected: 0, plus5: 0 }),
+    },
+
+    // C3 — Business Property Relief, deducted between Liabilities and Net Estate.
+    // Defaults to zero so the row simply does not render for the overwhelming
+    // majority of estates, which hold no qualifying business.
+    businessRelief: {
       type: Object,
       default: () => ({ now: 0, minus5: 0, projected: 0, plus5: 0 }),
     },
@@ -502,6 +530,10 @@ export default {
       }
 
       return rows;
+    },
+
+    showBusinessRelief() {
+      return (this.businessRelief?.now || 0) > 0.5 || (this.businessRelief?.projected || 0) > 0.5;
     },
 
     residenceBandRows() {

@@ -140,6 +140,14 @@ class IHTController extends Controller
                     // W-0091 — partial Business Property Relief. Zero for an estate
                     // holding no qualifying business, which is most of them.
                     'business_relief_deduction' => $calculation['business_relief_deduction'] ?? 0,
+                    // C5 — tax on gifts the seven-year rule did not save, after
+                    // taper. Computed since 6302cd661 and published to nobody, which
+                    // made the whole taper-relief feature invisible. Deliberately
+                    // separate from `iht_liability`: this is the recipient's charge,
+                    // falling on the estate only if unpaid after twelve months.
+                    'failed_gift_tax' => $calculation['failed_gift_tax'] ?? 0,
+                    'failed_gift_taper_saving' => $calculation['failed_gift_taper_saving'] ?? 0,
+                    'failed_gifts' => $calculation['failed_gifts'] ?? [],
                     'charitable_deduction' => $calculation['charitable_deduction'],
                     // W-0399. The engine separates the pooled s23(1) exemption from
                     // the survivor-only Sch 1A rate-test amount; this summary

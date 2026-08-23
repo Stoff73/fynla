@@ -1568,6 +1568,14 @@ export default {
         // The charitable legacies actually recorded and actually deducted. The
         // what-if figure this used to be distinguished from is gone (W-0132) — the
         // table shows the user's real position and nothing else.
+        // C3 — relief reduces the chargeable estate, so it needs a row or the
+        // column stops adding up (tax-compliance-reviewer F3).
+        businessRelief: {
+          now: this.ihtData?.business_relief_deduction || 0,
+          minus5: this.ihtData?.business_relief_deduction || 0,
+          projected: this.ihtData?.projected_business_relief_deduction ?? (this.ihtData?.business_relief_deduction || 0),
+          plus5: this.ihtData?.projected_business_relief_deduction ?? (this.ihtData?.business_relief_deduction || 0),
+        },
         charitableExemption: {
           now: this.ihtData?.charitable_deduction || 0,
           minus5: this.ihtData?.charitable_deduction || 0,
@@ -1719,6 +1727,7 @@ export default {
               rnrb_available: response.iht_summary.current.rnrb_available,
               rnrb_eligible: response.iht_summary.current.rnrb_available > 0, // Eligible if RNRB > 0
               rnrb_individual: response.iht_summary.current.rnrb_individual || 0,
+              business_relief_deduction: response.iht_summary.current.business_relief_deduction || 0,
               rnrb_spouse_modelled: response.iht_summary.current.rnrb_spouse_modelled || 0,
               rnrb_residence_cap_reduction: response.iht_summary.current.rnrb_residence_cap_reduction || 0,
               rnrb_taper_reduction: response.iht_summary.current.rnrb_taper_reduction || 0,

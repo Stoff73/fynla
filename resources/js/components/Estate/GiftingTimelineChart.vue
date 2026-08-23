@@ -157,8 +157,8 @@ export default {
                 gift_date: gift.gift_date,
                 years_elapsed: yearsElapsed.toFixed(1),
                 years_remaining: gift.gift_type === 'exempt' ? 'N/A (Exempt)' : Math.max(0, 7 - yearsElapsed).toFixed(1),
-                taper_relief: gift.gift_type === 'exempt' ? 'N/A (Exempt)' : this.calculateTaperRelief(yearsElapsed),
-                status: this.getGiftStatus(yearsElapsed, gift.gift_type),
+                taper_relief: gift.gift_type === 'exempt' ? 'N/A (Exempt)' : this.taperReliefFor(gift),
+                status: this.getGiftStatus(yearsElapsed, gift.gift_type, gift),
               },
             };
           }),
@@ -306,16 +306,26 @@ export default {
       }
     },
 
-    calculateTaperRelief(yearsElapsed) {
-      if (yearsElapsed < 3) return 0;
-      if (yearsElapsed < 4) return 20;
-      if (yearsElapsed < 5) return 40;
-      if (yearsElapsed < 6) return 60;
-      if (yearsElapsed < 7) return 80;
-      return 100;
+    /**
+     * C4 — the server's answer for this gift, or nothing.
+     *
+     * This was a fourth hardcoded copy of the taper schedule, and like the others it
+     * answered from the gift's AGE alone. Relief exists only where the gift bears
+     * tax (IHTM14611), which depends on the whole estate's cumulation and cannot be
+     * known here. `failed_gifts[]` carries the computed answer; a gift absent from
+     * it bears no tax, so there is no relief to report.
+     */
+    taperReliefFor(gift) {
+      const entry = gift.taper || null;
+      if (!entry || (entry.taper_saving || 0) <= 0) {
+        return 'None — within your allowance';
+      }
+
+      return `${entry.taper_relief_percent}%`;
     },
 
-    getGiftStatus(yearsElapsed, giftType) {
+
+    getGiftStatus(yearsElapsed, giftType, gift = null) {
       // Exempt gifts (spouse, charity) are immediately Inheritance Tax-exempt
       if (giftType === 'exempt') {
         return 'Exempt Gift - Inheritance Tax-Free';
@@ -323,11 +333,14 @@ export default {
 
       if (yearsElapsed >= 7) {
         return 'Inheritance Tax-Exempt (7 years survived)';
-      } else if (yearsElapsed >= 3) {
-        return `Taper Relief (${this.calculateTaperRelief(yearsElapsed)}%)`;
-      } else {
-        return 'Potentially Taxable';
       }
+
+      // C4 — the server decides whether this gift bears tax at all.
+      if (gift?.taper && (gift.taper.taper_saving || 0) > 0) {
+        return `Taper Relief (${gift.taper.taper_relief_percent}%)`;
+      }
+
+      return gift?.taper ? 'Taxable above your allowance' : 'Within your allowance';
     },
 
     formatDate(dateString) {
