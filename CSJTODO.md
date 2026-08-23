@@ -1,10 +1,20 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-08-17 — pre-debugging catch-up. Branch brought fully up to
-date: `origin/dev` (161 commits, PRs #672–#694) plus the three unmerged codex
-branches merged in, zero conflicts bar stale README counts. Root PNGs filed,
-month-folder convention normalised to `AugustNNUpdates`, `docs/INDEX.md` created.
-Survey: August/August17Updates/repo-state-2026-08-17.md.*
+*Last updated: 2026-08-23 — persona run `peak_earners` cycle 4 complete. 14 fix
+batches, 13 browser-verified, 3 statutory tax gates cleared, ~110 board items.
+Handover: handover/August/23/handover-2026-08-23-session-1.md*
+
+## 2026-08-23 — cycle 4 close: FOUR DECISIONS WAITING ON CSJ
+
+- [ ] **DECISION 1 — spouse-linking CRITICAL (W-0347/0348/0349/0350/0344).** One authenticated POST plus a victim's email **writes their `users` row, forges both consent rows as accepted, and returns their complete financial profile.** Only precondition: their `spouse_id` is NULL. **Every gated site in the app is defeated by this one endpoint.** Verified against the code. Deliberately unfixed — needs a real accept/decline flow (invite, token, expiry), not a patch. Memory: `project_spouse_linking_critical_unfixed.md`.
+- [ ] **DECISION 2 — W-0462.** *"Save £74,987"* is attached to an action leaving beneficiaries **£37,891 worse off.** Figure correct, disclosure missing. Break-even derived (`S < 6.25%` of chargeable estate at 40/36) and encoded. **Route to compliance-lead?** Consumer Duty edge.
+- [ ] **DECISION 3 — W-0362 / W-0091 (duplicates).** Business Property Relief flat and **uncapped** while the **£2.5m cap has been law since 2026-04-06**. ~£700k understated on a £6m business; Agricultural Property Relief absent entirely. Priority + sequencing call.
+- [ ] **DECISION 4 — four queued rulings.** W-0340 unmarried linked couples taxed inconsistently · W-0392 Business Property Relief in the estate figure · W-0426 should the Letter be premium-to-read (**narrow the excluded path, do not delete it**) · W-0442 extending a `contract_version` payload read by `/m` and native. Plus W-0258/0259 — the projection card's headline is the 20th percentile, which is hump-shaped, so "higher risk → higher return at every percentile" is not achievable.
+- [ ] **COMMIT THE TREE — 368 files uncommitted**, containing all of cycle 4. Last commit `d5fe9f9f7` is a wip snapshot; **there is no clean pre-cycle-4 commit** (nearest `496d722f1`). Branch `wip/persona-cycle4-snapshot`.
+- [ ] **Restart the persona tester from the beginning** (Rule 23 — fixers and testers never overlap). Brief already written at the foot of `workforce/ops/queue/cycle4-fix-queue.md`.
+- [ ] **138 items at `handoff`** for quality-lead. Read the certification warning in the queue file first — `status: handoff` is a moment-in-time claim, and screenshots `162-`–`167-` include one **photographing a defect**, not a fix.
+- [ ] **Not deployed anywhere.** No PR, no push, csjones and prod both untouched by cycle 4.
+- [ ] **iOS untested throughout** — not built, not launched, not claimed. Swift changes written out in W-0311, W-0243, W-0416.
 
 ## 2026-08-17 — catch-up and clean-up
 
