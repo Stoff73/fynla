@@ -4,14 +4,14 @@ title: Every joint property update 500s — PropertyController is missing `use A
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: queued
+status: handoff
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
 claimed: null
 blocked_by: []
 gate: null
-handoff_to: null
+handoff_to: quality-lead
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0263]
 prior_art_outcome: none
@@ -86,3 +86,26 @@ to `grep -n '^use ' path/to/File.php` after any formatter run.
 - 2026-08-22 build-lead (`fix-cycle4-columns`): found while verifying W-0263, not
   by inference. `app/Http/Controllers/` is outside this batch's scope so it was
   reported rather than fixed; the fix itself is one line.
+
+- 2026-08-23 — **Already fixed in code; the board item was simply never moved.**
+  `use App\Models\User;` is present at `PropertyController.php:15`. It landed in
+  `5de82a7fd` ("wip: persona peak_earners cycle 4"), which is an ancestor of HEAD and is
+  on dev. Acceptance 1 met.
+
+- 2026-08-23 — **Acceptance 2 met, browser-verified on the exact reproduction case.**
+  Signed in as `david.jones@example.com` (user 16, the account in the original report),
+  opened property 9 — the joint 50% property in the report — changed Full Property Value
+  from £850,000 to £862,500 and saved. **200, not 500.** `properties.current_value` read
+  back `862500.00`, and `joint_account_logs` gained row 3,
+  `App\Models\Property #9 | user 16 | update`, at the save timestamp — which proves
+  `logJointPropertyUpdate()` ran and **bound its `User` argument**, the exact call that
+  used to throw. Test data restored afterwards: value back to £850,000, the two log rows
+  removed.
+
+- 2026-08-23 — **Acceptance 3 met — the sweep is clean.** Scanned every `.php` under
+  `app/` outside `App\Models` for a bare `User` used as a type hint, nullable type,
+  return type or static, with no `App\Models\User` import and no aliased `User` import:
+  **zero files.** No other file carries this latent 500.
+
+- 2026-08-23 — Arrived at `handoff` AFTER the quality-lead cycle-4 certification pass had
+  begun, so it is outside that agent's original scope. Certify it separately.
