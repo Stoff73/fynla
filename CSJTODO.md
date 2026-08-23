@@ -1,20 +1,52 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-08-23 — persona run `peak_earners` cycle 4 complete. 14 fix
-batches, 13 browser-verified, 3 statutory tax gates cleared, ~110 board items.
-Handover: handover/August/23/handover-2026-08-23-session-1.md*
+*Last updated: 2026-08-23 session 2 — cycle 4 committed, tax-reviewed, DEPLOYED to dev
+(csjones.co/fynla @ `5c556e252`). Handover:
+handover/August/23/handover-2026-08-23-session-2.md*
 
-## 2026-08-23 — cycle 4 close: FOUR DECISIONS WAITING ON CSJ
+## 2026-08-23 session 2 — FIVE DECISIONS WAITING ON CSJ
 
-- [ ] **DECISION 1 — spouse-linking CRITICAL (W-0347/0348/0349/0350/0344).** One authenticated POST plus a victim's email **writes their `users` row, forges both consent rows as accepted, and returns their complete financial profile.** Only precondition: their `spouse_id` is NULL. **Every gated site in the app is defeated by this one endpoint.** Verified against the code. Deliberately unfixed — needs a real accept/decline flow (invite, token, expiry), not a patch. Memory: `project_spouse_linking_critical_unfixed.md`.
-- [ ] **DECISION 2 — W-0462.** *"Save £74,987"* is attached to an action leaving beneficiaries **£37,891 worse off.** Figure correct, disclosure missing. Break-even derived (`S < 6.25%` of chargeable estate at 40/36) and encoded. **Route to compliance-lead?** Consumer Duty edge.
-- [ ] **DECISION 3 — W-0362 / W-0091 (duplicates).** Business Property Relief flat and **uncapped** while the **£2.5m cap has been law since 2026-04-06**. ~£700k understated on a £6m business; Agricultural Property Relief absent entirely. Priority + sequencing call.
-- [ ] **DECISION 4 — four queued rulings.** W-0340 unmarried linked couples taxed inconsistently · W-0392 Business Property Relief in the estate figure · W-0426 should the Letter be premium-to-read (**narrow the excluded path, do not delete it**) · W-0442 extending a `contract_version` payload read by `/m` and native. Plus W-0258/0259 — the projection card's headline is the 20th percentile, which is hump-shaped, so "higher risk → higher return at every percentile" is not achievable.
-- [ ] **COMMIT THE TREE — 368 files uncommitted**, containing all of cycle 4. Last commit `d5fe9f9f7` is a wip snapshot; **there is no clean pre-cycle-4 commit** (nearest `496d722f1`). Branch `wip/persona-cycle4-snapshot`.
-- [ ] **Restart the persona tester from the beginning** (Rule 23 — fixers and testers never overlap). Brief already written at the foot of `workforce/ops/queue/cycle4-fix-queue.md`.
-- [ ] **138 items at `handoff`** for quality-lead. Read the certification warning in the queue file first — `status: handoff` is a moment-in-time claim, and screenshots `162-`–`167-` include one **photographing a defect**, not a fix.
-- [ ] **Not deployed anywhere.** No PR, no push, csjones and prod both untouched by cycle 4.
-- [ ] **iOS untested throughout** — not built, not launched, not claimed. Swift changes written out in W-0311, W-0243, W-0416.
+**All four decisions from session 1 are resolved and shipped.** The spouse-linking CRITICAL is
+fixed, Business Property Relief is capped, the duplicate is closed, and everything is on dev.
+What remains needs CSJ's words, not engineering.
+
+- [ ] **W-0466 — APR/AIM caveat wording.** An estate holding farmland or AIM shares is shown a
+  figure modelling **neither**, with no disclosure. The errors run in **opposite directions**:
+  absent Agricultural Property Relief overstates tax by up to ~40% of land value; AIM recorded
+  as a business interest understates it. Neither is implementable as the schema stands (no
+  agricultural asset type, no AIM column), so the honest fix is a caveat. **Requirement settled
+  by tax-compliance-reviewer; the wording is CSJ's.**
+- [ ] **W-0467 — the `/m` Free teaser headline.** Says *"your estate could be subject to up to
+  £X"* where the figure is a **pooled second-death household** number; that user's own
+  first-death liability is typically £0. Only Inheritance Tax figure `/m` ever shows, on a
+  conversion surface. Hedged on magnitude, not on whose or when.
+- [ ] **W-0469 — does `/m` get an estate breakdown at all?** The business relief row and the
+  failed-gift tax reached **web only** (Rule 19). Not a port: `/m`'s estate screen has no
+  allowance breakdown whatsoever and no liability in Premium mode. Full breakdown, or an honest
+  summary that hands off to web — either is defensible, undecided is not.
+- [ ] **W-0340 / W-0392 / W-0350** — carried from session 1. Unmarried linked couples; whether
+  `is_iht_exempt` removes an asset from the estate or only the tax; the 53 `spouse_id` consumer
+  census (**no longer blocked** — W-0347 is fixed).
+- [ ] **W-0462** — *"Save £74,987"* on an action leaving beneficiaries £37,891 worse off. Still
+  open; route to `compliance-lead`?
+
+## 2026-08-23 session 2 — outstanding work
+
+- [ ] **`quality-lead` has never run.** 145 items at `handoff`, uncertified, now deployed to dev.
+  **`./vendor/bin/pest` was fatal from 2026-08-22 until `1af23f8e5` today, so nothing at
+  `handoff` has a full-suite green behind it from before today.**
+- [ ] **W-0465** — the projection applies no business relief at all; the two columns of one table
+  disagree by the whole relief. Fixing it invalidates an `assessTaxPosition()` comment that is
+  only accidentally true.
+- [ ] **W-0468** — same-day transfers do not cumulate against each other.
+- [ ] **W-0461** — the Rule 2 sweeps never entered the frontend; the guard is the acceptance, not
+  the nine fixes.
+- [ ] **Restart the persona tester from the beginning** (Rule 23). Brief at the foot of
+  `workforce/ops/queue/cycle4-fix-queue.md`.
+- [ ] **iOS still untested** — not built, not launched, not claimed.
+- [ ] **Refresh the `tax-compliance-reviewer` agent definition** — it states 2025/26 and "frozen
+  until April 2028" and carries no relief cap; the active config is 2026/27, frozen to 2031. It
+  grepped the live config rather than trusting its table. The next one may not.
 
 ## 2026-08-17 — catch-up and clean-up
 
