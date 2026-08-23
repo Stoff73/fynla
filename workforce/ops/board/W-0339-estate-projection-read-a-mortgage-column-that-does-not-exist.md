@@ -4,7 +4,7 @@ title: The estate projection read $mortgage->end_date, a column the mortgages ta
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: handoff
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-23T00:15:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-23T00:15:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0241, W-0274, W-0336]
 prior_art_outcome: none

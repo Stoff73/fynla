@@ -4,7 +4,7 @@ title: Two mechanisms answer "how many months of emergency fund do you have" and
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0024-cycle4-risk-engine-reach-and-fraction.md
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T21:00:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T21:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0238, W-0190, F-0019, F-0022]
 prior_art_outcome: route

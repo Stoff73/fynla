@@ -4,13 +4,14 @@ title: The readiness panel lists "Income needs updating" under COMPLETED while r
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0017-cycle1-tax-income-and-allowances.md
 owner: build-lead
-status: handoff
+status: gated
 surfaces: [web]
 created: 2026-08-21T23:55:00Z
 claimed: 2026-08-22T20:15:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22T20:15:00Z
 prior_art_found: ["app/Services/UserProfile/ModuleDataRequirementsService — the one declaration of what each module needs", "resources/js/utils/moduleMap.js — the one route-to-module resolution shared by ModuleStatusBar and InfoGuidePanel", "app/Http/Controllers/Api/InfoGuideController — the one endpoint serving it"]
 prior_art_outcome: extend

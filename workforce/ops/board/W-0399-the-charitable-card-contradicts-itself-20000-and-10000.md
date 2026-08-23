@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0031-cycle4-charitable-figures.md
 owner: build-lead
 reviewers: [quality-lead, tax-compliance-reviewer]
-status: handoff
+status: gated
 claimed_by: build-lead
 severity: medium
 surfaces: [web, m]
@@ -14,6 +14,7 @@ claimed: 2026-08-23T02:45:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0391, W-0154, W-0134]
 prior_art_outcome: extend

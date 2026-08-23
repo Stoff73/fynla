@@ -4,7 +4,7 @@ title: Every joint property update 500s — PropertyController is missing `use A
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -12,6 +12,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0263]
 prior_art_outcome: none

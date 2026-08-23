@@ -3,9 +3,10 @@ id: W-0122
 title: Fyn's holding creation carries a second copy of the units/price/value rule and never writes a unit count
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: gated
 claimed: 2026-08-21T19:25:00Z
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: workforce/branches/fixes/F-0010-batch-j-consolidation-red.md
 severity: high
 surfaces: [web, m, ios]

@@ -4,7 +4,7 @@ title: The mortgage share cannot be entered — the form offers only "Me only" o
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0022-cycle4-dashboard-module-totals-and-cache.md
 owner: build-lead
-status: handoff
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T18:45:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T20:15:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0228, W-0015]
 prior_art_outcome: route

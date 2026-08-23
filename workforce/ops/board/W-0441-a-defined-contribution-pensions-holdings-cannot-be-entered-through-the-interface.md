@@ -4,7 +4,7 @@ title: A defined contribution pension's holdings cannot be entered through the i
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0032-cycle4-pension-holdings-entry-and-display.md
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-23T03:30:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-23T03:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0039, W-0121, W-0122, W-0126, W-0322, W-0324, W-0321, DCPensionHoldingsController, dcPensionHoldingsService.js, HoldingForm.vue]
 prior_art_outcome: route

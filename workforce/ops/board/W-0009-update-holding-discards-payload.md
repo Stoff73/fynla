@@ -4,13 +4,14 @@ title: Every holding edit silently discards its payload — updateHolding store 
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-20T22:48:00Z
 claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['resources/js/store/modules/investment.js updateHolding', 'investmentService.updateHolding', 'UpdateHoldingRequest all-nullable rules', 'HoldingForm.vue self-close']
 prior_art_outcome: extend
@@ -66,7 +67,7 @@ Instrumenting `XMLHttpRequest` in the live page caught the actual request:
 
 ```
 PUT http://localhost:8000/api/investment/holdings/32
-status: 200
+status: done
 request body: null            <-- the payload never leaves the browser
 response: {"success":true,"data":{"id":32,...,"ticker":null,"isin":null,
            "current_price":null,"purchase_price":null,"ocf_percent":"0.0000",...}}

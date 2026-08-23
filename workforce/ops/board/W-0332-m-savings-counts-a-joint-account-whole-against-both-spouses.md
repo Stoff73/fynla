@@ -4,7 +4,7 @@ title: The /m bank-accounts screen counts a joint account whole against both spo
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [m]
 created: 2026-08-22T23:20:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T23:20:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0274, F-0019, ownership.js, mobile Investment.vue]
 prior_art_outcome: route

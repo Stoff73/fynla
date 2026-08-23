@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0012-batch-g-iht-household.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, compliance-lead]
-status: handoff
+status: gated
 claimed_by: null
 severity: critical
 surfaces: [web, m, ios]
@@ -14,6 +14,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: ["W-0131 the Inheritance Tax cache is never written", "W-0132 three mechanisms answer whether the reduced rate applies", "W-0020 charitable total tests an enum value the column cannot hold", "F-0003-batch-b-estate-wills"]
 prior_art_outcome: extend

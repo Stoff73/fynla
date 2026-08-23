@@ -4,7 +4,8 @@ title: /m has no Health & Lifestyle section at all — the data source is fixed 
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: handoff
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
+status: gated
 severity: medium
 surfaces: [m]
 source: CSJ direction 2026-08-21 ("/m needs it"), after fix-batch-C found zero /m references while fixing W-0006

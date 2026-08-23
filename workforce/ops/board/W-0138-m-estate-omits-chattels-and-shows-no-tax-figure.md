@@ -4,7 +4,7 @@ title: The /m estate screen omits chattels entirely, shows an individual estate 
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0016-cycle1-m-chattels-and-plan-expenditure.md
 owner: build-lead
-status: handoff
+status: queued
 severity: high
 surfaces: [m, web, ios]
 created: 2026-08-21T20:30:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-21T21:05:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: REJECTED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [W-0154, W-0134, EstateAssetAggregatorService, NetWorthService, UserProfileService, MobileDashboardAggregator]
 prior_art_outcome: extend

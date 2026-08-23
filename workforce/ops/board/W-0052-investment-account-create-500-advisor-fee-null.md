@@ -4,7 +4,7 @@ title: REGRESSION — creating any investment account returns 500, "Column 'advi
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: gated
 severity: critical
 surfaces: [web, m, ios]
 created: 2026-08-21T15:35:00Z
@@ -12,6 +12,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: null
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [W-0008]
 prior_art_outcome: regression-of

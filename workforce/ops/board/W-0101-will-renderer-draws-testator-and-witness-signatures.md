@@ -3,8 +3,9 @@ id: W-0101
 title: The will document renderer draws the testator's and both witnesses' signatures in a script font — live on production
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 severity: high
 surfaces: [web]
 created: 2026-08-21T17:40:00Z

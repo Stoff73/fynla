@@ -4,13 +4,14 @@ title: Joint savings accounts cannot be created — form never sends ownership_p
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-20T23:50:00Z
 claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['StoreSavingsAccountRequest/UpdateSavingsAccountRequest hard reject', 'SavingsAccountNormaliser::fromForm', 'SavingsStore::validateCanonical share guard', 'PropertyController 100->50 coercion (proven-correct reference)']
 prior_art_outcome: extend

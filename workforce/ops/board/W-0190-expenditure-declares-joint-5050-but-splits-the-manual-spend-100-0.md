@@ -4,7 +4,7 @@ title: The expenditure table declares "Joint (50/50) expenditure" and then split
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0019-cycle2-ownership-applied-one-side-only.md
 owner: build-lead
-status: handoff
+status: queued
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T00:40:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T03:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: REJECTED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0140, W-0173]
 prior_art_outcome: extend

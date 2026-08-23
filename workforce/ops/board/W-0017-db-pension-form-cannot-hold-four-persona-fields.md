@@ -4,13 +4,14 @@ title: Defined Benefit pension form cannot hold four of the fields the model and
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: handoff
+status: gated
 surfaces: [web, m, ios]
 created: 2026-08-21T08:20:00Z
 claimed: 2026-08-21T09:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T09:10:00Z
 prior_art_found: ["app/Http/Requests/Retirement/StoreDBPensionRequest.php:41-49 already validates all four fields", "app/Services/Stores/PensionStore.php:605-618 already validates and writes them", "app/Services/Stores/Normalisers/PensionNormaliser.php:44-72 already normalises them from Fyn tool params", "app/Services/Retirement/PensionProjector.php:108-135 already applies inflation_protection", "fyn-memory/procedural/tool_schema/savings/create_pension{,.xai}.md — the catalogue was the only thing withholding them"]
 prior_art_outcome: extend

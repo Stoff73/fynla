@@ -4,7 +4,7 @@ title: Life policy takes one beneficiary from a list that excludes the children,
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0006-batch-d-protection-goals.md
 owner: build-lead
-status: handoff
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T10:00:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-21T11:00:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [W-0026, LifeInsurancePolicy.joint_life column, LifeCoverCalculator, ProtectionActionDefinitionService, PolicyFormModal.loadFamilyMembers]
 prior_art_outcome: extend

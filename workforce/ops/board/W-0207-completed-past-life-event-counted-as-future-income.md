@@ -4,7 +4,7 @@ title: A completed 2020 life event is counted as future expected income and disp
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0021
 owner: build-lead
-status: handoff
+status: gated
 severity: medium
 surfaces: [web, m]
 created: 2026-08-22T01:40:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T08:40:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0029, W-0206, W-0210]
 prior_art_outcome: extend

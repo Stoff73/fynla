@@ -4,13 +4,14 @@ title: A linked spouse's annual income displays as £0 on /settings/family — t
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0017-cycle1-tax-income-and-allowances.md
 owner: build-lead
-status: handoff
+status: gated
 surfaces: [web]
 created: 2026-08-21T23:50:00Z
 claimed: 2026-08-22T20:05:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22T20:05:00Z
 prior_art_found: ["app/Services/UserProfile/UserProfileService::getFamilyMembersWithSharing() — the one method both /api/user/profile and /api/user/family-members read", "app/Models/FamilyMember::isLinkedAccount() — the one rule for whether an account sits behind a row (W-0051)", "the virtual-spouse fallback in the same method, which already read the linked account's income"]
 prior_art_outcome: extend

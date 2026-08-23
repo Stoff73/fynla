@@ -3,9 +3,10 @@ id: W-0126
 title: Seven more holding-valuation copies sat outside the one home, and three were in one controller
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: gated
 claimed: 2026-08-21T20:05:00Z
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: workforce/branches/fixes/F-0010-batch-j-consolidation-red.md
 severity: medium
 surfaces: [web, m, ios]

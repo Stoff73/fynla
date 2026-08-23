@@ -3,8 +3,9 @@ id: W-0103
 title: Nothing stops a Lasting Power of Attorney donor being their own attorney or their own certificate provider, or one person holding two attorney roles
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed_by: fix-batch-G
 branch: branches/fixes/F-0008-batch-g-lpa.md
 folds: [W-0102, W-0151]

@@ -4,7 +4,7 @@ title: Every overdue goal reports "On track" and the goals page congratulates th
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0029-cycle4-goals-and-expenditure-split.md
 owner: build-lead (fix-cycle4-goals-expenditure)
-status: handoff
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T02:00:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-23T02:05:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0029, W-0414, W-0416, GoalCalculationService, GoalProgressService]
 prior_art_outcome: extend

@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: main-inference
 reviewers: [tax-compliance-reviewer, compliance-lead, product-lead]
-status: handoff
+status: gated
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -14,6 +14,7 @@ claimed: null
 blocked_by: []
 gate: tax-compliance-reviewer
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: ["W-0154 (F6 — configured but read by nothing)", "2026-08-21-iht-calculation-audit.md F6"]
 prior_art_outcome: extend

@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: handoff
+status: gated
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -14,6 +14,7 @@ claimed: null
 blocked_by: []
 gate: tax-compliance-reviewer
 handoff_to: null
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0091, W-0463]
 prior_art_outcome: extend

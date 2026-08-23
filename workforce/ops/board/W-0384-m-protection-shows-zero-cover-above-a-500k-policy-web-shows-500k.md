@@ -4,7 +4,7 @@ title: /m protection shows £0 cover directly above the £500,000 policy it is c
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0028-cycle4-m-protection-gap-reach.md
 owner: build-lead (fix-cycle4-mprotection)
-status: handoff
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-23T03:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0186, W-0341, W-0342, W-0350]
 prior_art_outcome: route

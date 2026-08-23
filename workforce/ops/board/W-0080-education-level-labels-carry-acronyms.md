@@ -4,12 +4,13 @@ title: Education level labels carry acronyms (GCSE, O-Levels, A-Levels) and had 
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0005-design-lead-palette-and-copy.md
 owner: design-lead
-status: handoff
+status: done
 severity: low
 surfaces: [web, m]
 source: raised by fix-batch-C during the W-0031 option-list work, 2026-08-21; routed to design-lead by team-lead as a copy decision
 claimed: 2026-08-21
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_outcome: extend
 constitution_refs: [04-voice, 07-quality-bar]

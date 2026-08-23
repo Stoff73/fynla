@@ -4,13 +4,14 @@ title: Joint investment accounts save a 100% owner share — spouse gets nothing
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: gated
 surfaces: [web, m, ios]
 created: 2026-08-21T00:05:00Z
 claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['app/Services/Stores/Normalisers/{Investment,Property,Savings,Mortgage}Normaliser (four copies of the joint 50% default)', 'PropertyController::store/update inline copy', 'InvestmentController::store/update isset-only default', 'MortgageService::createFromPropertyData inline copy']
 prior_art_outcome: extend

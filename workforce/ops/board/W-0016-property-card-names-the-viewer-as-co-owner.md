@@ -4,13 +4,14 @@ title: Property card tells the spouse the property is "Joint with" herself
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-21T00:40:00Z
 claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['PropertyController::index/show already return is_primary_owner + owner_name + joint_owner_name', 'resources/js/utils/ownership.js', 'ChattelDetailInline.vue formatOwnership (second Joint with copy)']
 prior_art_outcome: extend

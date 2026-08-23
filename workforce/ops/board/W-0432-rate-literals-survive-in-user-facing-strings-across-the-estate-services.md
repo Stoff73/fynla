@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0032-cycle4-rate-literals-and-the-charitable-denominator.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: handoff
+status: gated
 claimed_by: build-lead
 severity: high
 surfaces: [web, m]
@@ -14,6 +14,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0431, W-0132, W-0399]
 source_addition: tax-compliance-reviewer verdict 2026-08-23, condition C4 — four instances I missed, two of them not literals-in-prose at all

@@ -4,7 +4,7 @@ title: CRITICAL — spouse linking writes the other person's account, and forges
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: main-inference
-status: handoff
+status: gated
 severity: critical
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -12,6 +12,7 @@ claimed: null
 blocked_by: []
 gate: compliance-lead
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0278, W-0344]
 prior_art_outcome: none
