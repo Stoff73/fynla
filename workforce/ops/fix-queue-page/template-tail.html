@@ -1,0 +1,101 @@
+;
+const SEV = ["critical","high","medium","low",""];
+const LABEL = {critical:"Critical", high:"High", medium:"Medium", low:"Low", "":"Unset"};
+const esc = s => (s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sevVar = s => `var(--sev-${s || "low"})`;
+
+const m = DATA.meta;
+document.getElementById("stamp").textContent =
+  `${m.generated} · ${m.branch} @ ${m.sha} · ${m.total} items on the board`;
+document.getElementById("f1").textContent = `${m.todo} to fix · ${m.handoffCount} awaiting verification · ${m.closed} closed`;
+document.getElementById("f2").textContent = `Generated from board frontmatter, not from memory`;
+
+// summary rail
+const counts = {};
+SEV.forEach(s => counts[s] = DATA.todo.filter(r => (r.severity||"") === s).length);
+const rail = SEV.filter(s => counts[s] > 0).map(s => `
+  <div class="stat" style="--bar:${sevVar(s)}">
+    <div class="n" style="color:${sevVar(s)}">${counts[s]}</div>
+    <div class="k">${LABEL[s]}</div>
+  </div>`).join("");
+const blocked = DATA.todo.filter(r => r.blocked_by).length;
+const gated = DATA.todo.filter(r => r.gate).length;
+const unowned = DATA.todo.filter(r => !r.owner).length;
+document.getElementById("rail").innerHTML = rail + `
+  <div class="stat"><div class="n">${blocked}</div><div class="k">Blocked</div><div class="note">cannot start</div></div>
+  <div class="stat"><div class="n">${gated}</div><div class="k">Gated</div><div class="note">needs a reviewer</div></div>
+  <div class="stat"><div class="n">${unowned}</div><div class="k">Unowned</div><div class="note">no lead assigned</div></div>`;
+
+// callouts: things that need a decision, not a fix
+const onCsj = DATA.todo.filter(r => (r.blocked_by||"").includes("csj-decision"));
+const crits = DATA.todo.filter(r => r.severity === "critical");
+let co = "";
+if (crits.length) co += `<div class="callout"><h2>Critical, unfixed</h2><p>${
+  crits.map(r => `<strong>${esc(r.id)}</strong> &mdash; ${esc(r.title)}`).join("<br>")}</p></div>`;
+if (onCsj.length) co += `<div class="callout" style="border-left-color:var(--sev-medium)"><h2 style="color:var(--sev-medium)">Waiting on a decision, not on engineering</h2><p>${
+  onCsj.map(r => `<strong>${esc(r.id)}</strong> &mdash; ${esc(r.title)}`).join("<br>")}</p></div>`;
+document.getElementById("callouts").innerHTML = co;
+
+// filters
+let sevFilter = "all", flags = new Set(), q = "";
+const matches = r => {
+  if (sevFilter !== "all" && (r.severity||"") !== sevFilter) return false;
+  if (flags.has("blocked") && !r.blocked_by) return false;
+  if (flags.has("gate") && !r.gate) return false;
+  if (flags.has("unowned") && r.owner) return false;
+  if (q && !(r.id + " " + r.title).toLowerCase().includes(q)) return false;
+  return true;
+};
+
+function render(){
+  const shown = DATA.todo.filter(matches);
+  document.getElementById("count").textContent = `${shown.length} of ${DATA.todo.length}`;
+  const out = SEV.map(s => {
+    const items = shown.filter(r => (r.severity||"") === s);
+    if (!items.length) return "";
+    return `<section class="group" style="--sev:${sevVar(s)}">
+      <h2>${LABEL[s]} <span class="gn">${items.length}</span></h2>
+      <div class="list">${items.map(row).join("")}</div>
+    </section>`;
+  }).join("");
+  document.getElementById("groups").innerHTML = out ||
+    `<p class="empty">Nothing matches those filters.</p>`;
+}
+
+function row(r){
+  const tags = [];
+  if (r.blocked_by) tags.push(`<span class="tag blocked">blocked ${esc(r.blocked_by.replace(/[\[\]]/g,""))}</span>`);
+  if (r.gate) tags.push(`<span class="tag gate">gate ${esc(r.gate)}</span>`);
+  tags.push(r.owner ? `<span class="tag">${esc(r.owner)}</span>` : `<span class="tag unowned">unowned</span>`);
+  if (r.status !== "queued") tags.push(`<span class="tag">${esc(r.status)}</span>`);
+  return `<details class="item" style="--sev:${sevVar(r.severity)}">
+    <summary>
+      <span class="stripe"></span>
+      <span class="rid">${esc(r.id)}</span>
+      <span class="rtitle">${esc(r.title)}</span>
+      <span class="rmeta">${tags.join("")}</span>
+    </summary>
+    <div class="body">${r.intent ? esc(r.intent) : "<em>No intent paragraph recorded.</em>"}
+      <div class="path">${esc(r.file)}</div>
+    </div>
+  </details>`;
+}
+
+document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.sev){
+    sevFilter = b.dataset.sev;
+    document.querySelectorAll("[data-sev]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  } else {
+    const f = b.dataset.flag;
+    flags.has(f) ? flags.delete(f) : flags.add(f);
+    b.setAttribute("aria-pressed", String(flags.has(f)));
+  }
+  render();
+}));
+document.getElementById("q").addEventListener("input", e => { q = e.target.value.toLowerCase().trim(); render(); });
+
+document.getElementById("hgrid").innerHTML = DATA.handoff.map(r =>
+  `<div class="hrow" style="--sev:${sevVar(r.severity)}"><span class="hid">${esc(r.id)}</span><span class="ht">${esc(r.title)}</span></div>`).join("");
+
+render();
+</script>
