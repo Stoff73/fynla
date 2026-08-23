@@ -31,9 +31,21 @@ afterEach(function () {
 });
 
 /**
+ * Pest's helper functions are declared in the GLOBAL namespace, so two test files
+ * cannot both define `spouseRow()`. This one and the one in
+ * `tests/Feature/Console/ReconcileSpouseFamilyLinksTest.php` collided, and PHP
+ * fatals on the redeclaration at collection time — so `./vendor/bin/pest` could
+ * not build its suite AT ALL. Not one test failed; the whole run died before any
+ * ran, and it had been that way since 2026-08-22 (both files arrived in the same
+ * snapshot).
+ *
+ * Renamed rather than extracted: the two do different jobs — this picks a spouse
+ * out of an array of family-member payloads, the other creates a `FamilyMember`
+ * row — and sharing a name was the only thing they had in common.
+ *
  * @return array<string, mixed>|null
  */
-function spouseRow(array $members): ?array
+function spouseRowFromPayload(array $members): ?array
 {
     foreach ($members as $member) {
         if (($member['relationship'] ?? null) === 'spouse') {
@@ -58,7 +70,7 @@ describe('a family-member row with a live account behind it', function () {
             'annual_income' => 0,
         ]);
 
-        $row = spouseRow($this->service->getFamilyMembersWithSharing($user->fresh()));
+        $row = spouseRowFromPayload($this->service->getFamilyMembersWithSharing($user->fresh()));
 
         expect($row['is_linked_account'])->toBeTrue()
             ->and($row['annual_income'])->toBe(120_000.0);
@@ -78,7 +90,7 @@ describe('a family-member row with a live account behind it', function () {
 
         $spouse->update(['annual_employment_income' => 90_000]);
 
-        expect(spouseRow($this->service->getFamilyMembersWithSharing($user->fresh()))['annual_income'])
+        expect(spouseRowFromPayload($this->service->getFamilyMembersWithSharing($user->fresh()))['annual_income'])
             ->toBe(90_000.0);
     });
 
@@ -94,7 +106,7 @@ describe('a family-member row with a live account behind it', function () {
             'annual_income' => 50_000,
         ]);
 
-        $income = spouseRow($this->service->getFamilyMembersWithSharing($user->fresh()))['annual_income'];
+        $income = spouseRowFromPayload($this->service->getFamilyMembersWithSharing($user->fresh()))['annual_income'];
 
         expect($income)->toBe(0.0)
             ->and((bool) $income)->toBeFalse();
@@ -105,7 +117,7 @@ describe('a family-member row with a live account behind it', function () {
         $user = User::factory()->create(['spouse_id' => $spouse->id]);
         $spouse->update(['spouse_id' => $user->id]);
 
-        $row = spouseRow($this->service->getFamilyMembersWithSharing($user->fresh()));
+        $row = spouseRowFromPayload($this->service->getFamilyMembersWithSharing($user->fresh()));
 
         expect($row['is_linked_account'])->toBeTrue()
             ->and($row['annual_income'])->toBe(120_000.0);
