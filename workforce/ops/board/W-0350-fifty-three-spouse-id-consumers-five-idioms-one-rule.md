@@ -9,7 +9,7 @@ severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
 claimed: null
-blocked_by: [csj-decision, W-0347]
+blocked_by: [csj-decision]
 gate: csj
 handoff_to: null
 prior_art_checked: 2026-08-22
@@ -120,3 +120,15 @@ hide a real parent's children. Recommend lifting to (c).
   token, expiry, notification — touching onboarding, Fyn's `capture_spouse_details` tool
   and the email pipeline. That is specified work, not a patch, and **half-fixing it would
   leave a system that looks gated and is not.**
+
+
+## Note — 2026-08-23
+
+**The `W-0347` block is lifted: linking no longer writes both rows.** A reciprocal link
+can now only arise from an explicit acceptance, so `hasReciprocalSpouseLink()` and
+`hasAcceptedSpousePermission()` are load-bearing rather than decorative, and this census
+can finally be verified as effective.
+
+The work itself is **unchanged and still open**: 53 consumers, five idioms, one helper
+(`User::reciprocalLiveSpouse()`), Tier 2 writes before Tier 1 reads. Nothing in this
+census was fixed by W-0347 — the write path underneath the gates was.

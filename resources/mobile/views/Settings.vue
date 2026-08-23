@@ -11,6 +11,10 @@
         <span><strong>Notifications</strong><small>Choose the updates you receive</small></span>
         <span aria-hidden="true">›</span>
       </button>
+      <button type="button" class="settings-row" data-testid="settings-spouse-sharing" @click="$router.push('/spouse-sharing')">
+        <span><strong>Household sharing</strong><small>Who can see your financial information</small></span>
+        <span aria-hidden="true">›</span>
+      </button>
       <button type="button" class="settings-row" data-testid="settings-privacy-data" :disabled="handoffBusy" @click="openPrivacyData">
         <span><strong>Privacy and data</strong><small>Manage your private data securely</small></span>
         <span aria-hidden="true">›</span>

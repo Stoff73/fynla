@@ -18,6 +18,7 @@ use App\Services\UserProfile\UserProfileService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class FamilyMembersController extends Controller
 {
@@ -135,6 +136,21 @@ class FamilyMembersController extends Controller
      */
     private function handleSpouseCreation($currentUser, array $data): JsonResponse
     {
+        // Applied here rather than on the route: `store` also adds children and
+        // other relatives, and a large family must not run into an invitation
+        // limit. Only this branch can point an email address at a stranger's
+        // account — or create one for an address that has none (W-0349).
+        $throttleKey = 'spouse-invite:'.$currentUser->id;
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many household invitations. Please try again in an hour.',
+            ], 429);
+        }
+
+        RateLimiter::hit($throttleKey, 3600);
+
         $spouseEmail = strtolower(trim((string) $data['email']));
         $data['email'] = $spouseEmail;
 
@@ -145,7 +161,7 @@ class FamilyMembersController extends Controller
         $spouseUser = User::withTrashed()->where('email', $spouseEmail)->first();
 
         if ($spouseUser?->trashed()) {
-            return $this->duplicateEmailValidationError();
+            return $this->unlinkableEmailValidationError();
         }
 
         if ($spouseUser && $spouseUser->id === $currentUser->id) {
@@ -158,10 +174,11 @@ class FamilyMembersController extends Controller
         try {
             $result = app(SpouseLinkingService::class)->linkOrCreateSpouse($currentUser, $data);
         } catch (SpouseCollisionException $exception) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This user is already linked to another spouse',
-            ], 422);
+            // Same response as a closed account, deliberately. "Already linked
+            // to another spouse" and "that email is already in use" are two
+            // different confirmations that the address holds a Fynla account,
+            // handed to any authenticated caller who guesses one (W-0349).
+            return $this->unlinkableEmailValidationError();
         } catch (\InvalidArgumentException $exception) {
             return response()->json([
                 'success' => false,
@@ -169,7 +186,7 @@ class FamilyMembersController extends Controller
             ], 422);
         } catch (QueryException $exception) {
             if ($this->isDuplicateEmailException($exception)) {
-                return $this->duplicateEmailValidationError();
+                return $this->unlinkableEmailValidationError();
             }
 
             throw $exception;
@@ -187,7 +204,7 @@ class FamilyMembersController extends Controller
                     : 'Spouse account created but email delivery failed. They can use the "Forgot Password" feature to set their password.',
                 'data' => [
                     'family_member' => $familyMember,
-                    'spouse_user' => $spouseUser,
+                    'spouse_user' => $this->spouseSummary($spouseUser),
                     'created' => true,
                     'email_sent' => $result['email_sent'],
                     'spouse_email' => $spouseEmail,
@@ -203,7 +220,7 @@ class FamilyMembersController extends Controller
                     : 'Spouse is already linked',
                 'data' => [
                     'family_member' => $familyMember,
-                    'spouse_user' => $spouseUser,
+                    'spouse_user' => $this->spouseSummary($spouseUser),
                     'linked' => true,
                     'already_existed' => ! $rowIsNew,
                     'record_created' => $rowIsNew,
@@ -211,22 +228,66 @@ class FamilyMembersController extends Controller
             ], $rowIsNew ? 201 : 200);
         }
 
+        // An existing account was INVITED, not linked (W-0347). Saying "linked"
+        // here would be the interface telling the user the thing the old code
+        // did wrong — and the message is the only place they learn their spouse
+        // has to agree.
         return response()->json([
             'success' => true,
-            'message' => 'Spouse account linked successfully',
+            'message' => 'Invitation sent. Your spouse will be asked to confirm the link before anything is shared.',
             'data' => [
                 'family_member' => $familyMember,
-                'spouse_user' => $spouseUser,
-                'linked' => true,
+                // No counterparty details at all. Nothing about an account that
+                // has not agreed to be linked is disclosed to the caller — not
+                // their name, not their id, not confirmation that the address is
+                // registered (W-0348, W-0349).
+                'linked' => false,
+                'invitation_pending' => true,
             ],
         ], 201);
     }
 
-    private function duplicateEmailValidationError(): JsonResponse
+    /**
+     * The only fields a client renders for a linked spouse.
+     *
+     * Was the whole Eloquent model. `$hidden` strips credentials and the
+     * national insurance number and nothing else, so date of birth, address,
+     * phone, occupation, employer, every `annual_*_income`, monthly and annual
+     * expenditure with all 21 category columns, health status, smoking status
+     * and domicile all shipped — and any column added to `users` later would
+     * have shipped too, silently (W-0348).
+     *
+     * @return array{id: int, first_name: ?string, surname: ?string, name: ?string, email: string}
+     */
+    private function spouseSummary(User $spouseUser): array
+    {
+        return [
+            'id' => $spouseUser->id,
+            'first_name' => $spouseUser->first_name,
+            'surname' => $spouseUser->surname,
+            'name' => $spouseUser->name,
+            // The caller supplied this address, so it discloses nothing new —
+            // and the UI echoes it back as confirmation of where the email went.
+            'email' => $spouseUser->email,
+        ];
+    }
+
+    /**
+     * One message for every address that cannot be linked, whatever the reason.
+     *
+     * Three distinguishable refusals used to sit behind this surface — closed
+     * account, already in another household, duplicate on insert — and each one
+     * told an authenticated caller something true about an address they had
+     * merely typed. Collapsed to one (W-0349). The remaining distinction, and
+     * it is deliberate rather than overlooked: an address with NO account still
+     * gets one created. That is a product decision on the board, not something
+     * to change quietly here.
+     */
+    private function unlinkableEmailValidationError(): JsonResponse
     {
         return $this->validationErrorResponse(
-            'That email address is already in use',
-            ['email' => ['That email address is already in use']]
+            'That email address cannot be linked to your household',
+            ['email' => ['That email address cannot be linked to your household']]
         );
     }
 

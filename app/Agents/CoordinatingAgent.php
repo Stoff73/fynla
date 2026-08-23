@@ -1803,17 +1803,31 @@ class CoordinatingAgent extends BaseAgent
 
         $result = $outcome['result'];
 
+        // An existing account is INVITED, never linked on the caller's say-so
+        // (W-0347). Fyn must not report a link that has not happened — the
+        // summary is what it narrates back, and "Spouse account linked" over a
+        // pending invitation is the interface telling the user the thing the
+        // old write path did wrong.
+        $invitationPending = (bool) ($result['invitation_pending'] ?? false);
+
+        if ($result['created_new_user']) {
+            $summary = 'Spouse account created and linked';
+        } elseif ($invitationPending) {
+            $summary = 'Invitation sent — your partner needs to confirm before anything is shared';
+        } else {
+            $summary = 'Spouse account linked';
+        }
+
         return [
             'onboarding_capture' => true,
             'field_group' => 'spouse',
-            'summary' => $result['created_new_user']
-                ? 'Spouse account created and linked'
-                : 'Spouse account linked',
+            'summary' => $summary,
             'details' => [
                 'family_member_id' => $result['family_member']->id,
                 'spouse_user_id' => $result['spouse_user']->id,
                 'created_new_user' => $result['created_new_user'],
                 'already_linked' => $result['already_linked'],
+                'invitation_pending' => $invitationPending,
                 'email_sent' => $result['email_sent'],
                 'first_name' => $firstName,
                 'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,

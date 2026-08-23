@@ -182,12 +182,19 @@
               </svg>
             </div>
             <div class="ml-3 flex-1">
-              <h4 class="text-body-sm font-medium text-raspberry-800">Permission Request Rejected</h4>
+              <!--
+                Covers two cases now: a declined request, and sharing that was
+                switched on and later withdrawn. Revoking marks the row
+                `rejected` rather than deleting it, so a deleted record cannot
+                read as "never asked" and quietly re-enable sharing. Wording
+                stays true of both rather than asserting the spouse declined.
+              -->
+              <h4 class="text-body-sm font-medium text-raspberry-800">Data sharing is off</h4>
               <p class="mt-1 text-body-sm text-raspberry-700">
-                Your spouse declined the data sharing request.
+                Financial information is not being shared between these accounts.
               </p>
               <p class="mt-1 text-body-xs text-raspberry-600">
-                Rejected: {{ formatDate(permission.responded_at) }}
+                Since: {{ formatDate(permission.responded_at) }}
               </p>
             </div>
           </div>

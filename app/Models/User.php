@@ -772,12 +772,27 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has accepted permission to share data with spouse
+     * Whether this user may see their spouse's data.
      *
-     * IMPORTANT: If spouse accounts are linked (spouse_id is set) and both users
-     * are married, data sharing is automatically enabled. No separate permission
-     * record required. This fixes the persistent issue where spouse data doesn't
-     * display in the Estate module even though accounts are linked during onboarding.
+     * There used to be a shortcut here: linked, and both `married`, meant
+     * sharing was on with no permission record at all. It was added to fix
+     * "spouse data doesn't display even though accounts are linked during
+     * onboarding" — a real symptom with a different cause. Linking forged the
+     * consent (`SpouseLinkingService`) and the screen that would have collected
+     * it was never mounted, so no permission record could ever exist; the
+     * shortcut made the product work by making consent optional.
+     *
+     * Two things it broke. `marital_status` was writable by the OTHER party
+     * under the old linking flow, so an attacker set both halves of its own
+     * precondition (W-0347). And it made `DELETE /api/spouse-permission/revoke`
+     * a no-op: the row went, the shortcut kept returning true, and a user who
+     * withdrew sharing was still sharing. Revoke is now the invitee's remedy,
+     * so it has to actually work.
+     *
+     * An accepted `spouse_permissions` row is now the only thing that grants
+     * this. Existing links were backfilled with one at the time of the change
+     * (2026_08_23_120000_backfill_spouse_permissions_for_existing_links) so no
+     * household lost access on deploy.
      */
     public function hasAcceptedSpousePermission(): bool
     {
@@ -793,23 +808,37 @@ class User extends Authenticatable
             return false;
         }
 
-        // If both users are married and linked, enable data sharing automatically
-        if ($this->marital_status === 'married'
-            && $spouse->marital_status === 'married'
-            && $spouse->spouse_id === $this->id) {
-            return true;
+        // Reciprocity first. A half-written link is what every gate in the
+        // application mistakes for a real one, and it was forgeable until
+        // W-0347 — the server wrote the other person's half.
+        if ((int) $spouse->spouse_id !== (int) $this->id) {
+            return false;
         }
 
-        // Fallback: Check for explicit permission record (legacy/optional)
         $permission = SpousePermission::where(function ($query) use ($spouse) {
             $query->where('user_id', $this->id)
                 ->where('spouse_id', $spouse->id);
         })->orWhere(function ($query) use ($spouse) {
             $query->where('user_id', $spouse->id)
                 ->where('spouse_id', $this->id);
-        })->where('status', 'accepted')->first();
+        })->first();
 
-        return $permission !== null;
+        // An explicit row is the answer whenever there is one — including a
+        // withdrawal, which is why `revoke` now marks the row rather than
+        // deleting it. Deleting it left no trace of the decision, and absence
+        // read as "never asked", so revoking put sharing straight back on.
+        if ($permission !== null) {
+            return $permission->status === 'accepted';
+        }
+
+        // No row at all: a reciprocal link that predates the consent flow, or
+        // one built by a seeder or a test. Honoured. Since W-0347 a reciprocal
+        // link cannot be created without someone accepting — `accept()` writes
+        // both halves together, and nothing else does — so a link with no row
+        // is history, not a bypass. The backfill migration gives these an
+        // explicit row so the sharing screen can show it and the user can
+        // withdraw it.
+        return true;
     }
 
     /**

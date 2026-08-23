@@ -331,6 +331,9 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     // (SP2 spec firm rule: family_module=full at every tier, including Free).
     Route::prefix('family-members')->group(function () {
         Route::get('/', [FamilyMembersController::class, 'index']);
+        // NOTE: the spouse-invite throttle is applied inside the controller,
+        // not here — `store` also adds children, and a family of six must not
+        // hit an invitation limit (W-0349).
         Route::post('/', [FamilyMembersController::class, 'store']);
         Route::get('/{id}', [FamilyMembersController::class, 'show']);
         Route::put('/{id}', [FamilyMembersController::class, 'update']);

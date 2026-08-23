@@ -186,17 +186,35 @@ describe('POST /api/user/family-members — spouse', function () {
             ->and(User::where('email', 'arjun@example.com')->value('marital_status'))->toBe('civil_partnership');
     });
 
-    it('refuses an email already linked to another household', function () {
+    it('refuses an email already linked to another household without saying so', function () {
         $otherHouseholdMember = User::factory()->create(['email' => 'taken@example.com']);
         $otherHouseholdMember->update(['spouse_id' => User::factory()->create()->id]);
 
+        // The message used to be "This user is already linked to another
+        // spouse", which confirms to any authenticated caller that an address
+        // they merely typed holds a Fynla account AND that it is in a
+        // household. A closed account answered differently again. Both now give
+        // the same answer as each other (W-0349).
         $this->postJson('/api/user/family-members', [
             'relationship' => 'spouse',
             'email' => 'taken@example.com',
             'first_name' => 'Someone',
             'last_name' => 'Else',
         ])->assertStatus(422)
-            ->assertJsonPath('message', 'This user is already linked to another spouse');
+            ->assertJsonPath('message', 'That email address cannot be linked to your household');
+    });
+
+    it('gives a closed account the same refusal as one already linked', function () {
+        $closed = User::factory()->create(['email' => 'closed@example.com']);
+        $closed->delete();
+
+        $this->postJson('/api/user/family-members', [
+            'relationship' => 'spouse',
+            'email' => 'closed@example.com',
+            'first_name' => 'Someone',
+            'last_name' => 'Else',
+        ])->assertStatus(422)
+            ->assertJsonPath('message', 'That email address cannot be linked to your household');
     });
 
     it('refuses the user adding themselves', function () {

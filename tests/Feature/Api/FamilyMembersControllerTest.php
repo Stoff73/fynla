@@ -184,8 +184,12 @@ describe('POST /api/user/family-members', function () {
 
         $response->assertStatus(422)
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'That email address is already in use')
-            ->assertJsonPath('errors.email.0', 'That email address is already in use');
+            // One refusal for every address that cannot be linked, whatever the
+            // reason — a closed account and an account already in another
+            // household now answer identically, so neither confirms that the
+            // address holds a Fynla account (W-0349).
+            ->assertJsonPath('message', 'That email address cannot be linked to your household')
+            ->assertJsonPath('errors.email.0', 'That email address cannot be linked to your household');
 
         $this->assertSoftDeleted('users', ['id' => $existingUser->id]);
         $this->assertDatabaseMissing('family_members', [

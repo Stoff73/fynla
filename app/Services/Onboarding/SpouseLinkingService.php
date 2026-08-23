@@ -6,11 +6,11 @@ namespace App\Services\Onboarding;
 
 use App\Exceptions\SpouseCollisionException;
 use App\Mail\SpouseAccountCreated;
-use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Notifications\SpousePermissionRequest;
 use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -28,8 +28,10 @@ use Illuminate\Support\Str;
  *   1. Spouse user exists and is already linked to current user
  *      → ensure FamilyMember record exists, no email sent
  *   2. Spouse user exists but not linked
- *      → link bidirectionally, create permissions, create family_member
- *        rows, send "account linked" email
+ *      → INVITE: record a pending spouse_permission and the caller's own
+ *        family_member row, notify the invitee, and write NOTHING to their
+ *        account. The link itself is established only when they accept
+ *        (SpousePermissionController::accept). W-0347.
  *   3. Spouse user does not exist
  *      → create new user with random temporary password, link
  *        bidirectionally, create permissions, create family_member rows,
@@ -118,9 +120,15 @@ final class SpouseLinkingService
      *   spouse_user: User,
      *   created_new_user: bool,
      *   already_linked: bool,
+     *   invitation_pending?: bool,
      *   email_sent: bool,
      *   temporary_password: ?string
      * }
+     *
+     * `invitation_pending` is present and true only on path 2 — an existing
+     * account has been invited and has NOT been linked. Callers rendering
+     * "linked" off the absence of an error will otherwise tell the user their
+     * spouse is connected when nothing has happened yet.
      */
     public function linkOrCreateSpouse(User $currentUser, array $data): array
     {
@@ -186,7 +194,7 @@ final class SpouseLinkingService
      *   (a) linking to self → error
      *   (b) already linked to a different user → error
      *   (c) already linked to current user → ensure FamilyMember exists
-     *   (d) not linked → link both, create permissions, send email
+     *   (d) not linked → INVITE; no write to their account, no link yet
      *
      * @param  array<string, mixed>  $data
      * @return array{family_member: FamilyMember, spouse_user: User, created_new_user: bool, already_linked: bool, email_sent: bool, temporary_password: ?string}
@@ -223,51 +231,155 @@ final class SpouseLinkingService
             ];
         }
 
-        // Not linked — link both sides inside a transaction with
-        // pessimistic row-level lock on the spouse.
+        // Not linked — INVITE. This account belongs to somebody else, so nothing
+        // here writes their row and nothing here grants the caller access to it
+        // (W-0347).
+        //
+        // What this used to do, and why it was critical: it set the named
+        // account's `spouse_id`, `marital_status`, `annual_employment_income`
+        // (to a figure the CALLER supplied) and five address fields, then wrote
+        // `status => 'accepted'` on BOTH `spouse_permissions` rows. One
+        // authenticated POST and a guessed email address was therefore enough to
+        // establish a link the target never agreed to — and because the server
+        // wrote both halves, the two gates that would otherwise have caught it
+        // (`hasReciprocalSpouseLink()` and `hasAcceptedSpousePermission()`) were
+        // both satisfied by the forgery. Every downstream gate in the
+        // application was decorative against this one endpoint.
+        //
+        // The rule this now keeps, and the one to test against if this is ever
+        // rewritten: NO ACCOUNT'S ROW IS EVER WRITTEN BY ANOTHER ACCOUNT. Until
+        // the invitee accepts there is no link in either direction, so there is
+        // no one-sided link for any of the 53 `spouse_id` consumers (W-0350) to
+        // trust. Acceptance — `SpousePermissionController::accept()` — is what
+        // writes both rows, and by then both parties have asked for it.
         $familyMember = DB::transaction(function () use ($currentUser, $spouseUser, $data, $maritalStatus) {
+            // Re-read under lock. The invitee must still be unattached at the
+            // moment the invitation is recorded, or two households end up
+            // holding a pending invitation for the same person.
             $lockedSpouse = User::lockForUpdate()->find($spouseUser->id);
             if ($lockedSpouse->spouse_id && $lockedSpouse->spouse_id !== $currentUser->id) {
                 throw new SpouseCollisionException('Spouse was linked to another user during transaction.');
             }
 
-            $currentUser->spouse_id = $lockedSpouse->id;
+            // The caller's OWN marital status is theirs to set. Their
+            // `spouse_id` is not set yet: it is half of a link, and half a link
+            // is what every gate in the application mistakes for a whole one.
             $currentUser->marital_status = $maritalStatus;
             $currentUser->save();
 
-            $lockedSpouse->spouse_id = $currentUser->id;
-            $lockedSpouse->marital_status = $maritalStatus;
-            if (isset($data['annual_income']) && (float) $data['annual_income'] > 0) {
-                $lockedSpouse->annual_employment_income = $data['annual_income'];
-            }
-            if (! $lockedSpouse->address_line_1 && $currentUser->address_line_1) {
-                $lockedSpouse->address_line_1 = $currentUser->address_line_1;
-                $lockedSpouse->address_line_2 = $currentUser->address_line_2;
-                $lockedSpouse->city = $currentUser->city;
-                $lockedSpouse->county = $currentUser->county;
-                $lockedSpouse->postcode = $currentUser->postcode;
-            }
-            $lockedSpouse->save();
+            $this->createPendingSpouseInvitation($currentUser->id, $lockedSpouse->id);
 
-            $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $lockedSpouse->id);
-            $this->createSpousePermissions($currentUser->id, $lockedSpouse->id);
-
-            $familyMember = $this->upsertFamilyMemberRow($currentUser, $lockedSpouse->id, $data);
-            $this->createReciprocalFamilyMember($lockedSpouse, $currentUser);
-
-            return $familyMember;
+            // The caller's own household record of their spouse, carrying NO
+            // `linked_user_id` — the card is the caller's to keep, the link to
+            // the account is the invitee's to grant. No reciprocal row is
+            // written on the invitee's side; that would be their row.
+            return $this->upsertFamilyMemberRow($currentUser, null, $data);
         });
 
-        $emailSent = $this->sendLinkedEmail($spouseUser, $currentUser);
+        $emailSent = $this->sendInvitationNotification($spouseUser, $currentUser);
 
         return [
             'family_member' => $familyMember,
             'spouse_user' => $spouseUser,
             'created_new_user' => false,
             'already_linked' => false,
+            'invitation_pending' => true,
             'email_sent' => $emailSent,
             'temporary_password' => null,
         ];
+    }
+
+    /**
+     * Establish the link, once the invitee has accepted it.
+     *
+     * THE ONLY place in the application where one account's row is written as
+     * a result of another account's request — and it is legitimate here for
+     * exactly one reason: the requester asked, and the accepter is the person
+     * whose row is being written, acting on their own authenticated request.
+     * Called from `SpousePermissionController::accept()`, never from a linking
+     * path (W-0347).
+     *
+     * Both `spouse_id`s are set together and inside one transaction. A link
+     * that exists on one side only is what every gate in the application
+     * mistakes for a real one, so it must never be observable as an
+     * intermediate state.
+     *
+     * Note what is NOT copied across: income, and the address block. The old
+     * flow pushed the CALLER's figures into the other person's account, so an
+     * attacker set their victim's stated income. An accepted link shares
+     * visibility of records; it does not overwrite the other person's facts
+     * with yours.
+     *
+     * @throws SpouseCollisionException if either side was linked elsewhere in
+     *                                  the window between invitation and acceptance
+     */
+    public function establishAcceptedLink(User $requester, User $accepter): void
+    {
+        if ($requester->id === $accepter->id) {
+            throw new \InvalidArgumentException('You cannot link an account to itself.');
+        }
+
+        $this->householdProvisioner->ensureFor($requester);
+
+        DB::transaction(function () use ($requester, $accepter) {
+            // Lock the LOWER id first, always. Two invitations accepted at the
+            // same moment in opposite directions would otherwise each hold the
+            // row the other is waiting for.
+            $ids = [$requester->id, $accepter->id];
+            sort($ids);
+            $locked = User::lockForUpdate()->findMany($ids)->keyBy('id');
+
+            $lockedRequester = $locked[$requester->id];
+            $lockedAccepter = $locked[$accepter->id];
+
+            foreach ([[$lockedRequester, $lockedAccepter], [$lockedAccepter, $lockedRequester]] as [$side, $other]) {
+                if ($side->spouse_id && (int) $side->spouse_id !== $other->id) {
+                    throw new SpouseCollisionException(
+                        'One of these accounts was linked to a different spouse while the request was pending.'
+                    );
+                }
+            }
+
+            $maritalStatus = in_array($lockedRequester->marital_status, ['married', 'civil_partnership'], true)
+                ? $lockedRequester->marital_status
+                : 'married';
+
+            $lockedRequester->spouse_id = $lockedAccepter->id;
+            $lockedRequester->marital_status = $maritalStatus;
+            $lockedRequester->save();
+
+            $lockedAccepter->spouse_id = $lockedRequester->id;
+            $lockedAccepter->marital_status = $maritalStatus;
+            // The invitee joins the requester's household so the "plan
+            // together" queries see one household rather than two.
+            $lockedAccepter->household_id = $lockedRequester->household_id;
+            $lockedAccepter->save();
+
+            // Now that the link is real, the caller's card carries it, and the
+            // accepter gets their own card for their partner.
+            $this->attachLinkToExistingSpouseRow($lockedRequester, $lockedAccepter->id);
+            $this->createReciprocalFamilyMember($lockedAccepter, $lockedRequester);
+
+            $this->cacheInvalidation->invalidateForUserAndSpouse($lockedRequester->id, $lockedAccepter->id);
+        });
+    }
+
+    /**
+     * Point the requester's existing spouse card at the account that just
+     * accepted. The card was written unlinked at invitation time; this is the
+     * moment it earns its `linked_user_id`.
+     */
+    private function attachLinkToExistingSpouseRow(User $requester, int $linkedUserId): void
+    {
+        $row = $this->adoptableSpouseRow($requester->id, $linkedUserId);
+
+        if ($row === null) {
+            return;
+        }
+
+        $row->linked_user_id = $linkedUserId;
+        $row->household_id = $requester->household_id;
+        $row->save();
     }
 
     /**
@@ -337,7 +449,7 @@ final class SpouseLinkingService
             $currentUser->save();
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
-            $this->createSpousePermissions($currentUser->id, $spouseUser->id);
+            $this->createSpousePermissionsForCreatedAccount($currentUser->id, $spouseUser->id);
 
             $familyMember = $this->upsertFamilyMemberRow($currentUser, $spouseUser->id, $data);
             $this->createReciprocalFamilyMember($spouseUser, $currentUser);
@@ -371,7 +483,7 @@ final class SpouseLinkingService
      *
      * @param  array<string, mixed>  $data
      */
-    private function upsertFamilyMemberRow(User $currentUser, int $linkedUserId, array $data): FamilyMember
+    private function upsertFamilyMemberRow(User $currentUser, ?int $linkedUserId, array $data): FamilyMember
     {
         $firstName = (string) ($data['first_name'] ?? '');
         $middleName = (string) ($data['middle_name'] ?? '');
@@ -402,7 +514,12 @@ final class SpouseLinkingService
                 $attributes,
                 static fn ($value) => $value !== null && $value !== '',
             ));
-            $existing->linked_user_id = $linkedUserId;
+            // Only ever set a link, never clear one. An invitation re-sent over
+            // a row that is ALREADY linked (the invitee accepted, then the
+            // caller edited the card) must not tear the accepted link down.
+            if ($linkedUserId !== null) {
+                $existing->linked_user_id = $linkedUserId;
+            }
             $existing->save();
 
             return $existing;
@@ -457,13 +574,17 @@ final class SpouseLinkingService
      * else's link and is never touched — the caller has already refused that
      * case with a collision.
      */
-    private function adoptableSpouseRow(int $userId, int $linkedUserId): ?FamilyMember
+    private function adoptableSpouseRow(int $userId, ?int $linkedUserId): ?FamilyMember
     {
         return FamilyMember::where('user_id', $userId)
             ->where('relationship', 'spouse')
             ->where(function ($query) use ($linkedUserId) {
-                $query->whereNull('linked_user_id')
-                    ->orWhere('linked_user_id', $linkedUserId);
+                $query->whereNull('linked_user_id');
+                // `orWhere('linked_user_id', null)` compiles to `= NULL`, which
+                // is never true — guard rather than rely on that accident.
+                if ($linkedUserId !== null) {
+                    $query->orWhere('linked_user_id', $linkedUserId);
+                }
             })
             // Non-null first: where a household already holds the real linked
             // row, that is the one to keep current. The orphan beside it is the
@@ -472,27 +593,75 @@ final class SpouseLinkingService
             ->first();
     }
 
-    private function createSpousePermissions(int $userId, int $spouseId): void
+    /**
+     * Record the caller's request to link, for the invitee to accept or decline.
+     *
+     * `requested_at` set and `responded_at` left NULL is what distinguishes a
+     * real request from the forged rows this replaced: every one of the ten
+     * `accepted` rows on the dev database at the time of the fix carried
+     * `requested_at = NULL`, because no request was ever made — the service
+     * wrote the acceptance itself. That NULL is the marker for auditing legacy
+     * links.
+     */
+    private function createPendingSpouseInvitation(int $requesterId, int $inviteeId): void
+    {
+        SpousePermission::updateOrCreate(
+            ['user_id' => $requesterId, 'spouse_id' => $inviteeId],
+            ['status' => 'pending', 'requested_at' => now(), 'responded_at' => null]
+        );
+    }
+
+    /**
+     * Permissions for an account this call just CREATED — not for one that
+     * already existed and belongs to somebody else.
+     *
+     * The distinction is the whole of W-0347. Against an existing account,
+     * writing `accepted` forges the consent of a real person with real records;
+     * that path now invites instead (`createPendingSpouseInvitation`). Against
+     * an account created moments ago by this caller, from data this caller
+     * supplied, holding nothing the caller has not already seen, there is
+     * nothing yet to consent about — and the invitee proves control of the
+     * address by logging in with the credentials emailed to it, then keeps
+     * `DELETE /api/spouse-permission/revoke` if they disagree.
+     *
+     * Do NOT reuse this for an existing account. That is the defect.
+     */
+    private function createSpousePermissionsForCreatedAccount(int $userId, int $spouseId): void
     {
         SpousePermission::updateOrCreate(
             ['user_id' => $userId, 'spouse_id' => $spouseId],
-            ['status' => 'accepted', 'responded_at' => now()]
+            ['status' => 'accepted', 'requested_at' => now(), 'responded_at' => now()]
         );
 
         SpousePermission::updateOrCreate(
             ['user_id' => $spouseId, 'spouse_id' => $userId],
-            ['status' => 'accepted', 'responded_at' => now()]
+            ['status' => 'accepted', 'requested_at' => now(), 'responded_at' => now()]
         );
     }
 
-    private function sendLinkedEmail(User $spouseUser, User $currentUser): bool
+    /**
+     * Tell the invitee somebody has asked to link, and that it is theirs to
+     * decide.
+     *
+     * Deliberately NOT `SpouseAccountLinked` — that mail states the accounts
+     * are linked and sharing is on, which is now false at this point in the
+     * flow and was the notification a victim of the old behaviour would have
+     * received as the only sign anything had happened. `SpousePermissionRequest`
+     * is the existing notification for exactly this, already written, already
+     * queued, and it links to the response screen.
+     *
+     * A failed send must not roll the invitation back: the invitee can still
+     * find and answer it in the app, and losing the record would silently
+     * re-open the caller's request next time they submit.
+     */
+    private function sendInvitationNotification(User $spouseUser, User $currentUser): bool
     {
         try {
-            Mail::to($spouseUser->email)->send(new SpouseAccountLinked($spouseUser, $currentUser));
+            $spouseUser->notify(new SpousePermissionRequest($currentUser->name));
 
             return true;
         } catch (\Throwable $e) {
-            Log::error('[SpouseLinkingService] SpouseAccountLinked email failed: '.$e->getMessage());
+            Log::error('[SpouseLinkingService] SpousePermissionRequest notification failed: '.$e->getMessage());
 
             return false;
         }
