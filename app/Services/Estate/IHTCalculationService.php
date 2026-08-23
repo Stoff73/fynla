@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Models\Estate\Bequest;
-use App\Models\Estate\Gift;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
@@ -197,6 +196,26 @@ class IHTCalculationService
         // hidden inside an asset's value.
         $totalNetEstate = $totalGrossAssets - $totalLiabilities - $businessReliefDeduction;
 
+        // F2 — the residence-band taper is measured on a DIFFERENT estate, and one
+        // variable was doing both jobs.
+        //
+        // IHTM46023 on s8D(5)(d): "The taper threshold applies to the value of the
+        // estate after liabilities, but BEFORE taking into account any exemptions or
+        // reliefs." So E includes relieved business value at full worth, while the
+        // Schedule 1A baseline is correctly struck AFTER reliefs (IHTM45031's worked
+        // example opens "Estate £1,000,000 / Less agricultural relief −£200,000").
+        //
+        // Subtracting relief from the taper base let a business-owning estate keep a
+        // residence band the taper should have removed — it UNDERSTATED tax, the one
+        // direction a compliance surface must not lean. Wholly relieved assets are
+        // dropped from gross at the filter above, so they are added back here too.
+        $estateForTaper = $totalGrossAssets
+            + (float) $userTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0))
+            + (float) $spouseTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0))
+            + (float) $userAssets->filter(fn ($a) => ($a->is_iht_exempt ?? false) && ($a->iht_relief_qualifies ?? false))->sum('current_value')
+            + (float) $spouseAssets->filter(fn ($a) => ($a->is_iht_exempt ?? false) && ($a->iht_relief_qualifies ?? false))->sum('current_value')
+            - $totalLiabilities;
+
         // 6. Calculate NRB with message (includes transferred NRB for widows)
         $nrbSingle = $ihtConfig['nil_rate_band']; // £325,000
         $nrbTransferred = $nrbTransferredPooled;
@@ -281,6 +300,7 @@ class IHTCalculationService
             'rnrb_transferred' => $rnrbTransferredPooled,
             'nrb_available' => $nrbAvailable,
             'profiles' => $profiles,
+            'estate_for_taper' => $estateForTaper,
         ];
 
         $current = $this->assessTaxPosition(
@@ -622,6 +642,11 @@ class IHTCalculationService
         // Feeding it the current value would cap the projected band at a home price
         // decades out of date — it does not bite a household whose residence already
         // exceeds the band, and it silently under-caps every household whose does not.
+        // F2 — the projection must not inherit the CURRENT estate's taper base. The
+        // projection does not model business relief separately, so its net estate is
+        // already relief-free and is the correct base for its own taper; passing it
+        // explicitly stops `$ctx['estate_for_taper']` leaking today's figure into a
+        // projection decades out.
         $projected = $this->assessTaxPosition(
             $projectedNetEstate,
             $this->projectMainResidenceNetValue(
@@ -632,7 +657,7 @@ class IHTCalculationService
                 $yearsUntilDeath,
                 $assumptions
             ),
-            $assessment
+            ['estate_for_taper' => $projectedNetEstate] + $assessment
         );
 
         return [
@@ -700,8 +725,14 @@ class IHTCalculationService
      */
     private function assessTaxPosition(float $netEstate, float $residenceNetValue, array $ctx): array
     {
+        // F2 — the taper is measured on the estate BEFORE reliefs (IHTM46023), the
+        // Schedule 1A baseline on the estate AFTER them (IHTM45031). Passed as its
+        // own value rather than derived here, because only the caller knows what was
+        // relieved. Falls back to `$netEstate` when the caller supplies nothing,
+        // which is correct for any estate holding no relievable property — i.e. all
+        // of them until a business interest exists.
         $rnrbData = $this->calculateRNRB(
-            $netEstate,
+            $ctx['estate_for_taper'] ?? $netEstate,
             $residenceNetValue,
             $ctx['user'],
             $ctx['spouse'],
@@ -1368,87 +1399,131 @@ class IHTCalculationService
         // between them was unattributable — the same defect that was fixed for the
         // nil rate band and left standing here. Do NOT "fix" it by writing
         // £175,000 into `rnrb_transferred`.
-        $rnrbSpouseModelled = 0.0;
+        // F19 (tax-compliance-reviewer, 2026-08-23) — a transferred band is capped
+        // at ONE extra band. `IHTController:266` validates
+        // `nrb_transferred_from_spouse` as `numeric|min:0` with NO upper bound and
+        // omits `rnrb_transferred_from_spouse` from the list entirely; the column
+        // carries no constraint and `:159` SUMS it across pooled members, so a
+        // widowed user entering £400,000 was given a £575,000 residence band against
+        // a statutory maximum of £350,000. Capped in the CALCULATION, not only in
+        // request validation, because the pooled sum can exceed the cap even from
+        // individually valid rows.
+        //
+        // s8G(3)(d): where the total brought-forward percentage exceeds 100%, the
+        // brought-forward allowance IS the residential enhancement — one extra band,
+        // however many predeceased spouses there are.
+        $rnrbTransferred = min($rnrbTransferred, $rnrbSingle);
+
+        // F15 — for a REMARRIED widow(er) the real brought-forward band DISPLACES the
+        // modelled one rather than stacking on top of it. £175,000 own + £175,000
+        // transferred + £175,000 modelled would be 200% brought forward, which
+        // s8G(3)(d) forbids. Same £350,000 total in every case; the components now
+        // say which half is a crystallised claim and which is this service's
+        // second-death assumption, and the identity closes for a household where both
+        // are present.
+        $rnrbSpouseModelled = $poolsSpouse ? max(0.0, $rnrbSingle - $rnrbTransferred) : 0.0;
 
         if ($poolsSpouse) {
-            $rnrbSpouseModelled = $rnrbSingle;
-            $fullRNRB = $rnrbSingle + $rnrbSpouseModelled;
+            $fullRNRB = $rnrbSingle + $rnrbTransferred + $rnrbSpouseModelled;
         } elseif ($isWidowed && $rnrbTransferred > 0) {
             $fullRNRB = $rnrbSingle + $rnrbTransferred;
         } else {
             $fullRNRB = $rnrbSingle;
         }
 
-        // The maximum before either of the two reductions below. Both reductions
-        // are published so the arithmetic on screen closes:
+        // The maximum before the two reductions below. Both are published so the
+        // arithmetic closes on screen:
         //   individual + spouse_modelled + transferred
-        //     − residence_cap_reduction − taper_reduction = available
+        //     − taper_reduction − residence_cap_reduction = available
         $rnrbGross = $fullRNRB;
 
-        // IHTA 1984 s8E(2): the RNRB is the LOWER of the maximum allowance and the
-        // net value of the residence closely inherited by descendants. Cap the full
-        // allowance at the net-of-mortgage, ownership-share-adjusted residence value
-        // BEFORE the £2m taper is applied. A £200k home therefore limits the RNRB to
-        // £200k even for a married couple whose combined maximum would be £350k.
-        $cappedByResidence = $residenceNetValue < $fullRNRB;
-        $fullRNRB = min($fullRNRB, $residenceNetValue);
-        $residenceCapReduction = $rnrbGross - $fullRNRB;
+        // F1 — THE TAPER RUNS FIRST, THEN THE RESIDENCE CAP. This was the other way
+        // round, and the comment that used to sit here asserted the wrong order as
+        // though it were s8E(2).
+        //
+        // s8D(5)(g) defines the ADJUSTED allowance as the default allowance less
+        // (E − TT)/2 — the taper reduces the ALLOWANCE. s8E(4)-(5) then compare the
+        // closely-inherited residence value against that ADJUSTED figure. Capping
+        // first and tapering the capped figure is `min(D,R) − T`, which is never
+        // greater than the correct `min(D − T, R)` — so the old order could only ever
+        // OVERSTATE the tax, never under-state it.
+        //
+        // Worked (reviewer's example, verified): default £350,000, closely-inherited
+        // residence £300,000, estate £2,200,000. Correct: taper £100,000 → adjusted
+        // £250,000, cap does not bite → £250,000. Old order: cap to £300,000, then
+        // taper £100,000 → £200,000. £50,000 of allowance, £20,000 of tax.
+        // Ref: IHTA 1984 s8D(5)(f)-(g), s8E(2)-(5); IHTM46023, IHTM46026, IHTM46044.
+        $taperReductionRaw = $totalNetEstate > $taperThreshold
+            ? ($totalNetEstate - $taperThreshold) * $taperRate
+            : 0.0;
+
+        // Bounded because s8D(5)(g) ends "but is nil if that amount is greater than
+        // the person's default allowance" — statutory, not defensive.
+        $taperReduction = min($taperReductionRaw, $rnrbGross);
+        $taperedRNRB = $rnrbGross - $taperReduction;
+
+        // s8E(2) caps what the taper has already left, not the gross.
+        $residenceCapReduction = max(0.0, $taperedRNRB - $residenceNetValue);
+        $fullRNRB = $taperedRNRB - $residenceCapReduction;
+
+        // Computed against the TAPERED figure. Against the gross it reported
+        // "capped at the net value of your main residence" in cases where the cap
+        // never bit — the reviewer's example is exactly one.
+        $cappedByResidence = $residenceCapReduction > 0;
 
         // Check for taper
-        if ($totalNetEstate <= $taperThreshold) {
-            // Build message based on status
-            if ($cappedByResidence) {
-                $rnrbMsg = 'Residence Nil Rate Band of £'.number_format($fullRNRB).' available — capped at the net value of your main residence (£'.number_format($residenceNetValue).'), which is lower than the maximum allowance of £'.number_format($potentialMax).'. Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
-            } elseif ($poolsSpouse) {
-                $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (£'.number_format($rnrbSingle).' each). Your combined estate is below the £'.number_format($taperThreshold).' taper threshold.';
-            } elseif ($isWidowed && $rnrbTransferred > 0) {
-                $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (own £'.number_format($rnrbSingle).' + £'.number_format($rnrbTransferred).' transferred from late spouse\'s estate). Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
-            } else {
-                $rnrbMsg = 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available. Your estate is below the £'.number_format($taperThreshold).' taper threshold.';
-            }
+        // Both reductions are already computed above, in statutory order, so the
+        // three branches now only choose WORDING. They used to re-derive the taper,
+        // which is how the published components and the applied figure could differ.
+        $excess = max(0.0, $totalNetEstate - $taperThreshold);
+        $tapered = $taperReduction > 0;
 
-            return [
-                'rnrb_available' => $fullRNRB,
-                'rnrb_individual' => $rnrbSingle,
-                'rnrb_spouse_modelled' => $rnrbSpouseModelled,
-                'rnrb_transferred' => $rnrbTransferred,
-                'rnrb_residence_cap_reduction' => $residenceCapReduction,
-                'rnrb_taper_reduction' => 0,
-                'rnrb_status' => $cappedByResidence ? 'residence_capped' : 'full',
-                'rnrb_message' => $rnrbMsg,
-            ];
-        }
-
-        // Apply taper
-        $excess = $totalNetEstate - $taperThreshold;
-        $reduction = $excess * $taperRate;
-        $rnrbAvailable = max(0, $fullRNRB - $reduction);
-
-        if ($rnrbAvailable > 0) {
-            return [
-                'rnrb_available' => $rnrbAvailable,
-                'rnrb_individual' => $rnrbSingle,
-                'rnrb_spouse_modelled' => $rnrbSpouseModelled,
-                'rnrb_transferred' => $rnrbTransferred,
-                'rnrb_residence_cap_reduction' => $residenceCapReduction,
-                'rnrb_taper_reduction' => $reduction,
-                'rnrb_status' => 'tapered',
-                'rnrb_message' => 'Residence Nil Rate Band reduced to £'.number_format($rnrbAvailable).' due to estate taper. Your estate of £'.number_format($totalNetEstate).' exceeds £'.number_format($taperThreshold).' by £'.number_format($excess).', reducing RNRB by £'.number_format($reduction).' (£1 reduction per £2 over threshold).',
-            ];
-        }
-
-        // Fully tapered away
-        return [
-            'rnrb_available' => 0,
+        $components = [
             'rnrb_individual' => $rnrbSingle,
             'rnrb_spouse_modelled' => $rnrbSpouseModelled,
             'rnrb_transferred' => $rnrbTransferred,
+            'rnrb_taper_reduction' => $taperReduction,
             'rnrb_residence_cap_reduction' => $residenceCapReduction,
-            // The taper cannot remove more than was there to remove; reporting the
-            // raw excess-derived reduction would not reconcile to zero.
-            'rnrb_taper_reduction' => $fullRNRB,
-            'rnrb_status' => 'tapered',
-            'rnrb_message' => 'Residence Nil Rate Band fully tapered away. Your estate of £'.number_format($totalNetEstate).' exceeds the taper threshold of £'.number_format($taperThreshold).' by £'.number_format($excess).', eliminating all RNRB of £'.number_format($fullRNRB).'.',
+        ];
+
+        if ($fullRNRB <= 0) {
+            return [
+                'rnrb_available' => 0,
+                ...$components,
+                'rnrb_status' => $tapered ? 'tapered' : 'residence_capped',
+                'rnrb_message' => $tapered
+                    ? 'Residence Nil Rate Band fully tapered away. Your estate of £'.number_format($totalNetEstate).' exceeds the taper threshold of £'.number_format($taperThreshold).' by £'.number_format($excess).', eliminating all Residence Nil Rate Band of £'.number_format($rnrbGross).'.'
+                    : 'Residence Nil Rate Band not available — the main residence passing to your direct descendants has no net value once the mortgage secured on it is deducted.',
+            ];
+        }
+
+        // Both can bite at once, and the message has to account for the WHOLE
+        // reduction or the reader is left with a number they cannot reach. It
+        // previously narrated the taper alone.
+        $sentences = ['Residence Nil Rate Band of £'.number_format($fullRNRB).' available from a maximum of £'.number_format($rnrbGross).'.'];
+
+        if ($tapered) {
+            $sentences[] = 'Your estate of £'.number_format($totalNetEstate).' exceeds the £'.number_format($taperThreshold).' taper threshold by £'.number_format($excess).', reducing the allowance by £'.number_format($taperReduction).' (£1 for every £2 over the threshold).';
+        }
+
+        if ($cappedByResidence) {
+            $sentences[] = 'It is then capped at the net value of your main residence (£'.number_format($residenceNetValue).'), a further £'.number_format($residenceCapReduction).'.';
+        }
+
+        if (! $tapered && ! $cappedByResidence) {
+            $sentences = [$poolsSpouse
+                ? 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (£'.number_format($rnrbSingle).' each). Your combined estate is below the £'.number_format($taperThreshold).' taper threshold.'
+                : (($isWidowed && $rnrbTransferred > 0)
+                    ? 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available (own £'.number_format($rnrbSingle).' + £'.number_format($rnrbTransferred).' transferred from your late spouse\'s estate). Your estate is below the £'.number_format($taperThreshold).' taper threshold.'
+                    : 'Full Residence Nil Rate Band of £'.number_format($fullRNRB).' available. Your estate is below the £'.number_format($taperThreshold).' taper threshold.'),
+            ];
+        }
+
+        return [
+            'rnrb_available' => $fullRNRB,
+            ...$components,
+            'rnrb_status' => $tapered ? 'tapered' : ($cappedByResidence ? 'residence_capped' : 'full'),
+            'rnrb_message' => implode(' ', $sentences),
         ];
     }
 

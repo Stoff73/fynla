@@ -87,19 +87,35 @@ it('shares ONE cap across several businesses rather than giving each its own', f
 
     // £2.5m at 100% + £1.5m at 50% = £3.25m. Two uncapped reliefs would give £4m,
     // and two separate £2.5m caps would relieve both in full — both wrong.
-    expect($totalRelief)->toBe(3_250_000.0);
+    // Equal values, so pro rata splits the allowance evenly between them.
+    expect($totalRelief)->toBe(3_250_000.0)
+        ->and((float) $assets->first()->iht_relief_amount)->toBe(1_625_000.0);
 });
 
-it('spends the cap on the largest holding first', function () {
+it('apportions the allowance pro rata across every qualifying asset', function () {
     qualifyingBusiness($this->user, 3_000_000);
     qualifyingBusiness($this->user, 500_000);
 
     $assets = businessAssets($this->user)->keyBy(fn ($a) => (int) $a->current_value);
 
-    // The cap relieves the £3m holding first: £2.5m at 100% + £0.5m at 50%
-    // = £2.75m. The £500k holding is then wholly above the cap, at 50% = £250k.
-    expect((float) $assets[3_000_000]->iht_relief_amount)->toBe(2_750_000.0)
-        ->and((float) $assets[500_000]->iht_relief_amount)->toBe(250_000.0);
+    // s124D(7): the allowance is available against all qualifying assets "in the
+    // same proportion as each asset represents as part of all the qualifying
+    // assets" (IHTM25524). Mandatory — no election, no ordering choice.
+    //
+    // Qualifying total £3.5m, cap £2.5m. The £3m asset takes 3/3.5 of the cap
+    // (£2,142,857) at 100% and the remaining £857,143 at 50%; the £500k asset takes
+    // 0.5/3.5 (£357,143) at 100% and £142,857 at 50%.
+    //
+    // This asserted largest-first, on the claim that it "relieves the most". It does
+    // not: total relief is min(cap, total) + max(0, total − cap) × rate, which is
+    // invariant to order — £3,000,000 either way. Order changes only WHICH asset is
+    // wholly relieved, and a wholly relieved asset is dropped from gross assets, so
+    // the wrong order moved a line the user reads.
+    expect((float) $assets[3_000_000]->iht_relief_amount)->toBe(2_571_428.57)
+        ->and((float) $assets[500_000]->iht_relief_amount)->toBe(428_571.43);
+
+    $total = (float) businessAssets($this->user)->sum(fn ($a) => (float) $a->iht_relief_amount);
+    expect(round($total, 2))->toBe(3_000_000.0, 'total relief is order-invariant');
 });
 
 it('gives nothing to a business that does not qualify', function () {

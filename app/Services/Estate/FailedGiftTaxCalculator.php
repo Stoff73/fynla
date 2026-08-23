@@ -8,6 +8,7 @@ use App\Models\Estate\Gift;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * THE one answer to "what tax is due on this person's lifetime gifts, and how much
@@ -80,18 +81,30 @@ final class FailedGiftTaxCalculator
         $cltRules = $this->taxConfig->getCLTRules();
 
         $petWindow = (int) ($petRules['years_to_exemption'] ?? 7);
-        $cltWindow = (int) ($cltRules['lookback_period'] ?? 7);
-        $cltCumulativeWindow = $cltWindow + (int) ($cltRules['cumulation_period'] ?? 7);
+        $deathWindow = (int) ($cltRules['cumulation_period'] ?? 7);
+        $lifetimeLookback = (int) ($cltRules['lookback_period'] ?? 7);
+        $lifetimeRate = (float) ($cltRules['lifetime_rate'] ?? 0.20);
 
-        $earliest = today()->subYears(max($petWindow, $cltCumulativeWindow));
+        // The OUTER SEARCH BOUND, not a cumulation band. A transfer up to
+        // (death window + lifetime lookback) years old can still matter, because a
+        // gift inside the death window cumulates the seven years before ITSELF.
+        // That is where the "fourteen-year rule" comes from — two independent
+        // seven-year windows, not one fourteen-year one (IHTM14513).
+        $searchBound = $deathWindow + $lifetimeLookback;
 
         $gifts = Gift::where('user_id', $member->id)
             ->whereIn('gift_type', ['pet', 'clt'])
-            ->where('gift_date', '>', $earliest)
+            ->where('gift_date', '>', today()->subYears($searchBound))
             ->orderBy('gift_date')
-            ->get();
-
-        $nrbRemaining = $nrbSingle;
+            ->get()
+            ->map(fn (Gift $gift): array => [
+                'model' => $gift,
+                'value' => (float) $gift->gift_value,
+                'type' => $gift->gift_type === 'clt' ? 'clt' : 'pet',
+                'years' => $this->yearsSince($gift->gift_date),
+            ])
+            ->filter(fn (array $g): bool => $g['value'] > 0)
+            ->values();
 
         $totals = [
             'pets_in_7_years' => 0.0,
@@ -105,75 +118,107 @@ final class FailedGiftTaxCalculator
         $failedGifts = [];
 
         foreach ($gifts as $gift) {
-            $value = (float) $gift->gift_value;
-            if ($value <= 0) {
+            $inDeathWindow = $gift['years'] < ($gift['type'] === 'clt' ? $deathWindow : $petWindow);
+
+            if (! $inDeathWindow) {
+                // F8 — an out-of-window transfer does NOT reduce the death estate's
+                // band. It cumulates against LATER transfers only, which the
+                // per-transfer lookback below handles. Folding it into
+                // `total_nrb_used` charged the estate for a gift the seven-year rule
+                // had already forgiven (IHTM14503).
+                if ($gift['type'] === 'clt' && $gift['years'] < $searchBound) {
+                    $totals['clts_7_to_14_years'] += $gift['value'];
+                }
+
                 continue;
             }
 
-            $type = $gift->gift_type === 'clt' ? 'clt' : 'pet';
-            $yearsSurvived = $this->yearsSince($gift->gift_date);
-            $window = $type === 'clt' ? $cltWindow : $petWindow;
-            $insideWindow = $yearsSurvived < $window;
+            // F7 — CUMULATION IS PER TRANSFER, not one running band.
+            //
+            // s7(1)(b) charges a transfer by reference to "the values transferred by
+            // previous chargeable transfers made by him IN THAT PERIOD" — the seven
+            // years ending with THAT transfer. A single `$nrbRemaining` decremented
+            // across a fourteen-year sweep let a gift thirteen years old consume the
+            // band of one made last year, INVENTING tax: on a £300,000 transfer
+            // thirteen years back and a £300,000 gift last year against a £325,000
+            // band, it produced £110,000 where the law produces nil.
+            $deathCumulation = $this->cumulationBefore($gifts, $gift, $deathWindow, includePets: true);
+            $bandAtDeath = max(0.0, $nrbSingle - $deathCumulation);
+            $chargeableDeath = max(0.0, $gift['value'] - $bandAtDeath);
+            $bandUsed = min($gift['value'], $bandAtDeath);
 
-            // Outside its own window a PET is exempt and drops out entirely; a
-            // chargeable lifetime transfer still consumes band for later gifts
-            // while it sits inside the cumulation window (the fourteen-year rule).
-            if (! $insideWindow && $type === 'pet') {
-                continue;
-            }
-            if (! $insideWindow && $yearsSurvived >= $cltCumulativeWindow) {
-                continue;
-            }
-
-            $nrbUsed = min($value, $nrbRemaining);
-            $nrbRemaining -= $nrbUsed;
-            $chargeable = $value - $nrbUsed;
-
-            if ($type === 'clt') {
-                $totals['nrb_used_by_clts'] += $nrbUsed;
-                $insideWindow
-                    ? $totals['clts_in_7_years'] += $value
-                    : $totals['clts_7_to_14_years'] += $value;
+            if ($gift['type'] === 'clt') {
+                $totals['clts_in_7_years'] += $gift['value'];
+                $totals['nrb_used_by_clts'] += $bandUsed;
             } else {
-                $totals['nrb_used_by_pets'] += $nrbUsed;
-                $totals['pets_in_7_years'] += $value;
+                $totals['pets_in_7_years'] += $gift['value'];
+                $totals['nrb_used_by_pets'] += $bandUsed;
             }
 
-            // Outside the window there is no death charge, only band consumption.
-            if (! $insideWindow || $chargeable <= 0) {
+            if ($chargeableDeath <= 0) {
                 continue;
             }
 
-            $taperedRate = $this->taxRate($yearsSurvived, $type);
-            $fullRate = $this->deathRate($type);
+            $deathRate = $this->deathRate($gift['type']);
+            $taperedRate = $this->taxRate($gift['years'], $gift['type']);
+            $taperedDeathCharge = $chargeableDeath * $taperedRate;
 
-            $tax = $chargeable * $taperedRate;
-            $taxWithoutTaper = $chargeable * $fullRate;
+            // F6 — CREDIT THE LIFETIME CHARGE ON A CHARGEABLE LIFETIME TRANSFER.
+            //
+            // My original reasoning — "no record of tax paid exists, so crediting it
+            // would invent a payment" — was wrong, and the reviewer showed why: the
+            // credit runs against tax CHARGEABLE, not tax evidenced as paid. A
+            // chargeable lifetime transfer is immediately chargeable by operation of
+            // law, so the 20% is computable from the value, the band and the
+            // configured `lifetime_rate`.
+            //
+            // s7(5) and the IHTM14576 credit are the SAME rule stated two ways: s7(4)
+            // is the only route to the death rate for a transfer within seven years,
+            // and it works by disapplying the half-rate s7(2) — so switching s7(4)
+            // off drops back to the lifetime charge rather than up to an untapered
+            // 40%. Hence `max(0, tapered − lifetime)`, and nothing is ever repayable
+            // (IHTM14571).
+            //
+            // The lifetime charge cumulates on a DIFFERENT basis: immediately
+            // chargeable transfers only, potentially exempt transfers excluded
+            // (IHTM14533).
+            $lifetimeCharge = 0.0;
+            if ($gift['type'] === 'clt') {
+                $lifetimeCumulation = $this->cumulationBefore($gifts, $gift, $lifetimeLookback, includePets: false);
+                $chargeableLifetime = max(0.0, $gift['value'] - max(0.0, $nrbSingle - $lifetimeCumulation));
+                $lifetimeCharge = $chargeableLifetime * $lifetimeRate;
+            }
 
-            $totals['failed_gift_tax'] += $tax;
-            $totals['failed_gift_taper_saving'] += max(0.0, $taxWithoutTaper - $tax);
+            $additionalCharge = max(0.0, $taperedDeathCharge - $lifetimeCharge);
+
+            // What taper saved, measured against the same credit — otherwise a gift
+            // bearing no additional charge reports a saving nobody receives.
+            $chargeWithoutTaper = max(0.0, ($chargeableDeath * $deathRate) - $lifetimeCharge);
+
+            $totals['failed_gift_tax'] += $additionalCharge;
+            $totals['failed_gift_taper_saving'] += max(0.0, $chargeWithoutTaper - $additionalCharge);
 
             $failedGifts[] = [
-                'gift_id' => $gift->id,
-                'gift_type' => $type,
-                'recipient' => $gift->recipient,
-                'gift_date' => $gift->gift_date?->format('Y-m-d'),
-                'gift_value' => round($value, 2),
-                'years_survived' => round($yearsSurvived, 2),
-                'covered_by_allowance' => round($nrbUsed, 2),
-                'chargeable_amount' => round($chargeable, 2),
+                'gift_id' => $gift['model']->id,
+                'gift_type' => $gift['type'],
+                'recipient' => $gift['model']->recipient,
+                'gift_date' => $gift['model']->gift_date?->format('Y-m-d'),
+                'gift_value' => round($gift['value'], 2),
+                'years_survived' => round($gift['years'], 2),
+                'covered_by_allowance' => round($bandUsed, 2),
+                'chargeable_amount' => round($chargeableDeath, 2),
                 'tax_rate' => $taperedRate,
                 'tax_rate_percent' => round($taperedRate * 100, 1),
-                'taper_saving' => round(max(0.0, $taxWithoutTaper - $tax), 2),
-                'tax_due' => round($tax, 2),
+                'lifetime_tax_credited' => round($lifetimeCharge, 2),
+                'taper_saving' => round(max(0.0, $chargeWithoutTaper - $additionalCharge), 2),
+                'tax_due' => round($additionalCharge, 2),
             ];
         }
 
-        // Capped at the member's OWN band by construction: `$nrbRemaining` starts at
-        // `$nrbSingle` and only decreases, so one person's gifts can never reach
-        // into their spouse's band (IHTA 1984 s8A transfers the unused PERCENTAGE,
-        // which cannot go below zero).
-        $totals['total_nrb_used'] = $totals['nrb_used_by_clts'] + $totals['nrb_used_by_pets'];
+        $totals['total_nrb_used'] = min(
+            $nrbSingle,
+            $totals['nrb_used_by_clts'] + $totals['nrb_used_by_pets'],
+        );
 
         return [
             ...array_map(fn (float $v): float => round($v, 2), $totals),
@@ -183,41 +228,49 @@ final class FailedGiftTaxCalculator
     }
 
     /**
-     * The tapered rate for a gift, from the configured schedule.
+     * The chargeable transfers cumulating against one gift: those made in the
+     * `$window` years BEFORE IT.
      *
-     * The two schedules are shaped differently and only one of them was usable.
-     * The potentially-exempt-transfer bands carry `tax_rate` outright (0.32 = "80%
-     * of 40%"); the chargeable-lifetime-transfer bands carry `tax_percent` — the
-     * PERCENTAGE OF THE DEATH RATE still payable — and no `tax_rate` at all. So
-     * `TaxConfigService::getGiftTaxRate($years, 'clt')` matched no band and fell
-     * through to its default: **every chargeable lifetime transfer was rated at the
-     * full 40% however long the donor had survived, and taper never applied to one.**
+     * Per transfer, not per death — s7(1)(b). `$includePets` is the difference
+     * between the two bases the death charge and the lifetime charge are struck on:
+     * the death recalculation counts failed potentially exempt transfers, the
+     * lifetime charge never does (IHTM14533).
+     *
+     * @param  Collection<int, array<string, mixed>>  $gifts
+     * @param  array<string, mixed>  $subject
+     */
+    private function cumulationBefore($gifts, array $subject, int $window, bool $includePets): float
+    {
+        return (float) $gifts
+            ->filter(function (array $other) use ($subject, $window, $includePets): bool {
+                if ($other['model']->id === $subject['model']->id) {
+                    return false;
+                }
+                if (! $includePets && $other['type'] !== 'clt') {
+                    return false;
+                }
+                // Strictly earlier, and within `$window` years of the subject.
+                $gap = $other['years'] - $subject['years'];
+
+                return $gap > 0 && $gap < $window;
+            })
+            ->sum('value');
+    }
+
+    /**
+     * The tapered rate for a gift.
+     *
+     * A straight delegation now. This briefly carried its own band walk, because
+     * `getGiftTaxRate($years, 'clt')` returned 40% at every year — the chargeable-
+     * lifetime-transfer bands carry `tax_percent`, not `tax_rate`, so no band
+     * matched and it fell through to a hardcoded default. Working around that here
+     * left the canonical accessor broken for the next caller, which is exactly the
+     * duplication Rule 20 forbids. The derivation lives in `TaxConfigService` and
+     * this asks it.
      */
     private function taxRate(float $yearsSurvived, string $type): float
     {
-        if ($type !== 'clt') {
-            return $this->taxConfig->getGiftTaxRate($yearsSurvived, 'pet');
-        }
-
-        $deathRate = $this->deathRate('clt');
-
-        foreach ($this->taxConfig->getTaperRelief('clt') as $band) {
-            $min = (float) ($band['min_years'] ?? 0);
-            $max = $band['max_years'] === null ? INF : (float) $band['max_years'];
-
-            if ($yearsSurvived >= $min && $yearsSurvived < $max) {
-                if (array_key_exists('tax_rate', $band)) {
-                    return (float) $band['tax_rate'];
-                }
-
-                // Rounded: 0.40 × 20/100 lands on 0.08000000000000002, and this
-                // rate is published, printed as a percentage and compared against
-                // the full rate.
-                return round($deathRate * ((float) ($band['tax_percent'] ?? 100) / 100), 6);
-            }
-        }
-
-        return $deathRate;
+        return $this->taxConfig->getGiftTaxRate($yearsSurvived, $type);
     }
 
     private function deathRate(string $type): float

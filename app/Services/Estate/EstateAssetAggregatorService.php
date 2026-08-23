@@ -255,10 +255,20 @@ class EstateAssetAggregatorService
      *
      * **Why the cap forces an estate-level pass.** It is one allowance covering
      * everything that claims it, so no single asset can decide its own relief.
-     * Assets are taken in descending value order, which is the allocation that
-     * relieves the most: the cap gives 100% and anything above it gets 50%, so
-     * spending the cap on the largest holdings maximises total relief and is what
-     * an estate would actually claim.
+     *
+     * **The allowance is apportioned PRO RATA, and that is mandatory.**
+     * IHTA 1984 s124D(7): the 100% allowance is available against all qualifying
+     * assets "IN THE SAME PROPORTION AS EACH ASSET REPRESENTS AS PART OF ALL THE
+     * QUALIFYING ASSETS in the estate" (IHTM25524). No election, no ordering choice.
+     *
+     * This took the largest holdings first, on a stated rationale — "the allocation
+     * that relieves the most" — that was simply **false**: total relief is
+     * `min(cap, total) + max(0, total − cap) × rate`, which is invariant to order.
+     * Nothing was being maximised. The order was never visible in the headline tax
+     * either, but it IS visible in `is_iht_exempt`, and a wholly-relieved asset is
+     * dropped from gross assets — so on two £2m businesses the old order showed
+     * £2m of gross assets where pro rata shows £4m, the same net estate reached by
+     * a line the user reads differently.
      *
      * **Dated, not hardcoded.** `allowance_cap_effective_date` decides whether the
      * cap applies at all, so a death before 6 April 2026 still gets the old
@@ -280,8 +290,7 @@ class EstateAssetAggregatorService
     {
         $config = $this->taxConfig->getBusinessRelief();
 
-        $qualifying = $assets->filter(fn ($asset) => ($asset->iht_relief_qualifies ?? false) === true)
-            ->sortByDesc('current_value');
+        $qualifying = $assets->filter(fn ($asset) => ($asset->iht_relief_qualifies ?? false) === true);
 
         if ($qualifying->isEmpty()) {
             return $assets;
@@ -292,16 +301,24 @@ class EstateAssetAggregatorService
 
         $cap = $capApplies ? (float) ($config['allowance_cap'] ?? 0) : INF;
         $rateAboveCap = (float) ($config['relief_above_cap'] ?? 0);
-        $capRemaining = $cap;
+
+        $totalQualifying = (float) $qualifying->sum('current_value');
+
+        if ($totalQualifying <= 0) {
+            return $assets;
+        }
 
         foreach ($qualifying as $asset) {
             $value = (float) $asset->current_value;
 
-            $atFullRelief = min($value, $capRemaining);
-            $capRemaining -= $atFullRelief;
-            $aboveCap = $value - $atFullRelief;
+            // s124D(7) — each asset's share of the allowance is its share of the
+            // qualifying total. Where the cap does not bind at all, every asset is
+            // wholly relieved and the proportion is irrelevant.
+            $atFullRelief = $cap === INF
+                ? $value
+                : min($value, $cap * ($value / $totalQualifying));
 
-            $relief = $atFullRelief + ($aboveCap * $rateAboveCap);
+            $relief = $atFullRelief + (($value - $atFullRelief) * $rateAboveCap);
 
             $asset->iht_relief_amount = round($relief, 2);
             // Only a wholly relieved asset leaves the estate. A partly relieved one

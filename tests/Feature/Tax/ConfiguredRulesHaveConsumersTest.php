@@ -64,9 +64,18 @@ const GUARDED_AREAS = ['inheritance_tax'];
  */
 const UNIMPLEMENTED_RULES = [
     'inheritance_tax.quick_succession_relief' => 'W-0463 · 2026-08-23 · no implementation anywhere; relief for a second death within five years of an inherited estate. Not modelled and not claimed on any screen.',
-    'inheritance_tax.fourteen_year_rule' => 'W-0463 · 2026-08-23 · the interaction between chargeable lifetime transfers and later gifts. `nrb_deduction` reports `fourteen_year_rule_applied: false` unconditionally.',
-    'inheritance_tax.chargeable_lifetime_transfers' => 'W-0463 · 2026-08-23 · lifetime trust transfer charges. `getCLTRules()` has no caller; the 20% lifetime rate is read separately via `getCLTLifetimeRate()`.',
+    'inheritance_tax.fourteen_year_rule' => 'W-0463 · 2026-08-23 · IMPLEMENTED as an emergent effect rather than a rule of its own — `FailedGiftTaxCalculator` cumulates each transfer against the seven years before ITSELF, which is what produces the fourteen-year reach (IHTM14513). The config group stays registered because nothing reads it as a discrete rule.',
+    'inheritance_tax.chargeable_lifetime_transfers' => 'W-0463 · 2026-08-23 · PARTIALLY implemented — `FailedGiftTaxCalculator` reads the lookback, cumulation period, death rate, lifetime rate and taper schedule. Still unmodelled: trust entry/exit and ten-year anniversary charges, and grossing-up where the settlor bears the tax (`lifetime_rate_grossed_up`), which `gifts` cannot express.',
     'inheritance_tax.agricultural_relief' => 'W-0463 · 2026-08-23 · NOT IMPLEMENTABLE AS THE SCHEMA STANDS — there is no agricultural asset type or flag anywhere in the data model, so there is nothing to relieve. Needs a product decision before code. The cap is configured as shared with business relief (`cap_shared_with_bpr`), so when agricultural property becomes expressible it must join the allocation in EstateAssetAggregatorService::applyBusinessPropertyRelief(), NOT get a second cap.',
+    // Found by tax-compliance-reviewer 2026-08-23 (F11/F13). Registered here so the
+    // gaps are recorded rather than left to be rediscovered:
+    //   - `business_relief.rates` (land_used_by_partnership 0.5, land_used_by_company
+    //     0.5, investment_company 0.0) and `excluded_businesses` are unread. Every
+    //     qualifying asset gets 100%-to-cap. `business_interests` has no column
+    //     expressing the category — `business_type` does not map — so this is the
+    //     same not-expressible-in-the-schema class as AIM shares.
+    //   - `business_relief.cap_transferable_to_spouse` (s124E, £5m combined) is
+    //     unmodelled; a single £2.5m cap is applied to the pooled household.
     'inheritance_tax.pension_iht_inclusion' => 'W-0463 · 2026-08-23 · the April 2027 change bringing unused pension funds into the estate. Upcoming law, seeded ahead of its effective date.',
 ];
 

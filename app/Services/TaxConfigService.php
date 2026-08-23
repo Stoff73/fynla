@@ -407,19 +407,48 @@ class TaxConfigService
      */
     public function getGiftTaxRate(int|float $yearsSurvived, string $type = 'pet'): float
     {
-        $taperRelief = $this->getTaperRelief($type);
+        // The two schedules are shaped differently and only one of them worked.
+        //
+        // Potentially-exempt-transfer bands carry `tax_rate` outright (0.32 = "80%
+        // of 40%"). Chargeable-lifetime-transfer bands carry `tax_percent` — the
+        // PERCENTAGE OF THE DEATH RATE still payable — and no `tax_rate` at all, so
+        // `$band['tax_rate'] ?? 0.40` matched nothing and returned the hardcoded
+        // default: **every chargeable lifetime transfer was rated at the full 40%
+        // however long the donor had survived.** Measured before the fix: 0.40 at
+        // every year from 0 to 8.
+        //
+        // s7(4) charges "the following PERCENTAGE OF THE RATE OR RATES REFERRED TO
+        // IN SUBSECTION (1)", and s7(1) is the death rate — so `death_rate ×
+        // tax_percent / 100` is a transcription of the statute rather than a
+        // convenience.
+        //
+        // Handled HERE rather than in a caller: `FailedGiftTaxCalculator` briefly
+        // carried its own band walk to work around this, which left the canonical
+        // accessor still broken, still public, and still answering 40% to whoever
+        // called it next — two mechanisms for one question, which is the thing
+        // Rule 20 exists to stop.
+        $deathRate = $type === 'clt'
+            ? (float) ($this->get('inheritance_tax.chargeable_lifetime_transfers.death_rate')
+                ?? $this->get('inheritance_tax.standard_rate', TaxDefaults::IHT_RATE))
+            : (float) $this->get('inheritance_tax.standard_rate', TaxDefaults::IHT_RATE);
 
-        foreach ($taperRelief as $band) {
-            $minYears = $band['min_years'] ?? 0;
-            $maxYears = $band['max_years'] ?? PHP_INT_MAX;
+        foreach ($this->getTaperRelief($type) as $band) {
+            $minYears = (float) ($band['min_years'] ?? 0);
+            $maxYears = ($band['max_years'] ?? null) === null ? INF : (float) $band['max_years'];
 
             if ($yearsSurvived >= $minYears && $yearsSurvived < $maxYears) {
-                return $band['tax_rate'] ?? 0.40;
+                if (array_key_exists('tax_rate', $band)) {
+                    return (float) $band['tax_rate'];
+                }
+
+                // Rounded: 0.40 × 20/100 lands on 0.08000000000000002, and this rate
+                // is published, printed as a percentage and compared against others.
+                return round($deathRate * ((float) ($band['tax_percent'] ?? 100) / 100), 6);
             }
         }
 
-        // Default to full rate if no band matches
-        return $this->get('inheritance_tax.standard_rate', 0.40);
+        // No band matched — the full rate for the type, from configuration.
+        return $deathRate;
     }
 
     /**
