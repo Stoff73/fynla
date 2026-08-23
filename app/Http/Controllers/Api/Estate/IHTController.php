@@ -122,6 +122,13 @@ class IHTController extends Controller
                     'nrb_message' => $calculation['nrb_message'],
                     'rnrb_available' => $calculation['rnrb_available'],
                     'rnrb_individual' => $calculation['rnrb_individual'],
+                    // W-0154 F2 — the residence band's components, so the column
+                    // adds up on screen the way the nil rate band's does above.
+                    // Publishing the total and one component leaves the reader with
+                    // a subtotal they cannot reach.
+                    'rnrb_spouse_modelled' => $calculation['rnrb_spouse_modelled'],
+                    'rnrb_residence_cap_reduction' => $calculation['rnrb_residence_cap_reduction'],
+                    'rnrb_taper_reduction' => $calculation['rnrb_taper_reduction'],
                     'rnrb_transferred' => $calculation['rnrb_transferred'],
                     'rnrb_status' => $calculation['rnrb_status'],
                     'rnrb_message' => $calculation['rnrb_message'],
@@ -130,6 +137,9 @@ class IHTController extends Controller
                     // is NOT an allowance and does not belong in the total above. It
                     // reached no screen at all until now, which is why the column
                     // between Net Estate and Taxable Estate was £20,000 short.
+                    // W-0091 — partial Business Property Relief. Zero for an estate
+                    // holding no qualifying business, which is most of them.
+                    'business_relief_deduction' => $calculation['business_relief_deduction'] ?? 0,
                     'charitable_deduction' => $calculation['charitable_deduction'],
                     // W-0399. The engine separates the pooled s23(1) exemption from
                     // the survivor-only Sch 1A rate-test amount; this summary
@@ -167,6 +177,9 @@ class IHTController extends Controller
                     'nrb_gift_deduction' => $calculation['nrb_gift_deduction'],
                     'rnrb_available' => $calculation['projected_rnrb_available'],
                     'rnrb_individual' => $calculation['projected_rnrb_individual'],
+                    'rnrb_spouse_modelled' => $calculation['projected_rnrb_spouse_modelled'],
+                    'rnrb_residence_cap_reduction' => $calculation['projected_rnrb_residence_cap_reduction'],
+                    'rnrb_taper_reduction' => $calculation['projected_rnrb_taper_reduction'],
                     'rnrb_transferred' => $calculation['projected_rnrb_transferred'],
                     'rnrb_status' => $calculation['projected_rnrb_status'],
                     'rnrb_message' => $calculation['projected_rnrb_message'],

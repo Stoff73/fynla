@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0012-batch-g-iht-household.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, compliance-lead]
-status: queued
+status: handoff
 claimed_by: null
 severity: critical
 surfaces: [web, m, ios]
@@ -13,7 +13,7 @@ created: 2026-08-21T19:30:00Z
 claimed: null
 blocked_by: []
 gate: null
-handoff_to: null
+handoff_to: quality-lead
 prior_art_checked: 2026-08-21
 prior_art_found: ["W-0131 the Inheritance Tax cache is never written", "W-0132 three mechanisms answer whether the reduced rate applies", "W-0020 charitable total tests an enum value the column cannot hold", "F-0003-batch-b-estate-wills"]
 prior_art_outcome: extend
@@ -791,3 +791,109 @@ in the local database: every one is mutually `married` with a reciprocal
 one answer"* — because it is the same defect at the predicate layer rather than
 the arithmetic layer. Whoever claims W-0154 should consolidate the predicate, not
 merely align the two call sites.
+
+
+## Resolution — 2026-08-23
+
+**Closed on the fix side. Two of the three defects were already fixed and the board
+item was stale;** the pooling work (F1/F3) landed in the cycle-4 snapshot committed as
+`5de82a7fd` this morning without this item being updated. Verified before touching
+anything, through the real endpoint path (`liveSpouse()` +
+`hasAcceptedSpousePermission()`, as the working notes insist).
+
+### Measured, David (16) and Sarah (17), before any change today
+
+Identical on both sides: net estate £1,728,780, liability £343,512. **The £60,000
+household gap is gone** — `calculateNRBDeductionForGifts()` now takes `$pooledMembers`,
+so David's £150,000 chargeable lifetime transfer reduces the band in both views, and
+the household's two £10,000 charitable legacies are deducted as £20,000 either way
+round. (The figures differ from the ones in this item because other cycle-4 fixes moved
+the estate — the defined-benefit exclusion and the mortgage-share ruling. The
+reviewer's £145,712 is stale for the same reason.)
+
+### What was still broken, and what was done
+
+**1. The residence band did not reconcile.** `rnrb_individual` £175,000 +
+`rnrb_transferred` £0 was published beside `rnrb_available` £350,000. The nil rate
+band had been given `nrb_spouse_modelled` and `nrb_gift_deduction`; the residence band
+was left with neither.
+
+Added `rnrb_spouse_modelled`, `rnrb_residence_cap_reduction` and
+`rnrb_taper_reduction`, at all five return points of `calculateRNRB()`, current and
+projected, through `IHTController`, `EstatePlanService` and `IHTPlanning.vue`. Same
+reasoning as the nil rate band and stated in the code: there is no transferable
+residence band while both spouses live (IHTA 1984 s8G), so `rnrb_transferred` is
+legitimately 0 and the doubling is a second-death modelling assumption. **Not** fixed
+by writing £175,000 into `rnrb_transferred`.
+
+`IHTCalculationTable.vue` was rendering each spouse's home allowance as
+`totalRnrb / 2` — the total halved and presented as two measured components. That
+reconciles only while the halves are equal, and they stop being equal the moment the
+cap or the taper bites. It reads the real components now.
+
+**2. A reduced rate on a nil liability.** Priya (20) was told *"Reduced Inheritance Tax
+rate of 36% applies"* beneath a bill of £0. `determineIHTRate()` has to run before the
+taxable estate exists, because the charitable exemption it identifies is one of the
+deductions that produces it, so its answer was published verbatim.
+
+`suppressRateOnNilLiability()` applied in `assessTaxPosition()` — the ONE mechanism both
+the current and projected figures pass through (Rule 20). A guard at a display site
+would need adding again at the next one, which is exactly how `EstatePlanService:478`
+came to carry an unguarded copy; that copy now defers to the calculation rather than
+reaching its own verdict. `charitable_rate_qualifies` and the shortfall guidance are
+deliberately untouched — whether the will passes the 10% test is a true fact about the
+will whatever the bill is.
+
+**3. `nrb_deduction` remains an array.** Left alone deliberately: the scalar the payload
+needed is `nrb_gift_deduction`, which exists and is rendered. `nrb_deduction` has no
+consumer anywhere in the repository (reviewer, Q5a), so changing its shape changes
+nothing and risks a consumer nobody has found.
+
+### Verified in the browser, David's account, `/estate/inheritance-tax`
+
+Both columns add up on screen, which is what acceptance 2 asks for:
+
+| Row | NOW | AGE 85 |
+|---|---|---|
+| David's Tax-Free Allowance | −£325,000 | −£325,000 |
+| Sarah's Tax-Free Allowance *(modelled on second death)* | −£325,000 | −£325,000 |
+| Less allowance used by gifts in the last 7 years | +£150,000 | +£150,000 |
+| David's Home Allowance | −£175,000 | −£175,000 |
+| Sarah's Home Allowance *(modelled on second death)* | −£175,000 | −£175,000 |
+| Less home allowance reduced by the size of your estate | +£0 | +£350,000 |
+| **Subtotal** | **−£850,000** | **−£500,000** |
+
+The £350,000 the taper removes has its own labelled row instead of being a residual
+the reader had to infer. **A regression was caught here and fixed:** the first browser
+pass showed Sarah's home allowance as £0 and the NOW column summing to £675,000 —
+`IHTController` was not publishing the new fields, so the frontend had nothing to read
+where the halving used to be. Found by looking at the screen, not by the tests.
+
+## Acceptance
+
+- [x] One household produces one answer — £343,512 both sides.
+- [x] Every allowance component reconciles to its total, in the payload and on screen.
+- [x] The doubled bands are attributed as modelled second-death transfers, not hidden
+      inside a total with `transferred: 0`.
+- [x] No reduced rate reported where the liability is nil — Priya now reports rate type
+      `none` and "No Inheritance Tax is due".
+- [x] The gift deduction is a scalar (`nrb_gift_deduction`) and the seven-year window
+      now reads from `TaxConfigService` rather than a hardcoded `subYears(7)` (W-0463).
+- [x] A negative projected estate — no longer reproducible; the projection floors at
+      zero and both personas return positive figures.
+- [ ] **Every figure hand-checked against `tests/Persona/peak_earners.md`.** NOT DONE.
+      The internal arithmetic reconciles and both spouses agree, but the figures have
+      not been checked against the persona source. **This is the acceptance that
+      distinguishes "adds up" from "correct", and it is exactly the check whose absence
+      this item was raised to record.**
+- [x] `/m` checked rather than assumed (Rule 19) — see below.
+
+### `/m` and iOS
+
+`/m` displays **no allowance breakdown at all**, so there is no second surface for the
+reconciliation fix; and in full (Premium) mode it shows no Inheritance Tax liability
+either. The only Inheritance Tax figure `/m` ever renders is the Free-tier teaser,
+which is computed by a **second, independent calculation** — filed as **W-0464**, not
+fixed here, because consolidating it changes what a whole pricing tier is shown.
+
+**iOS: not built, not launched, not checked.**

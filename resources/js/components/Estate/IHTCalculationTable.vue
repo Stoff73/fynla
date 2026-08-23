@@ -539,8 +539,44 @@ export default {
             push('rnrb-reduction', 'Less home allowance reduced by the value of your estate', nowReduction, projReduction, '+');
           }
         } else if (this.showSpouse) {
-          push('rnrb-user', userName ? `${userName}'s Home Allowance` : 'Your Home Allowance', (now.totalRnrb || 0) / 2, (proj.totalRnrb || 0) / 2);
-          push('rnrb-spouse', spouseName ? `${spouseName}'s Home Allowance` : "Spouse's Home Allowance", (now.totalRnrb || 0) / 2, (proj.totalRnrb || 0) / 2);
+          // W-0154 F2. These two rows used to be `totalRnrb / 2` each — the total
+          // halved and presented as though it were two measured components. It
+          // reconciles only while the halves are equal, and they stop being equal
+          // the moment the residence cap or the £2m taper bites, at which point
+          // the table shows two numbers that sum to the total by construction and
+          // describe nothing. The backend publishes the real components now.
+          push('rnrb-user', userName ? `${userName}'s Home Allowance` : 'Your Home Allowance', now.rnrbIndividual, proj.rnrbIndividual);
+          push(
+            'rnrb-spouse-modelled',
+            spouseName ? `${spouseName}'s Home Allowance` : "Spouse's Home Allowance",
+            now.rnrbSpouseModelled,
+            proj.rnrbSpouseModelled,
+            '-',
+            'Modelled on second death — there is no transferable home allowance while you are both alive.',
+          );
+
+          // The two reductions are separate facts and are shown separately: one is
+          // "your home is worth less than the allowance", the other is "your estate
+          // is too large to keep it". Collapsing them into a single residual would
+          // tell a reader their band was reduced without telling them why.
+          if ((now.rnrbResidenceCapReduction || 0) > 0.5 || (proj.rnrbResidenceCapReduction || 0) > 0.5) {
+            push(
+              'rnrb-residence-cap',
+              'Less home allowance capped at the value of your home',
+              now.rnrbResidenceCapReduction,
+              proj.rnrbResidenceCapReduction,
+              '+',
+            );
+          }
+          if ((now.rnrbTaperReduction || 0) > 0.5 || (proj.rnrbTaperReduction || 0) > 0.5) {
+            push(
+              'rnrb-taper',
+              'Less home allowance reduced by the size of your estate',
+              now.rnrbTaperReduction,
+              proj.rnrbTaperReduction,
+              '+',
+            );
+          }
         } else {
           push('rnrb-single', 'Home Allowance (Residence Nil Rate Band)', now.totalRnrb, proj.totalRnrb);
         }

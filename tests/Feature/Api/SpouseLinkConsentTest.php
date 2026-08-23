@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Testing\TestResponse;
 
 /**
  * W-0347 / W-0348 / W-0349 — linking to an account that already exists is a
@@ -62,7 +63,7 @@ beforeEach(function () {
     $this->actingAs($this->attacker, 'sanctum');
 });
 
-function inviteVictim(array $overrides = []): \Illuminate\Testing\TestResponse
+function inviteVictim(array $overrides = []): TestResponse
 {
     return test()->postJson('/api/user/family-members', array_merge([
         'relationship' => 'spouse',

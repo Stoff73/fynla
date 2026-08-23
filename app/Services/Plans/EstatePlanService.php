@@ -456,7 +456,10 @@ class EstatePlanService extends BasePlanService
                 'nrb_message' => $ihtCalc['nrb_message'] ?? '',
                 'rnrb_available' => $ihtCalc['rnrb_available'] ?? 0,
                 'rnrb_individual' => $ihtCalc['rnrb_individual'] ?? 0,
+                'rnrb_spouse_modelled' => $ihtCalc['rnrb_spouse_modelled'] ?? 0,
                 'rnrb_transferred' => $ihtCalc['rnrb_transferred'] ?? 0,
+                'rnrb_residence_cap_reduction' => $ihtCalc['rnrb_residence_cap_reduction'] ?? 0,
+                'rnrb_taper_reduction' => $ihtCalc['rnrb_taper_reduction'] ?? 0,
                 'rnrb_status' => $ihtCalc['rnrb_status'] ?? 'none',
                 'rnrb_message' => $ihtCalc['rnrb_message'] ?? '',
                 'total_allowances' => $ihtCalc['total_allowances'] ?? 0,
@@ -482,7 +485,10 @@ class EstatePlanService extends BasePlanService
                 'nrb_gift_deduction' => $ihtCalc['nrb_gift_deduction'] ?? 0,
                 'rnrb_available' => $ihtCalc['projected_rnrb_available'] ?? 0,
                 'rnrb_individual' => $ihtCalc['projected_rnrb_individual'] ?? 0,
+                'rnrb_spouse_modelled' => $ihtCalc['projected_rnrb_spouse_modelled'] ?? 0,
                 'rnrb_transferred' => $ihtCalc['projected_rnrb_transferred'] ?? 0,
+                'rnrb_residence_cap_reduction' => $ihtCalc['projected_rnrb_residence_cap_reduction'] ?? 0,
+                'rnrb_taper_reduction' => $ihtCalc['projected_rnrb_taper_reduction'] ?? 0,
                 'rnrb_status' => $ihtCalc['projected_rnrb_status'] ?? 'none',
                 'rnrb_message' => $ihtCalc['projected_rnrb_message'] ?? '',
                 'total_allowances' => $ihtCalc['projected_total_allowances'] ?? 0,
@@ -515,7 +521,20 @@ class EstatePlanService extends BasePlanService
         // moment a charitable CASH legacy could count toward the total.
         $charitableStatus = $charitableAnalysis['status'] ?? 'none';
         $qualifies = in_array($charitableStatus, ['at', 'above'], true);
-        $appliedRateType = $qualifies ? 'charitable' : 'standard';
+
+        // W-0154 F4 / Rule 20 — a rate only applies if there is a bill for it to
+        // apply to, and that judgement is made ONCE, in
+        // `IHTCalculationService::assessTaxPosition()`. This service used to reach
+        // its own verdict from the charitable status alone, so an estate covered
+        // entirely by its allowances was told "Reduced rate of 36% applies" beneath
+        // a liability of £0 — on `/plans/estate` and in printed plans.
+        //
+        // Deferring rather than adding a second `iht_liability > 0` check here is
+        // the point: a second check is a second thing to keep in step, and this
+        // sentence has already been wrong once for exactly that reason (see the
+        // W-0451 note below).
+        $noTaxDue = ($ihtCalc['iht_rate_type'] ?? null) === 'none';
+        $appliedRateType = $noTaxDue ? 'none' : ($qualifies ? 'charitable' : 'standard');
         // W-0451. This said "10% or more of the NET ESTATE", and Schedule 1A
         // compares the donated amount against the BASELINE — the estate less the
         // available nil rate band. As a statement of law it was wrong as
@@ -531,13 +550,18 @@ class EstatePlanService extends BasePlanService
         // now and computes no baseline of its own.)
         $charitableThresholdPercent = $this->taxConfig->getCharitableThresholdPercent() * 100;
 
-        $appliedRateMessage = $qualifies
-            ? sprintf(
+        if ($noTaxDue) {
+            // The calculation's own sentence, not a second one written here.
+            $appliedRateMessage = (string) ($ihtCalc['iht_rate_message'] ?? 'No Inheritance Tax is due.');
+        } elseif ($qualifies) {
+            $appliedRateMessage = sprintf(
                 'Reduced rate of %s applies: %s or more of the estate above the nil rate band is left to charity.',
                 self::formatRate($charitableRate * 100),
                 self::formatRate($charitableThresholdPercent),
-            )
-            : sprintf('Standard Inheritance Tax rate of %s applies.', self::formatRate($ihtStandardRate * 100));
+            );
+        } else {
+            $appliedRateMessage = sprintf('Standard Inheritance Tax rate of %s applies.', self::formatRate($ihtStandardRate * 100));
+        }
 
         // W-0135 / Rule 20 — the allowance explanations come from the calculation
         // that produced the figures, not from a second set written here.

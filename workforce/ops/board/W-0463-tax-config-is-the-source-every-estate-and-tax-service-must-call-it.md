@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer, compliance-lead, quality-lead]
-status: queued
+status: handoff
 claimed_by: null
 severity: critical
 surfaces: [web, m, ios]
@@ -13,7 +13,7 @@ created: 2026-08-23T12:55:00Z
 claimed: null
 blocked_by: []
 gate: tax-compliance-reviewer
-handoff_to: null
+handoff_to: quality-lead
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0091, W-0362, W-0431, W-0432, W-0451, W-0461, W-0154, RateLiteralsComeFromConfigurationTest]
 prior_art_outcome: extend
@@ -140,3 +140,77 @@ W-0091 on this data. Gifts are common. If this is split, taper relief goes first
   `app/Services/Estate/` and `app/Services/Tax/`. **That last method is strong but
   not exhaustive** — a rule implemented under a different name would not show up,
   so item 6 says "implemented or registered", not "implement all of these".
+
+
+## Progress — 2026-08-23
+
+**Acceptance 1, the coverage guard, is done — and it is the part that matters.**
+
+`tests/Feature/Tax/ConfiguredRulesHaveConsumersTest.php`. Every second-level rule group
+under `inheritance_tax` in the ACTIVE configuration must be referenced in `app/`, by its
+config key or by the `TaxConfigService` accessor that reads it, or be named in an
+exclusions register carrying a reason, a board item and a date. A second test keeps the
+register honest: an exclusion for a rule that no longer exists, or one missing its item
+or date, fails.
+
+**It found the orphans independently**, before being told what to look for:
+`business_relief`, `agricultural_relief`, `potentially_exempt_transfers` — the same
+three found by hand.
+
+**Mutation-checked.** Removing the `getBusinessRelief()` call turns it red. It is not
+green by construction.
+
+**One thing it taught me, worth keeping.** The first version derived accessor names from
+key names — `potentially_exempt_transfers` → `getPotentiallyExemptTransfers(` — and
+reported a false orphan, because the accessor is `getPETRules()`. It now parses
+`TaxConfigService` for `$this->get('<path>')` and maps method to path. A naming
+heuristic cannot survive the abbreviations a real codebase uses, and a guard that cries
+wolf gets switched off.
+
+### Fixed
+
+- **Business Property Relief is now a capped, graduated relief** (W-0091).
+  `EstateAssetAggregatorService::applyBusinessPropertyRelief()` allocates ONE shared cap
+  across the estate — 100% on the first £2,500,000, `relief_above_cap` (50%) above,
+  largest holdings first because that is the allocation that relieves most. Gated on
+  `allowance_cap_effective_date`, so a date before 6 April 2026 still gets the old
+  uncapped 100%. Relief is published as `business_relief_deduction` rather than netted
+  into the asset value, so the estate still reconciles on screen. `min_ownership_years`
+  now comes from configuration rather than a literal `2`.
+  Eight tests in `tests/Feature/Estate/BusinessPropertyReliefCapTest.php`, including the
+  board's £6m worked example (£4.25m relieved, £1.75m chargeable), one cap shared across
+  two businesses, and two Rule 2 tests that move the cap and the effective date.
+  **The fixture is purpose-built because no persona can reach it** — the largest business
+  interest on the dev database is £750,000, which is why a persona run could never have
+  found this.
+- **The seven- and fourteen-year gift windows read from configuration.**
+  `subYears(7)` ×3 and `subYears(14)` are gone; the windows come from
+  `years_to_exemption`, `lookback_period` and `cumulation_period`, with the fourteen-year
+  reach expressed as a sum of two configured periods so they cannot drift apart.
+
+### Registered, not fixed — each with its real reason
+
+- **Agricultural Property Relief: NOT IMPLEMENTABLE AS THE SCHEMA STANDS.** There is no
+  agricultural asset type or flag anywhere in the data model, so there is nothing to
+  relieve. Needs a product decision before code. The cap is configured as shared
+  (`cap_shared_with_bpr`), so when agricultural property becomes expressible it must join
+  the existing allocation, **not** get a second cap.
+- **AIM shares at 50% outside the cap** — `business_interests` has no column identifying
+  AIM holdings, so they cannot be told apart from any other qualifying business.
+- Quick succession relief, the fourteen-year rule, chargeable lifetime transfers and the
+  April 2027 pension inclusion — no implementation, each recorded with its reason.
+
+### NOT done
+
+- **Taper relief on failed potentially exempt transfers is still not applied.** The
+  graduated table is now formally "consumed" because the PET rule group is read for its
+  window, which is a real weakness of a reference-based guard and is stated in the test's
+  own docblock. Applying the percentages requires modelling tax at gift level — a failed
+  PET uses the donor's nil rate band first and taper bites only above it — which is a
+  larger change needing the tax gate and a product decision. **Filed separately rather
+  than half-built.**
+- **Scope is `inheritance_tax` only.** `income_tax`, `capital_gains_tax`, `pension` and
+  the rest are not guarded. Extending means auditing each area's consumers and writing a
+  register somebody has actually reviewed; doing it speculatively would produce exactly
+  the unreviewed list this item exists to prevent.
+- `tax-compliance-reviewer` has **not** run on any of this.

@@ -171,6 +171,16 @@ class IHTCalculationService
         $spouseGrossAssets = $spouseTaxableAssets->sum('current_value');
         $totalGrossAssets = $userGrossAssets + $spouseGrossAssets;
 
+        // W-0091 / W-0463 — PARTIAL Business Property Relief, which a boolean could
+        // not express. A wholly relieved business is already gone via
+        // `is_iht_exempt` above; one above the £2,500,000 cap stays in the estate at
+        // its full value carrying 50% relief, and that relief has to come off
+        // somewhere. It is published as its own deduction rather than netted into
+        // the asset value so the estate still reconciles on screen: a user can see
+        // the business at what it is worth and the relief as a line against it.
+        $businessReliefDeduction = (float) $userTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0))
+            + (float) $spouseTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0));
+
         // 4. Fetch and sum liabilities
         $userLiabilities = $this->aggregator->calculateUserLiabilities($user);
         $spouseLiabilities = ($isMarried && $dataSharingEnabled)
@@ -181,7 +191,10 @@ class IHTCalculationService
         // 5. Calculate net estate
         $userNetEstate = $userGrossAssets - $userLiabilities;
         $spouseNetEstate = $spouseGrossAssets - $spouseLiabilities;
-        $totalNetEstate = $totalGrossAssets - $totalLiabilities;
+        // Relief reduces the estate that is CHARGEABLE, exactly as the charitable
+        // exemption does, so it belongs here beside the liabilities rather than
+        // hidden inside an asset's value.
+        $totalNetEstate = $totalGrossAssets - $totalLiabilities - $businessReliefDeduction;
 
         // 6. Calculate NRB with message (includes transferred NRB for widows)
         $nrbSingle = $ihtConfig['nil_rate_band']; // £325,000
@@ -324,11 +337,24 @@ class IHTCalculationService
 
             'rnrb_available' => round($rnrbData['rnrb_available'], 2),
             'rnrb_individual' => round($rnrbData['rnrb_individual'] ?? 0, 2),
+            // W-0154 F2. Without these the residence row read 175,000 + 0 = 350,000
+            // and a reader could not account for the other half. Same reasoning as
+            // the nil rate band above: the doubling is a modelled second-death
+            // assumption, not a transfer that exists today.
+            //   individual + spouse_modelled + transferred
+            //     − residence_cap_reduction − taper_reduction = available
+            'rnrb_spouse_modelled' => round($rnrbData['rnrb_spouse_modelled'] ?? 0, 2),
             'rnrb_transferred' => round($rnrbData['rnrb_transferred'] ?? 0, 2),
+            'rnrb_residence_cap_reduction' => round($rnrbData['rnrb_residence_cap_reduction'] ?? 0, 2),
+            'rnrb_taper_reduction' => round($rnrbData['rnrb_taper_reduction'] ?? 0, 2),
             'rnrb_status' => $rnrbData['rnrb_status'],
             'rnrb_message' => $rnrbData['rnrb_message'],
 
             'total_allowances' => round($totalAllowances, 2),
+            // Zero for every estate holding no qualifying business, which is most
+            // of them — published unconditionally so a screen that shows it does
+            // not have to decide whether the key exists.
+            'business_relief_deduction' => round($businessReliefDeduction, 2),
             'charitable_deduction' => round($charitableAmount, 2),
             'taxable_estate' => round($taxableEstate, 2),
             'iht_rate' => $ihtRate,
@@ -408,7 +434,10 @@ class IHTCalculationService
             'projected_nrb_available' => $projectedData['projected_nrb_available'],
             'projected_rnrb_available' => $projectedData['projected_rnrb_available'],
             'projected_rnrb_individual' => $projectedData['projected_rnrb_individual'],
+            'projected_rnrb_spouse_modelled' => $projectedData['projected_rnrb_spouse_modelled'],
             'projected_rnrb_transferred' => $projectedData['projected_rnrb_transferred'],
+            'projected_rnrb_residence_cap_reduction' => $projectedData['projected_rnrb_residence_cap_reduction'],
+            'projected_rnrb_taper_reduction' => $projectedData['projected_rnrb_taper_reduction'],
             'projected_rnrb_status' => $projectedData['projected_rnrb_status'],
             'projected_rnrb_message' => $projectedData['projected_rnrb_message'],
             'projected_total_allowances' => $projectedData['projected_total_allowances'],
@@ -618,7 +647,10 @@ class IHTCalculationService
             'projected_nrb_available' => round((float) $assessment['nrb_available'], 2),
             'projected_rnrb_available' => round((float) $projected['rnrb']['rnrb_available'], 2),
             'projected_rnrb_individual' => round((float) ($projected['rnrb']['rnrb_individual'] ?? 0), 2),
+            'projected_rnrb_spouse_modelled' => round((float) ($projected['rnrb']['rnrb_spouse_modelled'] ?? 0), 2),
             'projected_rnrb_transferred' => round((float) ($projected['rnrb']['rnrb_transferred'] ?? 0), 2),
+            'projected_rnrb_residence_cap_reduction' => round((float) ($projected['rnrb']['rnrb_residence_cap_reduction'] ?? 0), 2),
+            'projected_rnrb_taper_reduction' => round((float) ($projected['rnrb']['rnrb_taper_reduction'] ?? 0), 2),
             'projected_rnrb_status' => $projected['rnrb']['rnrb_status'],
             'projected_rnrb_message' => $projected['rnrb']['rnrb_message'],
             'projected_total_allowances' => round($projected['total_allowances'], 2),
@@ -735,7 +767,7 @@ class IHTCalculationService
         $taxAtStandardRate = $taxableEstate * $standardRate;
         $taxAtReducedRate = $taxableEstateIfQualifying * $reducedRate;
 
-        return [
+        return $this->suppressRateOnNilLiability([
             'rnrb' => $rnrbData,
             'rate' => $rateData,
             'charitable_deduction' => $charitableDeduction,
@@ -757,7 +789,50 @@ class IHTCalculationService
             'total_allowances' => $totalAllowances,
             'taxable_estate' => $taxableEstate,
             'iht_liability' => $taxableEstate * $rateData['rate'],
+        ]);
+    }
+
+    /**
+     * A rate only "applies" if there is something for it to apply to.
+     *
+     * W-0154 F4. `determineIHTRate()` answers the Sch 1A 10% test, and it has to
+     * run before the taxable estate exists because the charitable exemption it
+     * identifies is one of the deductions that produces it. The consequence was
+     * that its answer was published verbatim: an estate covered entirely by its
+     * allowances was told *"Reduced Inheritance Tax rate of 36% applies"* beneath
+     * a bill of £0. Meaningless at best, and at worst it reads as though 36% of
+     * something is being charged.
+     *
+     * Applied HERE, in `assessTaxPosition()`, because that is the one mechanism
+     * both the current and the projected figures go through (Rule 20) — a guard
+     * added at a display site would have to be added again at the next one, which
+     * is how `EstatePlanService:478` came to carry an unguarded copy.
+     *
+     * What is deliberately NOT changed: `charitable_rate_qualifies`,
+     * `charitable_giving_percent`, `charitable_shortfall` and the two "what if"
+     * tax figures. Whether the will passes the 10% test is a true fact about the
+     * will whatever the bill is, and the guidance that tells a user how close they
+     * are is built from it.
+     *
+     * @param  array<string, mixed>  $position
+     * @return array<string, mixed>
+     */
+    private function suppressRateOnNilLiability(array $position): array
+    {
+        if (round((float) $position['iht_liability'], 2) > 0.0) {
+            return $position;
+        }
+
+        $position['rate'] = [
+            ...$position['rate'],
+            'rate' => 0.0,
+            'type' => 'none',
+            'message' => 'No Inheritance Tax is due. Your allowances of £'
+                .number_format((float) $position['total_allowances'])
+                .' cover the estate in full, so no Inheritance Tax rate is applied.',
         ];
+
+        return $position;
     }
 
     /**
@@ -1245,7 +1320,10 @@ class IHTCalculationService
             return [
                 'rnrb_available' => 0,
                 'rnrb_individual' => 0,
+                'rnrb_spouse_modelled' => 0,
                 'rnrb_transferred' => 0,
+                'rnrb_residence_cap_reduction' => 0,
+                'rnrb_taper_reduction' => 0,
                 'rnrb_status' => 'none',
                 'rnrb_message' => 'Residence Nil Rate Band not available. You need to own a main residence and leave it to direct descendants (children, grandchildren, step-children) to qualify for Residence Nil Rate Band of up to £'.number_format($potentialMax).'. Nieces, nephews, cousins, siblings, and other relatives are not direct descendants and do not qualify.',
             ];
@@ -1255,20 +1333,44 @@ class IHTCalculationService
             return [
                 'rnrb_available' => 0,
                 'rnrb_individual' => 0,
+                'rnrb_spouse_modelled' => 0,
                 'rnrb_transferred' => 0,
+                'rnrb_residence_cap_reduction' => 0,
+                'rnrb_taper_reduction' => 0,
                 'rnrb_status' => 'none',
                 'rnrb_message' => 'Residence Nil Rate Band not available — you have no direct descendants recorded. The Residence Nil Rate Band of up to £'.number_format($potentialMax).' only applies when your main residence passes to direct descendants (children, grandchildren, step-children). Nieces, nephews, cousins, siblings, and other relatives do not qualify.',
             ];
         }
 
-        // Calculate full RNRB (pooled couple gets double, widow with transfer gets own + transferred)
+        // W-0154 F2, the residence half of it. `$rnrbSpouseModelled` is reported
+        // separately from `$rnrbTransferred` for exactly the reason the nil rate
+        // band does it (see the block in `calculate()`): there is no transferable
+        // residence band while both spouses are alive — IHTA 1984 s8G creates the
+        // claim on the survivor's death — so `rnrb_transferred` is legitimately 0
+        // for a living couple, and the doubling is this service's second-death
+        // modelling assumption.
+        //
+        // Without this field the user was shown `rnrb_individual` £175,000,
+        // `rnrb_transferred` £0 and `rnrb_available` £350,000, and the £175,000
+        // between them was unattributable — the same defect that was fixed for the
+        // nil rate band and left standing here. Do NOT "fix" it by writing
+        // £175,000 into `rnrb_transferred`.
+        $rnrbSpouseModelled = 0.0;
+
         if ($poolsSpouse) {
-            $fullRNRB = $rnrbSingle * 2;
+            $rnrbSpouseModelled = $rnrbSingle;
+            $fullRNRB = $rnrbSingle + $rnrbSpouseModelled;
         } elseif ($isWidowed && $rnrbTransferred > 0) {
             $fullRNRB = $rnrbSingle + $rnrbTransferred;
         } else {
             $fullRNRB = $rnrbSingle;
         }
+
+        // The maximum before either of the two reductions below. Both reductions
+        // are published so the arithmetic on screen closes:
+        //   individual + spouse_modelled + transferred
+        //     − residence_cap_reduction − taper_reduction = available
+        $rnrbGross = $fullRNRB;
 
         // IHTA 1984 s8E(2): the RNRB is the LOWER of the maximum allowance and the
         // net value of the residence closely inherited by descendants. Cap the full
@@ -1277,6 +1379,7 @@ class IHTCalculationService
         // £200k even for a married couple whose combined maximum would be £350k.
         $cappedByResidence = $residenceNetValue < $fullRNRB;
         $fullRNRB = min($fullRNRB, $residenceNetValue);
+        $residenceCapReduction = $rnrbGross - $fullRNRB;
 
         // Check for taper
         if ($totalNetEstate <= $taperThreshold) {
@@ -1294,7 +1397,10 @@ class IHTCalculationService
             return [
                 'rnrb_available' => $fullRNRB,
                 'rnrb_individual' => $rnrbSingle,
+                'rnrb_spouse_modelled' => $rnrbSpouseModelled,
                 'rnrb_transferred' => $rnrbTransferred,
+                'rnrb_residence_cap_reduction' => $residenceCapReduction,
+                'rnrb_taper_reduction' => 0,
                 'rnrb_status' => $cappedByResidence ? 'residence_capped' : 'full',
                 'rnrb_message' => $rnrbMsg,
             ];
@@ -1309,7 +1415,10 @@ class IHTCalculationService
             return [
                 'rnrb_available' => $rnrbAvailable,
                 'rnrb_individual' => $rnrbSingle,
+                'rnrb_spouse_modelled' => $rnrbSpouseModelled,
                 'rnrb_transferred' => $rnrbTransferred,
+                'rnrb_residence_cap_reduction' => $residenceCapReduction,
+                'rnrb_taper_reduction' => $reduction,
                 'rnrb_status' => 'tapered',
                 'rnrb_message' => 'Residence Nil Rate Band reduced to £'.number_format($rnrbAvailable).' due to estate taper. Your estate of £'.number_format($totalNetEstate).' exceeds £'.number_format($taperThreshold).' by £'.number_format($excess).', reducing RNRB by £'.number_format($reduction).' (£1 reduction per £2 over threshold).',
             ];
@@ -1319,7 +1428,12 @@ class IHTCalculationService
         return [
             'rnrb_available' => 0,
             'rnrb_individual' => $rnrbSingle,
+            'rnrb_spouse_modelled' => $rnrbSpouseModelled,
             'rnrb_transferred' => $rnrbTransferred,
+            'rnrb_residence_cap_reduction' => $residenceCapReduction,
+            // The taper cannot remove more than was there to remove; reporting the
+            // raw excess-derived reduction would not reconcile to zero.
+            'rnrb_taper_reduction' => $fullRNRB,
             'rnrb_status' => 'tapered',
             'rnrb_message' => 'Residence Nil Rate Band fully tapered away. Your estate of £'.number_format($totalNetEstate).' exceeds the taper threshold of £'.number_format($taperThreshold).' by £'.number_format($excess).', eliminating all RNRB of £'.number_format($fullRNRB).'.',
         ];
@@ -1974,25 +2088,40 @@ class IHTCalculationService
      */
     private function nrbDeductionForOneMember(User $member, float $nrbSingle): array
     {
-        // PETs within 7 years of today (assumed death date for calculation)
+        // W-0463 / Rule 2 — the windows are configured, and were hardcoded here as
+        // `subYears(7)` three times and `subYears(14)` once. `years_to_exemption`
+        // and `cumulation_period` were seeded, dated and read by nothing, so an
+        // administrator changing the seven-year rule would have changed the
+        // configuration and not the calculation.
+        $petRules = $this->taxConfig->getPETRules();
+        $cltRules = $this->taxConfig->getCLTRules();
+
+        $petWindow = (int) ($petRules['years_to_exemption'] ?? 7);
+        $cltWindow = (int) ($cltRules['lookback_period'] ?? 7);
+        // The 14-year reach is the CLT lookback plus the cumulation period that
+        // runs before it — expressed as a sum rather than a second literal, so the
+        // two cannot drift apart.
+        $cltCumulativeWindow = $cltWindow + (int) ($cltRules['cumulation_period'] ?? 7);
+
+        // PETs within the exemption window of today (assumed death date)
         $petsIn7Years = Gift::where('user_id', $member->id)
             ->where('gift_type', 'pet')
-            ->where('gift_date', '>', today()->subYears(7))
+            ->where('gift_date', '>', today()->subYears($petWindow))
             ->sum('gift_value');
 
-        // CLTs within 7 years
+        // CLTs within the lookback window
         $cltsIn7Years = Gift::where('user_id', $member->id)
             ->where('gift_type', 'clt')
-            ->where('gift_date', '>', today()->subYears(7))
+            ->where('gift_date', '>', today()->subYears($cltWindow))
             ->sum('gift_value');
 
-        // 14-year rule (Direction B): CLTs made 7-14 years before death
-        // These CLTs don't incur IHT themselves (outside 7-year window),
-        // but they DO reduce the NRB available for PETs in the final 7 years
+        // 14-year rule (Direction B): CLTs made between the lookback and the full
+        // cumulative window. These CLTs don't incur IHT themselves (outside the
+        // lookback), but they DO reduce the NRB available for PETs inside it.
         $clts7to14Years = Gift::where('user_id', $member->id)
             ->where('gift_type', 'clt')
-            ->where('gift_date', '>', today()->subYears(14))
-            ->where('gift_date', '<=', today()->subYears(7))
+            ->where('gift_date', '>', today()->subYears($cltCumulativeWindow))
+            ->where('gift_date', '<=', today()->subYears($cltWindow))
             ->sum('gift_value');
 
         // CLTs (both recent and historical) consume NRB first

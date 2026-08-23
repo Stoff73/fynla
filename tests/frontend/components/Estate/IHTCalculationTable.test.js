@@ -29,6 +29,15 @@ const NOW_ALLOWANCES = {
   nrbGiftDeduction: 150000,
   totalNrb: 500000,
   rnrbIndividual: 175000,
+  // W-0154 F2 — the residence band's components, matching the nil rate band above.
+  // These rows used to be `totalRnrb / 2` each: the total halved and presented as
+  // though it were two measured figures. That reconciles only while the halves are
+  // equal, and they stop being equal the moment the residence cap or the taper
+  // bites — at which point the table showed two numbers that summed to the total by
+  // construction and described nothing.
+  rnrbSpouseModelled: 175000,
+  rnrbResidenceCapReduction: 0,
+  rnrbTaperReduction: 0,
   rnrbFromSpouse: 0,
   totalRnrb: 350000,
   rnrbEligible: true,
@@ -40,6 +49,10 @@ const NOW_ALLOWANCES = {
 const PROJECTED_ALLOWANCES = {
   ...NOW_ALLOWANCES,
   rnrbIndividual: 175000,
+  rnrbSpouseModelled: 175000,
+  // Extinguished by the taper at £4,368,401 — and the £350,000 removed now has a
+  // row of its own, rather than being a residual the reader had to infer.
+  rnrbTaperReduction: 350000,
   totalRnrb: 0,
   rnrbEligible: false,
   rnrbStatus: 'tapered',
