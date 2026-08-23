@@ -4,9 +4,14 @@
 on CSJ's instruction. This file is the merge gate's record. Appended as each batch
 finishes — never held in context and written at the end.
 
-**Repo:** `/Users/CSJ/Desktop/fynla`, branch `estate-copy-and-m-handoff`
-(two commits beyond `dev`: `88494e0fd`, `8f09eaddc`).
+**Repo:** `/Users/CSJ/Desktop/fynla`, branch `estate-copy-and-m-handoff`.
 **dev deployed to csjones.co/fynla at `5c556e252`.**
+
+**The branch moved under me while I worked, and the record should say so.** It carried two
+commits beyond dev when I was dispatched (`88494e0fd`, `8f09eaddc`); by the time I
+finished it carried six — `809743261`, `38452d8f7`, `d772a41bb`, `8de2a6676` landed
+during the pass. Verdicts below were reached against the tree as it stood when each item
+was judged, and I re-checked W-0325 and W-0327 against HEAD (see the addendum).
 
 **Verdicts:** CERTIFIED · REJECTED (named unmet criterion) · CANNOT CERTIFY (what is missing).
 
@@ -103,6 +108,23 @@ Zero failures. Zero errors. Counted independently: `grep -cE '^\s+(⨯|FAIL)'` �
 
 Run as a single process, nothing else touching `laravel_testing`, per the concurrency
 trap that produced the phantom "232 failures" and "61 failures" on 2026-08-22/23.
+
+**The run window, stated precisely, because the branch moved during it.** The suite
+started ~21:47 and finished 22:20. **Three commits landed inside that window** —
+`38452d8f7` (21:55), `d772a41bb` (22:01), `8de2a6676` (22:04). A suite that collects and
+runs against a moving tree is not automatically trustworthy, so I checked what each
+touched rather than assuming:
+
+| Commit | Files |
+|---|---|
+| `38452d8f7` | one board `.md` |
+| `d772a41bb` | `resources/js/views/Savings/SavingsAccountDetail.vue`, one board `.md`, this file |
+| `8de2a6676` | one board `.md` |
+
+**No PHP, no `tests/`, nothing Pest collects.** The one code file is Vue, which belongs to
+vitest, not to this run. So the result stands for the tree Pest actually executed —
+`8f09eaddc` (21:41) and everything before it. **It does not cover
+`SavingsAccountDetail.vue`**, and no PHP-side claim depends on it.
 
 **7,886 against the 7,878 recorded at `19bd1c83f`** — consistent with the two estate
 commits on this branch adding eight tests. The suite is genuinely green for the first
