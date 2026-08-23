@@ -3,9 +3,9 @@ id: W-0091
 title: Business Property Relief is applied as binary 100% with no cap, while a full relief regime sits configured and unread
 mission: persona-run-peak_earners-2026-08-20
 branch: null
-owner: build-lead
+owner: main-inference
 reviewers: [tax-compliance-reviewer, compliance-lead, product-lead]
-status: queued
+status: handoff
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -13,7 +13,7 @@ created: 2026-08-21T20:40:00Z
 claimed: null
 blocked_by: []
 gate: tax-compliance-reviewer
-handoff_to: null
+handoff_to: quality-lead
 prior_art_checked: 2026-08-21
 prior_art_found: ["W-0154 (F6 — configured but read by nothing)", "2026-08-21-iht-calculation-audit.md F6"]
 prior_art_outcome: extend
@@ -183,3 +183,26 @@ the W-0463 exclusions register with that reason. When it becomes expressible it 
 join the existing allocation, not get a second cap (`cap_shared_with_bpr`).
 
 `tax-compliance-reviewer` has not run.
+
+
+## Status corrected — 2026-08-23 19:20
+
+**Was left at `queued` after the work landed.** Business Property Relief is implemented
+(capped, pro rata per s124D(7), gated on its effective date), reviewed by
+`tax-compliance-reviewer` in two rounds, and deployed to dev at `19bd1c83f`.
+
+The reviewer **approved** the cap figure, the effective date, the 50% rate and the
+minimum ownership period, and **rejected** the original largest-first allocation, which
+was corrected to pro rata. Full verdict:
+`workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md`.
+
+**Agricultural Property Relief remains NOT implemented and is not implementable as the
+schema stands** — no agricultural asset type exists. Registered in `UNIMPLEMENTED_RULES`;
+the user-facing disclosure of that gap is **W-0466**.
+
+
+## Tax-compliance verdict
+
+`workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md` — two rounds,
+26 findings, with legislation and HMRC manual citations. Recorded there because the
+reviewer wrote nothing to disk; without that file both reviews would have been lost.

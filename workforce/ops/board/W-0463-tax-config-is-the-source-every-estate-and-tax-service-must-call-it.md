@@ -292,3 +292,10 @@ the death charge.** A CLT over the band attracts 20% when made and that is set a
 the death tax. `lifetime_rate` is configured, but `gifts` holds no record of tax
 actually paid, so crediting it would be inventing a payment. Recorded in the class
 docblock. **Needs a data-model decision before it can be modelled.**
+
+
+## Tax-compliance verdict
+
+`workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md` — two rounds,
+26 findings, with legislation and HMRC manual citations. Recorded there because the
+reviewer wrote nothing to disk; without that file both reviews would have been lost.

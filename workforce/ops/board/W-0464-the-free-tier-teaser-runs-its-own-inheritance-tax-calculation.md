@@ -133,3 +133,10 @@ which screen you were on. The model's accessor is now the single answer and
 - Not browser-verified on `/m`: the teaser is a **Free-tier** surface and the personas
   are Premium, so the screen could not be reached without changing a tier. Covered by
   the service tests. **I COULD NOT BROWSER-TEST THE TEASER.**
+
+
+## Tax-compliance verdict
+
+`workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md` — two rounds,
+26 findings, with legislation and HMRC manual citations. Recorded there because the
+reviewer wrote nothing to disk; without that file both reviews would have been lost.
