@@ -90,10 +90,29 @@ class IHTController extends Controller
 
             // Recalculate projected net estate using correct projected liabilities
             // (Service assumes liabilities stay constant, but mortgages are paid off by age 70)
-            $calculation['projected_net_estate'] = $calculation['projected_gross_assets'] - $projectedLiabilities;
+            //
+            // W-0465 — this recomputation dropped Business Property Relief, so the
+            // projected column did not add up on screen: gross £10,669,753 less
+            // liabilities, with a £4,250,000 relief row sitting between them and a
+            // Net Estate that ignored it. The relief belongs here for the same
+            // reason it belongs in the service's own subtraction — it reduces the
+            // CHARGEABLE estate.
+            $calculation['projected_net_estate'] = $calculation['projected_gross_assets']
+                - $projectedLiabilities
+                - ($calculation['projected_business_relief_deduction'] ?? 0);
 
             // Let the service's projected_taxable_estate and projected_iht_liability stand
             // (they account for RNRB taper and charitable rate correctly)
+            //
+            // ADJACENT, NOT FIXED HERE — reported rather than silently widened.
+            // This overwrite is a SECOND implementation of the net-estate formula
+            // and it runs on a DIFFERENT liabilities figure from the one the service
+            // used for `projected_taxable_estate`. So the Liabilities row and the
+            // Taxable Estate row on the same screen are struck on two different
+            // numbers, and the column cannot fully reconcile even with the relief
+            // put back. The Rule 20 fix is for the service to project liabilities
+            // correctly and this block to disappear; that is a change to the
+            // projection's liability model, not to W-0465's relief.
 
             // Format response for frontend compatibility
             $response = [
@@ -180,6 +199,10 @@ class IHTController extends Controller
                     'net_estate' => $calculation['projected_net_estate'],
                     'gross_assets' => $calculation['projected_gross_assets'],
                     'liabilities' => $calculation['projected_liabilities'],
+                    // W-0465 — the projected column's own relief. It applied none at
+                    // all, so a capped business showed the whole relief in one column
+                    // and nothing in the other, on a screen built to compare them.
+                    'business_relief_deduction' => $calculation['projected_business_relief_deduction'] ?? 0,
                     // W-0136 — the projection has its OWN allowances. The residence
                     // band tapers away above £2,000,000 and the charitable exemption
                     // is re-assessed against the projected estate, so the projected

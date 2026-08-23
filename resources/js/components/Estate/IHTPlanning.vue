@@ -1583,8 +1583,12 @@ export default {
         businessRelief: {
           now: this.ihtData?.business_relief_deduction || 0,
           minus5: this.ihtData?.business_relief_deduction || 0,
-          projected: this.ihtData?.projected_business_relief_deduction ?? (this.ihtData?.business_relief_deduction || 0),
-          plus5: this.ihtData?.projected_business_relief_deduction ?? (this.ihtData?.business_relief_deduction || 0),
+          // W-0465. These fell back to the CURRENT deduction because the server
+          // published no projected figure — a fallback that was only ever right by
+          // accident, and wrong the moment the projected relief differs (a business
+          // over the cap, or one that stops qualifying). The server publishes it now.
+          projected: this.ihtData?.projected_business_relief_deduction || 0,
+          plus5: this.ihtData?.projected_business_relief_deduction || 0,
         },
         charitableExemption: {
           now: this.ihtData?.charitable_deduction || 0,
@@ -1797,6 +1801,10 @@ export default {
               // Projected values. W-0136: the projection has its OWN allowances —
               // the residence band tapers away as the estate grows — so these are
               // not the current figures and must not be substituted for them.
+              // W-0465. This enumerating mapping is where a published field goes to
+              // die (W-0134, W-0399, W-0466 above) — the server can publish it and
+              // the table will still show nothing.
+              projected_business_relief_deduction: response.iht_summary.projected.business_relief_deduction || 0,
               projected_net_estate: response.iht_summary.projected.net_estate,
               projected_taxable_estate: response.iht_summary.projected.taxable_estate,
               projected_iht_liability: response.iht_summary.projected.iht_liability,

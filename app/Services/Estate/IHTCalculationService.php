@@ -521,6 +521,11 @@ class IHTCalculationService
             'projected_properties' => $projectedData['projected_properties'],
             'projected_gross_assets' => $projectedData['projected_gross_assets'],
             'projected_liabilities' => $projectedData['projected_liabilities'],
+            // W-0465. This block ENUMERATES the projected keys rather than
+            // spreading them, so a figure `calculateProjectedValues()` returns is
+            // absent from the result until it is named here — the same shape as the
+            // dropped-field defects on the frontend mapping (W-0134, W-0399).
+            'projected_business_relief_deduction' => $projectedData['projected_business_relief_deduction'],
             'projected_net_estate' => $projectedData['projected_net_estate'],
             'projected_taxable_estate' => $projectedData['projected_taxable_estate'],
             'projected_iht_liability' => $projectedData['projected_iht_liability'],
@@ -666,26 +671,77 @@ class IHTCalculationService
 
         // Get current chattel and business values (these don't appreciate - stay at current value)
         $userAssets = $this->aggregator->gatherUserAssets($user);
-        $projectedChattels = $userAssets->where('asset_type', 'chattel')
+        $spouseAssets = ($dataSharingEnabled && $spouse)
+            ? $this->aggregator->gatherUserAssets($spouse)
+            : collect();
+
+        $chattelValue = fn ($assets): float => (float) $assets->where('asset_type', 'chattel')
             ->reject(fn ($a) => $a->is_iht_exempt)
             ->sum('current_value');
-        $projectedBusiness = $userAssets->where('asset_type', 'business')
+        $businessValue = fn ($assets): float => (float) $assets->where('asset_type', 'business')
             ->reject(fn ($a) => $a->is_iht_exempt)
             ->sum('current_value');
 
-        if ($dataSharingEnabled && $spouse) {
-            $spouseAssets = $this->aggregator->gatherUserAssets($spouse);
-            $projectedChattels += $spouseAssets->where('asset_type', 'chattel')
-                ->reject(fn ($a) => $a->is_iht_exempt)
-                ->sum('current_value');
-            $projectedBusiness += $spouseAssets->where('asset_type', 'business')
-                ->reject(fn ($a) => $a->is_iht_exempt)
-                ->sum('current_value');
-        }
+        $projectedChattels = $chattelValue($userAssets) + $chattelValue($spouseAssets);
+        $projectedBusiness = $businessValue($userAssets) + $businessValue($spouseAssets);
+
+        // W-0465 — the projection applied NO business relief at all, so a £6,000,000
+        // trading business showed £4,250,000 of relief in the current column and
+        // nothing in the projected one: the two halves of a table whose entire
+        // purpose is to compare them disagreed by the whole relief.
+        //
+        // **Rule 20 — this is not a second allocation.** The capped, pro-rata
+        // allowance (s124D(7)) is worked out exactly once, by
+        // `EstateAssetAggregatorService::applyBusinessPropertyRelief()`, and stamped
+        // onto `iht_relief_amount` by the same `gatherUserAssets()` call the values
+        // above are read from. This only READS what that allocation decided.
+        //
+        // **Why reading today's relief is the right pairing rather than a shortcut**
+        // (acceptance 4): business values are deliberately NOT projected forward —
+        // the comment above says so and the arithmetic agrees, they enter the
+        // projection at present-day worth. Relief struck on present-day values is
+        // therefore relief on the values actually being taxed here.
+        //
+        // **If business projection is ever added, this breaks and must move.** The
+        // £2,500,000 allowance does not grow with the business, so relief allocated
+        // on today's value against a grown value would UNDERSTATE the charge. The
+        // fix then is to re-run the allocator over the projected values, never to
+        // scale this figure.
+        $businessRelief = fn ($assets): float => (float) $assets->where('asset_type', 'business')
+            ->reject(fn ($a) => $a->is_iht_exempt)
+            ->sum(fn ($a) => (float) ($a->iht_relief_amount ?? 0));
+
+        $projectedBusinessRelief = $businessRelief($userAssets) + $businessRelief($spouseAssets);
 
         // Calculate totals (include chattels and business at current value)
         $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness;
-        $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities;
+        // Relief reduces the CHARGEABLE estate, in the projected column for the same
+        // reason and in the same place as the current one (see `$totalNetEstate`).
+        $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities - $projectedBusinessRelief;
+
+        // W-0465 acceptance 3 — the taper base can no longer be assumed relief-free.
+        //
+        // `assessTaxPosition()` used to be handed `$projectedNetEstate` as its own
+        // taper base on the stated reasoning that "the projection does not model
+        // business relief separately, so its net estate is already relief-free."
+        // That was true, and true only because the projection was WRONG about
+        // relief. Fixing the relief invalidates the reasoning, so the base is now
+        // struck explicitly, mirroring `$estateForTaper` in the current column:
+        // gross before reliefs, less liabilities (IHTM46023 on s8D(5)(d)).
+        //
+        // `$projectedBusiness` excludes wholly relieved businesses — `is_iht_exempt`
+        // is set only when relief covers the whole value — so they are added back
+        // here exactly as they are in the current column. A PARTLY relieved business
+        // is already in at full value, and adding its relief on top would be the
+        // R2 double-count.
+        $whollyRelieved = fn ($assets): float => (float) $assets
+            ->filter(fn ($a) => ($a->is_iht_exempt ?? false) && ($a->iht_relief_qualifies ?? false))
+            ->sum('current_value');
+
+        $projectedEstateForTaper = $projectedGrossAssets
+            + $whollyRelieved($userAssets)
+            + $whollyRelieved($spouseAssets)
+            - $projectedLiabilities;
 
         // W-0136 and the charitable scaling defect, fixed together because fixing
         // either alone lands on a plausible wrong answer.
@@ -712,11 +768,10 @@ class IHTCalculationService
         // Feeding it the current value would cap the projected band at a home price
         // decades out of date — it does not bite a household whose residence already
         // exceeds the band, and it silently under-caps every household whose does not.
-        // F2 — the projection must not inherit the CURRENT estate's taper base. The
-        // projection does not model business relief separately, so its net estate is
-        // already relief-free and is the correct base for its own taper; passing it
-        // explicitly stops `$ctx['estate_for_taper']` leaking today's figure into a
-        // projection decades out.
+        // F2 — the projection must not inherit the CURRENT estate's taper base.
+        // Passing its own value explicitly stops `$ctx['estate_for_taper']` leaking
+        // today's figure into a projection decades out. W-0465 changed WHAT is
+        // passed: see `$projectedEstateForTaper` above.
         $projected = $this->assessTaxPosition(
             $projectedNetEstate,
             $this->projectMainResidenceNetValue(
@@ -727,7 +782,7 @@ class IHTCalculationService
                 $yearsUntilDeath,
                 $assumptions
             ),
-            ['estate_for_taper' => $projectedNetEstate] + $assessment
+            ['estate_for_taper' => $projectedEstateForTaper] + $assessment
         );
 
         return [
@@ -749,6 +804,11 @@ class IHTCalculationService
             'projected_properties' => round($projectedProperties, 2),
             'projected_gross_assets' => round($projectedGrossAssets, 2),
             'projected_liabilities' => round($projectedLiabilities, 2),
+            // W-0465 — published so the projected column can show the relief row the
+            // current column already has. `IHTPlanning.vue` read this key with a
+            // fallback to the CURRENT deduction; that fallback was only ever right
+            // by accident and is removed with this change.
+            'projected_business_relief_deduction' => round($projectedBusinessRelief, 2),
             'projected_net_estate' => round($projectedNetEstate, 2),
             'projected_taxable_estate' => round($projected['taxable_estate'], 2),
             'projected_iht_liability' => round($projected['iht_liability'], 2),
@@ -2002,7 +2062,17 @@ class IHTCalculationService
         // most estates — so `?? null` at the consumer cannot tell "this engine did
         // not publish it" from "this estate does not need it", and a stale row
         // would suppress the caveat until the user's assets happened to change.
-        foreach (['projected_total_allowances', 'projected_charitable_deduction', 'projected_rnrb_status', 'unmodelled_relief_caveat'] as $key) {
+        // `projected_business_relief_deduction` (W-0465): a stale row missing it
+        // coalesces to 0 at the consumer, which is right for most estates and is
+        // EXACTLY the defect for a business-owning one — the projected column
+        // showing no relief. Shape-guarded so the stale row is rejected instead.
+        foreach ([
+            'projected_total_allowances',
+            'projected_charitable_deduction',
+            'projected_rnrb_status',
+            'unmodelled_relief_caveat',
+            'projected_business_relief_deduction',
+        ] as $key) {
             if (! array_key_exists($key, $result)) {
                 return false;
             }
