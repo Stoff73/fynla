@@ -4,14 +4,14 @@ title: Mortgage created via the property wizard hardcodes a 300-month term and d
 mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: build-lead
-status: handoff
+status: gated
 surfaces: [web, m, ios]
 created: 2026-08-20T23:35:00Z
 claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
-certification: REJECTED 2026-08-23 quality-lead — addressed 2026-08-24, awaiting re-certification
+certification: CANNOT CERTIFY 2026-08-24 quality-lead — see ops/handoffs/quality-lead/cycle4-recertification-2026-08-24.md
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['app/Services/Stores/Normalisers/MortgageNormaliser (canonical mortgage write path)', 'config/mortgage.php default_term_months', 'MortgageController::store term/maturity defaults', 'StorePropertyRequest mortgage_* rules']
 prior_art_outcome: extend

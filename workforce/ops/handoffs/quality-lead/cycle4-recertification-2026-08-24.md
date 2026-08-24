@@ -384,3 +384,59 @@ so farmland recorded as "Top Field" or "Manor Estate" will not trigger it. The d
 `:247` says as much and names the durable fix (an agricultural asset type). CSJ chose the
 heuristic knowingly over a schema change; that is a decision, not an oversight.
 
+
+---
+
+## FOUND — 4. `484197e14` destroyed three board items
+
+**Not a code defect. A records defect, and it takes two of the three compliance gates
+with it.** Found while trying to stamp my verdict on W-0349 and discovering it had no
+frontmatter to stamp.
+
+```
+SHRANK in 484197e14: W-0349-…-account-enumeration-oracle.md   228 ->  23
+SHRANK in 484197e14: W-0466-…-agricultural-relief-nor-aim.md  121 ->  27
+SHRANK in 484197e14: W-0467-…-household-figure-to-one-persons-estate.md  78 ->  29
+```
+
+All three lost **everything except the note that commit appended**: the YAML frontmatter
+(`id`, `status`, `gate`, `severity`, `surfaces`, `reviewers`), the Intent, the Acceptance
+criteria, every prior working note, and — for W-0466 and W-0467 — **my 2026-08-23
+certification stamps.** The signature is an overwrite where an append was intended: only
+the new text survives, and the file now opens on two blank lines and a mid-document
+bullet.
+
+**Why this is worse than losing three files.** W-0466 and W-0467 are two of the three
+items **gated on `compliance-lead`**, and the gate is discharged *against the acceptance
+criteria*. Those criteria no longer exist in the repo. A reviewer opening W-0466 today
+finds a note about an unsubscribe route and no statement of what they are being asked to
+approve. **W-0349 is the item I have just certified, and its record of what it was
+certified against is gone.**
+
+**A sweep of all 271 board files found no other truncation** — these three, one commit,
+one operation.
+
+**Fully recoverable, and I am not doing it**, because these are the coordinator's
+documents and restoring them is an edit to work I am gating, not an act of gating. The
+prior content is one command away:
+
+```
+git show 26564407f:workforce/ops/board/W-0349-family-members-endpoint-is-an-account-enumeration-oracle.md
+git show 88494e0fd:workforce/ops/board/W-0466-the-estate-screen-does-not-say-it-models-neither-agricultural-relief-nor-aim.md
+git show 88494e0fd:workforce/ops/board/W-0467-the-free-teaser-attributes-a-household-figure-to-one-persons-estate.md
+```
+
+Restore each, then re-append the compliance note that `484197e14` added — it is the only
+content in the current files and it is worth keeping.
+
+**Consequence for this pass:** I could not stamp W-0349, W-0466 or W-0467. Their verdicts
+stand in this document — **W-0349 CERTIFIED, W-0466 and W-0467 CANNOT CERTIFY on
+`compliance-lead`** — and the board will not show them until the files are restored.
+
+**And the general point, which is yesterday's Finding 3 with the volume turned up.** I
+wrote that `status: handoff` and the acceptance checkbox carry no information. This is the
+next step along that road: the acceptance criteria themselves are now mutable by accident,
+with no guard. Nothing in the repo would have caught this — no test, no hook, no sweep.
+**A one-line check that every `board/W-*.md` begins with `---` and parses as frontmatter
+would have caught it at commit time**, and is the cheapest guard on this board.
+

@@ -11,7 +11,7 @@ claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
-certification: REJECTED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
+certification: REJECTED 2026-08-24 quality-lead — see ops/handoffs/quality-lead/cycle4-recertification-2026-08-24.md
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['DCPensionForm.vue advisor_fee_percent (proven pattern)', 'StoreDCPensionRequest advisor_fee_percent rule', 'InvestmentAccount model fillable + cast already present', 'InvestmentAccountNormaliser already casts advisor_fee_percent']
 prior_art_outcome: extend
