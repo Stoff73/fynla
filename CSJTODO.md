@@ -1,52 +1,56 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-08-23 session 2 — cycle 4 committed, tax-reviewed, DEPLOYED to dev
-(csjones.co/fynla @ `5c556e252`). Handover:
-handover/August/23/handover-2026-08-23-session-2.md*
+*Last updated: 2026-08-24 session 1 — five rejections fixed, three review gates run,
+board NOT cleared (215 open). Branch `estate-copy-and-m-handoff`, 20 commits, nothing
+deployed. Handover: handover/August/24/handover-2026-08-24-session-1.md*
 
-## 2026-08-23 session 2 — FIVE DECISIONS WAITING ON CSJ
+## 2026-08-24 — CLEAR THE BOARD. ALONE. NO AGENTS.
 
-**All four decisions from session 1 are resolved and shipped.** The spouse-linking CRITICAL is
-fixed, Business Property Relief is capped, the duplicate is closed, and everything is on dev.
-What remains needs CSJ's words, not engineering.
+**CSJ standing instruction, 2026-08-24: no agents are to be spawned for these fixes.
+One item at a time, quickly, without shortcuts, until the board is clear.** Three fix
+agents were dispatched and killed the same hour; all agents were terminated at 11:53 BST.
+The hard reason: agents share one `laravel_testing` database, and two Pest processes
+produce deadlocks and 0-assertion failures indistinguishable from real breakage.
 
-- [ ] **W-0466 — APR/AIM caveat wording.** An estate holding farmland or AIM shares is shown a
-  figure modelling **neither**, with no disclosure. The errors run in **opposite directions**:
-  absent Agricultural Property Relief overstates tax by up to ~40% of land value; AIM recorded
-  as a business interest understates it. Neither is implementable as the schema stands (no
-  agricultural asset type, no AIM column), so the honest fix is a caveat. **Requirement settled
-  by tax-compliance-reviewer; the wording is CSJ's.**
-- [ ] **W-0467 — the `/m` Free teaser headline.** Says *"your estate could be subject to up to
-  £X"* where the figure is a **pooled second-death household** number; that user's own
-  first-death liability is typically £0. Only Inheritance Tax figure `/m` ever shows, on a
-  conversion surface. Hedged on magnitude, not on whose or when.
-- [ ] **W-0469 — does `/m` get an estate breakdown at all?** The business relief row and the
-  failed-gift tax reached **web only** (Rule 19). Not a port: `/m`'s estate screen has no
-  allowance breakdown whatsoever and no liability in Premium mode. Full breakdown, or an honest
-  summary that hands off to web — either is defensible, undecided is not.
-- [ ] **W-0340 / W-0392 / W-0350** — carried from session 1. Unmarried linked couples; whether
-  `is_iht_exempt` removes an asset from the estate or only the tax; the 53 `spouse_id` consumer
-  census (**no longer blocked** — W-0347 is fixed).
-- [ ] **W-0462** — *"Save £74,987"* on an action leaving beneficiaries £37,891 worse off. Still
-  open; route to `compliance-lead`?
+**215 board items open** — 3 critical, 80 high, 109 medium, 23 low.
+(105 `queued`, 104 `gated`, 4 `blocked`, 3 `handoff`.)
 
-## 2026-08-23 session 2 — outstanding work
+### Next, in order
 
-- [ ] **`quality-lead` has never run.** 145 items at `handoff`, uncertified, now deployed to dev.
-  **`./vendor/bin/pest` was fatal from 2026-08-22 until `1af23f8e5` today, so nothing at
-  `handoff` has a full-suite green behind it from before today.**
-- [ ] **W-0465** — the projection applies no business relief at all; the two columns of one table
-  disagree by the whole relief. Fixing it invalidates an `assessTaxPosition()` comment that is
-  only accidentally true.
-- [ ] **W-0468** — same-day transfers do not cumulate against each other.
-- [ ] **W-0461** — the Rule 2 sweeps never entered the frontend; the guard is the acceptance, not
-  the nine fixes.
-- [ ] **Restart the persona tester from the beginning** (Rule 23). Brief at the foot of
-  `workforce/ops/queue/cycle4-fix-queue.md`.
-- [ ] **iOS still untested** — not built, not launched, not claimed.
-- [ ] **Refresh the `tax-compliance-reviewer` agent definition** — it states 2025/26 and "frozen
-  until April 2028" and carries no relief cap; the active config is 2026/27, frozen to 2031. It
-  grepped the live config rather than trusting its table. The next one may not.
+- [ ] **W-0473** — the whole `/m` Insights feature is dead; all six readers look one level
+      above the agent's payload. Unwrap ONCE at the call site. Keep the caveat line.
+- [ ] **W-0474** — a civil partnership pools two estates against one person's allowances.
+      HIGH, overstates tax, fully specified.
+- [ ] **W-0475** — projected gross estate omits `asset_type = other` entirely; understates.
+- [ ] **W-0476** — the enumeration oracle moved to `GET /api/spouse-permission/status`.
+      Closes with **W-0472**.
+- [ ] **W-0477** — a deleted spouse leaves expenditure stored as halves nothing halves.
+- [ ] Then the remaining queued critical/high: `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
+      W-0155 W-0171 W-0216 W-0222 W-0226 W-0227 W-0361 W-0363 W-0364 W-0365 W-0462`,
+      then medium, then low.
+- [ ] **The full suite has not completed since `19bd1c83f`.** Run it once, alone, as a
+      consolidation point.
+
+### Waiting on CSJ
+
+- [ ] **W-0347 (CRITICAL) — FLAGGED by `compliance-lead` on five findings**, acceptances 3
+      and 4 unmet. **What happens to the 10 historically forged `spouse_permissions` rows
+      on dev?** A migration backfilled them as `accepted`; is that acceptable, or must
+      those households be re-asked?
+- [ ] **Rule 9 amendment** — the caveat spells out "the Alternative Investment Market" and
+      a test pins the acronym's absence. "(AIM)" for recognisability is CSJ's call alone.
+
+### Known gaps, carried
+
+- [ ] **W-0008** — the adviser fee is enterable and has never been shown to reach the
+      projection it is entered for. Untouched.
+- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on BOTH accounts of a linked household.
+      Only a web profile-form save was ever verified.
+- [ ] **W-0470 second half** — per-liability detail rows still come from the non-projecting
+      breakdown, so the panel can show −£3,500 above a £0 total.
+- [ ] **W-0012 Rule 19** — `/m` and native have no property form; Fyn's create accepts five
+      mortgage fields, not nine.
+- [ ] iOS not built, launched or looked at. `/m` verified only on localhost, never csjones.
 
 ## 2026-08-17 — catch-up and clean-up
 
