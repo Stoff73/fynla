@@ -17,6 +17,7 @@ use App\Services\Dashboard\DashboardAggregator;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Mobile\DailyInsightService;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Facades\Cache;
@@ -44,6 +45,9 @@ beforeEach(function () {
         $this->propertyStore,
         app(CrossModuleAssetAggregator::class),
         app(NetWorthService::class),
+        // W-0478 — the dashboard no longer composes its own insight; it reads the
+        // one composer the insights endpoint reads.
+        app(DailyInsightService::class),
     );
 
     // Clear cache before each test
@@ -502,29 +506,37 @@ describe('fyn insight generation', function () {
     it('generates protection-related insight when gaps exist', function () {
         $user = User::factory()->create();
 
-        // Protection with gaps
+        // W-0478 — the gaps fixture used to be `['life' => ['gap' => 50000], …]`, a
+        // shape `ProtectionAgent` does not produce. Measured against the live agent,
+        // it emits `total_gap` with a `gaps_by_category` map, and `total_gap` can be
+        // zero while a category is not — this household's whole shortfall is income
+        // protection. Every other module is left empty so exactly one insight is
+        // composed and the day-of-year rotation cannot pick a different one.
         $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn([
             'success' => true,
             'message' => 'OK',
             'data' => [
                 'coverage' => ['life_coverage' => 100000, 'total_coverage' => 100000, 'income_protection_coverage' => 0],
                 'gaps' => [
-                    'life' => ['gap' => 50000],
-                    'income_protection' => ['gap' => 20000],
+                    'total_gap' => 0,
+                    'gaps_by_category' => [
+                        'human_capital_gap' => 0,
+                        'income_protection_gap' => 20000,
+                    ],
                 ],
             ],
             'timestamp' => now()->toIso8601String(),
         ]);
-        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
-        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
-        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeRetirementAnalysis());
-        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
-        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(['has_goals' => true]);
         $this->dashboardAggregator->shouldReceive('aggregateAlerts')->andReturn([]);
 
         $result = $this->service->getAggregatedDashboard($user->id);
 
-        expect($result['fyn_insight'])->toContain('protection gap');
+        expect($result['fyn_insight'])->toContain('gaps in your protection coverage');
     });
 });
 
