@@ -2,10 +2,10 @@
 id: W-0478
 title: Two insight mechanisms exist and the one with tests has no client — /m renders the other
 mission: persona-run-peak_earners-2026-08-20
-branch: null
-owner: null
+branch: estate-copy-and-m-handoff
+owner: main-inference
 reviewers: [quality-lead]
-status: queued
+status: gated
 claimed_by: null
 severity: medium
 surfaces: [m, native]
@@ -63,3 +63,26 @@ the branch nobody reads.
 - 2026-08-24 — Worth knowing before choosing: the endpoint's reader is the richer of
   the two (six modules, real figures, caveat-aware, now covered by mutation-proved
   tests). The aggregator's is prose-only but is the one users actually see.
+- 2026-08-24 — **Done. CSJ chose "wire the clients to the endpoint — the richer
+  mechanism wins."** Built as one shared composer rather than a second HTTP call from
+  the dashboard, because measurement changed the picture: **both `/m` AND native
+  already read `fyn_insight` from the dashboard payload**
+  (`resources/mobile/views/Dashboard.vue:559`, `ios-native/.../DashboardView.swift:122`),
+  so pointing them at the endpoint would have added a request to a screen that already
+  had the data. `DailyInsightService` holds the sentences and thresholds; the endpoint
+  and the dashboard both read it; `generateFynInsight` is deleted. Same outcome — the
+  richer mechanism wins and only one exists — without a second round trip.
+- 2026-08-24 — `compose()` takes the module payloads its caller already has instead of
+  fetching its own. The aggregator calls all six agents to build its summaries; a
+  service that re-fetched would double that on the dashboard hot path.
+- 2026-08-24 — **One asymmetry, stated in the class rather than hidden:** the dashboard
+  aggregator has no tax agent, so it supplies no `tax` payload and the tax-strategy
+  insight is unreachable from that caller. Adding `TaxOptimisationAgent` to the
+  dashboard would put a strategy computation on every load.
+- 2026-08-24 — Measured on user 14: `/m` and native now receive *"Your estimated
+  Inheritance Tax liability is 58,500.00…"* **with the `unmodelled_relief_caveat`**,
+  where they previously received prose with no figure.
+- 2026-08-24 — **Filed W-0479 from a test fixture correction.** The fixture mocked
+  protection gaps as `['life' => ['gap' => …]]`, a shape the agent has never emitted.
+  The dashboard's `critical_gaps` counter reads that same invented shape, so it is 0
+  for every household on all three surfaces.
