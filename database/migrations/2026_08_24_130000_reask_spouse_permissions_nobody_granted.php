@@ -59,6 +59,7 @@ return new class extends Migration
         //    (compliance-lead F5). Only ever collapses rows nobody granted.
         $unconfirmed = DB::table('spouse_permissions')
             ->whereNull('requested_at')
+            ->where('status', '<>', 'rejected')
             ->orderBy('id')
             ->get(['id', 'user_id', 'spouse_id']);
 
@@ -86,6 +87,12 @@ return new class extends Migration
         // 2. Turn what survives into an unanswered request.
         DB::table('spouse_permissions')
             ->whereNull('requested_at')
+            // W-0347 G10 — a row somebody actively withdrew is a decision, and
+            // flipping it to `pending` would destroy the record of it and put a
+            // request in its place. No such row can exist today (the old `revoke()`
+            // deleted rather than marked), so this is defensive — but the guarantee
+            // belongs in the code, not in a paragraph.
+            ->where('status', '<>', 'rejected')
             ->update([
                 'status' => 'pending',
                 'requested_at' => $now,

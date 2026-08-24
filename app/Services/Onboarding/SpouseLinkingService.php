@@ -579,8 +579,15 @@ final class SpouseLinkingService
      * real request from the forged rows this replaced: every one of the ten
      * `accepted` rows on the dev database at the time of the fix carried
      * `requested_at = NULL`, because no request was ever made — the service
-     * wrote the acceptance itself. That NULL is the marker for auditing legacy
-     * links.
+     * wrote the acceptance itself.
+     *
+     * **W-0347 G2 — that NULL was the audit marker only until the release.**
+     * `2026_08_24_130000_reask_spouse_permissions_nobody_granted` converts every row
+     * carrying it into an unanswered request, stamping `requested_at` as it goes, so
+     * after that migration runs no row carries the marker and the population is no
+     * longer identifiable in the data. **If the legacy population has to be
+     * enumerated — for the production census, or for anything that follows from it —
+     * it must be enumerated BEFORE the migration runs.**
      */
     private function createPendingSpouseInvitation(int $requesterId, int $inviteeId): void
     {

@@ -198,3 +198,42 @@ describe('the re-ask migration', function () {
         expect($spouse->fresh()->hasAcceptedSpousePermission())->toBeFalse();
     });
 });
+
+describe('the state the re-ask migration actually leaves behind', function () {
+    it('tells a linked requester their request is outstanding', function () {
+        // W-0347 G1 — the MODAL post-migration state: reciprocally linked AND holding
+        // a pending row. `status()` required `! $user->spouse_id` for the outgoing
+        // branch, so this fell through with no `awaiting_*` flag, and `/m` — which
+        // reads only those flags — rendered "Sharing is off. Your accounts are linked"
+        // with an "Ask to share again" button that answers 422.
+        [$primary, $spouse] = reAskCouple();
+        SpousePermission::create([
+            'user_id' => $primary->id,
+            'spouse_id' => $spouse->id,
+            'status' => 'pending',
+            'requested_at' => now(),
+        ]);
+
+        Sanctum::actingAs($primary);
+        $data = $this->getJson('/api/spouse-permission/status')->assertOk()->json('data');
+
+        expect($data['awaiting_their_response'] ?? false)->toBeTrue();
+        expect($data['can_view_spouse_data'])->toBeFalse();
+    });
+
+    it('tells the other party the request is theirs to answer', function () {
+        [$primary, $spouse] = reAskCouple();
+        SpousePermission::create([
+            'user_id' => $primary->id,
+            'spouse_id' => $spouse->id,
+            'status' => 'pending',
+            'requested_at' => now(),
+        ]);
+
+        Sanctum::actingAs($spouse);
+        $data = $this->getJson('/api/spouse-permission/status')->assertOk()->json('data');
+
+        expect($data['awaiting_your_response'] ?? false)->toBeTrue();
+        expect($data['can_view_spouse_data'])->toBeFalse();
+    });
+});

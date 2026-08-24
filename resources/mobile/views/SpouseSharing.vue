@@ -27,9 +27,7 @@
         -->
         <p class="sharing-copy">
           <strong>{{ counterpartyName }}</strong> has asked to link their Fynla household with yours.
-          If you accept, you will each be able to see the other's assets, liabilities and income, and
-          your accounts will be recorded as one household. You can stop sharing at any time. Nothing is
-          shared until you accept.
+          If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record. Nothing is shared until you accept.
         </p>
         <p v-if="counterpartyEmail" class="sharing-meta">{{ counterpartyEmail }}</p>
         <div class="sharing-actions">
@@ -70,13 +68,27 @@
         </div>
       </section>
 
+      <!-- No account to share with yet. The message comes from the server, which is
+           the only place that knows whether an invitation has actually gone out. -->
+      <section v-else-if="requiresAccountLink" class="m-card" data-testid="sharing-awaiting-account">
+        <h2 class="m-section-label">Not shared yet</h2>
+        <p class="sharing-copy">
+          {{ statusMessage || 'Nothing can be shared until your partner has their own Fynla account and accepts the link.' }}
+        </p>
+      </section>
+
       <!-- Linked, but sharing withdrawn or declined. -->
       <section v-else-if="hasSpouse" class="m-card" data-testid="sharing-off">
         <h2 class="m-section-label">Sharing is off</h2>
         <p class="sharing-copy">
           Your accounts are linked, but financial information is not being shared.
         </p>
-        <!-- W-0347 F4 — the way back in, on both surfaces. -->
+        <!-- W-0347 F4 — the way back in, on both surfaces. F3 second pass: it is also
+             the route by which withdrawn disclosure is turned back on, so it carries
+             the same notice as every other pre-consent screen (Rule 20). -->
+        <p class="sharing-copy">
+          If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record.
+        </p>
         <div class="sharing-actions">
           <button type="button" class="m-btn" data-testid="sharing-reask" :disabled="busy" @click="respond('request')">
             {{ busy ? 'Saving...' : 'Ask to share again' }}
@@ -128,6 +140,12 @@ export default {
     awaitingYourResponse() { return Boolean(this.status?.awaiting_your_response); },
     awaitingTheirResponse() { return Boolean(this.status?.awaiting_their_response); },
     canViewSpouseData() { return Boolean(this.status?.can_view_spouse_data); },
+    // W-0347 G1 — `/m` read only the three flags above, so any state the endpoint
+    // described some other way fell through to "Sharing is off. Your accounts are
+    // linked" with a button that answers 422. `requires_account_link` is one such
+    // state and it is the opposite of linked: the partner has no account at all.
+    requiresAccountLink() { return Boolean(this.status?.requires_account_link); },
+    statusMessage() { return this.status?.message || ''; },
     counterpartyName() { return this.status?.spouse?.name || ''; },
     counterpartyEmail() { return this.status?.spouse?.email || ''; },
   },

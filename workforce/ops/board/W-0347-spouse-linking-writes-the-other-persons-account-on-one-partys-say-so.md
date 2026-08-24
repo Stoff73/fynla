@@ -293,3 +293,64 @@ own can still be a suite-wide fatal.
   session by standing instruction, and this is consent, so the item stays `gated`.
 - The production census (F2 query against `fynla.org`) has not been run.
 - Whether an inherited row may ever stand in place of consent is `Q-17`, for a lawyer.
+
+## Compliance gate, second pass — 2026-08-24: **FLAGGED**, acted on
+
+F1 and F4 **CLOSED**. F2 closed for the rows the migration reaches. F3 and F5
+**PARTIALLY** closed — both now finished:
+
+- **F3** covered only the receiving screen. The three screens that *initiate*
+  disclosure still described it one-way, and the "Ask to share again" buttons carried
+  no notice at all — the very route by which withdrawn disclosure is turned back on.
+  The clause now names the mutuality, the household record, **and `marital_status`**
+  (which moves Inheritance Tax figures), and no longer implies withdrawal undoes it.
+  One sentence, all four screens, both surfaces.
+- **F5** missed the read that **draws the screen** (`status():151-157`), the same
+  `orWhere` pair as the gate with no order. Ordered.
+
+### New, and the important one: **G1 — my own migration created a state `/m` renders wrongly**
+
+After the re-ask, a household is reciprocally linked **and** holds a pending row —
+the modal state at release. `status()` gated its outgoing branch on
+`! $user->spouse_id`, so the requester fell through with **no `awaiting_*` flag**, and
+`/m` reads only those flags: it showed *"Sharing is off. Your accounts are linked"*
+with an "Ask to share again" button that answers **422**. Not told a request was
+outstanding, unable to cancel it. Fixed in `status()` — one condition serving web,
+`/m` and native (Rule 20) — plus the `requires_account_link` branch `/m` never had.
+Two tests, both sides.
+
+### Also fixed
+
+- **G2** — `User::hasAcceptedSpousePermission()`'s docblock asserted the OPPOSITE of
+  what ships ("no household lost access on deploy") and named a deleted migration. The
+  same defect as F1, in the model that gates the whole application. Corrected, with
+  the fail-open default (G9) named at the line.
+- **G3** — the **third** writer of the forged shape: `PreviewUserSeeder` wrote two
+  mirror `accepted` rows with `requested_at` NULL, so every `db:seed` recreated the
+  population and every preview persona showed "Accepted: <date>" for consent nobody
+  gave. One row per couple, in the shape a real acceptance leaves.
+- **G10** — the migration now carries `status <> 'rejected'`, so a withdrawal can never
+  be flipped back to a request.
+- **G11** — web described the accepted state one-way, `/m` mutually. Aligned.
+
+### FOR CSJ — three things I cannot decide
+
+1. **G4, CRITICAL and time-bound.** The premise of this item is that data was disclosed
+   without a lawful basis, and CSJ has now ruled the consent invalid. `compliance-lead`
+   states plainly that this raises a **UK GDPR Art. 33 / Art. 34 breach-notification
+   question with a 72-hour clock**, refuses to answer it as outside its competence, and
+   says it must go to a qualified person **before** release — because the release runs
+   the migration and **the migration overwrites the evidence**.
+2. **G5, blocking.** The production census must therefore run BEFORE the release, not
+   after. `requested_at IS NULL` is the only marker of the affected population and the
+   migration stamps it.
+3. **G6.** At release, every affected household loses sharing with **no notification**.
+   Compliance's position is that silence breaches `05-perimeter.md` §4.
+
+### Still open
+
+- Acceptance 4 remains **unmet**: FLAGGED, not cleared, and 1–3 above are CSJ's.
+- G7 (`destroy()` hard-deletes the consent record), G8 (`household_id` survives
+  withdrawal and still confers trust access) — recorded, not fixed.
+- 45 + 9 + 77 tests green across the consent, profile and family suites; `/m` and
+  settings component suites 10/10. Not re-browsed since these edits.

@@ -56,8 +56,14 @@
             </div>
             <div class="ml-3 flex-1">
               <h4 class="text-body-sm font-medium text-horizon-600">Enable Joint Account View</h4>
+              <!--
+                W-0347 F3, second pass. This described only the benefit flowing to the
+                person clicking, on the screen where they consent to their OWN records
+                being disclosed to the other party. Art. 7(3) wants the right to
+                withdraw stated before consent is given, not after.
+              -->
               <p class="mt-1 text-body-sm text-horizon-500">
-                Request permission to view your spouse's financial data. This allows you to see joint accounts and combined financial statements.
+                Ask your spouse to share financial information with you. If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record.
               </p>
             </div>
           </div>
@@ -125,7 +131,7 @@
                 Same sentence as /m (Rule 20).
               -->
               <p class="mt-1 text-body-sm text-horizon-500">
-                Your spouse has requested permission to view your financial data. If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household. You can stop sharing at any time.
+                Your spouse has requested permission to view your financial data. If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record.
               </p>
               <p class="mt-1 text-body-xs text-horizon-500">
                 Requested: {{ formatDate(permission.requested_at) }}
@@ -166,8 +172,10 @@
             </div>
             <div class="ml-3 flex-1">
               <h4 class="text-body-sm font-medium text-spring-800">Data Sharing Enabled</h4>
+              <!-- W-0347 G11 — `/m` described this state as mutual and web as one-way.
+                   It is mutual: one accepted row makes it true for both parties. -->
               <p class="mt-1 text-body-sm text-spring-700">
-                You can now view joint accounts and combined financial statements with your spouse.
+                You and your spouse can each see the other's assets, liabilities and income.
               </p>
               <!--
                 W-0347 F2 — this printed "Accepted: <date>" over rows nobody had
@@ -228,6 +236,15 @@
           `revoke()` leaves a `rejected` one behind. A withdrawal you cannot
           reverse is one people hesitate to make.
         -->
+        <!--
+          W-0347 F3 — this is the route by which someone who withdrew turns disclosure
+          back ON, and it carried no notice at all. Same sentence as every other
+          pre-consent screen (Rule 20).
+        -->
+        <p class="text-body-sm text-horizon-500">
+          If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record.
+        </p>
+
         <button
           @click="handleRequestPermission"
           :disabled="loading"
