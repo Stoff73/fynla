@@ -172,12 +172,24 @@ class SpousePermissionController extends Controller
         // who had just done exactly that to go and do it. Supplying the email
         // no longer creates and links an account — it sends an invitation.
         //
-        // It is deliberately ONE sentence covering both states rather than two,
-        // because **this endpoint cannot tell them apart**: `family_members` has
-        // no email column, so the address the caller supplied is used to send
-        // the invitation and then not retained anywhere. Writing two branches
-        // here would mean writing one that can never fire. The retention gap is
-        // filed as W-0472; when it closes, this splits.
+        // **One sentence, and no conditional.** A first version added "If you have
+        // given us their email address, we have already invited them", which
+        // `compliance-lead` showed cannot be true where it prints: a LIVE
+        // invitation is caught by the outgoing-pending branch above (`:88-115`),
+        // so the only way to reach here having supplied an address is that the
+        // invitation was **declined, rejected or withdrawn**. In that one case the
+        // sentence would conceal a refusal behind a reassurance, on a consent
+        // surface — worse than saying less.
+        //
+        // The honest three-state version — never asked / invited and waiting /
+        // invited and declined — is not writable, because `family_members` has no
+        // email column and the invitation is not retained (W-0472). That is the
+        // second consequence of the retention gap, and it belongs on that item
+        // rather than being worked around in copy.
+        //
+        // Note also `sendInvitationNotification()` swallows a send failure and
+        // returns false, so any future copy asserting "we have invited them" must
+        // read that boolean rather than assume it.
         return response()->json([
             'success' => true,
             'data' => [
@@ -190,7 +202,7 @@ class SpousePermissionController extends Controller
                 'permission' => null,
                 'can_view_spouse_data' => false,
                 'requires_account_link' => true,
-                'message' => 'Nothing can be shared until your partner has their own Fynla account and accepts the link. If you have given us their email address, we have already invited them.',
+                'message' => 'Nothing can be shared until your partner has their own Fynla account and accepts the link.',
             ],
         ]);
     }

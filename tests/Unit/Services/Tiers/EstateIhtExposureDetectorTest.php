@@ -185,6 +185,52 @@ describe('W-0467 — the headline says whose estate and when', function () {
             ->and($headline)->not->toContain('Your estate could be subject to up to');
     });
 
+    it('does not tell a married user with no linked partner that it is their own estate', function () {
+        // `compliance-lead` second pass, §11. The FIRST fix for W-0467 caught only
+        // one of the three groups its own finding named. `is_married` requires a
+        // linked spouse account, so a user who is married in their profile but whose
+        // partner never joined came out FALSE on that flag and fell to the final
+        // branch — still being told "Your estate could be subject to up to £X", which
+        // is the original defect this item exists to remove, surviving its own fix.
+        //
+        // W-0347 makes this the ordinary case rather than a transient one: linking is
+        // now an invitation that can simply be ignored.
+        $user = User::factory()->create(['marital_status' => 'married', 'spouse_id' => null]);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        $headline = app(EstateIhtExposureDetector::class)->detect($user->fresh())['headline'];
+
+        expect($headline)->toContain('Based on your own records alone')
+            ->and($headline)->toContain('Linking your accounts')
+            ->and($headline)->not->toContain('Your estate could be subject to up to');
+    });
+
+    it('tells a linked-but-not-sharing user to share, not to link', function () {
+        // The other half of §11. Reaching the not-pooled branch REQUIRES a linked
+        // account, so "Linking your accounts gives a fuller picture" instructed the
+        // user to do something they had already done. What is switched off is the
+        // sharing permission.
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $spouse = User::factory()->create(['marital_status' => 'married']);
+        $user->update(['spouse_id' => $spouse->id]);
+        $spouse->update(['spouse_id' => $user->id]);
+
+        SpousePermission::create([
+            'user_id' => $user->id,
+            'spouse_id' => $spouse->id,
+            'status' => 'rejected',
+            'requested_at' => now(),
+            'responded_at' => now(),
+        ]);
+
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        $headline = app(EstateIhtExposureDetector::class)->detect($user->fresh())['headline'];
+
+        expect($headline)->toContain('Sharing your finances with them')
+            ->and($headline)->not->toContain('Linking your accounts');
+    });
+
     it('makes no unhedged promise about what upgrading achieves', function () {
         // `compliance-lead` finding E: "to help reduce this" asserted an outcome
         // about a paid product on a conversion surface — the one clause with nothing

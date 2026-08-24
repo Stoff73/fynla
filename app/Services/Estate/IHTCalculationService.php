@@ -600,6 +600,18 @@ class IHTCalculationService
             'projected_iht_rate_percent' => $projectedData['projected_iht_rate_percent'],
 
             'is_married' => $isMarried,
+            // W-0467 — the marital status the calculation actually used, published
+            // so a consumer can tell "married, partner has no linked account" from
+            // "single". `is_married` cannot: it requires `$spouse !== null`, so both
+            // states arrive as false and a headline written for the second is shown
+            // to the first (compliance-lead, second pass, §11).
+            //
+            // Published rather than re-derived at the consumer on purpose. The
+            // detector reads its pooling answer back off this calculation precisely
+            // so a second predicate cannot drift from the one the figure was
+            // computed under; asking `$user->marital_status` there would reintroduce
+            // exactly that.
+            'marital_status' => $user->marital_status,
             'is_widowed' => $isWidowed,
             'data_sharing_enabled' => $dataSharingEnabled,
 
@@ -2118,6 +2130,10 @@ class IHTCalculationService
             'projected_rnrb_status',
             'unmodelled_relief_caveat',
             'projected_business_relief_deduction',
+            // W-0467 — a stale row without this makes the detector unable to tell a
+            // married user with no linked account from a single one, and it would
+            // fail SILENTLY, by showing the wrong sentence rather than by erroring.
+            'marital_status',
         ] as $key) {
             if (! array_key_exists($key, $result)) {
                 return false;

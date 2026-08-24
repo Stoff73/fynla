@@ -72,6 +72,12 @@ class EstateIhtExposureDetector
                 // Married with a linked account but NOT pooling — sharing off or
                 // revoked. Also read off the calculation, for the same reason.
                 ($calculation['is_married'] ?? false) && ! ($calculation['data_sharing_enabled'] ?? false),
+                // Married, and the partner has NO linked account at all. `is_married`
+                // is FALSE here — it requires `$spouse !== null` — which is why this
+                // needs the marital status the engine published rather than that flag
+                // (compliance-lead, second pass, §11).
+                in_array($calculation['marital_status'] ?? null, ['married', 'civil_partnership'], true)
+                    && ! ($calculation['is_married'] ?? false),
             ),
             'estimated_liability_gbp' => $estimatedLiabilityGbp,
             // W-0466 — the teaser is the ONLY Inheritance Tax figure `/m` shows, so
@@ -103,6 +109,7 @@ class EstateIhtExposureDetector
         float $estimatedLiabilityGbp,
         bool $pooledHousehold,
         bool $marriedButNotPooled = false,
+        bool $marriedButUnlinked = false,
     ): string {
         if (! $exposed) {
             return 'Your estate is currently below the Inheritance Tax threshold.';
@@ -134,7 +141,23 @@ class EstateIhtExposureDetector
         // The FIGURE was already right — W-0154 F3 moved the allowance doubling onto
         // `$poolsSpouse`, so these users get single allowances against their own
         // assets. It was only ever the sentence.
+        // Linked, but not sharing. **"Linking your accounts" is the wrong
+        // instruction here** — reaching this branch REQUIRES a linked account, so
+        // the first version told the user to do a thing they had already done. What
+        // is switched off is the sharing permission (compliance-lead, second pass).
         if ($marriedButNotPooled) {
+            return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. This figure does not allow for anything passing to your partner. Sharing your finances with them gives a fuller picture.";
+        }
+
+        // Married, and the partner has no Fynla account. **This group was falling to
+        // the final branch and being told "Your estate could be subject to…" — the
+        // original W-0467 defect, still live after the first fix**, because the
+        // predicate keyed on `is_married`, which is false without a linked account.
+        //
+        // W-0347 makes this population grow: linking is now an invitation that can
+        // be ignored, so "married in profile, no linked partner" is an ordinary
+        // steady state rather than a transient one.
+        if ($marriedButUnlinked) {
             return "Based on your own records alone, your estate could be subject to up to {$formatted} in Inheritance Tax. This figure does not allow for anything passing to your partner. Linking your accounts gives a fuller picture.";
         }
 
