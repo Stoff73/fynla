@@ -200,6 +200,28 @@ export default {
           showSeparateSpouseAllowances: this.showSeparateSpouseAllowances,
         },
 
+        // W-0465 G2 — Business Property Relief, in BOTH columns.
+        //
+        // Without this row a business-owning household reads Gross, Liabilities and a
+        // Net Estate lower than gross − liabilities by up to £4,250,000, with nothing
+        // saying why. Before the engine fix the projected net estate at least appeared
+        // to add up — wrongly. **The number is now right and the column was less
+        // readable than before**, which is the worse failure of the two.
+        //
+        // This is round one's F3 recurring on the second surface: F3 was fixed for
+        // `IHTPlanning.vue` only, and `EstateCurrentSituation.vue` enumerates its own
+        // props (tax-compliance-reviewer, round five).
+        businessRelief: {
+          now: summary.current.business_relief_deduction || 0,
+          minus5: summary.current.business_relief_deduction || 0,
+          projected: summary.projected.business_relief_deduction || 0,
+          plus5: summary.projected.business_relief_deduction || 0,
+        },
+
+        // The caveat the engine publishes with the figure. `?? null` rather than
+        // `|| ''` so "no caveat applies" stays distinguishable from "not published".
+        unmodelledReliefCaveat: summary.current.unmodelled_relief_caveat ?? null,
+
         // The charitable legacies the server actually deducted (IHTA 1984 s23).
         charitableExemption: {
           now: summary.current.charitable_deduction || 0,

@@ -260,6 +260,16 @@
         </tr>
       </tbody>
     </table>
+
+    <!--
+      W-0466. Rendered here so every surface showing this table shows the caveat with
+      it. `/plans/estate` printed an unqualified Inheritance Tax figure because the
+      caveat markup lived in the other parent (tax-compliance-reviewer round five, G2).
+    -->
+    <div v-if="unmodelledReliefCaveat" class="bg-eggshell-500 rounded-lg p-4 mt-6">
+      <h3 class="text-sm font-semibold text-violet-800">What this figure does not include</h3>
+      <p class="mt-2 text-sm text-violet-800">{{ unmodelledReliefCaveat }}</p>
+    </div>
   </div>
 </template>
 
@@ -330,6 +340,18 @@ export default {
     businessRelief: {
       type: Object,
       default: () => ({ now: 0, minus5: 0, projected: 0, plus5: 0 }),
+    },
+
+    // W-0466 G3/G2 — the caveat lives HERE, with the table, rather than beside it
+    // in each parent. Two surfaces render this component — the Inheritance Tax
+    // screen and `/plans/estate` — and the first had the caveat while the second
+    // printed an unqualified figure, because each parent enumerates its own
+    // markup. One home, so a third consumer cannot inherit the gap (Rule 20).
+    //
+    // The SENTENCE is still the engine's; this only decides where it appears.
+    unmodelledReliefCaveat: {
+      type: String,
+      default: null,
     },
 
     // Estate after NRB (pre-computed in parent)

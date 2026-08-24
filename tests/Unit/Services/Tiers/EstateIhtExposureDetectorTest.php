@@ -331,16 +331,22 @@ describe('W-0466 — the caveat triggers on farmland, and not on everything else
         expect(app(EstateIhtExposureDetector::class)->detect($user->fresh())['unmodelled_relief_caveat'])->toBeNull();
     });
 
-    it('does not fire on a word that merely contains a farming term', function () {
-        // Word-boundary matching: "pharmacy" contains "farm" only if you ignore
-        // boundaries, and a heuristic that fires on it is worse than none.
+    it('does not fire on a term buried inside another word', function () {
+        // **This case replaces a vacuous one.** It used to assert "Pharmacy fixtures"
+        // against the term `farm` — and "pharmacy" is p-h-a-r-m, so it contains no
+        // "farm" substring at all. A plain `str_contains` would have passed it. It was
+        // named "the discriminating half" and discriminated nothing
+        // (tax-compliance-reviewer, round five).
+        //
+        // "Landcroft" genuinely contains "croft", mid-word, so it exercises the leading
+        // word boundary that is actually doing the work.
         $user = User::factory()->create(['marital_status' => 'single']);
         SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
 
         DB::table('assets')->insert([
             'user_id' => $user->id,
             'asset_type' => 'other',
-            'asset_name' => 'Pharmacy fixtures',
+            'asset_name' => 'Landcroft Holdings',
             'current_value' => 50_000,
             'valuation_date' => now()->toDateString(),
             'created_at' => now(),
@@ -348,5 +354,25 @@ describe('W-0466 — the caveat triggers on farmland, and not on everything else
         ]);
 
         expect(app(EstateIhtExposureDetector::class)->detect($user->fresh())['unmodelled_relief_caveat'])->toBeNull();
+    });
+
+    it('fires for land described by acreage rather than by the word farm', function () {
+        // Round five: "20 acres, Ludlow" was a named miss, and `acre` was one of the
+        // two additions it called most defensible.
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        DB::table('assets')->insert([
+            'user_id' => $user->id,
+            'asset_type' => 'other',
+            'asset_name' => '20 acres, Ludlow',
+            'current_value' => 400_000,
+            'valuation_date' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        expect(app(EstateIhtExposureDetector::class)->detect($user->fresh())['unmodelled_relief_caveat'])
+            ->toContain('Agricultural Property Relief');
     });
 });

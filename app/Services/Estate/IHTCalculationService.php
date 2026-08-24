@@ -77,6 +77,9 @@ class IHTCalculationService
     private const AGRICULTURAL_ASSET_TERMS = [
         'farm', 'farmland', 'agricultur', 'arable', 'pasture', 'grazing',
         'smallholding', 'croft', 'orchard', 'paddock',
+        // Added on round-five review: the two most defensible additions for land
+        // a user describes by size or field name rather than by "farm".
+        'acre', 'meadow',
     ];
 
     use CalculatesOwnershipShare;
@@ -2403,13 +2406,29 @@ class IHTCalculationService
      * enum, and an investment named "Farmland Fund" is a fund, not land.
      *
      * Terms chosen to be specific rather than generous: each is a word for
-     * agricultural land itself, not for farming as an activity, so "Farmers
-     * Insurance" or a share in an agricultural merchant does not match. Bitcoin,
-     * bicycles and everything else in the `other` bucket do not match, which is the
-     * whole point of the CSJ direction this implements.
+     * agricultural land itself, not for farming as an activity. Bitcoin, bicycles and
+     * everything else in the `other` bucket do not match, which is the whole point of
+     * the CSJ direction this implements.
      *
-     * Word-boundary matched, so "farm" does not fire on "pharmacy" and "croft" does
-     * not fire on "Croftwood Ltd".
+     * **This must never become an input to a relief CALCULATION.** It is defensible
+     * only because it gates a sentence. Agricultural Property Relief turns on
+     * agricultural USE AND OCCUPATION — IHTA 1984 s115(2), s116, s117 (two-year
+     * owner-occupation, seven-year let) — none of which is inferable from a name
+     * somebody typed (tax-compliance-reviewer, round five).
+     *
+     * **Prefix-matched at a leading word boundary, and that is deliberate** — "farm"
+     * has to reach "farmland", "farmhouse" and "farm buildings", so there is no
+     * trailing boundary and there cannot be one.
+     *
+     * **The consequence, stated accurately because an earlier version of this comment
+     * did not**: a word merely STARTING with a term matches. "Croftwood Ltd" fires on
+     * `croft`; "Orchardson" fires on `orchard`. What the leading boundary does buy is
+     * rejecting a term mid-word — "Landcroft Holdings" does NOT fire on `croft`.
+     *
+     * Those false positives are benign in the only direction that matters here: the
+     * sentence is conditional ("If your estate holds farmland or shares listed on
+     * that market…"), so a reader whose asset is not farmland simply does not meet
+     * the condition and is misled about nothing.
      */
     private function looksAgricultural(object $asset): bool
     {

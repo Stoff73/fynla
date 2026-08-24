@@ -360,6 +360,7 @@
           v-if="secondDeathTableProps"
           v-bind="secondDeathTableProps"
           :iht-rate-label="ihtRateLabel"
+          :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
           :has-spouse-linked="hasSpouseLinked"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -382,6 +383,7 @@
         <IHTCalculationTable
           v-bind="standardTableProps"
           :iht-rate-label="ihtRateLabel"
+          :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
           :has-spouse-linked="false"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -394,14 +396,12 @@
       </div>
 
       <!--
-        W-0466. Rendered ONLY when the engine publishes it, so a household holding
-        no business interest never meets it. The words are the server's (Rule 20) —
-        web and /m ship separate bundles, and a copy in each drifts.
+        W-0466. The caveat block used to be rendered here. It now lives INSIDE
+        `IHTCalculationTable`, because `/plans/estate` renders that same table and
+        printed an unqualified figure while this screen carried the sentence — two
+        parents, one of them with the markup (round five, G2). Passed as the
+        `unmodelled-relief-caveat` prop below.
       -->
-      <div v-if="!loading && ihtData?.unmodelled_relief_caveat" class="bg-eggshell-500 rounded-lg p-4 mb-8">
-        <h3 class="text-sm font-semibold text-violet-800">What this figure does not include</h3>
-        <p class="mt-2 text-sm text-violet-800">{{ ihtData.unmodelled_relief_caveat }}</p>
-      </div>
 
       <!-- Tax Allowances Information -->
       <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
