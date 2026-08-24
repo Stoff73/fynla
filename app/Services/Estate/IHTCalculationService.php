@@ -2056,16 +2056,26 @@ class IHTCalculationService
     }
 
     /**
-     * Check if user or spouse has main residence
+     * Does this person hold a qualifying residential interest? W-0365.
+     *
+     * **Joint ownership qualifies.** IHTA 1984 s8H(2) defines a qualifying residential
+     * interest as an interest in a dwelling-house which has at some time been the
+     * person's residence. A beneficial co-owner recorded as `joint_owner_id` has such
+     * an interest; nothing in ss8E–8H requires being the primary named owner of a
+     * database row.
+     *
+     * This filtered to primary-owner-only, and said so deliberately — "to match the
+     * pre-PR-5a semantics". That was a statement about this codebase's history, not
+     * about the statute, and **the file contradicted itself**:
+     * `sumMainResidenceNetShare()` uses the joint-aware reader and counts the very
+     * same user's share into the s8E(2) cap. So a joint owner's share raised the cap
+     * on a band they were refused. Direction: OVERSTATED tax, by up to the whole
+     * residence nil rate band.
      */
     private function hasMainResidence(User $user, ?User $spouse): bool
     {
-        // PropertyStore::forUserByType is joint-aware. Filter to primary-owner-only so the
-        // RNRB-eligibility check matches the pre-PR-5a semantics: a user qualifies only when
-        // they are the primary owner of a main_residence record, not merely a joint owner.
         $userHasMainRes = $this->propertyStore
             ->forUserByType($user, 'main_residence')
-            ->where('user_id', $user->id)
             ->isNotEmpty();
 
         if ($userHasMainRes) {
@@ -2075,7 +2085,6 @@ class IHTCalculationService
         if ($spouse) {
             return $this->propertyStore
                 ->forUserByType($spouse, 'main_residence')
-                ->where('user_id', $spouse->id)
                 ->isNotEmpty();
         }
 
