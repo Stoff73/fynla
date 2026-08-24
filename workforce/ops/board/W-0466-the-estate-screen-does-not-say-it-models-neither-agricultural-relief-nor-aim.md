@@ -72,3 +72,25 @@
   direction did not address — the direction was about the `other` bucket, not about
   investment accounts.** Put back to CSJ as its own question.
 
+- 2026-08-24 — **CSJ on the Alternative Investment Market population: it is not built into
+  the app at this time, so a caveat goes where a user ENTERS HOLDINGS — a placeholder
+  until the rest is working.** Built.
+  - `resources/js/components/Investment/UnmodelledAimNotice.vue`, shown unconditionally on
+    both holdings entry surfaces (`HoldingForm` and `InlineHoldingsEditor`). One component
+    rather than a copy per form (Rule 20) — there are two entry points, and a second copy
+    of the sentence would drift from the first the moment either was touched.
+  - **Entry is the right surface, and for a reason worth keeping:** the estate caveat
+    cannot reach these holders at all (it triggers on business interests and farmland,
+    and these shares sit in an investment account), and nothing in the schema identifies
+    them. **The user is the one party in the system who knows what they hold**, so the
+    notice belongs at the moment they say so.
+  - Rule 9: the market is spelled out. Rule 3: it signposts an adviser.
+  - **The component is written to be DELETED, not edited**, when the treatment is
+    modelled — its docblock says so, because a placeholder that quietly becomes permanent
+    is the failure mode.
+  - **Rule 19:** `/m` has no holdings ENTRY surface — `CanonicalPortfolio.vue` renders
+    holdings read-only and there is no create path. Nothing to bring to parity, rather
+    than parity skipped.
+  - **Browser-verified** as `david.jones@example.com`: opened the AJ Bell account, clicked
+    Edit, and the notice renders directly above "+ Add Holding".
+
