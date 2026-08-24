@@ -4,7 +4,7 @@ title: Target Retirement Income has no module-UI entry point — every retiremen
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: handoff
+status: gated
 claimed_by: fix-batch-E
 claimed_at: 2026-08-21
 branch: fixes/F-0004-batch-e-retirement-income.md
@@ -15,6 +15,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [W-0010, W-0017]
 prior_art_outcome: extend

@@ -4,7 +4,7 @@ title: The two logins still project household estates £103,206 apart — W-0135
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0018
 owner: build-lead
-status: handoff
+status: gated
 severity: high
 surfaces: [web]
 created: 2026-08-22T00:35:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T06:40:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0135, W-0137]
 prior_art_note: closed by W-0137 — same mechanism, no separate fix

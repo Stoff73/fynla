@@ -2,9 +2,9 @@
 id: W-0349
 title: The family-members endpoint is an unthrottled account-enumeration oracle that also creates accounts
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: estate-copy-and-m-handoff
 owner: main-inference
-status: handoff
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -12,6 +12,7 @@ claimed: null
 blocked_by: []
 gate: compliance-lead
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-24 quality-lead — see ops/handoffs/quality-lead/cycle4-recertification-2026-08-24.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0347, W-0348]
 prior_art_outcome: none
@@ -159,3 +160,109 @@ turns **9** of them red. Plus `resources/mobile/views/__tests__/SpouseSharing.sp
 - Creating an account for an unregistered address is **unchanged** — W-0349
   acceptance 3 asks for that to be decided deliberately, and it is a product call.
 - Not deployed anywhere.
+
+- 2026-08-24 — **Acceptance 3 decided by CSJ: invite only, stop creating accounts.**
+  That decision is what makes acceptance 2 reachable: the two branches can only return
+  the same response if they DO the same thing, so the fix belongs in the service, not in
+  a cosmetic edit to the controller.
+
+- 2026-08-24 — **`createAndLinkNewSpouse()` is gone**, replaced by
+  `inviteUnregisteredSpouse()`. No `users` row, no forged permission rows, no temporary
+  password. `createSpousePermissionsForCreatedAccount()` and `sendAccountCreatedEmail()`
+  went with it — both existed only to serve an account this service had just made.
+  New mail `SpouseInvitation` takes plain strings rather than a `User`, which is the
+  whole change in one signature.
+
+- 2026-08-24 — **Acceptance 2 met.** All four outcomes now return one of two things: the
+  single refusal, or "Invitation sent". The test asserts `array_keys($unregistered)`
+  equals `array_keys($registered)` rather than listing keys by hand — a field added to
+  one branch and not the other re-opens the oracle, and a hand-written list would not
+  notice.
+
+- 2026-08-24 — **The test that asserted the defect is corrected.**
+  `it('does not confirm the address is even registered')` asserted
+  `$unregistered['created'] === true` — the presence of the distinguishing key, under a
+  title forbidding exactly that. Two more cases added: no `users` row is created, and the
+  invitation email is sent while `SpouseAccountCreated` is not.
+
+- 2026-08-24 — **The same oracle existed on the Fyn surface and would have been rebuilt
+  by a naive fix.** `CoordinatingAgent:1827` read `$result['spouse_user']->id`
+  unconditionally — a fatal once that is null, which is how it was found. Returning the
+  id "when it exists" would have answered the same question through a different door, so
+  `spouse_user_id` is now withheld for ANY pending invitation, and `email_sent` is not
+  published there at all.
+
+- 2026-08-24 — **13 tests across five files asserted the removed behaviour** and were
+  rewritten to the current flow rather than deleted. Three findings came out of that:
+  `establishAcceptedLink()` links the accounts but does NOT write the consent — the
+  CONTROLLER does — so a helper calling only the service builds a half-accepted state no
+  user can be in; acceptance writes **one** permission row, not two (the two-row state
+  only ever existed because the old code forged both); and
+  `CreateFamilyMemberTest`'s shape probe used `$fm?->linked_user_id === $spouse?->id`,
+  which is `null === null` for an unlinked pair — a Collision reporting a linked
+  household for an unlinked one. Now asks for the id itself.
+
+- 2026-08-24 — **A flaky fixture removed on the way past.** `User::factory()` rolls a
+  random `middle_name`, `name` is derived from all three parts, and several cases assert
+  on the full name — so they passed or failed on the roll. Pinned to null.
+
+- 2026-08-24 — **Browser-verified.** Signed in as chris@fynla.org, Settings → Family →
+  Add, relationship Spouse, `nobody-w0349@example.com`. Result: **no `users` row**, family
+  card present with `linked_user_id = NULL`, `spouse_id` NULL, **zero** permission rows.
+  Test data removed afterwards.
+
+- 2026-08-24 — **Two things the browser found that the tests could not.** The sharing
+  panel told a user who had just supplied their partner's email to go and supply their
+  partner's email — true before the change, false after; the wording is the server's
+  (`SpousePermissionController::status()`), and it is now one sentence true in both
+  states. Writing it as two branches revealed the second: **`family_members` has no email
+  column**, so the invited address is used once and dropped, and the endpoint cannot tell
+  "invited, waiting" from "nobody to invite". Filed as **W-0472** rather than solved with
+  a schema change nobody asked for. A branch that can never fire is worse than the
+  limitation it hides.
+
+- 2026-08-24 — Suites green: 628 passed across the consent, family-link, Fyn direct-write,
+  consent-grant and onboarding families.
+
+- 2026-08-24 — **Still open: acceptance 4, compliance sign-off.** `compliance-lead` is
+  running on the W-0347 cluster now.
+
+
+- 2026-08-24 — **`compliance-lead` on the `SpouseInvitation` email: the copy itself
+  cleared every one of the seven rules within competence**, and was called "the
+  best-judged consent text in this batch". Two things were not the copy:
+  - **(G) It offered a means of refusal that cannot function.** The default dark footer
+    links to `https://fynla.org/unsubscribe`, **a route that does not exist** — the only
+    unsubscribe route is `/unsubscribe/news/{token}` — and even if it resolved there is
+    no stored record to suppress (W-0472). **An inoperative refusal mechanism is worse
+    than none: it looks like a control and is not.** The footer module gains
+    `$showUnsubscribe`, defaulting TRUE so every other email is unchanged, and this one
+    email passes false. The suggested line "we will not email this address again" was
+    deliberately NOT added — the inviter can re-send within the 5/hour throttle, so it
+    would not be true.
+  - **(H) No perimeter line on an acquisition email.** Added: *"Fynla provides guidance
+    to help you understand your own finances. It is not a regulated financial adviser and
+    does not give financial advice."*
+  - **Raised for `security-reviewer`, not a compliance block:** the inviter's display
+    name is user-controlled and delivered to an address of the inviter's choosing.
+    Escaping stops markup injection; it does not stop someone setting their name to a
+    sentence and using Fynla to deliver it. Mitigated only by the throttle.
+  - **Still open: acceptance 4.** W-0347 itself is FLAGGED on five findings and its
+    acceptances 3 and 4 are both unmet.
+
+- 2026-08-24 — **CERTIFIED by `quality-lead`** (re-certification, 2026-08-24). All three
+  criteria checked rather than taken: the per-user throttle survives the rewrite, both
+  branches are byte-identical **and the behaviour behind them converged** — both paths call
+  `upsertFamilyMemberRow($currentUser, null, $data)`, so the `family_member` object cannot
+  differ either, which it checked specifically as the obvious place for the oracle to
+  survive. The corrected test *"would have failed pre-fix"*.
+
+  **Stamped by the coordinator rather than by `quality-lead` itself**, because when it came
+  to stamp, this file had no frontmatter to stamp — it was one of the three destroyed by
+  `484197e14`. Restored first; the verdict above is transcribed from its report, not
+  self-awarded.
+
+- 2026-08-24 — **Its stated blind spot, and it was right:** the test compares the
+  family-members response only, so it cannot see that the oracle re-forms one endpoint over
+  at `GET /api/spouse-permission/status`. Filed as **W-0476**.
+

@@ -1167,6 +1167,7 @@ export default {
         variable_rate_percentage: null,
         fixed_interest_rate: null,
         variable_interest_rate: null,
+        id: null,
         rate_fix_end_date: '',
         monthly_payment: null,
         monthly_interest_portion: null,
@@ -1573,6 +1574,11 @@ export default {
       if (this.property.mortgages && this.property.mortgages.length > 0) {
         this.hasMortgage = true;
         const mortgage = this.property.mortgages[0]; // Get first mortgage
+        // W-0012. The id was not captured, so an edit had nothing to update
+        // AGAINST — `PropertyList` could only PUT the property, and the mortgage
+        // changes were dropped entirely. `PUT /api/mortgages/{id}` exists and
+        // accepts every field this form collects.
+        this.mortgageForm.id = mortgage.id || null;
         this.mortgageForm.lender_name = mortgage.lender_name || '';
         this.mortgageForm.mortgage_account_number = mortgage.mortgage_account_number || '';
         this.mortgageForm.mortgage_type = mortgage.mortgage_type || '';

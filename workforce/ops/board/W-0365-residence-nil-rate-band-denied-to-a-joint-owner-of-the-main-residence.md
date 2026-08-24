@@ -4,7 +4,7 @@ title: Residence Nil Rate Band is denied to a user who is only the joint owner o
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: queued
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -61,3 +61,19 @@ the docblock, so every reviewer checking one against the other passed it.
 3. Fixtures for single, widowed and sharing-off secondary owners; a married pooled
    couple **cannot** exercise it.
 4. **`tax-compliance-reviewer` on the fix.**
+
+## Resolution — 2026-08-24
+
+The primary-owner filter is gone from `hasMainResidence()`. A beneficial co-owner holds
+a qualifying residential interest under IHTA 1984 s8H(2); nothing in ss8E–8H asks who
+typed the record in. The contradiction the item names is closed — the eligibility check
+and `sumMainResidenceNetShare()` now read the same ownership.
+
+Guard: `RnrbJointOwnerEligibilityTest` — a co-owner gets the same band as the recorder
+of the same home, and someone with no residential interest still gets none.
+**Mutation-checked**: restoring the filter reds it. Estate unit 353 green.
+
+Note for whoever writes the next RNRB fixture: the band also requires a lineal
+descendant (s8E), so a household with no `child` family member scores £0 for a reason
+that has nothing to do with the interest — which is how the first version of this test
+failed for the wrong reason.

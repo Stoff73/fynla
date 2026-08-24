@@ -267,20 +267,30 @@ class CoverageGapAnalyzer
         // Total gap is based on total coverage (life + CI), not just allocated amount
         $totalGap = max(0, $totalNeed - $totalCoverage);
 
+        $gapsByCategory = [
+            'human_capital_gap' => $humanCapitalGap,
+            'debt_protection_gap' => $debtGap,
+            'final_expenses_gap' => $finalExpensesGap,
+            'education_funding_gap' => $educationGap,
+            'income_protection_gap' => $incomeProtectionGap,
+            'disability_coverage_gap' => $disabilityGap,
+            'sickness_illness_gap' => $sicknessGap,
+        ];
+
         return [
             'total_need' => $totalNeed,
             'total_coverage' => $totalCoverage,
             'total_coverage_used' => $totalCoverageUsed,
             'total_gap' => $totalGap,
-            'gaps_by_category' => [
-                'human_capital_gap' => $humanCapitalGap,
-                'debt_protection_gap' => $debtGap,
-                'final_expenses_gap' => $finalExpensesGap,
-                'education_funding_gap' => $educationGap,
-                'income_protection_gap' => $incomeProtectionGap,
-                'disability_coverage_gap' => $disabilityGap,
-                'sickness_illness_gap' => $sicknessGap,
-            ],
+            // W-0479 — published here rather than counted by each consumer. Two
+            // dashboards were deriving it from shapes this method has never emitted
+            // (`$gap['gap']` on `/m` and native, `$gap['shortfall']` on web), so both
+            // read ZERO for every household in the application's history — and the
+            // count gates `detectProtectionAdequate()`, which told households with at
+            // least one policy that "your protection now covers what your family would
+            // need". The producer publishes the number; consumers stop guessing.
+            'critical_gap_count' => $this->countCriticalGaps($gapsByCategory, $totalGap),
+            'gaps_by_category' => $gapsByCategory,
             'coverage_allocated' => [
                 'debt_covered' => $debtCovered,
                 'human_capital_covered' => $humanCapitalCovered,
@@ -468,5 +478,43 @@ class CoverageGapAnalyzer
                 'esa_note' => 'Employment and Support Allowance is subject to National Insurance contribution eligibility',
             ],
         ];
+    }
+
+    /**
+     * How many DISTINCT protection gaps this household has. W-0479.
+     *
+     * `disability_coverage_gap` and `sickness_illness_gap` are deliberately not
+     * counted: the comment above their calculation says it outright — "IP is primary;
+     * disability and sickness are supplementary" — and they carry the SAME shortfall
+     * as `income_protection_gap` when there is no separate cover. Counting all three
+     * turns one uncovered income into "3 critical gaps".
+     *
+     * @param  array<string, float|int>  $gapsByCategory
+     */
+    private function countCriticalGaps(array $gapsByCategory, float $totalGap): int
+    {
+        $countable = [
+            'human_capital_gap',
+            'debt_protection_gap',
+            'final_expenses_gap',
+            'education_funding_gap',
+            'income_protection_gap',
+        ];
+
+        $count = 0;
+
+        foreach ($countable as $category) {
+            if (($gapsByCategory[$category] ?? 0) > 0) {
+                $count++;
+            }
+        }
+
+        // A total shortfall with no category above zero is still a gap, and reporting
+        // none would be the same silent under-count this item exists to end.
+        if ($count === 0 && $totalGap > 0) {
+            return 1;
+        }
+
+        return $count;
     }
 }

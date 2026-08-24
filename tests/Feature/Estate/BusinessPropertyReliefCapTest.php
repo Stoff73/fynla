@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\BusinessInterest;
 use App\Models\Estate\Liability;
+use App\Models\FamilyMember;
 use App\Models\Property;
 use App\Models\TaxConfiguration;
 use App\Models\User;
@@ -48,6 +49,33 @@ function qualifyingBusiness(User $user, float $value): BusinessInterest
         'trading_status' => 'trading',
         'acquisition_date' => now()->subYears(10),
     ]);
+}
+
+/**
+ * A household that actually QUALIFIES for the residence band: a main residence and
+ * a direct descendant to inherit it (IHTA 1984 s8E/s8K). Without both,
+ * `rnrb_status` is 'none' and any taper assertion is vacuous.
+ *
+ * Declared here rather than as a global helper — two files declaring one global
+ * made `./vendor/bin/pest` fatal at collection for two days (1af23f8e5).
+ */
+function estateWithResidenceAndHeir(float $businessValue): array
+{
+    $user = User::factory()->create();
+    qualifyingBusiness($user, $businessValue);
+
+    Property::factory()->create([
+        'user_id' => $user->id,
+        'property_type' => 'main_residence',
+        'current_value' => 400_000,
+        'ownership_percentage' => 100,
+    ]);
+    FamilyMember::factory()->create([
+        'user_id' => $user->id,
+        'relationship' => 'child',
+    ]);
+
+    return [$user->fresh()];
 }
 
 function businessAssets(User $user): Collection
@@ -204,4 +232,70 @@ it('measures the residence-band taper on the estate before reliefs, without doub
 
     // The taper base is £2.0m, not above the threshold, so the band is not tapered.
     expect((float) $r['rnrb_taper_reduction'])->toBe(0.0);
+});
+
+describe('W-0465 — the projected column applies the same relief as the current one', function () {
+    it('publishes the same relief in both columns for a business over the cap', function () {
+        // £6,000,000 trading business: £2.5m at 100% + £3.5m at 50% = £4,250,000 of
+        // relief. The projection applied NONE of it, so the two halves of a table
+        // built to compare them disagreed by the whole £4,250,000.
+        //
+        // Business values are not projected forward, so the two figures are equal by
+        // construction — and that equality IS the assertion: it was £4,250,000
+        // against £0 before this fix.
+        qualifyingBusiness($this->user, 6_000_000);
+
+        $r = app(IHTCalculationService::class)->calculate($this->user->fresh(), null, false);
+
+        expect((float) $r['business_relief_deduction'])->toBe(4_250_000.0)
+            ->and((float) $r['projected_business_relief_deduction'])->toBe(4_250_000.0);
+    });
+
+    it('takes the relief off the projected net estate, not just off the current one', function () {
+        // The figure above only matters if it reaches the estate. Without a business
+        // the projected net estate is the gross less liabilities; with one, it must
+        // also be less the relief — or publishing the deduction is decoration.
+        qualifyingBusiness($this->user, 6_000_000);
+
+        $r = app(IHTCalculationService::class)->calculate($this->user->fresh(), null, false);
+
+        expect((float) $r['projected_net_estate'])
+            ->toBe(round((float) $r['projected_gross_assets'] - (float) $r['projected_liabilities'] - 4_250_000.0, 2));
+    });
+
+    it('measures the PROJECTED taper base before reliefs too', function () {
+        // Acceptance 3. The projected base used to BE the projected net estate, on
+        // the reasoning that the projection was "already relief-free" — true only
+        // because the projection was wrong about relief. Now that relief comes off
+        // the net estate, the base must be struck BEFORE it (IHTM46023 on
+        // s8D(5)(d)) or a business-owning estate keeps a residence band the taper
+        // should have removed.
+        //
+        // **A residence and a direct descendant are both required or this proves
+        // nothing.** Without them `rnrb_status` is 'none' and every taper assertion
+        // passes against a band that was zero to begin with — the trap the existing
+        // pre-relief taper case above sits in.
+        [$user] = estateWithResidenceAndHeir(3_200_000);
+
+        $r = app(IHTCalculationService::class)->calculate($user, null, false);
+
+        // Relief is £2.5m at 100% + £0.7m at 50% = £2.85m, so an after-relief base
+        // would be far below the threshold and the band would survive intact. The
+        // pre-relief base is what puts it over.
+        expect((float) $r['projected_business_relief_deduction'])->toBe(2_850_000.0)
+            ->and((float) $r['projected_rnrb_taper_reduction'])->toBeGreaterThan(0.0)
+            ->and((float) $r['projected_rnrb_available'])->toBe(0.0);
+    });
+
+    it('leaves the projected band alone when the pre-relief estate is under the threshold', function () {
+        // The other half of the pair. A business small enough to keep the whole
+        // estate under £2,000,000 before reliefs must NOT taper — otherwise the
+        // case above would pass for a base that is simply always too big.
+        [$user] = estateWithResidenceAndHeir(500_000);
+
+        $r = app(IHTCalculationService::class)->calculate($user, null, false);
+
+        expect((float) $r['projected_rnrb_taper_reduction'])->toBe(0.0)
+            ->and((float) $r['projected_rnrb_available'])->toBeGreaterThan(0.0);
+    });
 });

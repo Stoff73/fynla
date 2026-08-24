@@ -4,7 +4,7 @@ title: /plans/estate states an Annual Expenditure neither user entered — £39,
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0016-cycle1-m-chattels-and-plan-expenditure.md
 owner: build-lead
-status: handoff
+status: gated
 severity: medium
 surfaces: [web]
 created: 2026-08-21T20:40:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-21T21:05:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [W-0135, UserProfileService::expenditurePresentation, DisposableIncomeAccessor]
 prior_art_outcome: extend

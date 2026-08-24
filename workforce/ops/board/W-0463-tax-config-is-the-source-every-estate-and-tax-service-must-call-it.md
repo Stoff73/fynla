@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer, compliance-lead, quality-lead]
-status: handoff
+status: gated
 claimed_by: null
 severity: critical
 surfaces: [web, m, ios]
@@ -14,6 +14,7 @@ claimed: null
 blocked_by: []
 gate: tax-compliance-reviewer
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0091, W-0362, W-0431, W-0432, W-0451, W-0461, W-0154, RateLiteralsComeFromConfigurationTest]
 prior_art_outcome: extend

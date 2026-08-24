@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\Estate\Asset;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
@@ -16,6 +17,7 @@ use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -53,20 +55,44 @@ use Illuminate\Support\Collection;
  *     member records, so the two members' totals add to the household exactly
  *     once. Adding a joint record again "for the other side" would double it.
  *
- * **What is NOT yet closed, stated so this docblock cannot be read as a clean
- * bill of health (W-0340).** The two halves now agree about WHOSE SHARE of each
- * record they take. They still disagree about WHICH PEOPLE are in the household:
- * the headline pools on `$isMarried && $dataSharingEnabled` (`pooledMembers()`),
- * every projection branch on `$dataSharingEnabled && $spouse` alone. Neither
- * `liveSpouse()` nor `hasAcceptedSpousePermission()` consults `marital_status`,
- * so an unmarried couple who have linked accounts and accepted sharing get a
- * headline taxing one estate and a projection pooling two — against a SINGLE
- * nil rate band and no spouse exemption, which unmarried partners do not get.
- * That is W-0154's F3 defect still alive in the projection path, and it moves a
- * real figure, so it is its own item rather than a quiet edit here.
+ * **WHICH PEOPLE are in the household is asked once, by `HouseholdPooling`
+ * (W-0474, W-0340) — with one stated exception, the projection HORIZON at
+ * `:687`, which is a fact about the household rather than about permission and
+ * carries no sharing term. That exception is commented at the line; everything
+ * else reads the one rule.** It used to be asked twice, differently: the headline pooled
+ * on `$isMarried && $dataSharingEnabled`, every projection branch on
+ * `$dataSharingEnabled && $spouse` alone, and neither `liveSpouse()` nor
+ * `hasAcceptedSpousePermission()` consults `marital_status`. A civil partnership
+ * was therefore assessed on two projected estates against one person's allowances,
+ * and an unmarried linked couple got a headline taxing one estate and a projection
+ * pooling two. Both halves read the one predicate now; a new branch that pools the
+ * spouse calls it rather than re-deriving it.
  */
 class IHTCalculationService
 {
+    /**
+     * Words that mean agricultural land, for the W-0466 caveat trigger.
+     *
+     * Prefix-matched at a word boundary, so "farm" covers "farmland", "farmhouse"
+     * and "farm buildings" without covering "pharmacy". Kept as a constant rather
+     * than inlined so the one list is testable and has one home (Rule 20).
+     */
+    /**
+     * Marital statuses that pool two people's records into one estate.
+     *
+     * One home for the list, because nine sibling services carry their own copy of
+     * it and this service was the one that drifted (W-0474, Rule 20).
+     */
+    private const POOLING_MARITAL_STATUSES = HouseholdPooling::POOLING_MARITAL_STATUSES;
+
+    private const AGRICULTURAL_ASSET_TERMS = [
+        'farm', 'farmland', 'agricultur', 'arable', 'pasture', 'grazing',
+        'smallholding', 'croft', 'orchard', 'paddock',
+        // Added on round-five review: the two most defensible additions for land
+        // a user describes by size or field name rather than by "farm".
+        'acre', 'meadow',
+    ];
+
     use CalculatesOwnershipShare;
 
     private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
@@ -123,7 +149,7 @@ class IHTCalculationService
 
         // 2. Get tax config
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $isMarried = in_array($user->marital_status, ['married']) && $spouse !== null;
+        $isMarried = $this->hasSpousalStatus($user) && $spouse !== null;
         $isWidowed = $user->marital_status === 'widowed';
 
         // W-0154 F1/F3 — THE decision about whose records this calculation covers,
@@ -143,7 +169,7 @@ class IHTCalculationService
         //
         // Everything that follows reads `$pooledMembers`. Adding a per-person input
         // to this service means adding it to that loop, not to `$user`.
-        $pooledMembers = $this->pooledMembers($user, $spouse, $isMarried, $dataSharingEnabled);
+        $pooledMembers = $this->pooledMembers($user, $spouse, $dataSharingEnabled);
         $poolsSpouse = count($pooledMembers) > 1;
 
         // Transferred allowances (widows/widowers) belong to whoever holds the
@@ -159,7 +185,7 @@ class IHTCalculationService
 
         // 3. Fetch and sum assets (exclude IHT-exempt assets like pensions)
         $userAssets = $this->aggregator->gatherUserAssets($user);
-        $spouseAssets = ($isMarried && $dataSharingEnabled)
+        $spouseAssets = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
             ? $this->aggregator->gatherUserAssets($spouse)
             : collect();
 
@@ -181,9 +207,90 @@ class IHTCalculationService
         $businessReliefDeduction = (float) $userTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0))
             + (float) $spouseTaxableAssets->sum(fn ($asset) => (float) ($asset->iht_relief_amount ?? 0));
 
+        // W-0466 — an estate holding farmland or AIM shares is shown a figure that
+        // models NEITHER, and the two errors run in OPPOSITE directions:
+        //   - Agricultural property has no asset type in the schema, so farmland is
+        //     an ordinary asset carrying no relief. OVERSTATES tax, by up to ~40%
+        //     of the land value.
+        //   - AIM shares from 6 April 2026 take 50% relief OUTSIDE the allowance
+        //     (IHTM25570). Recorded as a business interest they take 100% to the
+        //     cap and UNDERSTATE it; held in an investment account they get nothing
+        //     and it is overstated again.
+        //
+        // Registered in `UNIMPLEMENTED_RULES`, which tells the test suite and tells
+        // no user. The reviewer's verdict: defensible as a documented exclusion,
+        // not as a silent gap.
+        //
+        // **The trigger is the half we can actually identify.** A business interest
+        // is a row; agricultural property is not expressible at all — `assets.
+        // asset_type` is enum('property','pension','investment','business','other')
+        // and `properties.property_type` is the three canonical residences. So a
+        // farmer holding land and no company sees nothing, and that residual closes
+        // with the schema change W-0466 records, not here. Widening the trigger to
+        // every estate would breach the "only where it applies" condition and
+        // desensitise the households it IS for.
+        //
+        // Read off the FULL collections, not the taxable ones: a wholly relieved
+        // business is `is_iht_exempt` and has already been rejected above — which
+        // is precisely an estate the caveat is for.
+        // Tested separately rather than merged: `gatherUserAssets()` returns an
+        // ELOQUENT collection carrying plain objects, and `merge()` on one keys the
+        // items by `getKey()` — which a stdClass does not have. It throws.
+        $isBusiness = fn ($asset): bool => ($asset->asset_type ?? null) === 'business';
+        $holdsBusinessInterest = $userAssets->contains($isBusiness)
+            || $spouseAssets->contains($isBusiness);
+
+        // W-0466 — CSJ, 2026-08-24: **trigger on farmland specifically, not on the
+        // whole `other` bucket.** `compliance-lead` was right that the sentence is
+        // addressed to "if your estate holds farmland" and was shown only to estates
+        // holding a company — the cohort whose figure is most wrong never saw it. But
+        // widening to every `asset_type = 'other'` row would show it to someone whose
+        // "other" asset is a bicycle or some Bitcoin, which is how a caveat becomes
+        // wallpaper on the one screen it matters.
+        //
+        // There is no agricultural asset type in the schema (the registered dead end),
+        // and `assets` carries no description — `asset_name` is the only field that can
+        // carry the user's intent. So this is a NAME HEURISTIC and is labelled as one:
+        // it will miss land the user named something else, and that is the failure
+        // direction to prefer, because a missed caveat leaves the existing behaviour
+        // where a false one actively misleads.
+        //
+        // **The durable fix is an agricultural asset type**, which is also what
+        // Agricultural Property Relief itself needs; when that lands this goes.
+        $holdsAgriculturalAsset = $userAssets->contains($this->looksAgricultural(...))
+            || $spouseAssets->contains($this->looksAgricultural(...));
+
+        // W-0363 — does this household hold a defined contribution pot that the
+        // projected column leaves out? The date comes from configuration (Rule 2);
+        // `effective_date` exists precisely so this is decided by date.
+        $pensionInclusion = $this->taxConfig->get('inheritance_tax.pension_iht_inclusion');
+        $pensionInclusionDate = isset($pensionInclusion['effective_date'])
+            ? Carbon::parse($pensionInclusion['effective_date'])
+            : null;
+        $unusedPensionValue = (float) $userAssets->where('asset_type', 'dc_pension')->sum('current_value')
+            + (float) $spouseAssets->where('asset_type', 'dc_pension')->sum('current_value');
+
+        $unmodelledReliefCaveat = ($holdsBusinessInterest || $holdsAgriculturalAsset)
+            // Wording revised 2026-08-24 on `compliance-lead`'s findings A and B.
+            // CSJ approved the substance; two rules bind the words.
+            //
+            // **Rule 9, as amended by CSJ 2026-08-24** — an acronym may be used
+            // once it has been spelled out to that user. `compliance-lead` flagged
+            // the tension honestly: an investor may recognise these shares only as
+            // "AIM", so the spelled-out form alone is less identifiable. CSJ made
+            // the amendment rather than the string making it: expanded on first
+            // use, abbreviated on the second, both inside the one sentence the
+            // reader has in front of them.
+            //
+            // **Rule 3** — a household told its figure could be wrong by up to ~40%
+            // of its land value had been informed and not equipped. The signpost is
+            // rule 1's own canonical phrasing.
+            ? 'This figure does not include Agricultural Property Relief, and does not apply the special treatment of shares listed on the Alternative Investment Market (AIM). If your estate holds farmland or shares listed on AIM, your actual liability could be higher or lower than shown — it is worth discussing with a regulated financial adviser or a specialist solicitor.'
+            : null;
+
         // 4. Fetch and sum liabilities
         $userLiabilities = $this->aggregator->calculateUserLiabilities($user);
-        $spouseLiabilities = ($isMarried && $dataSharingEnabled)
+        $spouseLiabilities = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
             ? $this->aggregator->calculateUserLiabilities($spouse)
             : 0;
         $totalLiabilities = $userLiabilities + $spouseLiabilities;
@@ -327,6 +434,10 @@ class IHTCalculationService
             'is_widowed' => $isWidowed,
             'rnrb_transferred' => $rnrbTransferredPooled,
             'nrb_available' => $nrbAvailable,
+            // W-0361 — the projection re-strikes the band against its own date of
+            // death, and needs the gross figure to do it. Published rather than
+            // recomputed so there is one definition of the gross band.
+            'nrb_gross' => $nrbGross,
             'profiles' => $profiles,
             'estate_for_taper' => $estateForTaper,
         ];
@@ -347,6 +458,13 @@ class IHTCalculationService
         $effectiveRate = $totalNetEstate > 0 ? ($ihtLiability / $totalNetEstate * 100) : 0;
 
         // 9. Calculate PROJECTED values at death using asset-specific methods
+        // W-0363 — one sentence, from the engine, for both surfaces (Rule 20). Shown
+        // only when it is true of THIS household: they hold a defined contribution pot
+        // and the projection's death date falls on or after the configured inclusion
+        // date. A household with no pension is told nothing, and neither is one whose
+        // modelled death precedes the change.
+        $projectedPensionExclusionCaveat = null;
+
         $projectedData = $this->calculateProjectedValues(
             $user,
             $spouse,
@@ -354,6 +472,21 @@ class IHTCalculationService
             $assessment,
             $dataSharingEnabled
         );
+
+        if ($unusedPensionValue > 0 && $pensionInclusionDate !== null) {
+            $modelledDeath = today()->addYears(max(0, (int) ($projectedData['years_to_death'] ?? 0)));
+
+            if ($modelledDeath->gte($pensionInclusionDate)) {
+                $projectedPensionExclusionCaveat = sprintf(
+                    'The projected figure does not include your defined contribution pension. '
+                    .'From %s unused pension funds form part of the estate for Inheritance Tax, '
+                    .'so your actual liability at that point could be higher than shown — how much '
+                    .'higher depends on how much of the fund is left, which this projection does not '
+                    .'yet model. It is worth discussing with a regulated financial adviser.',
+                    $pensionInclusionDate->format('j F Y')
+                );
+            }
+        }
 
         // 10. Build result array with CURRENT and PROJECTED values
         $result = [
@@ -404,6 +537,28 @@ class IHTCalculationService
             // of them — published unconditionally so a screen that shows it does
             // not have to decide whether the key exists.
             'business_relief_deduction' => round($businessReliefDeduction, 2),
+            // W-0466 — the caveat, and the words, live HERE because `/m` computes
+            // nothing (CSJ 2026-08-23) and the two frontends share no constants.
+            // A copy of this sentence in each bundle is a Rule 20 violation waiting
+            // to drift, so both surfaces render what this publishes.
+            'unmodelled_relief_caveat' => $unmodelledReliefCaveat,
+            // W-0363 — the projected column models a death decades away, and from the
+            // configured effective date unused defined contribution pensions form part
+            // of the estate. This projection does NOT include them, so its figure is
+            // understated for any household holding one.
+            //
+            // **Stated rather than silently excluded** (W-0363 acceptance 3, and
+            // `05-perimeter.md` §4: where Fynla knows its picture is incomplete it says
+            // so at the point the affected figure is shown). Including them properly
+            // means the UNUSED fund at death, which is the pot after drawdown —
+            // `RetirementProjectionService::projectIncomeDrawdown()` computes it
+            // per-year as `remaining_fund`, and wiring that in is its own item
+            // (**W-0482**) because adding the pot at today's value would DOUBLE COUNT:
+            // the cash-flow projector already turns that pension into income and
+            // carries it in `projected_cash`.
+            //
+            // Published from the engine so both surfaces render one sentence (Rule 20).
+            'projected_pension_exclusion_caveat' => $projectedPensionExclusionCaveat,
             // Tax on gifts the seven-year window did not save, after taper relief.
             //
             // Deliberately NOT added to `iht_liability`. That figure is the ESTATE's
@@ -479,6 +634,11 @@ class IHTCalculationService
             'projected_properties' => $projectedData['projected_properties'],
             'projected_gross_assets' => $projectedData['projected_gross_assets'],
             'projected_liabilities' => $projectedData['projected_liabilities'],
+            // W-0465. This block ENUMERATES the projected keys rather than
+            // spreading them, so a figure `calculateProjectedValues()` returns is
+            // absent from the result until it is named here — the same shape as the
+            // dropped-field defects on the frontend mapping (W-0134, W-0399).
+            'projected_business_relief_deduction' => $projectedData['projected_business_relief_deduction'],
             'projected_net_estate' => $projectedData['projected_net_estate'],
             'projected_taxable_estate' => $projectedData['projected_taxable_estate'],
             'projected_iht_liability' => $projectedData['projected_iht_liability'],
@@ -493,6 +653,10 @@ class IHTCalculationService
             // beside both columns cannot be added up. Every figure the projected
             // column needs to reconcile is published here.
             'projected_nrb_available' => $projectedData['projected_nrb_available'],
+            // W-0361 — published beside the band it reduces, so the projected column
+            // reconciles the same way the current one does. A figure a service
+            // computes and does not publish is a figure nobody can check.
+            'projected_nrb_gift_deduction' => $projectedData['projected_nrb_gift_deduction'],
             'projected_rnrb_available' => $projectedData['projected_rnrb_available'],
             'projected_rnrb_individual' => $projectedData['projected_rnrb_individual'],
             'projected_rnrb_spouse_modelled' => $projectedData['projected_rnrb_spouse_modelled'],
@@ -507,6 +671,18 @@ class IHTCalculationService
             'projected_iht_rate_percent' => $projectedData['projected_iht_rate_percent'],
 
             'is_married' => $isMarried,
+            // W-0467 — the marital status the calculation actually used, published
+            // so a consumer can tell "married, partner has no linked account" from
+            // "single". `is_married` cannot: it requires `$spouse !== null`, so both
+            // states arrive as false and a headline written for the second is shown
+            // to the first (compliance-lead, second pass, §11).
+            //
+            // Published rather than re-derived at the consumer on purpose. The
+            // detector reads its pooling answer back off this calculation precisely
+            // so a second predicate cannot drift from the one the figure was
+            // computed under; asking `$user->marital_status` there would reintroduce
+            // exactly that.
+            'marital_status' => $user->marital_status,
             'is_widowed' => $isWidowed,
             'data_sharing_enabled' => $dataSharingEnabled,
 
@@ -515,7 +691,7 @@ class IHTCalculationService
         ];
 
         // 9b. Calculate 2027 pension Inheritance Tax dual-scenario projection
-        $pensionAmendment = $this->calculatePensionAmendmentScenario($user, $spouse, $dataSharingEnabled, $result);
+        $pensionAmendment = $this->calculatePensionAmendmentScenario($user, $spouse, $dataSharingEnabled, $result, $assessment);
         $result['pension_amendment'] = $pensionAmendment;
 
         // 10. Save to database (opt-in only — see method docblock).
@@ -570,6 +746,25 @@ class IHTCalculationService
         // `$estimatedAgeAtDeath` is now purely a label: the viewer's own age at the
         // household horizon. The two logins therefore show DIFFERENT ages against the
         // SAME projection, which is correct — the spouses are not the same age.
+        // W-0474 F3 — the ONE branch that deliberately does not ask `poolsSpouse()`,
+        // and it is deliberate: it has no `$dataSharingEnabled` term. **How long the
+        // household lasts is a fact about the household; whose records are in the
+        // estate is a question about permission.** A couple who have not switched
+        // sharing on are still a couple, and the second death is still when this
+        // estate is taxed.
+        //
+        // Consequence, named rather than left to be discovered: a civil partnership
+        // with sharing OFF now gets the longer horizon it did not get before, so more
+        // compounding, a larger projected estate and MORE projected tax against
+        // unchanged single allowances. That is the same treatment a marriage in that
+        // position already had, which is the point of the change — but it is a figure
+        // that moved in the opposite direction to the headline, and it is not in the
+        // before/after on the board item, which measures sharing ON only.
+        //
+        // Note `survivingMember()` keys on `$poolsSpouse` while this keys on
+        // `$isMarried`, so one household can select its horizon and its survivor by
+        // two different rules. Left as is: the survivor only matters for an estate
+        // that pools, and the horizon matters whether it pools or not.
         if ($isMarried && $spouse && $spouse->date_of_birth && $spouse->gender) {
             $yearsUntilDeath = max(
                 $this->calculateLifeExpectancy($user),
@@ -599,7 +794,16 @@ class IHTCalculationService
         $cashFlow = $this->cashFlowProjector->project(
             $user,
             $spouse,
-            $dataSharingEnabled,
+            // W-0474 F1 (tax-compliance-reviewer, 2026-08-24) — the SEVENTH pooling
+            // branch, and the one the first pass missed. Passing the raw sharing flag
+            // left `HouseholdCashFlowProjector` running the pre-fix predicate, so a
+            // `single`, `divorced` or `widowed` user with a linked, sharing partner
+            // still had that partner's savings, income and expenditure in their
+            // projected estate while everything else had correctly left it.
+            // OVERSTATED projected tax. The decision is taken here, by the one rule,
+            // rather than inside the projector — which also drives the year-by-year
+            // table, whose pooling is the same question and must give the same answer.
+            $this->poolsSpouse($user, $spouse, $dataSharingEnabled),
             $yearsUntilDeath,
             $inflationRate
         );
@@ -624,26 +828,110 @@ class IHTCalculationService
 
         // Get current chattel and business values (these don't appreciate - stay at current value)
         $userAssets = $this->aggregator->gatherUserAssets($user);
-        $projectedChattels = $userAssets->where('asset_type', 'chattel')
+        $spouseAssets = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
+            ? $this->aggregator->gatherUserAssets($spouse)
+            : collect();
+
+        $chattelValue = fn ($assets): float => (float) $assets->where('asset_type', 'chattel')
             ->reject(fn ($a) => $a->is_iht_exempt)
             ->sum('current_value');
-        $projectedBusiness = $userAssets->where('asset_type', 'business')
+        $businessValue = fn ($assets): float => (float) $assets->where('asset_type', 'business')
             ->reject(fn ($a) => $a->is_iht_exempt)
             ->sum('current_value');
 
-        if ($dataSharingEnabled && $spouse) {
-            $spouseAssets = $this->aggregator->gatherUserAssets($spouse);
-            $projectedChattels += $spouseAssets->where('asset_type', 'chattel')
-                ->reject(fn ($a) => $a->is_iht_exempt)
-                ->sum('current_value');
-            $projectedBusiness += $spouseAssets->where('asset_type', 'business')
-                ->reject(fn ($a) => $a->is_iht_exempt)
-                ->sum('current_value');
-        }
+        $projectedChattels = $chattelValue($userAssets) + $chattelValue($spouseAssets);
+        $projectedBusiness = $businessValue($userAssets) + $businessValue($spouseAssets);
+
+        // W-0475 — everything the five projected terms cannot see.
+        //
+        // The current column is built from `gatherUserAssets()`; the projection is
+        // built from SOURCE TABLES — `properties` via `PropertyStore`,
+        // `investment_accounts` via `calculateInvestmentTotal()`, savings via the cash
+        // flow projector. Only chattels and business read the collection. So a row in
+        // the `assets` table was counted today and gone at death, taking the taper
+        // base down with it: UNDERSTATED projected tax.
+        //
+        // **Not `other`-only, and not filtered by `asset_type`.** The board item
+        // named the `other` bucket; measured against the code it is four of the five
+        // types a user can create — `CoordinatingAgent:4055` lets Fyn record
+        // `property`, `pension`, `investment`, `business` or `other`, and only
+        // `business` survives, because that term filters the collection rather than a
+        // table. A row typed `property` is "covered" by NAME and invisible to
+        // `PropertyStore`, so excluding by type would drop it again.
+        //
+        // Keyed on PROVENANCE instead: an `Estate\Asset` row is one the projection's
+        // sources never see. `business` is excluded because the filter above already
+        // counts it from both provenances. **A new member of the enum falls in here
+        // automatically rather than vanishing** — which is what a guard against the
+        // enum and the projection drifting apart actually needs.
+        //
+        // Carried at current value, like chattels and business, because nothing in
+        // the app models growth for an arbitrary asset. That is a stated choice, not
+        // an oversight: unmodelled growth understates by less than a missing asset.
+        $estateAssetResidual = fn ($assets): float => (float) $assets
+            ->filter(fn ($a) => $a instanceof Asset && ($a->asset_type ?? null) !== 'business')
+            ->reject(fn ($a) => $a->is_iht_exempt ?? false)
+            ->sum('current_value');
+
+        $projectedOtherAssets = $estateAssetResidual($userAssets) + $estateAssetResidual($spouseAssets);
+
+        // W-0465 — the projection applied NO business relief at all, so a £6,000,000
+        // trading business showed £4,250,000 of relief in the current column and
+        // nothing in the projected one: the two halves of a table whose entire
+        // purpose is to compare them disagreed by the whole relief.
+        //
+        // **Rule 20 — this is not a second allocation.** The capped, pro-rata
+        // allowance (s124D(7)) is worked out exactly once, by
+        // `EstateAssetAggregatorService::applyBusinessPropertyRelief()`, and stamped
+        // onto `iht_relief_amount` by the same `gatherUserAssets()` call the values
+        // above are read from. This only READS what that allocation decided.
+        //
+        // **Why reading today's relief is the right pairing rather than a shortcut**
+        // (acceptance 4): business values are deliberately NOT projected forward —
+        // the comment above says so and the arithmetic agrees, they enter the
+        // projection at present-day worth. Relief struck on present-day values is
+        // therefore relief on the values actually being taxed here.
+        //
+        // **If business projection is ever added, this breaks and must move.** The
+        // £2,500,000 allowance does not grow with the business, so relief allocated
+        // on today's value against a grown value would UNDERSTATE the charge. The
+        // fix then is to re-run the allocator over the projected values, never to
+        // scale this figure.
+        $businessRelief = fn ($assets): float => (float) $assets->where('asset_type', 'business')
+            ->reject(fn ($a) => $a->is_iht_exempt)
+            ->sum(fn ($a) => (float) ($a->iht_relief_amount ?? 0));
+
+        $projectedBusinessRelief = $businessRelief($userAssets) + $businessRelief($spouseAssets);
 
         // Calculate totals (include chattels and business at current value)
-        $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness;
-        $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities;
+        $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness + $projectedOtherAssets;
+        // Relief reduces the CHARGEABLE estate, in the projected column for the same
+        // reason and in the same place as the current one (see `$totalNetEstate`).
+        $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities - $projectedBusinessRelief;
+
+        // W-0465 acceptance 3 — the taper base can no longer be assumed relief-free.
+        //
+        // `assessTaxPosition()` used to be handed `$projectedNetEstate` as its own
+        // taper base on the stated reasoning that "the projection does not model
+        // business relief separately, so its net estate is already relief-free."
+        // That was true, and true only because the projection was WRONG about
+        // relief. Fixing the relief invalidates the reasoning, so the base is now
+        // struck explicitly, mirroring `$estateForTaper` in the current column:
+        // gross before reliefs, less liabilities (IHTM46023 on s8D(5)(d)).
+        //
+        // `$projectedBusiness` excludes wholly relieved businesses — `is_iht_exempt`
+        // is set only when relief covers the whole value — so they are added back
+        // here exactly as they are in the current column. A PARTLY relieved business
+        // is already in at full value, and adding its relief on top would be the
+        // R2 double-count.
+        $whollyRelieved = fn ($assets): float => (float) $assets
+            ->filter(fn ($a) => ($a->is_iht_exempt ?? false) && ($a->iht_relief_qualifies ?? false))
+            ->sum('current_value');
+
+        $projectedEstateForTaper = $projectedGrossAssets
+            + $whollyRelieved($userAssets)
+            + $whollyRelieved($spouseAssets)
+            - $projectedLiabilities;
 
         // W-0136 and the charitable scaling defect, fixed together because fixing
         // either alone lands on a plausible wrong answer.
@@ -670,11 +958,22 @@ class IHTCalculationService
         // Feeding it the current value would cap the projected band at a home price
         // decades out of date — it does not bite a household whose residence already
         // exceeds the band, and it silently under-caps every household whose does not.
-        // F2 — the projection must not inherit the CURRENT estate's taper base. The
-        // projection does not model business relief separately, so its net estate is
-        // already relief-free and is the correct base for its own taper; passing it
-        // explicitly stops `$ctx['estate_for_taper']` leaking today's figure into a
-        // projection decades out.
+        // F2 — the projection must not inherit the CURRENT estate's taper base.
+        // Passing its own value explicitly stops `$ctx['estate_for_taper']` leaking
+        // today's figure into a projection decades out. W-0465 changed WHAT is
+        // passed: see `$projectedEstateForTaper` above.
+        // W-0361 — re-struck against the modelled date of death, not today.
+        $projectedDeathDate = today()->addYears(max(0, $yearsUntilDeath));
+        $projectedNrbDeduction = $this->calculateNRBDeductionForGifts(
+            $assessment['pooled_members'],
+            (float) ($assessment['iht_config']['nil_rate_band'] ?? 0),
+            $projectedDeathDate,
+        );
+        $projectedNrbAvailable = max(
+            0,
+            (float) $assessment['nrb_gross'] - (float) $projectedNrbDeduction['total_nrb_used'],
+        );
+
         $projected = $this->assessTaxPosition(
             $projectedNetEstate,
             $this->projectMainResidenceNetValue(
@@ -685,7 +984,20 @@ class IHTCalculationService
                 $yearsUntilDeath,
                 $assumptions
             ),
-            ['estate_for_taper' => $projectedNetEstate] + $assessment
+            // W-0361 — the projected column's OWN nil rate band. It reused the
+            // current one, whose gift deduction is measured from today: a chargeable
+            // transfer made in 2020 still consumed £150,000 of the band at a death
+            // modelled in 2062, THIRTY YEARS after IHTA 1984 s7(1) drops it out of
+            // cumulation. Measured £500,000 where £650,000 is correct — £60,000 of
+            // overstated projected tax.
+            //
+            // The docblock defending the reuse said the band is "a statutory amount
+            // reduced by chargeable transfers already made, neither of which is a
+            // function of the estate's size". True, and beside the point: it IS a
+            // function of the DATE OF DEATH, and the two columns have different ones.
+            // The same calculator is asked about the projected date rather than a
+            // second rule being written for it.
+            ['estate_for_taper' => $projectedEstateForTaper, 'nrb_available' => $projectedNrbAvailable] + $assessment
         );
 
         return [
@@ -707,10 +1019,16 @@ class IHTCalculationService
             'projected_properties' => round($projectedProperties, 2),
             'projected_gross_assets' => round($projectedGrossAssets, 2),
             'projected_liabilities' => round($projectedLiabilities, 2),
+            // W-0465 — published so the projected column can show the relief row the
+            // current column already has. `IHTPlanning.vue` read this key with a
+            // fallback to the CURRENT deduction; that fallback was only ever right
+            // by accident and is removed with this change.
+            'projected_business_relief_deduction' => round($projectedBusinessRelief, 2),
             'projected_net_estate' => round($projectedNetEstate, 2),
             'projected_taxable_estate' => round($projected['taxable_estate'], 2),
             'projected_iht_liability' => round($projected['iht_liability'], 2),
-            'projected_nrb_available' => round((float) $assessment['nrb_available'], 2),
+            'projected_nrb_available' => round($projectedNrbAvailable, 2),
+            'projected_nrb_gift_deduction' => round((float) $projectedNrbDeduction['total_nrb_used'], 2),
             'projected_rnrb_available' => round((float) $projected['rnrb']['rnrb_available'], 2),
             'projected_rnrb_individual' => round((float) ($projected['rnrb']['rnrb_individual'] ?? 0), 2),
             'projected_rnrb_spouse_modelled' => round((float) ($projected['rnrb']['rnrb_spouse_modelled'] ?? 0), 2),
@@ -1027,7 +1345,7 @@ class IHTCalculationService
     {
         $value = $this->memberInvestmentValue($user);
 
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $value += $this->memberInvestmentValue($spouse);
         }
 
@@ -1065,7 +1383,7 @@ class IHTCalculationService
 
         // Include the spouse's investments. Each member's figure is already at
         // that member's own share, so the two add to the household exactly once.
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $projectedValue += $this->projectMemberInvestments($spouse, $yearsToProject, $fallbackRate);
         }
 
@@ -1159,7 +1477,7 @@ class IHTCalculationService
         // Include spouse properties if data sharing enabled. Each member's figure
         // is already at that member's own share, so a property they hold together
         // contributes its whole value exactly once.
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $currentPropertyValue += $this->crossModuleAggregator->calculatePropertyTotal($spouse->id);
         }
 
@@ -1190,7 +1508,7 @@ class IHTCalculationService
         // Include spouse liabilities if data sharing enabled. Each member's debts
         // are already at that member's own share, so a debt they hold together is
         // discharged once, not twice.
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $projectedLiabilities += $this->projectMemberLiabilities(
                 $spouse, $currentAge, $retirementAge, $deathAge
             );
@@ -1821,16 +2139,26 @@ class IHTCalculationService
     }
 
     /**
-     * Check if user or spouse has main residence
+     * Does this person hold a qualifying residential interest? W-0365.
+     *
+     * **Joint ownership qualifies.** IHTA 1984 s8H(2) defines a qualifying residential
+     * interest as an interest in a dwelling-house which has at some time been the
+     * person's residence. A beneficial co-owner recorded as `joint_owner_id` has such
+     * an interest; nothing in ss8E–8H requires being the primary named owner of a
+     * database row.
+     *
+     * This filtered to primary-owner-only, and said so deliberately — "to match the
+     * pre-PR-5a semantics". That was a statement about this codebase's history, not
+     * about the statute, and **the file contradicted itself**:
+     * `sumMainResidenceNetShare()` uses the joint-aware reader and counts the very
+     * same user's share into the s8E(2) cap. So a joint owner's share raised the cap
+     * on a band they were refused. Direction: OVERSTATED tax, by up to the whole
+     * residence nil rate band.
      */
     private function hasMainResidence(User $user, ?User $spouse): bool
     {
-        // PropertyStore::forUserByType is joint-aware. Filter to primary-owner-only so the
-        // RNRB-eligibility check matches the pre-PR-5a semantics: a user qualifies only when
-        // they are the primary owner of a main_residence record, not merely a joint owner.
         $userHasMainRes = $this->propertyStore
             ->forUserByType($user, 'main_residence')
-            ->where('user_id', $user->id)
             ->isNotEmpty();
 
         if ($userHasMainRes) {
@@ -1840,7 +2168,6 @@ class IHTCalculationService
         if ($spouse) {
             return $this->propertyStore
                 ->forUserByType($spouse, 'main_residence')
-                ->where('user_id', $spouse->id)
                 ->isNotEmpty();
         }
 
@@ -1956,7 +2283,25 @@ class IHTCalculationService
      */
     private function isCurrentResultShape(array $result): bool
     {
-        foreach (['projected_total_allowances', 'projected_charitable_deduction', 'projected_rnrb_status'] as $key) {
+        // `unmodelled_relief_caveat` is here because it is legitimately NULL for
+        // most estates — so `?? null` at the consumer cannot tell "this engine did
+        // not publish it" from "this estate does not need it", and a stale row
+        // would suppress the caveat until the user's assets happened to change.
+        // `projected_business_relief_deduction` (W-0465): a stale row missing it
+        // coalesces to 0 at the consumer, which is right for most estates and is
+        // EXACTLY the defect for a business-owning one — the projected column
+        // showing no relief. Shape-guarded so the stale row is rejected instead.
+        foreach ([
+            'projected_total_allowances',
+            'projected_charitable_deduction',
+            'projected_rnrb_status',
+            'unmodelled_relief_caveat',
+            'projected_business_relief_deduction',
+            // W-0467 — a stale row without this makes the detector unable to tell a
+            // married user with no linked account from a single one, and it would
+            // fail SILENTLY, by showing the wrong sentence rather than by erroring.
+            'marital_status',
+        ] as $key) {
             if (! array_key_exists($key, $result)) {
                 return false;
             }
@@ -2164,7 +2509,7 @@ class IHTCalculationService
      * @param  float  $nrbSingle  The individual NRB amount
      * @return array NRB deduction breakdown, summed across members
      */
-    private function calculateNRBDeductionForGifts(array $members, float $nrbSingle): array
+    private function calculateNRBDeductionForGifts(array $members, float $nrbSingle, ?Carbon $deathDate = null): array
     {
         $totals = [
             'pets_in_7_years' => 0.0,
@@ -2180,7 +2525,7 @@ class IHTCalculationService
         $failedGifts = [];
 
         foreach ($members as $member) {
-            $memberDeduction = $this->failedGiftTax->forMember($member, $nrbSingle);
+            $memberDeduction = $this->failedGiftTax->forMember($member, $nrbSingle, $deathDate);
 
             foreach (array_keys($totals) as $key) {
                 $totals[$key] += $memberDeduction[$key];
@@ -2208,9 +2553,107 @@ class IHTCalculationService
      *
      * @return list<User>
      */
-    private function pooledMembers(User $user, ?User $spouse, bool $isMarried, bool $dataSharingEnabled): array
+    private function pooledMembers(User $user, ?User $spouse, bool $dataSharingEnabled): array
     {
-        return ($isMarried && $spouse !== null && $dataSharingEnabled) ? [$user, $spouse] : [$user];
+        return $this->poolsSpouse($user, $spouse, $dataSharingEnabled) ? [$user, $spouse] : [$user];
+    }
+
+    /**
+     * Does this household's marital status pool an estate at all?
+     *
+     * W-0474 — this read `['married']` alone while nine sibling services read
+     * `['married', 'civil_partnership']`, including the migration docblock that
+     * introduced the status and asserted THIS service branched on both. A civil
+     * partnership is treated identically to a marriage for Inheritance Tax:
+     * IHTA 1984 s18 spouse exemption, s8A transferable nil rate band and s8G
+     * residence nil rate band are all extended to civil partners by Civil
+     * Partnership Act 2004 s.246 and SI 2005/3229.
+     */
+    private function hasSpousalStatus(User $user): bool
+    {
+        return HouseholdPooling::hasSpousalStatus($user);
+    }
+
+    /**
+     * THE question every branch asks: do this calculation's figures cover two
+     * people's records or one?
+     *
+     * W-0474 — it used to be asked in two different ways, and the disagreement
+     * moved tax in both directions. The headline pooled on
+     * `$isMarried && $dataSharingEnabled`; every projection branch pooled on
+     * `$dataSharingEnabled && $spouse` alone, and neither `liveSpouse()` nor
+     * `hasAcceptedSpousePermission()` consults `marital_status`. So:
+     *   - a CIVIL PARTNERSHIP assessed two partners' projected assets, properties,
+     *     investments, liabilities and business relief against ONE person's
+     *     £325,000 + £175,000, with the taper base struck on the doubled estate —
+     *     crossing £2,000,000 roughly twice as fast. OVERSTATED tax.
+     *   - an UNMARRIED couple who had linked accounts and accepted sharing got a
+     *     headline taxing one estate and a projection pooling two, against a single
+     *     nil rate band and no spouse exemption they are not entitled to (W-0340).
+     *
+     * Both halves now ask this one method. Adding a branch that pools the spouse
+     * means calling this, not re-deriving the predicate.
+     */
+    private function poolsSpouse(User $user, ?User $spouse, bool $dataSharingEnabled): bool
+    {
+        return HouseholdPooling::poolsSpouse($user, $spouse, $dataSharingEnabled);
+    }
+
+    /**
+     * Does this asset read as agricultural land? W-0466.
+     *
+     * A heuristic, deliberately, and narrow on purpose. `assets.asset_type` is
+     * `enum('property','pension','investment','business','other')` with no
+     * agricultural member, and the table carries no description — `asset_name` is
+     * the only place a user can say what the thing is.
+     *
+     * **Matched only on `other` rows.** A property is already a residence by its own
+     * enum, and an investment named "Farmland Fund" is a fund, not land.
+     *
+     * Terms chosen to be specific rather than generous: each is a word for
+     * agricultural land itself, not for farming as an activity. Bitcoin, bicycles and
+     * everything else in the `other` bucket do not match, which is the whole point of
+     * the CSJ direction this implements.
+     *
+     * **This must never become an input to a relief CALCULATION.** It is defensible
+     * only because it gates a sentence. Agricultural Property Relief turns on
+     * agricultural USE AND OCCUPATION — IHTA 1984 s115(2), s116, s117 (two-year
+     * owner-occupation, seven-year let) — none of which is inferable from a name
+     * somebody typed (tax-compliance-reviewer, round five).
+     *
+     * **Prefix-matched at a leading word boundary, and that is deliberate** — "farm"
+     * has to reach "farmland", "farmhouse" and "farm buildings", so there is no
+     * trailing boundary and there cannot be one.
+     *
+     * **The consequence, stated accurately because an earlier version of this comment
+     * did not**: a word merely STARTING with a term matches. "Croftwood Ltd" fires on
+     * `croft`; "Orchardson" fires on `orchard`. What the leading boundary does buy is
+     * rejecting a term mid-word — "Landcroft Holdings" does NOT fire on `croft`.
+     *
+     * Those false positives are benign in the only direction that matters here: the
+     * sentence is conditional ("If your estate holds farmland or shares listed on
+     * that market…"), so a reader whose asset is not farmland simply does not meet
+     * the condition and is misled about nothing.
+     */
+    private function looksAgricultural(object $asset): bool
+    {
+        if (($asset->asset_type ?? null) !== 'other') {
+            return false;
+        }
+
+        $name = strtolower(trim((string) ($asset->asset_name ?? '')));
+
+        if ($name === '') {
+            return false;
+        }
+
+        foreach (self::AGRICULTURAL_ASSET_TERMS as $term) {
+            if (preg_match('/\b'.preg_quote($term, '/').'/', $name) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -2260,7 +2703,8 @@ class IHTCalculationService
         User $user,
         ?User $spouse,
         bool $dataSharingEnabled,
-        array $baseCalc
+        array $baseCalc,
+        array $assessment
     ): array {
         $pensionInclusion = $this->taxConfig->get('inheritance_tax.pension_iht_inclusion');
 
@@ -2278,7 +2722,7 @@ class IHTCalculationService
         $store = app(PensionStore::class);
         $userPensionValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
         $spousePensionValue = 0;
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $spousePensionValue = (float) $store->forUserByType($spouse, 'dc')->sum('current_fund_value');
         }
         $totalPensionValue = $userPensionValue + $spousePensionValue;
@@ -2294,14 +2738,36 @@ class IHTCalculationService
         // Calculate the post-2027 scenario: pensions included in estate
         $currentNetEstate = $baseCalc['total_net_estate'] ?? 0;
         $postAmendmentNetEstate = $currentNetEstate + $totalPensionValue;
-        $totalAllowances = $baseCalc['total_allowances'] ?? 0;
-        $ihtRate = $baseCalc['iht_rate'] ?? (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
-        // Charitable legacies are exempt (IHTA 1984 s23) — deduct them here too so the
-        // 2027 projection matches the current/death calculation for charitable donors.
-        $charitableDeduction = (float) ($baseCalc['charitable_deduction'] ?? 0);
 
-        $postAmendmentTaxableEstate = max(0, $postAmendmentNetEstate - $totalAllowances - $charitableDeduction);
-        $postAmendmentIHTLiability = $postAmendmentTaxableEstate * $ihtRate;
+        // W-0364 — this reused `$baseCalc['total_allowances']` and `iht_rate`, the
+        // SMALLER estate's answers, while adding the pension pots enlarged the estate.
+        // Both tests that turn on estate size were therefore skipped:
+        //
+        //   * the residence band taper (IHTA 1984 s8D(5)) — an estate at £1.7m with a
+        //     £600k pension crosses £2,000,000 and loses the band at £1 per £2. Reusing
+        //     the smaller estate's allowances UNDERSTATED the post-2027 bill by up to
+        //     the whole £350,000 of band.
+        //   * the 10% charitable rate test (Sch 1A) — the baseline grows with the
+        //     estate while a fixed legacy does not, so a household on 36% carried that
+        //     rate into a scenario where it no longer qualifies.
+        //
+        // One call to the same assessment with the enlarged estate answers both. This
+        // is W-0136's fix applied to the one place W-0136 did not reach.
+        $postAmendment = $this->assessTaxPosition(
+            $postAmendmentNetEstate,
+            $this->getMainResidenceNetValue($user, $assessment['spouse']),
+            [
+                // The pension enlarges the taper base exactly as it enlarges the
+                // estate — s8D(5)(d) strikes it on the estate before reliefs.
+                'estate_for_taper' => (float) ($assessment['estate_for_taper'] ?? 0) + $totalPensionValue,
+            ] + $assessment
+        );
+
+        $totalAllowances = (float) $postAmendment['total_allowances'];
+        $ihtRate = (float) $postAmendment['rate']['rate'];
+        $charitableDeduction = (float) $postAmendment['charitable_deduction'];
+        $postAmendmentTaxableEstate = (float) $postAmendment['taxable_estate'];
+        $postAmendmentIHTLiability = (float) $postAmendment['iht_liability'];
 
         $currentIHTLiability = $baseCalc['iht_liability'] ?? 0;
         $additionalIHT = $postAmendmentIHTLiability - $currentIHTLiability;

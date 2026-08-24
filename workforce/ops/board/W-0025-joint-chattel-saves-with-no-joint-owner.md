@@ -4,7 +4,7 @@ title: A joint chattel saves with no joint owner and no error — 50% of the ass
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: gated
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T09:40:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-21T11:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: ['App\\Support\\SharedOwnership (built for W-0015; chattels were the missing fourth reader)', 'ChattelController::store:81 fifth copy of the joint 50% rule', 'chattels/properties/mortgages joint_owner_name column', 'SavingsStore:357-361 — off-platform co-owner documented as first-class']
 prior_art_outcome: extend

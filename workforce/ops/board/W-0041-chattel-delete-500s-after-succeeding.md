@@ -3,9 +3,10 @@ id: W-0041
 title: Every chattel delete succeeds and then returns 500 — the user is shown an error for a completed action
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: gated
 claimed: 2026-08-21T13:00:00Z
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 severity: high
 surfaces: [web, m, ios]

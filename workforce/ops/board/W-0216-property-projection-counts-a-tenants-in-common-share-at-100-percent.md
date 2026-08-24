@@ -4,7 +4,7 @@ title: The projected estate includes a property this household owns 40% of, at 1
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T08:10:00Z
@@ -115,3 +115,16 @@ with it rather than beside it.
 4. The projected estate, taper test and projected tax all move with it, and W-0135's
    two-screen agreement holds afterwards.
 5. Verified on both persona logins with the table expanded.
+
+## Verified already fixed — 2026-08-24
+
+The code this item describes is gone. `projectProperties()` now reads
+`CrossModuleAssetAggregator::calculatePropertyTotal()`, which is
+`forUserWithJointOwner` reach times `calculateUserShare` fraction — the household's
+share, not the full value of rows the user happens to be primary owner of. The spouse
+term reads the same method, with the comment stating why the two do not double-count.
+
+Almost certainly closed by the W-0331 ownership work rather than by anything aimed at
+this item, which is why it sat queued. **No code change made here** — recorded so
+nobody re-fixes it. If the £177,000 discrepancy is still visible on the persona, it has
+a different cause and needs a fresh measurement rather than this item.

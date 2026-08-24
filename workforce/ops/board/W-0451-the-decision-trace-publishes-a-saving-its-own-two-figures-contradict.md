@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0033-cycle4-the-charitable-saving-and-the-percentage-denominator.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: handoff
+status: gated
 claimed_by: fix-cycle4-figures
 severity: high
 surfaces: [web]
@@ -14,6 +14,7 @@ claimed: 2026-08-23T04:08:43Z
 blocked_by: []
 gate: tax-compliance-reviewer-cleared-2026-08-23
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0432, W-0433, W-0431]
 prior_art_outcome: extend

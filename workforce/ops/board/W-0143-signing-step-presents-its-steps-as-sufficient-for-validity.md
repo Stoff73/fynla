@@ -4,8 +4,9 @@ title: The will builder's signing step tells the user these steps make their wil
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead, design-lead]
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 severity: medium
 surfaces: [web]
 created: 2026-08-21T19:30:00Z

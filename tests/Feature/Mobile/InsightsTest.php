@@ -5,24 +5,33 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\User;
 
-beforeEach(function () {
+/**
+ * W-0473 — this file's mock used to return `['modules' => [...]]`, a shape
+ * `CoordinatingAgent::analyze()` has never produced. Every reader missed, the
+ * controller fell through to its generic catch-all insight, and the suite stayed
+ * green because it asserted only that *a* non-empty string came back. Every mock
+ * below is now the real shape: `module_analysis`, each module being the
+ * coordinator's flat map with the agent's own payload under `full_analysis`.
+ * Assertions name the insight text, so a reader drifting a level again fails here.
+ */
+function mockAnalysis(array $moduleAnalysis): void
+{
     $mock = Mockery::mock(CoordinatingAgent::class);
-    $mock->shouldReceive('analyze')->andReturn([
-        'modules' => [
-            'savings' => [
-                'emergency_fund' => [
-                    'runway_months' => 3.5,
-                ],
-                'isa_allowance' => [
-                    'remaining' => 12000.00,
-                ],
-            ],
-            'protection' => [
-                'gaps' => ['life_insurance'],
+    $mock->shouldReceive('analyze')->andReturn(['module_analysis' => $moduleAnalysis]);
+    app()->instance(CoordinatingAgent::class, $mock);
+}
+
+beforeEach(function () {
+    mockAnalysis([
+        'savings' => [
+            'total_savings' => 12000,
+            'emergency_fund_months' => 3.5,
+            'full_analysis' => [
+                'emergency_fund' => ['runway_months' => 3.5],
+                'isa_allowance' => ['remaining' => 12000.00],
             ],
         ],
     ]);
-    $this->app->instance(CoordinatingAgent::class, $mock);
 });
 
 afterEach(function () {
@@ -53,6 +62,104 @@ describe('Daily Insights API', function () {
         expect($data['category'])->toBeIn([
             'savings', 'protection', 'investment', 'retirement', 'estate', 'goals', 'tax',
         ]);
+    });
+
+    it('reads the savings figures out of the agent payload', function () {
+        $user = User::factory()->create();
+
+        $insight = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/mobile/insights/daily')
+            ->assertOk()
+            ->json('data.insight');
+
+        // Only savings produces here, so the day-of-year rotation is a no-op and
+        // this is the emergency fund or the ISA allowance — never the catch-all.
+        expect($insight)->toContain('12,000.00');
+    });
+
+    it('reads the pension Annual Allowance under its own key', function () {
+        mockAnalysis([
+            'retirement' => [
+                'total_pension_value' => 50000,
+                // `remaining_allowance`, not `remaining` — the reader named the
+                // wrong one, so this branch was dead twice over.
+                'full_analysis' => ['annual_allowance' => ['remaining_allowance' => 55600]],
+            ],
+        ]);
+
+        $insight = $this->actingAs(User::factory()->create(), 'sanctum')
+            ->getJson('/api/v1/mobile/insights/daily')
+            ->assertOk()
+            ->json('data.insight');
+
+        expect($insight)->toContain('55,600.00');
+        expect($insight)->toContain('Annual Allowance');
+    });
+
+    it('carries the unmodelled relief caveat alongside the Inheritance Tax figure', function () {
+        mockAnalysis([
+            'estate' => [
+                'iht_liability' => 58500,
+                'full_analysis' => [
+                    'summary' => [
+                        'iht_liability' => 58500,
+                        'unmodelled_relief_caveat' => 'This figure does not include Agricultural Property Relief.',
+                    ],
+                ],
+            ],
+        ]);
+
+        $insight = $this->actingAs(User::factory()->create(), 'sanctum')
+            ->getJson('/api/v1/mobile/insights/daily')
+            ->assertOk()
+            ->json('data.insight');
+
+        expect($insight)->toContain('58,500.00');
+        expect($insight)->toContain('Agricultural Property Relief');
+    });
+
+    it('does not claim a protection gap when every figure in the gaps is zero', function () {
+        mockAnalysis([
+            'protection' => [
+                'coverage_gap' => 0,
+                // The structure is present for every analysed household — its
+                // existence is not a gap.
+                'full_analysis' => [
+                    'gaps' => [
+                        'total_gap' => 0,
+                        'gaps_by_category' => ['human_capital_gap' => 0, 'income_protection_gap' => 0],
+                    ],
+                ],
+            ],
+        ]);
+
+        $insight = $this->actingAs(User::factory()->create(), 'sanctum')
+            ->getJson('/api/v1/mobile/insights/daily')
+            ->assertOk()
+            ->json('data.insight');
+
+        expect($insight)->not->toContain('gaps in your protection coverage');
+    });
+
+    it('claims a protection gap when a category is above zero', function () {
+        mockAnalysis([
+            'protection' => [
+                'coverage_gap' => 0,
+                'full_analysis' => [
+                    'gaps' => [
+                        'total_gap' => 0,
+                        'gaps_by_category' => ['human_capital_gap' => 0, 'income_protection_gap' => 21000],
+                    ],
+                ],
+            ],
+        ]);
+
+        $insight = $this->actingAs(User::factory()->create(), 'sanctum')
+            ->getJson('/api/v1/mobile/insights/daily')
+            ->assertOk()
+            ->json('data.insight');
+
+        expect($insight)->toContain('gaps in your protection coverage');
     });
 
     it('returns 401 for unauthenticated requests', function () {

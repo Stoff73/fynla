@@ -112,11 +112,11 @@ class HouseholdCashFlowProjector
     public function project(
         User $user,
         ?User $spouse,
-        bool $dataSharingEnabled,
+        bool $poolsSpouse,
         int $yearsToProject,
         float $inflationRate,
     ): array {
-        $members = $this->householdMembers($user, $spouse, $dataSharingEnabled);
+        $members = $this->householdMembers($user, $spouse, $poolsSpouse);
 
         $startingCash = 0.0;
         foreach ($members as $member) {
@@ -259,13 +259,19 @@ class HouseholdCashFlowProjector
     /**
      * The people this projection covers.
      *
+     * W-0474 F1 — this used to decide for itself, on `$dataSharingEnabled && $spouse`,
+     * which consults no marital status. It is now told: `App\Support\HouseholdPooling`
+     * answers "one person's records or two?" once, and every caller passes the answer
+     * in. A projector that re-derived it would be the eighth home for a rule that has
+     * already drifted twice.
+     *
      * @return list<User>
      */
-    private function householdMembers(User $user, ?User $spouse, bool $dataSharingEnabled): array
+    private function householdMembers(User $user, ?User $spouse, bool $poolsSpouse): array
     {
         $members = [$user];
 
-        if ($dataSharingEnabled && $spouse) {
+        if ($poolsSpouse && $spouse) {
             $members[] = $spouse;
         }
 

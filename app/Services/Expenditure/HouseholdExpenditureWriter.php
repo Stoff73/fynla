@@ -63,6 +63,16 @@ final class HouseholdExpenditureWriter
      */
     public function write(User $user, array $household): array
     {
+        // **If you add the sharing mode to a payload, check every caller that
+        // pre-divides.** This prefers the payload; `CoordinatingAgent::handleSetExpenditure`
+        // reads `$user->expenditure_sharing_mode` directly when deciding whether to
+        // double stored halves back to household terms. The two agree today only
+        // because that method never writes the mode into what it passes here.
+        //
+        // Should a turn ever carry a mode change alongside categories, they would
+        // disagree — doubling on the OLD mode and dividing on the NEW — halving or
+        // doubling a household's spending in one write. Flagged by quality-lead
+        // 2026-08-24 as "one line away from firing".
         $mode = $household['expenditure_sharing_mode'] ?? $user->expenditure_sharing_mode;
         $spouse = $user->liveSpouse();
         $isShared = $spouse !== null && SharedExpenditure::isShared($mode);
@@ -137,6 +147,64 @@ final class HouseholdExpenditureWriter
      * stale figure to every affordability statement that reads it. Both
      * accounts get one or neither.
      */
+    /**
+     * Put a survivor's stored halves back into household terms. W-0477.
+     *
+     * Called wherever a household stops being two accounts. There are four such
+     * moments and they do not share a signature — an unlink nulls `spouse_id` on
+     * both rows, a purge nulls it on the survivor, and a soft-deleted account leaves
+     * `spouse_id` set while `liveSpouse()` goes null — so this cannot be detected by
+     * a reader and has to be applied at each of them.
+     *
+     * **Why not detect it on read instead.** The obvious signal — mode `joint` with
+     * no live spouse — is ambiguous: `DEFAULT_MODE` is `joint`, so a user who has
+     * never had a spouse carries it too, and their stored figures were never divided.
+     * Doubling those would invent spending. A marker column could disambiguate it;
+     * correcting the data at the one moment its meaning changes is cheaper and leaves
+     * every reader alone.
+     *
+     * **CSJ's choice of the two the board offered** (W-0477 acceptance 1): restore
+     * the household figure onto the survivor, rather than record that the stored
+     * value is a share of a household that no longer exists.
+     *
+     * Idempotent by its guard: it only fires for an account still declaring the
+     * shared mode with no live spouse, and it clears that mode as it goes, so a
+     * second call is a no-op rather than a second doubling.
+     */
+    public function promoteSharesToHousehold(User $survivor): void
+    {
+        if (! SharedExpenditure::isShared($survivor->expenditure_sharing_mode)) {
+            return;
+        }
+
+        if ($survivor->liveSpouse() !== null) {
+            return;
+        }
+
+        $stored = [];
+        foreach (SharedExpenditure::SHARED_FIELDS as $field) {
+            if ($survivor->{$field} !== null) {
+                $stored[$field] = $survivor->{$field};
+            }
+        }
+
+        if ($stored === []) {
+            $survivor->update(['expenditure_sharing_mode' => SharedExpenditure::MODE_SEPARATE]);
+
+            return;
+        }
+
+        $household = SharedExpenditure::householdOf($stored);
+        $household['expenditure_sharing_mode'] = SharedExpenditure::MODE_SEPARATE;
+
+        DB::transaction(function () use ($survivor, $household): void {
+            $survivor->update($household);
+            $this->syncProfileTotal($survivor, $household);
+        });
+
+        $this->cacheInvalidation->invalidateForUserAndSpouse($survivor->id, null);
+    }
+
     private function syncProfileTotal(User $user, array $share): void
     {
         if (! ($share['monthly_expenditure'] ?? null)) {

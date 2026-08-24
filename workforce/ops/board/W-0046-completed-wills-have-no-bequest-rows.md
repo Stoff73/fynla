@@ -3,7 +3,7 @@ id: W-0046
 title: Wills completed before W-0023 have gifts in the document but no Bequest rows — the Estate module and the Inheritance Tax calculation cannot see them
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [web, m, ios]
 source: CSJ direction 2026-08-21 ("these need to work properly"); gap identified by fix-batch-B while fixing W-0023
@@ -11,6 +11,7 @@ prior_art_checked: 2026-08-21
 prior_art_outcome: extend
 branch: branches/fixes/F-0003-batch-b-estate-wills.md
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T14:10:00Z
 prior_art_found: [W-0023, W-0020, W-0024]
 ---

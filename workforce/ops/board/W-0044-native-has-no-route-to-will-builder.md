@@ -3,8 +3,9 @@ id: W-0044
 title: The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T18:20:00Z
 claimed_by: fix-batch-G
 branch: branches/fixes/F-0011-batch-g-native-handoff-protection-ownership.md

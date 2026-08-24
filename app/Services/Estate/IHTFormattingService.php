@@ -7,6 +7,7 @@ namespace App\Services\Estate;
 use App\Models\Estate\Liability;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
+use App\Support\HouseholdPooling;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -280,7 +281,10 @@ class IHTFormattingService
         $projection = $this->cashFlowProjector->project(
             $user,
             $spouse,
-            $dataSharingEnabled,
+            // W-0474 F1 — the same decision as the headline, by the same rule. This
+            // table exists to explain that headline; pooling it differently is how
+            // the two came apart the first time.
+            HouseholdPooling::poolsSpouse($user, $spouse, $dataSharingEnabled),
             (int) ($calculation['years_to_death'] ?? 0),
             (float) ($calculation['inflation_rate'] ?? 0.02)
         );

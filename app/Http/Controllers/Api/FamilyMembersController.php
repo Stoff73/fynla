@@ -13,6 +13,7 @@ use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Database\QueryException;
@@ -26,7 +27,8 @@ class FamilyMembersController extends Controller
 
     public function __construct(
         private readonly CacheInvalidationService $cacheInvalidation,
-        private readonly UserProfileService $userProfileService
+        private readonly UserProfileService $userProfileService,
+        private readonly HouseholdExpenditureWriter $householdExpenditure
     ) {}
 
     /**
@@ -196,22 +198,6 @@ class FamilyMembersController extends Controller
         $spouseUser = $result['spouse_user'];
         $rowIsNew = $familyMember->wasRecentlyCreated;
 
-        if ($result['created_new_user']) {
-            return response()->json([
-                'success' => true,
-                'message' => $result['email_sent']
-                    ? 'Spouse account created successfully. They will receive an email with login instructions.'
-                    : 'Spouse account created but email delivery failed. They can use the "Forgot Password" feature to set their password.',
-                'data' => [
-                    'family_member' => $familyMember,
-                    'spouse_user' => $this->spouseSummary($spouseUser),
-                    'created' => true,
-                    'email_sent' => $result['email_sent'],
-                    'spouse_email' => $spouseEmail,
-                ],
-            ], 201);
-        }
-
         if ($result['already_linked']) {
             return response()->json([
                 'success' => true,
@@ -228,10 +214,24 @@ class FamilyMembersController extends Controller
             ], $rowIsNew ? 201 : 200);
         }
 
-        // An existing account was INVITED, not linked (W-0347). Saying "linked"
-        // here would be the interface telling the user the thing the old code
-        // did wrong — and the message is the only place they learn their spouse
-        // has to agree.
+        // INVITED, not linked (W-0347). Saying "linked" here would be the
+        // interface telling the user the thing the old code did wrong — and the
+        // message is the only place they learn their spouse has to agree.
+        //
+        // W-0349 — **this is now the response for BOTH an address that already
+        // holds an account and one that does not**, and the two are
+        // byte-identical on purpose. There used to be a branch above this one
+        // returning `created: true` and "Spouse account created successfully",
+        // which answered "does this address hold a Fynla account?" for any
+        // authenticated caller who typed one. The branch is gone because the
+        // behaviour behind it is gone: `SpouseLinkingService` no longer creates
+        // an account for an address the caller merely supplied (CSJ, 2026-08-23).
+        //
+        // **Do not reintroduce a field here that only one of the two cases can
+        // populate.** `email_sent` is deliberately absent for the same reason:
+        // a caller could otherwise distinguish the branches by whether a
+        // delivery flag appeared. The difference between these responses IS the
+        // disclosure.
         return response()->json([
             'success' => true,
             'message' => 'Invitation sent. Your spouse will be asked to confirm the link before anything is shared.',
@@ -278,10 +278,14 @@ class FamilyMembersController extends Controller
      * Three distinguishable refusals used to sit behind this surface — closed
      * account, already in another household, duplicate on insert — and each one
      * told an authenticated caller something true about an address they had
-     * merely typed. Collapsed to one (W-0349). The remaining distinction, and
-     * it is deliberate rather than overlooked: an address with NO account still
-     * gets one created. That is a product decision on the board, not something
-     * to change quietly here.
+     * merely typed. Collapsed to one (W-0349).
+     *
+     * The fourth distinction — an address with no account got one created, and
+     * said so — is gone too, as of CSJ's decision on 2026-08-23: that address is
+     * now invited, and the invitation response is identical to the one an
+     * existing account produces. **All four outcomes now return one of two
+     * things**: this refusal, or "Invitation sent". Neither reveals whether the
+     * address is registered.
      */
     private function unlinkableEmailValidationError(): JsonResponse
     {
@@ -435,6 +439,15 @@ class FamilyMembersController extends Controller
 
             $user->spouse_id = null;
             $user->save();
+
+            // W-0477 — both accounts hold HALF of what the household spent, and
+            // from this line on nothing is left to hold the other half. Neither row
+            // changes on its own, so every reader downstream would take a half for a
+            // whole: spending understated, disposable income overstated, and every
+            // affordability statement rests on that figure. Put both back into
+            // household terms at the one moment their meaning changes.
+            $this->householdExpenditure->promoteSharesToHousehold($user->fresh());
+            $this->householdExpenditure->promoteSharesToHousehold($spouseUser->fresh());
         }
 
         $familyMember->delete();

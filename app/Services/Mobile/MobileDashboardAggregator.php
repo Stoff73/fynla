@@ -63,7 +63,17 @@ class MobileDashboardAggregator
         private readonly PropertyStore $propertyStore,
         private readonly CrossModuleAssetAggregator $assetAggregator,
         private readonly NetWorthService $netWorthService,
+        private readonly DailyInsightService $dailyInsight,
     ) {}
+
+    /**
+     * Each module's own `analyze()` payload from the last `aggregateModules()` run,
+     * kept so the insight can be composed from data already fetched rather than
+     * calling every agent a second time.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    private array $modulePayloads = [];
 
     /**
      * Get aggregated dashboard data for the mobile app.
@@ -78,7 +88,14 @@ class MobileDashboardAggregator
             $netWorth = $this->calculateNetWorth($userId);
 
             $alerts = $this->getAlerts($userId);
-            $fynInsight = $this->generateFynInsight($modules, $netWorth);
+            // W-0478 — this used to call a second, prose-only insight composer that
+            // lived in this class, while a richer one with real figures and the
+            // Inheritance Tax caveat sat unreachable behind an endpoint no client
+            // called. One composer now, reading the payloads `aggregateModules()`
+            // already fetched (Rule 20).
+            $fynInsight = $this->dailyInsight->select(
+                $this->dailyInsight->compose($this->modulePayloads)
+            )['insight'];
 
             return [
                 'modules' => $modules,
@@ -107,9 +124,14 @@ class MobileDashboardAggregator
             'goals' => $this->goalsAgent,
         ];
 
+        $this->modulePayloads = [];
+
         foreach ($agentMap as $moduleName => $agent) {
             try {
                 $analysis = $agent->analyze($userId);
+                $this->modulePayloads[$moduleName] = isset($analysis['success'])
+                    ? ($analysis['data'] ?? [])
+                    : $analysis;
                 $modules[$moduleName] = $this->extractModuleSummary($moduleName, $analysis, $userId);
             } catch (\Throwable $e) {
                 $this->logError("Mobile dashboard: failed to load {$moduleName} module", [
@@ -167,14 +189,12 @@ class MobileDashboardAggregator
         }
 
         $coverage = $data['coverage'] ?? [];
-        $gaps = $data['gaps'] ?? [];
-        $criticalGaps = 0;
-
-        foreach ($gaps as $gapType => $gapData) {
-            if (is_array($gapData) && ($gapData['gap'] ?? 0) > 0) {
-                $criticalGaps++;
-            }
-        }
+        // W-0479 — this counted `$gapData['gap']` over `gaps`, a shape
+        // `CoverageGapAnalyzer` has never emitted, so it read 0 for every household
+        // in the application's history. The analyzer now publishes the count itself
+        // and both dashboards read it, rather than each re-deriving it from a guess
+        // (Rule 20).
+        $criticalGaps = (int) ($data['gaps']['critical_gap_count'] ?? 0);
 
         // Count total policies across all types
         $policies = $data['policies'] ?? [];
@@ -547,68 +567,6 @@ class MobileDashboardAggregator
 
             return [];
         }
-    }
-
-    /**
-     * Generate a contextual daily insight based on the aggregated data.
-     */
-    private function generateFynInsight(array $modules, array $netWorth): string
-    {
-        // Check for protection gaps
-        $protectionStatus = $modules['protection']['status'] ?? 'unavailable';
-        if ($protectionStatus === 'active') {
-            $gaps = $modules['protection']['critical_gaps'] ?? 0;
-            if ($gaps > 0) {
-                return $gaps === 1
-                    ? 'You have 1 protection gap to review. Ensuring adequate cover helps safeguard your family against unexpected events.'
-                    : "You have {$gaps} protection gaps to review. Addressing these will strengthen your financial safety net.";
-            }
-        }
-
-        // Check for emergency fund
-        $savingsStatus = $modules['savings']['status'] ?? 'unavailable';
-        if ($savingsStatus === 'active') {
-            $runwayMonths = $modules['savings']['emergency_fund_months'] ?? 0;
-            if ($runwayMonths < 3) {
-                return 'Building your emergency fund towards 3-6 months of expenses is a key priority. Even small regular contributions make a difference.';
-            }
-        }
-
-        // Check retirement income gap
-        $retirementStatus = $modules['retirement']['status'] ?? 'unavailable';
-        if ($retirementStatus === 'active') {
-            $incomeGap = $modules['retirement']['income_gap'] ?? 0;
-            if ($incomeGap > 0) {
-                return 'Your projected retirement income has a gap to your target. Reviewing pension contributions or exploring additional savings could help close this.';
-            }
-        }
-
-        // Check estate IHT
-        $estateStatus = $modules['estate']['status'] ?? 'unavailable';
-        if ($estateStatus === 'active') {
-            $ihtLiability = $modules['estate']['iht_liability'] ?? 0;
-            if ($ihtLiability > 0) {
-                return 'Your estate may have an inheritance tax liability. Consider exploring gifting strategies or trust arrangements to help reduce this.';
-            }
-        }
-
-        // Goals insight
-        $goalsStatus = $modules['goals']['status'] ?? 'unavailable';
-        if ($goalsStatus === 'active') {
-            $completed = $modules['goals']['completed_goals'] ?? 0;
-            $total = $modules['goals']['total_goals'] ?? 0;
-            if ($total > 0 && $completed > 0) {
-                return "Well done! You have completed {$completed} of your {$total} financial goals. Keep the momentum going.";
-            }
-        }
-
-        // Net worth insight
-        $total = $netWorth['total'] ?? 0;
-        if ($total > 0) {
-            return 'Your financial plan is taking shape. Regular reviews help ensure you stay on track with your goals.';
-        }
-
-        return 'Welcome to Fynla. Start by setting up your financial profile to receive personalised insights and guidance.';
     }
 
     /**

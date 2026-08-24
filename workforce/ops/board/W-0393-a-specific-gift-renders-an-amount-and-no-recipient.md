@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0029-cycle4-wills-and-estate-figures.md
 owner: build-lead
 reviewers: [quality-lead]
-status: handoff
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-23T00:40:00Z
@@ -13,6 +13,7 @@ claimed: 2026-08-23T00:50:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0023, W-0046]
 prior_art_outcome: route

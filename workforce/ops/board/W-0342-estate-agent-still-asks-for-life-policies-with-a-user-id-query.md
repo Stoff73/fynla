@@ -4,7 +4,7 @@ title: EstateAgent still asks which life policies exist with a user_id query, so
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0027-cycle4-life-cover-reach.md
 owner: build-lead
-status: handoff
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:35:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-23T00:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0186, W-0341]
 prior_art_outcome: route

@@ -93,7 +93,7 @@ struct WebHandoffClientTests {
     func exposesOnlyTheServerAllowlistedSemanticDestinations() {
         #expect(WebHandoffDestination.allCases.map(\.rawValue) == [
             "admin", "subscription", "settings", "privacy", "notifications",
-            "estate_will",
+            "estate_will", "estate_iht",
         ])
     }
 
@@ -104,6 +104,7 @@ struct WebHandoffClientTests {
     @Test
     func multiWordDestinationsSendTheSnakeCaseValueTheServerValidates() {
         #expect(WebHandoffDestination.estateWill.rawValue == "estate_will")
+        #expect(WebHandoffDestination.estateIht.rawValue == "estate_iht")
         for destination in WebHandoffDestination.allCases {
             #expect(destination.rawValue == destination.rawValue.lowercased())
         }

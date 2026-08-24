@@ -3,9 +3,10 @@ id: W-0125
 title: A migration test commits past RefreshDatabase on DDL and leaks its fixtures into the rest of the run
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: done
 claimed: 2026-08-21T18:50:00Z
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: workforce/branches/fixes/F-0010-batch-j-consolidation-red.md
 severity: high
 surfaces: [web, m, ios]

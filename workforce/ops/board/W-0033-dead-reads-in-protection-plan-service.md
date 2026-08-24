@@ -3,8 +3,9 @@ id: W-0033
 title: ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T18:20:00Z
 claimed_by: fix-batch-G
 branch: branches/fixes/F-0011-batch-g-native-handoff-protection-ownership.md

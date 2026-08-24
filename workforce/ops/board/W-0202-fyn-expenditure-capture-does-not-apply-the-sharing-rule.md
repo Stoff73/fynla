@@ -2,9 +2,9 @@
 id: W-0202
 title: Fyn's expenditure capture writes one account at 100% regardless of the household's declared sharing mode — the same 100/0 split W-0190 fixed, through a different door
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: estate-copy-and-m-handoff
 owner: build-lead
-status: queued
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T03:10:00Z
@@ -12,6 +12,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: null
+certification: CANNOT CERTIFY 2026-08-24 quality-lead — see ops/handoffs/quality-lead/cycle4-recertification-2026-08-24.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0190, W-0011]
 prior_art_outcome: extend
@@ -189,3 +190,39 @@ behaviour is now pinned by a test —
 account at 100% and leaves the spouse untouched"* — so that when this item is built the
 change surfaces as a deliberate red test rather than a silent diff. **It pins the current
 behaviour; it does not endorse it, and the docblock says so.**
+
+- 2026-08-24 — **CSJ chose option 1: make the unanswered state expressible first.** Built.
+  - **Migration** `2026_08_24_080000_record_when_a_household_actually_declared_its_expenditure_sharing`
+    adds `users.expenditure_sharing_mode_declared_at`, nullable, **no backfill**. NULL is
+    the correct value for all 19 rows: none of them was a declaration, and backfilling a
+    timestamp would recreate the very defect the column exists to remove, one layer up.
+  - **A companion timestamp rather than a nullable enum**, deliberately. Nullable would
+    carry the same meaning and would also change what every existing reader receives —
+    `SharedExpenditure::isShared()`, `UserResource`, `OnboardingService`, the profile
+    controller and the writer all read that column and all treat it as always-present.
+    This is additive: no reader changes behaviour, and the new column answers the question
+    the old one cannot — *was this chosen, and when*.
+  - **`UserProfileController` stamps it**, and only where the toggle is actually submitted
+    — the one place a person has been shown the choice, beside a subheading reading
+    "Joint (50/50) expenditure" while they type.
+  - **`handleSetExpenditure` now asks** when there is a live spouse and no declaration,
+    and writes NOTHING on that turn. Measured the day it shipped: **13 of 13
+    spouse-holding users on dev had never declared**, so this is the branch that runs for
+    all of them — which is exactly why the 100/0 write had to stop being silent.
+  - **Criterion 2 done too, now that 1 is closed:** the write routes through
+    `HouseholdExpenditureWriter`, the mechanism W-0412 built. One household figure,
+    divided once, both rows in one transaction.
+  - **Reason 2 of "why it was not fixed with W-0190" dissolved rather than being solved.**
+    The worry was that routing would change WHICH fields divide. It does not: Fyn divided
+    *nothing* before, so routing makes it match the other two paths exactly.
+    `rent`, `utilities` and `charitable_donations` stay whole because `SHARED_FIELDS` says
+    so, which is a question for whoever owns that list, not for this path.
+  - **The subtlety that made this more than a one-line call:** stored figures are the
+    account's SHARE, so a partial edit recomputing the total from storage would divide the
+    untouched categories a second time — decaying a household's spending towards zero one
+    Fyn turn at a time. The household total is reconstituted before the writer divides it
+    again. **Mutation-tested: removing the reconstitution gives £212.50 where £325 is
+    right**, and the guard reddens.
+  - **Browser-verified** on `david.jones@example.com`: saved the expenditure form and
+    `expenditure_sharing_mode_declared_at` was stamped `2026-08-24 07:58:44`, with the
+    225/225 halves untouched. Restored to NULL afterwards, since that save was a test.

@@ -4,13 +4,14 @@ title: Free-tier users cannot save monthly expenditure at all — Simple View al
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: handoff
+status: gated
 surfaces: [web, m, ios]
 created: 2026-08-20T23:20:00Z
 claimed: 2026-08-21T09:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T09:10:00Z
 prior_art_found: ["app/Services/Tiers/TeaserGate.php::allows — the one capability predicate (CSJ decision 2026-08-19)", "database/seeders/TierConfigurationSeeder.php:36-37,79 — expenditure=full on Free, expenditure_detailed=none", "app/Agents/CoordinatingAgent.php handleUpdateProfile section=expenditure — already writes a simple total for any tier", "app/Http/Controllers/Api/AuthController.php:465-475 tier_flags.capabilities — capability matrix already published to clients"]
 prior_art_outcome: extend

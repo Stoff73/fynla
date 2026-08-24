@@ -4,7 +4,7 @@ title: A Defined Benefit pension is counted as income in payment from the day it
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: handoff
+status: gated
 claimed_by: fix-batch-C
 claimed_at: 2026-08-21
 branch: fixes/F-0001-batch-c-retirement-profile-gates.md
@@ -15,6 +15,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [W-0017, W-0035]
 prior_art_outcome: extend

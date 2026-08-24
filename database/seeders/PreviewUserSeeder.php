@@ -555,15 +555,33 @@ class PreviewUserSeeder extends Seeder
         $spouse->spouse_id = $primaryUser->id;
         $spouse->save();
 
-        // Create bidirectional spouse data sharing permissions
-        SpousePermission::updateOrCreate(
-            ['user_id' => $primaryUser->id, 'spouse_id' => $spouse->id],
-            ['status' => 'accepted', 'responded_at' => now()]
-        );
-        SpousePermission::updateOrCreate(
-            ['user_id' => $spouse->id, 'spouse_id' => $primaryUser->id],
-            ['status' => 'accepted', 'responded_at' => now()]
-        );
+        // W-0347 G3 (compliance-lead, 2026-08-24) — this was the THIRD writer of the
+        // forged shape, and the one nobody found: two mirror rows, `accepted`,
+        // `responded_at` set, `requested_at` never set — byte-for-byte what the
+        // removed `createSpousePermissions()` produced and what the re-ask migration
+        // exists to eradicate. Every `db:seed` recreated the population the migration
+        // had just cleaned up, and because `responded_at` was set, the new
+        // "don't assert an acceptance date that does not exist" guard on the sharing
+        // screen did not catch it: every preview persona showed
+        // "Data Sharing Enabled — Accepted: <date>" for a consent nobody gave. Anyone
+        // testing the consent flow after a reseed was testing against forged state.
+        //
+        // ONE row per couple, in the shape a genuine acceptance leaves behind:
+        // requested, then answered. Seeded personas are meant to look like households
+        // that went through the flow, not like households that bypassed it.
+        SpousePermission::where(function ($q) use ($primaryUser, $spouse) {
+            $q->where('user_id', $primaryUser->id)->where('spouse_id', $spouse->id);
+        })->orWhere(function ($q) use ($primaryUser, $spouse) {
+            $q->where('user_id', $spouse->id)->where('spouse_id', $primaryUser->id);
+        })->delete();
+
+        SpousePermission::create([
+            'user_id' => $primaryUser->id,
+            'spouse_id' => $spouse->id,
+            'status' => 'accepted',
+            'requested_at' => now()->subDay(),
+            'responded_at' => now(),
+        ]);
 
         // Create bidirectional spouse family member records with linked_user_id
         FamilyMember::updateOrCreate(

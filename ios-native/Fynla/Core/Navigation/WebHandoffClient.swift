@@ -21,6 +21,10 @@ enum WebHandoffDestination: String, Codable, CaseIterable, Sendable {
     case privacy = "privacy"
     case notifications = "notifications"
     case estateWill = "estate_will"
+    /// W-0469. `/m` hands the Inheritance Tax breakdown off to the web screen
+    /// rather than rendering a subset of it; native mirrors that destination so
+    /// the two mobile surfaces do not diverge on where the detail lives.
+    case estateIht = "estate_iht"
 }
 
 private struct WebHandoffResponse: Decodable, Sendable {

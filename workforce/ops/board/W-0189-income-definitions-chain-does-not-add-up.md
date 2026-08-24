@@ -4,7 +4,7 @@ title: The Income Definitions panel shows a chain of labelled steps whose arithm
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0020-cycle2-auditability-figures-the-user-cannot-check.md
 owner: build-lead
-status: handoff
+status: gated
 severity: medium
 surfaces: [web]
 created: 2026-08-22T00:35:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T06:45:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0134, W-0175]
 prior_art_outcome: extend

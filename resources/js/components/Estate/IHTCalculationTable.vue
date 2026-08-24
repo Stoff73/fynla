@@ -114,8 +114,15 @@
         <tr v-if="showBusinessRelief" class="bg-white">
           <td class="px-4 py-3 text-sm text-horizon-500 pl-8">
             Less: Business Property Relief
+            <!--
+              W-0466. This sub-line used to repeat the caveat's own claim —
+              "Does not model Agricultural Property Relief or AIM shares" — which was
+              a SECOND HOME for it (Rule 20) and a Rule 9 breach the caveat rewrite
+              missed, because it fixed the engine's sentence and not this copy of it.
+              The caveat itself renders below the table, from the engine, once.
+            -->
             <span class="block text-body-xs text-neutral-500">
-              Relief on qualifying business assets. Does not model Agricultural Property Relief or AIM shares.
+              Relief on qualifying business assets.
             </span>
           </td>
           <td class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatLiability(businessRelief.now) }}</td>
@@ -260,6 +267,20 @@
         </tr>
       </tbody>
     </table>
+
+    <!--
+      W-0466. Rendered here so every surface showing this table shows the caveat with
+      it. `/plans/estate` printed an unqualified Inheritance Tax figure because the
+      caveat markup lived in the other parent (tax-compliance-reviewer round five, G2).
+    -->
+    <div v-if="unmodelledReliefCaveat || projectedPensionExclusionCaveat" class="bg-eggshell-500 rounded-lg p-4 mt-6">
+      <h3 class="text-sm font-semibold text-violet-800">What this figure does not include</h3>
+      <p v-if="unmodelledReliefCaveat" class="mt-2 text-sm text-violet-800">{{ unmodelledReliefCaveat }}</p>
+      <!-- W-0363 — the projected column omits defined contribution pensions, which
+           form part of the estate from the configured date. Stated at the point the
+           affected figure is shown, not left silent. Sentence from the engine. -->
+      <p v-if="projectedPensionExclusionCaveat" class="mt-2 text-sm text-violet-800">{{ projectedPensionExclusionCaveat }}</p>
+    </div>
   </div>
 </template>
 
@@ -330,6 +351,25 @@ export default {
     businessRelief: {
       type: Object,
       default: () => ({ now: 0, minus5: 0, projected: 0, plus5: 0 }),
+    },
+
+    // W-0466 G3/G2 — the caveat lives HERE, with the table, rather than beside it
+    // in each parent. Two surfaces render this component — the Inheritance Tax
+    // screen and `/plans/estate` — and the first had the caveat while the second
+    // printed an unqualified figure, because each parent enumerates its own
+    // markup. One home, so a third consumer cannot inherit the gap (Rule 20).
+    //
+    // The SENTENCE is still the engine's; this only decides where it appears.
+    unmodelledReliefCaveat: {
+      type: String,
+      default: null,
+    },
+
+    // W-0363 — same contract as the caveat above: the engine owns the sentence, this
+    // only decides where it appears.
+    projectedPensionExclusionCaveat: {
+      type: String,
+      default: null,
     },
 
     // Estate after NRB (pre-computed in parent)

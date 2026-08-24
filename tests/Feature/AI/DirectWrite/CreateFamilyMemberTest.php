@@ -88,7 +88,7 @@ it('create_family_member refuses a spouse with no email rather than writing an u
         ->and($user->fresh()->spouse_id)->toBeNull();
 });
 
-it('create_family_member links the household when given the spouse email', function (): void {
+it('create_family_member invites, rather than creating, an unregistered spouse email', function (): void {
     Mail::fake();
     $user = User::factory()->create(['is_preview_user' => false, 'surname' => 'Carter']);
 
@@ -105,15 +105,23 @@ it('create_family_member links the household when given the spouse email', funct
     $spouseUser = User::where('email', 'emily@example.com')->first();
     $fm = FamilyMember::find($result['entity_id']);
 
-    expect($spouseUser)->not->toBeNull()
+    // W-0349 (CSJ, 2026-08-23). This case asserted that Fyn, handed an email
+    // address nobody owns, CREATED an account for it, linked both sides and
+    // wrote `accepted` on both permission rows — the same forgery the HTTP
+    // surface was fixed for in W-0347, reachable through the chat tool.
+    //
+    // Fyn now invites. The caller keeps their own card for their partner; the
+    // partner keeps their own account, which is to say they keep not having one
+    // until they choose otherwise.
+    expect($spouseUser)->toBeNull()
         ->and($fm->relationship)->toBe('spouse')
-        ->and($fm->linked_user_id)->toBe($spouseUser->id)
-        ->and($fm->isLinkedAccount())->toBeTrue()
-        ->and($user->fresh()->spouse_id)->toBe($spouseUser->id)
-        ->and($spouseUser->spouse_id)->toBe($user->id);
+        ->and($fm->linked_user_id)->toBeNull()
+        ->and($fm->isLinkedAccount())->toBeFalse()
+        ->and($user->fresh()->spouse_id)->toBeNull();
 
-    expect(SpousePermission::where('user_id', $user->id)->where('spouse_id', $spouseUser->id)->value('status'))->toBe('accepted')
-        ->and(SpousePermission::where('user_id', $spouseUser->id)->where('spouse_id', $user->id)->value('status'))->toBe('accepted');
+    // No permission row either: `spouse_permissions.spouse_id` is a foreign key
+    // to `users`, and there is no invitee row to point one at.
+    expect(SpousePermission::where('user_id', $user->id)->exists())->toBeFalse();
 });
 
 it('create_family_member produces the same household as capture_spouse_details', function (): void {
@@ -142,7 +150,11 @@ it('create_family_member produces the same household as capture_spouse_details',
 
         return [
             'rows' => FamilyMember::where('user_id', $u->id)->where('relationship', 'spouse')->count(),
-            'linked' => $fm?->linked_user_id === $spouse?->id,
+            // `$fm?->linked_user_id === $spouse?->id` was a Collision: with no
+            // link at all both sides are null, `null === null` is true, and the
+            // probe reported a linked household for an unlinked one. Asked as a
+            // concrete value, it cannot answer true by coincidence.
+            'linked_to' => $fm?->linked_user_id,
             'reciprocal_user' => $spouse?->spouse_id === $u->id,
             'reciprocal_row' => FamilyMember::where('user_id', $spouse?->id)->where('linked_user_id', $u->id)->count(),
             'permissions' => SpousePermission::where('user_id', $u->id)->where('spouse_id', $spouse?->id)->value('status')
@@ -151,13 +163,16 @@ it('create_family_member produces the same household as capture_spouse_details',
     };
 
     // Rule 20: two entrances, one mechanism — so one outcome.
+    // The Rule 20 assertion is the point of this case and is UNCHANGED: whichever
+    // tool the model picks, the household ends up in the same state. What changed
+    // is which state that is — an invitation, not a manufactured link (W-0349).
     expect($shape($viaCreate))->toBe($shape($viaCapture))
         ->and($shape($viaCreate))->toBe([
             'rows' => 1,
-            'linked' => true,
-            'reciprocal_user' => true,
-            'reciprocal_row' => 1,
-            'permissions' => 'accepted/accepted',
+            'linked_to' => null,
+            'reciprocal_user' => false,
+            'reciprocal_row' => 0,
+            'permissions' => '/',
         ]);
 });
 

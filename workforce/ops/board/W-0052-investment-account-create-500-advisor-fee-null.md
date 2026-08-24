@@ -12,6 +12,7 @@ claimed: null
 blocked_by: []
 gate: null
 handoff_to: null
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [W-0008]
 prior_art_outcome: regression-of
@@ -215,3 +216,17 @@ frontend guarantee — this is a silent class and W-0026 was the same shape in r
   **NOT browser-verified, per instruction** — the tester holds the create path and
   will confirm, including `ownership_percentage = 50` on a new joint row, which
   this bug was blocking.
+
+- 2026-08-24 — **Already fixed in the tree; the item was stale.** `InvestmentAccountNormaliser`
+  drops a null for any NOT NULL-with-default column, and `InvestmentController` routes both
+  the create (`:403`) and update (`:559`) paths through it.
+
+- 2026-08-24 — **Verified, not assumed.** `tests/Feature/Investment/InvestmentAccountNotNullColumnsTest.php`
+  passes 4/4: create with the panel collapsed, update with it collapsed, an adviser fee that
+  IS supplied still stored, and the NOT NULL list checked against the live schema.
+
+- 2026-08-24 — Worth keeping: the fix covers the CLASS, not the instance. The tester found one
+  field; **28 columns on this table are reachable from a client payload and NOT NULL with a
+  default**, and any of them sent as null would have failed identically. The schema-drift test
+  reddens if a column is added or a validation rule newly exposes one.
+

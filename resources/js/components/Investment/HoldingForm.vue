@@ -31,6 +31,9 @@
             <div v-if="saveError" class="bg-eggshell-500 rounded-lg p-4">
               <p class="text-sm text-raspberry-800">{{ saveError }}</p>
             </div>
+            <!-- W-0466 placeholder — see the component for why it exists and when it goes. -->
+            <UnmodelledAimNotice />
+
             <!--
               Where this holding lives. A holding is polymorphic — `holdable_type`
               has always accepted `App\Models\DCPension` as well as an investment
@@ -347,11 +350,13 @@
 </template>
 
 <script>
+import UnmodelledAimNotice from './UnmodelledAimNotice.vue';
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
+  components: { UnmodelledAimNotice },
   name: 'HoldingForm',
 
   emits: ['save', 'close'],

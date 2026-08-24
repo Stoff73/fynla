@@ -45,6 +45,9 @@ class MortgageService
         $mortgageData = [
             'property_id' => $property->id,
             'lender_name' => $validated['mortgage_lender_name'] ?? 'To be completed',
+            // W-0012 — accepted by the request as of 2026-08-24; without this line
+            // it would validate and then still not be written.
+            'mortgage_account_number' => $validated['mortgage_account_number'] ?? null,
             'mortgage_type' => $validated['mortgage_type'] ?? 'repayment',
             'repayment_percentage' => $validated['mortgage_repayment_percentage'] ?? null,
             'interest_only_percentage' => $validated['mortgage_interest_only_percentage'] ?? null,

@@ -789,10 +789,18 @@ class User extends Authenticatable
      * withdrew sharing was still sharing. Revoke is now the invitee's remedy,
      * so it has to actually work.
      *
-     * An accepted `spouse_permissions` row is now the only thing that grants
-     * this. Existing links were backfilled with one at the time of the change
-     * (2026_08_23_120000_backfill_spouse_permissions_for_existing_links) so no
-     * household lost access on deploy.
+     * An accepted `spouse_permissions` row is the only thing that grants this.
+     *
+     * **W-0347 G2 — this paragraph asserted the opposite of what ships.** It said
+     * existing links were backfilled with an accepted row "so no household lost
+     * access on deploy", and named a migration that has since been DELETED. CSJ's
+     * decision was to re-ask rather than to grandfather, so
+     * `2026_08_24_130000_reask_spouse_permissions_nobody_granted` turns every row
+     * nobody granted into an unanswered request: **every affected household DOES lose
+     * access at release, until somebody accepts.** That is the intended behaviour, and
+     * a docblock claiming a safeguard the code does not perform is precisely the
+     * defect compliance flagged as F1 — here in the model that is the gate for the
+     * whole application.
      */
     public function hasAcceptedSpousePermission(): bool
     {
@@ -821,7 +829,14 @@ class User extends Authenticatable
         })->orWhere(function ($query) use ($spouse) {
             $query->where('user_id', $spouse->id)
                 ->where('spouse_id', $this->id);
-        })->first();
+        })
+            // W-0347 F5 — a couple could hold a row in each direction, and this
+            // read and `revoke()` both took `first()` with no order. Withdraw on
+            // the row one query happens to find and the other still says yes.
+            // The migration collapses the historic pairs; this makes the read
+            // deterministic whatever arrives later.
+            ->orderBy('id')
+            ->first();
 
         // An explicit row is the answer whenever there is one — including a
         // withdrawal, which is why `revoke` now marks the row rather than
@@ -835,9 +850,14 @@ class User extends Authenticatable
         // one built by a seeder or a test. Honoured. Since W-0347 a reciprocal
         // link cannot be created without someone accepting — `accept()` writes
         // both halves together, and nothing else does — so a link with no row
-        // is history, not a bypass. The backfill migration gives these an
-        // explicit row so the sharing screen can show it and the user can
-        // withdraw it.
+        // is history, not a bypass.
+        //
+        // W-0347 G9 — this default is FAIL-OPEN, and the re-ask migration closes it
+        // for existing data only by giving every reciprocal pair a row. The branch
+        // stays live, so any future path that creates a reciprocal link WITHOUT a row
+        // silently grants consent, in the method whose whole job is to be the gate.
+        // Left as is because inverting it is a behaviour change that would also cut
+        // off seeded and test data; named here so the next person choosing sees it.
         return true;
     }
 

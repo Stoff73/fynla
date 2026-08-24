@@ -4,13 +4,14 @@ title: TierResolver docblock says "explicit users.tier wins" but resolve() never
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: handoff
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-21T08:30:00Z
 claimed: 2026-08-21T09:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T09:10:00Z
 prior_art_found: ["codex/plans/ios/2026-07-14-ios-04-storekit-entitlements.md:95-96 — the decision that users.tier is a cache, not the gate", "codex/plans/programme/2026-07-14-freemium-economic-contract-remediation.md:706 — same posture", "app/Services/Billing/PremiumEntitlementResolver.php — zero ->tier references (verified)"]
 prior_art_outcome: none

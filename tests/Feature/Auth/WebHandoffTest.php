@@ -176,6 +176,7 @@ it('keeps the destination allowlist in step with the native mirror', function ()
         WebHandoffDestination::cases()
     ))->toBe([
         'admin', 'subscription', 'settings', 'privacy', 'notifications', 'estate_will',
+        'estate_iht',
     ]);
 });
 

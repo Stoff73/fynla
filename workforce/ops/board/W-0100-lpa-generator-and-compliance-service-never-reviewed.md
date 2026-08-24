@@ -6,8 +6,9 @@ branch: branches/fixes/F-0008-batch-g-lpa.md
 owner: build-lead
 claimed_by: fix-batch-G
 reviewers: [compliance-lead, product-lead]
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 severity: medium
 surfaces: [web, m, ios]
 source: found by compliance-perimeter while anchoring the regime map, 2026-08-21; existence verified by coordinator

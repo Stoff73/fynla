@@ -4,13 +4,14 @@ title: Dead-end — a user whose only pension is Defined Benefit cannot add any 
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: handoff
+status: gated
 surfaces: [web, m, ios]
 created: 2026-08-20T23:05:00Z
 claimed: 2026-08-21T09:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21T09:10:00Z
 prior_art_found: ["resources/js/components/NetWorth/PensionList.vue pension-cta-row (existing control, wrongly scoped)", "resources/js/components/Retirement/UnifiedPensionForm.vue + DCPensionForm.vue pension-type dropdown already covers Defined Benefit and State Pension", "resources/mobile/views/modules/Retirement.vue buildContextualConversationRequest(action: add) — /m has no equivalent dead-end"]
 prior_art_outcome: extend

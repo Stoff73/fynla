@@ -4,8 +4,9 @@ title: Fyn stored every joint liability at 100/0 — half the debt attributed to
 mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: fix-batch-F
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T19:30:00Z
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
 severity: medium

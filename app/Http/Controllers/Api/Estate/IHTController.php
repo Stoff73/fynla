@@ -75,25 +75,35 @@ class IHTController extends Controller
                 $dataSharingEnabled
             );
 
-            // Calculate total liabilities (current and projected)
-            $totalLiabilities = $liabilitiesBreakdown['user']['total'];
-            $projectedLiabilities = $liabilitiesBreakdown['user']['projected_total'];
-
-            if ($dataSharingEnabled && isset($liabilitiesBreakdown['spouse'])) {
-                $totalLiabilities += $liabilitiesBreakdown['spouse']['total'];
-                $projectedLiabilities += $liabilitiesBreakdown['spouse']['projected_total'];
-            }
-
-            // Add liabilities to calculation object
-            $calculation['total_liabilities'] = $totalLiabilities;
-            $calculation['projected_liabilities'] = $projectedLiabilities;
-
-            // Recalculate projected net estate using correct projected liabilities
-            // (Service assumes liabilities stay constant, but mortgages are paid off by age 70)
-            $calculation['projected_net_estate'] = $calculation['projected_gross_assets'] - $projectedLiabilities;
-
-            // Let the service's projected_taxable_estate and projected_iht_liability stand
-            // (they account for RNRB taper and charitable rate correctly)
+            // W-0470 / W-0465 F5, F6 — these three lines used to overwrite the
+            // engine's own figures with the DISPLAY breakdown's, and the
+            // breakdown does not project:
+            //
+            //   * mortgages: `($ageAtDeath >= 70) ? 0 : $userShare` — a binary
+            //     cliff on a hardcoded age, off a hardcoded horizon of 85,
+            //     reading no maturity date (`IHTFormattingService:376`);
+            //   * every other liability: `'projected_balance' => $userShare` —
+            //     never amortised at all (`:406`, `:415`);
+            //   * and the CURRENT total read `Liability::where('user_id')`, one
+            //     leg, where the engine reads `forUserOrJoint()` — so a debt the
+            //     user is joint owner of was inside the net estate and missing
+            //     from the Liabilities row printed beside it.
+            //
+            // `IHTCalculationService::projectMemberLiabilities()` reads the real
+            // maturity date or estimates a payoff, amortises, returns zero for a
+            // debt that ends before death, and runs on the household horizon the
+            // assets are grown to. That is the deductible liability at death —
+            // IHTA 1984 s5(3), s162, s175A.
+            //
+            // **The direction decided this.** The breakdown's figure is
+            // systematically larger, and a larger liability means a smaller taper
+            // base, less taper, more residence band surviving, LESS tax. Adopting
+            // it to make the column reconcile would have moved tax the wrong way.
+            // (tax-compliance-reviewer, round four, 2026-08-24.)
+            //
+            // Do not reintroduce any of them. The display breakdown still renders
+            // its own per-liability rows; rebuilding those on the projection is
+            // the remaining half of W-0470.
 
             // Format response for frontend compatibility
             $response = [
@@ -169,11 +179,24 @@ class IHTController extends Controller
                     'iht_rate_type' => $calculation['iht_rate_type'],
                     'iht_rate_message' => $calculation['iht_rate_message'],
                     'effective_rate' => $calculation['effective_rate'],
+                    // W-0466 — null for an estate the exclusions cannot affect, so a
+                    // screen renders it with `v-if` and no household sees a caveat
+                    // that does not apply to it. The WORDS come from the engine
+                    // (Rule 20): web and `/m` ship separate bundles that share no
+                    // constants, and `/m` computes nothing.
+                    'unmodelled_relief_caveat' => $calculation['unmodelled_relief_caveat'] ?? null,
+                    // W-0363 — published to every surface, not just the one that
+                    // happened to be open when it was written (Rule 19/20).
+                    'projected_pension_exclusion_caveat' => $calculation['projected_pension_exclusion_caveat'] ?? null,
                 ],
                 'projected' => [
                     'net_estate' => $calculation['projected_net_estate'],
                     'gross_assets' => $calculation['projected_gross_assets'],
                     'liabilities' => $calculation['projected_liabilities'],
+                    // W-0465 — the projected column's own relief. It applied none at
+                    // all, so a capped business showed the whole relief in one column
+                    // and nothing in the other, on a screen built to compare them.
+                    'business_relief_deduction' => $calculation['projected_business_relief_deduction'] ?? 0,
                     // W-0136 — the projection has its OWN allowances. The residence
                     // band tapers away above £2,000,000 and the charitable exemption
                     // is re-assessed against the projected estate, so the projected

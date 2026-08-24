@@ -4,7 +4,7 @@ title: A 24-hour cache served a wrong dashboard for 21 hours and hid a fix that 
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0022-cycle4-dashboard-module-totals-and-cache.md
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T18:30:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T19:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0186, W-0190, F-0019]
 prior_art_outcome: extend

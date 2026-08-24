@@ -4,12 +4,13 @@ title: All three relevant-property trust surfaces use non-palette blue-* and gre
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0005-design-lead-palette-and-copy.md
 owner: design-lead
-status: handoff
+status: gated
 severity: low
 surfaces: [web, m]
 source: flagged by design-lead during W-0021 review, 2026-08-21; deliberately not bundled into that fix
 claimed: 2026-08-21
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_outcome: extend
 constitution_refs: [07-quality-bar]

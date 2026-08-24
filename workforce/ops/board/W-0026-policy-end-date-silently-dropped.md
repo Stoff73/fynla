@@ -4,7 +4,7 @@ title: Policy end date is validated, accepted, 201'd and silently discarded on 4
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0006-batch-d-protection-goals.md
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T09:55:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-21T11:00:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-21
 prior_art_found: [BasePolicyRequest::commonRules, UpdateRecordAllowlist (W-0017/BUG-02 precedent)]
 prior_art_outcome: extend

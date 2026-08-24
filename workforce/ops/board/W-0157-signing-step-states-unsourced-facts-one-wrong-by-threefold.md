@@ -5,8 +5,9 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0008-batch-g-lpa.md
 owner: build-lead
 reviewers: [compliance-lead]
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed_by: fix-batch-G
 severity: high
 surfaces: [web]

@@ -4,7 +4,7 @@ title: 18 numeric `max:` rules permit values their decimal column cannot physica
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0023-cycle4-validation-and-silent-data-loss.md
 owner: build-lead
-status: handoff
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T21:25:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T21:25:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0261, W-0052]
 prior_art_outcome: none

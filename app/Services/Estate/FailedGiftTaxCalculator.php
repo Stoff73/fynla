@@ -75,8 +75,20 @@ final class FailedGiftTaxCalculator
      *   failed_gifts: list<array<string, mixed>>
      * }
      */
-    public function forMember(User $member, float $nrbSingle): array
+    /**
+     * @param  Carbon|null  $deathDate  the date of death being modelled. Defaults to
+     *                                  today — the "current" column's assumption. The
+     *                                  PROJECTED column models a death decades away,
+     *                                  where today's gifts have dropped out of
+     *                                  cumulation entirely (W-0361), and it passes the
+     *                                  projected date so the same rules are applied to
+     *                                  the right date rather than a second set of
+     *                                  rules being written for it.
+     */
+    public function forMember(User $member, float $nrbSingle, ?Carbon $deathDate = null): array
     {
+        $deathDate = $deathDate ?? today();
+
         $petRules = $this->taxConfig->getPETRules();
         $cltRules = $this->taxConfig->getCLTRules();
 
@@ -94,14 +106,14 @@ final class FailedGiftTaxCalculator
 
         $gifts = Gift::where('user_id', $member->id)
             ->whereIn('gift_type', ['pet', 'clt'])
-            ->where('gift_date', '>', today()->subYears($searchBound))
+            ->where('gift_date', '>', $deathDate->copy()->subYears($searchBound))
             ->orderBy('gift_date')
             ->get()
             ->map(fn (Gift $gift): array => [
                 'model' => $gift,
                 'value' => (float) $gift->gift_value,
                 'type' => $gift->gift_type === 'clt' ? 'clt' : 'pet',
-                'years' => $this->yearsSince($gift->gift_date),
+                'years' => $this->yearsSince($gift->gift_date, $deathDate),
             ])
             ->filter(fn (array $g): bool => $g['value'] > 0)
             ->values();
@@ -333,12 +345,12 @@ final class FailedGiftTaxCalculator
      * comparing whole years works only if the truncation direction happens to be
      * right at every boundary. Comparing the real elapsed time removes the question.
      */
-    private function yearsSince(?Carbon $date): float
+    private function yearsSince(?Carbon $date, ?Carbon $deathDate = null): float
     {
         if ($date === null) {
             return INF;
         }
 
-        return $date->floatDiffInYears(today());
+        return $date->floatDiffInYears($deathDate ?? today());
     }
 }

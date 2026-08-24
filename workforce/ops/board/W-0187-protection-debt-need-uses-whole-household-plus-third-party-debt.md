@@ -4,7 +4,7 @@ title: Protection charges one person the entire household's mortgage debt includ
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0019-cycle2-ownership-applied-one-side-only.md
 owner: build-lead
-status: handoff
+status: gated
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T00:30:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T01:40:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0172, W-0173]
 prior_art_outcome: extend

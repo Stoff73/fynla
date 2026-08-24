@@ -4,7 +4,7 @@ title: Married users are offered a one-sided Simple Will with no warning — onl
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead, design-lead]
-status: handoff
+status: gated
 severity: high
 surfaces: [web, m, ios]
 source: CSJ direction 2026-08-21, observed live during persona run 20-08-2026 Pass A
@@ -13,6 +13,7 @@ prior_art_outcome: extend
 branch: branches/fixes/F-0003-batch-b-estate-wills.md
 claimed: 2026-08-21T09:40:00Z
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 ---
 
 ## Intent

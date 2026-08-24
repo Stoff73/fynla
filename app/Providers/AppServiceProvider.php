@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Observers\RecommendationTrackingObserver;
+use App\Observers\SurvivingSpouseExpenditureObserver;
 use App\Observers\UserOnboardingStepObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
@@ -219,6 +220,7 @@ class AppServiceProvider extends ServiceProvider
         DocumentArticle::observe(DocumentArticleObserver::class);
         RecommendationTracking::observe(RecommendationTrackingObserver::class);
         User::observe(UserOnboardingStepObserver::class);
+        User::observe(SurvivingSpouseExpenditureObserver::class);
     }
 
     /**

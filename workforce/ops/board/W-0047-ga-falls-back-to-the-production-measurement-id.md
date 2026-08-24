@@ -4,8 +4,9 @@ title: Google Analytics falls back to the hardcoded production measurement ID, s
 mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: fix-batch-F
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
 severity: high
 surfaces: [web, m]

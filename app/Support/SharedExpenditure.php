@@ -119,4 +119,35 @@ final class SharedExpenditure
 
         return $household;
     }
+
+    /**
+     * The household figure a stored share came from. W-0477.
+     *
+     * The inverse of `shareOf()`, and it lives beside it deliberately: the moment
+     * these two rules are written in two places, one of them will be edited alone.
+     *
+     * **Why it is needed at all.** Under the shared mode the row IS the half — every
+     * writer divides on the way in and every reader trusts what is stored. That is
+     * only true while there are two accounts. When one goes, the stored halves do not
+     * change, so the survivor holds £600 of groceries that means £1,200 of household
+     * spending, and from that moment every reader — the affordability statements, the
+     * cash-flow projection, `/m`'s expenditure screen — treats the half as the whole.
+     * It UNDERSTATES spending and therefore OVERSTATES disposable income, which is
+     * what every affordability statement rests on.
+     *
+     * @param  array<string, mixed>  $share  one account's stored figures
+     * @return array<string, mixed> the same keys, in household terms
+     */
+    public static function householdOf(array $share): array
+    {
+        foreach (self::SHARED_FIELDS as $field) {
+            if (! array_key_exists($field, $share) || $share[$field] === null) {
+                continue;
+            }
+
+            $share[$field] = (float) $share[$field] / self::JOINT_SHARE;
+        }
+
+        return $share;
+    }
 }

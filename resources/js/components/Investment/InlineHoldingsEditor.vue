@@ -128,6 +128,9 @@
       </div>
     </div>
 
+    <!-- W-0466 placeholder — see the component for why it exists and when it goes. -->
+    <UnmodelledAimNotice class="mt-3" />
+
     <!-- Add Holding Button -->
     <button
       type="button"
@@ -174,6 +177,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import UnmodelledAimNotice from './UnmodelledAimNotice.vue';
 import { allocationErrorMessage, isOverAllocated } from '@/utils/holdingsAllocation';
 
 const ASSET_TYPES = [
@@ -191,6 +195,8 @@ const ASSET_TYPES = [
 
 export default {
   name: 'InlineHoldingsEditor',
+
+  components: { UnmodelledAimNotice },
 
   mixins: [currencyMixin],
 

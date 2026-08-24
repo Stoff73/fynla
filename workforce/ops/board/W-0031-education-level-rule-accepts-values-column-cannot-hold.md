@@ -4,7 +4,8 @@ title: education_level validation accepts three values the column enum cannot ho
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: handoff
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
+status: gated
 severity: medium
 surfaces: [web, m, ios]
 source: found by fix-batch-C while fixing W-0006, 2026-08-21

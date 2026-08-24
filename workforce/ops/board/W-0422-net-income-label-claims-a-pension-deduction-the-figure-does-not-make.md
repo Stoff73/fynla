@@ -4,7 +4,7 @@ title: "\"Net Income (after tax, pension contributions and tax credits)\" sits o
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0030-cycle4-letter-and-income-labels.md
 owner: build-lead (fix-cycle4-letter-income)
-status: handoff
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-23T02:05:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-23T02:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CERTIFIED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-23
 prior_art_found: [W-0174, W-0175, W-0176]
 prior_art_outcome: extend

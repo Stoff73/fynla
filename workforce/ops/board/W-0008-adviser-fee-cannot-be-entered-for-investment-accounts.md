@@ -4,13 +4,14 @@ title: Adviser fee cannot be entered for investment accounts — displayed and c
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: queued
 surfaces: [web, m, ios]
 created: 2026-08-20T22:26:00Z
 claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: REJECTED 2026-08-24 quality-lead — see ops/handoffs/quality-lead/cycle4-recertification-2026-08-24.md
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['DCPensionForm.vue advisor_fee_percent (proven pattern)', 'StoreDCPensionRequest advisor_fee_percent rule', 'InvestmentAccount model fillable + cast already present', 'InvestmentAccountNormaliser already casts advisor_fee_percent']
 prior_art_outcome: extend

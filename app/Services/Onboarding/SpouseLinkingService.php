@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Exceptions\SpouseCollisionException;
-use App\Mail\SpouseAccountCreated;
+use App\Mail\SpouseInvitation;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
-use App\Models\UserConsent;
 use App\Notifications\SpousePermissionRequest;
 use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 /**
  * Shared spouse linking logic used by both the FamilyMembers UI flow
@@ -185,7 +182,7 @@ final class SpouseLinkingService
             return $this->linkExistingSpouse($currentUser, $spouseUser, $data, $maritalStatus);
         }
 
-        return $this->createAndLinkNewSpouse($currentUser, $data, $spouseEmail, $maritalStatus);
+        return $this->inviteUnregisteredSpouse($currentUser, $data, $spouseEmail, $maritalStatus);
     }
 
     /**
@@ -383,89 +380,71 @@ final class SpouseLinkingService
     }
 
     /**
-     * Spouse does not exist. Create a new User row with a random
-     * temporary password, link, create permissions, send credentials
-     * email. All DB writes inside a transaction; email is sent outside
-     * the transaction so a mail failure does not roll back the linking.
+     * Spouse address has NO Fynla account. INVITE it; create nothing.
+     *
+     * W-0349, CSJ decision 2026-08-23. This method replaces
+     * `createAndLinkNewSpouse()`, which created a real `User` row with a random
+     * temporary password for an address the caller had merely typed, linked it,
+     * wrote `accepted` on both permission rows via
+     * `createSpousePermissionsForCreatedAccount()`, and emailed login
+     * credentials. Two harms came out of that, and this method removes both:
+     *
+     *   1. **Account creation for arbitrary addresses.** Any authenticated user
+     *      could cause `users` rows to exist for any address they could type.
+     *   2. **The enumeration oracle.** Because the created-account branch
+     *      returned a visibly different response from the invited-account
+     *      branch, the endpoint answered "does this address hold a Fynla
+     *      account?" for anyone who asked. Collapsing the two branches to one
+     *      response is what closes it — and they can only return the same thing
+     *      if they DO the same thing. That is why the fix is here in the
+     *      service and not a cosmetic edit in the controller.
+     *
+     * The shape returned is deliberately identical to `linkExistingSpouse()`'s
+     * invitation branch, field for field. **If you add a key to one, add it to
+     * the other or the oracle re-opens** — the difference between the two
+     * responses IS the disclosure.
+     *
+     * No `spouse_permissions` row is written: that table's `spouse_id` is a
+     * foreign key to `users`, and there is no invitee row to point at. The link
+     * begins when they register and one side asks — which is the same consent
+     * path an existing account already takes.
      *
      * @param  array<string, mixed>  $data
-     * @return array{family_member: FamilyMember, spouse_user: User, created_new_user: bool, already_linked: bool, email_sent: bool, temporary_password: ?string}
+     * @return array{family_member: FamilyMember, spouse_user: ?User, created_new_user: bool, already_linked: bool, invitation_pending: bool, email_sent: bool, temporary_password: null}
      */
-    private function createAndLinkNewSpouse(
+    private function inviteUnregisteredSpouse(
         User $currentUser,
         array $data,
         string $spouseEmail,
         string $maritalStatus
     ): array {
-        $temporaryPassword = Str::random(16);
-
-        [$familyMember, $spouseUser] = DB::transaction(function () use (
-            $currentUser,
-            $data,
-            $spouseEmail,
-            $temporaryPassword,
-            $maritalStatus
-        ) {
-            $firstName = (string) ($data['first_name'] ?? '');
-            $lastName = (string) ($data['last_name'] ?? '');
-
-            $spouseUser = User::create([
-                // The person's own details come from the ONE declared
-                // correspondence, so a field the family-member row carries
-                // cannot quietly fail to reach their account. `middle_name` did
-                // exactly that while this list was written out by hand — the
-                // card had it, the account did not (W-0112). No `name` key
-                // either: `users` has no such column and User::isFillable('name')
-                // is false, so passing one was discarded in silence.
-                ...$this->userAttributesFrom($data),
-                // Creation-only shaping the map does not carry: empty strings
-                // rather than nulls for the name parts, and an explicit zero
-                // income rather than the column default.
-                'first_name' => $firstName,
-                'surname' => $lastName,
-                'annual_employment_income' => $data['annual_income'] ?? 0,
-                'email' => $spouseEmail,
-                'password' => Hash::make($temporaryPassword),
-                'must_change_password' => true,
-                'marital_status' => $maritalStatus,
-                'spouse_id' => $currentUser->id,
-                'household_id' => $currentUser->household_id,
-                'is_primary_account' => false,
-                'address_line_1' => $currentUser->address_line_1,
-                'address_line_2' => $currentUser->address_line_2,
-                'city' => $currentUser->city,
-                'county' => $currentUser->county,
-                'postcode' => $currentUser->postcode,
-            ]);
-
-            // A spouse account is a real login, so it needs the same ai_chat
-            // consent registration grants — without it the Fyn gate answers 403
-            // on every surface and the account is locked out of the product with
-            // nothing to tap. Same basis as AuthController: the journey is chat.
-            UserConsent::recordConsent($spouseUser->id, UserConsent::TYPE_AI_CHAT);
-
-            $currentUser->spouse_id = $spouseUser->id;
+        $familyMember = DB::transaction(function () use ($currentUser, $data, $maritalStatus) {
+            // The caller's OWN marital status is theirs to set, exactly as in
+            // the existing-account invitation. Their `spouse_id` is not set:
+            // there is no account to point it at, and a half link is what every
+            // gate in the application mistakes for a whole one (W-0347).
             $currentUser->marital_status = $maritalStatus;
             $currentUser->save();
 
-            $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
-            $this->createSpousePermissionsForCreatedAccount($currentUser->id, $spouseUser->id);
-
-            $familyMember = $this->upsertFamilyMemberRow($currentUser, $spouseUser->id, $data);
-            $this->createReciprocalFamilyMember($spouseUser, $currentUser);
-
-            return [$familyMember, $spouseUser];
+            // The caller's own household card, carrying NO `linked_user_id`.
+            // They keep the details they entered about their partner; what they
+            // do not get is an account belonging to somebody else.
+            return $this->upsertFamilyMemberRow($currentUser, null, $data);
         });
 
-        $emailSent = $this->sendAccountCreatedEmail($spouseUser, $currentUser, $temporaryPassword);
+        $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser);
 
         return [
             'family_member' => $familyMember,
-            'spouse_user' => $spouseUser,
-            'created_new_user' => true,
+            // Null, not a User. There is no counterparty account, and callers
+            // that used to read `spouse_user` on this path were reading one
+            // this method had just manufactured.
+            'spouse_user' => null,
+            'created_new_user' => false,
             'already_linked' => false,
+            'invitation_pending' => true,
             'email_sent' => $emailSent,
-            'temporary_password' => $temporaryPassword,
+            'temporary_password' => null,
         ];
     }
 
@@ -600,42 +579,21 @@ final class SpouseLinkingService
      * real request from the forged rows this replaced: every one of the ten
      * `accepted` rows on the dev database at the time of the fix carried
      * `requested_at = NULL`, because no request was ever made — the service
-     * wrote the acceptance itself. That NULL is the marker for auditing legacy
-     * links.
+     * wrote the acceptance itself.
+     *
+     * **W-0347 G2 — that NULL was the audit marker only until the release.**
+     * `2026_08_24_130000_reask_spouse_permissions_nobody_granted` converts every row
+     * carrying it into an unanswered request, stamping `requested_at` as it goes, so
+     * after that migration runs no row carries the marker and the population is no
+     * longer identifiable in the data. **If the legacy population has to be
+     * enumerated — for the production census, or for anything that follows from it —
+     * it must be enumerated BEFORE the migration runs.**
      */
     private function createPendingSpouseInvitation(int $requesterId, int $inviteeId): void
     {
         SpousePermission::updateOrCreate(
             ['user_id' => $requesterId, 'spouse_id' => $inviteeId],
             ['status' => 'pending', 'requested_at' => now(), 'responded_at' => null]
-        );
-    }
-
-    /**
-     * Permissions for an account this call just CREATED — not for one that
-     * already existed and belongs to somebody else.
-     *
-     * The distinction is the whole of W-0347. Against an existing account,
-     * writing `accepted` forges the consent of a real person with real records;
-     * that path now invites instead (`createPendingSpouseInvitation`). Against
-     * an account created moments ago by this caller, from data this caller
-     * supplied, holding nothing the caller has not already seen, there is
-     * nothing yet to consent about — and the invitee proves control of the
-     * address by logging in with the credentials emailed to it, then keeps
-     * `DELETE /api/spouse-permission/revoke` if they disagree.
-     *
-     * Do NOT reuse this for an existing account. That is the defect.
-     */
-    private function createSpousePermissionsForCreatedAccount(int $userId, int $spouseId): void
-    {
-        SpousePermission::updateOrCreate(
-            ['user_id' => $userId, 'spouse_id' => $spouseId],
-            ['status' => 'accepted', 'requested_at' => now(), 'responded_at' => now()]
-        );
-
-        SpousePermission::updateOrCreate(
-            ['user_id' => $spouseId, 'spouse_id' => $userId],
-            ['status' => 'accepted', 'requested_at' => now(), 'responded_at' => now()]
         );
     }
 
@@ -667,14 +625,26 @@ final class SpouseLinkingService
         }
     }
 
-    private function sendAccountCreatedEmail(User $spouseUser, User $currentUser, string $temporaryPassword): bool
+    /**
+     * Invite an address with no account to make one. W-0349.
+     *
+     * Replaces `sendAccountCreatedEmail()`, which sent a temporary password for
+     * an account this service had just created. `SpouseInvitation` takes plain
+     * strings rather than a `User` — on this path there is no user, and that is
+     * the whole change.
+     *
+     * A failed send must not roll the family-member row back: the caller's own
+     * record of their partner is theirs, and losing it would make them re-enter
+     * the details with no explanation.
+     */
+    private function sendRegistrationInvitation(string $spouseEmail, User $currentUser): bool
     {
         try {
-            Mail::to($spouseUser->email)->send(new SpouseAccountCreated($spouseUser, $currentUser, $temporaryPassword));
+            Mail::to($spouseEmail)->send(new SpouseInvitation($spouseEmail, $currentUser->name));
 
             return true;
         } catch (\Throwable $e) {
-            Log::error('[SpouseLinkingService] SpouseAccountCreated email failed: '.$e->getMessage());
+            Log::error('[SpouseLinkingService] SpouseInvitation email failed: '.$e->getMessage());
 
             return false;
         }

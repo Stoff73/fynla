@@ -360,6 +360,8 @@
           v-if="secondDeathTableProps"
           v-bind="secondDeathTableProps"
           :iht-rate-label="ihtRateLabel"
+          :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
+          :projected-pension-exclusion-caveat="ihtData?.projected_pension_exclusion_caveat ?? null"
           :has-spouse-linked="hasSpouseLinked"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -382,6 +384,8 @@
         <IHTCalculationTable
           v-bind="standardTableProps"
           :iht-rate-label="ihtRateLabel"
+          :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
+          :projected-pension-exclusion-caveat="ihtData?.projected_pension_exclusion_caveat ?? null"
           :has-spouse-linked="false"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -392,6 +396,14 @@
           @toggle-plus-5="showPlus5Years = !showPlus5Years"
         />
       </div>
+
+      <!--
+        W-0466. The caveat block used to be rendered here. It now lives INSIDE
+        `IHTCalculationTable`, because `/plans/estate` renders that same table and
+        printed an unqualified figure while this screen carried the sentence — two
+        parents, one of them with the markup (round five, G2). Passed as the
+        `unmodelled-relief-caveat` prop below.
+      -->
 
       <!-- Tax Allowances Information -->
       <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -1573,8 +1585,12 @@ export default {
         businessRelief: {
           now: this.ihtData?.business_relief_deduction || 0,
           minus5: this.ihtData?.business_relief_deduction || 0,
-          projected: this.ihtData?.projected_business_relief_deduction ?? (this.ihtData?.business_relief_deduction || 0),
-          plus5: this.ihtData?.projected_business_relief_deduction ?? (this.ihtData?.business_relief_deduction || 0),
+          // W-0465. These fell back to the CURRENT deduction because the server
+          // published no projected figure — a fallback that was only ever right by
+          // accident, and wrong the moment the projected relief differs (a business
+          // over the cap, or one that stops qualifying). The server publishes it now.
+          projected: this.ihtData?.projected_business_relief_deduction || 0,
+          plus5: this.ihtData?.projected_business_relief_deduction || 0,
         },
         charitableExemption: {
           now: this.ihtData?.charitable_deduction || 0,
@@ -1728,6 +1744,12 @@ export default {
               rnrb_eligible: response.iht_summary.current.rnrb_available > 0, // Eligible if RNRB > 0
               rnrb_individual: response.iht_summary.current.rnrb_individual || 0,
               business_relief_deduction: response.iht_summary.current.business_relief_deduction || 0,
+              // W-0466. `?? null` deliberately: this mapping ENUMERATES the payload
+              // rather than spreading it, so a field left out here is invisible on
+              // screen no matter what the server publishes — the same defect shape
+              // as W-0134 and W-0399 above.
+              unmodelled_relief_caveat: response.iht_summary.current.unmodelled_relief_caveat ?? null,
+              projected_pension_exclusion_caveat: response.iht_summary.current.projected_pension_exclusion_caveat ?? null,
               rnrb_spouse_modelled: response.iht_summary.current.rnrb_spouse_modelled || 0,
               rnrb_residence_cap_reduction: response.iht_summary.current.rnrb_residence_cap_reduction || 0,
               rnrb_taper_reduction: response.iht_summary.current.rnrb_taper_reduction || 0,
@@ -1782,6 +1804,10 @@ export default {
               // Projected values. W-0136: the projection has its OWN allowances —
               // the residence band tapers away as the estate grows — so these are
               // not the current figures and must not be substituted for them.
+              // W-0465. This enumerating mapping is where a published field goes to
+              // die (W-0134, W-0399, W-0466 above) — the server can publish it and
+              // the table will still show nothing.
+              projected_business_relief_deduction: response.iht_summary.projected.business_relief_deduction || 0,
               projected_net_estate: response.iht_summary.projected.net_estate,
               projected_taxable_estate: response.iht_summary.projected.taxable_estate,
               projected_iht_liability: response.iht_summary.projected.iht_liability,

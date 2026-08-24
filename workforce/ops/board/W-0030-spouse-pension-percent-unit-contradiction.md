@@ -4,7 +4,8 @@ title: spouse_pension_percent stored as a decimal by the document importer and a
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: handoff
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
+status: gated
 severity: high
 surfaces: [web, m, ios]
 source: found by fix-batch-C while fixing W-0017, 2026-08-21; deliberately not fixed there (different entry path, needs a recorded convention decision)

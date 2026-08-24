@@ -23,8 +23,14 @@
           </div>
           <div class="ml-3 flex-1">
             <h4 class="text-body-sm font-medium text-horizon-600">Account Link Required</h4>
+            <!--
+              W-0349. The WORDING lives on the server, which is the only place
+              that knows whether an invitation has gone out — the fallback here
+              is a generic last resort, deliberately not a second copy of the
+              sentence to drift from (Rule 20).
+            -->
             <p class="mt-1 text-body-sm text-horizon-500">
-              {{ permissionMessage || 'Your spouse needs an account to enable data sharing. Edit your spouse in the Family Members section and add their email address to create or link their account.' }}
+              {{ permissionMessage || 'Your spouse needs an account before anything can be shared.' }}
             </p>
           </div>
         </div>
@@ -50,8 +56,14 @@
             </div>
             <div class="ml-3 flex-1">
               <h4 class="text-body-sm font-medium text-horizon-600">Enable Joint Account View</h4>
+              <!--
+                W-0347 F3, second pass. This described only the benefit flowing to the
+                person clicking, on the screen where they consent to their OWN records
+                being disclosed to the other party. Art. 7(3) wants the right to
+                withdraw stated before consent is given, not after.
+              -->
               <p class="mt-1 text-body-sm text-horizon-500">
-                Request permission to view your spouse's financial data. This allows you to see joint accounts and combined financial statements.
+                Ask your spouse to share financial information with you. If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record.
               </p>
             </div>
           </div>
@@ -110,8 +122,16 @@
             </div>
             <div class="ml-3 flex-1">
               <h4 class="text-body-sm font-medium text-horizon-600">Permission Request Received</h4>
+              <!--
+                W-0347 F3. The old sentence described acceptance as one-way data
+                viewing. It is neither: one accepted row makes the grant MUTUAL,
+                and accepting also writes this account's own `spouse_id`,
+                `marital_status` and `household_id`, none of which `revoke()`
+                reverses. Both were disclosed after the decision or not at all.
+                Same sentence as /m (Rule 20).
+              -->
               <p class="mt-1 text-body-sm text-horizon-500">
-                Your spouse has requested permission to view your financial data. This will allow them to see your assets, liabilities, and income in their account view.
+                Your spouse has requested permission to view your financial data. If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record.
               </p>
               <p class="mt-1 text-body-xs text-horizon-500">
                 Requested: {{ formatDate(permission.requested_at) }}
@@ -152,10 +172,20 @@
             </div>
             <div class="ml-3 flex-1">
               <h4 class="text-body-sm font-medium text-spring-800">Data Sharing Enabled</h4>
+              <!-- W-0347 G11 — `/m` described this state as mutual and web as one-way.
+                   It is mutual: one accepted row makes it true for both parties. -->
               <p class="mt-1 text-body-sm text-spring-700">
-                You can now view joint accounts and combined financial statements with your spouse.
+                You and your spouse can each see the other's assets, liabilities and income.
               </p>
-              <p class="mt-1 text-body-xs text-spring-600">
+              <!--
+                W-0347 F2 — this printed "Accepted: <date>" over rows nobody had
+                accepted, because the forging path set `responded_at` and nothing
+                else. Those rows are now unanswered requests
+                (`2026_08_24_130000_reask_spouse_permissions_nobody_granted`), and
+                the guard keeps the screen from asserting an acceptance again if
+                one ever arrives without a timestamp.
+              -->
+              <p v-if="permission.responded_at" class="mt-1 text-body-xs text-spring-600">
                 Accepted: {{ formatDate(permission.responded_at) }}
               </p>
             </div>
@@ -193,12 +223,36 @@
               <p class="mt-1 text-body-sm text-raspberry-700">
                 Financial information is not being shared between these accounts.
               </p>
-              <p class="mt-1 text-body-xs text-raspberry-600">
+              <p v-if="permission.responded_at" class="mt-1 text-body-xs text-raspberry-600">
                 Since: {{ formatDate(permission.responded_at) }}
               </p>
             </div>
           </div>
         </div>
+
+        <!--
+          W-0347 F4. Once sharing was off, neither party could turn it back on
+          through any interface: `request()` refused while any row existed and
+          `revoke()` leaves a `rejected` one behind. A withdrawal you cannot
+          reverse is one people hesitate to make.
+        -->
+        <!--
+          W-0347 F3 — this is the route by which someone who withdrew turns disclosure
+          back ON, and it carried no notice at all. Same sentence as every other
+          pre-consent screen (Rule 20).
+        -->
+        <p class="text-body-sm text-horizon-500">
+          If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household, with both of you recorded as married or in a civil partnership. You can stop sharing at any time; that turns off what each of you can see, and does not undo the household record.
+        </p>
+
+        <button
+          @click="handleRequestPermission"
+          :disabled="loading"
+          class="btn-primary"
+        >
+          <span v-if="!loading">Ask to share again</span>
+          <span v-else>Sending Request...</span>
+        </button>
       </div>
 
       <!-- Error Message -->

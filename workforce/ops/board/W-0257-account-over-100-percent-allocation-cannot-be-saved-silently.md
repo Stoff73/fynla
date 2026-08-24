@@ -4,7 +4,7 @@ title: An investment account whose holdings exceed 100% allocation cannot be sav
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: handoff
+status: gated
 severity: high
 surfaces: [web]
 created: 2026-08-22T21:40:00Z
@@ -12,6 +12,7 @@ claimed: 2026-08-22T22:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 prior_art_checked: 2026-08-22
 prior_art_found: [RiskLevelSelector, AccountForm, StandardInvestmentFields]
 prior_art_outcome: none

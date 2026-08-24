@@ -410,18 +410,21 @@ class EstatePlanService extends BasePlanService
             $dataSharingEnabled
         );
 
-        // Recalculate projected liabilities from formatting service (same as IHTController)
-        $totalLiabilities = $liabilitiesBreakdown['user']['total'];
-        $projectedLiabilities = $liabilitiesBreakdown['user']['projected_total'];
-
-        if ($dataSharingEnabled && isset($liabilitiesBreakdown['spouse'])) {
-            $totalLiabilities += $liabilitiesBreakdown['spouse']['total'];
-            $projectedLiabilities += $liabilitiesBreakdown['spouse']['projected_total'];
-        }
-
-        $ihtCalc['total_liabilities'] = $totalLiabilities;
-        $ihtCalc['projected_liabilities'] = $projectedLiabilities;
-        $ihtCalc['projected_net_estate'] = ($ihtCalc['projected_gross_assets'] ?? 0) - $projectedLiabilities;
+        // W-0465 F2 — "same as IHTController" was the problem, not the excuse.
+        //
+        // These lines were the identical overwrite the Inheritance Tax controller
+        // carried, on the other surface. W-0465 repaired that one and left this
+        // one, so `/plans/estate` went on subtracting no Business Property Relief
+        // from the projected net estate — **£4,250,000 too high on the £6,000,000
+        // example the fix was verified against** — while publishing a
+        // `projected_taxable_estate` from the service that *does* net the relief.
+        // The same non-reconciling column W-0465 exists to close, one surface
+        // along. Two of three implementations fixed is not a Rule 20 fix.
+        //
+        // Deleted rather than corrected, for the reason the comment four lines
+        // below already gives: a second derivation of a figure the service
+        // publishes is the defect, not a safeguard. The breakdown's liabilities
+        // do not project at all — see the note in `IHTController` and W-0470.
 
         // W-0135 — the projected taxable estate and tax used to be RECOMPUTED here,
         // and that is why `/plans/estate` and `/estate/inheritance-tax` showed the
@@ -464,6 +467,22 @@ class EstatePlanService extends BasePlanService
                 'rnrb_message' => $ihtCalc['rnrb_message'] ?? '',
                 'total_allowances' => $ihtCalc['total_allowances'] ?? 0,
                 'business_relief_deduction' => $ihtCalc['business_relief_deduction'] ?? 0,
+                // W-0466 F3 — this surface prints a full Inheritance Tax figure for
+                // a business-owning household and carried no caveat, because the
+                // fix assumed the `/m` teaser and the web breakdown were the only
+                // places a figure appears. They are not. The engine publishes the
+                // sentence once; every consumer of its tax figure has to read it.
+                'unmodelled_relief_caveat' => $ihtCalc['unmodelled_relief_caveat'] ?? null,
+                // Restored 2026-08-24. `e4aa4cdc9` deleted this line while adding the
+                // caveat beside it, and `EstateCurrentSituation.vue:205-206` never
+                // stopped reading it — so `/plans/estate` showed £0 charitable
+                // exemption in its current column while `/estate/inheritance-tax`,
+                // whose controller still published the key, showed the real figure.
+                //
+                // **Two screens disagreeing about one figure is W-0135 and W-0154's
+                // exact disease, reintroduced by the commit fixing the last round of
+                // it** (quality-lead, re-certification). The docblock below still
+                // says this block matches the controller's shape; it now does again.
                 'charitable_deduction' => $ihtCalc['charitable_deduction'] ?? 0,
                 'taxable_estate' => $ihtCalc['taxable_estate'] ?? 0,
                 'iht_liability' => $ihtCalc['iht_liability'] ?? 0,
@@ -495,6 +514,11 @@ class EstatePlanService extends BasePlanService
                 'rnrb_status' => $ihtCalc['projected_rnrb_status'] ?? 'none',
                 'rnrb_message' => $ihtCalc['projected_rnrb_message'] ?? '',
                 'total_allowances' => $ihtCalc['projected_total_allowances'] ?? 0,
+                // W-0465 F2 — the projected block published no relief key at all,
+                // so even with the net estate corrected there was no row to explain
+                // the gap between gross and net. Same shape as W-0134 / W-0399,
+                // which this file already carries comments about.
+                'business_relief_deduction' => $ihtCalc['projected_business_relief_deduction'] ?? 0,
                 'charitable_deduction' => $ihtCalc['projected_charitable_deduction'] ?? 0,
                 'taxable_estate' => $ihtCalc['projected_taxable_estate'] ?? 0,
                 'iht_liability' => $ihtCalc['projected_iht_liability'] ?? 0,

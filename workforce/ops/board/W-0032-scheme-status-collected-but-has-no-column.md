@@ -4,8 +4,9 @@ title: scheme_status is collected by both pension forms and silently discarded o
 mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: fix-batch-E
-status: handoff
+status: gated
 handoff_to: quality-lead
+certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: branches/fixes/F-0004-batch-e-retirement-income.md
 severity: medium
 surfaces: [web, m, ios]

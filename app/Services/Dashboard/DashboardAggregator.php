@@ -270,14 +270,11 @@ class DashboardAggregator
         // Total premium: sum premiums across all policy types
         $totalPremium = (float) ($data['coverage']['total_premium'] ?? 0);
 
-        // Count critical gaps
-        $gaps = $data['gaps'] ?? [];
-        $criticalGaps = 0;
-        foreach ($gaps as $gap) {
-            if (is_array($gap) && ($gap['shortfall'] ?? 0) > 0) {
-                $criticalGaps++;
-            }
-        }
+        // W-0479 — this counted `$gap['shortfall']` over `gaps`, and the mobile
+        // aggregator counted `$gap['gap']` over the same structure. Neither key is
+        // one `CoverageGapAnalyzer` emits, so both dashboards reported 0 gaps for
+        // every household. The analyzer publishes the count now; nobody re-derives it.
+        $criticalGaps = (int) ($data['gaps']['critical_gap_count'] ?? 0);
 
         return [
             'adequacy_score' => round($adequacyScore, 2),

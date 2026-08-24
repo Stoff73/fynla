@@ -33,7 +33,10 @@ class LifeEventService
         if ($includeHousehold) {
             $user = User::find($userId);
             if ($user && $user->hasAcceptedSpousePermission()) {
-                $spouseId = $user->spouse_user_id;
+                // W-0471 — `spouse_user_id` does not exist on `users`; a model read
+                // of a missing attribute is null, so this was always null and the
+                // household life events never joined.
+                $spouseId = $user->liveSpouseId();
                 if ($spouseId) {
                     $query->orWhere(function ($q) use ($spouseId) {
                         $q->where('user_id', $spouseId)
