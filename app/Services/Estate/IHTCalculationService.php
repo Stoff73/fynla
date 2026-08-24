@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\Estate\Asset;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
@@ -784,6 +785,39 @@ class IHTCalculationService
         $projectedChattels = $chattelValue($userAssets) + $chattelValue($spouseAssets);
         $projectedBusiness = $businessValue($userAssets) + $businessValue($spouseAssets);
 
+        // W-0475 — everything the five projected terms cannot see.
+        //
+        // The current column is built from `gatherUserAssets()`; the projection is
+        // built from SOURCE TABLES — `properties` via `PropertyStore`,
+        // `investment_accounts` via `calculateInvestmentTotal()`, savings via the cash
+        // flow projector. Only chattels and business read the collection. So a row in
+        // the `assets` table was counted today and gone at death, taking the taper
+        // base down with it: UNDERSTATED projected tax.
+        //
+        // **Not `other`-only, and not filtered by `asset_type`.** The board item
+        // named the `other` bucket; measured against the code it is four of the five
+        // types a user can create — `CoordinatingAgent:4055` lets Fyn record
+        // `property`, `pension`, `investment`, `business` or `other`, and only
+        // `business` survives, because that term filters the collection rather than a
+        // table. A row typed `property` is "covered" by NAME and invisible to
+        // `PropertyStore`, so excluding by type would drop it again.
+        //
+        // Keyed on PROVENANCE instead: an `Estate\Asset` row is one the projection's
+        // sources never see. `business` is excluded because the filter above already
+        // counts it from both provenances. **A new member of the enum falls in here
+        // automatically rather than vanishing** — which is what a guard against the
+        // enum and the projection drifting apart actually needs.
+        //
+        // Carried at current value, like chattels and business, because nothing in
+        // the app models growth for an arbitrary asset. That is a stated choice, not
+        // an oversight: unmodelled growth understates by less than a missing asset.
+        $estateAssetResidual = fn ($assets): float => (float) $assets
+            ->filter(fn ($a) => $a instanceof Asset && ($a->asset_type ?? null) !== 'business')
+            ->reject(fn ($a) => $a->is_iht_exempt ?? false)
+            ->sum('current_value');
+
+        $projectedOtherAssets = $estateAssetResidual($userAssets) + $estateAssetResidual($spouseAssets);
+
         // W-0465 — the projection applied NO business relief at all, so a £6,000,000
         // trading business showed £4,250,000 of relief in the current column and
         // nothing in the projected one: the two halves of a table whose entire
@@ -813,7 +847,7 @@ class IHTCalculationService
         $projectedBusinessRelief = $businessRelief($userAssets) + $businessRelief($spouseAssets);
 
         // Calculate totals (include chattels and business at current value)
-        $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness;
+        $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness + $projectedOtherAssets;
         // Relief reduces the CHARGEABLE estate, in the projected column for the same
         // reason and in the same place as the current one (see `$totalNetEstate`).
         $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities - $projectedBusinessRelief;
