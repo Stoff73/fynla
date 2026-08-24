@@ -424,6 +424,10 @@ class IHTCalculationService
             'is_widowed' => $isWidowed,
             'rnrb_transferred' => $rnrbTransferredPooled,
             'nrb_available' => $nrbAvailable,
+            // W-0361 — the projection re-strikes the band against its own date of
+            // death, and needs the gross figure to do it. Published rather than
+            // recomputed so there is one definition of the gross band.
+            'nrb_gross' => $nrbGross,
             'profiles' => $profiles,
             'estate_for_taper' => $estateForTaper,
         ];
@@ -600,6 +604,10 @@ class IHTCalculationService
             // beside both columns cannot be added up. Every figure the projected
             // column needs to reconcile is published here.
             'projected_nrb_available' => $projectedData['projected_nrb_available'],
+            // W-0361 — published beside the band it reduces, so the projected column
+            // reconciles the same way the current one does. A figure a service
+            // computes and does not publish is a figure nobody can check.
+            'projected_nrb_gift_deduction' => $projectedData['projected_nrb_gift_deduction'],
             'projected_rnrb_available' => $projectedData['projected_rnrb_available'],
             'projected_rnrb_individual' => $projectedData['projected_rnrb_individual'],
             'projected_rnrb_spouse_modelled' => $projectedData['projected_rnrb_spouse_modelled'],
@@ -905,6 +913,18 @@ class IHTCalculationService
         // Passing its own value explicitly stops `$ctx['estate_for_taper']` leaking
         // today's figure into a projection decades out. W-0465 changed WHAT is
         // passed: see `$projectedEstateForTaper` above.
+        // W-0361 — re-struck against the modelled date of death, not today.
+        $projectedDeathDate = today()->addYears(max(0, $yearsUntilDeath));
+        $projectedNrbDeduction = $this->calculateNRBDeductionForGifts(
+            $assessment['pooled_members'],
+            (float) ($assessment['iht_config']['nil_rate_band'] ?? 0),
+            $projectedDeathDate,
+        );
+        $projectedNrbAvailable = max(
+            0,
+            (float) $assessment['nrb_gross'] - (float) $projectedNrbDeduction['total_nrb_used'],
+        );
+
         $projected = $this->assessTaxPosition(
             $projectedNetEstate,
             $this->projectMainResidenceNetValue(
@@ -915,7 +935,20 @@ class IHTCalculationService
                 $yearsUntilDeath,
                 $assumptions
             ),
-            ['estate_for_taper' => $projectedEstateForTaper] + $assessment
+            // W-0361 — the projected column's OWN nil rate band. It reused the
+            // current one, whose gift deduction is measured from today: a chargeable
+            // transfer made in 2020 still consumed £150,000 of the band at a death
+            // modelled in 2062, THIRTY YEARS after IHTA 1984 s7(1) drops it out of
+            // cumulation. Measured £500,000 where £650,000 is correct — £60,000 of
+            // overstated projected tax.
+            //
+            // The docblock defending the reuse said the band is "a statutory amount
+            // reduced by chargeable transfers already made, neither of which is a
+            // function of the estate's size". True, and beside the point: it IS a
+            // function of the DATE OF DEATH, and the two columns have different ones.
+            // The same calculator is asked about the projected date rather than a
+            // second rule being written for it.
+            ['estate_for_taper' => $projectedEstateForTaper, 'nrb_available' => $projectedNrbAvailable] + $assessment
         );
 
         return [
@@ -945,7 +978,8 @@ class IHTCalculationService
             'projected_net_estate' => round($projectedNetEstate, 2),
             'projected_taxable_estate' => round($projected['taxable_estate'], 2),
             'projected_iht_liability' => round($projected['iht_liability'], 2),
-            'projected_nrb_available' => round((float) $assessment['nrb_available'], 2),
+            'projected_nrb_available' => round($projectedNrbAvailable, 2),
+            'projected_nrb_gift_deduction' => round((float) $projectedNrbDeduction['total_nrb_used'], 2),
             'projected_rnrb_available' => round((float) $projected['rnrb']['rnrb_available'], 2),
             'projected_rnrb_individual' => round((float) ($projected['rnrb']['rnrb_individual'] ?? 0), 2),
             'projected_rnrb_spouse_modelled' => round((float) ($projected['rnrb']['rnrb_spouse_modelled'] ?? 0), 2),
@@ -2426,7 +2460,7 @@ class IHTCalculationService
      * @param  float  $nrbSingle  The individual NRB amount
      * @return array NRB deduction breakdown, summed across members
      */
-    private function calculateNRBDeductionForGifts(array $members, float $nrbSingle): array
+    private function calculateNRBDeductionForGifts(array $members, float $nrbSingle, ?Carbon $deathDate = null): array
     {
         $totals = [
             'pets_in_7_years' => 0.0,
@@ -2442,7 +2476,7 @@ class IHTCalculationService
         $failedGifts = [];
 
         foreach ($members as $member) {
-            $memberDeduction = $this->failedGiftTax->forMember($member, $nrbSingle);
+            $memberDeduction = $this->failedGiftTax->forMember($member, $nrbSingle, $deathDate);
 
             foreach (array_keys($totals) as $key) {
                 $totals[$key] += $memberDeduction[$key];

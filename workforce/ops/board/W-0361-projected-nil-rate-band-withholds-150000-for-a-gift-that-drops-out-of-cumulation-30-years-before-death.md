@@ -4,7 +4,7 @@ title: The projected nil rate band withholds £150,000 for a chargeable transfer
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: queued
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -50,3 +50,20 @@ reasoning is sound and the conclusion does not follow.
    £500,000. Both stated before and after.
 3. **Routed through `tax-compliance-reviewer` on the fix, not only on the review** —
    this is a statutory window, not an assumption.
+
+## Resolution — 2026-08-24
+
+`FailedGiftTaxCalculator::forMember()` now takes the date of death being modelled,
+defaulting to today. The projection passes its own date, so the SAME rules are applied
+to the right date instead of a second set being written for the projected column. Both
+`today()` calls inside it — the search bound and `yearsSince()` — key off it.
+
+`nrb_gross` is published on the assessment so the projection can re-strike the band
+from the gross figure rather than trying to reverse-engineer it out of the net one.
+`projected_nrb_gift_deduction` is published beside the band it reduces, so the projected
+column reconciles the way the current one does.
+
+Guard: `ProjectedNilRateBandUsesDeathDateTest` — a gift charged in the current column
+and NOT in the projected one for a young household, and still charged for a household
+whose modelled death falls inside the window. **Mutation-checked**: reverting to the
+current column's band reds it. Estate 491, agents/plans/tax/tiers 410 — green.
