@@ -17,7 +17,21 @@ uses(RefreshDatabase::class);
  * 2026-05-05; these cover the two holes that left a signed-in user staring at
  * "Fyn chat consent is required before you can continue" with nothing to tap.
  */
-it('grants ai_chat consent to a spouse account it creates', function (): void {
+it('creates no consentless account, because it creates no account', function (): void {
+    // This case used to assert that a spouse account created by
+    // `linkOrCreateSpouse()` was given ai_chat consent — the hole being that an
+    // account made on someone's behalf could sign in and meet a 403 with nothing
+    // to tap.
+    //
+    // W-0349 (CSJ, 2026-08-23) closed that hole by removing its cause: the
+    // service no longer creates an account for an unregistered address, it
+    // invites it. The invitee registers themselves, and registration has
+    // recorded ai_chat consent since 2026-05-05 — so the invariant now holds by
+    // the ordinary route rather than by a special case here.
+    //
+    // The assertion is kept rather than deleted, pointed at what must remain
+    // true: this path must never again produce an account that nobody consented
+    // for. The backfill below still covers the historical ones.
     Mail::fake();
 
     $currentUser = User::factory()->create(['marital_status' => 'married']);
@@ -29,8 +43,9 @@ it('grants ai_chat consent to a spouse account it creates', function (): void {
         'date_of_birth' => '1990-01-01',
     ]);
 
-    expect($result['created_new_user'])->toBeTrue()
-        ->and(UserConsent::hasConsent($result['spouse_user']->id, UserConsent::TYPE_AI_CHAT))->toBeTrue();
+    expect($result['created_new_user'])->toBeFalse()
+        ->and($result['spouse_user'])->toBeNull()
+        ->and(User::withTrashed()->where('email', 'pat@example.com')->exists())->toBeFalse();
 });
 
 describe('the ai_chat consent backfill', function (): void {

@@ -167,6 +167,17 @@ class SpousePermissionController extends Controller
             ]);
         }
 
+        // W-0349. This sentence used to read "Add their email in the Family
+        // Members section", which after CSJ's 2026-08-23 decision told a user
+        // who had just done exactly that to go and do it. Supplying the email
+        // no longer creates and links an account — it sends an invitation.
+        //
+        // It is deliberately ONE sentence covering both states rather than two,
+        // because **this endpoint cannot tell them apart**: `family_members` has
+        // no email column, so the address the caller supplied is used to send
+        // the invitation and then not retained anywhere. Writing two branches
+        // here would mean writing one that can never fire. The retention gap is
+        // filed as W-0472; when it closes, this splits.
         return response()->json([
             'success' => true,
             'data' => [
@@ -179,7 +190,7 @@ class SpousePermissionController extends Controller
                 'permission' => null,
                 'can_view_spouse_data' => false,
                 'requires_account_link' => true,
-                'message' => 'Your spouse needs an account to enable data sharing. Add their email in the Family Members section.',
+                'message' => 'Nothing can be shared until your partner has their own Fynla account and accepts the link. If you have given us their email address, we have already invited them.',
             ],
         ]);
     }

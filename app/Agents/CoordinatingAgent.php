@@ -1810,13 +1810,13 @@ class CoordinatingAgent extends BaseAgent
         // old write path did wrong.
         $invitationPending = (bool) ($result['invitation_pending'] ?? false);
 
-        if ($result['created_new_user']) {
-            $summary = 'Spouse account created and linked';
-        } elseif ($invitationPending) {
-            $summary = 'Invitation sent — your partner needs to confirm before anything is shared';
-        } else {
-            $summary = 'Spouse account linked';
-        }
+        // W-0349 — the `created_new_user` branch is gone because the behaviour is
+        // (CSJ, 2026-08-23): an address with no account is now INVITED, exactly
+        // as one with an account is, so Fyn has one thing to say for both and
+        // cannot accidentally say which happened.
+        $summary = $invitationPending
+            ? 'Invitation sent — your partner needs to confirm before anything is shared'
+            : 'Spouse account linked';
 
         return [
             'onboarding_capture' => true,
@@ -1824,11 +1824,24 @@ class CoordinatingAgent extends BaseAgent
             'summary' => $summary,
             'details' => [
                 'family_member_id' => $result['family_member']->id,
-                'spouse_user_id' => $result['spouse_user']->id,
-                'created_new_user' => $result['created_new_user'],
+                // W-0349 — **withheld for ANY pending invitation, registered or
+                // not.** Two reasons, and the second is the one that bites.
+                //
+                // `spouse_user` is null on the unregistered path now, so reading
+                // `->id` unconditionally was a fatal — that is how this was
+                // found. But returning the id whenever it happens to exist would
+                // have rebuilt the enumeration oracle on the Fyn surface: an id
+                // for a registered address, null for an unregistered one, which
+                // is the same question answered by a different door.
+                //
+                // Until the invitee accepts, their account is not the caller's
+                // to know about at all (W-0348).
+                'spouse_user_id' => $invitationPending ? null : ($result['spouse_user']?->id),
                 'already_linked' => $result['already_linked'],
                 'invitation_pending' => $invitationPending,
-                'email_sent' => $result['email_sent'],
+                // `email_sent` is deliberately NOT published here either: a
+                // delivery flag that only one branch can populate distinguishes
+                // the branches just as well as an id does.
                 'first_name' => $firstName,
                 'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
             ],

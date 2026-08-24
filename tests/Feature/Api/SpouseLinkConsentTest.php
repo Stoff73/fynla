@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Mail\SpouseAccountCreated;
+use App\Mail\SpouseInvitation;
+use App\Models\FamilyMember;
 use App\Models\Household;
 use App\Models\SpousePermission;
 use App\Models\User;
@@ -149,12 +152,63 @@ describe('POST /api/user/family-members — inviting an existing account', funct
             'last_name' => 'Here',
         ])->json('data');
 
-        // The remaining difference is deliberate and on the board (W-0349): an
-        // address with no account still gets one created, which is a product
-        // decision, not an oversight. What must NOT differ is any detail of an
-        // account that already exists.
+        // W-0349. This assertion used to read `expect($unregistered['created'])
+        // ->toBeTrue()` — it asserted THE DISTINGUISHING KEY IS PRESENT, under a
+        // title saying the address must not be confirmed as registered. A test
+        // that pins the behaviour its own name forbids is worse than no test:
+        // it holds the defect in place through every future refactor. Corrected
+        // when CSJ decided the endpoint stops creating accounts (2026-08-23).
+        //
+        // The two responses must now be INDISTINGUISHABLE. Comparing key sets
+        // rather than listing keys by hand is deliberate — a field added to one
+        // branch and not the other re-opens the oracle, and a hand-written list
+        // would not notice.
+        expect(array_keys($unregistered))->toEqual(array_keys($registered));
+
         expect($registered)->not->toHaveKey('spouse_user');
-        expect($unregistered['created'] ?? false)->toBeTrue();
+        expect($unregistered)->not->toHaveKey('spouse_user')
+            ->and($unregistered)->not->toHaveKey('created')
+            ->and($unregistered)->not->toHaveKey('email_sent')
+            ->and($unregistered['invitation_pending'])->toBeTrue()
+            ->and($unregistered['linked'])->toBeFalse();
+    });
+
+    it('creates no account for an address that has none', function () {
+        // The other half of CSJ's 2026-08-23 decision, and the harm that was
+        // never only an information leak: an authenticated caller could cause
+        // `users` rows to exist for any address they could type.
+        test()->postJson('/api/user/family-members', [
+            'relationship' => 'spouse',
+            'email' => 'nobody-here@example.com',
+            'first_name' => 'Nobody',
+            'last_name' => 'Here',
+        ])->assertStatus(201);
+
+        expect(User::withTrashed()->where('email', 'nobody-here@example.com')->exists())->toBeFalse();
+
+        // And the caller still keeps their own record of their partner — the
+        // point is that they do not get somebody else's account with it.
+        expect(FamilyMember::where('user_id', $this->attacker->id)
+            ->where('relationship', 'spouse')
+            ->whereNull('linked_user_id')
+            ->exists())->toBeTrue();
+    });
+
+    it('invites the unregistered address to register, without a password', function () {
+        Mail::fake();
+
+        test()->postJson('/api/user/family-members', [
+            'relationship' => 'spouse',
+            'email' => 'nobody-here@example.com',
+            'first_name' => 'Nobody',
+            'last_name' => 'Here',
+        ])->assertStatus(201);
+
+        Mail::assertSent(SpouseInvitation::class, fn ($mail) => $mail->hasTo('nobody-here@example.com'));
+
+        // `SpouseAccountCreated` carried a temporary password for an account
+        // this endpoint had just made. Nothing should send it on this path now.
+        Mail::assertNotSent(SpouseAccountCreated::class);
     });
 
     it('notifies the invitee that it is theirs to decide', function () {

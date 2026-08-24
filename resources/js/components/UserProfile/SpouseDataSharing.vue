@@ -23,8 +23,14 @@
           </div>
           <div class="ml-3 flex-1">
             <h4 class="text-body-sm font-medium text-horizon-600">Account Link Required</h4>
+            <!--
+              W-0349. The WORDING lives on the server, which is the only place
+              that knows whether an invitation has gone out — the fallback here
+              is a generic last resort, deliberately not a second copy of the
+              sentence to drift from (Rule 20).
+            -->
             <p class="mt-1 text-body-sm text-horizon-500">
-              {{ permissionMessage || 'Your spouse needs an account to enable data sharing. Edit your spouse in the Family Members section and add their email address to create or link their account.' }}
+              {{ permissionMessage || 'Your spouse needs an account before anything can be shared.' }}
             </p>
           </div>
         </div>

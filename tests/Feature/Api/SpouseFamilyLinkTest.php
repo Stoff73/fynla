@@ -47,6 +47,67 @@ function orphanSpouseRow(User $owner): FamilyMember
     ]);
 }
 
+/**
+ * A genuinely LINKED spouse, established the way the application does it now.
+ *
+ * W-0349 (CSJ, 2026-08-23): `POST /api/user/family-members` no longer creates an
+ * account for an unregistered address — it invites it. So a test that posted a
+ * fresh email and expected a linked account was, from that day, asserting a
+ * behaviour the product had deliberately dropped. Every such test in this file
+ * now routes through here.
+ *
+ * The sequence is the real one: the account exists first, the caller invites it,
+ * and the INVITEE accepts. `establishAcceptedLink()` is the same method
+ * `SpousePermissionController::accept()` calls — the only place in the
+ * application where one account's row is written because another asked, and
+ * legitimate there because the person whose row it is did the asking.
+ *
+ * Declared locally, not globally: two files declaring one global test helper made
+ * `./vendor/bin/pest` fatal at collection for two days (fixed 1af23f8e5).
+ */
+function linkedSpouseFor(User $owner, array $overrides = []): User
+{
+    $email = $overrides['email'] ?? 'arjun@example.com';
+
+    // `middle_name` is pinned to null deliberately. The factory generates a
+    // random one, `name` is derived from all three parts, and several cases in
+    // this file assert on the full name — so leaving it to the factory makes
+    // them pass or fail depending on what was rolled ("Arjun Raman" one run,
+    // "Arjun Aylin Raman" the next). A fixture that varies along an axis the
+    // assertions read is a flake, not a test.
+    $spouse = User::factory()->create([
+        'email' => $email,
+        'first_name' => $overrides['first_name'] ?? 'Arjun',
+        'middle_name' => null,
+        'surname' => $overrides['last_name'] ?? 'Raman',
+        'date_of_birth' => $overrides['date_of_birth'] ?? '1977-06-02',
+    ]);
+
+    test()->postJson('/api/user/family-members', array_merge([
+        'relationship' => 'spouse',
+        'email' => $email,
+        'first_name' => 'Arjun',
+        'last_name' => 'Raman',
+        'date_of_birth' => '1977-06-02',
+    ], $overrides))->assertStatus(201);
+
+    // The INVITEE accepts, through the real endpoint. Calling
+    // `establishAcceptedLink()` directly links the accounts but leaves the
+    // `spouse_permissions` rows `pending` — that method writes the link and the
+    // CONTROLLER writes the consent, so a helper that calls only the service
+    // builds a half-accepted state no real user can be in.
+    test()->actingAs($spouse, 'sanctum')
+        ->postJson('/api/spouse-permission/accept')
+        ->assertStatus(200);
+
+    // Restore the acting user: the invitee's session was only ever borrowed to
+    // answer the invitation, and every caller of this helper continues as the
+    // owner.
+    test()->actingAs($owner, 'sanctum');
+
+    return $spouse->fresh();
+}
+
 describe('the is_linked_account predicate', function () {
     it('is false for a spouse row that links to nobody', function () {
         orphanSpouseRow($this->user);
@@ -60,13 +121,7 @@ describe('the is_linked_account predicate', function () {
     });
 
     it('is true once an account is linked, and carries that account email', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-            'date_of_birth' => '1977-06-02',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $response = $this->getJson('/api/user/family-members');
 
@@ -81,12 +136,7 @@ describe('the is_linked_account predicate', function () {
         // Link a spouse properly, then plant an unlinked row beside it — the
         // duplicate state W-0051 reached. The unlinked row must not borrow the
         // linked account's email and present itself as linked.
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $orphan = orphanSpouseRow($this->user->fresh());
 
@@ -98,12 +148,7 @@ describe('the is_linked_account predicate', function () {
     });
 
     it('reports the linked account as gone once that account is deleted', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         User::where('email', 'arjun@example.com')->first()->delete();
 
@@ -131,14 +176,19 @@ describe('POST /api/user/family-members — spouse', function () {
         expect(FamilyMember::where('user_id', $this->user->id)->count())->toBe(0);
     });
 
-    it('creates the account, links both sides and accepts both permissions', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-            'date_of_birth' => '1977-06-02',
-        ])->assertStatus(201)->assertJsonPath('data.created', true);
+    it('links both sides and accepts both permissions once the invitee agrees', function () {
+        // W-0349. This case was called "creates the account, links both sides and
+        // accepts both permissions", and it asserted `data.created === true` —
+        // the endpoint made a `users` row for any address typed into it, linked
+        // it, and wrote `accepted` on both permission rows without the other
+        // person ever being asked.
+        //
+        // CSJ removed that on 2026-08-23, so the assertion is gone with the
+        // behaviour. What the test is FOR survives: once a link is properly
+        // established, both `spouse_id` columns, both permission rows and both
+        // family-member rows must agree. That is now reached through the real
+        // consent sequence rather than manufactured by the endpoint.
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
 
@@ -146,8 +196,17 @@ describe('POST /api/user/family-members — spouse', function () {
             ->and($this->user->fresh()->spouse_id)->toBe($spouseUser->id)
             ->and($spouseUser->spouse_id)->toBe($this->user->id);
 
+        // ONE accepted row for the pair, not two. The second row this used to
+        // assert existed only because the old code wrote both halves itself —
+        // `SpousePermissionController::accept()` updates the single invitation
+        // the requester raised, and a grant is one decision by one person, not
+        // a pair of mirrored ones. What matters is that BOTH sides then read as
+        // sharing, which is asserted below rather than inferred from row counts.
         expect(SpousePermission::where('user_id', $this->user->id)->where('spouse_id', $spouseUser->id)->value('status'))->toBe('accepted')
-            ->and(SpousePermission::where('user_id', $spouseUser->id)->where('spouse_id', $this->user->id)->value('status'))->toBe('accepted');
+            ->and(SpousePermission::where('user_id', $spouseUser->id)->where('spouse_id', $this->user->id)->exists())->toBeFalse();
+
+        expect($this->user->fresh()->hasAcceptedSpousePermission())->toBeTrue()
+            ->and($spouseUser->fresh()->hasAcceptedSpousePermission())->toBeTrue();
 
         expect(FamilyMember::where('user_id', $this->user->id)->where('relationship', 'spouse')->count())->toBe(1)
             ->and(FamilyMember::where('user_id', $spouseUser->id)->where('relationship', 'spouse')->value('linked_user_id'))->toBe($this->user->id);
@@ -156,13 +215,7 @@ describe('POST /api/user/family-members — spouse', function () {
     it('adopts an existing unlinked spouse row instead of adding a second', function () {
         $orphan = orphanSpouseRow($this->user);
 
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-            'date_of_birth' => '1977-06-02',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
         $rows = FamilyMember::where('user_id', $this->user->id)->where('relationship', 'spouse')->get();
@@ -175,12 +228,7 @@ describe('POST /api/user/family-members — spouse', function () {
     it('preserves a civil partnership rather than forcing married', function () {
         $this->user->update(['marital_status' => 'civil_partnership']);
 
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         expect($this->user->fresh()->marital_status)->toBe('civil_partnership')
             ->and(User::where('email', 'arjun@example.com')->value('marital_status'))->toBe('civil_partnership');
@@ -231,12 +279,7 @@ describe('POST /api/user/family-members — spouse', function () {
 describe('DELETE /api/user/family-members/{id} — spouse', function () {
     it('removes an unlinked spouse record without touching a real link', function () {
         // The household is properly linked...
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
 
@@ -253,12 +296,7 @@ describe('DELETE /api/user/family-members/{id} — spouse', function () {
     });
 
     it('still unlinks the household when the linked record itself is deleted', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
         $linked = FamilyMember::where('user_id', $this->user->id)->where('relationship', 'spouse')->first();
@@ -274,13 +312,7 @@ describe('DELETE /api/user/family-members/{id} — spouse', function () {
 
 describe('PUT /api/user/family-members/{id} — spouse', function () {
     it('does not rewrite the real spouse account when an unlinked record is edited', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-            'date_of_birth' => '1977-06-02',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
         $originalName = $spouseUser->name;
@@ -299,13 +331,7 @@ describe('PUT /api/user/family-members/{id} — spouse', function () {
     });
 
     it('still syncs the spouse account when the linked record is edited', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-            'date_of_birth' => '1977-06-02',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
         $linked = FamilyMember::where('user_id', $this->user->id)->where('relationship', 'spouse')->first();
@@ -330,12 +356,7 @@ describe('PUT /api/user/family-members/{id} — spouse', function () {
      * without an error and every rename stopped at the family-member card.
      */
     it('renames the linked spouse account, not just their card', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
         $linked = FamilyMember::where('user_id', $this->user->id)->where('relationship', 'spouse')->first();
@@ -359,12 +380,7 @@ describe('PUT /api/user/family-members/{id} — spouse', function () {
     });
 
     it('does not push family-member-only fields onto the spouse account', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'last_name' => 'Raman',
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
         $linked = FamilyMember::where('user_id', $this->user->id)->where('relationship', 'spouse')->first();
@@ -396,16 +412,7 @@ describe('PUT /api/user/family-members/{id} — spouse', function () {
      * so rather than a user finding it.
      */
     it('keeps the declared field map in agreement with what the linking service writes', function () {
-        $this->postJson('/api/user/family-members', [
-            'relationship' => 'spouse',
-            'email' => 'arjun@example.com',
-            'first_name' => 'Arjun',
-            'middle_name' => 'Dev',
-            'last_name' => 'Raman',
-            'date_of_birth' => '1977-06-02',
-            'gender' => 'male',
-            'annual_income' => 42000,
-        ])->assertStatus(201);
+        linkedSpouseFor($this->user);
 
         $spouseUser = User::where('email', 'arjun@example.com')->first();
         $member = FamilyMember::where('user_id', $this->user->id)->where('relationship', 'spouse')->first();
