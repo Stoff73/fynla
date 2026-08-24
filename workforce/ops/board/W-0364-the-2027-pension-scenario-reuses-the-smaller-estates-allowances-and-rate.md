@@ -4,7 +4,7 @@ title: The 2027 pension scenario adds the pension pots to the estate but reuses 
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: queued
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -56,3 +56,17 @@ same treatment — it hand-rolls three lines instead.
 3. A fixture where a fixed charitable legacy passes 10% of the base baseline and fails
    it once the pension is added; the rate must move 36% → 40%.
 4. **`tax-compliance-reviewer` on the fix.**
+
+## Resolution — 2026-08-24
+
+One call to `assessTaxPosition()` with the enlarged estate, which answers both skipped
+tests at once — the s8D(5) taper and the Sch 1A 10% test — instead of reusing the
+smaller estate's `total_allowances`, `iht_rate` and `charitable_deduction`. The taper
+base is enlarged by the pension too, because s8D(5)(d) strikes it on the estate before
+reliefs. Exactly W-0136's fix, applied to the one place W-0136 did not reach.
+
+Guard: `Pension2027ScenarioReassessesTest` — a household at £1.9m of home plus £600k of
+pension crosses £2,000,000 only once the pension is added, so the band must taper away
+and the increase must exceed a flat 40% of the pot; and a household far below the
+threshold gains no invented bill. **Mutation-checked**: restoring the old arithmetic
+reds the taper case. Estate + agents 595 green.

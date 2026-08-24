@@ -642,7 +642,7 @@ class IHTCalculationService
         ];
 
         // 9b. Calculate 2027 pension Inheritance Tax dual-scenario projection
-        $pensionAmendment = $this->calculatePensionAmendmentScenario($user, $spouse, $dataSharingEnabled, $result);
+        $pensionAmendment = $this->calculatePensionAmendmentScenario($user, $spouse, $dataSharingEnabled, $result, $assessment);
         $result['pension_amendment'] = $pensionAmendment;
 
         // 10. Save to database (opt-in only — see method docblock).
@@ -2654,7 +2654,8 @@ class IHTCalculationService
         User $user,
         ?User $spouse,
         bool $dataSharingEnabled,
-        array $baseCalc
+        array $baseCalc,
+        array $assessment
     ): array {
         $pensionInclusion = $this->taxConfig->get('inheritance_tax.pension_iht_inclusion');
 
@@ -2688,14 +2689,36 @@ class IHTCalculationService
         // Calculate the post-2027 scenario: pensions included in estate
         $currentNetEstate = $baseCalc['total_net_estate'] ?? 0;
         $postAmendmentNetEstate = $currentNetEstate + $totalPensionValue;
-        $totalAllowances = $baseCalc['total_allowances'] ?? 0;
-        $ihtRate = $baseCalc['iht_rate'] ?? (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
-        // Charitable legacies are exempt (IHTA 1984 s23) — deduct them here too so the
-        // 2027 projection matches the current/death calculation for charitable donors.
-        $charitableDeduction = (float) ($baseCalc['charitable_deduction'] ?? 0);
 
-        $postAmendmentTaxableEstate = max(0, $postAmendmentNetEstate - $totalAllowances - $charitableDeduction);
-        $postAmendmentIHTLiability = $postAmendmentTaxableEstate * $ihtRate;
+        // W-0364 — this reused `$baseCalc['total_allowances']` and `iht_rate`, the
+        // SMALLER estate's answers, while adding the pension pots enlarged the estate.
+        // Both tests that turn on estate size were therefore skipped:
+        //
+        //   * the residence band taper (IHTA 1984 s8D(5)) — an estate at £1.7m with a
+        //     £600k pension crosses £2,000,000 and loses the band at £1 per £2. Reusing
+        //     the smaller estate's allowances UNDERSTATED the post-2027 bill by up to
+        //     the whole £350,000 of band.
+        //   * the 10% charitable rate test (Sch 1A) — the baseline grows with the
+        //     estate while a fixed legacy does not, so a household on 36% carried that
+        //     rate into a scenario where it no longer qualifies.
+        //
+        // One call to the same assessment with the enlarged estate answers both. This
+        // is W-0136's fix applied to the one place W-0136 did not reach.
+        $postAmendment = $this->assessTaxPosition(
+            $postAmendmentNetEstate,
+            $this->getMainResidenceNetValue($user, $assessment['spouse']),
+            [
+                // The pension enlarges the taper base exactly as it enlarges the
+                // estate — s8D(5)(d) strikes it on the estate before reliefs.
+                'estate_for_taper' => (float) ($assessment['estate_for_taper'] ?? 0) + $totalPensionValue,
+            ] + $assessment
+        );
+
+        $totalAllowances = (float) $postAmendment['total_allowances'];
+        $ihtRate = (float) $postAmendment['rate']['rate'];
+        $charitableDeduction = (float) $postAmendment['charitable_deduction'];
+        $postAmendmentTaxableEstate = (float) $postAmendment['taxable_estate'];
+        $postAmendmentIHTLiability = (float) $postAmendment['iht_liability'];
 
         $currentIHTLiability = $baseCalc['iht_liability'] ?? 0;
         $additionalIHT = $postAmendmentIHTLiability - $currentIHTLiability;
