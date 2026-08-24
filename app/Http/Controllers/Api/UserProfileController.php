@@ -203,6 +203,22 @@ class UserProfileController extends Controller
                 ? SharedExpenditure::MODE_SEPARATE
                 : SharedExpenditure::MODE_JOINT;
             unset($updateData['use_separate_expenditure']);
+
+            // W-0202 (CSJ, 2026-08-24). **This is the only place a sharing mode
+            // becomes a DECLARATION**, because it is the only place a person has
+            // been shown the choice and made it — the form's toggle, beside a
+            // subheading reading "Joint (50/50) expenditure" while they type.
+            //
+            // The column itself cannot record that: `expenditure_sharing_mode` is
+            // NOT NULL DEFAULT 'joint', so every row has said "joint" since it was
+            // created and a household that has never been asked is indistinguishable
+            // from one that chose. Fyn needs to tell them apart to know whether it
+            // may halve a figure or must ask (`CoordinatingAgent::handleSetExpenditure`).
+            //
+            // Stamped on the acting user only. The mode is a fact about the
+            // household, but the DECLARATION is an act by a person, and the writer
+            // already propagates the mode itself to the spouse's row.
+            $updateData['expenditure_sharing_mode_declared_at'] = now();
         }
 
         // Ensure annual_expenditure is set when monthly_expenditure is provided

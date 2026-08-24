@@ -65,6 +65,7 @@ use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
 use App\Services\Estate\WillDocumentService;
 use App\Services\Eval\EvalBypassGate;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
 use App\Services\Onboarding\HouseholdProvisioner;
@@ -96,6 +97,7 @@ use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
 use App\Services\WhatIf\WhatIfScenarioService;
 use App\Support\HoldingValuation;
+use App\Support\SharedExpenditure;
 use App\Support\SharedOwnership;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
@@ -156,6 +158,9 @@ class CoordinatingAgent extends BaseAgent
         private readonly CaptureAccuracyGate $captureAccuracyGate,
         private readonly HouseholdProvisioner $householdProvisioner,
         private readonly SubscriptionStatusService $subscriptionStatusService,
+        // W-0202 — the one home for the household expenditure write, shared with
+        // the profile path so both surfaces divide by the same rule.
+        private readonly HouseholdExpenditureWriter $expenditureWriter,
     ) {}
 
     /**
@@ -5246,6 +5251,39 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No expenditure amounts provided.'];
         }
 
+        // W-0190 / W-0202 — the household sharing question, asked rather than assumed.
+        //
+        // On `/m` Fyn is the ONLY way to edit expenditure
+        // (`resources/mobile/views/Expenditure.vue` is read-only and hands off), so
+        // whatever this method does IS the behaviour for that surface. It used to
+        // write the acting account at 100% and never touch the spouse, which under a
+        // joint household reproduced exactly the 100/0 split W-0190 fixed on the
+        // profile path — a table headed "Joint (50/50) expenditure" with the whole
+        // cost on one row.
+        //
+        // It was parked, correctly, because halving would have been just as wrong:
+        // `expenditure_sharing_mode` is NOT NULL DEFAULT 'joint', so a household that
+        // had never been asked was indistinguishable from one that chose, and
+        // dividing on that would silently answer a question nobody put to them.
+        //
+        // CSJ settled it on 2026-08-24: make the unanswered state expressible first.
+        // `expenditure_sharing_mode_declared_at` now records an actual choice, so the
+        // third branch of the W-0202 decision — *"none recorded → Fyn asks"* — can
+        // finally fire. Measured the day it shipped: 13 of 13 spouse-holding users on
+        // dev had never declared, so this is the branch that runs for all of them.
+        $spouse = $user->liveSpouse();
+
+        if ($spouse !== null && $user->expenditure_sharing_mode_declared_at === null) {
+            return [
+                'needs_answer' => true,
+                'field_group' => 'expenditure',
+                'question' => 'expenditure_sharing_mode',
+                'message' => 'Before I record that — are those figures for your whole household, '
+                    .'or just what you spend yourself? If they are the household\'s I will split '
+                    .'them evenly across both of you, the way the expenditure page does.',
+            ];
+        }
+
         // A Fyn turn may update only one category. Recalculate from that edit
         // plus every stored category so omitted values are preserved, while an
         // explicit zero clears the named category.
@@ -5254,34 +5292,68 @@ class CoordinatingAgent extends BaseAgent
         $updateData['annual_expenditure'] = $total * 12;
         $updateData['expenditure_entry_mode'] = 'category';
 
-        // NOT ROUTED THROUGH App\Services\Expenditure\HouseholdExpenditureWriter,
-        // deliberately. This path writes the acting account at 100% and never
-        // touches the spouse, which under a joint household reproduces the very
-        // 100/0 split W-0190 fixed on the profile path. That is **W-0202**, which
-        // is raised, decided by team-lead, and explicitly parked: its acceptance
-        // criterion 1 — make the unanswered sharing state expressible, or
-        // disclose the default — must be settled BEFORE the routing is built.
+        // W-0202 criterion 2 — ROUTED THROUGH the one writer, now that criterion 1
+        // is closed above.
         //
-        // The reason is disclosure, not arithmetic. The expenditure form says
-        // "Joint (50/50) expenditure" in its own subheading while the user types;
-        // Fyn says nothing. And `users.expenditure_sharing_mode` is
-        // `NOT NULL DEFAULT 'joint'`, so a household that has never been asked is
-        // indistinguishable from one that chose — 19 users on dev, every one of
-        // them `joint`, not one `separate`. Halving here would silently resolve a
-        // question the user was never asked.
+        // This block used to be a comment explaining why it was NOT routed: the
+        // sharing state was unknowable, so halving would have resolved a question the
+        // user was never asked. That reason is gone — a household reaching this line
+        // has declared, because the branch above returns for one that has not.
         //
-        // The writer W-0412 built IS the mechanism W-0202 criterion 2 needs; when
-        // the decision lands, this becomes one call. Until then it stays as it is.
-        DB::transaction(function () use ($user, $updateData, $total): void {
-            $user->update($updateData);
+        // `HouseholdExpenditureWriter` is the mechanism W-0412 built for exactly this:
+        // one household figure, divided once, written to both rows in one
+        // transaction. Two halves kept in step by two separate writes come apart; the
+        // profile path proved that on 2026-08-22 when the spouse's request did not
+        // arrive and the household total inherited the difference.
+        //
+        // **The stored figures are this account's SHARE, so they are doubled back to
+        // household terms before the writer divides them again.** Miss that and each
+        // partial edit halves the untouched categories a second time, decaying the
+        // household's spending towards zero one Fyn turn at a time. `shareOf()` is the
+        // one home for which fields divide, so the inverse asks it rather than
+        // carrying its own list (Rule 20).
+        $isShared = SharedExpenditure::isShared($user->expenditure_sharing_mode)
+            && $user->liveSpouse() !== null;
 
-            // FR-M12 — mirror the monthly total into ExpenditureProfile so the
-            // dashboard and both review surfaces see the same committed total.
-            ExpenditureProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                ['total_monthly_expenditure' => $total],
-            );
-        });
+        $householdData = $updateData;
+
+        if ($isShared) {
+            $householdTotal = 0.0;
+            foreach ($resolvedAmounts as $field => $amount) {
+                $householdTotal += in_array($field, SharedExpenditure::SHARED_FIELDS, true)
+                    ? $amount / SharedExpenditure::JOINT_SHARE
+                    : $amount;
+            }
+
+            // The categories the caller named are already household figures — the
+            // user said what the household spends. Only the untouched ones, read
+            // back from storage as halves, needed restoring.
+            foreach ($updateData as $field => $value) {
+                if (array_key_exists($field, $resolvedAmounts)) {
+                    $householdTotal -= in_array($field, SharedExpenditure::SHARED_FIELDS, true)
+                        ? $resolvedAmounts[$field] / SharedExpenditure::JOINT_SHARE
+                        : $resolvedAmounts[$field];
+                    $householdTotal += $value;
+                }
+            }
+
+            $total = $householdTotal;
+        }
+
+        $householdData['monthly_expenditure'] = $total;
+        $householdData['annual_expenditure'] = $total * 12;
+        $householdData['expenditure_entry_mode'] = 'category';
+
+        $stored = $this->expenditureWriter->write($user, $householdData);
+
+        // What this ACCOUNT now carries, for the sentence Fyn says back. Under a
+        // shared household that is half of what the user told us, and saying the
+        // household figure would be the same misreporting in the other direction.
+        $updateData = collect($householdData)
+            ->only(array_keys($updateData))
+            ->map(fn ($v, $k) => $stored[$k] ?? $v)
+            ->all();
+        $total = (float) ($stored['monthly_expenditure'] ?? $total);
 
         $formatted = collect($updateData)
             ->except(['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'])

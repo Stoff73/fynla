@@ -3,13 +3,14 @@
 declare(strict_types=1);
 
 use App\Models\BusinessInterest;
-use App\Models\SpousePermission;
 use App\Models\SavingsAccount;
+use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -238,5 +239,68 @@ describe('W-0466 — the caveat reaches the only Inheritance Tax figure /m shows
         SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
 
         expect(app(EstateIhtExposureDetector::class)->detect($user)['unmodelled_relief_caveat'])->toBeNull();
+    });
+});
+
+describe('W-0466 — the caveat triggers on farmland, and not on everything else in the other bucket', function () {
+    // CSJ direction, 2026-08-24: "only if a user enters farmland" — an `other` asset
+    // that is Bitcoin must NOT fire it. `compliance-lead` was right that the sentence
+    // is addressed to farmland holders and reached only company owners; widening to
+    // the whole `other` bucket would have shown it to everyone with a bicycle.
+
+    it('fires for an estate holding farmland and no company', function () {
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        DB::table('assets')->insert([
+            'user_id' => $user->id,
+            'asset_type' => 'other',
+            'asset_name' => 'Farmland at Nether Compton',
+            'current_value' => 750_000,
+            'valuation_date' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        expect(app(EstateIhtExposureDetector::class)->detect($user->fresh())['unmodelled_relief_caveat'])
+            ->toContain('Agricultural Property Relief');
+    });
+
+    it('does NOT fire for Bitcoin, which is the case CSJ named', function () {
+        // The discriminating half. Without it the trigger could be "any `other`
+        // asset" and the case above would still pass.
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        DB::table('assets')->insert([
+            'user_id' => $user->id,
+            'asset_type' => 'other',
+            'asset_name' => 'Bitcoin',
+            'current_value' => 750_000,
+            'valuation_date' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        expect(app(EstateIhtExposureDetector::class)->detect($user->fresh())['unmodelled_relief_caveat'])->toBeNull();
+    });
+
+    it('does not fire on a word that merely contains a farming term', function () {
+        // Word-boundary matching: "pharmacy" contains "farm" only if you ignore
+        // boundaries, and a heuristic that fires on it is worse than none.
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        DB::table('assets')->insert([
+            'user_id' => $user->id,
+            'asset_type' => 'other',
+            'asset_name' => 'Pharmacy fixtures',
+            'current_value' => 50_000,
+            'valuation_date' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        expect(app(EstateIhtExposureDetector::class)->detect($user->fresh())['unmodelled_relief_caveat'])->toBeNull();
     });
 });

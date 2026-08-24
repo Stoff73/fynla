@@ -67,6 +67,18 @@ use Illuminate\Support\Collection;
  */
 class IHTCalculationService
 {
+    /**
+     * Words that mean agricultural land, for the W-0466 caveat trigger.
+     *
+     * Prefix-matched at a word boundary, so "farm" covers "farmland", "farmhouse"
+     * and "farm buildings" without covering "pharmacy". Kept as a constant rather
+     * than inlined so the one list is testable and has one home (Rule 20).
+     */
+    private const AGRICULTURAL_ASSET_TERMS = [
+        'farm', 'farmland', 'agricultur', 'arable', 'pasture', 'grazing',
+        'smallholding', 'croft', 'orchard', 'paddock',
+    ];
+
     use CalculatesOwnershipShare;
 
     private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
@@ -214,7 +226,27 @@ class IHTCalculationService
         $holdsBusinessInterest = $userAssets->contains($isBusiness)
             || $spouseAssets->contains($isBusiness);
 
-        $unmodelledReliefCaveat = $holdsBusinessInterest
+        // W-0466 — CSJ, 2026-08-24: **trigger on farmland specifically, not on the
+        // whole `other` bucket.** `compliance-lead` was right that the sentence is
+        // addressed to "if your estate holds farmland" and was shown only to estates
+        // holding a company — the cohort whose figure is most wrong never saw it. But
+        // widening to every `asset_type = 'other'` row would show it to someone whose
+        // "other" asset is a bicycle or some Bitcoin, which is how a caveat becomes
+        // wallpaper on the one screen it matters.
+        //
+        // There is no agricultural asset type in the schema (the registered dead end),
+        // and `assets` carries no description — `asset_name` is the only field that can
+        // carry the user's intent. So this is a NAME HEURISTIC and is labelled as one:
+        // it will miss land the user named something else, and that is the failure
+        // direction to prefer, because a missed caveat leaves the existing behaviour
+        // where a false one actively misleads.
+        //
+        // **The durable fix is an agricultural asset type**, which is also what
+        // Agricultural Property Relief itself needs; when that lands this goes.
+        $holdsAgriculturalAsset = $userAssets->contains($this->looksAgricultural(...))
+            || $spouseAssets->contains($this->looksAgricultural(...));
+
+        $unmodelledReliefCaveat = ($holdsBusinessInterest || $holdsAgriculturalAsset)
             // Wording revised 2026-08-24 on `compliance-lead`'s findings A and B.
             // CSJ approved the substance; two rules bind the words.
             //
@@ -2341,6 +2373,47 @@ class IHTCalculationService
     private function pooledMembers(User $user, ?User $spouse, bool $isMarried, bool $dataSharingEnabled): array
     {
         return ($isMarried && $spouse !== null && $dataSharingEnabled) ? [$user, $spouse] : [$user];
+    }
+
+    /**
+     * Does this asset read as agricultural land? W-0466.
+     *
+     * A heuristic, deliberately, and narrow on purpose. `assets.asset_type` is
+     * `enum('property','pension','investment','business','other')` with no
+     * agricultural member, and the table carries no description — `asset_name` is
+     * the only place a user can say what the thing is.
+     *
+     * **Matched only on `other` rows.** A property is already a residence by its own
+     * enum, and an investment named "Farmland Fund" is a fund, not land.
+     *
+     * Terms chosen to be specific rather than generous: each is a word for
+     * agricultural land itself, not for farming as an activity, so "Farmers
+     * Insurance" or a share in an agricultural merchant does not match. Bitcoin,
+     * bicycles and everything else in the `other` bucket do not match, which is the
+     * whole point of the CSJ direction this implements.
+     *
+     * Word-boundary matched, so "farm" does not fire on "pharmacy" and "croft" does
+     * not fire on "Croftwood Ltd".
+     */
+    private function looksAgricultural(object $asset): bool
+    {
+        if (($asset->asset_type ?? null) !== 'other') {
+            return false;
+        }
+
+        $name = strtolower(trim((string) ($asset->asset_name ?? '')));
+
+        if ($name === '') {
+            return false;
+        }
+
+        foreach (self::AGRICULTURAL_ASSET_TERMS as $term) {
+            if (preg_match('/\b'.preg_quote($term, '/').'/', $name) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

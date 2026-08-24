@@ -2,9 +2,9 @@
 id: W-0190
 title: The expenditure table declares "Joint (50/50) expenditure" and then splits the £2,450 household spend 100/0 — the whole of it to David, nothing to Sarah
 mission: persona-run-peak_earners-2026-08-20
-branch: branches/fixes/F-0019-cycle2-ownership-applied-one-side-only.md
+branch: estate-copy-and-m-handoff
 owner: build-lead
-status: queued
+status: handoff
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T00:40:00Z
@@ -12,7 +12,7 @@ claimed: 2026-08-22T03:10:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
-certification: REJECTED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
+certification: REJECTED 2026-08-23 quality-lead — addressed 2026-08-24, awaiting re-certification
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0140, W-0173]
 prior_art_outcome: extend
@@ -336,3 +336,15 @@ user types the figures — so the rule being applied is on screen. Fyn has no eq
 which is the substance of **W-0202**.
 
 **Not done: browser verification, by instruction.**
+
+- 2026-08-24 — **`quality-lead` REJECTED this on 2026-08-23**, and correctly: the service
+  fix and migration were real, but `CoordinatingAgent::handleSetExpenditure()` still wrote
+  one account at 100%, and **on `/m` Fyn is the only editing door** — so the defect this
+  item exists to remove was live on that surface. Rule 19 is not satisfied by a backend
+  fix the surface cannot reach.
+
+- 2026-08-24 — **Closed via W-0202**, which CSJ unblocked today by choosing to make the
+  unanswered sharing state expressible. Fyn no longer writes 100/0 silently: a household
+  that has never declared is **asked**, and one that has declared is divided through the
+  same `HouseholdExpenditureWriter` the profile path uses. One rule, one writer, three
+  entrances. Full detail on W-0202.
