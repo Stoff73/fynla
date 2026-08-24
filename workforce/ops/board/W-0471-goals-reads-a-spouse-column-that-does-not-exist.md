@@ -2,10 +2,10 @@
 id: W-0471
 title: Three Goals consumers read `users.spouse_user_id`, a column that does not exist, so household goal logic silently never fires for a linked couple
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [quality-lead]
-status: queued
+status: handoff
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -74,3 +74,29 @@ gated on it, so a couple's joint goals projection has never run.
 - 2026-08-24 — Found while fixing W-0349, grepping for consumers of a details-array
   key that happened to share the name. Not fixed there: it is a Goals defect with
   its own before/after, and folding it into a spouse-consent commit would bury it.
+
+- 2026-08-24 — **FIXED, all three sites.** `GoalsController:581`,
+  `GoalsProjectionService:553,555` and `LifeEventService:36` now read
+  `liveSpouseId()`.
+
+- 2026-08-24 — **`liveSpouseId()` rather than `spouse_id`**, per acceptance 1. The raw
+  column survives the partner deleting their account (retention, CSJ D1/D2 2026-08-19),
+  so a household view built on it would keep reading a closed account's goals. There is a
+  test for exactly that.
+
+- 2026-08-24 — **Acceptance 3 and 4 met by
+  `tests/Feature/Goals/HouseholdGoalsReadTheRealSpouseColumnTest.php`** (4/4):
+  - the premise — `users` has `spouse_id` and no `spouse_user_id`;
+  - a **source sweep** across `app/Http/Controllers`, `app/Services` and `app/Agents` for
+    `->spouse_user_id`, because a model read of a missing attribute cannot fail at
+    runtime and a source sweep is the only thing that can catch this class regressing.
+    The arrow distinguishes a column read from a response KEY of the same name, which
+    `CoordinatingAgent` publishes deliberately;
+  - the behaviour — a spouse's household-visible goal is gathered in household mode and
+    NOT in individual mode. **Both asserted**, so a change that simply returns everything
+    cannot pass;
+  - and the deleted-spouse case.
+
+- 2026-08-24 — 66 tests pass across `tests/Feature/Goals` and `tests/Unit/Services/Goals`.
+  Pint clean.
+

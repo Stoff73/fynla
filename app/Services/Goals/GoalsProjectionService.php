@@ -550,9 +550,14 @@ class GoalsProjectionService
     {
         $query = Goal::forUserOrJoint($user->id);
 
-        if ($household && $user->spouse_user_id) {
-            $query->orWhere(function ($q) use ($user) {
-                $q->where('user_id', $user->spouse_user_id)
+        // W-0471 — `spouse_user_id` is not a column on `users`; the column is
+        // `spouse_id`. The read returned null silently, so this guard was false for
+        // every household and **a couple's joint goals projection has never run.**
+        $spouseId = $user->liveSpouseId();
+
+        if ($household && $spouseId) {
+            $query->orWhere(function ($q) use ($spouseId) {
+                $q->where('user_id', $spouseId)
                     ->where('show_in_household_view', true);
             });
         }
