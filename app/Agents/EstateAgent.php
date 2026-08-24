@@ -99,7 +99,14 @@ class EstateAgent extends BaseAgent
                 ]);
             }
 
-            $cacheKey = "estate_analysis_{$userId}";
+            // Derived, never hand-built. This read `"estate_analysis_{$userId}"`
+            // while `invalidateUserCache()` forgot `getUserCacheKey()`'s
+            // `v1_estateagent_{id}_analysis` — a key-name mismatch, so every
+            // invalidation cleared a key nothing had ever written and the stale
+            // analysis survived for the full time-to-live. Both halves read as
+            // correct in isolation, which is why reviewing the invalidation
+            // *logic* never found it (W-0381).
+            $cacheKey = $this->getUserCacheKey($userId, 'analysis');
             $cacheTags = ['estate', 'user_'.$userId];
 
             return $this->remember($cacheKey, function () use ($user, $userId) {
@@ -1818,6 +1825,10 @@ class EstateAgent extends BaseAgent
      */
     public function invalidateCache(int $userId): void
     {
+        // The canonical key comes from `invalidateUserCache()`. The legacy
+        // `estate_analysis_{id}` string is kept only to drain entries written by
+        // the pre-W-0381 code, which would otherwise outlive the deploy by a full
+        // time-to-live; it is written by nothing now.
         $this->invalidateUserCache($userId, [
             "estate_analysis_{$userId}",
         ]);
