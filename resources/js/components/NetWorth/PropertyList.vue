@@ -251,6 +251,31 @@ export default {
         if (data.property.id) {
           // Update existing property
           propertyResponse = await api.put(`/properties/${data.property.id}`, data.property);
+
+          // W-0012, the edit half. The create path was fixed to send every mortgage
+          // field; **this branch sent none of them** — it PUT `data.property` and
+          // discarded `data.mortgage` entirely, so a user editing their lender, rate
+          // or Rate Fix End Date on an existing property watched all of it vanish.
+          //
+          // It cannot go through `PUT /api/properties/{id}`: `UpdatePropertyRequest`
+          // declares **zero** `mortgage_*` rules, so those keys would be stripped at
+          // validation even if they were sent. The mortgage has its own endpoints,
+          // which accept exactly the fields this form collects — unprefixed, so no
+          // mapping rule is needed here.
+          if (data.mortgage && data.mortgage.outstanding_balance) {
+            const { id: mortgageId, ...mortgageFields } = data.mortgage;
+
+            if (mortgageId) {
+              await api.put(`/mortgages/${mortgageId}`, mortgageFields);
+            } else {
+              // The property had no mortgage and has just been given one.
+              await api.post(`/properties/${data.property.id}/mortgages`, mortgageFields);
+            }
+
+            // Re-read, so the card shows what was stored rather than what was sent.
+            propertyResponse = await api.get(`/properties/${data.property.id}`);
+          }
+
           const updatedProperty = propertyResponse.data.data?.property || propertyResponse.data;
           const index = this.properties.findIndex(p => p.id === data.property.id);
           if (index !== -1) {

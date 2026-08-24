@@ -1,5 +1,14 @@
 <template>
-  <MobileChrome title="Estate" subtitle="Inheritance tax exposure and planning" :loading="loading" loading-label="your estate">
+  <!--
+    W-0138 fault 3, second limb. The subtitle read "Inheritance tax exposure and
+    planning" while this screen deliberately shows no Inheritance Tax figure at all
+    — CSJ's W-0469 decision made it a summary that hands off to the web app.
+    That decision settles the FIGURE half of the fault and leaves this half: the
+    item's acceptance is a disjunction, *"shows an Inheritance Tax liability, OR its
+    subtitle stops promising one"*, and the second limb had not been taken
+    (quality-lead, re-certification).
+  -->
+  <MobileChrome title="Estate" subtitle="Your estate, your will and your plans" :loading="loading" loading-label="your estate">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your estate position…</p>
     </div>
@@ -33,10 +42,19 @@
 
     <!-- Full mode (Premium) -->
     <template v-else>
+      <!--
+        W-0138 fault 2. This figure is `netWorth.net_worth` — **this account's own
+        records** — labelled "Estimated estate value" with the basis nowhere stated,
+        while the web Inheritance Tax screen shows a POOLED household figure for the
+        same household. Two surfaces, two numbers, one name, and nothing telling the
+        reader which they are looking at (open since 2026-08-21).
+        The figure is not changed here; it is labelled.
+      -->
       <div class="m-card m-hero">
         <p class="m-sub m-label">Estimated estate value</p>
         <p class="m-metric">{{ fmt(netEstate) }}</p>
         <p class="m-hero-sub">{{ fmt(totalAssets) }} in assets, less {{ fmt(totalLiabilities) }} of liabilities.</p>
+        <p class="m-hero-sub" style="margin-top:6px">Based on your own records. It does not include anything held only in your partner's name.</p>
       </div>
 
       <div class="m-card">

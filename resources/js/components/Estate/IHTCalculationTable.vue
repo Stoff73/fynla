@@ -114,8 +114,15 @@
         <tr v-if="showBusinessRelief" class="bg-white">
           <td class="px-4 py-3 text-sm text-horizon-500 pl-8">
             Less: Business Property Relief
+            <!--
+              W-0466. This sub-line used to repeat the caveat's own claim —
+              "Does not model Agricultural Property Relief or AIM shares" — which was
+              a SECOND HOME for it (Rule 20) and a Rule 9 breach the caveat rewrite
+              missed, because it fixed the engine's sentence and not this copy of it.
+              The caveat itself renders below the table, from the engine, once.
+            -->
             <span class="block text-body-xs text-neutral-500">
-              Relief on qualifying business assets. Does not model Agricultural Property Relief or AIM shares.
+              Relief on qualifying business assets.
             </span>
           </td>
           <td class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatLiability(businessRelief.now) }}</td>

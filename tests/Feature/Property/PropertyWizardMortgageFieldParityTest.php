@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Requests\StorePropertyRequest;
+use App\Http\Requests\UpdateMortgageRequest;
 
 /**
  * W-0012 — the wizard and the API must accept the same mortgage fields.
@@ -27,40 +28,121 @@ use App\Http\Requests\StorePropertyRequest;
  * halves are visible at once.
  */
 it('lets the property wizard send every mortgage field the API accepts', function () {
-    $rules = array_keys((new StorePropertyRequest)->rules());
-
+    // **This test previously did not test what it is named after**, and quality-lead
+    // said so: `$accepted` was computed, asserted non-empty, and then never used
+    // again. The weight was carried by a source-text match, which catches a literal
+    // revert to the hand-copied list and nothing else — not a semantically identical
+    // rewrite, not the derivation becoming dead, not a receiver field the sender
+    // cannot emit. That is the Decoy variant in `tests/CLAUDE.md`: a case named after
+    // a property it does not check.
+    //
+    // It matters more than a usual weak test, because W-0012 was REJECTED for a test
+    // that took a different door from the browser. The replacement took a third door.
+    //
+    // This version actually compares the two sides: it applies the sender's rule to
+    // the field names the form emits, and asserts the result covers every
+    // `mortgage_*` field the request declares.
     $accepted = array_values(array_filter(
-        $rules,
+        array_keys((new StorePropertyRequest)->rules()),
         fn (string $rule): bool => str_starts_with($rule, 'mortgage_')
     ));
 
-    // StorePropertyRequest must still declare mortgage fields at all; if this is
-    // empty the rest of the test would pass vacuously.
     expect($accepted)->not->toBeEmpty();
 
-    $wizard = file_get_contents(base_path('resources/js/components/NetWorth/PropertyList.vue'));
+    // The names the mortgage form emits, read from its own field declaration rather
+    // than hand-listed — a field added to the form and not to the request (or the
+    // reverse) is exactly what this is for.
+    $form = (string) file_get_contents(base_path('resources/js/components/NetWorth/Property/PropertyForm.vue'));
 
-    // The payload is built by a rule — prefix the form's key with `mortgage_`
-    // unless it already carries it — rather than by a list, precisely so a new
-    // backend field needs no edit here. This asserts the rule is still what
-    // builds it. If someone reverts to enumerating fields, the marker goes and
-    // this fails, which is the moment to look.
-    // NOTE: Pest's `toContain` takes VARARGS, not a message — a second string
-    // argument is asserted as another needle. Failure guidance therefore lives
-    // in these comments, not in the call.
+    $start = strpos($form, 'mortgageForm: {');
+    expect($start)->not->toBeFalse();
+
+    $depth = 0;
+    $end = null;
+
+    for ($i = $start + strlen('mortgageForm: '); $i < strlen($form); $i++) {
+        if ($form[$i] === '{') {
+            $depth++;
+        } elseif ($form[$i] === '}') {
+            $depth--;
+
+            if ($depth === 0) {
+                $end = $i;
+
+                break;
+            }
+        }
+    }
+
+    expect($end)->not->toBeNull();
+
+    preg_match_all('/^\s*([a-z0-9_]+):/m', substr($form, $start, $end - $start), $m);
+    $emitted = $m[1];
+
+    expect($emitted)->not->toBeEmpty();
+
+    // The rule `PropertyList.vue` applies: prefix unless already prefixed. Expressed
+    // here so the assertion is about the CORRESPONDENCE rather than about the text
+    // that implements it.
+    $sendable = array_map(
+        fn (string $key): string => str_starts_with($key, 'mortgage_') ? $key : 'mortgage_'.$key,
+        $emitted
+    );
+
+    // **The assertion with content is the other direction.** Asking "is every accepted
+    // field the form collects expressible" is tautological — `$sendable` is DERIVED
+    // from the form keys, so the intersection can never disagree with itself. (The
+    // first draft of this line was exactly that: `array_diff(X, X)`, which cannot
+    // fail. Written while correcting a different vacuous assertion, which is how easy
+    // it is.)
     //
-    // If this fails, `PropertyList.vue` has stopped deriving the mortgage
-    // payload by rule. Should it have gone back to a hand-written list, every
-    // field missing from that list is silently dropped in the browser while the
-    // API test carries on passing — which is exactly how W-0012 survived.
-    expect($wizard)->toContain("key.startsWith('mortgage_') ? key : `mortgage_\${key}`");
+    // What CAN fail is a form field whose derived name the request does not accept:
+    // the user fills it in, the wizard sends it, validation drops it silently. That is
+    // W-0012's disease in its general form.
+    $knownUnsent = [
+        // Collected for the mortgage's own endpoints, not for property creation.
+        'mortgage_id', 'mortgage_country', 'mortgage_notes',
+        // The one true exception: the form calls it `outstanding_balance` and the
+        // request calls it `outstanding_mortgage`, mapped explicitly in the wizard.
+        'mortgage_outstanding_balance',
+    ];
 
-    // And the one field that cannot follow the rule, because the form and the
-    // request use different names for it.
-    // The balance is the single exception to the prefix rule — the form calls it
-    // `outstanding_balance` and the request calls it `outstanding_mortgage` — so
-    // it cannot be derived and must survive explicitly.
+    $sentButNotAccepted = array_values(array_diff($sendable, $accepted, $knownUnsent));
+
+    expect($sentButNotAccepted)->toBe([]);
+
+    // And the field W-0012 was raised for is genuinely expressible, so this cannot
+    // pass by both sides being empty.
+    expect($sendable)->toContain('mortgage_rate_fix_end_date');
+
+    // The marker still guards against a literal revert to the hand-copied list. Kept
+    // as a SECOND assertion rather than the only one.
+    $wizard = (string) file_get_contents(base_path('resources/js/components/NetWorth/PropertyList.vue'));
+
+    expect($wizard)->toContain("key.startsWith('mortgage_') ? key : `mortgage_\${key}`");
     expect($wizard)->toContain('data.property.outstanding_mortgage = data.mortgage.outstanding_balance');
+});
+
+it('sends mortgage changes on the EDIT path, which had no door at all', function () {
+    // quality-lead, re-certification: "A user editing mortgage details on an existing
+    // property still loses every one of them." The create path was fixed and the
+    // update branch still PUT only `data.property`.
+    //
+    // It cannot go through the property endpoint — `UpdatePropertyRequest` declares
+    // zero `mortgage_*` rules, so the keys would be stripped at validation. This
+    // asserts the edit branch reaches the mortgage's own endpoint instead.
+    $wizard = (string) file_get_contents(base_path('resources/js/components/NetWorth/PropertyList.vue'));
+
+    expect($wizard)->toContain('api.put(`/mortgages/${mortgageId}`')
+        ->and($wizard)->toContain('api.post(`/properties/${data.property.id}/mortgages`');
+
+    // The form must carry the id, or the update has nothing to target.
+    $form = (string) file_get_contents(base_path('resources/js/components/NetWorth/Property/PropertyForm.vue'));
+
+    expect($form)->toContain('this.mortgageForm.id = mortgage.id');
+
+    // And the receiving endpoint must still accept the field W-0012 is about.
+    expect(array_keys((new UpdateMortgageRequest)->rules()))->toContain('rate_fix_end_date');
 });
 
 it('names the field the item was raised for, so a rename cannot pass silently', function () {

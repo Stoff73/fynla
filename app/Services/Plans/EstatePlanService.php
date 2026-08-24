@@ -473,6 +473,17 @@ class EstatePlanService extends BasePlanService
                 // places a figure appears. They are not. The engine publishes the
                 // sentence once; every consumer of its tax figure has to read it.
                 'unmodelled_relief_caveat' => $ihtCalc['unmodelled_relief_caveat'] ?? null,
+                // Restored 2026-08-24. `e4aa4cdc9` deleted this line while adding the
+                // caveat beside it, and `EstateCurrentSituation.vue:205-206` never
+                // stopped reading it — so `/plans/estate` showed £0 charitable
+                // exemption in its current column while `/estate/inheritance-tax`,
+                // whose controller still published the key, showed the real figure.
+                //
+                // **Two screens disagreeing about one figure is W-0135 and W-0154's
+                // exact disease, reintroduced by the commit fixing the last round of
+                // it** (quality-lead, re-certification). The docblock below still
+                // says this block matches the controller's shape; it now does again.
+                'charitable_deduction' => $ihtCalc['charitable_deduction'] ?? 0,
                 'taxable_estate' => $ihtCalc['taxable_estate'] ?? 0,
                 'iht_liability' => $ihtCalc['iht_liability'] ?? 0,
                 'failed_gift_tax' => $ihtCalc['failed_gift_tax'] ?? 0,

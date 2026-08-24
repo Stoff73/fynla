@@ -202,3 +202,20 @@ interest by `current_valuation` **and** `business_name` together.
 simplifies that detection away — breaks this silently**, by valuing a 60% shareholding at
 100%. Pinned by the test above, but written here because a test only fails after someone
 has already made the change.
+
+- 2026-08-24 — **`quality-lead` answered my re-scoping question, and I had it half right.**
+  W-0138 fault 3 has **two halves**, and CSJ's W-0469 decision settles only one. The missing
+  Inheritance Tax figure is now legitimate — `/m` Premium is deliberately a summary that
+  hands off, and that card is built. **The subtitle was untouched**, and the item's
+  acceptance 3 is a DISJUNCTION: *"shows an Inheritance Tax liability, OR its subtitle stops
+  promising one"*. The second limb is the escape hatch the item wrote for exactly the outcome
+  CSJ chose, and nobody had taken it. **Neither limb was satisfied.**
+  So it moved fault 3 rather than resolving it — and what remained was a one-string fix, not
+  a re-scope. Subtitle now reads "Your estate, your will and your plans".
+
+- 2026-08-24 — **Fault 2 addressed by labelling, not by changing the figure.** The `/m`
+  headline reads `netWorth.net_worth` — this account's own records — under "Estimated estate
+  value", while the web Inheritance Tax screen shows a POOLED household figure for the same
+  household. Two surfaces, two numbers, one name. The hero now states the basis: *"Based on
+  your own records. It does not include anything held only in your partner's name."*
+  Open since 2026-08-21.

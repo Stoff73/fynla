@@ -236,3 +236,43 @@ Report: `reports/R-01-pass-a-entry.md`.
   Read back from the database: `mortgages.rate_fix_end_date = '2029-06-30'`, alongside the
   lender, balance, rate and rate type. Property and mortgage removed afterwards; the
   temporary Premium grant needed to pass the Free property limit was revoked.
+
+- 2026-08-24 — **`quality-lead`: CANNOT CERTIFY — "the fix is real; the test is not what it
+  says it is."** It was right, and the criticism is precise: I said the new test asserts the
+  SENDER can express what the RECEIVER accepts. **It did not.** The receiver's field list was
+  computed, asserted non-empty, and then never used again; the weight was carried by a
+  source-text match. That catches a literal revert to the hand-copied list and nothing else —
+  not a semantically identical rewrite, not the derivation becoming dead code, not a receiver
+  field the sender cannot emit. **No JavaScript executed.** That is the Decoy variant: a case
+  named after a property it does not check.
+  It matters more than a usual weak test **because of why W-0012 was rejected** — a test that
+  passed while the bug was live by taking a different door from the browser. The replacement
+  took a third door.
+  **Rewritten to compare the two sides**: it reads the mortgage form's own field
+  declaration, applies the wizard's prefix rule, and asserts the result against the request's
+  accepted list.
+
+- 2026-08-24 — **And the corrected test immediately found a TENTH dropped field.**
+  `mortgage_account_number` is collected by the form, sent by the wizard, and was **not
+  accepted by `StorePropertyRequest`** — so it was stripped at validation on every property
+  ever created with a mortgage. The field-list fix could not have recovered it, because the
+  gap is on the RECEIVING side. `mortgages.mortgage_account_number` exists and
+  `UpdateMortgageRequest` already accepted it; only creation could not store it. Rule and
+  mapping both added.
+  **Worth recording how it was found:** my first version of the replacement assertion was
+  `array_diff(X, X)` — vacuous, written while correcting a different vacuous assertion.
+  Making it real is what surfaced the field.
+
+- 2026-08-24 — **The EDIT path had no door at all**, which the item never declared.
+  `PropertyList.vue` PUT only `data.property` and discarded `data.mortgage`, so **a user
+  editing their lender, rate or Rate Fix End Date on an existing property lost every one of
+  them.** It cannot go through the property endpoint — `UpdatePropertyRequest` declares
+  **zero** `mortgage_*` rules — so the edit now routes to `PUT /api/mortgages/{id}`, which
+  accepts exactly the fields the form collects, or `POST /properties/{id}/mortgages` where
+  the property is gaining its first mortgage. The form had never captured the mortgage id;
+  it does now.
+
+- 2026-08-24 — **Still open, declared rather than buried:** Rule 19. `surfaces: [web, m, ios]`,
+  and `/m` and native have no property form — their only create door is Fyn, whose
+  `handleCreateProperty` accepts five mortgage fields, not the nine. **The wizard fix does not
+  reach them.**
