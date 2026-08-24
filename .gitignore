@@ -114,3 +114,4 @@ ios-native/build/
 
 # Playwright run artifacts
 /test-results/
+/playwright-report/
