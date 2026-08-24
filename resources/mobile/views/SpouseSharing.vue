@@ -21,9 +21,15 @@
       <!-- Somebody has asked to link with this account. -->
       <section v-if="awaitingYourResponse" class="m-card" data-testid="sharing-incoming">
         <h2 class="m-section-label">A request for you</h2>
+        <!--
+          W-0347 F3 — mutuality and the household record were disclosed after the
+          decision or not at all. Same sentence as the web surface (Rule 20).
+        -->
         <p class="sharing-copy">
           <strong>{{ counterpartyName }}</strong> has asked to link their Fynla household with yours.
-          Accepting lets them see your assets, liabilities and income. Nothing is shared until you accept.
+          If you accept, you will each be able to see the other's assets, liabilities and income, and
+          your accounts will be recorded as one household. You can stop sharing at any time. Nothing is
+          shared until you accept.
         </p>
         <p v-if="counterpartyEmail" class="sharing-meta">{{ counterpartyEmail }}</p>
         <div class="sharing-actions">
@@ -70,6 +76,12 @@
         <p class="sharing-copy">
           Your accounts are linked, but financial information is not being shared.
         </p>
+        <!-- W-0347 F4 — the way back in, on both surfaces. -->
+        <div class="sharing-actions">
+          <button type="button" class="m-btn" data-testid="sharing-reask" :disabled="busy" @click="respond('request')">
+            {{ busy ? 'Saving...' : 'Ask to share again' }}
+          </button>
+        </div>
       </section>
 
       <section v-else class="m-card" data-testid="sharing-none">

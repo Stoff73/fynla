@@ -198,3 +198,98 @@ turns **9** of them red. Plus `resources/mobile/views/__tests__/SpouseSharing.sp
 - Creating an account for an unregistered address is **unchanged** — W-0349
   acceptance 3 asks for that to be decided deliberately, and it is a product call.
 - Not deployed anywhere.
+
+## Second pass — 2026-08-24, the five compliance findings
+
+**CSJ decision on the headline question: re-ask.** *"Is retrospectively legitimising
+forged consent acceptable, or must those households be re-asked?"* — **re-asked.**
+
+**Stated plainly, because it may change the decision:** `compliance-lead`'s own answer
+found that **all 10 forged rows on dev belong to test accounts** (6 seeded preview
+personas, 4 `@example.com`/throwaway), so there is no data subject on dev to re-ask,
+and **production has never been measured**. The decision is therefore implemented as
+**the mechanism that runs at release**, not as a dev-only edit — which is where the
+real population is. The F2 census query should still be run against `fynla.org`
+before the release PR.
+
+### F1 + F2 — the migration now asks instead of granting
+
+`2026_08_23_120000_backfill_spouse_permissions_for_existing_links` is **deleted** and
+replaced by `2026_08_24_130000_reask_spouse_permissions_nobody_granted`. It never
+shipped anywhere, so it is removed rather than undone — and its docblock asserted a
+safeguard it did not perform (F1: "RECIPROCAL links only", when the removed code wrote
+both sides every time, so the filter excluded nothing the defect created).
+
+`requested_at IS NULL` is the single fingerprint of "no request was ever made" and
+covers **both** populations — forged (A) and inherited (B). Those rows become
+**unanswered requests**: `pending`, fresh `requested_at`, `responded_at` cleared. A row
+with `requested_at` set is a decision somebody made and is untouched, `rejected`
+included. A reciprocal link with **no row at all** also gets one, because
+`hasAcceptedSpousePermission()` returns true on absence — so that branch stops
+deciding anything for existing data.
+
+**Measured locally: 13 rows → 7.** Six couples each holding ONE unanswered request, and
+the single genuine `rejected` row untouched. Six mirror duplicates removed.
+
+**No email is sent from the migration.** Notifying every affected household at deploy
+is outward-facing and CSJ's to trigger deliberately — flagged, not done.
+
+### F3 — the consent notice now states what acceptance actually does
+
+Both surfaces said acceptance was one-way data viewing. It is neither: one accepted row
+makes the grant **mutual**, and accepting also writes the accepter's own `spouse_id`,
+`marital_status` and `household_id`, none of which `revoke()` reverses. Compliance's
+replacement wording is used verbatim on web
+(`SpouseDataSharing.vue`) and `/m` (`SpouseSharing.vue`) — one sentence, both surfaces
+(Rule 20).
+
+### F4 — withdrawal is no longer a one-way door
+
+`request()` refused while ANY row existed and `revoke()` leaves a `rejected` row behind,
+so once sharing was off neither party could turn it back on through any interface. A
+settled `rejected` row can now be asked again — **on the same row**, so the unique key
+cannot be dodged into a contradictory mirror. `pending` and `accepted` are still
+refused. "Ask to share again" added to the rejected branch on **both** surfaces, which
+previously rendered no button at all.
+
+### F5 — the two reads can no longer disagree
+
+`->orderBy('id')` on `User::hasAcceptedSpousePermission()` and on every `first()` in
+`SpousePermissionController`, and the migration collapses each couple to one row.
+**Honest about the guard:** the defect was *latent* non-determinism — two unordered
+`first()` calls that in practice return the same row — so the test pins the guarantee
+and does **not** go red if the ordering is removed. Said so in the test.
+
+### Browser-verified end to end, web AND `/m`, both accounts
+
+1. **Jane, web** — the migration's output renders as *"Permission Request Received"*
+   with the new sentence, where a forged `accepted` row previously sat silent.
+2. **Jane** declines → *"Data sharing is off"* + **"Ask to share again"** (the F4
+   branch, previously buttonless) → clicked → row 17 back to `pending`, direction
+   flipped to Jane, `responded_at` cleared, **still one row**, sharing off.
+3. **John, `/m`** (`/m/app/spouse-sharing`, rebuilt bundle) — same sentence on the
+   incoming request → **Decline** → *"Sharing is off"* + **"Ask to share again"** →
+   clicked → row 17 `pending` again, John requesting, sharing off.
+4. **Jane, web** — **Accept** → `accepted`, `responded_at` set, both `spouse_id`
+   intact, `hasAcceptedSpousePermission()` true for both.
+
+### Tests
+
+`tests/Feature/Api/SpouseConsentReAskTest.php` — 7 tests / 25 assertions covering the
+re-ask conversion, the untouched real decision, the no-row couple, re-request after
+rejection, both refusals that still stand, and sharing staying off while unanswered.
+**Mutation-checked: restoring the one-way door turns 2 red.** Plus 2 new `/m` component
+tests (F3 copy, F4 button). **104 tests / 362 assertions green** across every
+spouse-permission-touching suite; `/m` component suite 8/8; Pint clean.
+
+**Caught in the same pass:** the new test file declared a global `linkedCouple()` that
+already exists in `DeletedSpouseVisibilityTest`. It passed alone and **fatally killed
+the suite** when both loaded. Renamed. Worth knowing: a Pest file that is green on its
+own can still be a suite-wide fatal.
+
+### Still open
+
+- **Acceptance 4 — compliance sign-off — remains unmet.** Agents are banned this
+  session by standing instruction, and this is consent, so the item stays `gated`.
+- The production census (F2 query against `fynla.org`) has not been run.
+- Whether an inherited row may ever stand in place of consent is `Q-17`, for a lawyer.

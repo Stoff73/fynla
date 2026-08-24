@@ -821,7 +821,14 @@ class User extends Authenticatable
         })->orWhere(function ($query) use ($spouse) {
             $query->where('user_id', $spouse->id)
                 ->where('spouse_id', $this->id);
-        })->first();
+        })
+            // W-0347 F5 — a couple could hold a row in each direction, and this
+            // read and `revoke()` both took `first()` with no order. Withdraw on
+            // the row one query happens to find and the other still says yes.
+            // The migration collapses the historic pairs; this makes the read
+            // deterministic whatever arrives later.
+            ->orderBy('id')
+            ->first();
 
         // An explicit row is the answer whenever there is one — including a
         // withdrawal, which is why `revoke` now marks the row rather than

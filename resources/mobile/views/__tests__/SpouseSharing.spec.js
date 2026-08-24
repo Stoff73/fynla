@@ -41,6 +41,49 @@ describe('/m household sharing', () => {
     vi.clearAllMocks();
   });
 
+  it('offers a way back in once sharing is off', async () => {
+    // W-0347 F4 — this branch used to render nothing at all, and `request()`
+    // refused while any row existed, so a household that withdrew could never
+    // share again from any interface.
+    apiGet.mockResolvedValue(ok({
+      has_spouse: true,
+      awaiting_your_response: false,
+      awaiting_their_response: false,
+      can_view_spouse_data: false,
+      spouse: { id: 7, name: 'Sarah Jones', email: 'sarah@example.com' },
+      permission: { status: 'rejected' },
+    }));
+    apiPost.mockResolvedValue({ ok: true, status: 200, data: {} });
+
+    const wrapper = mountScreen();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="sharing-off"]').exists()).toBe(true);
+    await wrapper.find('[data-testid="sharing-reask"]').trigger('click');
+    await flushPromises();
+
+    expect(apiPost.mock.calls[0][0]).toBe('/api/spouse-permission/request');
+  });
+
+  it('says what accepting actually does before the decision is made', async () => {
+    // W-0347 F3 — the grant is mutual and also records the two accounts as one
+    // household. Both were disclosed after the decision or not at all.
+    apiGet.mockResolvedValue(ok({
+      has_spouse: true,
+      awaiting_your_response: true,
+      can_view_spouse_data: false,
+      spouse: { id: 7, name: 'Sarah Jones', email: 'sarah@example.com' },
+      permission: { status: 'pending' },
+    }));
+
+    const wrapper = mountScreen();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("each be able to see the other's assets");
+    expect(wrapper.text()).toContain('recorded as one household');
+    expect(wrapper.text()).toContain('You can stop sharing at any time');
+  });
+
   it('lets an invitee accept a request addressed to them', async () => {
     apiGet.mockResolvedValue(ok({
       has_spouse: true,

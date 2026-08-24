@@ -230,9 +230,16 @@ class SpousePermissionController extends Controller
         })->orWhere(function ($query) use ($user) {
             $query->where('user_id', $user->spouse_id)
                 ->where('spouse_id', $user->id);
-        })->first();
+        })->orderBy('id')->first();
 
-        if ($existingPermission) {
+        // W-0347 F4 — withdrawal used to be a one-way door. This refused while
+        // ANY row existed, and `revoke()` leaves a `rejected` row behind rather
+        // than deleting it, so once sharing was off neither party could turn it
+        // back on through any interface. A withdrawal a user cannot reverse is
+        // one they will hesitate to make, which makes the consent worth less,
+        // not more. A settled `rejected` row can be asked again; a `pending` or
+        // `accepted` one still stands and is still refused.
+        if ($existingPermission && $existingPermission->status !== 'rejected') {
             return response()->json([
                 'success' => false,
                 'message' => 'A permission request already exists',
@@ -240,13 +247,27 @@ class SpousePermissionController extends Controller
             ], 422);
         }
 
-        // Create new permission request
-        $permission = SpousePermission::create([
-            'user_id' => $user->id,
-            'spouse_id' => $user->spouse_id,
-            'status' => 'pending',
-            'requested_at' => now(),
-        ]);
+        if ($existingPermission) {
+            // Asked again on the same row rather than a second one — the unique
+            // key would refuse the insert in one direction and permit a
+            // contradictory mirror in the other (F5).
+            $existingPermission->update([
+                'user_id' => $user->id,
+                'spouse_id' => $user->spouse_id,
+                'status' => 'pending',
+                'requested_at' => now(),
+                'responded_at' => null,
+            ]);
+
+            $permission = $existingPermission->fresh();
+        } else {
+            $permission = SpousePermission::create([
+                'user_id' => $user->id,
+                'spouse_id' => $user->spouse_id,
+                'status' => 'pending',
+                'requested_at' => now(),
+            ]);
+        }
 
         // Send notification/email to spouse
         $spouse = User::find($user->spouse_id);
@@ -278,6 +299,7 @@ class SpousePermissionController extends Controller
         $permission = SpousePermission::where('spouse_id', $user->id)
             ->where('status', 'pending')
             ->when($user->spouse_id, fn ($q) => $q->where('user_id', $user->spouse_id))
+            ->orderBy('id')
             ->first();
 
         if (! $permission) {
@@ -339,6 +361,7 @@ class SpousePermissionController extends Controller
         $permission = SpousePermission::where('spouse_id', $user->id)
             ->where('status', 'pending')
             ->when($user->spouse_id, fn ($q) => $q->where('user_id', $user->spouse_id))
+            ->orderBy('id')
             ->first();
 
         if (! $permission) {
@@ -392,7 +415,9 @@ class SpousePermissionController extends Controller
             });
         }
 
-        $permission = $query->first();
+        // W-0347 F5 — ordered, so this and `hasAcceptedSpousePermission()` cannot
+        // pick different rows for the same couple and leave a withdrawal undone.
+        $permission = $query->orderBy('id')->first();
 
         if (! $permission) {
             return response()->json([

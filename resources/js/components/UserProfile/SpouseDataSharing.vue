@@ -116,8 +116,16 @@
             </div>
             <div class="ml-3 flex-1">
               <h4 class="text-body-sm font-medium text-horizon-600">Permission Request Received</h4>
+              <!--
+                W-0347 F3. The old sentence described acceptance as one-way data
+                viewing. It is neither: one accepted row makes the grant MUTUAL,
+                and accepting also writes this account's own `spouse_id`,
+                `marital_status` and `household_id`, none of which `revoke()`
+                reverses. Both were disclosed after the decision or not at all.
+                Same sentence as /m (Rule 20).
+              -->
               <p class="mt-1 text-body-sm text-horizon-500">
-                Your spouse has requested permission to view your financial data. This will allow them to see your assets, liabilities, and income in their account view.
+                Your spouse has requested permission to view your financial data. If you accept, you will each be able to see the other's assets, liabilities and income, and your accounts will be recorded as one household. You can stop sharing at any time.
               </p>
               <p class="mt-1 text-body-xs text-horizon-500">
                 Requested: {{ formatDate(permission.requested_at) }}
@@ -161,7 +169,15 @@
               <p class="mt-1 text-body-sm text-spring-700">
                 You can now view joint accounts and combined financial statements with your spouse.
               </p>
-              <p class="mt-1 text-body-xs text-spring-600">
+              <!--
+                W-0347 F2 — this printed "Accepted: <date>" over rows nobody had
+                accepted, because the forging path set `responded_at` and nothing
+                else. Those rows are now unanswered requests
+                (`2026_08_24_130000_reask_spouse_permissions_nobody_granted`), and
+                the guard keeps the screen from asserting an acceptance again if
+                one ever arrives without a timestamp.
+              -->
+              <p v-if="permission.responded_at" class="mt-1 text-body-xs text-spring-600">
                 Accepted: {{ formatDate(permission.responded_at) }}
               </p>
             </div>
@@ -199,12 +215,27 @@
               <p class="mt-1 text-body-sm text-raspberry-700">
                 Financial information is not being shared between these accounts.
               </p>
-              <p class="mt-1 text-body-xs text-raspberry-600">
+              <p v-if="permission.responded_at" class="mt-1 text-body-xs text-raspberry-600">
                 Since: {{ formatDate(permission.responded_at) }}
               </p>
             </div>
           </div>
         </div>
+
+        <!--
+          W-0347 F4. Once sharing was off, neither party could turn it back on
+          through any interface: `request()` refused while any row existed and
+          `revoke()` leaves a `rejected` one behind. A withdrawal you cannot
+          reverse is one people hesitate to make.
+        -->
+        <button
+          @click="handleRequestPermission"
+          :disabled="loading"
+          class="btn-primary"
+        >
+          <span v-if="!loading">Ask to share again</span>
+          <span v-else>Sending Request...</span>
+        </button>
       </div>
 
       <!-- Error Message -->
