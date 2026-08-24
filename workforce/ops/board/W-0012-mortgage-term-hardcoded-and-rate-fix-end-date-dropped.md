@@ -2,16 +2,16 @@
 id: W-0012
 title: Mortgage created via the property wizard hardcodes a 300-month term and drops the Rate Fix End Date
 mission: persona-run-peak_earners-2026-08-20
-branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
+branch: estate-copy-and-m-handoff
 owner: build-lead
-status: queued
+status: handoff
 surfaces: [web, m, ios]
 created: 2026-08-20T23:35:00Z
 claimed: 2026-08-21T10:30:00Z
 blocked_by: []
 gate: null
 handoff_to: quality-lead
-certification: REJECTED 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
+certification: REJECTED 2026-08-23 quality-lead — addressed 2026-08-24, awaiting re-certification
 prior_art_checked: 2026-08-21T10:30:00Z
 prior_art_found: ['app/Services/Stores/Normalisers/MortgageNormaliser (canonical mortgage write path)', 'config/mortgage.php default_term_months', 'MortgageController::store term/maturity defaults', 'StorePropertyRequest mortgage_* rules']
 prior_art_outcome: extend
@@ -200,3 +200,39 @@ Report: `reports/R-01-pass-a-entry.md`.
     read side benefits automatically. iOS outside this dispatch.
 
 - 2026-08-21 build-lead: batch handover (CLAUDE.md Rule 22) — `workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md`. Carries the dispatch verbatim, the joint-share consolidation reasoning, decisions taken, dead ends ruled out, and environment state.
+
+- 2026-08-24 — **The frontend half is fixed, and it was worse than one field.**
+  `PropertyList.vue` carried the comment "Include ALL mortgage data if provided" above a
+  hand-copy of thirteen fields. `rate_fix_end_date` was missing — and so were **eight
+  others the API accepts**: `repayment_percentage`, `interest_only_percentage`,
+  `fixed_rate_percentage`, `variable_rate_percentage`, `fixed_interest_rate`,
+  `variable_interest_rate`, `remaining_term_months`, `monthly_interest_portion`. Every
+  one is a field the user can fill in and watch vanish.
+
+- 2026-08-24 — **The list was the defect, so the list is gone.** `StorePropertyRequest`
+  names every accepted field as `mortgage_<name>` and the form emits `<name>`, with one
+  quirk (`mortgage_type` is already prefixed) and one true exception
+  (`outstanding_balance` → `outstanding_mortgage`). That is the whole correspondence, so
+  the payload is now derived by that rule. A field added to the backend needs no edit
+  here, which is what stops this recurring.
+
+- 2026-08-24 — **A guard for the reason the old test missed it.** quality-lead's finding
+  was that `PropertyHttpIntegrationTest` passes because it POSTs the key straight to the
+  API — *"the test and the browser take different doors"*. A request test structurally
+  cannot catch a sender that never sends the field. The new
+  `tests/Feature/Property/PropertyWizardMortgageFieldParityTest.php` asserts what only a
+  cross-layer test can: that the SENDER still derives its payload by rule rather than by
+  a list, and that the exception survives.
+
+- 2026-08-24 — **Pest's `toContain` takes VARARGS, not a message.** The first version of
+  that guard passed a failure message as a second argument, which Pest asserted as another
+  needle — so it failed for a reason unrelated to the code. Guidance now lives in comments.
+  Worth knowing before writing the next one.
+
+- 2026-08-24 — **Browser-verified end to end, which is what the item asked for.** As
+  chris@fynla.org: Add Property → filled the address and value → ticked "This property has
+  a mortgage" → lender, balance £250,000, rate 4.25%, **rate type Fixed** (the Rate Fix End
+  Date field only renders for a fixed rate) → **Rate Fix End Date 2029-06-30** → Save.
+  Read back from the database: `mortgages.rate_fix_end_date = '2029-06-30'`, alongside the
+  lender, balance, rate and rate type. Property and mortgage removed afterwards; the
+  temporary Premium grant needed to pass the Free property limit was revoked.
