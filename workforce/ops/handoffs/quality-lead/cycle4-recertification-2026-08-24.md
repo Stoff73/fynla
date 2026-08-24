@@ -307,3 +307,80 @@ named in four places to reach a screen**, and W-0465's own working note said so 
 *"the result block ENUMERATES the projected keys … four places, the same shape as W-0134 and
 W-0399."* You wrote down the mechanism that was about to bite you, and it bit you twice more.
 That is the strongest argument on this board for a shape test over another careful edit.
+
+---
+
+## THE TEST RUN — what I have, and what I do not
+
+**I do not have a full-suite result for this HEAD, and I am not going to imply one.**
+
+My run started 08:36 and was **killed by the harness at roughly 64 minutes**, before
+Pest printed its summary. The output file has **no `Tests:` line and no exit code** — it
+is an incomplete run, not a failing one.
+
+**It contained 209 `⨯` marks across 23 files, and I nearly reported them.** A naive
+`grep -cE '^\s+(⨯|FAIL)'` returned **232** — the exact number from the 2026-08-22/23
+phantom incident. That coincidence is what made me stop and check instead of relay.
+
+Three things said it was contamination, not regression:
+
+1. **Failures were interleaved with passes**, starting ~45% through and with passes
+   resuming afterwards — not a clean break, which is what a dropped database mid-run
+   looks like.
+2. **The red files are nowhere near the five commits** — `GithubIssueServiceTest`,
+   `AssetAllocationOptimizerTest`, `InsightTemplateServiceTest`, `InlineHoldingsTest`.
+   Nothing in the spouse, expenditure, property or estate diffs touches them.
+3. **All four passed in my clean 2026-08-23 run** and failed in this one.
+
+**Then I re-ran them in isolation, which is what `tests/CLAUDE.md` says to do, and they
+are green:**
+
+```
+   PASS  Tests\Unit\Services\Integrations\GithubIssueServiceTest
+   PASS  Tests\Unit\Services\Insights\InsightTemplateServiceTest
+  Tests:    13 passed (18 assertions)
+```
+
+**And a targeted pass over the four contaminated files plus the tests that actually guard
+today's work:**
+
+```
+tests/Unit/Services/Investment/AssetAllocationOptimizerTest.php
+tests/Unit/Services/Investment/InlineHoldingsTest.php
+tests/Feature/Api/SpouseLinkConsentTest.php
+tests/Unit/Agents/CoordinatingAgentHandleSetExpenditureTest.php
+tests/Feature/Property/PropertyWizardMortgageFieldParityTest.php
+tests/Unit/Services/Tiers/EstateIhtExposureDetectorTest.php
+
+  Tests:    72 passed (240 assertions)
+  Duration: 130.69s
+```
+
+**So: the four "failures" were not real, and the six files covering the new work are
+green.** What I cannot tell you is whether the *other* ~7,800 tests are green at this
+HEAD, because that run did not finish.
+
+**This is a gap, not a result.** Re-running it is one command and about 35 minutes on a
+quiet machine — worth doing before any merge, and worth doing when nothing else is
+running, since this attempt took 64 minutes and still did not finish.
+
+---
+
+## CORRECTION to my 2026-08-23 record — W-0466's residual is closed
+
+Yesterday I wrote of W-0466: *"the trigger is business interests only … a farmer holding
+land and no company still sees nothing."* **That is no longer true and the record should
+not stand.**
+
+`IHTCalculationService.php:252` now reads
+`($holdsBusinessInterest || $holdsAgriculturalAsset)`, on a CSJ decision dated 2026-08-24
+recorded at `:232`. The agricultural test is a word-prefix match at a boundary
+(`:71-78` — `farm`, `agricultur`, `arable`, `pasture`, `grazing`), and the tests pin both
+directions: *"the caveat triggers on farmland, and not on everything else"*, four cases,
+all green in my run above.
+
+**One limitation, stated rather than raised as a defect** — it matches on asset *names*,
+so farmland recorded as "Top Field" or "Manor Estate" will not trigger it. The docblock at
+`:247` says as much and names the durable fix (an agricultural asset type). CSJ chose the
+heuristic knowingly over a schema change; that is a decision, not an oversight.
+
