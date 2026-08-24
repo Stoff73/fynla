@@ -104,7 +104,7 @@
             @if($isZeroState)
                 <tr>
                     <td colspan="2" style="padding: 20px 36px 28px; text-align: center;">
-                        <a href="{{ $ctaUrl }}" style="display: inline-block; padding: 14px 40px; background: #20B486; color: #ffffff; font-size: 16px; font-weight: 700; border-radius: 12px; text-decoration: none; font-family: 'Segoe UI', Inter, Arial, sans-serif;">{{ $ctaLabel }}</a>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#20B486" style="padding: 14px 40px; background: #20B486; border-radius: 12px;"><a href="{{ $ctaUrl }}" style="color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none; font-family: 'Segoe UI', Inter, Arial, sans-serif;">{{ $ctaLabel }}</a></td></tr></table>
                     </td>
                 </tr>
             @else

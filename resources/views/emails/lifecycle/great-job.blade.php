@@ -30,7 +30,7 @@
                 </tr>
             </table>
             <div style="text-align:center;margin-top:20px;">
-                <a href="{{ $finishPlanUrl1 }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Finish my plan</a>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $finishPlanUrl1 }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Finish my plan</a></td></tr></table>
             </div>
         </td>
     </tr>
@@ -81,7 +81,7 @@
             @endforeach
 
             <div style="text-align:center;">
-                <a href="{{ $finishPlanUrl2 }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Finish my plan</a>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $finishPlanUrl2 }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Finish my plan</a></td></tr></table>
             </div>
         </td>
     </tr>
@@ -119,7 +119,7 @@
                 Most UK households don't know where they stand. By filling in the majority of your modules you already have more visibility over your finances than the vast majority of people your age &mdash; and households that complete an estate plan typically save their heirs tens of thousands in Inheritance Tax. Finishing the last modules is where Fynla pays for itself.
             </p>
             <div style="text-align:center;">
-                <a href="{{ $finishPlanUrl3 }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Finish my plan</a>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $finishPlanUrl3 }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Finish my plan</a></td></tr></table>
             </div>
         </td>
     </tr>

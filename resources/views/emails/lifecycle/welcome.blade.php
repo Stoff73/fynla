@@ -30,7 +30,7 @@
             <p style="margin:0 0 18px;font-size:14px;color:#1F2A44;line-height:1.6;">
                 We'll prioritise pension allowances, ISA headroom and inheritance-tax planning. These account for the majority of the tax UK households routinely overpay.
             </p>
-            <a href="{{ $journeyUrl }}" style="display:inline-block;padding:12px 28px;background:#e74c6f;color:#ffffff;font-size:14px;font-weight:700;border-radius:10px;text-decoration:none;">Start saving tax now</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:12px 28px; background:#e74c6f; border-radius:10px;"><a href="{{ $journeyUrl }}" style="color:#ffffff; font-size:14px; font-weight:700; text-decoration:none;">Start saving tax now</a></td></tr></table>
         </td>
     </tr>
 
@@ -84,7 +84,7 @@
     <tr>
         <td bgcolor="#fce4ec" style="background:#fce4ec;padding:28px 36px;text-align:center;">
             <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#1F2A44;line-height:1.5;">Go to your dashboard now to get more recommendations</p>
-            <a href="{{ $dashboardUrl }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Take me to my dashboard</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $dashboardUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Take me to my dashboard</a></td></tr></table>
         </td>
     </tr>
 @endsection

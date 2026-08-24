@@ -52,12 +52,12 @@
                 {{-- CTA Block: Raspberry Gradient --}}
                 <tr><td style="background-color: #e74c6f; padding: 28px 36px; text-align: center;">
                     <p style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Changed your mind? Resubscribe instantly</p>
-                    <a href="https://fynla.org/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #ffffff; color: #e74c6f; box-shadow: 0 4px 14px #d9d3cc;">Resubscribe</a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#ffffff" style="padding: 14px 40px; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 14px #d9d3cc;"><a href="https://fynla.org/checkout" style="font-size: 16px; font-weight: 700; color: #e74c6f;">Resubscribe</a></td></tr></table>
                 </td></tr>
 
                 {{-- Share Feedback: Eggshell --}}
                 <tr><td style="background: #f5f0eb; padding: 20px 36px; text-align: center;">
-                    <a href="mailto:support@fynla.org?subject=Cancellation%20Feedback" style="display: inline-block; padding: 12px 32px; border-radius: 10px; font-size: 14px; font-weight: 600; background: #fce4ec; color: #1F2A44;">Share feedback</a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#fce4ec" style="padding: 12px 32px; border-radius: 10px; background: #fce4ec;"><a href="mailto:support@fynla.org?subject=Cancellation%20Feedback" style="font-size: 14px; font-weight: 600; color: #1F2A44;">Share feedback</a></td></tr></table>
                 </td></tr>
 
                 {{-- Footer --}}

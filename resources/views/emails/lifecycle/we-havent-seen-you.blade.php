@@ -46,7 +46,7 @@
                 </table>
             @endforeach
             <div style="text-align:center;">
-                <a href="{{ $getMoreRecommendationsUrl }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Get more recommendations</a>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $getMoreRecommendationsUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Get more recommendations</a></td></tr></table>
             </div>
         </td>
     </tr>
@@ -58,7 +58,7 @@
             <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#9a1b4a;text-transform:uppercase;letter-spacing:1.5px;">Your discount</p>
             <p style="margin:0;font-size:80px;font-weight:900;color:#e74c6f;line-height:1;letter-spacing:-2px;">20%</p>
             <p style="margin:10px 0 22px;font-size:14px;color:#1F2A44;font-weight:700;">off your first year &mdash; applied automatically at checkout.</p>
-            <a href="{{ $subscribeUrl }}" style="display:inline-block;padding:14px 44px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Subscribe now</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 44px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $subscribeUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Subscribe now</a></td></tr></table>
             <p style="margin:12px 0 0;font-size:12px;color:#1F2A44;">Cancel anytime. UK-based support. Data encrypted end-to-end.</p>
         </td>
     </tr>

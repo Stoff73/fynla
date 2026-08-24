@@ -57,7 +57,7 @@
                 <tr>
                     <td style="vertical-align: top; width: 30%;">
                         <a href="https://fynla.org" style="display: inline-block; text-decoration: none;">
-                            <img src="https://fynla.org/images/logos/LogoHiResFynlaLight.png" alt="Fynla" style="height: 28px; width: auto; display: block; border: 0;" />
+                            <img src="https://fynla.org/images/logos/LogoHiResFynlaLight.png" alt="Fynla" width="62" height="28" style="height: 28px; width: 62px; display: block; border: 0;" />
                         </a>
                     </td>
                     <td style="vertical-align: top; text-align: right;">

@@ -48,7 +48,7 @@
             @if($cta)
                 <tr>
                     <td colspan="2" style="padding: 8px 36px 24px; text-align: center;">
-                        <a href="{{ $cta['url'] ?? '#' }}" style="display: inline-block; padding: 14px 40px; background: #e74c6f; color: #ffffff; font-size: 16px; font-weight: 700; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 14px #d9a0b0; font-family: 'Segoe UI', Inter, Arial, sans-serif;">{{ $cta['label'] ?? 'Check out features' }}</a>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding: 14px 40px; background: #e74c6f; border-radius: 12px; box-shadow: 0 4px 14px #d9a0b0;"><a href="{{ $cta['url'] ?? '#' }}" style="color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none; font-family: 'Segoe UI', Inter, Arial, sans-serif;">{{ $cta['label'] ?? 'Check out features' }}</a></td></tr></table>
                     </td>
                 </tr>
             @endif

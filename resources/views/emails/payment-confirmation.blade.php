@@ -91,7 +91,7 @@
                 {{-- CTA Block: Raspberry Gradient --}}
                 <tr><td style="background-color: #e74c6f; padding: 28px 36px; text-align: center;">
                     <p style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Manage your subscription</p>
-                    <a href="{{ config('app.url') }}/profile?section=subscription" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #ffffff; color: #e74c6f; box-shadow: 0 4px 14px #d9d3cc;">View subscription</a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#ffffff" style="padding: 14px 40px; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 14px #d9d3cc;"><a href="{{ config('app.url') }}/profile?section=subscription" style="font-size: 16px; font-weight: 700; color: #e74c6f;">View subscription</a></td></tr></table>
                 </td></tr>
 
                 {{-- Footer --}}
