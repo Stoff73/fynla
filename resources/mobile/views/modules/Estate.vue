@@ -18,7 +18,15 @@
       <div class="m-card">
         <p v-if="teaser.headline" class="m-sub" style="margin:0 0 12px">{{ teaser.headline }}</p>
         <p v-if="teaser.unmodelled_relief_caveat" class="me-caveat">{{ teaser.unmodelled_relief_caveat }}</p>
-        <p class="me-note">Full estate planning — assets, gifts, trusts, will and personalised Inheritance Tax planning — is part of Premium.</p>
+        <!--
+          W-0467, compliance-lead finding D (2026-08-24): "personalised" is precisely
+          the word separating generic guidance from a personal recommendation, and
+          Fynla is not FCA-authorised. It appeared here and twice in the headline —
+          one claim with two homes, so both were changed together (Rule 20).
+        -->
+        <p class="me-note">Full estate planning — assets, gifts, trusts, will and Inheritance Tax planning tools — is part of Premium.</p>
+        <!-- Rule 3: the only next step offered to a household facing a large bill was a purchase. -->
+        <p class="me-note" style="margin-top:8px">For an estate of this size it is worth discussing your position with a regulated financial adviser or a specialist solicitor.</p>
         <button v-if="paidUpgradeAvailable" type="button" class="m-btn" style="margin-top:16px" @click="goUpgrade">Compare plans</button>
       </div>
     </template>

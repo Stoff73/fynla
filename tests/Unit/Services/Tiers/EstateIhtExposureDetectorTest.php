@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\BusinessInterest;
+use App\Models\SpousePermission;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -148,6 +149,56 @@ describe('W-0467 — the headline says whose estate and when', function () {
         expect($headline)->toContain('Your estate could be subject to')
             ->and($headline)->not->toContain('second death');
     });
+
+    it('does not tell a married user with sharing off that it is their own estate', function () {
+        // `compliance-lead` finding F, 2026-08-24. The "single" branch was never the
+        // single branch — the predicate is "not pooled", and it caught married users
+        // whose partner has no linked account, and married users with sharing off or
+        // revoked. To them it said "Your estate could be subject to up to £X", the
+        // exact defect W-0467 exists to fix, in the branch nobody changed.
+        //
+        // W-0347 makes this group GROW: sharing is now genuinely opt-in and
+        // revocable, so more households land here over time.
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $spouse = User::factory()->create(['marital_status' => 'married']);
+        $user->update(['spouse_id' => $spouse->id]);
+        $spouse->update(['spouse_id' => $user->id]);
+
+        // Linked, but sharing REJECTED — the state a revoke leaves behind.
+        SpousePermission::create([
+            'user_id' => $user->id,
+            'spouse_id' => $spouse->id,
+            'status' => 'rejected',
+            'requested_at' => now(),
+            'responded_at' => now(),
+        ]);
+
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        $headline = app(EstateIhtExposureDetector::class)->detect($user->fresh())['headline'];
+
+        expect($headline)->toContain('Based on your own records alone')
+            ->and($headline)->toContain('does not allow for anything passing to your partner')
+            ->and($headline)->not->toContain('Your household')
+            // The sentence that was wrong for this user.
+            ->and($headline)->not->toContain('Your estate could be subject to up to');
+    });
+
+    it('makes no unhedged promise about what upgrading achieves', function () {
+        // `compliance-lead` finding E: "to help reduce this" asserted an outcome
+        // about a paid product on a conversion surface — the one clause with nothing
+        // qualifying it was the clause asking for money.
+        $user = User::factory()->create(['marital_status' => 'single']);
+        SavingsAccount::factory()->create(['user_id' => $user->id, 'current_balance' => 900_000.00]);
+
+        $headline = app(EstateIhtExposureDetector::class)->detect($user)['headline'];
+
+        expect($headline)->not->toContain('to help reduce this')
+            // Finding D: "personalised" is the word separating guidance from a
+            // personal recommendation, and Fynla is not FCA-authorised.
+            ->and($headline)->not->toContain('personalised')
+            ->and($headline)->toContain('could use to explore');
+    });
 });
 
 describe('W-0466 — the caveat reaches the only Inheritance Tax figure /m shows', function () {
@@ -163,11 +214,20 @@ describe('W-0466 — the caveat reaches the only Inheritance Tax figure /m shows
 
         $result = app(EstateIhtExposureDetector::class)->detect($user);
 
+        // The market is spelled out: CLAUDE.md Rule 9 allows no acronym but ISA,
+        // and `compliance-lead` flagged "AIM" on 2026-08-24. Asserting the ABSENCE
+        // of the acronym as well as the presence of the words, so a well-meaning
+        // "(AIM)" added later for recognisability fails here rather than shipping —
+        // that would be a Rule 9 amendment and CSJ's alone to make.
         expect($result['unmodelled_relief_caveat'])
             ->toContain('Agricultural Property Relief')
-            ->and($result['unmodelled_relief_caveat'])->toContain('AIM')
+            ->and($result['unmodelled_relief_caveat'])->toContain('Alternative Investment Market')
+            ->and($result['unmodelled_relief_caveat'])->not->toContain('AIM')
             // Both directions, because the two exclusions bend the figure opposite ways.
-            ->and($result['unmodelled_relief_caveat'])->toContain('higher or lower');
+            ->and($result['unmodelled_relief_caveat'])->toContain('higher or lower')
+            // Rule 3 — a household told its figure may be materially wrong must be
+            // given somewhere to go, not just informed.
+            ->and($result['unmodelled_relief_caveat'])->toContain('regulated financial adviser');
     });
 
     it('says nothing to a household the exclusions cannot affect', function () {
