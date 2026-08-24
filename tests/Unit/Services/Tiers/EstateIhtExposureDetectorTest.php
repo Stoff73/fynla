@@ -262,19 +262,23 @@ describe('W-0466 — the caveat reaches the only Inheritance Tax figure /m shows
         $result = app(EstateIhtExposureDetector::class)->detect($user);
 
         // The market is spelled out: CLAUDE.md Rule 9 allows no acronym but ISA,
-        // and `compliance-lead` flagged "AIM" on 2026-08-24. Asserting the ABSENCE
-        // of the acronym as well as the presence of the words, so a well-meaning
-        // "(AIM)" added later for recognisability fails here rather than shipping —
-        // that would be a Rule 9 amendment and CSJ's alone to make.
+        // and `compliance-lead` flagged "AIM" on 2026-08-24. This asserted the
+        // acronym's ABSENCE until **CSJ amended Rule 9 on 2026-08-24**: an acronym
+        // may be used once it has been spelled out to that reader. So the acronym is
+        // now allowed and its POSITION is what is pinned — it may never appear before
+        // its own expansion, which is the only thing that made it a Rule 9 breach.
         expect($result['unmodelled_relief_caveat'])
             ->toContain('Agricultural Property Relief')
-            ->and($result['unmodelled_relief_caveat'])->toContain('Alternative Investment Market')
-            ->and($result['unmodelled_relief_caveat'])->not->toContain('AIM')
+            ->and($result['unmodelled_relief_caveat'])->toContain('Alternative Investment Market (AIM)')
             // Both directions, because the two exclusions bend the figure opposite ways.
             ->and($result['unmodelled_relief_caveat'])->toContain('higher or lower')
             // Rule 3 — a household told its figure may be materially wrong must be
             // given somewhere to go, not just informed.
             ->and($result['unmodelled_relief_caveat'])->toContain('regulated financial adviser');
+
+        // The reader meets the acronym only after being told what it stands for.
+        expect(strpos($result['unmodelled_relief_caveat'], 'AIM'))
+            ->toBeGreaterThan(strpos($result['unmodelled_relief_caveat'], 'Alternative Investment Market'));
     });
 
     it('says nothing to a household the exclusions cannot affect', function () {

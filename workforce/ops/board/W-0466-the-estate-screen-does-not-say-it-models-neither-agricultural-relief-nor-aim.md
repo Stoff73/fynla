@@ -215,3 +215,24 @@ no user.
   - **Browser-verified** as `david.jones@example.com`: opened the AJ Bell account, clicked
     Edit, and the notice renders directly above "+ Add Holding".
 
+- 2026-08-24 — **`compliance-lead` finding A closed by a CSJ Rule 9 AMENDMENT**, not by
+  a change to this string's judgement. Asked whether the acronym should come back for
+  recognisability, CSJ ruled: *"an acronym can be used if it has been explained and
+  spelled out previously or on an intro screen … so long as there is an instance of it
+  being spelt out, we can use AIM."*
+  **Stated plainly: Rule 9 did not already say this** — the rule read "all acronyms
+  must be spelled out … the only exception is ISA", full stop. The clause is now
+  written into `CLAUDE.md` Rule 9 as CSJ's amendment, dated, rather than being assumed.
+  - The caveat reads *"…shares listed on the Alternative Investment Market (AIM). If
+    your estate holds farmland or shares listed on AIM…"* — expanded on first use,
+    abbreviated on the second, inside the one sentence the reader has in front of them.
+  - `AimAcronymStaysOutOfUserFacingTextTest` rewritten to the amended rule: an acronym
+    is an offence only where the surface showing it never spells it out **at or before**
+    that line. Comments are still exempt as uses and **do not count as the expansion** —
+    no user reads a comment. Mutation-checked: removing the expansion from
+    `UnmodelledAimNotice.vue`'s rendered text turns it red.
+  - `EstateIhtExposureDetectorTest` asserted the acronym's ABSENCE; it now pins its
+    POSITION — the acronym may never appear before its own expansion, which is the only
+    thing that made it a Rule 9 breach.
+  - `UnmodelledAimNotice.vue` carried a comment restating the old rule; corrected. The
+    notice itself names the market in full and never abbreviates, so it needs nothing.

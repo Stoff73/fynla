@@ -158,6 +158,8 @@ Amber (`amber-*`) and orange (`orange-*`) are banned. Warnings/caution → viole
 ### 9. No Acronyms in User-Facing Text
 All acronyms must be spelled out in user-facing text. Write "Annual Allowance" not "AA", "Stocks & Shares" not "S&S", "Defined Benefit" not "DB", "Defined Contribution" not "DC", "Money Purchase Annual Allowance" not "MPAA", etc. The only exception is **ISA**, which may remain abbreviated.
 
+**Spell it out once, then the acronym is fine (CSJ amendment 2026-08-24).** An acronym may be used where it has already been spelled out to that user — earlier in the same string, the same screen, or an introduction screen that precedes it. Write "the Alternative Investment Market (AIM)" first and plain "AIM" thereafter. What is banned is an acronym a user meets **cold**, with no expansion anywhere on the surface that shows it. The expansion must be on the surface the user is actually looking at — a definition in a different component, a different module, or a comment does not count.
+
 ### 10. Design System Compliance
 **Before any UI work, read `./fynlaDesignGuide.md` (v1.3.1) — it is the single source of truth for all visual decisions:** colours, typography (Segoe UI / Inter; weights 900 display, 700 h2–h5), buttons/cards/forms/modals, badges, and charts (via `designSystem.js`). Never introduce a colour, spacing value, or component pattern that isn't in the guide. **Where Rules 12 (No Scores) and 15 (Icons) conflict with the guide, those CLAUDE.md rules win** — the guide predates them.
 

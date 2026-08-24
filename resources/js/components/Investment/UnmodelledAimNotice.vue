@@ -24,7 +24,9 @@
     surfaces, `HoldingForm` and `InlineHoldingsEditor`, and a second copy of this
     sentence would drift from the first the moment either is touched.
 
-    Rule 9: the market is spelled out. ISA is the only permitted abbreviation.
+    Rule 9, as amended by CSJ 2026-08-24: an acronym may be used once it has been
+    spelled out to that reader, on the surface they are looking at. This notice names
+    the market in full and never abbreviates it, which needs no expansion elsewhere.
   -->
   <div class="bg-eggshell-500 rounded-lg p-4">
     <p class="text-sm text-violet-800">

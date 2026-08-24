@@ -259,18 +259,18 @@ class IHTCalculationService
             // Wording revised 2026-08-24 on `compliance-lead`'s findings A and B.
             // CSJ approved the substance; two rules bind the words.
             //
-            // **Rule 9** — "AIM" is an acronym and ISA is the only exception, so the
-            // market is spelled out. `compliance-lead` flagged the tension honestly:
-            // an investor may recognise these shares only as "AIM", so the
-            // spelled-out form is marginally less identifiable. Rule 9 wins on its
-            // own terms. Writing "the Alternative Investment Market (AIM)" instead
-            // would be a Rule 9 AMENDMENT and is CSJ's alone — not something to
-            // settle in this string.
+            // **Rule 9, as amended by CSJ 2026-08-24** — an acronym may be used
+            // once it has been spelled out to that user. `compliance-lead` flagged
+            // the tension honestly: an investor may recognise these shares only as
+            // "AIM", so the spelled-out form alone is less identifiable. CSJ made
+            // the amendment rather than the string making it: expanded on first
+            // use, abbreviated on the second, both inside the one sentence the
+            // reader has in front of them.
             //
             // **Rule 3** — a household told its figure could be wrong by up to ~40%
             // of its land value had been informed and not equipped. The signpost is
             // rule 1's own canonical phrasing.
-            ? 'This figure does not include Agricultural Property Relief, and does not apply the special treatment of shares listed on the Alternative Investment Market. If your estate holds farmland or shares listed on that market, your actual liability could be higher or lower than shown — it is worth discussing with a regulated financial adviser or a specialist solicitor.'
+            ? 'This figure does not include Agricultural Property Relief, and does not apply the special treatment of shares listed on the Alternative Investment Market (AIM). If your estate holds farmland or shares listed on AIM, your actual liability could be higher or lower than shown — it is worth discussing with a regulated financial adviser or a specialist solicitor.'
             : null;
 
         // 4. Fetch and sum liabilities

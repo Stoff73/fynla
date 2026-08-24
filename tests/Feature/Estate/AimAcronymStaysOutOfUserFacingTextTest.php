@@ -5,28 +5,34 @@ declare(strict_types=1);
 /**
  * Rule 9, enforced for the one acronym that keeps coming back.
  *
- * CLAUDE.md Rule 9: every acronym is spelled out in user-facing text, and **ISA is
- * the only exception**. Rule 9 has no grandfather clause — unlike Rule 15, it applies
- * to what is already there.
+ * **Rule 9 was amended by CSJ on 2026-08-24** and this guard was rewritten with it.
+ * The rule is no longer "never AIM". It is: an acronym may be used **once it has been
+ * spelled out to that user**, on the surface they are looking at. Write "the
+ * Alternative Investment Market (AIM)" and then plain "AIM". What stays banned is an
+ * acronym a reader meets **cold**.
  *
- * "AIM" has now been caught twice in two days. The caveat was rewritten to spell out
- * "the Alternative Investment Market" and a test asserted the acronym's absence from
- * that one string — and two other live strings kept it, including
- * `"the Alternative Investment Market (AIM)"`, precisely the parenthesised form
- * recorded as needing a Rule 9 AMENDMENT that only CSJ can make:
+ * The previous version banned the acronym outright, and its own failure message told
+ * whoever hit it that the parenthesised form needed a CSJ amendment. That amendment
+ * has now been made, so the guard enforces the new shape rather than the old one.
  *
- *   - `IHTCalculationTable.vue` — a second home for the caveat's own claim
- *   - `TransferRecommendationService` — a recommendation title, body and decision
- *     trace, all rendered to the user
+ * **Why it sweeps rather than pinning one string.** "AIM" was caught twice in two
+ * days: the caveat was rewritten and a test pinned to that ONE string, while two other
+ * live strings kept the acronym — `IHTCalculationTable.vue` (a second home for the
+ * caveat's own claim) and `TransferRecommendationService` (a recommendation title,
+ * body and decision trace, all rendered). A test pinned to one string cannot see a
+ * second copy of the sentence. That is the Rule 20 lesson wearing a Rule 9 hat.
  *
- * A test pinned to one string cannot see a second copy of the sentence, which is the
- * Rule 20 lesson wearing a Rule 9 hat. This one sweeps instead.
+ * **Scope, deliberately narrow.** Comments are exempt as USES — they explain the rule
+ * and must be able to name the thing. Comments do NOT count as the EXPANSION, because
+ * no user reads them; Rule 9's amendment says the expansion must be on the surface the
+ * reader sees. Identifiers are exempt — `scanAIMShareIHT()` is a method name.
  *
- * **Scope, deliberately narrow.** Comments are exempt: they explain the rule and must
- * be able to name the thing. Identifiers are exempt — `scanAIMShareIHT()` is a method
- * name and no user reads it. What is checked is quoted strings and template text.
+ * **The file is the proxy for "the surface".** Not perfect — a string at the top of a
+ * long service is not necessarily on the same screen as one at the bottom — but it is
+ * the closest thing a static sweep can check, and it catches the case that matters: an
+ * acronym in a file that never spells it out at all.
  */
-it('does not put the AIM acronym in front of a user', function () {
+it('does not put the AIM acronym in front of a user who has not been told what it means', function () {
     $roots = [
         base_path('app/Services'),
         base_path('app/Http/Controllers'),
@@ -51,6 +57,8 @@ it('does not put the AIM acronym in front of a user', function () {
             }
 
             $inBlockComment = false;
+            $firstExpansionLine = null;
+            $acronymLines = [];
 
             foreach (file($file->getPathname()) as $number => $line) {
                 $trimmed = ltrim($line);
@@ -81,10 +89,23 @@ it('does not put the AIM acronym in front of a user', function () {
                     continue;
                 }
 
+                if ($firstExpansionLine === null && str_contains($line, 'Alternative Investment Market')) {
+                    $firstExpansionLine = $number;
+                }
+
                 // `AIM` as a standalone word. Identifiers like `scanAIMShareIHT` and
                 // `AIM_THRESHOLD` are excluded by the boundaries: a following letter,
                 // digit or underscore means it is a name, not prose.
-                if (preg_match('/(?<![A-Za-z0-9_])AIM(?![A-Za-z0-9_])/', $line) !== 1) {
+                if (preg_match('/(?<![A-Za-z0-9_])AIM(?![A-Za-z0-9_])/', $line) === 1) {
+                    $acronymLines[] = $number;
+                }
+            }
+
+            foreach ($acronymLines as $number) {
+                // Spelled out at or before this line, on the same surface: allowed
+                // under the amended rule. `(AIM)` sits on the same line as its own
+                // expansion, which is why this is `<=` and not `<`.
+                if ($firstExpansionLine !== null && $firstExpansionLine <= $number) {
                     continue;
                 }
 
@@ -93,9 +114,9 @@ it('does not put the AIM acronym in front of a user', function () {
         }
     }
 
-    // If this fails, Rule 9 has been breached in user-facing text. Spell out "the
-    // Alternative Investment Market". Writing "the Alternative Investment Market
-    // (AIM)" for recognisability is a Rule 9 AMENDMENT and is CSJ's alone to make —
-    // do not settle it in the string, and do not add an exemption here.
+    // If this fails, a user is being shown "AIM" on a surface that never tells them
+    // what it stands for. Spell it out at or before its first use on that surface —
+    // "the Alternative Investment Market (AIM)" — rather than adding an exemption
+    // here. A comment does not count: no user reads it.
     expect($offenders)->toBe([]);
 });
