@@ -189,14 +189,12 @@ class MobileDashboardAggregator
         }
 
         $coverage = $data['coverage'] ?? [];
-        $gaps = $data['gaps'] ?? [];
-        $criticalGaps = 0;
-
-        foreach ($gaps as $gapType => $gapData) {
-            if (is_array($gapData) && ($gapData['gap'] ?? 0) > 0) {
-                $criticalGaps++;
-            }
-        }
+        // W-0479 — this counted `$gapData['gap']` over `gaps`, a shape
+        // `CoverageGapAnalyzer` has never emitted, so it read 0 for every household
+        // in the application's history. The analyzer now publishes the count itself
+        // and both dashboards read it, rather than each re-deriving it from a guess
+        // (Rule 20).
+        $criticalGaps = (int) ($data['gaps']['critical_gap_count'] ?? 0);
 
         // Count total policies across all types
         $policies = $data['policies'] ?? [];

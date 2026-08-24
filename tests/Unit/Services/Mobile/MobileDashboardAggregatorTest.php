@@ -14,10 +14,10 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
+use App\Services\Mobile\DailyInsightService;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Shared\CrossModuleAssetAggregator;
-use App\Services\Mobile\DailyInsightService;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Facades\Cache;
@@ -501,6 +501,44 @@ describe('fyn insight generation', function () {
 
         expect($result['fyn_insight'])->toBeString()
             ->and(strlen($result['fyn_insight']))->toBeGreaterThan(10);
+    });
+
+    it('publishes the gap count the analyzer produces rather than counting one itself', function () {
+        // W-0479 — this class counted `$gapData['gap']` over `gaps`, a shape
+        // `CoverageGapAnalyzer` has never emitted, so `critical_gaps` was 0 for every
+        // household on `/m`, native and web. The payload below is the analyzer's real
+        // shape; if anything here goes back to deriving its own count from the
+        // categories, it will either read 0 or treble the supplementary duplicates.
+        $user = User::factory()->create();
+
+        $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn([
+            'success' => true,
+            'message' => 'OK',
+            'data' => [
+                'coverage' => ['life_coverage' => 500000, 'total_coverage' => 500000, 'income_protection_coverage' => 0],
+                'gaps' => [
+                    'total_gap' => 0,
+                    'critical_gap_count' => 1,
+                    'gaps_by_category' => [
+                        'human_capital_gap' => 0,
+                        'income_protection_gap' => 21000,
+                        'disability_coverage_gap' => 21000,
+                        'sickness_illness_gap' => 21000,
+                    ],
+                ],
+            ],
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(['has_goals' => true]);
+        $this->dashboardAggregator->shouldReceive('aggregateAlerts')->andReturn([]);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        expect($result['modules']['protection']['critical_gaps'])->toBe(1);
     });
 
     it('generates protection-related insight when gaps exist', function () {
