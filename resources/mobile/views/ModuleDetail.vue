@@ -38,8 +38,9 @@
         a value. Read straight off the summary, so it appears wherever the summary
         carries one rather than only for estate.
       -->
-      <div v-if="caveat" class="m-card">
-        <p class="me-caveat">{{ caveat }}</p>
+      <div v-if="caveat || pensionCaveat" class="m-card">
+        <p v-if="caveat" class="me-caveat">{{ caveat }}</p>
+        <p v-if="pensionCaveat" class="me-caveat">{{ pensionCaveat }}</p>
       </div>
 
       <div v-if="!rows.length" class="m-card m-state">
@@ -152,6 +153,9 @@ export default {
     // W-0466 G3 — the engine publishes this beside the tax figure; nothing on this
     // screen was reading it. Not part of `fields`, which builds label/value rows.
     caveat() { return this.summary?.unmodelled_relief_caveat || null; },
+    // W-0363 — the projected column omits defined contribution pensions. Same
+    // treatment as the caveat above, on the surface Rule 19 requires.
+    pensionCaveat() { return this.summary?.projected_pension_exclusion_caveat || null; },
     rows() {
       if (!this.summary) return [];
       // Pull the curated fields if present; fall back to flattening the summary.

@@ -185,6 +185,9 @@ class IHTController extends Controller
                     // (Rule 20): web and `/m` ship separate bundles that share no
                     // constants, and `/m` computes nothing.
                     'unmodelled_relief_caveat' => $calculation['unmodelled_relief_caveat'] ?? null,
+                    // W-0363 — published to every surface, not just the one that
+                    // happened to be open when it was written (Rule 19/20).
+                    'projected_pension_exclusion_caveat' => $calculation['projected_pension_exclusion_caveat'] ?? null,
                 ],
                 'projected' => [
                     'net_estate' => $calculation['projected_net_estate'],

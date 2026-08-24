@@ -151,3 +151,5 @@
 {"ts":"2026-08-23T06:45:00Z","agent":"build-lead","item":"W-0462","event":"triage","note":"filed from verdict C2: 'save GBP74,987' beside an action leaving beneficiaries GBP37,891 worse off; gate compliance-lead; break-even S < E(rs-rr)/(1-rr)"}
 {"ts":"2026-08-23T06:50:00Z","agent":"build-lead","item":"W-0451","event":"handoff","to":"quality-lead","note":"workforce/ops/handoffs/W-0451/build-lead-to-quality-lead-2026-08-23.md"}
 {"ts":"2026-08-23T06:50:00Z","agent":"build-lead","item":"W-0452","event":"handoff","to":"quality-lead","note":"workforce/ops/handoffs/W-0452/build-lead-to-quality-lead-2026-08-23.md"}
+{"ts":"2026-08-24T16:32:13Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-24.md"}
+{"ts":"2026-08-24T16:32:15Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}
