@@ -64,8 +64,10 @@ function assetHolder(?string $type): User
             'user_id' => $user->id,
             'asset_type' => $type,
             'current_value' => 100_000,
+            // Pinned: `AssetFactory` randomises `ownership_type` and can emit
+            // `tenants_in_common`, which this column rejects outright (W-0481).
+            'ownership_type' => 'individual',
             'is_iht_exempt' => false,
-            'iht_relief_qualifies' => false,
         ]);
     }
 

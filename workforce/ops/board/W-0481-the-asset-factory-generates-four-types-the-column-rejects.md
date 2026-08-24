@@ -73,3 +73,7 @@ anything pointing at the factory.
 - 2026-08-24 — Found while writing `IHTProjectedEstateCoversEveryAssetTypeTest`. Not
   fixed there: that item's business is the projection, and changing a shared factory
   under an unrelated fix is how unrelated suites go red.
+- 2026-08-24 — **Wider than filed: TWO fields, not one.** `ownership_type` is also
+  randomised and can emit `tenants_in_common`, which `assets.ownership_type` rejects
+  outright (it is property-only). Hit while running the W-0475 guard. Acceptance 1
+  covers both fields.

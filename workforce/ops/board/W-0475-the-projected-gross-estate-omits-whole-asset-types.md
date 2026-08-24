@@ -2,10 +2,10 @@
 id: W-0475
 title: The projected gross estate is assembled from five categories, so any `assets` row that is not one of them vanishes from the projection and from the taper base
 mission: persona-run-peak_earners-2026-08-20
-branch: null
-owner: null
+branch: estate-copy-and-m-handoff
+owner: main-inference
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: gated
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -82,3 +82,22 @@ surviving, less tax.
 - 2026-08-24 — Not started. Held while `tax-compliance-reviewer` has
   `IHTCalculationService.php` open for the W-0474 gate, to avoid editing a file under
   review.
+
+## Resolution — 2026-08-24
+
+Fixed by a residual keyed on **provenance**, not `asset_type`: an `Estate\Asset` row is
+one the projection's sources (`properties`, `investment_accounts`, savings) never see.
+`business` is excluded because that term already counts both provenances. **A new
+member of the enum falls into the residual automatically rather than vanishing**, which
+is what acceptance 3 actually needs. Carried at current value like chattels and
+business — nothing models growth for an arbitrary asset, and unmodelled growth
+understates by far less than a missing asset.
+
+Guard: `IHTProjectedEstateCoversEveryAssetTypeTest` — every enum value proved present
+in BOTH columns, plus a case that reads the enum out of `SHOW COLUMNS` and fails if a
+type is added to the column and not to this file. **Mutation-checked: dropping the
+residual reds 4 of 6.** Estate unit 351 green. Pint clean.
+
+`W-0481` was widened on the way through: `AssetFactory` randomises **two** fields into
+values their columns reject — `asset_type` (four of eight) and `ownership_type`
+(`tenants_in_common`, which is property-only).
