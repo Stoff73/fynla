@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Estate\Liability;
+use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Investment\InvestmentProjectionService;
@@ -72,6 +75,7 @@ function partnershipHousehold(string $maritalStatus): array
         'date_of_birth' => '1970-01-01',
         'gender' => 'male',
         'monthly_expenditure' => 2_000,
+        'annual_employment_income' => 60_000,
     ]);
     $partner = User::factory()->create([
         'marital_status' => $maritalStatus,
@@ -79,6 +83,7 @@ function partnershipHousehold(string $maritalStatus): array
         'gender' => 'female',
         'spouse_id' => $primary->id,
         'monthly_expenditure' => 2_000,
+        'annual_employment_income' => 30_000,
     ]);
     $primary->update(['spouse_id' => $partner->id]);
 
@@ -96,6 +101,49 @@ function partnershipHousehold(string $maritalStatus): array
         'ownership_type' => 'individual',
         'ownership_percentage' => 100,
         'current_value' => 150_000,
+    ]);
+
+    // W-0474 F2 (tax-compliance-reviewer, 2026-08-24). Without the rows below this
+    // was the FIXTURE variant from `tests/CLAUDE.md` §4 — the branch is never entered,
+    // and nothing says so. Every cash input was zero for both members, so
+    // `projected_cash` came out identical whether the partner was pooled or not, and
+    // the unmarried-couple case passed with the cash branch still running the pre-fix
+    // predicate. The liability and the two incomes exist so the projected liabilities
+    // and projected cash branches produce a DIFFERENT number when a partner is pooled;
+    // the amounts are asymmetric for the reason the docblock gives above.
+    foreach ([[$primary, 40_000], [$partner, 15_000]] as [$member, $balance]) {
+        // Every field the projection reads is pinned. The factories randomise
+        // `interest_rate`, `account_type`, `liability_type`, `monthly_payment` and
+        // `maturity_date`, and this test compares TWO households that must differ in
+        // nothing but marital status — so an unpinned field gives them different
+        // projected figures and the comparison fails perhaps one run in several. It
+        // did exactly that once before these were pinned.
+        SavingsAccount::factory()->create([
+            'user_id' => $member->id,
+            'joint_owner_id' => null,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'account_type' => 'easy_access',
+            'interest_rate' => 0.02,
+            'current_balance' => $balance,
+        ]);
+
+        // `recordedAnnualExpenditure()` reads `expenditureProfile.total_monthly_expenditure`,
+        // NOT `users.monthly_expenditure` — setting only the latter left expenditure
+        // falling back to a share of an income of zero.
+        ExpenditureProfile::factory()->create([
+            'user_id' => $member->id,
+            'total_monthly_expenditure' => 1_500,
+        ]);
+    }
+
+    Liability::factory()->create([
+        'user_id' => $partner->id,
+        'liability_type' => 'personal_loan',
+        'current_balance' => 25_000,
+        'monthly_payment' => 400,
+        'interest_rate' => 0.05,
+        'maturity_date' => null,
     ]);
 
     return [$primary->fresh(), $partner->fresh()];

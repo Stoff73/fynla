@@ -114,3 +114,97 @@ Partnership Act 2004 s.246 and SI 2005/3229), s8A, s8G.
 - 2026-08-24 — **The `tax-compliance-reviewer` gate (acceptance 4) is NOT met.** CSJ's
   standing instruction for this session bans dispatching any agent. The change moves
   tax, so the item stays `gated` for that review rather than being called done.
+
+## Gate review — `tax-compliance-reviewer`, 2026-08-24: **FLAGGED**, then closed
+
+**The tax treatment was CLEARED within competence**, against statute the reviewer read
+live: IHTA 1984 s18, s8A, s8D, s8G on legislation.gov.uk plus HMRC IHTM11031 and
+IHTM43001. The "spouse or civil partner" wording in s18, s8A(1)(a) and s8G(2) is
+inserted by **SI 2005/3229 reg 7**, in force 5 December 2005, under the power in CPA
+2004 s.246 — so the docblock's citation of s.246 alone was imprecise and now names the
+operative instrument. The one non-identity found (IHTM43001: for civil partners the
+first death must fall on or after 5 December 2005) **cannot bite** — no civil
+partnership existed before that date, and this service reads a stored transferred-band
+figure rather than modelling first-death dates.
+
+**Two findings blocked the gate. Both are now fixed.**
+
+### F1 (HIGH) — there was a SEVENTH pooling branch, and I missed it
+
+`$projectedCash` passed the raw `$dataSharingEnabled` into
+`HouseholdCashFlowProjector`, which kept the pre-fix predicate verbatim. So a `single`,
+`divorced` or `widowed` user with a linked, sharing partner still had **that partner's
+savings, income and expenditure** in their projected estate while investments,
+properties, liabilities, chattels and business relief had correctly left it.
+**OVERSTATED projected tax — the W-0340 direction, unclosed on one of six components**,
+against a commit message that claimed W-0340 closed with it. It claimed too much.
+
+Fixed at the CALL SITE, as the reviewer advised, not inside the projector: the
+projector's parameter is renamed `$poolsSpouse` and it is now told rather than
+deciding. **`IHTFormattingService` had the same call** and is aligned with it — that
+breakdown is the table whose whole purpose is to explain the headline, so pooling it
+differently is how the two came apart before.
+
+### F2 (MEDIUM) — the guard could not see F1, and never entered three branches
+
+The **Fixture** variant from `tests/CLAUDE.md` §4. `partnershipHousehold()` created one
+property and one investment account and nothing else: no savings, no income (the User
+factory sets none of the seven `annual_*` fields), no `expenditureProfile` — the
+fixture set `users.monthly_expenditure` while the projector reads
+`expenditureProfile.total_monthly_expenditure`, a different field — and no liability.
+**Every cash input was zero for both members**, so `projected_cash` was identical
+whether the partner was pooled or not and the unmarried-couple assertion passed with F1
+fully live. The spouse branch of `projectLiabilities()` and the projected
+business-relief branch were never entered either, both named in the docblock as covered.
+
+Fixed: savings, incomes, expenditure profiles and a liability, asymmetric between the
+members. **Mutation-checked — restoring the raw flag at the cash call site now turns
+the unmarried-couple test red**, which is precisely what it could not do before.
+
+**A second defect surfaced from that fixture work, unprompted:** the first strengthened
+version failed once and then passed six times. The cause was the factories randomising
+`interest_rate`, `account_type`, `liability_type`, `monthly_payment` and
+`maturity_date` — this test compares two households that must differ in **nothing** but
+marital status, so an unpinned field gives them different projected figures. All pinned;
+**six consecutive green runs** after.
+
+### F3 (MEDIUM-LOW) — the one branch that deliberately differs, now documented
+
+The projection HORIZON (`:687`) keys on `$isMarried` with no sharing term. Kept: how
+long the household lasts is a fact about the household, whose records are in the estate
+is a question about permission. Commented at the line, including the consequence the
+reviewer named — **a civil partnership with sharing OFF now gets the longer horizon and
+therefore MORE projected tax**, a figure that moved opposite to the headline and is not
+in the before/after table. The class docblock's claim that both halves "read the one
+predicate now" was an over-claim of exactly the kind it had just been rewritten to
+remove; it now states the exception.
+
+### F4–F7 recorded
+
+- **F4** — a third definition of "two people" survives in the cache path (`:2087`,
+  `:2193`, `:2200`) and `marital_status` is in neither hash. **Dormant** — nothing
+  writes those rows (W-0131) — but fixing W-0131 without adding marital status to the
+  hash would resurrect a pre-fix answer. Noted on this item deliberately.
+- **F5** — the constant was `private`, so the "one home" claim was false. Now
+  `App\Support\HouseholdPooling`, public. **Four sibling services still read
+  `['married']` alone — filed as W-0480.**
+- **F6** — a benefit nobody measured: `EstateIhtExposureDetector` reads `is_married`
+  back off the result, so a linked, sharing civil partnership stops being told
+  *"Linking your accounts gives a fuller picture"* when they had already linked. Fixed
+  as a side effect, web and `/m`.
+- **F7** — pre-existing and out of scope: `projectMemberLiabilities()` is called for the
+  spouse using the USER's ages (moves tax, unrelated to marital status); no IHTA s18(2)
+  restriction is modelled for anyone.
+
+### What the reviewer did NOT verify, carried forward rather than dropped
+
+It did not reproduce the before/after arithmetic, did not measure F1 or F3 in pounds,
+did not re-run the wider suites, did not read s8G(3)(d) verbatim, did not check any
+frontend rendering, and did not confirm `civil_partnership` reaches the database
+through Fyn onboarding (only the validation rule and the migration enum).
+
+### Verification after the fixes
+
+Estate unit **345**, estate feature + agents + plans + tax + tiers **546** — green. The
+guard is 3 tests / 12 assertions, mutation-checked on both the level and the cash
+predicate, six consecutive runs. Pint clean.

@@ -16,6 +16,7 @@ use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -53,8 +54,11 @@ use Illuminate\Support\Collection;
  *     member records, so the two members' totals add to the household exactly
  *     once. Adding a joint record again "for the other side" would double it.
  *
- * **WHICH PEOPLE are in the household is now asked once, by `poolsSpouse()`
- * (W-0474, W-0340).** It used to be asked twice, differently: the headline pooled
+ * **WHICH PEOPLE are in the household is asked once, by `HouseholdPooling`
+ * (W-0474, W-0340) — with one stated exception, the projection HORIZON at
+ * `:687`, which is a fact about the household rather than about permission and
+ * carries no sharing term. That exception is commented at the line; everything
+ * else reads the one rule.** It used to be asked twice, differently: the headline pooled
  * on `$isMarried && $dataSharingEnabled`, every projection branch on
  * `$dataSharingEnabled && $spouse` alone, and neither `liveSpouse()` nor
  * `hasAcceptedSpousePermission()` consults `marital_status`. A civil partnership
@@ -78,7 +82,7 @@ class IHTCalculationService
      * One home for the list, because nine sibling services carry their own copy of
      * it and this service was the one that drifted (W-0474, Rule 20).
      */
-    private const POOLING_MARITAL_STATUSES = ['married', 'civil_partnership'];
+    private const POOLING_MARITAL_STATUSES = HouseholdPooling::POOLING_MARITAL_STATUSES;
 
     private const AGRICULTURAL_ASSET_TERMS = [
         'farm', 'farmland', 'agricultur', 'arable', 'pasture', 'grazing',
@@ -684,6 +688,25 @@ class IHTCalculationService
         // `$estimatedAgeAtDeath` is now purely a label: the viewer's own age at the
         // household horizon. The two logins therefore show DIFFERENT ages against the
         // SAME projection, which is correct — the spouses are not the same age.
+        // W-0474 F3 — the ONE branch that deliberately does not ask `poolsSpouse()`,
+        // and it is deliberate: it has no `$dataSharingEnabled` term. **How long the
+        // household lasts is a fact about the household; whose records are in the
+        // estate is a question about permission.** A couple who have not switched
+        // sharing on are still a couple, and the second death is still when this
+        // estate is taxed.
+        //
+        // Consequence, named rather than left to be discovered: a civil partnership
+        // with sharing OFF now gets the longer horizon it did not get before, so more
+        // compounding, a larger projected estate and MORE projected tax against
+        // unchanged single allowances. That is the same treatment a marriage in that
+        // position already had, which is the point of the change — but it is a figure
+        // that moved in the opposite direction to the headline, and it is not in the
+        // before/after on the board item, which measures sharing ON only.
+        //
+        // Note `survivingMember()` keys on `$poolsSpouse` while this keys on
+        // `$isMarried`, so one household can select its horizon and its survivor by
+        // two different rules. Left as is: the survivor only matters for an estate
+        // that pools, and the horizon matters whether it pools or not.
         if ($isMarried && $spouse && $spouse->date_of_birth && $spouse->gender) {
             $yearsUntilDeath = max(
                 $this->calculateLifeExpectancy($user),
@@ -713,7 +736,16 @@ class IHTCalculationService
         $cashFlow = $this->cashFlowProjector->project(
             $user,
             $spouse,
-            $dataSharingEnabled,
+            // W-0474 F1 (tax-compliance-reviewer, 2026-08-24) — the SEVENTH pooling
+            // branch, and the one the first pass missed. Passing the raw sharing flag
+            // left `HouseholdCashFlowProjector` running the pre-fix predicate, so a
+            // `single`, `divorced` or `widowed` user with a linked, sharing partner
+            // still had that partner's savings, income and expenditure in their
+            // projected estate while everything else had correctly left it.
+            // OVERSTATED projected tax. The decision is taken here, by the one rule,
+            // rather than inside the projector — which also drives the year-by-year
+            // table, whose pooling is the same question and must give the same answer.
+            $this->poolsSpouse($user, $spouse, $dataSharingEnabled),
             $yearsUntilDeath,
             $inflationRate
         );
@@ -2413,7 +2445,7 @@ class IHTCalculationService
      */
     private function hasSpousalStatus(User $user): bool
     {
-        return in_array($user->marital_status, self::POOLING_MARITAL_STATUSES, true);
+        return HouseholdPooling::hasSpousalStatus($user);
     }
 
     /**
@@ -2438,7 +2470,7 @@ class IHTCalculationService
      */
     private function poolsSpouse(User $user, ?User $spouse, bool $dataSharingEnabled): bool
     {
-        return $spouse !== null && $dataSharingEnabled && $this->hasSpousalStatus($user);
+        return HouseholdPooling::poolsSpouse($user, $spouse, $dataSharingEnabled);
     }
 
     /**

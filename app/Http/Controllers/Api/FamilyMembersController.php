@@ -13,6 +13,7 @@ use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Database\QueryException;
@@ -26,7 +27,8 @@ class FamilyMembersController extends Controller
 
     public function __construct(
         private readonly CacheInvalidationService $cacheInvalidation,
-        private readonly UserProfileService $userProfileService
+        private readonly UserProfileService $userProfileService,
+        private readonly HouseholdExpenditureWriter $householdExpenditure
     ) {}
 
     /**
@@ -437,6 +439,15 @@ class FamilyMembersController extends Controller
 
             $user->spouse_id = null;
             $user->save();
+
+            // W-0477 — both accounts hold HALF of what the household spent, and
+            // from this line on nothing is left to hold the other half. Neither row
+            // changes on its own, so every reader downstream would take a half for a
+            // whole: spending understated, disposable income overstated, and every
+            // affordability statement rests on that figure. Put both back into
+            // household terms at the one moment their meaning changes.
+            $this->householdExpenditure->promoteSharesToHousehold($user->fresh());
+            $this->householdExpenditure->promoteSharesToHousehold($spouseUser->fresh());
         }
 
         $familyMember->delete();
