@@ -181,7 +181,11 @@ export default {
 
 <style scoped>
 .me-note { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin: 0; }
-.me-caveat { font-size: 13px; color: var(--violet-800); line-height: 1.5; margin: 0 0 12px; background: var(--eggshell-500); border-radius: 8px; padding: 12px; }
+/* W-0466 F8 — `--violet-800` is not defined in resources/mobile/style.css, which
+   declares only `--violet-400` and `--violet-500`; the mobile bundle carries its
+   own tokens and does not inherit the web palette, so the text fell back to the
+   browser default. `--eggshell-500` IS defined (style.css:39) and is unchanged. */
+.me-caveat { font-size: 13px; color: var(--violet-500); line-height: 1.5; margin: 0 0 12px; background: var(--eggshell-500); border-radius: 8px; padding: 12px; }
 .me-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--light-gray); }
 .me-row:first-of-type { padding-top: 4px; }
 .me-row:last-of-type { border-bottom: 0; padding-bottom: 0; }

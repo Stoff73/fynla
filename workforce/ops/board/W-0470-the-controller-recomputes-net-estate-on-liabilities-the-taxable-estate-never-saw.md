@@ -2,10 +2,10 @@
 id: W-0470
 title: The controller recomputes the projected net estate on a liabilities figure the projected taxable estate was never struck on, so the two rows disagree on screen
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: handoff
 claimed_by: null
 severity: medium
 surfaces: [web]
@@ -68,3 +68,44 @@ estate", and the response mixes their outputs.
   £3,500 gap visible one row down. **W-0465 deliberately did not widen into
   this** — changing which liabilities the projection uses is a change to the
   projection's liability model, and it moves the taper base.
+
+- 2026-08-24 — **Ruled on by `tax-compliance-reviewer` (round four, F5): the SERVICE's
+  figure is correct, and adopting the breakdown's would UNDERSTATE tax.** That ruling
+  decided the fix, and the direction is why:
+
+  The breakdown does not project at all. Mortgages get
+  `($ageAtDeath >= 70) ? 0 : $userShare` — a binary cliff on a hardcoded age, off a
+  hardcoded horizon of 85, reading no maturity date. Every other liability gets
+  `'projected_balance' => $userShare`, **never amortised** — the source of the £3,500.
+  `projectMemberLiabilities()` reads the real maturity date or estimates a payoff,
+  amortises, returns zero for a debt ending before death, and runs on the household
+  horizon the assets are grown to. That is the deductible liability at death
+  (IHTA 1984 s5(3), s162, s175A).
+
+  A larger liability means a smaller taper base, less taper, more residence band
+  surviving — **less tax**. Making the column reconcile the other way would have moved
+  tax in the one direction a compliance surface must not lean.
+
+- 2026-08-24 — **Fixed, at BOTH call sites.** The overwrites of `projected_net_estate`,
+  `projected_liabilities` **and** `total_liabilities` are deleted from
+  `IHTController` and from `EstatePlanService`. The second site is W-0465 F2: the
+  identical overwrite, on the other surface, which W-0465 had left behind — two of
+  three implementations fixed is not a Rule 20 fix.
+
+- 2026-08-24 — **F6 taken with it.** `total_liabilities` was overwritten with a
+  breakdown total read from `Liability::where('user_id')` — one leg — where the engine
+  reads `forUserOrJoint()`. A debt the user is joint owner of was inside the net estate
+  and missing from the Liabilities row beside it, so the CURRENT column did not add up
+  either.
+
+- 2026-08-24 — **Browser-verified on a £6,000,000 business.** The projected column now
+  reads 10,669,753 − 0 − 4,250,000 = **6,419,753** Net Estate, then −217,000 =
+  **6,202,753** Taxable Estate. Every row follows from the one above it. Before this it
+  was £10,666,253 against a taxable estate of £6,202,753 — out by the relief, then out
+  again by £3,500.
+
+- 2026-08-24 — **REMAINING, and it is visible on screen:** the per-liability detail rows
+  still come from the breakdown, so the panel shows "Chris's Liabilities −£3,500" above
+  a Total Liabilities of £0. The totals are right and the detail beneath them is not.
+  Rebuilding `IHTFormattingService::formatLiabilitiesBreakdown()` on
+  `projectMemberLiabilities()` is the other half of this item and is **not done**.

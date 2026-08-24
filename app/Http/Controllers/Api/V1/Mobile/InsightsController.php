@@ -150,11 +150,22 @@ class InsightsController extends Controller
         if (! empty($estate)) {
             $ihtLiability = $estate['iht_liability'] ?? $estate['estimated_iht'] ?? null;
             if ($ihtLiability !== null && $ihtLiability > 0) {
+                // W-0466 F3 — this is one of the surfaces the caveat did not reach.
+                // The fix assumed the `/m` teaser was the only place `/m` prints an
+                // Inheritance Tax figure; it is not. A business-owning household
+                // read a full number here with nothing qualifying it.
+                //
+                // Appended rather than sent as its own field: an insight is a single
+                // string by contract, and inventing a second key here would be a
+                // change to the insights shape for one caller. The sentence itself
+                // still comes from the engine (Rule 20) — this never composes its own.
+                $caveat = $estate['unmodelled_relief_caveat'] ?? null;
+
                 $insights[] = [
                     'text' => sprintf(
                         'Your estimated Inheritance Tax liability is %s. Gifting strategies and trust planning could help reduce this.',
                         number_format((float) $ihtLiability, 2, '.', ',')
-                    ),
+                    ).($caveat !== null ? ' '.$caveat : ''),
                     'category' => 'estate',
                 ];
             }

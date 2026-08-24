@@ -87,3 +87,35 @@ no user.
   row would suppress the caveat until the user's assets happened to change.
 
 - 2026-08-23 — Still needs `compliance-lead` on the copy before this leaves `handoff`.
+
+- 2026-08-24 — **Round-four review: the stated premise was FALSE.** "The `/m` teaser is
+  the only Inheritance Tax figure `/m` prints" appears three times in code and commit
+  message and does not survive a grep. At least four surfaces print one:
+
+  1. **`/plans/estate`** — full figure, no caveat. **Fixed:** the plan payload now carries
+     `unmodelled_relief_caveat`.
+  2. **`/m` Insights** — the caveat is now attached to the Inheritance Tax insight, but
+     **that whole feature is dead**: every reader looks one level above where the agent
+     puts its data, so no insight has ever been produced. Measured, not read. Filed as
+     **W-0473**; the caveat line is deliberately left in place so the figure and its
+     qualification arrive together when the reader is corrected.
+  3. **`/m` `/module/estate`** — a live route with an "Estimated IHT liability" hero and
+     an allowance breakdown, reachable by URL or `/m?to=` deep link though nothing links
+     to it. **`EstateAgent` now publishes the caveat in its summary**, which is what that
+     screen reads.
+  4. The web breakdown and the `/m` teaser, already done.
+
+  This was a Rule 20 point rather than a copy-the-sentence point: the engine publishes the
+  sentence once and three consumers of its tax figure did not read it.
+
+- 2026-08-24 — **The recorded residual understated its own reach.** It named only the
+  farmer with no company. It also misses **every AIM holder who owns no company** — the
+  ordinary pattern, an `InvestmentAccount` row, expressible in the schema today, taking
+  **0% relief where FA 2026 gives 50% outside the allowance (IHTM25570)**. Tax
+  **overstated by ~20% of the holding**, and the caveat fires only for the *other* AIM
+  case. The trigger is unchanged pending CSJ, but the residual now says what it really is.
+
+- 2026-08-24 — **F8 fixed:** `--violet-800` is not defined in `resources/mobile/style.css`
+  (only `--violet-400` and `--violet-500`), so the `/m` caveat text fell back to the
+  browser default. `--eggshell-500` IS defined and was left alone — the reviewer flagged
+  both; only one was real.

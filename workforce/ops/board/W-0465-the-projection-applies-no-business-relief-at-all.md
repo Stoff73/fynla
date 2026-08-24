@@ -105,3 +105,22 @@ same change.
   Putting the relief back made the Net Estate row reconcile and left the gap visible one
   row down. Fixing it means changing which liabilities the projection uses, which moves the
   taper base — a different change.
+
+- 2026-08-24 — **Round-four review: both claims HOLD.** `$projectedEstateForTaper`
+  mirrors the current column line by line and does **not** reintroduce R2 — verified
+  against `:262-265` and `:737-744`. The present-day-relief reasoning is sound, and the
+  in-code warning about business growth is correct. W-0467's pooling predicate is exactly
+  `pooledMembers()`; no drift.
+
+- 2026-08-24 — **And round four found what the previous three each found: a defect inside
+  the fix.** F2 — **W-0465 repaired two of the three implementations of its own formula.**
+  `EstatePlanService:424` carried the identical `projected_net_estate` overwrite, so
+  `/plans/estate` went on showing a projected net estate **£4,250,000 too high** on this
+  item's own worked example, above a taxable estate that *did* net the relief. Fixed, with
+  the projected relief key the plan surface also lacked. Two of three is not a Rule 20 fix.
+
+- 2026-08-24 — Two pre-existing HIGH findings raised against these lines rather than
+  buried: **W-0474** (a civil partnership pools two estates against one person's
+  allowances — `8f09eaddc` newly routed the relief and taper base through that predicate)
+  and **W-0475** (the projected gross estate omits whole asset types, so the taper base
+  mirrors the current column in form but not in substance).
