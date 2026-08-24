@@ -88,8 +88,19 @@ class InsightsController extends Controller
     {
         $insights = [];
 
+        // W-0473 — every reader below looked one level above the data, so no
+        // branch ever ran. `CoordinatingAgent::analyze()` returns `module_analysis`
+        // (not `modules`), whose entries are the coordinator's flat map with the
+        // agent's own payload nested under `full_analysis`. Unwrap ONCE here, so a
+        // seventh module cannot get it wrong.
+        $modules = $analysis['module_analysis'] ?? [];
+        $module = static fn (string $key): array => array_merge(
+            $modules[$key]['full_analysis'] ?? [],
+            $modules[$key] ?? [],
+        );
+
         // Extract savings insights
-        $savings = $analysis['modules']['savings'] ?? $analysis['savings'] ?? [];
+        $savings = $module('savings');
         if (! empty($savings)) {
             $emergencyFund = $savings['emergency_fund'] ?? [];
             $runway = $emergencyFund['runway_months'] ?? null;
@@ -118,10 +129,18 @@ class InsightsController extends Controller
         }
 
         // Extract protection insights
-        $protection = $analysis['modules']['protection'] ?? $analysis['protection'] ?? [];
-        if (! empty($protection) && isset($protection['gaps'])) {
-            $gaps = $protection['gaps'];
-            if (! empty($gaps)) {
+        $protection = $module('protection');
+        $gaps = $protection['gaps'] ?? [];
+        if (! empty($gaps)) {
+            // The gaps structure is present for every analysed household, so its
+            // existence says nothing. A household has a gap when a figure in it is
+            // above zero — `total_gap` can be zero while a category (income
+            // protection, say) is not.
+            $shortfalls = array_merge(
+                [$gaps['total_gap'] ?? 0],
+                array_values($gaps['gaps_by_category'] ?? []),
+            );
+            if (max($shortfalls) > 0) {
                 $insights[] = [
                     'text' => 'There are gaps in your protection coverage. Reviewing your life and income protection could help safeguard your family.',
                     'category' => 'protection',
@@ -130,10 +149,10 @@ class InsightsController extends Controller
         }
 
         // Extract retirement insights
-        $retirement = $analysis['modules']['retirement'] ?? $analysis['retirement'] ?? [];
+        $retirement = $module('retirement');
         if (! empty($retirement)) {
             $allowance = $retirement['annual_allowance'] ?? [];
-            $remaining = $allowance['remaining'] ?? null;
+            $remaining = $allowance['remaining_allowance'] ?? null;
             if ($remaining !== null && $remaining > 0) {
                 $insights[] = [
                     'text' => sprintf(
@@ -146,7 +165,7 @@ class InsightsController extends Controller
         }
 
         // Extract estate insights
-        $estate = $analysis['modules']['estate'] ?? $analysis['estate'] ?? [];
+        $estate = $module('estate');
         if (! empty($estate)) {
             $ihtLiability = $estate['iht_liability'] ?? $estate['estimated_iht'] ?? null;
             if ($ihtLiability !== null && $ihtLiability > 0) {
@@ -159,7 +178,7 @@ class InsightsController extends Controller
                 // string by contract, and inventing a second key here would be a
                 // change to the insights shape for one caller. The sentence itself
                 // still comes from the engine (Rule 20) — this never composes its own.
-                $caveat = $estate['unmodelled_relief_caveat'] ?? null;
+                $caveat = $estate['summary']['unmodelled_relief_caveat'] ?? null;
 
                 $insights[] = [
                     'text' => sprintf(
@@ -179,7 +198,7 @@ class InsightsController extends Controller
         }
 
         // Extract goals insights
-        $goals = $analysis['modules']['goals'] ?? $analysis['goals'] ?? [];
+        $goals = $module('goals');
         if (! empty($goals)) {
             $hasGoals = $goals['has_goals'] ?? true;
             if (! $hasGoals) {
@@ -191,9 +210,9 @@ class InsightsController extends Controller
         }
 
         // Extract tax insights
-        $tax = $analysis['modules']['tax'] ?? $analysis['tax'] ?? [];
+        $tax = $module('tax_optimisation');
         if (! empty($tax)) {
-            $strategies = $tax['data']['strategies'] ?? $tax['strategies'] ?? [];
+            $strategies = $tax['strategies'] ?? [];
             if (! empty($strategies)) {
                 $insights[] = [
                     'text' => sprintf(
