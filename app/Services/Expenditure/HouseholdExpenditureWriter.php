@@ -63,6 +63,16 @@ final class HouseholdExpenditureWriter
      */
     public function write(User $user, array $household): array
     {
+        // **If you add the sharing mode to a payload, check every caller that
+        // pre-divides.** This prefers the payload; `CoordinatingAgent::handleSetExpenditure`
+        // reads `$user->expenditure_sharing_mode` directly when deciding whether to
+        // double stored halves back to household terms. The two agree today only
+        // because that method never writes the mode into what it passes here.
+        //
+        // Should a turn ever carry a mode change alongside categories, they would
+        // disagree — doubling on the OLD mode and dividing on the NEW — halving or
+        // doubling a household's spending in one write. Flagged by quality-lead
+        // 2026-08-24 as "one line away from firing".
         $mode = $household['expenditure_sharing_mode'] ?? $user->expenditure_sharing_mode;
         $spouse = $user->liveSpouse();
         $isShared = $spouse !== null && SharedExpenditure::isShared($mode);

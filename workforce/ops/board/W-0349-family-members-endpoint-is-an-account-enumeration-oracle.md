@@ -4,7 +4,7 @@ title: The family-members endpoint is an unthrottled account-enumeration oracle 
 mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: main-inference
-status: handoff
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -12,7 +12,7 @@ claimed: null
 blocked_by: []
 gate: compliance-lead
 handoff_to: quality-lead
-certification: REJECTED 2026-08-23 quality-lead — addressed 2026-08-24, awaiting re-certification
+certification: CERTIFIED 2026-08-24 quality-lead — see ops/handoffs/quality-lead/cycle4-recertification-2026-08-24.md
 prior_art_checked: 2026-08-22
 prior_art_found: [W-0347, W-0348]
 prior_art_outcome: none
@@ -249,3 +249,20 @@ turns **9** of them red. Plus `resources/mobile/views/__tests__/SpouseSharing.sp
     sentence and using Fynla to deliver it. Mitigated only by the throttle.
   - **Still open: acceptance 4.** W-0347 itself is FLAGGED on five findings and its
     acceptances 3 and 4 are both unmet.
+
+- 2026-08-24 — **CERTIFIED by `quality-lead`** (re-certification, 2026-08-24). All three
+  criteria checked rather than taken: the per-user throttle survives the rewrite, both
+  branches are byte-identical **and the behaviour behind them converged** — both paths call
+  `upsertFamilyMemberRow($currentUser, null, $data)`, so the `family_member` object cannot
+  differ either, which it checked specifically as the obvious place for the oracle to
+  survive. The corrected test *"would have failed pre-fix"*.
+
+  **Stamped by the coordinator rather than by `quality-lead` itself**, because when it came
+  to stamp, this file had no frontmatter to stamp — it was one of the three destroyed by
+  `484197e14`. Restored first; the verdict above is transcribed from its report, not
+  self-awarded.
+
+- 2026-08-24 — **Its stated blind spot, and it was right:** the test compares the
+  family-members response only, so it cannot see that the oracle re-forms one endpoint over
+  at `GET /api/spouse-permission/status`. Filed as **W-0476**.
+

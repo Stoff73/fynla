@@ -163,7 +163,14 @@ class InsightsController extends Controller
 
                 $insights[] = [
                     'text' => sprintf(
-                        'Your estimated Inheritance Tax liability is %s. Gifting strategies and trust planning could help reduce this.',
+                        // `compliance-lead` finding E applied here too (flagged by
+                        // quality-lead as "a second efficacy claim on an Inheritance
+                        // Tax figure, from a parallel mechanism to the one finding E
+                        // corrected"). "could help reduce this" asserts an outcome;
+                        // rule 1 makes hedging mandatory. Same correction as the
+                        // teaser headline, so the two surfaces say the same kind of
+                        // thing about the same figure.
+                        'Your estimated Inheritance Tax liability is %s. Gifting and trusts are among the things you could explore.',
                         number_format((float) $ihtLiability, 2, '.', ',')
                     ).($caveat !== null ? ' '.$caveat : ''),
                     'category' => 'estate',

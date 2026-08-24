@@ -5312,6 +5312,11 @@ class CoordinatingAgent extends BaseAgent
         // household's spending towards zero one Fyn turn at a time. `shareOf()` is the
         // one home for which fields divide, so the inverse asks it rather than
         // carrying its own list (Rule 20).
+        // Read from the USER, and `HouseholdExpenditureWriter` prefers the payload —
+        // so this must not start putting `expenditure_sharing_mode` into
+        // `$householdData` without making both sides resolve it the same way, or the
+        // reconstitution below doubles on one mode while the writer divides on
+        // another. See the matching note in the writer.
         $isShared = SharedExpenditure::isShared($user->expenditure_sharing_mode)
             && $user->liveSpouse() !== null;
 
