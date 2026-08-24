@@ -53,17 +53,15 @@ use Illuminate\Support\Collection;
  *     member records, so the two members' totals add to the household exactly
  *     once. Adding a joint record again "for the other side" would double it.
  *
- * **What is NOT yet closed, stated so this docblock cannot be read as a clean
- * bill of health (W-0340).** The two halves now agree about WHOSE SHARE of each
- * record they take. They still disagree about WHICH PEOPLE are in the household:
- * the headline pools on `$isMarried && $dataSharingEnabled` (`pooledMembers()`),
- * every projection branch on `$dataSharingEnabled && $spouse` alone. Neither
- * `liveSpouse()` nor `hasAcceptedSpousePermission()` consults `marital_status`,
- * so an unmarried couple who have linked accounts and accepted sharing get a
- * headline taxing one estate and a projection pooling two — against a SINGLE
- * nil rate band and no spouse exemption, which unmarried partners do not get.
- * That is W-0154's F3 defect still alive in the projection path, and it moves a
- * real figure, so it is its own item rather than a quiet edit here.
+ * **WHICH PEOPLE are in the household is now asked once, by `poolsSpouse()`
+ * (W-0474, W-0340).** It used to be asked twice, differently: the headline pooled
+ * on `$isMarried && $dataSharingEnabled`, every projection branch on
+ * `$dataSharingEnabled && $spouse` alone, and neither `liveSpouse()` nor
+ * `hasAcceptedSpousePermission()` consults `marital_status`. A civil partnership
+ * was therefore assessed on two projected estates against one person's allowances,
+ * and an unmarried linked couple got a headline taxing one estate and a projection
+ * pooling two. Both halves read the one predicate now; a new branch that pools the
+ * spouse calls it rather than re-deriving it.
  */
 class IHTCalculationService
 {
@@ -74,6 +72,14 @@ class IHTCalculationService
      * and "farm buildings" without covering "pharmacy". Kept as a constant rather
      * than inlined so the one list is testable and has one home (Rule 20).
      */
+    /**
+     * Marital statuses that pool two people's records into one estate.
+     *
+     * One home for the list, because nine sibling services carry their own copy of
+     * it and this service was the one that drifted (W-0474, Rule 20).
+     */
+    private const POOLING_MARITAL_STATUSES = ['married', 'civil_partnership'];
+
     private const AGRICULTURAL_ASSET_TERMS = [
         'farm', 'farmland', 'agricultur', 'arable', 'pasture', 'grazing',
         'smallholding', 'croft', 'orchard', 'paddock',
@@ -138,7 +144,7 @@ class IHTCalculationService
 
         // 2. Get tax config
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $isMarried = in_array($user->marital_status, ['married']) && $spouse !== null;
+        $isMarried = $this->hasSpousalStatus($user) && $spouse !== null;
         $isWidowed = $user->marital_status === 'widowed';
 
         // W-0154 F1/F3 — THE decision about whose records this calculation covers,
@@ -158,7 +164,7 @@ class IHTCalculationService
         //
         // Everything that follows reads `$pooledMembers`. Adding a per-person input
         // to this service means adding it to that loop, not to `$user`.
-        $pooledMembers = $this->pooledMembers($user, $spouse, $isMarried, $dataSharingEnabled);
+        $pooledMembers = $this->pooledMembers($user, $spouse, $dataSharingEnabled);
         $poolsSpouse = count($pooledMembers) > 1;
 
         // Transferred allowances (widows/widowers) belong to whoever holds the
@@ -174,7 +180,7 @@ class IHTCalculationService
 
         // 3. Fetch and sum assets (exclude IHT-exempt assets like pensions)
         $userAssets = $this->aggregator->gatherUserAssets($user);
-        $spouseAssets = ($isMarried && $dataSharingEnabled)
+        $spouseAssets = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
             ? $this->aggregator->gatherUserAssets($spouse)
             : collect();
 
@@ -269,7 +275,7 @@ class IHTCalculationService
 
         // 4. Fetch and sum liabilities
         $userLiabilities = $this->aggregator->calculateUserLiabilities($user);
-        $spouseLiabilities = ($isMarried && $dataSharingEnabled)
+        $spouseLiabilities = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
             ? $this->aggregator->calculateUserLiabilities($spouse)
             : 0;
         $totalLiabilities = $userLiabilities + $spouseLiabilities;
@@ -732,7 +738,7 @@ class IHTCalculationService
 
         // Get current chattel and business values (these don't appreciate - stay at current value)
         $userAssets = $this->aggregator->gatherUserAssets($user);
-        $spouseAssets = ($dataSharingEnabled && $spouse)
+        $spouseAssets = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
             ? $this->aggregator->gatherUserAssets($spouse)
             : collect();
 
@@ -1190,7 +1196,7 @@ class IHTCalculationService
     {
         $value = $this->memberInvestmentValue($user);
 
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $value += $this->memberInvestmentValue($spouse);
         }
 
@@ -1228,7 +1234,7 @@ class IHTCalculationService
 
         // Include the spouse's investments. Each member's figure is already at
         // that member's own share, so the two add to the household exactly once.
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $projectedValue += $this->projectMemberInvestments($spouse, $yearsToProject, $fallbackRate);
         }
 
@@ -1322,7 +1328,7 @@ class IHTCalculationService
         // Include spouse properties if data sharing enabled. Each member's figure
         // is already at that member's own share, so a property they hold together
         // contributes its whole value exactly once.
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $currentPropertyValue += $this->crossModuleAggregator->calculatePropertyTotal($spouse->id);
         }
 
@@ -1353,7 +1359,7 @@ class IHTCalculationService
         // Include spouse liabilities if data sharing enabled. Each member's debts
         // are already at that member's own share, so a debt they hold together is
         // discharged once, not twice.
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $projectedLiabilities += $this->projectMemberLiabilities(
                 $spouse, $currentAge, $retirementAge, $deathAge
             );
@@ -2389,9 +2395,50 @@ class IHTCalculationService
      *
      * @return list<User>
      */
-    private function pooledMembers(User $user, ?User $spouse, bool $isMarried, bool $dataSharingEnabled): array
+    private function pooledMembers(User $user, ?User $spouse, bool $dataSharingEnabled): array
     {
-        return ($isMarried && $spouse !== null && $dataSharingEnabled) ? [$user, $spouse] : [$user];
+        return $this->poolsSpouse($user, $spouse, $dataSharingEnabled) ? [$user, $spouse] : [$user];
+    }
+
+    /**
+     * Does this household's marital status pool an estate at all?
+     *
+     * W-0474 — this read `['married']` alone while nine sibling services read
+     * `['married', 'civil_partnership']`, including the migration docblock that
+     * introduced the status and asserted THIS service branched on both. A civil
+     * partnership is treated identically to a marriage for Inheritance Tax:
+     * IHTA 1984 s18 spouse exemption, s8A transferable nil rate band and s8G
+     * residence nil rate band are all extended to civil partners by Civil
+     * Partnership Act 2004 s.246 and SI 2005/3229.
+     */
+    private function hasSpousalStatus(User $user): bool
+    {
+        return in_array($user->marital_status, self::POOLING_MARITAL_STATUSES, true);
+    }
+
+    /**
+     * THE question every branch asks: do this calculation's figures cover two
+     * people's records or one?
+     *
+     * W-0474 — it used to be asked in two different ways, and the disagreement
+     * moved tax in both directions. The headline pooled on
+     * `$isMarried && $dataSharingEnabled`; every projection branch pooled on
+     * `$dataSharingEnabled && $spouse` alone, and neither `liveSpouse()` nor
+     * `hasAcceptedSpousePermission()` consults `marital_status`. So:
+     *   - a CIVIL PARTNERSHIP assessed two partners' projected assets, properties,
+     *     investments, liabilities and business relief against ONE person's
+     *     £325,000 + £175,000, with the taper base struck on the doubled estate —
+     *     crossing £2,000,000 roughly twice as fast. OVERSTATED tax.
+     *   - an UNMARRIED couple who had linked accounts and accepted sharing got a
+     *     headline taxing one estate and a projection pooling two, against a single
+     *     nil rate band and no spouse exemption they are not entitled to (W-0340).
+     *
+     * Both halves now ask this one method. Adding a branch that pools the spouse
+     * means calling this, not re-deriving the predicate.
+     */
+    private function poolsSpouse(User $user, ?User $spouse, bool $dataSharingEnabled): bool
+    {
+        return $spouse !== null && $dataSharingEnabled && $this->hasSpousalStatus($user);
     }
 
     /**
@@ -2516,7 +2563,7 @@ class IHTCalculationService
         $store = app(PensionStore::class);
         $userPensionValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
         $spousePensionValue = 0;
-        if ($dataSharingEnabled && $spouse) {
+        if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $spousePensionValue = (float) $store->forUserByType($spouse, 'dc')->sum('current_fund_value');
         }
         $totalPensionValue = $userPensionValue + $spousePensionValue;
