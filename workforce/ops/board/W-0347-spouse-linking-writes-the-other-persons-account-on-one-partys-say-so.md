@@ -354,3 +354,28 @@ Two tests, both sides.
   withdrawal and still confers trust access) — recorded, not fixed.
 - 45 + 9 + 77 tests green across the consent, profile and family suites; `/m` and
   settings component suites 10/10. Not re-browsed since these edits.
+
+## CSJ decision — 2026-08-24, 18:19: dev only, database restarted
+
+**G4, G5 and G6 are closed, not deferred.**
+
+- **G4 (Art. 33 / Art. 34 notification).** Those articles bite when a personal-data
+  breach affects real data subjects. **There are none.** Every forged row belongs to a
+  seeded persona or an `@example.com` test account, this branch has never been
+  deployed, and CSJ is restarting the database rather than migrating the existing rows
+  forward. No notifiable population, no clock, and nothing for a lawyer to rule on.
+- **G5 (production census).** Moot for the same reason — the census existed to size a
+  production population that will not be carried over.
+- **G6 (silent switch-off at release).** Moot. Nobody is switched off, because the
+  households the migration would have re-asked will not exist. CSJ's direction: at
+  restart, emails are either seeded with the personas or asked for as part of the flow.
+
+**What this changes about the code: nothing.** The re-ask migration stays exactly as it
+is — it is the correct behaviour for any row that ever does arrive in this shape, and it
+costs nothing on a clean database. What it stops being is a release-blocking decision.
+
+**Acceptance 3 and 4 are therefore satisfied by circumstance rather than by evidence:**
+there are no existing links to review and no consent to sign off, because there are no
+data subjects. Recorded plainly so a later reader does not mistake this for a compliance
+clearance — if this application ever holds real households in this state, G4 to G6 come
+back exactly as `compliance-lead` wrote them.
