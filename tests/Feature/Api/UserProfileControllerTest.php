@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Constants\ProfileEnums;
 use App\Models\Household;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -141,6 +142,100 @@ describe('PUT /api/user/profile/personal', function () {
             'city' => 'Manchester',
             'postcode' => 'M1 1AA',
         ]);
+    });
+
+    /**
+     * W-0006. The rules whitelisted `good_health` and `smoker` as booleans.
+     * Neither is a column on `users`, and neither real column appeared in the
+     * rule set at all, so validated() stripped both values on every submit —
+     * no 422, no error, the panel closed as if saved and nothing was written.
+     */
+    it('persists health and smoking status from the Health & Lifestyle form', function () {
+        $this->putJson('/api/user/profile/personal', [
+            'health_status' => 'yes',
+            'smoking_status' => 'never',
+            'education_level' => 'postgraduate',
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $this->user->id,
+            'health_status' => 'yes',
+            'smoking_status' => 'never',
+            'education_level' => 'postgraduate',
+        ]);
+    });
+
+    /**
+     * W-0031. The rule allowed `doctorate`, `foundation` and `hnd`; the column
+     * enum holds none of them, so validation passed and the write died as a
+     * QueryException — HTTP 500, not 422. Not latent either: PersonalInformation.vue
+     * offered all three from a live select.
+     */
+    it('rejects the three education levels the column cannot hold, with 422 not 500', function () {
+        foreach (['doctorate', 'foundation', 'hnd'] as $level) {
+            $this->putJson('/api/user/profile/personal', ['education_level' => $level])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['education_level']);
+        }
+
+        expect($this->user->fresh()->education_level)->toBeNull();
+    });
+
+    it('accepts every education level the column does hold', function () {
+        foreach (ProfileEnums::EDUCATION_LEVELS as $level) {
+            $this->putJson('/api/user/profile/personal', ['education_level' => $level])
+                ->assertStatus(200);
+
+            expect($this->user->fresh()->education_level)->toBe($level);
+        }
+    });
+
+    it('rejects a health or smoking value outside the column enum', function () {
+        $this->putJson('/api/user/profile/personal', [
+            'health_status' => 'excellent',
+            'smoking_status' => 'occasionally',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['health_status', 'smoking_status']);
+    });
+
+    it('treats the unanswered "Select..." option as no answer rather than failing the whole form', function () {
+        $this->user->refresh();
+        $originalHealth = $this->user->health_status;
+        $originalSmoking = $this->user->smoking_status;
+
+        $this->putJson('/api/user/profile/personal', [
+            'first_name' => 'Sarah',
+            'health_status' => '',
+            'smoking_status' => '',
+            'education_level' => '',
+        ])->assertStatus(200);
+
+        $this->user->refresh();
+
+        // Untouched, not nulled — smoking_status is NOT NULL, and an unanswered
+        // select means "leave it alone", never "clear it".
+        expect($this->user->first_name)->toBe('Sarah')
+            ->and($this->user->health_status)->toBe($originalHealth)
+            ->and($this->user->smoking_status)->toBe($originalSmoking);
+    });
+
+    /**
+     * Fault 2 of W-0006: education_level DID persist but UserResource exposed
+     * none of the three, so the page rendered the stored value as
+     * "Not specified". One source — GET /api/auth/user — for every client.
+     */
+    it('exposes health, smoking and education on the user resource', function () {
+        $this->user->update([
+            'health_status' => 'yes',
+            'smoking_status' => 'never',
+            'education_level' => 'postgraduate',
+        ]);
+
+        $this->getJson('/api/auth/user')
+            ->assertStatus(200)
+            ->assertJsonPath('data.user.health_status', 'yes')
+            ->assertJsonPath('data.user.smoking_status', 'never')
+            ->assertJsonPath('data.user.education_level', 'postgraduate');
     });
 
     it('validates string fields format', function () {

@@ -66,6 +66,7 @@
             <span class="text-body-sm text-neutral-500">Annual Expenditure:</span>
             <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(info.annual_expenditure) }}</span>
           </div>
+          <PlanExpenditureComposition :composition="info.expenditure_composition" />
           <div class="flex justify-between">
             <span class="text-body-sm text-neutral-500">Disposable Income (annual):</span>
             <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(info.disposable_income) }}</span>
@@ -105,9 +106,11 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import PlanExpenditureComposition from '../Shared/PlanExpenditureComposition.vue';
 
 export default {
   name: 'ProtectionPersonalInformation',
+  components: { PlanExpenditureComposition },
   mixins: [currencyMixin],
   props: {
     info: { type: Object, default: null },

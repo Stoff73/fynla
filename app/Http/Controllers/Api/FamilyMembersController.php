@@ -4,24 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\SpouseCollisionException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFamilyMemberRequest;
 use App\Http\Requests\UpdateFamilyMemberRequest;
 use App\Http\Traits\SanitizedErrorResponse;
-use App\Mail\SpouseAccountCreated;
-use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
+use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\UserProfile\UserProfileService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\RateLimiter;
 
 class FamilyMembersController extends Controller
 {
@@ -29,7 +27,8 @@ class FamilyMembersController extends Controller
 
     public function __construct(
         private readonly CacheInvalidationService $cacheInvalidation,
-        private readonly UserProfileService $userProfileService
+        private readonly UserProfileService $userProfileService,
+        private readonly HouseholdExpenditureWriter $householdExpenditure
     ) {}
 
     /**
@@ -68,7 +67,7 @@ class FamilyMembersController extends Controller
         }
 
         // Check for duplicate children when user has linked spouse
-        if ($data['relationship'] === 'child' && $user->spouse_id) {
+        if ($data['relationship'] === 'child' && $user->liveSpouseId()) {
             $duplicateInUserRecords = FamilyMember::where('user_id', $user->id)
                 ->where('relationship', 'child')
                 ->where('first_name', $data['first_name'])
@@ -76,12 +75,14 @@ class FamilyMembersController extends Controller
                 ->where('date_of_birth', $data['date_of_birth'] ?? null)
                 ->exists();
 
-            $duplicateInSpouseRecords = FamilyMember::where('user_id', $user->spouse_id)
-                ->where('relationship', 'child')
-                ->where('first_name', $data['first_name'])
-                ->where('last_name', $data['last_name'])
-                ->where('date_of_birth', $data['date_of_birth'] ?? null)
-                ->exists();
+            $liveSpouseId = $user->liveSpouseId();
+            $duplicateInSpouseRecords = $liveSpouseId !== null
+                && FamilyMember::where('user_id', $liveSpouseId)
+                    ->where('relationship', 'child')
+                    ->where('first_name', $data['first_name'])
+                    ->where('last_name', $data['last_name'])
+                    ->where('date_of_birth', $data['date_of_birth'] ?? null)
+                    ->exists();
 
             if ($duplicateInUserRecords || $duplicateInSpouseRecords) {
                 return response()->json([
@@ -95,6 +96,17 @@ class FamilyMembersController extends Controller
         $fullName = trim(($data['first_name'] ?? '').' '.
             (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
             ($data['last_name'] ?? ''));
+
+        // `partner` and `step_child` are offered by the form but are not values
+        // the column holds, and strict mode turns that into a 500 rather than a
+        // degraded row (W-0114). One resolver, shared with the Fyn tool path.
+        $resolved = FamilyMember::resolveRelationship($data['relationship']);
+        $data['relationship'] = $resolved['relationship'];
+        $data['stated_relationship'] = $resolved['stated'];
+        $notes = FamilyMember::composeRelationshipNotes($resolved['note'], $data['notes'] ?? null);
+        if ($notes !== null) {
+            $data['notes'] = $notes;
+        }
 
         $familyMember = FamilyMember::create([
             ...$data,
@@ -113,342 +125,180 @@ class FamilyMembersController extends Controller
     }
 
     /**
-     * Handle spouse creation or linking
+     * Handle spouse creation or linking.
+     *
+     * Rule 20 — this used to carry its own 250-line copy of the linking logic:
+     * link both sides, write both SpousePermission rows, write both
+     * family_members rows. `SpouseLinkingService` did the same job for Fyn
+     * onboarding, and its own docblock already claimed it served this path too.
+     * Two mechanisms meant a fix could land in one and miss the other, and they
+     * had already diverged (this one forced marital_status to 'married' and so
+     * quietly demoted a civil partnership). One home now; the checks that shape
+     * THIS surface's responses stay here, the linking itself does not.
      */
     private function handleSpouseCreation($currentUser, array $data): JsonResponse
     {
-        $spouseEmail = $data['email'];
+        // Applied here rather than on the route: `store` also adds children and
+        // other relatives, and a large family must not run into an invitation
+        // limit. Only this branch can point an email address at a stranger's
+        // account — or create one for an address that has none (W-0349).
+        $throttleKey = 'spouse-invite:'.$currentUser->id;
 
-        Log::info('handleSpouseCreation called', [
-            'current_user_id' => $currentUser->id,
-            'current_user_spouse_id' => $currentUser->spouse_id,
-        ]);
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many household invitations. Please try again in an hour.',
+            ], 429);
+        }
 
-        // Check if spouse already has an account
-        $spouseUser = User::where('email', $spouseEmail)->first();
+        RateLimiter::hit($throttleKey, 3600);
 
-        Log::info('Spouse user lookup result', [
-            'found' => $spouseUser ? 'yes' : 'no',
-            'spouse_user_id' => $spouseUser?->id,
-            'spouse_user_spouse_id' => $spouseUser?->spouse_id,
-        ]);
+        $spouseEmail = strtolower(trim((string) $data['email']));
+        $data['email'] = $spouseEmail;
 
-        if ($spouseUser) {
-            // Spouse already exists - link the accounts
-            if ($spouseUser->id === $currentUser->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You cannot add yourself as a spouse',
-                ], 422);
+        // Kept here, ahead of the service, because this surface answers a
+        // closed account with a field-level validation error on `email` rather
+        // than a plain message — the form highlights the field the user must
+        // change. The service raises a collision for the same case.
+        $spouseUser = User::withTrashed()->where('email', $spouseEmail)->first();
+
+        if ($spouseUser?->trashed()) {
+            return $this->unlinkableEmailValidationError();
+        }
+
+        if ($spouseUser && $spouseUser->id === $currentUser->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot add yourself as a spouse',
+            ], 422);
+        }
+
+        try {
+            $result = app(SpouseLinkingService::class)->linkOrCreateSpouse($currentUser, $data);
+        } catch (SpouseCollisionException $exception) {
+            // Same response as a closed account, deliberately. "Already linked
+            // to another spouse" and "that email is already in use" are two
+            // different confirmations that the address holds a Fynla account,
+            // handed to any authenticated caller who guesses one (W-0349).
+            return $this->unlinkableEmailValidationError();
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        } catch (QueryException $exception) {
+            if ($this->isDuplicateEmailException($exception)) {
+                return $this->unlinkableEmailValidationError();
             }
 
-            // Check if spouse is linked to a DIFFERENT user (not the current user)
-            if ($spouseUser->spouse_id && $spouseUser->spouse_id !== $currentUser->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This user is already linked to another spouse',
-                ], 422);
-            }
+            throw $exception;
+        }
 
-            // If already linked to current user, check if family member record exists
-            if ($spouseUser->spouse_id === $currentUser->id) {
-                // Already linked - check if family member record exists
-                $existingFamilyMember = FamilyMember::where('user_id', $currentUser->id)
-                    ->where('relationship', 'spouse')
-                    ->first();
+        $familyMember = $result['family_member'];
+        $spouseUser = $result['spouse_user'];
+        $rowIsNew = $familyMember->wasRecentlyCreated;
 
-                if ($existingFamilyMember) {
-                    // Family member record already exists, return it
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Spouse is already linked',
-                        'data' => [
-                            'family_member' => $existingFamilyMember,
-                            'spouse_user' => $spouseUser,
-                            'linked' => true,
-                            'already_existed' => true,
-                        ],
-                    ], 200);
-                }
-
-                // Linked but family member record missing - create it
-                $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
-                $familyMember = FamilyMember::create([
-                    'user_id' => $currentUser->id,
-                    'household_id' => $currentUser->household_id,
-                    'linked_user_id' => $spouseUser->id,
-                    'relationship' => 'spouse',
-                    'first_name' => $data['first_name'],
-                    'middle_name' => $data['middle_name'] ?? null,
-                    'last_name' => $data['last_name'],
-                    'date_of_birth' => $data['date_of_birth'] ?? null,
-                    'gender' => $data['gender'] ?? null,
-                    'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                    'annual_income' => $data['annual_income'] ?? null,
-                    'is_dependent' => $data['is_dependent'] ?? false,
-                    'notes' => $data['notes'] ?? null,
-                    'name' => $fullName,
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Spouse family member record created (accounts already linked)',
-                    'data' => [
-                        'family_member' => $familyMember,
-                        'spouse_user' => $spouseUser,
-                        'linked' => true,
-                        'record_created' => true,
-                    ],
-                ], 201);
-            }
-
-            // Link both users inside a transaction with pessimistic locking
-            $familyMember = DB::transaction(function () use ($currentUser, $spouseUser, $data) {
-                // Lock spouse row to prevent concurrent linking by another user
-                $spouseUser = User::lockForUpdate()->find($spouseUser->id);
-                if ($spouseUser->spouse_id && $spouseUser->spouse_id !== $currentUser->id) {
-                    return null;
-                }
-
-                $currentUser->spouse_id = $spouseUser->id;
-                $currentUser->marital_status = 'married';
-                $currentUser->save();
-
-                $spouseUser->spouse_id = $currentUser->id;
-                $spouseUser->marital_status = 'married';
-                // Update spouse user's income if provided in family member data
-                if (isset($data['annual_income']) && $data['annual_income'] > 0) {
-                    $spouseUser->annual_employment_income = $data['annual_income'];
-                }
-                // Copy address from current user if spouse doesn't have one
-                if (! $spouseUser->address_line_1 && $currentUser->address_line_1) {
-                    $spouseUser->address_line_1 = $currentUser->address_line_1;
-                    $spouseUser->address_line_2 = $currentUser->address_line_2;
-                    $spouseUser->city = $currentUser->city;
-                    $spouseUser->county = $currentUser->county;
-                    $spouseUser->postcode = $currentUser->postcode;
-                }
-                $spouseUser->save();
-
-                // Clear cached protection analysis for both users since spouse linkage affects completeness
-                $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
-
-                // Create bidirectional spouse data sharing permissions
-                SpousePermission::updateOrCreate(
-                    [
-                        'user_id' => $currentUser->id,
-                        'spouse_id' => $spouseUser->id,
-                    ],
-                    [
-                        'status' => 'accepted',
-                        'responded_at' => now(),
-                    ]
-                );
-
-                SpousePermission::updateOrCreate(
-                    [
-                        'user_id' => $spouseUser->id,
-                        'spouse_id' => $currentUser->id,
-                    ],
-                    [
-                        'status' => 'accepted',
-                        'responded_at' => now(),
-                    ]
-                );
-
-                // Create family member record for current user
-                $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
-                $familyMember = FamilyMember::create([
-                    'user_id' => $currentUser->id,
-                    'household_id' => $currentUser->household_id,
-                    'linked_user_id' => $spouseUser->id,
-                    'relationship' => 'spouse',
-                    'first_name' => $data['first_name'],
-                    'middle_name' => $data['middle_name'] ?? null,
-                    'last_name' => $data['last_name'],
-                    'date_of_birth' => $data['date_of_birth'] ?? null,
-                    'gender' => $data['gender'] ?? null,
-                    'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                    'annual_income' => $data['annual_income'] ?? null,
-                    'is_dependent' => $data['is_dependent'] ?? false,
-                    'notes' => $data['notes'] ?? null,
-                    'name' => $fullName,
-                ]);
-
-                // Create reciprocal family member record for spouse
-                $currentUserNameParts = explode(' ', $currentUser->name);
-                $currentUserFirstName = $currentUserNameParts[0] ?? '';
-                $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
-
-                FamilyMember::create([
-                    'user_id' => $spouseUser->id,
-                    'household_id' => $spouseUser->household_id,
-                    'linked_user_id' => $currentUser->id,
-                    'relationship' => 'spouse',
-                    'first_name' => $currentUserFirstName,
-                    'last_name' => $currentUserLastName,
-                    'date_of_birth' => $currentUser->date_of_birth,
-                    'gender' => $currentUser->gender,
-                    'national_insurance_number' => $currentUser->national_insurance_number,
-                    'annual_income' => $currentUser->employment_income ?? 0,
-                    'is_dependent' => false,
-                    'name' => $currentUser->name,
-                ]);
-
-                return $familyMember;
-            });
-
-            // Race condition: spouse was linked by another user during our transaction
-            if ($familyMember === null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This user is already linked to another spouse',
-                ], 422);
-            }
-
-            // Send email notification to spouse (outside transaction)
-            try {
-                Mail::to($spouseUser->email)->send(new SpouseAccountLinked($spouseUser, $currentUser));
-            } catch (\Exception $e) {
-                Log::error('Failed to send spouse account linked email: '.$e->getMessage());
-            }
-
+        if ($result['already_linked']) {
             return response()->json([
                 'success' => true,
-                'message' => 'Spouse account linked successfully',
+                'message' => $rowIsNew
+                    ? 'Spouse family member record created (accounts already linked)'
+                    : 'Spouse is already linked',
                 'data' => [
                     'family_member' => $familyMember,
-                    'spouse_user' => $spouseUser,
+                    'spouse_user' => $this->spouseSummary($spouseUser),
                     'linked' => true,
+                    'already_existed' => ! $rowIsNew,
+                    'record_created' => $rowIsNew,
                 ],
-            ], 201);
+            ], $rowIsNew ? 201 : 200);
         }
 
-        // Spouse doesn't exist - create new user account inside a transaction
-        $temporaryPassword = Str::random(16);
-
-        [$familyMember, $spouseUser] = DB::transaction(function () use ($currentUser, $data, $spouseEmail, $temporaryPassword) {
-            // Construct full name from name parts
-            $fullName = trim(($data['first_name'] ?? '').' '.
-                (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
-                ($data['last_name'] ?? ''));
-
-            $spouseUser = User::create([
-                'first_name' => $data['first_name'] ?? '',
-                'surname' => $data['last_name'] ?? '',
-                'name' => $fullName,
-                'email' => $spouseEmail,
-                'password' => Hash::make($temporaryPassword),
-                'must_change_password' => true,
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
-                'marital_status' => 'married',
-                'spouse_id' => $currentUser->id,
-                'household_id' => $currentUser->household_id,
-                'is_primary_account' => false,
-                'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                'annual_employment_income' => $data['annual_income'] ?? 0,
-                'address_line_1' => $currentUser->address_line_1,
-                'address_line_2' => $currentUser->address_line_2,
-                'city' => $currentUser->city,
-                'county' => $currentUser->county,
-                'postcode' => $currentUser->postcode,
-            ]);
-
-            // Update current user
-            $currentUser->spouse_id = $spouseUser->id;
-            $currentUser->marital_status = 'married';
-            $currentUser->save();
-
-            $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
-
-            // Create bidirectional spouse data sharing permissions
-            SpousePermission::updateOrCreate(
-                [
-                    'user_id' => $currentUser->id,
-                    'spouse_id' => $spouseUser->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
-
-            SpousePermission::updateOrCreate(
-                [
-                    'user_id' => $spouseUser->id,
-                    'spouse_id' => $currentUser->id,
-                ],
-                [
-                    'status' => 'accepted',
-                    'responded_at' => now(),
-                ]
-            );
-
-            // Create family member record for current user
-            $fullName = trim(($data['first_name'] ?? '').' '.(isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').($data['last_name'] ?? ''));
-            $familyMember = FamilyMember::create([
-                'user_id' => $currentUser->id,
-                'household_id' => $currentUser->household_id,
-                'linked_user_id' => $spouseUser->id,
-                'relationship' => 'spouse',
-                'first_name' => $data['first_name'],
-                'middle_name' => $data['middle_name'] ?? null,
-                'last_name' => $data['last_name'],
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
-                'national_insurance_number' => $data['national_insurance_number'] ?? null,
-                'annual_income' => $data['annual_income'] ?? null,
-                'is_dependent' => $data['is_dependent'] ?? false,
-                'notes' => $data['notes'] ?? null,
-                'name' => $fullName,
-            ]);
-
-            // Create reciprocal family member record for new spouse
-            $currentUserNameParts = explode(' ', $currentUser->name);
-            $currentUserFirstName = $currentUserNameParts[0] ?? '';
-            $currentUserLastName = implode(' ', array_slice($currentUserNameParts, 1)) ?: '';
-
-            FamilyMember::create([
-                'user_id' => $spouseUser->id,
-                'household_id' => $spouseUser->household_id,
-                'linked_user_id' => $currentUser->id,
-                'relationship' => 'spouse',
-                'first_name' => $currentUserFirstName,
-                'last_name' => $currentUserLastName,
-                'date_of_birth' => $currentUser->date_of_birth,
-                'gender' => $currentUser->gender,
-                'national_insurance_number' => $currentUser->national_insurance_number,
-                'annual_income' => $currentUser->employment_income ?? 0,
-                'is_dependent' => false,
-                'name' => $currentUser->name,
-            ]);
-
-            return [$familyMember, $spouseUser];
-        });
-
-        // Send email to spouse with temporary password (outside transaction)
-        $emailSent = false;
-        try {
-            Mail::to($spouseEmail)->send(new SpouseAccountCreated($spouseUser, $currentUser, $temporaryPassword));
-            $emailSent = true;
-        } catch (\Exception $e) {
-            Log::error('Failed to send spouse account created email: '.$e->getMessage());
-        }
-
+        // INVITED, not linked (W-0347). Saying "linked" here would be the
+        // interface telling the user the thing the old code did wrong — and the
+        // message is the only place they learn their spouse has to agree.
+        //
+        // W-0349 — **this is now the response for BOTH an address that already
+        // holds an account and one that does not**, and the two are
+        // byte-identical on purpose. There used to be a branch above this one
+        // returning `created: true` and "Spouse account created successfully",
+        // which answered "does this address hold a Fynla account?" for any
+        // authenticated caller who typed one. The branch is gone because the
+        // behaviour behind it is gone: `SpouseLinkingService` no longer creates
+        // an account for an address the caller merely supplied (CSJ, 2026-08-23).
+        //
+        // **Do not reintroduce a field here that only one of the two cases can
+        // populate.** `email_sent` is deliberately absent for the same reason:
+        // a caller could otherwise distinguish the branches by whether a
+        // delivery flag appeared. The difference between these responses IS the
+        // disclosure.
         return response()->json([
             'success' => true,
-            'message' => $emailSent
-                ? 'Spouse account created successfully. They will receive an email with login instructions.'
-                : 'Spouse account created but email delivery failed. They can use the "Forgot Password" feature to set their password.',
+            'message' => 'Invitation sent. Your spouse will be asked to confirm the link before anything is shared.',
             'data' => [
                 'family_member' => $familyMember,
-                'spouse_user' => $spouseUser,
-                'created' => true,
-                'email_sent' => $emailSent,
-                'spouse_email' => $spouseEmail,
+                // No counterparty details at all. Nothing about an account that
+                // has not agreed to be linked is disclosed to the caller — not
+                // their name, not their id, not confirmation that the address is
+                // registered (W-0348, W-0349).
+                'linked' => false,
+                'invitation_pending' => true,
             ],
         ], 201);
+    }
+
+    /**
+     * The only fields a client renders for a linked spouse.
+     *
+     * Was the whole Eloquent model. `$hidden` strips credentials and the
+     * national insurance number and nothing else, so date of birth, address,
+     * phone, occupation, employer, every `annual_*_income`, monthly and annual
+     * expenditure with all 21 category columns, health status, smoking status
+     * and domicile all shipped — and any column added to `users` later would
+     * have shipped too, silently (W-0348).
+     *
+     * @return array{id: int, first_name: ?string, surname: ?string, name: ?string, email: string}
+     */
+    private function spouseSummary(User $spouseUser): array
+    {
+        return [
+            'id' => $spouseUser->id,
+            'first_name' => $spouseUser->first_name,
+            'surname' => $spouseUser->surname,
+            'name' => $spouseUser->name,
+            // The caller supplied this address, so it discloses nothing new —
+            // and the UI echoes it back as confirmation of where the email went.
+            'email' => $spouseUser->email,
+        ];
+    }
+
+    /**
+     * One message for every address that cannot be linked, whatever the reason.
+     *
+     * Three distinguishable refusals used to sit behind this surface — closed
+     * account, already in another household, duplicate on insert — and each one
+     * told an authenticated caller something true about an address they had
+     * merely typed. Collapsed to one (W-0349).
+     *
+     * The fourth distinction — an address with no account got one created, and
+     * said so — is gone too, as of CSJ's decision on 2026-08-23: that address is
+     * now invited, and the invitation response is identical to the one an
+     * existing account produces. **All four outcomes now return one of two
+     * things**: this refusal, or "Invitation sent". Neither reveals whether the
+     * address is registered.
+     */
+    private function unlinkableEmailValidationError(): JsonResponse
+    {
+        return $this->validationErrorResponse(
+            'That email address cannot be linked to your household',
+            ['email' => ['That email address cannot be linked to your household']]
+        );
+    }
+
+    private function isDuplicateEmailException(QueryException $exception): bool
+    {
+        return $exception->getCode() === '23000'
+            && str_contains($exception->getMessage(), 'users_email_unique');
     }
 
     /**
@@ -465,10 +315,12 @@ class FamilyMembersController extends Controller
 
         $memberArray = $familyMember->toArray();
 
-        // If this is a spouse and user has a spouse_id, get the spouse's email
-        if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouse = User::find($user->spouse_id);
-            $memberArray['email'] = $spouse ? $spouse->email : null;
+        // The email belongs to the account THIS row links to. Reading it off
+        // the user's spouse instead handed the real spouse's address to an
+        // unlinked row, which is how an orphan came back looking linked and the
+        // edit form pre-filled somebody else's email (W-0051).
+        if ($linkedUser = $familyMember->liveLinkedUser()) {
+            $memberArray['email'] = $linkedUser->email;
         }
 
         return response()->json([
@@ -493,6 +345,18 @@ class FamilyMembersController extends Controller
 
         $data = $request->validated();
 
+        // Same resolver as store(): the update request accepts `step_child`
+        // too, and writing it would 500 on the enum exactly as creating it did.
+        if (isset($data['relationship'])) {
+            $resolved = FamilyMember::resolveRelationship($data['relationship']);
+            $data['relationship'] = $resolved['relationship'];
+            $data['stated_relationship'] = $resolved['stated'];
+            $notes = FamilyMember::composeRelationshipNotes($resolved['note'], $data['notes'] ?? null);
+            if ($notes !== null) {
+                $data['notes'] = $notes;
+            }
+        }
+
         // Construct full name from name parts if provided
         if (isset($data['first_name']) || isset($data['last_name'])) {
             $firstName = $data['first_name'] ?? $familyMember->first_name ?? '';
@@ -503,42 +367,23 @@ class FamilyMembersController extends Controller
 
         $familyMember->update($data);
 
-        // If updating a spouse, sync relevant fields to the spouse user account
-        if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouseUser = User::find($user->spouse_id);
-            if ($spouseUser) {
-                $spouseUpdates = [];
+        // Sync to the account THIS row links to — never to whoever happens to
+        // sit in `users.spouse_id`. Branching on the relationship string meant
+        // editing an unlinked spouse record rewrote the real spouse's name,
+        // date of birth, income and National Insurance number (W-0051).
+        $spouseUser = $familyMember->fresh()->liveLinkedUser();
 
-                // Sync name if it was updated
-                if (isset($data['name'])) {
-                    $spouseUpdates['name'] = $data['name'];
-                }
+        if ($spouseUser !== null) {
+            // One declared correspondence between the two tables, rather than
+            // five hand-written lines that had to guess which column each field
+            // lands in. The name line guessed `name`, which `users` does not
+            // have, so every rename was discarded in silence (W-0112).
+            $spouseUpdates = app(SpouseLinkingService::class)->userAttributesFrom($data);
 
-                // Sync date of birth if updated
-                if (isset($data['date_of_birth'])) {
-                    $spouseUpdates['date_of_birth'] = $data['date_of_birth'];
-                }
+            if (! empty($spouseUpdates)) {
+                $spouseUser->update($spouseUpdates);
 
-                // Sync gender if updated
-                if (isset($data['gender'])) {
-                    $spouseUpdates['gender'] = $data['gender'];
-                }
-
-                // Sync income if updated
-                if (isset($data['annual_income'])) {
-                    $spouseUpdates['annual_employment_income'] = $data['annual_income'];
-                }
-
-                // Sync NI number if updated
-                if (isset($data['national_insurance_number'])) {
-                    $spouseUpdates['national_insurance_number'] = $data['national_insurance_number'];
-                }
-
-                if (! empty($spouseUpdates)) {
-                    $spouseUser->update($spouseUpdates);
-
-                    $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseUser->id);
-                }
+                $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseUser->id);
             }
         }
 
@@ -563,32 +408,46 @@ class FamilyMembersController extends Controller
         $familyMember = FamilyMember::where('user_id', $user->id)
             ->findOrFail($id);
 
-        // If deleting a spouse, clear the spouse linkage and delete reciprocal record
-        if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouseUser = User::find($user->spouse_id);
+        // Unlink the household ONLY when this row is what carries the link.
+        // Branching on the relationship string meant deleting an unlinked
+        // spouse record tore down a real, separate link: it nulled `spouse_id`
+        // on both users, deleted both SpousePermission rows and deleted the
+        // reciprocal record on the spouse's own account — for a row that never
+        // linked anything (W-0051). An unlinked record is now just a record,
+        // and deleting it removes exactly itself.
+        $spouseUser = $familyMember->liveLinkedUser();
 
-            if ($spouseUser) {
-                // Delete the reciprocal family_member record on spouse's account
-                FamilyMember::where('user_id', $spouseUser->id)
-                    ->where('relationship', 'spouse')
-                    ->delete();
+        if ($spouseUser !== null) {
+            // Delete the reciprocal family_member record on spouse's account —
+            // matched by the link back to this user, not by relationship.
+            FamilyMember::where('user_id', $spouseUser->id)
+                ->where('linked_user_id', $user->id)
+                ->delete();
 
-                // Delete bidirectional spouse permissions
-                SpousePermission::where(function ($query) use ($user, $spouseUser) {
-                    $query->where('user_id', $user->id)->where('spouse_id', $spouseUser->id);
-                })->orWhere(function ($query) use ($user, $spouseUser) {
-                    $query->where('user_id', $spouseUser->id)->where('spouse_id', $user->id);
-                })->delete();
+            // Delete bidirectional spouse permissions
+            SpousePermission::where(function ($query) use ($user, $spouseUser) {
+                $query->where('user_id', $user->id)->where('spouse_id', $spouseUser->id);
+            })->orWhere(function ($query) use ($user, $spouseUser) {
+                $query->where('user_id', $spouseUser->id)->where('spouse_id', $user->id);
+            })->delete();
 
-                $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseUser->id);
+            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseUser->id);
 
-                // Clear spouse linkage for both users
-                $spouseUser->spouse_id = null;
-                $spouseUser->save();
-            }
+            // Clear spouse linkage for both users
+            $spouseUser->spouse_id = null;
+            $spouseUser->save();
 
             $user->spouse_id = null;
             $user->save();
+
+            // W-0477 — both accounts hold HALF of what the household spent, and
+            // from this line on nothing is left to hold the other half. Neither row
+            // changes on its own, so every reader downstream would take a half for a
+            // whole: spending understated, disposable income overstated, and every
+            // affordability statement rests on that figure. Put both back into
+            // household terms at the one moment their meaning changes.
+            $this->householdExpenditure->promoteSharesToHousehold($user->fresh());
+            $this->householdExpenditure->promoteSharesToHousehold($spouseUser->fresh());
         }
 
         $familyMember->delete();

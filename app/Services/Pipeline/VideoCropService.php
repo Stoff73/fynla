@@ -69,6 +69,7 @@ class VideoCropService
         }
 
         $videoFilter = $this->buildVideoFilter($srtPath);
+        $encoderArgs = $this->encoderArguments();
 
         $args = [
             'ffmpeg',
@@ -79,17 +80,15 @@ class VideoCropService
             $args[] = '-to';
             $args[] = number_format($end, 3, '.', '');
         }
-        array_push($args,
+        $args = array_merge($args, [
             '-i', $sourcePath,
             '-vf', $videoFilter,
-            '-c:v', 'libx264',
-            '-preset', 'medium',
-            '-crf', '20',
+        ], $encoderArgs, [
             '-c:a', 'aac',
             '-b:a', '128k',
             '-movflags', '+faststart',
             $outputPath,
-        );
+        ]);
 
         $process = new Process($args);
         $process->setTimeout($this->timeoutSeconds);
@@ -123,6 +122,18 @@ class VideoCropService
         ]);
 
         return $outputPath;
+    }
+
+    /** @return list<string> */
+    private function encoderArguments(): array
+    {
+        $encoder = (string) config('pipeline.video.encoder', 'libx264');
+
+        return match ($encoder) {
+            'libx264' => ['-c:v', 'libx264', '-preset', 'medium', '-crf', '20'],
+            'mpeg4' => ['-c:v', 'mpeg4', '-q:v', '3'],
+            default => throw new RuntimeException("Unsupported pipeline video encoder: {$encoder}"),
+        };
     }
 
     /**

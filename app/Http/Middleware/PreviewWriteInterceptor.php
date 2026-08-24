@@ -51,6 +51,7 @@ class PreviewWriteInterceptor
         'api/preview/switch',
         'api/contact',            // Contact form works regardless of preview mode
         'api/news/subscribe',     // Public newsletter subscribe — no auth, IP-rate-limited
+        'api/cookie-consent',     // Cookie consent — a refusal must take effect for every visitor, preview or not
         'api/auth/login',         // Allow real login even with stale preview token
         'api/auth/mfa/verify',    // Login-flow MFA continuation (real login with stale preview token)
         'api/auth/mfa/recovery',  // Login-flow MFA recovery-code continuation

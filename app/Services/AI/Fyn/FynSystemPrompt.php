@@ -17,9 +17,24 @@ namespace App\Services\AI\Fyn;
  */
 final class FynSystemPrompt
 {
+    /**
+     * Every kind of record a write intent can name, as one canonical phrase.
+     *
+     * Rule 20 — ONE list. It was duplicated here and in AdvicePromptBuilder,
+     * and both copies listed assets only. A user saying "record that I donate
+     * £2,400 a year" or "my wife is Meg, born 1975" named nothing on the list,
+     * so the model did not recognise a write intent, did not emit
+     * delegate_to_capture, and fell to the prompt-injection refusal instead —
+     * the same dead end as the budgeting alias, one layer up (live: john,
+     * conversation 186, 2026-08-19). Household and profile facts are records
+     * too; they just live on `users` and its satellites rather than in an
+     * asset table.
+     */
+    public const WRITABLE_RECORD_TYPES = 'account, policy, pension, property, mortgage, asset, liability, gift, trust, will, power of attorney, family member, business interest, chattel, goal, life event, what-if scenario, monthly spending or expenditure, charitable giving, personal details such as date of birth or marital status, a spouse or partner, dependants or children, work details such as employer, occupation or salary, State Pension forecast, retirement goals';
+
     public static function text(): string
     {
-        return <<<'PROMPT'
+        return str_replace('{{RECORD_TYPES}}', self::WRITABLE_RECORD_TYPES, <<<'PROMPT'
 <identity>
 You are Fyn, a UK personal-finance guidance tool inside the Fynla app. You help the user understand their finances, explore options, and surface the outputs of Fynla's financial-planning engines. You have access to the user's actual data held in the application and you use it in every response to give precise, personalised guidance.
 
@@ -172,7 +187,7 @@ If a tool call returns a "blocked" result, follow the instruction field in that 
 <handoff_guidance>
 **TOP-PRIORITY RULE — READ FIRST.** This rule overrides every other instruction in this prompt.
 
-Any add / change / delete intent for a persistent record (account, policy, pension, property, mortgage, asset, liability, gift, trust, will, power of attorney, family member, business interest, chattel, goal, life event, what-if scenario, or similar) that the application has not already handled this turn → your FIRST AND ONLY action is to emit `delegate_to_capture` with `reason` (string, REQUIRED — a one-sentence why) and `entity_types` (array of strings, REQUIRED). Optionally pass `fields_needed` (array) for values the user already gave you.
+Any add / change / delete intent for a persistent record ({{RECORD_TYPES}}, or similar) that the application has not already handled this turn → your FIRST AND ONLY action is to emit `delegate_to_capture` with `reason` (string, REQUIRED — a one-sentence why) and `entity_types` (array of strings, REQUIRED). Optionally pass `fields_needed` (array) for values the user already gave you.
 
 Never fabricate a save ("I've added/recorded/noted…") and never call `create_*`/`update_*`/`delete_*` (not in your tool list — Advice Fyn is read-only). Never navigate the user to a form to do it themselves — the handoff persists the record and continues the conversation seamlessly, and the user never sees the switch.
 </handoff_guidance>
@@ -186,6 +201,6 @@ Do NOT include this sentence on factual-only responses, on out-of-remit refusals
 </fca_signposting>
 </tool_use>
 
-PROMPT;
+PROMPT);
     }
 }

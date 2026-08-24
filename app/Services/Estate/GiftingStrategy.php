@@ -45,21 +45,34 @@ class GiftingStrategy
         $now = Carbon::now();
 
         // Filter to PET gifts within 7 years
-        $activePets = $gifts->filter(function ($gift) use ($now) {
+        // W-0463 — the window comes from configuration, not a literal 7.
+        $petWindow = (int) ($this->taxConfig->getPETRules()['years_to_exemption'] ?? 7);
+
+        $activePets = $gifts->filter(function ($gift) use ($now, $petWindow) {
             if (($gift->gift_type ?? '') !== 'pet') {
                 return false;
             }
 
-            $giftDate = Carbon::parse($gift->gift_date);
-            $yearsAgo = $giftDate->diffInYears($now);
-
-            return $yearsAgo < 7;
+            return Carbon::parse($gift->gift_date)->floatDiffInYears($now) < $petWindow;
         });
 
-        $petsData = $activePets->map(function ($gift) use ($now) {
+        $petsData = $activePets->map(function ($gift) use ($now, $petWindow) {
             $giftDate = Carbon::parse($gift->gift_date);
-            $yearsAgo = (int) $giftDate->diffInYears($now);
-            $yearsRemaining = 7 - $yearsAgo;
+            $yearsExact = $giftDate->floatDiffInYears($now);
+            $yearsAgo = (int) $yearsExact;
+
+            // W-0463 — this said `'taper_relief_applicable' => $yearsAgo >= 3` and
+            // stopped there, while the graduated schedule sat configured and unread.
+            // "Applicable" told a user nothing they could act on: the whole question
+            // is how much, and the answer moves every year they survive.
+            //
+            // The RATE is a fact about the gift's age and can be stated here. The
+            // TAX cannot: it depends on how much nil rate band earlier gifts have
+            // already consumed, which is a fact about the whole estate and is
+            // answered once, in `FailedGiftTaxCalculator`. Publishing a per-gift tax
+            // figure from here would be a second answer to that question.
+            $taperedRate = $this->taxConfig->getGiftTaxRate($yearsExact, 'pet');
+            $fullRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? 0.40);
 
             return [
                 'id' => $gift->id,
@@ -67,8 +80,15 @@ class GiftingStrategy
                 'recipient' => $gift->recipient,
                 'gift_value' => (float) ($gift->gift_value ?? 0),
                 'years_ago' => $yearsAgo,
-                'years_remaining' => max(0, $yearsRemaining),
-                'taper_relief_applicable' => $yearsAgo >= 3,
+                'years_remaining' => max(0, $petWindow - $yearsAgo),
+                'taper_relief_applicable' => $taperedRate < $fullRate,
+                // The rate this gift would actually be charged at today, and how
+                // much of the full rate taper has already taken off it.
+                'taper_relief_rate' => $taperedRate,
+                'taper_relief_rate_percent' => round($taperedRate * 100, 1),
+                'taper_relief_percent' => $fullRate > 0
+                    ? round((1 - ($taperedRate / $fullRate)) * 100, 1)
+                    : 0.0,
             ];
         })->values();
 
@@ -210,13 +230,20 @@ class GiftingStrategy
 
         // 2. Charitable Giving recommendation (if not already at 10%)
         $charitablePercent = (float) ($profile->charitable_giving_percent ?? 0);
-        $reducedRate = (float) ($this->ihtConfig['reduced_rate_charity'] ?? 0.36);
-        if ($charitablePercent < 10 && $currentIHTLiability > 0) {
+        // W-0451. An eighth site reading the array with its own `?? 0.36`, where
+        // getCharitableReducedRate() is the one home; the Schedule 1A threshold
+        // hardcoded twice — once as the `< 10` gate that decides whether the
+        // recommendation appears at all, and once in the sentence; and "IHT"
+        // unspelled (Rule 9).
+        $reducedRate = $this->taxConfig->getCharitableReducedRate();
+        $thresholdPercent = $this->taxConfig->getCharitableThresholdPercent() * 100;
+        if ($charitablePercent < $thresholdPercent && $currentIHTLiability > 0) {
             $standardRatePercent = round($ihtRate * 100);
             $reducedRatePercent = round($reducedRate * 100);
+            $thresholdLabel = rtrim(rtrim(number_format($thresholdPercent, 2), '0'), '.').'%';
             $recommendations[] = [
                 'strategy' => 'Charitable Giving',
-                'description' => "Leave 10% to charity to reduce IHT rate from {$standardRatePercent}% to {$reducedRatePercent}%",
+                'description' => "Leave {$thresholdLabel} to charity to reduce Inheritance Tax rate from {$standardRatePercent}% to {$reducedRatePercent}%",
                 'potential_savings' => round($taxableEstate * ($ihtRate - $reducedRate), 2),
             ];
             $priority[] = [

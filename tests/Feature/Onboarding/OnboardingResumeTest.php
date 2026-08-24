@@ -184,7 +184,7 @@ it('emits the full welcome introduction on the very first turn of a conversation
     $quick = collect($received)->firstWhere('type', 'quick_replies');
     expect($quick)->not->toBeNull();
     expect($quick['prompt_text'])->toContain('welcome to Fynla');
-    expect(array_column($quick['bubbles'], 'id'))->toBe(['journey', 'focus']);
+    expect(array_column($quick['bubbles'], 'id'))->toBe(['journey', 'focus', 'skip']);
 
     $persisted = $conversation->messages()->where('role', 'assistant')->latest('id')->first();
     expect($persisted->content)->toContain('welcome to Fynla');
@@ -226,7 +226,7 @@ it('drops the welcome introduction on re-emission once an assistant message alre
     expect($quick['prompt_text'])->not->toContain("I'm Fyn");
     expect($quick['prompt_text'])->toContain('life-stage journey or pick a single module focus');
     // Bubbles are unchanged by the reprompt swap.
-    expect(array_column($quick['bubbles'], 'id'))->toBe(['journey', 'focus']);
+    expect(array_column($quick['bubbles'], 'id'))->toBe(['journey', 'focus', 'skip']);
 
     // The persisted row for the re-emission is the reprompt, not a second
     // copy of the introduction — exactly one "welcome to Fynla" row exists

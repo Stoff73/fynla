@@ -27,14 +27,14 @@ class ScriptsFolderLocator
 
     public function resolve(): string
     {
-        $cached = Cache::get(self::CACHE_KEY);
-        if (is_string($cached) && $cached !== '') {
-            return $cached;
-        }
-
         $parent = (string) config('pipeline.google.drive_folder_id');
         if ($parent === '') {
             throw new RuntimeException('PIPELINE_GOOGLE_DRIVE_FOLDER_ID is not set.');
+        }
+
+        $cached = Cache::get(self::CACHE_KEY);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
         }
 
         $id = $this->drive->findOrCreateSubfolder($parent, self::SUBFOLDER_NAME);

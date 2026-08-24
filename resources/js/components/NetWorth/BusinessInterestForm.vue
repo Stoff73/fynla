@@ -110,7 +110,10 @@
                     class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="e.g., 12345678"
                   />
-                  <p class="text-xs text-neutral-500 mt-1">Companies House registration number</p>
+                  <p class="text-xs text-neutral-500 mt-1">
+                    Companies House registration number. Add it and we will track your accounts and
+                    confirmation statement deadlines, and remind you before they fall due.
+                  </p>
                 </div>
 
                 <div>

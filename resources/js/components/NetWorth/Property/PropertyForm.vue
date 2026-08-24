@@ -1,6 +1,6 @@
 <template>
   <!-- Onboarding: inline form, no modal. Regular: full modal wrapper. -->
-  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center'" @click.self="">
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center'" @click.self="handleClose">
     <div :class="context === 'onboarding' ? '' : 'relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden'" @click.stop>
       <div ref="formContent" :class="context === 'onboarding' ? '' : 'overflow-y-auto max-h-[90vh]'">
       <!-- Header -->
@@ -483,8 +483,8 @@
                   min="0"
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
-                <p v-if="isJointPropertyEdit" class="text-xs text-violet-600 mt-1">
-                  Enter the full mortgage balance. Your {{ form.ownership_percentage }}% share will be calculated automatically.
+                <p class="text-xs text-violet-600 mt-1">
+                  Enter the full mortgage balance. It is allocated according to the borrower selection below, not the property ownership split.
                 </p>
               </div>
             </div>
@@ -679,52 +679,24 @@
               </div>
             </div>
 
-            <!-- Mortgage Ownership Section -->
+            <!-- Mortgage liability section.
+
+                 This used to ask "Borrower(s)" — Me only / Joint borrowers — and
+                 hardcode a 50% split, under the heading "This can be different
+                 from the property ownership split". A debt is shared exactly as
+                 the asset securing it is shared (CSJ ruling, W-0228), so it
+                 cannot be different, and collecting a value the server derives
+                 from somewhere else only lets the two disagree — which is how the
+                 Manchester unit came to be a 40% property carrying a 50%
+                 mortgage. It is now stated, not asked. -->
             <div class="space-y-4 pt-4 border-t border-light-gray">
-              <h5 class="text-sm font-semibold text-horizon-500">Mortgage Ownership</h5>
+              <h5 class="text-sm font-semibold text-horizon-500">Mortgage liability</h5>
+              <p class="text-xs text-neutral-500">
+                A mortgage is shared the same way as the property securing it, so this follows the ownership you set for this property.
+              </p>
 
-              <div>
-                <label for="mortgage_ownership_type" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Ownership Type
-                </label>
-                <select
-                  id="mortgage_ownership_type"
-                  v-model="mortgageForm.ownership_type"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                >
-                  <option value="individual">Individual Owner</option>
-                  <option value="joint">Joint Owner</option>
-                </select>
-              </div>
-
-              <div v-if="mortgageForm.ownership_type === 'joint'">
-                <label for="mortgage_joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Joint Owner
-                </label>
-                <select
-                  id="mortgage_joint_owner_selection"
-                  v-model="mortgageJointOwnerSelection"
-                  @change="handleMortgageJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                >
-                  <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
-                  <option value="other">Other (Enter Name)</option>
-                </select>
-              </div>
-
-              <!-- Free Text Joint Owner Name -->
-              <div v-if="mortgageJointOwnerSelection === 'other'">
-                <label for="mortgage_joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Joint Owner Name
-                </label>
-                <input
-                  id="mortgage_joint_owner_name"
-                  v-model="mortgageForm.joint_owner_name"
-                  type="text"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                  placeholder="Enter joint owner's name"
-                />
+              <div class="rounded-md border border-horizon-200 bg-savannah-100 p-3">
+                <p class="text-sm text-horizon-500">{{ mortgageLiabilityShareSummary }}</p>
               </div>
             </div>
           </div>
@@ -1195,6 +1167,7 @@ export default {
         variable_rate_percentage: null,
         fixed_interest_rate: null,
         variable_interest_rate: null,
+        id: null,
         rate_fix_end_date: '',
         monthly_payment: null,
         monthly_interest_portion: null,
@@ -1212,6 +1185,27 @@ export default {
 
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
+    // Says what the user's share of the mortgage will be, derived from the
+    // property ownership they have already set on this form (W-0228/W-0236).
+    // Read-only by design — see the template comment.
+    mortgageLiabilityShareSummary() {
+      const type = this.form.ownership_type;
+
+      if (type !== 'joint' && type !== 'tenants_in_common') {
+        return 'You are responsible for the whole of this mortgage.';
+      }
+
+      const share = Number(this.form.ownership_percentage);
+      const yourShare = Number.isFinite(share) && share > 0 ? share : 50;
+      const coOwner = this.form.joint_owner_name
+        || (this.spouse && this.spouse.name)
+        || 'your co-owner';
+
+      return `You are responsible for ${this.trimPercent(yourShare)}% of this mortgage, `
+        + `matching your share of the property. The remaining ${this.trimPercent(100 - yourShare)}% `
+        + `belongs to ${coOwner}.`;
+    },
 
     isEditMode() {
       return this.property !== null;
@@ -1371,13 +1365,26 @@ export default {
         }
       }
 
-      // Also sync mortgage ownership_type with property ownership_type
-      // Convert tenants_in_common to joint for mortgage (mortgages only have individual/joint)
-      this.mortgageForm.ownership_type = (newVal === 'joint' || newVal === 'tenants_in_common') ? 'joint' : 'individual';
+      this.mirrorPropertyOwnershipToMortgage();
     },
 
-    mortgageJointOwnerSelection(newVal) {
-      this.handleMortgageJointOwnerSelection();
+    // The mortgage's ownership MIRRORS the property's, so the row that gets
+    // stored agrees with the property securing it (W-0228). The server derives
+    // the share from the property either way, so a mortgage row saying something
+    // different would not change any figure — it would just sit there
+    // contradicting the property, which is the state this defect was found in.
+    //
+    // Percentage and co-owner get their own watchers because either can change
+    // without the type changing: tenants-in-common 40 to 60, or a different
+    // co-owner on the same basis. The type's mirror call lives in the existing
+    // watcher above rather than a second entry with the same key, which would
+    // have silently replaced it.
+    'form.ownership_percentage'() {
+      this.mirrorPropertyOwnershipToMortgage();
+    },
+
+    'form.joint_owner_id'() {
+      this.mirrorPropertyOwnershipToMortgage();
     },
 
     // When property type changes, adjust current step if we're on BTL step and it's no longer BTL
@@ -1401,57 +1408,11 @@ export default {
       }
     },
 
-    // When mortgage checkbox changes, sync ownership settings and adjust step if needed
+    // When mortgage checkbox changes, adjust the current step if needed
     hasMortgage(newVal, oldVal) {
-      // If checking mortgage, sync ownership settings from property
-      if (newVal && !oldVal) {
-        // Sync mortgage ownership_type with property ownership_type
-        // Convert tenants_in_common to joint for mortgage (mortgages only have individual/joint)
-        const propertyType = this.form.ownership_type;
-        this.mortgageForm.ownership_type = (propertyType === 'joint' || propertyType === 'tenants_in_common') ? 'joint' : 'individual';
-        // Sync joint owner settings
-        this.mortgageForm.joint_owner_id = this.form.joint_owner_id;
-        this.mortgageForm.joint_owner_name = this.form.joint_owner_name;
-        this.mortgageForm.ownership_percentage = this.form.ownership_percentage;
-        // Sync the dropdown selection
-        if (this.form.joint_owner_id) {
-          this.mortgageJointOwnerSelection = 'linked_' + this.form.joint_owner_id;
-        } else if (this.form.joint_owner_name) {
-          this.mortgageJointOwnerSelection = 'other';
-        }
-      }
       // If unchecking mortgage while on mortgage step, move to next logical step
       if (oldVal && !newVal && this.currentStep === this.stepMapping[3]) {
         this.currentStep = this.stepMapping[4] || this.currentStep + 1;
-      }
-    },
-
-    // Sync mortgage ownership_percentage with property ownership_percentage
-    'form.ownership_percentage'(newVal) {
-      this.mortgageForm.ownership_percentage = newVal;
-    },
-
-    // Sync mortgage joint owner with property joint owner
-    'form.joint_owner_id'(newVal) {
-      // Update mortgage joint_owner_id to match property joint_owner_id
-      this.mortgageForm.joint_owner_id = newVal;
-      // Sync the dropdown selection
-      if (newVal) {
-        this.mortgageJointOwnerSelection = 'linked_' + newVal;
-      } else if (this.form.joint_owner_name) {
-        this.mortgageJointOwnerSelection = 'other';
-      } else {
-        this.mortgageJointOwnerSelection = '';
-      }
-    },
-
-    // Sync mortgage joint owner name with property joint owner name
-    'form.joint_owner_name'(newVal) {
-      // Update mortgage joint_owner_name to match property joint_owner_name
-      this.mortgageForm.joint_owner_name = newVal;
-      // Sync the dropdown selection
-      if (newVal && !this.form.joint_owner_id) {
-        this.mortgageJointOwnerSelection = 'other';
       }
     },
 
@@ -1613,6 +1574,11 @@ export default {
       if (this.property.mortgages && this.property.mortgages.length > 0) {
         this.hasMortgage = true;
         const mortgage = this.property.mortgages[0]; // Get first mortgage
+        // W-0012. The id was not captured, so an edit had nothing to update
+        // AGAINST — `PropertyList` could only PUT the property, and the mortgage
+        // changes were dropped entirely. `PUT /api/mortgages/{id}` exists and
+        // accepts every field this form collects.
+        this.mortgageForm.id = mortgage.id || null;
         this.mortgageForm.lender_name = mortgage.lender_name || '';
         this.mortgageForm.mortgage_account_number = mortgage.mortgage_account_number || '';
         this.mortgageForm.mortgage_type = mortgage.mortgage_type || '';
@@ -1640,13 +1606,12 @@ export default {
           this.mortgageJointOwnerSelection = 'other';
         }
       } else {
-        // No existing mortgage - sync ownership from property form
-        // Convert tenants_in_common to joint for mortgage
-        const propType = this.form.ownership_type;
-        this.mortgageForm.ownership_type = (propType === 'joint' || propType === 'tenants_in_common') ? 'joint' : 'individual';
-        this.mortgageForm.ownership_percentage = this.form.ownership_percentage || 50;
-        this.mortgageForm.joint_owner_id = this.form.joint_owner_id || null;
-        this.mortgageForm.joint_owner_name = this.form.joint_owner_name || '';
+        // A property owner is not automatically a mortgage borrower.
+        this.mortgageForm.ownership_type = 'individual';
+        this.mortgageForm.ownership_percentage = 100;
+        this.mortgageForm.joint_owner_id = null;
+        this.mortgageForm.joint_owner_name = '';
+        this.mortgageJointOwnerSelection = '';
       }
     },
 
@@ -1664,7 +1629,7 @@ export default {
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     },
@@ -1737,19 +1702,28 @@ export default {
       }
     },
 
-    handleMortgageJointOwnerSelection() {
-      if (this.mortgageJointOwnerSelection.startsWith('linked_')) {
-        // Extract ID and set mortgage joint_owner_id
-        this.mortgageForm.joint_owner_id = parseInt(this.mortgageJointOwnerSelection.replace('linked_', ''));
-        this.mortgageForm.joint_owner_name = ''; // Clear free text field
-      } else if (this.mortgageJointOwnerSelection === 'spouse_name') {
-        // Spouse without linked account — use their name
-        this.mortgageForm.joint_owner_id = null;
-        this.mortgageForm.joint_owner_name = this.spouse?.name || '';
-      } else if (this.mortgageJointOwnerSelection === 'other') {
-        // Clear linked ID when using free text
-        this.mortgageForm.joint_owner_id = null;
+    // Replaces handleMortgageJointOwnerSelection(), which existed to service the
+    // borrower controls this form no longer shows. Nothing chooses a borrower any
+    // more; the property decides (W-0228/W-0236).
+    mirrorPropertyOwnershipToMortgage() {
+      this.mortgageForm.ownership_type = this.form.ownership_type;
+      this.mortgageForm.ownership_percentage = this.form.ownership_percentage;
+      this.mortgageForm.joint_owner_id = this.form.joint_owner_id;
+      this.mortgageForm.joint_owner_name = this.form.joint_owner_name;
+      this.mortgageJointOwnerSelection = this.jointOwnerSelection;
+    },
+
+    // 40.00 reads as 40, 33.33 keeps its decimals. The column is decimal(5,2),
+    // so a whole percentage arrives as "40.00" and would otherwise be printed
+    // that way in a sentence.
+    trimPercent(value) {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return '0';
       }
+
+      return String(Math.round(number * 100) / 100);
     },
 
     handleTrustSelection() {
@@ -1875,6 +1849,21 @@ export default {
         cleanedProperty.lease_remaining_years = null;
       } else if (typeof cleanedProperty.lease_remaining_years === 'object') {
         cleanedProperty.lease_remaining_years = null;
+      }
+
+      // State a share only where this form lets the user set one (W-0040).
+      // The share input exists for tenants in common and nowhere else, so on
+      // every other ownership type the 100 sitting in form data is an uncleared
+      // default, not a figure anyone chose. Sending it made a stated share and
+      // an inherited one indistinguishable server-side, which is what forced
+      // SharedOwnership to rewrite a stated 100 to 50. Omitting it lets the
+      // server default a create and leave an existing record's share alone.
+      if (cleanedProperty.ownership_type !== 'tenants_in_common') {
+        delete cleanedProperty.ownership_percentage;
+      }
+      // The mortgage section has no share input at all.
+      if (cleanedMortgage) {
+        delete cleanedMortgage.ownership_percentage;
       }
 
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)

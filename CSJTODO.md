@@ -1,5 +1,90 @@
 # CSJTODO — Fynla
 
+*Last updated: 2026-08-24 session 1 — five rejections fixed, three review gates run,
+board NOT cleared (215 open). Branch `estate-copy-and-m-handoff`, 20 commits, nothing
+deployed. Handover: handover/August/24/handover-2026-08-24-session-1.md*
+
+## 2026-08-24 — CLEAR THE BOARD. ALONE. NO AGENTS.
+
+**CSJ standing instruction, 2026-08-24: no agents are to be spawned for these fixes.
+One item at a time, quickly, without shortcuts, until the board is clear.** Three fix
+agents were dispatched and killed the same hour; all agents were terminated at 11:53 BST.
+The hard reason: agents share one `laravel_testing` database, and two Pest processes
+produce deadlocks and 0-assertion failures indistinguishable from real breakage.
+
+**215 board items open** — 3 critical, 80 high, 109 medium, 23 low.
+(105 `queued`, 104 `gated`, 4 `blocked`, 3 `handoff`.)
+
+### Next, in order
+
+- [ ] **W-0473** — the whole `/m` Insights feature is dead; all six readers look one level
+      above the agent's payload. Unwrap ONCE at the call site. Keep the caveat line.
+- [ ] **W-0474** — a civil partnership pools two estates against one person's allowances.
+      HIGH, overstates tax, fully specified.
+- [ ] **W-0475** — projected gross estate omits `asset_type = other` entirely; understates.
+- [ ] **W-0476** — the enumeration oracle moved to `GET /api/spouse-permission/status`.
+      Closes with **W-0472**.
+- [ ] **W-0477** — a deleted spouse leaves expenditure stored as halves nothing halves.
+- [ ] Then the remaining queued critical/high: `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
+      W-0155 W-0171 W-0216 W-0222 W-0226 W-0227 W-0361 W-0363 W-0364 W-0365 W-0462`,
+      then medium, then low.
+- [ ] **The full suite has not completed since `19bd1c83f`.** Run it once, alone, as a
+      consolidation point.
+
+### Waiting on CSJ
+
+- [ ] **W-0347 (CRITICAL) — FLAGGED by `compliance-lead` on five findings**, acceptances 3
+      and 4 unmet. **What happens to the 10 historically forged `spouse_permissions` rows
+      on dev?** A migration backfilled them as `accepted`; is that acceptable, or must
+      those households be re-asked?
+- [ ] **Rule 9 amendment** — the caveat spells out "the Alternative Investment Market" and
+      a test pins the acronym's absence. "(AIM)" for recognisability is CSJ's call alone.
+
+### Known gaps, carried
+
+- [ ] **W-0008** — the adviser fee is enterable and has never been shown to reach the
+      projection it is entered for. Untouched.
+- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on BOTH accounts of a linked household.
+      Only a web profile-form save was ever verified.
+- [ ] **W-0470 second half** — per-liability detail rows still come from the non-projecting
+      breakdown, so the panel can show −£3,500 above a £0 total.
+- [ ] **W-0012 Rule 19** — `/m` and native have no property form; Fyn's create accepts five
+      mortgage fields, not nine.
+- [ ] iOS not built, launched or looked at. `/m` verified only on localhost, never csjones.
+
+## 2026-08-17 — catch-up and clean-up
+
+- [x] **Merge `origin/dev` + all unmerged codex branches** into `fix/widow-persona-cleanup` — DONE. `codex/ios-m-testflight-hotfix`, `codex/ios-package7-platform-release`, `codex/repository-context-tooling`. All four now report 0 unmerged commits.
+- [x] **Root PNG sweep** — 173 loose `.png` filed into `screenshots/YYYY-MM/` (May 7, June 112, July 54). Root 297 → 127 entries. `/screenshots/` gitignored.
+- [x] **Month-folder convention** normalised to `AugustNNUpdates` in repo AND vault (`Aug12/13/14/15/17` → `August12/13/14/15/17`).
+- [x] **`docs/` pointer** — `docs/INDEX.md` indexes all 176 dated docs; regenerate with `August/August17Updates/regen-docs-index.sh`. `August12Updates/` 16 byte-identical duplicates replaced with a pointer README (checksum-verified before removal, repo + vault).
+- [x] **Apple StoreKit bridge venv** created (`.venv/apple-store`, Python 3.12 + `requirements.lock`). Merged code fataled `php artisan route:list` without it; 804 routes resolve now. `.venv/` gitignored.
+- [ ] **GATE-0003 raised** — screenshot-filing convention for root `CLAUDE.md` (gated path). Awaiting CSJ.
+- [ ] **32 pending migrations** not run (9 July iOS/Apple + 23 from `dev`). Awaiting CSJ.
+- [ ] **Commit + push** the clean-up (merges are committed; doc/gitignore changes are not).
+- [ ] `main` is **719 behind `dev`** and 28 ahead (doc commits that skipped `dev`). A release needs those reconciled.
+- [ ] README stat counts are stale (`Vue Components 675` etc.) — untouched during conflict resolution.
+
+## 2026-08-14 — docs, guards, worktrees
+
+- [ ] **Install the guard consolidation** — `workforce/ops/proposed-guard.sh` replaces all five PreToolUse guards; 59/59 regression suite passes. Founder-gated, so CSJ applies: `mv` into `.claude/hooks/guard.sh`, `chmod +x`, delete the five originals, collapse the `PreToolUse` block to one entry (matcher `Write|Edit|Bash|mcp__ssh-fynla__ssh_exec`). Re-run the suite against the installed path after.
+- [x] **Guard test cases rescued** into `.claude/hooks/tests/` (59 cases). Note: the proposed guard widens `PROTECTED` to the `.claude/hooks` prefix, which would gate this tests dir too — an agent could no longer add a regression case unaided. Probably right (guard changes are gated anyway), but decide deliberately.
+- [ ] **Revisit GATE-0001.** Its premise is falsified: `main` and `dev` both have `required_approving_review_count: 0`, `require_code_owner_reviews: false`, no required status checks, `enforce_admins: false`. Nothing mechanically stops `claude.yml` self-merging to dev.
+- [x] **Root sweep** — DONE 2026-08-21. PNGs filed 2026-08-17 (173 into `screenshots/`). Root now 23 loose files (config, tooling, agent context, launchers) and 20 dirs. Deleted: `create_trial.php`, the stray `Users/Chris/Desktop/fpsApp/` stub migration, duplicate root `personas/` (identical to `resources/js/data/personas/`), and four empty shadow dirs (`agents/ hooks/ skills/ workflows/`). Filed: 33 loose docs + 14 content dirs into `docs/archive/`, `docs/reference/`, `docs/assets/`, `docs/dashboards/` — all live references rewritten. Left at root deliberately: `screenshots/`+`test-screenshots/` (GATE-0003 convention), month folders (hardcoded in vault-sync/session-end/precompact-handover), `fyn-memory/ services/ scripts/` (`base_path()`).
+- [ ] **`.worktrees/` holds 14 clones of OTHER repos** (FynlaMCP ×9, fynla-agents, fynla-control, fynlaBrain) — ~250 MB, all clean. Relocate?
+- [ ] **`fynla-marketing-review` worktree** has 10 modified tracked files + 2 new tests uncommitted (pipeline controllers, `ClipApprovalService`, `routes/web.php`). Commit or discard.
+- [ ] **Upgrade git** — currently 2.10.1 (2016). No `worktree remove`, `branch --show-current`, or `stash push -- <path>`.
+- [ ] Hook commands use absolute paths in tracked `settings.json` — `$CLAUDE_PROJECT_DIR` fixes it. Gated.
+- [ ] 19 agent definitions with overlapping remits and no routing rule (`product-manager` vs `product-lead`; `design-lead` vs `premium-ui-designer` vs `ux-writing-expert`).
+- [ ] `enabledPlugins.github` contradicts between `settings.json` (true) and `settings.local.json` (false).
+- [x] ~~Rebase `fix/widow-persona-cleanup` on `origin/dev`~~ — done 2026-08-17 as a **merge** (branch already pushed, so no history rewrite). 0 behind.
+- [x] CLAUDE.md audit + repair across all 6 files — DONE (`705bf9b`). Report: August/Aug14Updates/claude-context-audit-2026-08-14.md.
+- [x] New `ios-native/CLAUDE.md` — DONE. 240 Swift files previously undocumented.
+- [x] iOS TestFlight login failure — DIAGNOSED, user error. TestFlight build is `Fynla-Staging` → csjones DB; testers must register on csjones.co/fynla, not fynla.org. Now in root CLAUDE.md + memory.
+- [x] Worktrees 13→4, ~2.2 GB reclaimed, 7 stale CLAUDE.md copies gone — DONE.
+- [x] Production SSH passphrase found in plaintext in `settings.local.json` — removed; key rotated by CSJ.
+- [x] Allow-list carried standing permission to `rmdir .claude/hooks/` — removed.
+
 *Last updated: 2026-07-24 — end-of-day wrap (evening). Merge train complete:
 #670 (E2E loop fixes) + #671 (journey verify loop — every data entry) + #672
 (PSA joint-interest share) all admin-merged to dev per CSJ; csjones on dev

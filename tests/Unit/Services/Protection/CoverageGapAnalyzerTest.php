@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Protection\CoverageGapAnalyzer;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
@@ -87,7 +88,9 @@ beforeEach(function () {
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
 
     // Create CoverageGapAnalyzer with mocked TaxConfigService (for both tax calc and protection config)
-    $this->analyzer = new CoverageGapAnalyzer($taxCalculator, $mockTaxConfig);
+    // The asset aggregator is the REAL one — these tests use real records, and a
+    // mocked debt total would assert only what the mock was told to say.
+    $this->analyzer = new CoverageGapAnalyzer($taxCalculator, $mockTaxConfig, app(CrossModuleAssetAggregator::class));
 });
 
 afterEach(function () {
@@ -356,6 +359,98 @@ describe('calculateTotalCoverage', function () {
         expect($result['sickness_illness_coverage'])->toEqual(0.0);
         expect($result['total_coverage'])->toEqual(0.0);
         expect($result['total_income_coverage'])->toEqual(0.0);
+    });
+});
+
+describe('the published critical gap count', function () {
+    /**
+     * W-0479 — every consumer of this count re-derived it from a shape this analyzer
+     * has never emitted: `$gap['gap']` on `/m` and native, `$gap['shortfall']` on web,
+     * both iterating `gaps` as if it were a map of category => object. Both read ZERO
+     * for every household in the application's history, and the count gates
+     * `MilestoneDetectionService::detectProtectionAdequate()` — which therefore told
+     * any household with one policy that "your protection now covers what your family
+     * would need". Three such milestones were awarded on the development database, one
+     * of them to a household with a £21,000 income protection shortfall.
+     *
+     * The analyzer publishes the number now. These pin what it means.
+     */
+    it('counts one gap per distinct shortfall, not one per category name', function () {
+        // Fully covered for life, critical illness and debt; £21,000 of income is
+        // uncovered. `income_protection_gap`, `disability_coverage_gap` and
+        // `sickness_illness_gap` all carry that same £21,000 — the analyzer's own
+        // comment says IP is primary and the other two are supplementary — so this is
+        // ONE gap, not three.
+        $result = $this->analyzer->calculateCoverageGap(
+            [
+                'human_capital' => 100000,
+                'debt_protection' => 0,
+                'education_funding' => 0,
+                'final_expenses' => 0,
+                'income_protection_need' => 21000,
+            ],
+            [
+                'life_coverage' => 500000,
+                'critical_illness_coverage' => 0,
+                'income_protection_coverage' => 0,
+                'disability_coverage' => 0,
+                'sickness_illness_coverage' => 0,
+                'total_coverage' => 500000,
+                'total_income_coverage' => 0,
+            ],
+        );
+
+        expect($result['gaps_by_category']['income_protection_gap'])->toEqual(21000.0);
+        expect($result['gaps_by_category']['disability_coverage_gap'])->toEqual(21000.0);
+        expect($result['critical_gap_count'])->toBe(1);
+    });
+
+    it('counts each genuinely separate shortfall', function () {
+        $result = $this->analyzer->calculateCoverageGap(
+            [
+                'human_capital' => 500000,
+                'debt_protection' => 200000,
+                'education_funding' => 0,
+                'final_expenses' => 0,
+                'income_protection_need' => 30000,
+            ],
+            [
+                'life_coverage' => 0,
+                'critical_illness_coverage' => 0,
+                'income_protection_coverage' => 0,
+                'disability_coverage' => 0,
+                'sickness_illness_coverage' => 0,
+                'total_coverage' => 0,
+                'total_income_coverage' => 0,
+            ],
+        );
+
+        // Human capital, debt protection and income protection are three different
+        // things to be uninsured for.
+        expect($result['critical_gap_count'])->toBe(3);
+    });
+
+    it('reports no gap for a household that has none', function () {
+        $result = $this->analyzer->calculateCoverageGap(
+            [
+                'human_capital' => 100000,
+                'debt_protection' => 0,
+                'education_funding' => 0,
+                'final_expenses' => 0,
+                'income_protection_need' => 20000,
+            ],
+            [
+                'life_coverage' => 500000,
+                'critical_illness_coverage' => 0,
+                'income_protection_coverage' => 25000,
+                'disability_coverage' => 0,
+                'sickness_illness_coverage' => 0,
+                'total_coverage' => 500000,
+                'total_income_coverage' => 25000,
+            ],
+        );
+
+        expect($result['critical_gap_count'])->toBe(0);
     });
 });
 

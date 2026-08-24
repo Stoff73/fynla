@@ -64,7 +64,11 @@ enum NavigationDestinationFactory {
         onOpenContextualFyn: @escaping (FynContextualAction) -> Void,
         onOpenConversation: @escaping (String) -> Void,
         onOpenRoute: @escaping (AppRoute) -> Void,
-        onRoute: @escaping (AppRoute) -> Void
+        onRoute: @escaping (AppRoute) -> Void,
+        // W-0044. The Will Builder has no native screen, so Estate hands off to the
+        // web one. The handoff client and the Safari sheet both live in AppRootView,
+        // as they do for the Admin Panel, so this arrives as a closure.
+        onOpenWillPlanning: @MainActor @escaping () async throws -> Void
     ) -> some View {
         switch route {
         case .achievements:
@@ -220,7 +224,8 @@ enum NavigationDestinationFactory {
             EstateView(
                 model: estateModel,
                 onOpenFyn: onOpenFyn,
-                onOpenSubscription: { onRoute(premiumGateRoute) }
+                onOpenSubscription: { onRoute(premiumGateRoute) },
+                onOpenWillPlanning: onOpenWillPlanning
             )
         case .goals:
             GoalsView(

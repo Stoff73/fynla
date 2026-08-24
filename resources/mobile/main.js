@@ -3,6 +3,7 @@ import App from './App.vue';
 import router from './router.js';
 import { store } from './store.js';
 import { apiPost } from './api.js';
+import { rotateBootToken } from './bootAuth.js';
 import consoleCapture from '../js/services/consoleCapture.js';
 import './style.css';
 
@@ -18,18 +19,12 @@ consoleCapture.startCapture();
 // time-boxed: mount regardless so a slow/failed refresh never blocks the app.
 async function boot() {
   if (store.token) {
-    try {
-      const refreshed = await Promise.race([
-        apiPost('/api/v1/auth/refresh-token', {}, store.token),
-        new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
-      ]);
-      if (refreshed && refreshed.ok && refreshed.data?.data?.token) {
-        const rotatedToken = refreshed.data.data.token;
-        store.setToken(rotatedToken);
-      }
-    } catch {
-      /* keep the existing token — it is still valid */
-    }
+    await rotateBootToken({
+      token: store.token,
+      refresh: (token) => apiPost('/api/v1/auth/refresh-token', {}, token),
+      setToken: (token) => store.setToken(token),
+      clearToken: () => store.logout(),
+    });
   }
   createApp(App).use(router).mount('#m-app');
 }

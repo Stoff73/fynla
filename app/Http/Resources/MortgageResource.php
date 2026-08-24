@@ -39,6 +39,8 @@ class MortgageResource extends JsonResource
             'remaining_term_months' => $this->remaining_term_months,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_id' => $this->joint_owner_id,
+            'joint_owner_name' => $this->joint_owner_name,
             'country' => $this->country,
 
             // Mixed mortgage fields

@@ -1148,13 +1148,9 @@ class RetirementStrategyService
         $total = 0.0;
 
         foreach ($user->dcPensions as $pension) {
-            if ($pension->monthly_contribution_amount) {
-                $total += (float) $pension->monthly_contribution_amount * 12;
-            } elseif ($pension->employee_contribution_percent && $pension->annual_salary) {
-                $employeeContrib = (float) $pension->annual_salary * (float) $pension->employee_contribution_percent / 100;
-                $employerContrib = (float) ($pension->employer_contribution_percent ?? 0) * (float) $pension->annual_salary / 100;
-                $total += $employeeContrib + $employerContrib;
-            }
+            // One definition, on the model, so this and every client agree about
+            // which of the two contribution shapes wins (Rule 20).
+            $total += $pension->monthly_contribution * 12;
         }
 
         return $total;

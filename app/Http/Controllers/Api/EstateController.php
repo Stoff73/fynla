@@ -25,7 +25,6 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
-use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\ComprehensiveEstatePlanService;
@@ -38,12 +37,14 @@ use App\Services\Stores\TierConfigurationStore;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
 use App\Services\Tiers\TeaserGate;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EstateController extends Controller
 {
+    use CalculatesOwnershipShare;
     use GatesEstateAccess;
     use SanitizedErrorResponse;
 
@@ -100,7 +101,15 @@ class EstateController extends Controller
             $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
         })->with('property')->limit(100)->get();
 
-        $mortgageLiabilities = $mortgages->map(function ($mortgage) {
+        // The share is applied HERE, not on the client. This used to hand the
+        // frontend the securing property's ownership pair and leave it to work the
+        // share out — a second implementation of the rule (Rule 20), and one that
+        // nothing on the other end actually read: `LiabilitiesList.vue` summed
+        // `current_balance` whole, so the Total Balance Owed included the 60% of a
+        // tenants-in-common mortgage belonging to an off-platform co-owner
+        // (W-0237). `calculateUserMortgageShare` resolves the property itself now
+        // (W-0228), so the one reader answers it once, on the server.
+        $mortgageLiabilities = $mortgages->map(function (Mortgage $mortgage) use ($user) {
             $property = $mortgage->property;
 
             return [
@@ -109,7 +118,12 @@ class EstateController extends Controller
                 'liability_type' => 'mortgage',
                 'liability_name' => 'Mortgage - '.($property->address_line_1 ?? 'Property'),
                 'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
+                'user_share' => round($this->calculateUserMortgageShare($mortgage, $user->id), 2),
                 'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
+                'user_monthly_payment_share' => round(
+                    $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id),
+                    2
+                ),
                 'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
                 'notes' => ucfirst(str_replace('_', ' ', $mortgage->mortgage_type ?? 'repayment')).' mortgage',
                 'ownership_type' => $property->ownership_type ?? 'individual',
@@ -190,9 +204,7 @@ class EstateController extends Controller
             $user->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
 
             // Also load spouse relationships if spouse is involved
-            $spouse = ($user->marital_status === 'married' && $user->spouse_id)
-                ? User::find($user->spouse_id)
-                : null;
+            $spouse = $user->marital_status === 'married' ? $user->liveSpouse() : null;
             if ($spouse) {
                 $spouse->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
             }

@@ -7,6 +7,7 @@ namespace App\Services\Estate;
 use App\Models\Estate\Liability;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
+use App\Support\HouseholdPooling;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -20,11 +21,9 @@ class IHTFormattingService
 {
     use CalculatesOwnershipShare;
 
-    /** Fallback expenditure ratio when no expenditure profile exists (assume 70% spent, 30% saved) */
-    private const EXPENDITURE_FALLBACK_RATIO = 0.70;
-
     public function __construct(
         private readonly MortgageStore $mortgageStore,
+        private readonly HouseholdCashFlowProjector $cashFlowProjector,
     ) {}
 
     /**
@@ -251,7 +250,27 @@ class IHTFormattingService
     }
 
     /**
-     * Generate year-by-year cash projection breakdown.
+     * The year-by-year cash projection shown beneath the estate headline.
+     *
+     * **Rule 20.** This method used to be a second, independent implementation of the
+     * projection that produced `projected_cash` — and it disagreed with it on every
+     * point that mattered: no inflation, no life events, no floor, its own hardcoded
+     * ages of 68 / 67 / 85, an income list missing trust income, a hardcoded 0.50
+     * retirement ratio, and two columns that have never existed on any table
+     * (`state_pensions.estimated_annual_amount`, `users.state_pension_age`) each
+     * quietly resolving to zero.
+     *
+     * The consequence was worse than either defect alone: the table whose entire
+     * purpose is to explain the headline was arithmetically incapable of adding up to
+     * it. Both now read `HouseholdCashFlowProjector`, so there is nothing left to keep in
+     * step.
+     *
+     * The payload keeps its shape for the screens that read it, with one change:
+     * `final_cash_raw` — which was the negative balance, and was labelled a shortfall
+     * while being printed as a minus number — is replaced by `shortfall`, a positive
+     * amount of unmet expenditure. `final_cash_capped` is retained and is now simply
+     * the projected cash, because the projection no longer produces anything that
+     * needs capping.
      */
     public function generateCashProjectionBreakdown(
         User $user,
@@ -259,93 +278,32 @@ class IHTFormattingService
         bool $dataSharingEnabled,
         array $calculation
     ): array {
-        $currentAge = $user->date_of_birth
-            ? Carbon::parse($user->date_of_birth)->age
-            : 50;
-        $retirementAge = $calculation['retirement_age'] ?? 68;
-        $deathAge = $calculation['estimated_age_at_death'] ?? 85;
-
-        // Get current cash
-        $currentCash = (float) $user->savingsAccounts()->sum('current_balance');
-        if ($dataSharingEnabled && $spouse) {
-            $currentCash += (float) $spouse->savingsAccounts()->sum('current_balance');
-        }
-
-        // Calculate income values
-        $preRetIncome = $this->calculatePreRetirementIncome($user);
-        if ($dataSharingEnabled && $spouse) {
-            $preRetIncome += $this->calculatePreRetirementIncome($spouse);
-        }
-
-        // Calculate expenses (70% fallback if no profile)
-        $preRetExpenses = $this->calculatePreRetirementExpenses($user, $preRetIncome);
-        if ($dataSharingEnabled && $spouse) {
-            $userExpProfile = $user->expenditureProfile;
-            $spouseExpProfile = $spouse->expenditureProfile;
-            if ($spouseExpProfile?->total_monthly_expenditure) {
-                $preRetExpenses += (float) $spouseExpProfile->total_monthly_expenditure * 12;
-            } elseif ($userExpProfile?->total_monthly_expenditure) {
-                $spouseIncome = (float) ($spouse->annual_employment_income ?? 0)
-                    + (float) ($spouse->annual_self_employment_income ?? 0);
-                $preRetExpenses += $spouseIncome * self::EXPENDITURE_FALLBACK_RATIO;
-            }
-        }
-
-        // Retirement income
-        $retirementIncome = (float) ($user->retirementProfile?->target_retirement_income ?? 0);
-        $userStatePension = (float) ($user->statePension?->estimated_annual_amount ?? 0);
-
-        if ($dataSharingEnabled && $spouse) {
-            $retirementIncome += (float) ($spouse->retirementProfile?->target_retirement_income ?? 0);
-        }
-
-        // Retirement expenses
-        $retirementExpenses = $this->calculateRetirementExpenses($user);
-        if ($dataSharingEnabled && $spouse) {
-            $retirementExpenses += $this->calculateRetirementExpenses($spouse);
-        }
-
-        // State pension ages
-        $statePensionAge = $user->state_pension_age ?? 67;
-        $spouseStatePensionAge = $spouse?->state_pension_age ?? 67;
-        $spouseStatePension = $dataSharingEnabled && $spouse
-            ? (float) ($spouse->statePension?->estimated_annual_amount ?? 0)
-            : 0;
-
-        // Generate year-by-year breakdown
-        $years = $this->generateYearlyBreakdown(
-            $currentAge,
-            $deathAge,
-            $retirementAge,
-            $statePensionAge,
-            $spouseStatePensionAge,
-            $currentCash,
-            $preRetIncome,
-            $preRetExpenses,
-            $retirementIncome,
-            $retirementExpenses,
-            $userStatePension,
-            $spouseStatePension,
-            $dataSharingEnabled,
-            $spouse
+        $projection = $this->cashFlowProjector->project(
+            $user,
+            $spouse,
+            // W-0474 F1 — the same decision as the headline, by the same rule. This
+            // table exists to explain that headline; pooling it differently is how
+            // the two came apart the first time.
+            HouseholdPooling::poolsSpouse($user, $spouse, $dataSharingEnabled),
+            (int) ($calculation['years_to_death'] ?? 0),
+            (float) ($calculation['inflation_rate'] ?? 0.02)
         );
 
-        $finalCash = end($years)['running_total'] ?? $currentCash;
-
         return [
-            'starting_cash' => round($currentCash, 0),
-            'pre_retirement_income' => round($preRetIncome, 0),
-            'pre_retirement_expenses' => round($preRetExpenses, 0),
-            'retirement_income' => round($retirementIncome, 0),
-            'retirement_expenses' => round($retirementExpenses, 0),
-            'state_pension_user' => round($userStatePension, 0),
-            'state_pension_spouse' => round($spouseStatePension, 0),
-            'retirement_age' => $retirementAge,
-            'state_pension_age' => $statePensionAge,
-            'death_age' => $deathAge,
-            'final_cash_raw' => round($finalCash, 0),
-            'final_cash_capped' => round(max(0, $finalCash), 0),
-            'years' => $years,
+            'starting_cash' => round($projection['starting_cash'], 0),
+            'pre_retirement_income' => round($projection['pre_retirement_income'], 0),
+            'pre_retirement_expenses' => round($projection['pre_retirement_expenses'], 0),
+            'retirement_income' => round($projection['retirement_income'], 0),
+            'retirement_expenses' => round($projection['retirement_expenses'], 0),
+            'state_pension_income' => round($projection['state_pension_income'], 0),
+            'retirement_age' => $projection['retirement_age'],
+            'state_pension_age' => $projection['state_pension_age'],
+            'death_age' => $projection['death_age'],
+            'final_cash' => round($projection['final_cash'], 0),
+            'final_cash_capped' => round($projection['final_cash'], 0),
+            'shortfall' => round($projection['shortfall'], 0),
+            'assumptions' => $projection['assumptions'],
+            'years' => $projection['years'],
         ];
     }
 
@@ -472,114 +430,5 @@ class IHTFormattingService
             'total' => $mortgagesTotal + $liabilitiesTotal,
             'projected_total' => $mortgagesProjectedTotal + $liabilitiesProjectedTotal,
         ];
-    }
-
-    /**
-     * Calculate pre-retirement income for a user.
-     */
-    private function calculatePreRetirementIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0);
-    }
-
-    /**
-     * Calculate pre-retirement expenses for a user.
-     */
-    private function calculatePreRetirementExpenses(User $user, float $income): float
-    {
-        $expProfile = $user->expenditureProfile;
-
-        return $expProfile?->total_monthly_expenditure
-            ? (float) $expProfile->total_monthly_expenditure * 12
-            : $income * self::EXPENDITURE_FALLBACK_RATIO;
-    }
-
-    /**
-     * Calculate retirement expenses for a user.
-     */
-    private function calculateRetirementExpenses(User $user): float
-    {
-        $retExp = (float) ($user->retirementProfile?->essential_expenditure ?? 0)
-            + (float) ($user->retirementProfile?->lifestyle_expenditure ?? 0);
-
-        if ($retExp <= 0 && $user->retirementProfile?->target_retirement_income > 0) {
-            $retExp = (float) $user->retirementProfile->target_retirement_income;
-        } elseif ($retExp <= 0) {
-            $userIncome = (float) ($user->annual_employment_income ?? 0);
-            $retExp = $userIncome * 0.50;
-        }
-
-        return $retExp;
-    }
-
-    /**
-     * Generate year-by-year cash projection.
-     */
-    private function generateYearlyBreakdown(
-        int $currentAge,
-        int $deathAge,
-        int $retirementAge,
-        int $statePensionAge,
-        int $spouseStatePensionAge,
-        float $currentCash,
-        float $preRetIncome,
-        float $preRetExpenses,
-        float $retirementIncome,
-        float $retirementExpenses,
-        float $userStatePension,
-        float $spouseStatePension,
-        bool $dataSharingEnabled,
-        ?User $spouse
-    ): array {
-        $years = [];
-        $runningTotal = $currentCash;
-
-        for ($age = $currentAge; $age < $deathAge; $age++) {
-            $year = $age - $currentAge + 1;
-
-            if ($age < $retirementAge) {
-                $phase = 'Pre-Retirement';
-                $income = $preRetIncome;
-                $expenses = $preRetExpenses;
-            } else {
-                $phase = 'Retired';
-                $income = $retirementIncome;
-
-                // Add state pension when applicable
-                if ($age >= $statePensionAge) {
-                    $income += $userStatePension;
-                }
-                if ($dataSharingEnabled && $spouse) {
-                    $spouseAge = $spouse->date_of_birth
-                        ? Carbon::parse($spouse->date_of_birth)->age + ($age - $currentAge)
-                        : $age;
-                    if ($spouseAge >= $spouseStatePensionAge) {
-                        $income += $spouseStatePension;
-                    }
-                }
-
-                $expenses = $retirementExpenses;
-            }
-
-            $surplus = $income - $expenses;
-            $runningTotal += $surplus;
-
-            $years[] = [
-                'year' => $year,
-                'age' => $age,
-                'phase' => $phase,
-                'income' => round($income, 0),
-                'expenses' => round($expenses, 0),
-                'surplus' => round($surplus, 0),
-                'running_total' => round($runningTotal, 0),
-            ];
-        }
-
-        return $years;
     }
 }

@@ -3,7 +3,7 @@ procedure_id: 'estate.tool.create_power_of_attorney'
 kind: tool_schema
 module: estate
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_power_of_attorney",
-    "description": "Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare. You MAY call this tool multiple times in the same turn — if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.\n\nSTATUS IS MANDATORY — extract it from the user's wording:\n  • \"registered\", \"in force\", \"active with OPG\", \"registered with the Office of the Public Guardian\" → status = \"registered\"\n  • \"draft\", \"signed but not registered\", \"not yet registered\", \"sent off for registration\", \"being registered\", \"pending\" → status = \"draft\"\n  • No signal at all → default to \"draft\"\n\nNEVER drop status=registered when the user said so. Example:\n  User: \"I have a registered property and financial LPA with my brother Tom\"\n  → create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered'). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
+    "description": "Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare. You MAY call this tool multiple times in the same turn — if the user has BOTH a property_financial AND a health_welfare Lasting Power of Attorney, call create_power_of_attorney TWICE in your first response.\n\nSTATUS IS MANDATORY — extract it from the user's wording:\n  • \"registered\", \"in force\", \"active with OPG\", \"registered with the Office of the Public Guardian\" → status = \"registered\"\n  • \"draft\", \"signed but not registered\", \"not yet registered\", \"sent off for registration\", \"being registered\", \"pending\" → status = \"draft\"\n  • No signal at all → default to \"draft\"\n\nNEVER drop status=registered when the user said so. Example:\n  User: \"I have a registered property and financial Lasting Power of Attorney with my brother Tom\"\n  → create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered'). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -21,7 +21,7 @@ effective_from: 2026-06-02
                     "property_financial",
                     "health_welfare"
                 ],
-                "description": "LPA type."
+                "description": "Lasting Power of Attorney type."
             },
             "primary_attorney_name": {
                 "type": "string",
@@ -44,7 +44,7 @@ effective_from: 2026-06-02
                     "registered",
                     null
                 ],
-                "description": "LPA status. If user says \"registered\" / \"in force\" / \"active with OPG\" → \"registered\". If user says \"draft\" / \"not registered\" / \"pending\" / \"being registered\" → \"draft\". Default \"draft\" if not stated."
+                "description": "Lasting Power of Attorney status. If user says \"registered\" / \"in force\" / \"active with OPG\" → \"registered\". If user says \"draft\" / \"not registered\" / \"pending\" / \"being registered\" → \"draft\". Default \"draft\" if not stated."
             },
             "opg_reference": {
                 "type": [

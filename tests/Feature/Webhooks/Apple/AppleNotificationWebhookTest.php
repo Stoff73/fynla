@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Webhooks\AppleNotificationController;
 use App\Models\AppleNotificationLog;
 use App\Models\AppleTransaction;
 use App\Models\PremiumEntitlement;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Billing\Apple\AppleSignedDataVerifier;
 use App\Services\Billing\Apple\AppleTransactionStore;
@@ -359,6 +360,7 @@ it('serializes concurrent verified duplicates into one audit record and transact
         DB::connection()->getPdo();
         AppleNotificationLog::query()->delete();
         User::withTrashed()->whereKey($userId)->forceDelete();
+        TaxConfiguration::query()->where('tax_year', '2019/20')->delete();
         DB::beginTransaction();
     }
 });

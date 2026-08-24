@@ -3,7 +3,7 @@ procedure_id: 'estate.tool.create_trust'
 kind: tool_schema
 module: estate
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -74,7 +74,7 @@ effective_from: 2026-06-02
                     "string",
                     "null"
                 ],
-                "description": "Purpose of the trust (e.g. \"Estate planning and IHT mitigation\")"
+                "description": "Purpose of the trust (e.g. \"Estate planning and Inheritance Tax mitigation\")"
             }
         },
         "required": [

@@ -78,7 +78,7 @@
         <div class="flex gap-3">
           <!-- Generate Mirror (if mirror will and not yet generated) -->
           <button
-            v-if="!isComplete && formData.will_type === 'mirror' && !mirrorData && documentId"
+            v-if="formData.will_type === 'mirror' && !mirrorGenerated && documentId"
             @click="generateMirror"
             :disabled="generatingMirror"
             class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-lg font-medium hover:bg-savannah-100 transition-colors disabled:opacity-50"
@@ -155,6 +155,14 @@ export default {
 
     isComplete() {
       return this.formData.status === 'complete';
+    },
+
+    // Generating the spouse's will used to be hidden once the will was
+    // complete, and there is no other route to it — so completing first left
+    // the pair permanently half-built, with the user believing it was done
+    // (W-0053). It stays available until the counterpart actually exists.
+    mirrorGenerated() {
+      return Boolean(this.mirrorData || this.formData.mirror_document_id);
     },
 
     hasErrors() {
@@ -321,14 +329,28 @@ export default {
   min-height: 14px;
 }
 
-.will-preview :deep(.signed-name) {
-  font-family: 'Brush Script MT', 'Segoe Script', cursive;
-  font-size: 16px;
-  padding-left: 4px;
-}
-
 .will-preview :deep(.filled) {
   font-size: 10px;
   padding-left: 4px;
+}
+
+/* W-0101: `.signed-name` (a cursive script face) is deliberately absent. It drew
+   the testator's and both witnesses' names onto the signature lines so they read
+   as signatures. The rule lives in @/utils/documentSignatures — do not re-add a
+   handwriting face to this preview. */
+.will-preview :deep(.doc-qualification) {
+  text-align: center;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 10px;
+  margin: 8px auto 0;
+  max-width: 90%;
+  @apply text-neutral-600;
+}
+
+.will-preview :deep(.signature-notice) {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9px;
+  margin-top: 4px;
+  @apply text-neutral-600;
 }
 </style>

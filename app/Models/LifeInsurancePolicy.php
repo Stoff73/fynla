@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\AwardsDataEntryPoints;
+use App\Models\Concerns\RecordsPolicyDates;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LifeInsurancePolicy extends Model
 {
-    use Auditable, AwardsDataEntryPoints, HasFactory, SoftDeletes;
+    use Auditable, AwardsDataEntryPoints, HasFactory, RecordsPolicyDates, SoftDeletes;
 
     public function gamificationCategory(): string
     {
@@ -35,8 +36,6 @@ class LifeInsurancePolicy extends Model
         'decreasing_rate',
         'premium_amount',
         'premium_frequency',
-        'policy_start_date',
-        'policy_end_date',
         'policy_term_years',
         'indexation_rate',
         'in_trust',
@@ -56,8 +55,6 @@ class LifeInsurancePolicy extends Model
         'decreasing_rate' => 'decimal:4',
         'premium_amount' => 'decimal:2',
         'indexation_rate' => 'decimal:4',
-        'policy_start_date' => 'date',
-        'policy_end_date' => 'date',
         'policy_term_years' => 'integer',
         'in_trust' => 'boolean',
         'is_mortgage_protection' => 'boolean',

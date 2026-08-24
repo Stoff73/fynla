@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\Tax\IncomeTaxBands;
+
 /**
  * UK Tax and National Insurance Calculator
  * Uses active tax year rates from TaxConfigService
@@ -43,29 +45,29 @@ class UKTaxCalculator
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
 
-        // Apply Personal Allowance taper for incomes above £100,000
-        // Must be done BEFORE creating TaxBandTracker so band thresholds are correct
+        // Personal Allowance taper base — total income less net-pay pension relief.
         $totalIncomePreRelief = $employmentIncome + $selfEmploymentIncome + $rentalIncome
             + $pensionIncome + $trustIncome + $interestIncome + $dividendIncome;
         $taxableIncomePreRelief = $totalIncomePreRelief - $pensionContributions;
 
-        $taperThreshold = $incomeTaxConfig['personal_allowance_taper_threshold'] ?? 100000;
-        $fullPA = $incomeTaxConfig['personal_allowance'];
-        if ($taxableIncomePreRelief > $taperThreshold) {
-            $excess = $taxableIncomePreRelief - $taperThreshold;
-            $reduction = floor($excess / 2);
-            $incomeTaxConfig['personal_allowance'] = max(0, $fullPA - $reduction);
-        }
+        // The tapered allowance is handed to the tracker separately rather than
+        // written back over the config: the basic-rate band width is derived from
+        // the FULL allowance, so overwriting it destroyed the only record of it
+        // and left the 20% band at £50,270 wide (W-0174).
+        $personalAllowance = IncomeTaxBands::taperedPersonalAllowance($incomeTaxConfig, $taxableIncomePreRelief);
 
-        $tracker = new TaxBandTracker($incomeTaxConfig);
+        $tracker = new TaxBandTracker($incomeTaxConfig, $personalAllowance);
 
         $incomeBreakdowns = [];
         $totalGross = 0;
         $totalTax = 0;
         $totalNI = 0;
 
-        // Combined "Earned Income" card - employment, self-employment, rental, pension income
-        // These all use the same tax bands (20%/40%/45%)
+        // One card for employment, self-employment, rental profit and pension
+        // income in payment: they share the same tax bands (20%/40%/45%). It is
+        // NOT four earned incomes, which is what calling it the "Earned Income"
+        // card led the header to assert (W-0423) — `combinedIncomeLabel` names
+        // whichever of them is present.
         $hasEarnedIncome = $employmentIncome > 0 || $selfEmploymentIncome > 0 || $rentalIncome > 0 || $pensionIncome > 0;
 
         if ($hasEarnedIncome) {
@@ -84,17 +86,21 @@ class UKTaxCalculator
 
             $totalNIAmount = ($class1NI['total_ni'] ?? 0) + ($class4NI['total_ni'] ?? 0);
 
-            // Build income components for display
+            // Build income components for display. Each carries a stable `key` —
+            // the client keys its per-property rental drill-down off that rather
+            // than off the display label, so the label stays free to change.
             $incomeComponents = [];
 
             if ($employmentIncome > 0) {
                 $incomeComponents[] = [
+                    'key' => 'employment',
                     'label' => 'Employment Income',
                     'amount' => round($employmentIncome, 2),
                 ];
 
                 if ($pensionContributions > 0) {
                     $incomeComponents[] = [
+                        'key' => 'pension_contributions',
                         'label' => 'Pension Contributions',
                         'amount' => round(-$pensionContributions, 2),
                         'is_deduction' => true,
@@ -104,20 +110,27 @@ class UKTaxCalculator
 
             if ($selfEmploymentIncome > 0) {
                 $incomeComponents[] = [
+                    'key' => 'self_employment',
                     'label' => 'Self-Employment Income',
                     'amount' => round($selfEmploymentIncome, 2),
                 ];
             }
 
             if ($rentalIncome > 0) {
+                // "Rental Profit", not "Rental Income": this is rent less allowable
+                // letting expenses at the user's ownership share, and labelling it
+                // as income left a figure nobody could reconcile against their own
+                // property records (W-0175).
                 $incomeComponents[] = [
-                    'label' => 'Rental Income',
+                    'key' => 'rental',
+                    'label' => 'Rental Profit',
                     'amount' => round($rentalIncome, 2),
                 ];
             }
 
             if ($pensionIncome > 0) {
                 $incomeComponents[] = [
+                    'key' => 'pension_income',
                     'label' => 'Pension Income',
                     'amount' => round($pensionIncome, 2),
                 ];
@@ -138,7 +151,7 @@ class UKTaxCalculator
 
             $incomeBreakdowns[] = [
                 'income_type' => 'earned',
-                'income_type_label' => 'Earned Income',
+                'income_type_label' => $this->combinedIncomeLabel($employmentIncome, $selfEmploymentIncome, $rentalIncome, $pensionIncome),
                 'gross_amount' => round($grossEarnedIncome, 2),
                 'income_components' => $incomeComponents,
                 'taxable_income' => round($totalTaxableEarnedIncome, 2),
@@ -236,6 +249,50 @@ class UKTaxCalculator
     }
 
     /**
+     * What to call the card that holds every income taxed at the main rates.
+     *
+     * It was called "Earned Income" whatever was in it, and it holds four things:
+     * employment, self-employment, **rental profit** and **pension income in
+     * payment**. The last two are not earned income, so a landlord read a header
+     * saying "Earned Income £159,290" over a figure that was £145,000 of salary
+     * and £14,290 of rent — a mislabelled header over a right number, on the one
+     * page whose whole value is that the reader can check it (W-0423).
+     *
+     * The label names what is present rather than asserting a category, so it
+     * stays true as the mix changes and cannot drift back.
+     */
+    private function combinedIncomeLabel(
+        float $employmentIncome,
+        float $selfEmploymentIncome,
+        float $rentalIncome,
+        float $pensionIncome
+    ): string {
+        $kinds = [];
+
+        if ($employmentIncome > 0 || $selfEmploymentIncome > 0) {
+            $kinds[] = 'Earned';
+        }
+        if ($rentalIncome > 0) {
+            $kinds[] = 'Rental';
+        }
+        if ($pensionIncome > 0) {
+            $kinds[] = 'Pension';
+        }
+
+        if ($kinds === []) {
+            return 'Earned Income';
+        }
+
+        if (count($kinds) === 1) {
+            return $kinds[0].' Income';
+        }
+
+        $last = array_pop($kinds);
+
+        return implode(', ', $kinds).' and '.$last.' Income';
+    }
+
+    /**
      * Calculate Class 1 NI with detailed breakdown
      */
     private function calculateClass1NIDetailed(float $employmentIncome): array
@@ -250,6 +307,13 @@ class UKTaxCalculator
 
         $breakdown = [
             'class' => 'Class 1',
+            // What National Insurance is actually charged on. The card header
+            // used to sit a flat "NI Applies" badge beside the COMBINED earned
+            // figure, which on a landlord with a workplace salary asserted
+            // National Insurance over rental profit — neither earned income nor
+            // liable to it (W-0423). The bands below cannot answer this: they
+            // start at the primary threshold, so they sum to less than the pay.
+            'base' => round($employmentIncome, 2),
             'main_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $mainRate],
             'additional_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $additionalRate],
             'total_ni' => 0,
@@ -293,6 +357,7 @@ class UKTaxCalculator
 
         $breakdown = [
             'class' => 'Class 4',
+            'base' => round($selfEmploymentIncome, 2),
             'main_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $mainRate],
             'additional_rate' => ['earnings' => 0, 'contribution' => 0, 'rate' => $additionalRate],
             'total_ni' => 0,
@@ -642,7 +707,6 @@ class UKTaxCalculator
         $incomeTax = $this->taxConfig->getIncomeTax();
         $dividendTax = $this->taxConfig->getDividendTax();
 
-        $personalAllowance = $incomeTax['personal_allowance'];
         $dividendAllowance = $dividendTax['allowance'];
 
         // Deduct pension contributions from taxable earned income (net-pay model — caller
@@ -654,37 +718,24 @@ class UKTaxCalculator
         // subtracted from $nonDividendNonInterestIncome above, only Gift Aid remains.
         $totalIncomePre = $nonDividendNonInterestIncome + $interestIncome + $dividendIncome;
         $adjustedNetIncome = max(0.0, $totalIncomePre - $giftAidGross);
-        $taperThreshold = $incomeTax['personal_allowance_taper_threshold'] ?? 100000;
-        if ($adjustedNetIncome > $taperThreshold) {
-            $excess = $adjustedNetIncome - $taperThreshold;
-            $reduction = floor($excess / 2);
-            $personalAllowance = max(0, $personalAllowance - $reduction);
-        }
 
-        // Get income tax bands (stored as array in seeder)
-        $bands = $incomeTax['bands'];
+        // Band geometry from the one home (W-0174). The tapered allowance moves the
+        // basic-rate LIMIT down with it; the £37,700 band width is what stays fixed.
+        //
+        // Gift Aid band extension (ITA 2007 s414): grossed-up donations extend both
+        // limits by the gross donation. That is the mechanism delivering higher- and
+        // additional-rate relief — more income falls in a lower band. Basic-rate
+        // relief already went to the charity at source, so Gift Aid does NOT reduce
+        // taxable income (mirrors SaveTaxEstimateService::incomeTax).
+        $taxBands = IncomeTaxBands::forAdjustedNetIncome($incomeTax, $adjustedNetIncome)
+            ->extendedBy($giftAidGross);
 
-        // Absolute thresholds — prefer top-level aliases (derived from bands[i].upper_limit).
-        // The legacy `PA + bands[1].max` was wrong because bands[1].max is the absolute
-        // £125,140 ATR rather than a band width. Audit finding #5.
-        $basicRateLimit = (float) ($incomeTax['higher_rate_threshold']
-            ?? ($personalAllowance + $bands[0]['max']));
-        $higherRateLimit = (float) ($incomeTax['additional_rate_threshold']
-            ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max'])));
-
-        // Gift Aid band extension (ITA 2007 s414): grossed-up Gift Aid donations
-        // extend both the basic- and higher-rate limits by the gross donation. This
-        // is the mechanism that delivers higher/additional-rate relief — more income
-        // is taxed at the lower rate. Basic-rate relief is already given to the charity
-        // at source, so Gift Aid does NOT reduce taxable income (mirrors how pension
-        // contributions extend the ceilings in SaveTaxEstimateService::incomeTax).
-        $basicRateLimit += $giftAidGross;
-        $higherRateLimit += $giftAidGross;
-
-        // Tax rates are stored as decimals (0.20 for 20%)
-        $basicRate = $bands[0]['rate'];
-        $higherRate = $bands[1]['rate'];
-        $additionalRate = $bands[2]['rate'];
+        $personalAllowance = $taxBands->personalAllowance;
+        $basicRateLimit = $taxBands->basicRateLimit;
+        $higherRateLimit = $taxBands->higherRateLimit;
+        $basicRate = $taxBands->basicRate;
+        $higherRate = $taxBands->higherRate;
+        $additionalRate = $taxBands->additionalRate;
 
         // Dividend tax rates (stored as decimals)
         $basicDividendRate = $dividendTax['basic_rate'];           // 0.0875 (8.75%)

@@ -204,6 +204,9 @@
                   <div class="flex-1">
                     <p class="font-medium text-horizon-500">{{ deadline.name }}</p>
                     <p class="text-sm text-neutral-500 mt-1">{{ deadline.description }}</p>
+                    <p v-if="deadline.estimated" class="text-xs text-neutral-500 mt-2 italic">
+                      Estimated. Add your company number to show the exact date from Companies House.
+                    </p>
                   </div>
                   <div class="mt-3 pt-3 border-t border-light-gray">
                     <p class="font-bold" :class="getDeadlineDateClass(deadline.date)">{{ formatDate(deadline.date) }}</p>

@@ -22,9 +22,11 @@
     <template v-else>
       <!-- Value hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Current value</p>
+        <p class="m-sub m-label">{{ isShared ? 'Full value' : 'Current value' }}</p>
         <p class="m-metric">{{ fmt(account.current_value) }}</p>
-        <p v-if="account.contributions_ytd" class="m-hero-sub">{{ fmt(account.contributions_ytd) }} contributed this tax year</p>
+        <p v-if="isShared" class="m-hero-sub">Your share ({{ sharePercent }}): {{ fmt(userShare) }}</p>
+        <p v-if="coOwner" class="m-hero-sub">Held with {{ coOwner }}</p>
+        <p v-if="contributionSummary" class="m-hero-sub">{{ contributionSummary }}</p>
       </div>
 
       <!-- Account information -->
@@ -66,6 +68,7 @@ import MobileChrome from '../../components/MobileChrome.vue';
 import CanonicalPortfolio from '../../components/CanonicalPortfolio.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
+import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 function capitalise(s) {
   if (!s) return '';
@@ -77,6 +80,14 @@ export default {
   components: { CanonicalPortfolio, ISAContributionHistory, MobileChrome },
   data: () => ({ loading: true, error: '', accounts: [], isaStatus: null, isaLoading: false }),
   computed: {
+
+    // Ownership display via the ONE home shared with the desktop SPA
+    // (Rule 19 + Rule 20). /m showed the FULL value of a joint account with no
+    // share and no joint indicator at all (W-0015).
+    isShared() { return isSharedRecord(this.account); },
+    userShare() { return calculateUserShare(this.account, { valueField: 'current_value' }); },
+    sharePercent() { return `${userSharePercent(this.account).toFixed(2)}%`; },
+    coOwner() { return coOwnerName(this.account); },
     accountId() { return this.$route.params.id; },
     canEdit() { return this.account?.is_primary_owner !== false; },
     contextualRequest() {
@@ -97,6 +108,11 @@ export default {
     },
     account() {
       return this.accounts.find((a) => String(a.id) === String(this.accountId)) || null;
+    },
+    contributionSummary() {
+      if (!this.account?.contributions_ytd) return '';
+      const period = this.account.tax_year ? `in ${this.account.tax_year}` : 'year to date';
+      return `${this.fmt(this.account.contributions_ytd)} contributed ${period}`;
     },
     isIsa() { return isIsaAccount(this.account || {}); },
     infoRows() {

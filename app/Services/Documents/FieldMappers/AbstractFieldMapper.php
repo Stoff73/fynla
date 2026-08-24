@@ -166,6 +166,47 @@ abstract class AbstractFieldMapper implements FieldMapperInterface
     }
 
     /**
+     * Parse a percentage into PERCENTAGE POINTS — 50% becomes 50.0, not 0.50.
+     *
+     * Most percentage columns on this codebase store points, not fractions:
+     * `spouse_pension_percent` and `employee_contribution_percent` are both
+     * validated `min:0|max:100`, and every consumer divides by 100 when it uses
+     * them. `parsePercentage()` above returns the opposite convention and is kept
+     * for the fields that genuinely store fractions (savings `interest_rate`,
+     * mortgage `interest_rate`) — do not merge the two.
+     *
+     * `DCPensionMapper` and `DBPensionMapper` each had their own copy of this
+     * conversion and they disagreed: the Defined Contribution one returned points
+     * and the Defined Benefit one returned a fraction, so an imported Defined
+     * Benefit pension stored 0.50 and every spouse projection ran at a hundredth
+     * of the real figure (W-0030). One helper now, so they cannot drift again.
+     *
+     * A value strictly between 0 and 1 is read as a fraction and scaled up: no
+     * real spouse pension or contribution rate is below 1%, whereas 0.5 meaning
+     * "a half" is exactly what the old decimal convention produced.
+     */
+    protected function parsePercentagePoints(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $cleaned = is_string($value) ? str_replace(['%', ' ', ','], '', $value) : $value;
+
+        if (! is_numeric($cleaned)) {
+            return null;
+        }
+
+        $points = (float) $cleaned;
+
+        if ($points > 0 && $points < 1) {
+            $points *= 100;
+        }
+
+        return round(max(0.0, min(100.0, $points)), 2);
+    }
+
+    /**
      * Parse an integer value.
      */
     protected function parseInt(mixed $value): ?int

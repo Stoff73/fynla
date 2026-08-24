@@ -10,12 +10,14 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
+use App\Constants\PensionDisclosure;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
-use App\Services\Stores\MortgageStore;
+use App\Services\NetWorth\NetWorthService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
@@ -25,16 +27,29 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Aggregates all module summaries, net worth, alerts, and Fyn insight
- * into a single response optimised for the mobile app.
+ * into a single response. Served to the web dashboard (`GamifiedDashboard.vue`),
+ * the `/m` dashboard and native iOS from the one endpoint
+ * `GET /api/v1/mobile/dashboard` — so every figure here is a figure on three
+ * surfaces (Rule 19/20).
  *
- * Uses a 5-minute cache per user.
+ * **The cache is a backstop, not the freshness mechanism.** The blob is
+ * invalidated on data change by `UserDataCacheObserver` →
+ * `CacheInvalidationService`, which clears it for the owner, the joint owner and
+ * both spouses. The TTL exists only so an entry cannot live forever if every
+ * invalidation path is missed.
+ *
+ * The docblock here used to read "Uses a 5-minute cache per user" beside a
+ * constant of 86,400 seconds. It was wrong for long enough that a wrong
+ * dashboard was served for 21 hours and a shipped fix stayed invisible, because
+ * everyone reading the class believed the comment (W-0239).
  */
 class MobileDashboardAggregator
 {
     use CalculatesOwnershipShare;
     use StructuredLogging;
 
-    private const CACHE_TTL = 86400; // 24 hours — invalidated on data change
+    /** Backstop only — freshness comes from invalidation, not expiry. See the class docblock. */
+    private const CACHE_TTL = 86400;
 
     public function __construct(
         private readonly ProtectionAgent $protectionAgent,
@@ -46,8 +61,19 @@ class MobileDashboardAggregator
         private readonly DashboardAggregator $dashboardAggregator,
         private readonly SavingsStore $savingsStore,
         private readonly PropertyStore $propertyStore,
-        private readonly MortgageStore $mortgageStore,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly NetWorthService $netWorthService,
+        private readonly DailyInsightService $dailyInsight,
     ) {}
+
+    /**
+     * Each module's own `analyze()` payload from the last `aggregateModules()` run,
+     * kept so the insight can be composed from data already fetched rather than
+     * calling every agent a second time.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    private array $modulePayloads = [];
 
     /**
      * Get aggregated dashboard data for the mobile app.
@@ -61,14 +87,15 @@ class MobileDashboardAggregator
             $modules = $this->aggregateModules($userId);
             $netWorth = $this->calculateNetWorth($userId);
 
-            $knownPensionValue = (float) ($netWorth['breakdown']['assets']['pensions'] ?? 0);
-            if ($knownPensionValue > 0
-                && (float) ($modules['retirement']['pot_value'] ?? 0) <= 0) {
-                $modules['retirement']['pot_value'] = round($knownPensionValue, 2);
-            }
-
             $alerts = $this->getAlerts($userId);
-            $fynInsight = $this->generateFynInsight($modules, $netWorth);
+            // W-0478 — this used to call a second, prose-only insight composer that
+            // lived in this class, while a richer one with real figures and the
+            // Inheritance Tax caveat sat unreachable behind an endpoint no client
+            // called. One composer now, reading the payloads `aggregateModules()`
+            // already fetched (Rule 20).
+            $fynInsight = $this->dailyInsight->select(
+                $this->dailyInsight->compose($this->modulePayloads)
+            )['insight'];
 
             return [
                 'modules' => $modules,
@@ -97,10 +124,15 @@ class MobileDashboardAggregator
             'goals' => $this->goalsAgent,
         ];
 
+        $this->modulePayloads = [];
+
         foreach ($agentMap as $moduleName => $agent) {
             try {
                 $analysis = $agent->analyze($userId);
-                $modules[$moduleName] = $this->extractModuleSummary($moduleName, $analysis);
+                $this->modulePayloads[$moduleName] = isset($analysis['success'])
+                    ? ($analysis['data'] ?? [])
+                    : $analysis;
+                $modules[$moduleName] = $this->extractModuleSummary($moduleName, $analysis, $userId);
             } catch (\Throwable $e) {
                 $this->logError("Mobile dashboard: failed to load {$moduleName} module", [
                     'user_id' => $userId,
@@ -124,7 +156,7 @@ class MobileDashboardAggregator
      * - BaseAgent::response() format: ['success', 'message', 'data', 'timestamp']
      * - Raw array format (SavingsAgent, InvestmentAgent, GoalsAgent)
      */
-    private function extractModuleSummary(string $module, array $analysis): array
+    private function extractModuleSummary(string $module, array $analysis, int $userId): array
     {
         // Unwrap BaseAgent::response() envelope if present
         $data = isset($analysis['success']) ? ($analysis['data'] ?? []) : $analysis;
@@ -157,14 +189,12 @@ class MobileDashboardAggregator
         }
 
         $coverage = $data['coverage'] ?? [];
-        $gaps = $data['gaps'] ?? [];
-        $criticalGaps = 0;
-
-        foreach ($gaps as $gapType => $gapData) {
-            if (is_array($gapData) && ($gapData['gap'] ?? 0) > 0) {
-                $criticalGaps++;
-            }
-        }
+        // W-0479 — this counted `$gapData['gap']` over `gaps`, a shape
+        // `CoverageGapAnalyzer` has never emitted, so it read 0 for every household
+        // in the application's history. The analyzer now publishes the count itself
+        // and both dashboards read it, rather than each re-deriving it from a guess
+        // (Rule 20).
+        $criticalGaps = (int) ($data['gaps']['critical_gap_count'] ?? 0);
 
         // Count total policies across all types
         $policies = $data['policies'] ?? [];
@@ -229,32 +259,53 @@ class MobileDashboardAggregator
 
     /**
      * Extract retirement module summary.
+     *
+     * **Every figure here comes from `RetirementAgent::analyze()` and nowhere else.**
+     * This method used to read the pension records directly whenever the agent
+     * declined to answer, because without a `retirement_profiles` row the agent
+     * returned `success: false` with an empty data array (W-0238's workaround). The
+     * agent now answers with the facts and a null projection, so the second
+     * mechanism is deleted and the card has one home again (W-0244, Rule 20).
+     *
+     * What the user HAS and what they are AIMING AT are separate facts, and
+     * `summary.has_retirement_target` — not `success` — is what distinguishes them.
      */
     private function extractRetirementSummary(array $data, array $raw): array
     {
-        // Handle case where retirement profile doesn't exist, or the readiness
-        // gate blocked analysis (success=true, can_proceed=false, summary=null).
-        if ((isset($raw['success']) && $raw['success'] === false)
-            || ($data['can_proceed'] ?? true) === false) {
+        // A readiness-blocked response is NOT an empty one. `RetirementAgent` fills
+        // its `summary` with the record-derived facts on that path too, precisely so
+        // a household with an NHS scheme and no income on file is not told it has no
+        // retirement provision. Blanking the summary here would have thrown those
+        // facts away and reinstated the bug one level up (W-0244).
+        $summary = (isset($raw['success']) && $raw['success'] === false)
+            ? []
+            : ($data['summary'] ?? $data);
+        $summary = is_array($summary) ? $summary : [];
+        $totalPensions = (int) ($summary['total_pensions_count'] ?? 0);
+
+        // "Not set up" means holding nothing, not aiming at nothing. A household
+        // with pensions on file never lands here however incomplete its profile is.
+        if ($totalPensions === 0) {
             return [
                 'status' => 'not_configured',
                 'message' => 'Retirement profile not yet set up.',
             ];
         }
 
-        $summary = $data['summary'] ?? $data;
-
         return [
             'status' => 'active',
             'years_to_retirement' => (int) ($summary['years_to_retirement'] ?? 0),
-            // Current DC pot value — the card headline. Without this the card fell
-            // back to income_gap, which is 0 whenever target_retirement_income is
-            // unset (never captured at onboarding), so it showed £0 despite a pot.
+            // Current defined contribution pot — the card headline where there is one.
             'pot_value' => round((float) ($summary['current_dc_value'] ?? 0), 2),
+            // Annual income already secured, for the user whose provision has no pot
+            // to show: a defined benefit scheme and the State Pension are worth an
+            // income, not a balance, and a card that can only render a balance shows
+            // them nothing. Computed once, in the agent.
+            'guaranteed_income' => round((float) ($summary['guaranteed_annual_income'] ?? 0), 2),
             'projected_income' => round((float) ($summary['projected_retirement_income'] ?? 0), 2),
             'target_income' => round((float) ($summary['target_retirement_income'] ?? 0), 2),
             'income_gap' => round((float) ($summary['income_gap'] ?? 0), 2),
-            'total_pensions' => (int) ($summary['total_pensions_count'] ?? 0),
+            'total_pensions' => $totalPensions,
         ];
     }
 
@@ -313,8 +364,6 @@ class MobileDashboardAggregator
                 'properties',
                 'savingsAccounts',
                 'investmentAccounts',
-                'dcPensions',
-                'dbPensions',
                 'mortgages',
                 'liabilities',
                 'businessInterests',
@@ -326,6 +375,8 @@ class MobileDashboardAggregator
                 return [
                     'total' => 0.0,
                     'breakdown' => [],
+                    'has_db_pensions' => false,
+                    'db_pension_disclosure' => null,
                 ];
             }
 
@@ -339,9 +390,15 @@ class MobileDashboardAggregator
             $savingsValue += $this->sumSavingsJointOwnerShares($user, $userId);
             $investmentValue += $this->sumJointOwnerShares(InvestmentAccount::class, $userId);
 
-            $dcPensionValue = (float) $user->dcPensions->sum('current_fund_value');
-            $dbPensionValue = (float) $user->dbPensions->sum('transfer_value');
-            $pensionValue = round($dcPensionValue + $dbPensionValue, 2);
+            // What a pension contributes to net worth has one home, and it is
+            // NetWorthService — the same rule `/net-worth` reads on all three
+            // surfaces. This used to be two local sums, the second of which read
+            // `db_pensions.transfer_value`, a column that has never existed. Over a
+            // Collection a missing attribute reads as null, so it silently summed to
+            // £0 for every user, forever, while the code read as though Defined
+            // Benefit schemes were being valued (W-0241).
+            $pensionBreakdown = $this->netWorthService->calculatePensionBreakdown($userId);
+            $pensionValue = round($pensionBreakdown['dc'], 2);
 
             $businessValue = $this->sumUserShares($user->businessInterests, $userId);
             $businessValue += $this->sumJointOwnerShares(BusinessInterest::class, $userId);
@@ -351,9 +408,10 @@ class MobileDashboardAggregator
 
             $cashValue = (float) $user->cashAccounts->sum('current_balance');
 
-            // Calculate liabilities
-            $mortgageBalance = $this->sumMortgageShares($user->mortgages, $userId);
-            $mortgageBalance += $this->sumMortgageJointOwnerShares($user, $userId);
+            // Calculate liabilities. One home for what this user owes on the
+            // mortgages — reach-complete across both legs, and share-correct per
+            // W-0228's ruling.
+            $mortgageBalance = $this->assetAggregator->calculateMortgageTotal($userId);
 
             $liabilityBalance = (float) $user->liabilities->sum('current_balance');
 
@@ -384,6 +442,15 @@ class MobileDashboardAggregator
                     'total_assets' => $totalAssets,
                     'total_liabilities' => $totalLiabilities,
                 ],
+                // Same keys, same meaning, same source as `/net-worth` returns
+                // (W-0241). The pensions figure above is Defined Contribution only;
+                // these are how a surface knows to say so instead of presenting the
+                // total as complete — and the sentence comes from its one home, so
+                // no surface keeps its own copy of the wording (Rule 20).
+                'has_db_pensions' => $pensionBreakdown['has_db'],
+                'db_pension_disclosure' => $pensionBreakdown['has_db']
+                    ? PensionDisclosure::DEFINED_BENEFIT_EXCLUDED
+                    : null,
             ];
         } catch (\Throwable $e) {
             $this->logError('Mobile dashboard: failed to calculate net worth', [
@@ -393,6 +460,8 @@ class MobileDashboardAggregator
             return [
                 'total' => 0.0,
                 'breakdown' => [],
+                'has_db_pensions' => false,
+                'db_pension_disclosure' => null,
             ];
         }
     }
@@ -466,35 +535,23 @@ class MobileDashboardAggregator
         return $total;
     }
 
-    /**
-     * Sum user's share of mortgages (where user is primary owner).
+    /*
+     * `sumMortgageShares()` and `sumMortgageJointOwnerShares()` were deleted here
+     * (W-0228).
+     *
+     * Both reached mortgages by the owner columns on the MORTGAGE row — one
+     * through `$user->mortgages`, the other by filtering `joint_owner_id`. Under
+     * CSJ's ruling a debt is shared as the property securing it is shared, so a
+     * user can owe part of a mortgage whose row names someone else entirely, and
+     * a mortgage-keyed reach cannot see it. The fraction was fixed in
+     * `CalculatesOwnershipShare`; the reach had to move with it, or the figure
+     * would be a correct share of an incomplete set.
+     *
+     * `CrossModuleAssetAggregator::calculateMortgageTotal()` already reaches both
+     * legs — mortgages the user holds, and mortgages on properties the user owns —
+     * and is what `/net-worth` and the wealth summary read. The dashboard now
+     * reads it too, so the two cannot disagree.
      */
-    private function sumMortgageShares($mortgages, int $userId): float
-    {
-        $total = 0.0;
-
-        foreach ($mortgages as $mortgage) {
-            $total += $this->calculateUserMortgageShare($mortgage, $userId);
-        }
-
-        return $total;
-    }
-
-    /**
-     * Sum mortgage joint-owner shares via MortgageStore, filtering to records
-     * where the user is the joint_owner_id (avoids double-counting with
-     * the primary-owner path that reads via $user->mortgages relation).
-     */
-    private function sumMortgageJointOwnerShares(User $user, int $userId): float
-    {
-        $total = 0.0;
-
-        foreach ($this->mortgageStore->forUser($user)->filter(fn ($m) => $m->joint_owner_id === $userId) as $mortgage) {
-            $total += $this->calculateUserMortgageShare($mortgage, $userId);
-        }
-
-        return $total;
-    }
 
     /**
      * Get aggregated alerts from the existing DashboardAggregator.
@@ -510,68 +567,6 @@ class MobileDashboardAggregator
 
             return [];
         }
-    }
-
-    /**
-     * Generate a contextual daily insight based on the aggregated data.
-     */
-    private function generateFynInsight(array $modules, array $netWorth): string
-    {
-        // Check for protection gaps
-        $protectionStatus = $modules['protection']['status'] ?? 'unavailable';
-        if ($protectionStatus === 'active') {
-            $gaps = $modules['protection']['critical_gaps'] ?? 0;
-            if ($gaps > 0) {
-                return $gaps === 1
-                    ? 'You have 1 protection gap to review. Ensuring adequate cover helps safeguard your family against unexpected events.'
-                    : "You have {$gaps} protection gaps to review. Addressing these will strengthen your financial safety net.";
-            }
-        }
-
-        // Check for emergency fund
-        $savingsStatus = $modules['savings']['status'] ?? 'unavailable';
-        if ($savingsStatus === 'active') {
-            $runwayMonths = $modules['savings']['emergency_fund_months'] ?? 0;
-            if ($runwayMonths < 3) {
-                return 'Building your emergency fund towards 3-6 months of expenses is a key priority. Even small regular contributions make a difference.';
-            }
-        }
-
-        // Check retirement income gap
-        $retirementStatus = $modules['retirement']['status'] ?? 'unavailable';
-        if ($retirementStatus === 'active') {
-            $incomeGap = $modules['retirement']['income_gap'] ?? 0;
-            if ($incomeGap > 0) {
-                return 'Your projected retirement income has a gap to your target. Reviewing pension contributions or exploring additional savings could help close this.';
-            }
-        }
-
-        // Check estate IHT
-        $estateStatus = $modules['estate']['status'] ?? 'unavailable';
-        if ($estateStatus === 'active') {
-            $ihtLiability = $modules['estate']['iht_liability'] ?? 0;
-            if ($ihtLiability > 0) {
-                return 'Your estate may have an inheritance tax liability. Consider exploring gifting strategies or trust arrangements to help reduce this.';
-            }
-        }
-
-        // Goals insight
-        $goalsStatus = $modules['goals']['status'] ?? 'unavailable';
-        if ($goalsStatus === 'active') {
-            $completed = $modules['goals']['completed_goals'] ?? 0;
-            $total = $modules['goals']['total_goals'] ?? 0;
-            if ($total > 0 && $completed > 0) {
-                return "Well done! You have completed {$completed} of your {$total} financial goals. Keep the momentum going.";
-            }
-        }
-
-        // Net worth insight
-        $total = $netWorth['total'] ?? 0;
-        if ($total > 0) {
-            return 'Your financial plan is taking shape. Regular reviews help ensure you stay on track with your goals.';
-        }
-
-        return 'Welcome to Fynla. Start by setting up your financial profile to receive personalised insights and guidance.';
     }
 
     /**

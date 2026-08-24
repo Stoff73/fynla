@@ -52,10 +52,19 @@ class DetectNewArticles extends Command
         // native insight — that would create a duplicate pipeline record.
         $documentSlugs = DocumentArticle::published()->pluck('slug')->all();
 
-        $newArticles = InsightArticle::published()
+        // A Drive upload is itself the founders' "make this" instruction — only
+        // they can put a file in that folder — so an imported draft enters the
+        // pipeline straight away and the script and clips exist before anyone
+        // reviews. Publishing stays a human click: it is ComposePostsJob's
+        // publish guard that waits for it, not detection. A draft written by
+        // hand in the CMS has no Drive file and is left alone.
+        $newArticles = InsightArticle::query()
+            ->where(fn ($q) => $q->where('status', 'published')
+                ->orWhere(fn ($imported) => $imported->where('status', 'draft')
+                    ->whereNotNull('source_docx_drive_file_id')))
             ->whereNotIn('id', $existingIds)
             ->when($documentSlugs !== [], fn ($q) => $q->whereNotIn('slug', $documentSlugs))
-            ->orderBy('published_at')
+            ->orderByRaw('COALESCE(published_at, created_at)')
             ->get();
 
         if ($newArticles->isEmpty()) {

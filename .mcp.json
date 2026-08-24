@@ -2,7 +2,10 @@
   "mcpServers": {
     "mysql": {
       "command": "npx",
-      "args": ["-y", "@benborla29/mcp-server-mysql"],
+      "args": [
+        "-y",
+        "@benborla29/mcp-server-mysql"
+      ],
       "env": {
         "MYSQL_HOST": "127.0.0.1",
         "MYSQL_PORT": "3306",
@@ -13,11 +16,18 @@
     },
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"]
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chrome"
+      ]
     },
     "ssh-fynla": {
       "command": "node",
-      "args": ["/Users/CSJ/Desktop/fynla/mcp-servers/ssh/server.mjs"]
+      "args": [
+        "/Users/CSJ/Desktop/fynla/mcp-servers/ssh/server.mjs"
+      ]
     }
   }
 }

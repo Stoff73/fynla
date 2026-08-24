@@ -14,8 +14,10 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
+use App\Services\Mobile\DailyInsightService;
 use App\Services\Mobile\MobileDashboardAggregator;
-use App\Services\Stores\MortgageStore;
+use App\Services\NetWorth\NetWorthService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Facades\Cache;
@@ -30,7 +32,6 @@ beforeEach(function () {
     $this->dashboardAggregator = Mockery::mock(DashboardAggregator::class);
     $this->savingsStore = app(SavingsStore::class);
     $this->propertyStore = app(PropertyStore::class);
-    $this->mortgageStore = app(MortgageStore::class);
 
     $this->service = new MobileDashboardAggregator(
         $this->protectionAgent,
@@ -42,7 +43,11 @@ beforeEach(function () {
         $this->dashboardAggregator,
         $this->savingsStore,
         $this->propertyStore,
-        $this->mortgageStore,
+        app(CrossModuleAssetAggregator::class),
+        app(NetWorthService::class),
+        // W-0478 — the dashboard no longer composes its own insight; it reads the
+        // one composer the insights endpoint reads.
+        app(DailyInsightService::class),
     );
 
     // Clear cache before each test
@@ -112,7 +117,21 @@ describe('getAggregatedDashboard', function () {
         expect($result['modules']['retirement']['pot_value'])->toBe(45000.0);
     });
 
-    it('retains the known pension pot when retirement goals are not configured', function () {
+    it('reports a real pension pot as active even when there is no retirement profile', function () {
+        // History, because this test has been rewritten twice and each rewrite
+        // removed a mechanism rather than adding one:
+        //
+        // 1. It once asserted status 'not_configured' beside a pot of £47,500 — a
+        //    card telling a user to set up their retirement while printing the pot
+        //    it had just found.
+        // 2. W-0238 made it assert 'active', but did so by mocking the agent
+        //    returning `success: false` and having the aggregator read the pension
+        //    records itself. That workaround is deleted (W-0244): the agent now
+        //    answers with the facts and a null projection, so the aggregator has one
+        //    source again and this test mocks the shape the agent really returns.
+        //
+        // The card's status follows whether the user HAS provision, never whether
+        // they have stated a target.
         $user = User::factory()->create();
         DCPension::factory()->create([
             'user_id' => $user->id,
@@ -122,12 +141,60 @@ describe('getAggregatedDashboard', function () {
         $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeProtectionAnalysis());
         $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
         $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
-        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn([
-            'success' => false,
-            'message' => 'No retirement profile found',
-            'data' => [],
-            'timestamp' => now()->toIso8601String(),
-        ]);
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)
+            ->andReturn(fakeRetirementAnalysisWithoutTarget(potValue: 47500.0, pensionCount: 1));
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
+        $this->dashboardAggregator->shouldReceive('aggregateAlerts')->with($user->id)->andReturn([]);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        expect($result['modules']['retirement']['status'])->toBe('active')
+            ->and($result['modules']['retirement']['pot_value'])->toBe(47500.0)
+            ->and($result['net_worth']['breakdown']['assets']['pensions'])->toBe(47500.0);
+    });
+
+    it('leads with secured income for a defined benefit household that has no pot and no target', function () {
+        // The persona case: no defined contribution pot at all, an NHS final salary
+        // scheme paying £35,000 a year, and no `retirement_profiles` row. Both the
+        // old refusal and a correct exclusion produce a pot of £0, so asserting on
+        // the zero would prove nothing (`tests/CLAUDE.md` §4). The load-bearing
+        // assertions are the guaranteed income — which moves — and the status.
+        $user = User::factory()->create();
+
+        $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeProtectionAnalysis());
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn(
+            fakeRetirementAnalysisWithoutTarget(potValue: 0.0, pensionCount: 1, guaranteedIncome: 35000.0)
+        );
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
+        $this->dashboardAggregator->shouldReceive('aggregateAlerts')->with($user->id)->andReturn([]);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        expect($result['modules']['retirement']['status'])->toBe('active')
+            ->and($result['modules']['retirement']['guaranteed_income'])->toBe(35000.0)
+            ->and($result['modules']['retirement']['total_pensions'])->toBe(1)
+            // The capital line stays at zero and says so — W-0241's exclusion and
+            // W-0244's provision are both true of this household at once.
+            ->and($result['net_worth']['breakdown']['assets']['pensions'])->toBe(0.0)
+            ->and($result['net_worth']['has_db_pensions'])->toBeFalse();
+    });
+
+    it('still reports not_configured for a household that genuinely holds no pensions', function () {
+        // The other direction, asserted explicitly: the fix must not make every
+        // user look provisioned. A household with no pension records at all is
+        // still told it has not started.
+        $user = User::factory()->create();
+
+        $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeProtectionAnalysis());
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn(
+            fakeRetirementAnalysisWithoutTarget(potValue: 0.0, pensionCount: 0)
+        );
         $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
         $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
         $this->dashboardAggregator->shouldReceive('aggregateAlerts')->with($user->id)->andReturn([]);
@@ -135,8 +202,7 @@ describe('getAggregatedDashboard', function () {
         $result = $this->service->getAggregatedDashboard($user->id);
 
         expect($result['modules']['retirement']['status'])->toBe('not_configured')
-            ->and($result['modules']['retirement']['pot_value'])->toBe(47500.0)
-            ->and($result['net_worth']['breakdown']['assets']['pensions'])->toBe(47500.0);
+            ->and($result['modules']['retirement'])->not->toHaveKey('pot_value');
     });
 
     it('reports not_configured when the readiness gate blocks the protection agent', function () {
@@ -437,32 +503,78 @@ describe('fyn insight generation', function () {
             ->and(strlen($result['fyn_insight']))->toBeGreaterThan(10);
     });
 
+    it('publishes the gap count the analyzer produces rather than counting one itself', function () {
+        // W-0479 — this class counted `$gapData['gap']` over `gaps`, a shape
+        // `CoverageGapAnalyzer` has never emitted, so `critical_gaps` was 0 for every
+        // household on `/m`, native and web. The payload below is the analyzer's real
+        // shape; if anything here goes back to deriving its own count from the
+        // categories, it will either read 0 or treble the supplementary duplicates.
+        $user = User::factory()->create();
+
+        $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn([
+            'success' => true,
+            'message' => 'OK',
+            'data' => [
+                'coverage' => ['life_coverage' => 500000, 'total_coverage' => 500000, 'income_protection_coverage' => 0],
+                'gaps' => [
+                    'total_gap' => 0,
+                    'critical_gap_count' => 1,
+                    'gaps_by_category' => [
+                        'human_capital_gap' => 0,
+                        'income_protection_gap' => 21000,
+                        'disability_coverage_gap' => 21000,
+                        'sickness_illness_gap' => 21000,
+                    ],
+                ],
+            ],
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(['has_goals' => true]);
+        $this->dashboardAggregator->shouldReceive('aggregateAlerts')->andReturn([]);
+
+        $result = $this->service->getAggregatedDashboard($user->id);
+
+        expect($result['modules']['protection']['critical_gaps'])->toBe(1);
+    });
+
     it('generates protection-related insight when gaps exist', function () {
         $user = User::factory()->create();
 
-        // Protection with gaps
+        // W-0478 — the gaps fixture used to be `['life' => ['gap' => 50000], …]`, a
+        // shape `ProtectionAgent` does not produce. Measured against the live agent,
+        // it emits `total_gap` with a `gaps_by_category` map, and `total_gap` can be
+        // zero while a category is not — this household's whole shortfall is income
+        // protection. Every other module is left empty so exactly one insight is
+        // composed and the day-of-year rotation cannot pick a different one.
         $this->protectionAgent->shouldReceive('analyze')->with($user->id)->andReturn([
             'success' => true,
             'message' => 'OK',
             'data' => [
                 'coverage' => ['life_coverage' => 100000, 'total_coverage' => 100000, 'income_protection_coverage' => 0],
                 'gaps' => [
-                    'life' => ['gap' => 50000],
-                    'income_protection' => ['gap' => 20000],
+                    'total_gap' => 0,
+                    'gaps_by_category' => [
+                        'human_capital_gap' => 0,
+                        'income_protection_gap' => 20000,
+                    ],
                 ],
             ],
             'timestamp' => now()->toIso8601String(),
         ]);
-        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
-        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeInvestmentAnalysis());
-        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeRetirementAnalysis());
-        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
-        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
+        $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->investmentAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn([]);
+        $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(['has_goals' => true]);
         $this->dashboardAggregator->shouldReceive('aggregateAlerts')->andReturn([]);
 
         $result = $this->service->getAggregatedDashboard($user->id);
 
-        expect($result['fyn_insight'])->toContain('protection gap');
+        expect($result['fyn_insight'])->toContain('gaps in your protection coverage');
     });
 });
 
@@ -579,6 +691,53 @@ function fakeRetirementAnalysis(): array
                 'income_gap' => 5000,
                 'total_pensions_count' => 3,
             ],
+        ],
+        'timestamp' => now()->toIso8601String(),
+    ];
+}
+
+/**
+ * What `RetirementAgent::analyze()` returns for a household with pensions and no
+ * `retirement_profiles` row: `success: true`, the record-derived facts, and every
+ * target-derived figure null.
+ *
+ * The nulls are the point and must not be softened to zeros here — a fixture that
+ * quietly zeroes them cannot catch a consumer that reports "£0 income gap" to a
+ * user who has never set a target.
+ */
+function fakeRetirementAnalysisWithoutTarget(
+    float $potValue = 0.0,
+    int $pensionCount = 0,
+    float $guaranteedIncome = 0.0,
+): array {
+    return [
+        'success' => true,
+        'message' => 'Retirement provision found; no retirement target set yet',
+        'data' => [
+            'summary' => [
+                'years_to_retirement' => null,
+                'target_retirement_age' => null,
+                'projected_retirement_income' => null,
+                'target_retirement_income' => null,
+                'income_gap' => null,
+                'retires_before_spa' => null,
+                'income_after_spa' => null,
+                'income_gap_after_spa' => null,
+                'state_pension_age' => 67,
+                'state_pension_income' => 0,
+                'current_dc_value' => $potValue,
+                'total_dc_value' => $potValue,
+                'total_pensions_count' => $pensionCount,
+                'has_retirement_target' => false,
+                'guaranteed_annual_income' => $guaranteedIncome,
+            ],
+            'income_projection' => [],
+            'breakdown' => [],
+            'annual_allowance' => [],
+            'profile' => null,
+            'decumulation' => null,
+            'post_retirement_goals' => [],
+            'missing_for_quality_advice' => [],
         ],
         'timestamp' => now()->toIso8601String(),
     ];

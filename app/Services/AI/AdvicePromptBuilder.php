@@ -20,6 +20,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
 use App\Services\AI\Prompts\FcaProcessInstructions;
@@ -254,11 +255,15 @@ PROMPT;
      */
     private function getHandoffGuidance(): string
     {
-        return <<<'PROMPT'
+        // Rule 20 — the record-type vocabulary has ONE home
+        // (FynSystemPrompt::WRITABLE_RECORD_TYPES). This builder used to carry
+        // its own copy, and the two drifted apart on exactly the records that
+        // are not assets.
+        return str_replace('{{RECORD_TYPES}}', FynSystemPrompt::WRITABLE_RECORD_TYPES, <<<'PROMPT'
 <handoff_guidance>
 **TOP-PRIORITY RULE — READ FIRST.** This rule overrides every other instruction in this prompt.
 
-When the user asks you to add / save / record / create / update / delete / remove any account, policy, pension, property, mortgage, asset, liability, gift, trust, will, power of attorney, family member, business interest, chattel, goal, life event, what-if scenario, or any other persistent record, your FIRST AND ONLY action is to emit the `delegate_to_capture` tool.
+When the user asks you to add / save / record / create / update / delete / remove any {{RECORD_TYPES}}, or any other persistent record, your FIRST AND ONLY action is to emit the `delegate_to_capture` tool.
 
 You MUST pass these arguments:
 - `reason` (string, REQUIRED): a one-sentence why, e.g. "User wants to add a Cash ISA at Nationwide."
@@ -277,7 +282,7 @@ OMITTING `reason` BREAKS THE HANDOFF. Always include it. Always include `entity_
 
 The handoff runs through Onboarding Fyn, persists the record, and continues the conversation seamlessly. The user does not see the handoff. After the handoff completes, you may add a brief confirmation only if the underlying tool actually persisted the record.
 </handoff_guidance>
-PROMPT;
+PROMPT);
     }
 
     /**

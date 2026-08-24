@@ -19,6 +19,17 @@
           <p v-if="situation.rnrb_message" class="text-xs text-neutral-500">
             <span class="font-medium text-neutral-500">Residence Nil Rate Band:</span> {{ situation.rnrb_message }}
           </p>
+          <!--
+            W-0136 — the projected residence-band position, which differs from
+            today's the moment the projected estate crosses the taper threshold.
+          -->
+          <p
+            v-if="situation.projected_rnrb_message && situation.projected_rnrb_message !== situation.rnrb_message"
+            class="text-xs text-neutral-500"
+          >
+            <span class="font-medium text-neutral-500">Residence Nil Rate Band at age {{ situation.iht_summary?.projected?.estimated_age_at_death }}:</span>
+            {{ situation.projected_rnrb_message }}
+          </p>
         </div>
       </div>
 
@@ -81,12 +92,29 @@
             <p class="text-sm font-bold text-spring-700">{{ formatCurrency(situation.charitable_giving.potential_saving) }}</p>
           </div>
         </div>
+        <!--
+          W-0451 C1. Every figure above describes the survivor's will, and this
+          panel said so nowhere — so read from the other spouse's account it
+          presented that person's charitable position as the reader's own.
+
+          The sentence is composed by the server and printed verbatim. It is NOT
+          written here, because `planPrintMixin.js` draws the same panel for the
+          printed plan and two copies of one sentence is the drift Rule 20
+          forbids — the pair already duplicates the "Threshold for 36% Rate"
+          label, which is filed as W-0461.
+
+          Empty for a single person, and whenever the reader IS the survivor.
+        -->
+        <p v-if="situation.charitable_giving.basis" class="text-xs text-neutral-500 mt-3">
+          {{ situation.charitable_giving.basis }}
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
 import IHTCalculationTable from '@/components/Estate/IHTCalculationTable.vue';
@@ -99,6 +127,7 @@ export default {
     situation: { type: Object, required: true },
   },
   computed: {
+    ...mapGetters('taxConfig', ['ihtRnrbTaperThreshold']),
     tableProps() {
       if (!this.situation?.calculation || !this.situation?.assets_breakdown) return null;
 
@@ -132,27 +161,79 @@ export default {
           },
         },
 
-        // Allowances (follow standardTableProps pattern)
+        // Allowances (follow standardTableProps pattern).
+        //
+        // W-0134 — `nrbFromSpouseModelled` and `nrbGiftDeduction` are carried now.
+        // Without them the plan's table printed £325,000 + £325,000 above a
+        // £500,000 subtotal, exactly as the drill-down did, and the £150,000 of
+        // chargeable transfers that made up the difference had no row.
         allowances: {
           nrb: summary.current.nrb_individual,
+          nrbFromSpouseModelled: summary.current.nrb_spouse_modelled || 0,
+          nrbGiftDeduction: summary.current.nrb_gift_deduction || 0,
           nrbFromSpouse: summary.current.nrb_transferred,
           totalNrb: summary.current.nrb_available,
           rnrbIndividual: summary.current.rnrb_individual,
           rnrbFromSpouse: summary.current.rnrb_transferred,
           totalRnrb: summary.current.rnrb_available,
           rnrbEligible: (summary.current.rnrb_available || 0) > 0,
-          rnrbTapered: false,
-          rnrbTaperThreshold: 2000000,
-          rnrbTaperAmount: 0,
-          showSeparateSpouseAllowances: (summary.is_widowed &&
-            ((summary.current.nrb_transferred || 0) > 0 ||
-             (summary.current.rnrb_transferred || 0) > 0)) || false,
+          rnrbStatus: summary.current.rnrb_status || 'none',
+          rnrbTaperThreshold: this.ihtRnrbTaperThreshold,
+          showSeparateSpouseAllowances: this.showSeparateSpouseAllowances,
+        },
+
+        // W-0136 — the allowances AT DEATH, which are not the current ones: the
+        // residence band tapers away above the threshold and is frequently
+        // extinguished on a projection.
+        allowancesProjected: {
+          nrb: summary.current.nrb_individual,
+          nrbFromSpouseModelled: summary.current.nrb_spouse_modelled || 0,
+          nrbGiftDeduction: summary.current.nrb_gift_deduction || 0,
+          nrbFromSpouse: summary.current.nrb_transferred,
+          totalNrb: summary.projected.nrb_available ?? summary.current.nrb_available,
+          rnrbIndividual: summary.projected.rnrb_individual || 0,
+          rnrbFromSpouse: summary.projected.rnrb_transferred || 0,
+          totalRnrb: summary.projected.rnrb_available || 0,
+          rnrbEligible: (summary.projected.rnrb_available || 0) > 0,
+          rnrbStatus: summary.projected.rnrb_status || 'none',
+          rnrbTaperThreshold: this.ihtRnrbTaperThreshold,
+          showSeparateSpouseAllowances: this.showSeparateSpouseAllowances,
+        },
+
+        // W-0465 G2 — Business Property Relief, in BOTH columns.
+        //
+        // Without this row a business-owning household reads Gross, Liabilities and a
+        // Net Estate lower than gross − liabilities by up to £4,250,000, with nothing
+        // saying why. Before the engine fix the projected net estate at least appeared
+        // to add up — wrongly. **The number is now right and the column was less
+        // readable than before**, which is the worse failure of the two.
+        //
+        // This is round one's F3 recurring on the second surface: F3 was fixed for
+        // `IHTPlanning.vue` only, and `EstateCurrentSituation.vue` enumerates its own
+        // props (tax-compliance-reviewer, round five).
+        businessRelief: {
+          now: summary.current.business_relief_deduction || 0,
+          minus5: summary.current.business_relief_deduction || 0,
+          projected: summary.projected.business_relief_deduction || 0,
+          plus5: summary.projected.business_relief_deduction || 0,
+        },
+
+        // The caveat the engine publishes with the figure. `?? null` rather than
+        // `|| ''` so "no caveat applies" stays distinguishable from "not published".
+        unmodelledReliefCaveat: summary.current.unmodelled_relief_caveat ?? null,
+
+        // The charitable legacies the server actually deducted (IHTA 1984 s23).
+        charitableExemption: {
+          now: summary.current.charitable_deduction || 0,
+          minus5: summary.current.charitable_deduction || 0,
+          projected: summary.projected.charitable_deduction || 0,
+          plus5: summary.projected.charitable_deduction || 0,
         },
 
         // Estate after NRB
         estateAfterNRB: {
           now: Math.max(0, (summary.current.net_estate || 0) - totalAllowances),
-          projected: Math.max(0, (summary.projected.net_estate || 0) - totalAllowances),
+          projected: Math.max(0, (summary.projected.net_estate || 0) - (summary.projected.total_allowances ?? totalAllowances)),
           minus5: 0,
           plus5: 0,
         },
@@ -183,6 +264,14 @@ export default {
         showPlus5Years: false,
         firstColumnHeader: 'Asset / Liability',
       };
+    },
+    showSeparateSpouseAllowances() {
+      const summary = this.situation?.iht_summary;
+      if (!summary) return false;
+
+      return (summary.is_widowed &&
+        ((summary.current.nrb_transferred || 0) > 0 ||
+         (summary.current.rnrb_transferred || 0) > 0)) || false;
     },
     hasLifeCover() {
       const lc = this.situation.life_cover;

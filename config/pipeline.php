@@ -11,9 +11,9 @@ return [
     |
     | Master switch for the marketing pipeline. When false, the
     | `pipeline:detect-new-articles` command exits without dispatching any
-    | work and the daily scheduler entry is a no-op. Set to true only after
-    | Google Drive credentials, Anthropic Opus, and downstream stages are
-    | wired up.
+    | work and scheduled polling is a no-op. Set to true only after Google
+    | Drive credentials, the configured AI provider, and downstream stages
+    | are wired up.
     |
     */
 
@@ -24,7 +24,7 @@ return [
     | Detect New Articles — Schedule
     |--------------------------------------------------------------------------
     |
-    | Time of day (HH:MM, server timezone) the daily detect command runs.
+    | Legacy daily detection time retained for backwards compatibility.
     |
     */
 
@@ -47,24 +47,26 @@ return [
 
     'queue' => env('PIPELINE_QUEUE', 'pipeline'),
 
+    // Identifies this deployment to the pipeline preflight check so only one
+    // environment is allowed to run the shared marketing automation pipeline.
+    'runner_name' => env('PIPELINE_RUNNER_NAME', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Google (Drive + Sheets)
     |--------------------------------------------------------------------------
     |
-    | OAuth client credentials from the Fynla Marketing Pipeline GCP project.
-    | folder_id is the Marketing Automation Drive folder; scripts are uploaded
-    | there and the tracker sheet is created inside it.
+    | The service-account JSON key stays outside Git and the public web root;
+    | only its absolute path is configured here. folder_id is the Marketing
+    | Automation Shared Drive folder; scripts and the tracker are created there.
     | tracker_sheet_id is set once by `pipeline:setup-tracker` and pasted back
     | into .env.
     |
     */
 
     'google' => [
-        'oauth_client_id' => env('GOOGLE_OAUTH_CLIENT_ID'),
-        'oauth_client_secret' => env('GOOGLE_OAUTH_CLIENT_SECRET'),
-        'oauth_redirect_uri' => env('GOOGLE_OAUTH_REDIRECT_URI'),
-        'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID', '1HR5oTck5ZQuAviTvAMdJEoNpPIcd-75P'),
+        'service_account_credentials' => env('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS'),
+        'drive_folder_id' => env('PIPELINE_GOOGLE_DRIVE_FOLDER_ID'),
         'tracker_sheet_id' => env('PIPELINE_GOOGLE_TRACKER_SHEET_ID'),
     ],
 
@@ -146,7 +148,8 @@ return [
     | Local Whisper (Stage 3 — transcription)
     |--------------------------------------------------------------------------
     |
-    | Model choice for the whisper CLI. Trade-off:
+    | The binary may be an absolute path when Whisper is installed in a private
+    | virtual environment. Model choice trade-off:
     |   tiny  (75 MB, fastest)
     |   base  (150 MB)
     |   small (500 MB) — recommended default
@@ -157,6 +160,7 @@ return [
     */
 
     'whisper' => [
+        'binary' => env('PIPELINE_WHISPER_BINARY', 'whisper'),
         'model' => env('PIPELINE_WHISPER_MODEL', 'small'),
         'language' => env('PIPELINE_WHISPER_LANGUAGE', 'en'),
     ],
@@ -176,6 +180,7 @@ return [
 
     'video' => [
         'detect_schedule' => env('PIPELINE_VIDEO_DETECT_SCHEDULE', '07:30'),
+        'encoder' => env('PIPELINE_VIDEO_ENCODER', 'libx264'),
         'audit_older_than_days' => env('PIPELINE_VIDEO_AUDIT_DAYS', 365),
         'signed_url_ttl_days' => env('PIPELINE_SIGNED_URL_TTL_DAYS', 30),
 
@@ -265,12 +270,12 @@ return [
 
         'variant_count' => 2,
 
-        'compose_after_render' => (bool) env('PIPELINE_COMPOSE_AFTER_RENDER', true),
+        'compose_after_render' => (bool) env('PIPELINE_COMPOSE_AFTER_RENDER', false),
 
         // Dry-run: SchedulePostJob records the intended schedule but never calls
         // Buffer, so nothing is posted to social media. For testing the video +
         // scheduling flow without publishing.
-        'dry_run' => (bool) env('PIPELINE_SOCIAL_DRY_RUN', false),
+        'dry_run' => (bool) env('PIPELINE_SOCIAL_DRY_RUN', true),
 
     ],
 
@@ -300,9 +305,8 @@ return [
     | Google Analytics (Stage 4 — weekly report + optimal-time recalculator)
     |--------------------------------------------------------------------------
     |
-    | Reuses the existing Google OAuth grant with the analytics.readonly
-    | scope added. After changing scopes, users must re-run
-    | pipeline:authorise-google to re-consent.
+    | The service account requests analytics.readonly automatically. Add its
+    | email address as a Viewer on the configured GA4 property.
     |
     */
 

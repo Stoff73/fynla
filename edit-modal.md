@@ -1,0 +1,104 @@
+- generic [active] [ref=f84e1]:
+  - generic [ref=f84e3]:
+    - generic [ref=f84e4]:
+      - generic [ref=f84e5]:
+        - navigation [ref=f84e6]:
+          - generic [ref=f84e8]:
+            - heading "Finances" [level=1] [ref=f84e9]
+            - generic [ref=f84e11]:
+              - button "Refer a Friend" [ref=f84e12] [cursor=pointer]
+              - button "Support" [ref=f84e16] [cursor=pointer]
+              - button "Fyn Chat with Fyn" [ref=f84e21] [cursor=pointer]:
+                - img "Fyn" [ref=f84e22]
+                - text: Chat with Fyn
+              - button "David Jones" [ref=f84e24] [cursor=pointer]
+        - alert
+      - main [ref=f84e29]:
+        - main [ref=f84e32]:
+          - generic [ref=f84e33]:
+            - generic [ref=f84e34]:
+              - button "100% complete 4 of 4 items complete What powers this view" [ref=f84e35] [cursor=pointer]:
+                - generic [ref=f84e36]:
+                  - img "100% complete" [ref=f84e37]:
+                    - generic [ref=f84e40]: 100%
+                  - generic [ref=f84e41]: 4 of 4 items complete
+                - generic [ref=f84e42]: What powers this view
+              - generic [ref=f84e47]:
+                - generic [ref=f84e48]:
+                  - generic [ref=f84e49]: Completed (4)
+                  - generic [ref=f84e52]: Your date of birth
+                  - generic [ref=f84e56]: Your annual income
+                  - generic [ref=f84e60]: When you want to retire
+                  - generic [ref=f84e64]: Your investment accounts
+                - generic [ref=f84e68]:
+                  - generic [ref=f84e69]: Outstanding (0)
+                  - generic [ref=f84e73]: All items complete
+                - generic [ref=f84e74]:
+                  - generic [ref=f84e75]: Why we need this
+                  - generic [ref=f84e78]: Hover over an outstanding item to see why it's needed
+            - generic [ref=f84e80]:
+              - button "Back to Investments" [ref=f84e81] [cursor=pointer]
+              - generic [ref=f84e84]:
+                - generic [ref=f84e85]:
+                  - generic [ref=f84e86]:
+                    - generic [ref=f84e87]
+                    - generic [ref=f84e92]
+                  - generic [ref=f84e95]:
+                    - generic [ref=f84e96]
+                    - generic [ref=f84e99]
+                    - generic [ref=f84e103]
+                    - generic [ref=f84e106]
+                - generic [ref=f84e110]:
+                  - generic [ref=f84e111]:
+                    - generic [ref=f84e112] [cursor=pointer]
+                    - generic [ref=f84e177] [cursor=pointer]
+                  - generic [ref=f84e215]:
+                    - generic [ref=f84e216] [cursor=pointer]
+                    - generic [ref=f84e245] [cursor=pointer]
+                    - generic [ref=f84e262] [cursor=pointer]
+                    - generic [ref=f84e279] [cursor=pointer]
+      - contentinfo [ref=f84e294]:
+        - generic [ref=f84e295]:
+          - generic [ref=f84e296]:
+            - link [ref=f84e298] [cursor=pointer]:
+              - /url: /
+              - img "Fynla" [ref=f84e299]
+            - generic [ref=f84e300]:
+              - text: © 2026 Fynla - Your personal finance platform. For demonstration purposes only. |
+              - link "v1.0" [ref=f84e301] [cursor=pointer]:
+                - /url: /version
+              - text: "|"
+              - link "fynla.org" [ref=f84e302] [cursor=pointer]:
+                - /url: https://fynla.org
+            - generic [ref=f84e303]:
+              - link "Privacy Policy" [ref=f84e304] [cursor=pointer]:
+                - /url: /privacy
+              - link "Terms of Service" [ref=f84e305] [cursor=pointer]:
+                - /url: /terms
+              - link "Help" [ref=f84e306] [cursor=pointer]:
+                - /url: /help
+              - link "Sitemap" [ref=f84e307] [cursor=pointer]:
+                - /url: /sitemap
+          - paragraph [ref=f84e309]: This system is for demonstration purposes only and does not constitute regulated financial advice.
+    - complementary [ref=f84e310]:
+      - button "Expand Fyn chat" [ref=f84e311] [cursor=pointer]
+      - img "Fyn" [ref=f84e314]
+  - navigation [ref=f84e315]:
+    - link [ref=f84e317] [cursor=pointer]:
+      - /url: /dashboard
+      - img "Fynla" [ref=f84e318]
+    - button "Collapse menu" [ref=f84e319] [cursor=pointer]
+    - generic [ref=f84e322]:
+      - generic [ref=f84e324]:
+        - link "Dashboard" [ref=f84e325] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Net Worth" [ref=f84e329] [cursor=pointer]:
+          - /url: /net-worth/wealth-summary
+      - button "Cash Management" [ref=f84e334] [cursor=pointer]
+      - button "Finances" [ref=f84e339] [cursor=pointer]
+      - button "Personal Affairs" [ref=f84e344] [cursor=pointer]
+      - button "Planning" [ref=f84e349] [cursor=pointer]
+    - generic [ref=f84e353]:
+      - link "Account" [ref=f84e354] [cursor=pointer]:
+        - /url: /settings
+      - button "Sign Out" [ref=f84e359] [cursor=pointer]

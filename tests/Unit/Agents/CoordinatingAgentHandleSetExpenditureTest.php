@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
+use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,11 +36,18 @@ function invokeSetExpenditure(User $user, array $input, bool $isPreview = false)
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    // The per-category breakdown is Premium (CSJ decision 2026-08-19), so
+    // handleSetExpenditure now resolves the user's tier — which needs the tier
+    // table and the role rows behind it. The users below are Premium for the
+    // same reason; the gate itself is covered in DetailedExpenditureGateTest.
+    config(['app.payment_enabled' => true]);
+    $this->seed(TierConfigurationSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
 });
 
 describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function () {
     it('writes total_monthly_expenditure to ExpenditureProfile on first call', function () {
-        $user = User::factory()->create(['is_preview_user' => false]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false]);
 
         $result = invokeSetExpenditure($user, [
             'rent' => 1500,
@@ -58,7 +67,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('updates the existing ExpenditureProfile row on second call (no duplicate)', function () {
-        $user = User::factory()->create(['is_preview_user' => false]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false]);
 
         invokeSetExpenditure($user, ['rent' => 1500]);
         invokeSetExpenditure($user, ['rent' => 1800, 'utilities' => 300]);
@@ -69,7 +78,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('merges a partial category update with the users existing expenditure', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'is_preview_user' => false,
             'rent' => 1500,
             'utilities' => 200,
@@ -88,7 +97,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('accepts zero as an explicit category clear without erasing other categories', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'is_preview_user' => false,
             'rent' => 1500,
             'utilities' => 300,
@@ -106,7 +115,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('rejects a negative category amount without changing expenditure', function () {
-        $user = User::factory()->create([
+        $user = User::factory()->withActivePremiumSubscription()->create([
             'is_preview_user' => false,
             'rent' => 1500,
             'monthly_expenditure' => 1500,
@@ -120,7 +129,7 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('does not write to ExpenditureProfile when no amounts are provided', function () {
-        $user = User::factory()->create(['is_preview_user' => false]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => false]);
 
         $result = invokeSetExpenditure($user, []);
 
@@ -129,11 +138,132 @@ describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function (
     });
 
     it('blocks preview users and leaves ExpenditureProfile untouched', function () {
-        $user = User::factory()->create(['is_preview_user' => true]);
+        $user = User::factory()->withActivePremiumSubscription()->create(['is_preview_user' => true]);
 
         $result = invokeSetExpenditure($user, ['rent' => 1000], isPreview: true);
 
         expect($result['blocked'] ?? false)->toBeTrue();
         expect(ExpenditureProfile::where('user_id', $user->id)->exists())->toBeFalse();
+    });
+});
+
+/**
+ * W-0202 — Fyn's expenditure capture does NOT apply the household's declared
+ * sharing rule, and that is the parked state, not an oversight.
+ *
+ * Under a joint household this path writes the acting account at 100% and never
+ * touches the spouse — reproducing the 100/0 split W-0190 fixed on the profile
+ * path, through a different door. W-0202 raises it, team-lead has DECIDED the
+ * behaviour, and its **acceptance criterion 1 must be settled first**: make the
+ * unanswered sharing state expressible, or disclose the default.
+ *
+ * The reason is disclosure, not arithmetic. The expenditure form declares
+ * "Joint (50/50) expenditure" in its own subheading while the user types; Fyn
+ * declares nothing. `users.expenditure_sharing_mode` is `NOT NULL DEFAULT
+ * 'joint'`, so a household that has never been asked reads identically to one
+ * that chose — 19 users on the dev database, every one of them `joint`.
+ *
+ * `HouseholdExpenditureWriter` (built under W-0412) is the mechanism criterion 2
+ * asks for; when the decision lands, this path becomes one call to it. The case
+ * below pins the CURRENT behaviour so the change is deliberate and visible when
+ * it happens, rather than arriving as a silent diff.
+ *
+ * FIXTURE NOTE (tests/CLAUDE.md §4): every other case in this file uses a user
+ * with NO spouse, so none of them enters this branch at all.
+ */
+describe('handleSetExpenditure → the household sharing question (W-0190 / W-0202)', function () {
+    /** A linked couple who have never been shown the sharing choice. */
+    $undeclaredCouple = function (): array {
+        $owner = User::factory()->withActivePremiumSubscription()->create([
+            'is_preview_user' => false,
+            'expenditure_sharing_mode' => 'joint',
+            'expenditure_sharing_mode_declared_at' => null,
+        ]);
+        $partner = User::factory()->withActivePremiumSubscription()->create([
+            'is_preview_user' => false,
+            'expenditure_sharing_mode' => 'joint',
+            'expenditure_sharing_mode_declared_at' => null,
+            'spouse_id' => $owner->id,
+        ]);
+        $owner->update(['spouse_id' => $partner->id]);
+
+        return [$owner->fresh(), $partner];
+    };
+
+    it('asks instead of guessing when nobody has ever declared', function () use ($undeclaredCouple) {
+        // The case that used to write 100/0 in silence. Measured on dev the day this
+        // shipped: 13 of 13 spouse-holding users had never declared, so this is the
+        // branch that runs for all of them.
+        [$owner, $partner] = $undeclaredCouple();
+
+        $result = invokeSetExpenditure($owner, ['food_groceries' => 450]);
+
+        expect($result['needs_answer'] ?? false)->toBeTrue()
+            ->and($result['question'])->toBe('expenditure_sharing_mode');
+
+        // And it writes NOTHING. An unanswered question must not become an answer,
+        // which includes not becoming one on the acting account either.
+        expect((float) $owner->fresh()->food_groceries)->toBe(0.0)
+            ->and((float) $partner->fresh()->food_groceries)->toBe(0.0);
+    });
+
+    it('divides a declared joint household across both accounts', function () use ($undeclaredCouple) {
+        // What the previous test in this file predicted: "Pinned, not endorsed. When
+        // W-0202 is built this becomes 225 / 225."
+        [$owner, $partner] = $undeclaredCouple();
+        $owner->update(['expenditure_sharing_mode_declared_at' => now()]);
+
+        invokeSetExpenditure($owner->fresh(), ['food_groceries' => 450]);
+
+        expect((float) $owner->fresh()->food_groceries)->toBe(225.0)
+            ->and((float) $partner->fresh()->food_groceries)->toBe(225.0);
+    });
+
+    it('leaves a declared separate household whole on the acting account', function () use ($undeclaredCouple) {
+        [$owner, $partner] = $undeclaredCouple();
+        $owner->update([
+            'expenditure_sharing_mode' => 'separate',
+            'expenditure_sharing_mode_declared_at' => now(),
+        ]);
+
+        invokeSetExpenditure($owner->fresh(), ['food_groceries' => 450]);
+
+        expect((float) $owner->fresh()->food_groceries)->toBe(450.0)
+            ->and((float) $partner->fresh()->food_groceries)->toBe(0.0);
+    });
+
+    it('does not halve an untouched category again on the next edit', function () use ($undeclaredCouple) {
+        // The subtle one, and the reason the routing needed care rather than a
+        // one-line call. Stored figures are this account's SHARE, so a second partial
+        // edit that recomputed the total from storage would divide the untouched
+        // categories a second time — decaying the household's spending towards zero
+        // one Fyn turn at a time. Two edits, and the first category must not move.
+        [$owner, $partner] = $undeclaredCouple();
+        $owner->update(['expenditure_sharing_mode_declared_at' => now()]);
+
+        invokeSetExpenditure($owner->fresh(), ['food_groceries' => 450]);
+        invokeSetExpenditure($owner->fresh(), ['transport_fuel' => 200]);
+
+        expect((float) $owner->fresh()->food_groceries)->toBe(225.0)
+            ->and((float) $partner->fresh()->food_groceries)->toBe(225.0)
+            ->and((float) $owner->fresh()->transport_fuel)->toBe(100.0);
+
+        // And the household total is the sum of the household figures, not of halves.
+        expect((float) $owner->fresh()->monthly_expenditure)->toBe(325.0);
+    });
+
+    it('writes a single user whole, with no spouse to share with', function () {
+        // No spouse means no question to ask and nothing to divide — the ask branch
+        // must not strand a single user who simply wants to record their spending.
+        $solo = User::factory()->withActivePremiumSubscription()->create([
+            'is_preview_user' => false,
+            'expenditure_sharing_mode' => 'joint',
+            'expenditure_sharing_mode_declared_at' => null,
+        ]);
+
+        $result = invokeSetExpenditure($solo->fresh(), ['food_groceries' => 450]);
+
+        expect($result['needs_answer'] ?? false)->toBeFalse()
+            ->and((float) $solo->fresh()->food_groceries)->toBe(450.0);
     });
 });

@@ -13,9 +13,9 @@ use Illuminate\Support\Str;
 
 class WebHandoffService
 {
-    private const int TOKEN_LENGTH = 64;
+    private const TOKEN_LENGTH = 64;
 
-    private const int LIFETIME_MINUTES = 2;
+    private const LIFETIME_MINUTES = 2;
 
     /**
      * @return array{token: string, expires_at: CarbonImmutable}

@@ -552,6 +552,43 @@ const actions = {
         }
     },
 
+    /**
+     * Record a target retirement age and/or income (W-0035).
+     *
+     * Every retirement figure on the screen is derived from this one, so the refetch
+     * afterwards is not tidiness — required capital, the income projection,
+     * decumulation, capital adequacy and Monte Carlo all move when it changes, and
+     * leaving them showing the old target would be worse than showing nothing.
+     */
+    async updateRetirementGoals({ commit, dispatch }, data) {
+        commit('SET_ERROR', null);
+
+        let response;
+        try {
+            response = await retirementService.updateRetirementGoals(data);
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to update retirement goals');
+            throw error;
+        }
+
+        commit('SET_PROFILE', response.data);
+
+        // The refresh is deliberately outside the try above and its failures are
+        // swallowed: the target IS saved by this point, and letting a Monte Carlo
+        // timeout bubble up would report a successful save as a failed one and
+        // leave the user retyping a figure the database already holds.
+        try {
+            await Promise.all([
+                dispatch('fetchRequiredCapital'),
+                dispatch('fetchProjections'),
+            ]);
+        } catch (error) {
+            logger.error('Retirement target saved, but refreshing the projections failed:', error);
+        }
+
+        return response.data;
+    },
+
     async updateStatePension({ commit, dispatch }, data) {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);

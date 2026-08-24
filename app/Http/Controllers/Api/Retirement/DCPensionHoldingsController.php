@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Retirement;
 
+use App\Constants\HoldingSubTypes;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DCPension;
 use App\Models\Investment\Holding;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\PensionStore;
+use App\Support\HoldingValuation;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * DC Pension Holdings Controller
@@ -34,6 +38,14 @@ class DCPensionHoldingsController extends Controller
      * DCPension::where('user_id', ...)->firstOrFail() sites — every entry
      * point now routes through the canonical store's joint-aware read.
      * Holdings mutation itself stays in this controller until Pass 6.
+     *
+     * **`ModelNotFoundException` was thrown here without being imported**, so it
+     * resolved to `App\Http\Controllers\Api\Retirement\ModelNotFoundException`,
+     * which does not exist: every not-found path on all five endpoints raised a
+     * fatal `Error` and returned 500 rather than the 404 the caller expects
+     * (W-0444). It survived because `DCPensionHoldingValuationTest` gives every
+     * case a pension its own user owns, so nothing ever entered this branch —
+     * the Fixture variant in `tests/CLAUDE.md` §4.
      */
     private function pensionForUserOr404(int $dcPensionId, $user): DCPension
     {
@@ -80,6 +92,22 @@ class DCPensionHoldingsController extends Controller
             'ticker' => 'nullable|string|max:255',
             'isin' => 'nullable|string|max:255',
             'asset_type' => 'required|in:equity,bond,fund,etf,alternative,uk_equity,us_equity,international_equity,cash,property',
+            // `HoldingForm` requires a fund type whenever the asset type is Fund,
+            // and this endpoint had no rule for the column at all — so
+            // `validated()` dropped it and a fund type the user was made to choose
+            // was reported as saved and never stored. The vocabulary is
+            // `HoldingSubTypes`, which both investment holding requests read too
+            // (Rule 20).
+            //
+            // Accepted, NOT `required_if:asset_type,fund`. The investment holding
+            // requests carry that because they serve one form that always sends it;
+            // this endpoint has other callers, and refusing a fund holding that
+            // states no sub-type would reject what those paths legitimately produce
+            // — the "column wider than the rule" direction in `app/Http/CLAUDE.md`,
+            // where the answer depends on whether anything offers the excluded
+            // value. Something does: `DCPensionHoldingValuationTest` creates a fund
+            // holding with no sub-type, and requiring one turned that 201 into a 422.
+            'sub_type' => ['nullable', 'string', Rule::in(HoldingSubTypes::ALL)],
             'allocation_percent' => 'nullable|numeric|min:0|max:100',
             'quantity' => 'nullable|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
@@ -93,10 +121,11 @@ class DCPensionHoldingsController extends Controller
         $validated['holdable_id'] = $pension->id;
         $validated['holdable_type'] = DCPension::class;
 
-        // Calculate cost basis if missing
-        if (isset($validated['quantity']) && isset($validated['purchase_price'])) {
-            $validated['cost_basis'] = $validated['quantity'] * $validated['purchase_price'];
-        }
+        // Units, price, value and cost basis are reconciled in the ONE place every
+        // holding write path reads (Rule 20, W-0126). This carried its own
+        // `cost_basis = quantity x purchase_price`, written out line for line, and
+        // derived no unit count at all when the caller gave a value and a price.
+        $validated = HoldingValuation::reconcile($validated);
 
         $holding = Holding::create($validated);
 
@@ -132,6 +161,22 @@ class DCPensionHoldingsController extends Controller
             'ticker' => 'nullable|string|max:255',
             'isin' => 'nullable|string|max:255',
             'asset_type' => 'sometimes|required|in:equity,bond,fund,etf,alternative,uk_equity,us_equity,international_equity,cash,property',
+            // `HoldingForm` requires a fund type whenever the asset type is Fund,
+            // and this endpoint had no rule for the column at all — so
+            // `validated()` dropped it and a fund type the user was made to choose
+            // was reported as saved and never stored. The vocabulary is
+            // `HoldingSubTypes`, which both investment holding requests read too
+            // (Rule 20).
+            //
+            // Accepted, NOT `required_if:asset_type,fund`. The investment holding
+            // requests carry that because they serve one form that always sends it;
+            // this endpoint has other callers, and refusing a fund holding that
+            // states no sub-type would reject what those paths legitimately produce
+            // — the "column wider than the rule" direction in `app/Http/CLAUDE.md`,
+            // where the answer depends on whether anything offers the excluded
+            // value. Something does: `DCPensionHoldingValuationTest` creates a fund
+            // holding with no sub-type, and requiring one turned that 201 into a 422.
+            'sub_type' => ['nullable', 'string', Rule::in(HoldingSubTypes::ALL)],
             'allocation_percent' => 'nullable|numeric|min:0|max:100',
             'quantity' => 'nullable|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
@@ -141,14 +186,13 @@ class DCPensionHoldingsController extends Controller
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        // Recalculate cost basis if quantity or purchase price changed
-        if (isset($validated['quantity']) || isset($validated['purchase_price'])) {
-            $quantity = $validated['quantity'] ?? $holding->quantity;
-            $purchasePrice = $validated['purchase_price'] ?? $holding->purchase_price;
-            if ($quantity && $purchasePrice) {
-                $validated['cost_basis'] = $quantity * $purchasePrice;
-            }
-        }
+        // The same ONE reconciliation as the create path, resolved against the stored
+        // holding so a partial edit keeps the fields it left alone. This hand-rolled
+        // that fallback — `$validated['quantity'] ?? $holding->quantity` — which is
+        // precisely the construct that let an inherited unit count overwrite a value
+        // the user had just typed (W-0121). Resolving it here means the shared class
+        // decides which of the two the caller actually asserted.
+        $validated = HoldingValuation::reconcile($validated, $holding);
 
         $holding->update($validated);
 
@@ -217,11 +261,20 @@ class DCPensionHoldingsController extends Controller
                     ->where('holdable_type', DCPension::class)
                     ->firstOrFail();
 
-                $holding->update([
-                    'current_value' => $holdingData['current_value'],
-                    'current_price' => $holdingData['current_price'] ?? $holding->current_price,
-                    'allocation_percent' => $holdingData['allocation_percent'] ?? $holding->allocation_percent,
-                ]);
+                // A bulk re-valuation states a new value and sometimes a new price.
+                // It never states units, so the value the user typed stands and the
+                // unit count is back-calculated from it — rather than being left to
+                // contradict the figure now stored beside it (W-0121). Fields the
+                // caller omitted are not written at all; the shared rule resolves
+                // them against the stored row.
+                $payload = ['current_value' => $holdingData['current_value']];
+                foreach (['current_price', 'allocation_percent'] as $field) {
+                    if (isset($holdingData[$field])) {
+                        $payload[$field] = $holdingData[$field];
+                    }
+                }
+
+                $holding->update(HoldingValuation::reconcile($payload, $holding));
             }
 
             DB::commit();

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +68,25 @@ it('aborts before destructive schema changes while a trialing row remains', func
             ->and(Schema::hasColumn('subscription_plans', 'trial_days'))->toBeTrue()
             ->and(Schema::hasTable('trial_reminder_log'))->toBeTrue();
     } finally {
+        // $migration->down() above ran DDL, and MySQL implicitly commits on DDL — so
+        // RefreshDatabase's transaction is already gone and its rollback will do
+        // nothing. Everything this test wrote has to be removed by hand, including
+        // the user, which soft-deletes and would otherwise survive a ->delete().
         DB::table('subscriptions')->where('user_id', $user->id)->delete();
+        DB::table('users')->where('id', $user->id)->delete();
+        TaxConfiguration::query()->where('tax_year', '2019/20')->delete();
         $migration->up();
     }
+});
+
+// Runs last on purpose: proves the cleanup above still covers everything the
+// committed test wrote. Reported as rows rather than counts, because when this
+// fails the survivor's identity is the whole diagnosis.
+it('leaves no committed rows behind after the migration test', function (): void {
+    // Not tax_configurations: the global beforeEach creates a safety-net row for every
+    // test, including this one, inside its own transaction.
+    expect([
+        'users' => DB::table('users')->pluck('email')->all(),
+        'subscriptions' => DB::table('subscriptions')->pluck('id')->all(),
+    ])->toBe(['users' => [], 'subscriptions' => []]);
 });

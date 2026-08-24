@@ -160,6 +160,17 @@ struct DashboardModelsTests {
     }
 
     @Test
+    func decodesEmptyArraySemanticDestinationParamsFromBuildFive() throws {
+        let data = Data(
+            #"{"screen":"tax_strategy","params":[],"fallback":"dashboard"}"#.utf8
+        )
+
+        let destination = try JSONDecoder().decode(SemanticDestination.self, from: data)
+
+        #expect(destination.params.isEmpty)
+    }
+
+    @Test
     func keepsUnavailableAndMissingMoneyExplicitInsteadOfFabricatingZero() throws {
         let dashboard = try decode("module-unavailable")
 

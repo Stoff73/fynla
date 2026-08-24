@@ -33,7 +33,34 @@ it('fromForm preserves tenants_in_common ownership_type (property-only)', functi
     ]);
 
     expect($canonical['ownership_type'])->toBe('tenants_in_common');
-    expect($canonical['ownership_percentage'])->toBe(60);
+    // Cast to float by SharedOwnership, matching every other normaliser and the
+    // decimal column behind it.
+    expect($canonical['ownership_percentage'])->toBe(60.0);
+});
+
+it('gives a shared property a 50/50 split when the form states no share', function () {
+    $normaliser = new PropertyNormaliser;
+
+    // The property form states a share only for tenants in common, where it
+    // shows the input. It used to send the individual default of 100 on every
+    // type and rely on the boundary halving it (W-0040).
+    $canonical = $normaliser->fromForm([
+        'ownership_type' => 'joint',
+        'joint_owner_id' => 2,
+    ]);
+
+    expect($canonical['ownership_percentage'])->toBe(50.0);
+});
+
+it('resolves the share on the Fyn path through the same rule as the form path', function () {
+    $normaliser = new PropertyNormaliser;
+
+    // fromFyn carried its own copy that defaulted only individual and trust,
+    // leaving a shared property to whatever the tool call happened to send.
+    expect($normaliser->fromFyn(['ownership_type' => 'joint'])['ownership_percentage'])->toBe(50.0)
+        ->and($normaliser->fromFyn(['ownership_type' => 'tenants_in_common'])['ownership_percentage'])->toBe(50.0)
+        ->and($normaliser->fromFyn(['ownership_type' => 'individual'])['ownership_percentage'])->toBe(100.0)
+        ->and($normaliser->fromFyn(['ownership_type' => 'joint', 'ownership_percentage' => 70])['ownership_percentage'])->toBe(70.0);
 });
 
 it('fromFyn maps address shorthand to address_line_1 and is_joint to ownership_type', function () {

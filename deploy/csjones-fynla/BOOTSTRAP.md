@@ -13,7 +13,7 @@ This is the **first-time setup** for the dev environment at `https://csjones.co/
 You need:
 - SSH access to csjones.co (key at `~/.ssh/fynlaDev` or whatever you've configured)
 - A new empty MySQL database on csjones.co (provision via SiteGround Site Tools → MySQL → Databases)
-- Revolut sandbox API keys (see `/Users/CSJ/Desktop/fynla/revolut/implementation-plan.md`)
+- Revolut sandbox API keys (see `/Users/CSJ/Desktop/fynla/docs/archive/revolut/implementation-plan.md`)
 - Anthropic API key (can share with production, or rotate)
 
 Record these in a password manager **before** starting — you'll paste them into the server `.env`.

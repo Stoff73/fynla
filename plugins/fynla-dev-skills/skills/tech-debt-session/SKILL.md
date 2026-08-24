@@ -90,7 +90,7 @@ For every changed file, read the full contents and check against the categories 
 
 ## Step 3: Generate Report
 
-Save the report to the project root as `tech-debt-report.md`. Use this structure:
+Save the report to `docs/tech-debt-report.md`. Use this structure:
 
 ```markdown
 # Tech Debt Report — Session [date]

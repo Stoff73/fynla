@@ -251,6 +251,31 @@ export default {
         if (data.property.id) {
           // Update existing property
           propertyResponse = await api.put(`/properties/${data.property.id}`, data.property);
+
+          // W-0012, the edit half. The create path was fixed to send every mortgage
+          // field; **this branch sent none of them** — it PUT `data.property` and
+          // discarded `data.mortgage` entirely, so a user editing their lender, rate
+          // or Rate Fix End Date on an existing property watched all of it vanish.
+          //
+          // It cannot go through `PUT /api/properties/{id}`: `UpdatePropertyRequest`
+          // declares **zero** `mortgage_*` rules, so those keys would be stripped at
+          // validation even if they were sent. The mortgage has its own endpoints,
+          // which accept exactly the fields this form collects — unprefixed, so no
+          // mapping rule is needed here.
+          if (data.mortgage && data.mortgage.outstanding_balance) {
+            const { id: mortgageId, ...mortgageFields } = data.mortgage;
+
+            if (mortgageId) {
+              await api.put(`/mortgages/${mortgageId}`, mortgageFields);
+            } else {
+              // The property had no mortgage and has just been given one.
+              await api.post(`/properties/${data.property.id}/mortgages`, mortgageFields);
+            }
+
+            // Re-read, so the card shows what was stored rather than what was sent.
+            propertyResponse = await api.get(`/properties/${data.property.id}`);
+          }
+
           const updatedProperty = propertyResponse.data.data?.property || propertyResponse.data;
           const index = this.properties.findIndex(p => p.id === data.property.id);
           if (index !== -1) {
@@ -262,21 +287,33 @@ export default {
           // Note: PropertyController automatically creates mortgage(s) if outstanding_mortgage is provided
           // For joint ownership, it creates reciprocal mortgage records automatically
 
-          // Include ALL mortgage data if provided
+          // W-0012. This said "Include ALL mortgage data if provided" and then
+          // hand-copied thirteen fields. `rate_fix_end_date` was not among them,
+          // so a user could fill in Rate Fix End Date, watch it save, and never
+          // see it again — and it was not alone. Eight more fields the backend
+          // accepts were dropped the same way: `repayment_percentage`,
+          // `interest_only_percentage`, `fixed_rate_percentage`,
+          // `variable_rate_percentage`, `fixed_interest_rate`,
+          // `variable_interest_rate`, `remaining_term_months` and
+          // `monthly_interest_portion`.
+          //
+          // **The list was the defect, so the list is gone.** `StorePropertyRequest`
+          // names every accepted mortgage field as `mortgage_<name>`, and the form
+          // emits `<name>` — with the single quirk that `mortgage_type` is already
+          // prefixed and must not become `mortgage_mortgage_type`. That is the whole
+          // correspondence, so it is expressed as the rule it is rather than
+          // re-enumerated here, where the next field added would be forgotten again.
+          //
+          // Keys the request does not declare are simply absent from `validated()`,
+          // so passing a few extra costs nothing.
           if (data.mortgage && data.mortgage.outstanding_balance) {
             data.property.outstanding_mortgage = data.mortgage.outstanding_balance;
-            data.property.mortgage_lender_name = data.mortgage.lender_name;
-            data.property.mortgage_type = data.mortgage.mortgage_type;
-            data.property.mortgage_monthly_payment = data.mortgage.monthly_payment;
-            data.property.mortgage_interest_rate = data.mortgage.interest_rate;
-            data.property.mortgage_rate_type = data.mortgage.rate_type;
-            data.property.mortgage_start_date = data.mortgage.start_date;
-            data.property.mortgage_maturity_date = data.mortgage.maturity_date;
-            data.property.mortgage_ownership_type = data.mortgage.ownership_type;
-            data.property.mortgage_original_loan_amount = data.mortgage.original_loan_amount;
-            // Include joint ownership fields for mortgage
-            data.property.mortgage_joint_owner_id = data.mortgage.joint_owner_id;
-            data.property.mortgage_ownership_percentage = data.mortgage.ownership_percentage;
+
+            Object.entries(data.mortgage).forEach(([key, value]) => {
+              if (key === 'outstanding_balance') return;
+              const target = key.startsWith('mortgage_') ? key : `mortgage_${key}`;
+              data.property[target] = value;
+            });
           }
 
           propertyResponse = await api.post('/properties', data.property);

@@ -7,6 +7,7 @@ use App\Models\Estate\LpaAttorney;
 use App\Models\Estate\LpaNotificationPerson;
 use App\Models\TaxConfiguration;
 use App\Models\User;
+use App\Services\Estate\LpaCheckPolicy;
 use App\Services\Estate\LpaComplianceService;
 
 beforeEach(function () {
@@ -26,8 +27,14 @@ describe('checkCompliance', function () {
 
         $result = $this->service->checkCompliance($lpa);
 
-        expect($result)->toHaveKeys(['checks', 'passed', 'failed', 'warnings', 'overall_status'])
-            ->and($result['checks'])->toBeArray();
+        expect($result)->toHaveKeys([
+            'checks', 'passed', 'failed', 'warnings',
+            'outcome', 'outcome_label', 'heading',
+            'not_checked_heading', 'not_checked_intro', 'not_checked',
+            'not_checked_close', 'referral',
+        ])
+            ->and($result['checks'])->toBeArray()
+            ->and($result)->not->toHaveKey('overall_status');
     });
 
     it('fails when no attorneys appointed', function () {
@@ -180,7 +187,7 @@ describe('checkCompliance', function () {
         expect($whenCheck)->toBeNull();
     });
 
-    it('returns compliant status when all checks pass', function () {
+    it('reports no issues found when every check passes, and never a verdict', function () {
         $lpa = LastingPowerOfAttorney::factory()
             ->propertyFinancial()
             ->registered()
@@ -204,7 +211,312 @@ describe('checkCompliance', function () {
 
         $result = $this->service->checkCompliance($lpa);
 
-        expect($result['overall_status'])->toBe('compliant')
-            ->and($result['failed'])->toBe(0);
+        // This is the state that produced the green "Compliant" badge from
+        // 1a3d17e99 (2026-03-16) until W-0100. It now describes the act.
+        expect($result['failed'])->toBe(0)
+            ->and($result['warnings'])->toBe(0)
+            ->and($result['outcome'])->toBe(LpaCheckPolicy::OUTCOME_NO_ISSUES)
+            ->and($result['outcome_label'])->toBe('No issues found in these checks');
+    });
+
+    it('names what it did not check alongside every result', function () {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        $result = $this->service->checkCompliance($lpa);
+
+        // A bare count would only say the list changed size. These two entries are
+        // the ones that must never be dropped: the first is what keeps every party-role
+        // check honest about what a name comparison can do (W-0102), and the second is
+        // the disqualification limb compliance ruled disclosure-only because "family
+        // member" is undefined in the regulations (W-0151).
+        expect($result['not_checked'])->toBe(LpaCheckPolicy::NOT_CHECKED)
+            ->and($result['not_checked'])->not->toBeEmpty()
+            ->and($result['not_checked'])->toContain('Whether two people whose names you typed differently are the same person, or two people with the same name are different people. We compare only the names you entered.')
+            ->and($result['not_checked'])->toContain('Whether anything disqualifies your certificate provider from giving the certificate — including being a member of your family.')
+            ->and($result['referral'])->toContain('qualified solicitor')
+            ->and($result['referral'])->not->toContain('Financial Conduct Authority');
+    });
+
+    it('uses singular wording when exactly one check trips', function () {
+        expect(LpaCheckPolicy::outcomeLabel(1, 0))->toBe('One check did not pass')
+            ->and(LpaCheckPolicy::outcomeLabel(2, 0))->toBe('Some checks did not pass')
+            ->and(LpaCheckPolicy::outcomeLabel(0, 1))->toBe('One check raised a point to look at')
+            ->and(LpaCheckPolicy::outcomeLabel(0, 2))->toBe('Some checks raised a point to look at');
+    });
+
+    // Rule 9 — no acronyms in user-facing text. Every string this service hands
+    // a client is user-facing.
+    it('spells out Lasting Power of Attorney and Office of the Public Guardian', function () {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        $result = $this->service->checkCompliance($lpa);
+
+        $strings = array_merge(
+            [$result['outcome_label'], $result['heading'], $result['not_checked_heading'],
+                $result['not_checked_intro'], $result['not_checked_close'], $result['referral']],
+            $result['not_checked'],
+            array_column($result['checks'], 'title'),
+            array_column($result['checks'], 'description'),
+        );
+
+        foreach ($strings as $string) {
+            expect($string)->not->toMatch('/\bLPA\b/')
+                ->and($string)->not->toMatch('/\bOPG\b/');
+        }
+    });
+});
+
+/**
+ * W-0102 + W-0103 + W-0151 — the party-role check, folded into one mechanism.
+ *
+ * The name comparison routes to `WillDocumentService::isSameParty()`, which was
+ * already the one home for that question (W-0024). These tests pin the routing as
+ * much as the checks: if someone writes a second comparator, the case, whitespace
+ * and "Dave Jones" tests below describe behaviour they will have to reproduce.
+ */
+describe('party role conflicts', function () {
+    $partyCheck = function (array $result, string $key): ?array {
+        return collect($result['checks'])->firstWhere('key', $key);
+    };
+
+    it('fails when the certificate provider is also an attorney, and cites both instruments', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'donor_full_name' => 'Patricia Bennett',
+            'certificate_provider_name' => 'Harold Bennett',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        $check = $partyCheck($this->service->checkCompliance($lpa), 'party_roles_certificate_provider_attorney');
+
+        expect($check)->not->toBeNull()
+            ->and($check['status'])->toBe('fail')
+            ->and($check['title'])->toBe('Your certificate provider is also named as an attorney')
+            ->and($check['description'])->toContain('Schedule 1, paragraph 2(6)')
+            ->and($check['description'])->toContain('regulation 8(3)(b)');
+    });
+
+    // Team-lead: match W-0024's gate, which the tester verified BOTH ways — fires
+    // when the conflict exists, clears when it is corrected.
+    it('clears once the conflict is corrected', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'certificate_provider_name' => 'Harold Bennett',
+        ]);
+        $attorney = LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        expect($partyCheck($this->service->checkCompliance($lpa), 'party_roles_certificate_provider_attorney'))
+            ->not->toBeNull();
+
+        $attorney->update(['full_name' => 'Nadia Bennett']);
+
+        $corrected = $this->service->checkCompliance($lpa->fresh());
+        expect($partyCheck($corrected, 'party_roles_certificate_provider_attorney'))->toBeNull()
+            ->and($partyCheck($corrected, 'party_roles')['status'])->toBe('pass');
+    });
+
+    it('ignores case and surrounding whitespace, because isSameParty does', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'certificate_provider_name' => '  harold   BENNETT ',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        expect($partyCheck($this->service->checkCompliance($lpa), 'party_roles_certificate_provider_attorney'))
+            ->not->toBeNull();
+    });
+
+    // The limit this check has, proved rather than asserted. It is disclosed once in
+    // LpaCheckPolicy::NOT_CHECKED — this test is what keeps that disclosure honest.
+    it('does not catch a differently spelled name, which is why the limit is disclosed', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'certificate_provider_name' => 'Dave Jones',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'David Jones',
+        ]);
+
+        expect($partyCheck($this->service->checkCompliance($lpa), 'party_roles_certificate_provider_attorney'))
+            ->toBeNull()
+            ->and(LpaCheckPolicy::NOT_CHECKED)
+            ->toContain('Whether two people whose names you typed differently are the same person, or two people with the same name are different people. We compare only the names you entered.');
+    });
+
+    it('fails when the certificate provider is an attorney on the donor other instrument', function () use ($partyCheck) {
+        $health = LastingPowerOfAttorney::factory()->healthWelfare()->create(['user_id' => $this->user->id]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $health->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        $property = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'certificate_provider_name' => 'Harold Bennett',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $property->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Nadia Bennett',
+        ]);
+
+        $check = $partyCheck($this->service->checkCompliance($property), 'party_roles_certificate_provider_other_instrument');
+
+        expect($check)->not->toBeNull()
+            ->and($check['status'])->toBe('fail')
+            ->and($check['description'])->toContain('regulation 8(3)(c)');
+    });
+
+    it('does not reach across to another user instrument', function () use ($partyCheck) {
+        $stranger = User::factory()->create();
+        $theirs = LastingPowerOfAttorney::factory()->healthWelfare()->create(['user_id' => $stranger->id]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $theirs->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        $mine = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'certificate_provider_name' => 'Harold Bennett',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $mine->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Nadia Bennett',
+        ]);
+
+        expect($partyCheck($this->service->checkCompliance($mine), 'party_roles_certificate_provider_other_instrument'))
+            ->toBeNull();
+    });
+
+    // Compliance searched for an express prohibition on a donor naming themselves and
+    // did not find one, so these are warnings describing a contradiction — never
+    // failures asserting a rule.
+    it('warns, and does not fail, when the donor is named as their own attorney', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'donor_full_name' => 'Patricia Bennett',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Patricia Bennett',
+        ]);
+
+        $check = $partyCheck($this->service->checkCompliance($lpa), 'party_roles_donor_attorney');
+
+        expect($check['status'])->toBe('warning')
+            ->and($check['title'])->toBe('You are named as your own attorney')
+            ->and($check['description'])->toContain('contradiction Fynla cannot resolve for you')
+            ->and($check['description'])->not->toContain('cannot confer');
+    });
+
+    it('warns when the donor is named as their own certificate provider', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'donor_full_name' => 'Patricia Bennett',
+            'certificate_provider_name' => 'Patricia Bennett',
+        ]);
+
+        $check = $partyCheck($this->service->checkCompliance($lpa), 'party_roles_donor_certificate_provider');
+
+        expect($check['status'])->toBe('warning')
+            ->and($check['description'])->toContain('Schedule 1, paragraph 2(1)(e)')
+            ->and($check['description'])->toContain('contradiction Fynla cannot resolve for you');
+    });
+
+    it('warns when one person is both an attorney and a replacement attorney', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create(['user_id' => $this->user->id]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'replacement',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        $check = $partyCheck($this->service->checkCompliance($lpa), 'party_roles_attorney_and_replacement');
+
+        expect($check['status'])->toBe('warning')
+            ->and($check['title'])->toBe('Harold Bennett is named as both an attorney and a replacement attorney')
+            ->and($check['description'])->toContain('would be replacing themselves');
+    });
+
+    it('warns when the same person is entered twice in one list', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create(['user_id' => $this->user->id]);
+        LpaAttorney::factory(2)->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        $check = $partyCheck($this->service->checkCompliance($lpa), 'party_roles_duplicate_attorney');
+
+        expect($check['status'])->toBe('warning')
+            ->and($check['title'])->toBe('Harold Bennett is named twice');
+    });
+
+    // The half compliance flagged as most likely to be "tidied" into an object claim.
+    it('passes with wording that describes the comparison, never the absence of a conflict', function () use ($partyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'donor_full_name' => 'Patricia Bennett',
+            'certificate_provider_name' => 'Dr Alice Okafor',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Harold Bennett',
+        ]);
+
+        $check = $partyCheck($this->service->checkCompliance($lpa), 'party_roles');
+
+        expect($check['status'])->toBe('pass')
+            ->and($check['title'])->toBe('The names in each role are different')
+            ->and($check['description'])->toBe('The certificate provider and attorney names you entered do not match each other.')
+            ->and(strtolower($check['title'].' '.$check['description']))->not->toContain('no conflict');
+    });
+
+    it('reports every conflict at once rather than one at a time', function () {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'donor_full_name' => 'Patricia Bennett',
+            'certificate_provider_name' => 'Patricia Bennett',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Patricia Bennett',
+        ]);
+
+        $keys = collect($this->service->checkCompliance($lpa)['checks'])->pluck('key');
+
+        expect($keys)->toContain('party_roles_certificate_provider_attorney')
+            ->and($keys)->toContain('party_roles_donor_attorney')
+            ->and($keys)->toContain('party_roles_donor_certificate_provider')
+            ->and($keys->duplicates())->toBeEmpty();
     });
 });

@@ -72,7 +72,6 @@
               <input
                 v-model="form.expected_date"
                 type="date"
-                :min="minDate"
                 class="w-full px-3 py-2 border border-horizon-300 rounded-md shadow-sm focus:ring-violet-500 focus:border-raspberry-500"
                 required
               />
@@ -203,12 +202,6 @@ export default {
 
     isEditing() {
       return !!this.event;
-    },
-
-    minDate() {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      return tomorrow.toISOString().split('T')[0];
     },
 
     incomeTypes() {

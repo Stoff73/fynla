@@ -254,7 +254,7 @@
                     :key="child.id"
                     :value="child.id"
                   >
-                    {{ child.first_name }} {{ child.last_name }} ({{ formatRelationship(child.relationship) }})
+                    {{ child.first_name }} {{ child.last_name }} ({{ familyMemberRelationshipTitle(child) }})
                   </option>
                   <option value="other">Other (enter name)</option>
                 </select>
@@ -559,6 +559,8 @@
 import { mapState, mapGetters } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { familyMemberRelationshipTitle } from '@/utils/familyMember';
+import { isaAllowanceMixin } from '@/mixins/isaAllowanceMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 import logger from '@/utils/logger';
@@ -567,7 +569,7 @@ export default {
 
   emits: ['save', 'close'],
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, isaAllowanceMixin],
 
   components: {
     CountrySelector,
@@ -803,14 +805,14 @@ export default {
       return this.paymentsRemainingThisTaxYear * amount;
     },
 
-    // Get total Cash ISA usage from savings store
+    // Both figures come from the ONE home, isaAllowanceMixin, which every
+    // component rendering or guarding on ISA usage reads (W-0007).
     totalCashISAUsed() {
-      return this.$store.getters['savings/currentYearISASubscription'] || 0;
+      return this.cashISAUsed;
     },
 
-    // Get S&S ISA usage from investment store
     stocksISAUsed() {
-      return this.$store.getters['investment/investmentISASubscription'] || 0;
+      return this.totalStocksISAUsed;
     },
 
     // Get other Cash ISA usage (excluding this account if editing)
@@ -1067,14 +1069,11 @@ export default {
       }
     },
 
-    formatRelationship(relationship) {
-      const labels = {
-        child: 'Child',
-        step_child: 'Step Child',
-        other_dependent: 'Dependant',
-      };
-      return labels[relationship] || relationship;
-    },
+    // W-0115 — was a fourth private label map for one thing, including a
+    // `step_child` branch that could never fire (step children are stored as
+    // `child`). Reads the shared helper, which renders the relationship the user
+    // actually chose rather than the value the column had to hold.
+    familyMemberRelationshipTitle,
 
     handleClose() {
       if (this.pendingFill) {

@@ -101,17 +101,74 @@ describe('GiftCard', () => {
     expect(percentage).toBeLessThanOrEqual(30);
   });
 
-  it('shows taper relief for gifts 3-7 years old', () => {
+  /**
+   * C4 (tax-compliance-reviewer F4). These asserted taper relief from the gift's
+   * AGE alone — 3.5 years → 20%, 4.5 → 40%, and so on — which is what the component
+   * used to compute from a hardcoded schedule.
+   *
+   * IHTM14611 says the opposite in terms: relief applies only where "tax is due on
+   * the transfer in its own right", and "if no tax is payable on the transfer
+   * because it does not exceed the nil-rate band (after cumulation), there can be
+   * no relief". Whether a gift bears tax depends on the whole estate's cumulation,
+   * which this component cannot know — so the server answers, and the component
+   * displays. A gift with no `taper` entry bears no tax.
+   *
+   * The old tests could not have caught the defect they were written around: every
+   * gift in the seeded personas sits inside the allowance, so the badge they
+   * asserted was wrong on essentially all real data.
+   */
+  const taperedGift = (yearsAgo, taper) => ({
+    id: 100,
+    gift_date: dateYearsAgo(yearsAgo),
+    recipient: 'Test',
+    gift_value: 50000,
+    gift_type: 'pet',
+    taper,
+  });
+
+  it('shows taper relief when the server says the gift bears tax', () => {
     const wrapper = mount(GiftCard, {
       props: {
-        gift: mockTaperGift,
+        gift: taperedGift(3.5, {
+          chargeable_amount: 25000,
+          tax_rate_percent: 32,
+          taper_relief_percent: 20,
+          taper_saving: 2000,
+        }),
       },
     });
 
     expect(wrapper.vm.showTaperRelief).toBe(true);
-    const relief = wrapper.vm.taperReliefPercentage;
-    expect(relief).toBeGreaterThan(0);
-    expect(relief).toBeLessThanOrEqual(100);
+    expect(wrapper.vm.taperReliefPercentage).toBe(20);
+    expect(wrapper.vm.effectiveIhtRate).toBe(32);
+  });
+
+  it('shows NO taper relief for an old gift that sits within the allowance', () => {
+    // Six years old — the old component showed "80% Taper Relief" on this. The
+    // gift bears no tax, so there is nothing to taper.
+    const wrapper = mount(GiftCard, {
+      props: { gift: taperedGift(6.0, null) },
+    });
+
+    expect(wrapper.vm.showTaperRelief).toBe(false);
+    expect(wrapper.vm.taperReliefPercentage).toBe(0);
+    expect(wrapper.vm.statusText).toBe('Within Your Allowance — No Tax');
+  });
+
+  it('says a gift is taxable when it is above the allowance but too recent to taper', () => {
+    const wrapper = mount(GiftCard, {
+      props: {
+        gift: taperedGift(1.0, {
+          chargeable_amount: 25000,
+          tax_rate_percent: 40,
+          taper_relief_percent: 0,
+          taper_saving: 0,
+        }),
+      },
+    });
+
+    expect(wrapper.vm.showTaperRelief).toBe(false);
+    expect(wrapper.vm.statusText).toBe('Taxable — Above Your Allowance');
   });
 
   it('does not show taper relief for gifts within 3 years', () => {
@@ -122,89 +179,6 @@ describe('GiftCard', () => {
     });
 
     expect(wrapper.vm.showTaperRelief).toBe(false);
-  });
-
-  it('calculates taper relief percentage correctly for 3-4 years', () => {
-    const giftAt35Years = {
-      id: 100,
-      gift_date: dateYearsAgo(3.5),
-      recipient: 'Test',
-      gift_value: 50000,
-      gift_type: 'pet',
-    };
-
-    const wrapper = mount(GiftCard, {
-      props: {
-        gift: giftAt35Years,
-      },
-    });
-
-    expect(wrapper.vm.taperReliefPercentage).toBe(20);
-  });
-
-  it('calculates taper relief percentage correctly for 4-5 years', () => {
-    const giftAt45Years = {
-      id: 101,
-      gift_date: dateYearsAgo(4.5),
-      recipient: 'Test',
-      gift_value: 50000,
-      gift_type: 'pet',
-    };
-
-    const wrapper = mount(GiftCard, {
-      props: {
-        gift: giftAt45Years,
-      },
-    });
-
-    expect(wrapper.vm.taperReliefPercentage).toBe(40);
-  });
-
-  it('calculates taper relief percentage correctly for 5-6 years', () => {
-    const giftAt55Years = {
-      id: 102,
-      gift_date: dateYearsAgo(5.5),
-      recipient: 'Test',
-      gift_value: 50000,
-      gift_type: 'pet',
-    };
-
-    const wrapper = mount(GiftCard, {
-      props: {
-        gift: giftAt55Years,
-      },
-    });
-
-    expect(wrapper.vm.taperReliefPercentage).toBe(60);
-  });
-
-  it('calculates taper relief percentage correctly for 6-7 years', () => {
-    const giftAt65Years = {
-      id: 103,
-      gift_date: dateYearsAgo(6.5),
-      recipient: 'Test',
-      gift_value: 50000,
-      gift_type: 'pet',
-    };
-
-    const wrapper = mount(GiftCard, {
-      props: {
-        gift: giftAt65Years,
-      },
-    });
-
-    expect(wrapper.vm.taperReliefPercentage).toBe(80);
-  });
-
-  it('shows fully exempt status for gifts survived 7+ years', () => {
-    const wrapper = mount(GiftCard, {
-      props: {
-        gift: mockSurvivedGift,
-      },
-    });
-
-    const statusText = wrapper.vm.statusText;
-    expect(statusText).toMatch(/exempt|survived/i);
   });
 
   it('calculates effective IHT rate with taper relief', () => {

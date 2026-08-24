@@ -253,8 +253,8 @@ export default {
     }
     const cookiesAccepted = ref(hasConsent());
 
-    const handleAcceptCookiesForRegistration = () => {
-      acceptCookies();
+    const handleAcceptCookiesForRegistration = async () => {
+      await acceptCookies();
       cookiesAccepted.value = true;
     };
 

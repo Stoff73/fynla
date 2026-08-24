@@ -19,10 +19,13 @@ class LetterToSpouse extends Model
         'bank_accounts_info',
         'cryptocurrency_info',
         'investment_accounts_info',
+        // Internal bookkeeping for W-0022 refreshes — not letter content.
+        'auto_populated_fields',
     ];
 
     protected $fillable = [
         'user_id',
+        'auto_populated_fields',
         // Part 1: What to do immediately
         'immediate_actions',
         'executor_name',
@@ -66,6 +69,7 @@ class LetterToSpouse extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'additional_boxes' => 'array',
+        'auto_populated_fields' => 'array',
     ];
 
     /**

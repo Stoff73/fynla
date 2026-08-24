@@ -6,6 +6,7 @@ namespace App\Agents;
 
 use App\Constants\TaxDefaults;
 use App\Events\Eval\EngineCalled;
+use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
@@ -19,12 +20,18 @@ use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Investment\Recommendation\DataReadinessService;
 use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\TaxEfficiencyCalculator;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class InvestmentAgent extends BaseAgent
 {
+    use CalculatesOwnershipShare;
+
     public function __construct(
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
@@ -34,8 +41,40 @@ class InvestmentAgent extends BaseAgent
         private readonly TaxEfficiencyCalculator $taxCalculator,
         private readonly TaxConfigService $taxConfig,
         private readonly InvestmentActionDefinitionService $actionDefinitionService,
-        private readonly DataReadinessService $readinessService
+        private readonly DataReadinessService $readinessService,
+        private readonly CrossModuleAssetAggregator $assetAggregator
     ) {}
+
+    /**
+     * The holdings of these accounts, each charged at this user's share.
+     *
+     * A holding carries no ownership columns — the account it sits in is what is
+     * jointly held — so a co-owner's half of a joint portfolio would otherwise
+     * reach every holding-derived figure whole: the return, the fee total, and
+     * the unrealised gain that a capital gains position is read from. Scaling
+     * cost and value by the same fraction keeps the gain proportional, which is
+     * what a share of a gain is.
+     *
+     * The returned holdings are read-only presentation copies and must never be
+     * saved — see CalculatesOwnershipShare::atUserShare.
+     *
+     * @param  EloquentCollection<int, InvestmentAccount>  $accounts
+     * @return Collection<int, Holding>
+     */
+    private function holdingsAtUserShare(EloquentCollection $accounts, int $userId): Collection
+    {
+        return $accounts->flatMap(function (InvestmentAccount $account) use ($userId): Collection {
+            $fraction = $this->userShareFraction($account, $userId);
+
+            return $account->holdings->map(function (Holding $holding) use ($fraction): Holding {
+                $view = clone $holding;
+                $view->current_value = (float) $holding->current_value * $fraction;
+                $view->cost_basis = (float) $holding->cost_basis * $fraction;
+
+                return $view;
+            });
+        });
+    }
 
     /**
      * Comprehensive investment portfolio analysis
@@ -68,9 +107,14 @@ class InvestmentAgent extends BaseAgent
             }
 
             return $this->remember("investment_analysis_{$userId}", function () use ($userId) {
-                // Get all user data (eager load holdings to avoid lazy loading)
-                $accounts = InvestmentAccount::where('user_id', $userId)->with('holdings')->get();
-                $holdings = $accounts->flatMap->holdings;
+                // Reach, then fraction (F-0019). `where('user_id', …)` hid a jointly
+                // held account from the co-owner entirely and charged the whole of
+                // it to whoever typed it in — the two directions of W-0238, on the
+                // same record. `forUserOrJoint` is the scope the rest of the
+                // application already reads shared investments through.
+                $ownedAccounts = InvestmentAccount::forUserOrJoint($userId)->with('holdings')->get();
+                $accounts = $this->atUserShare($ownedAccounts, $userId);
+                $holdings = $this->holdingsAtUserShare($ownedAccounts, $userId);
                 $riskProfile = RiskProfile::where('user_id', $userId)->first();
                 $goals = InvestmentGoal::where('user_id', $userId)->get();
 
@@ -81,8 +125,10 @@ class InvestmentAgent extends BaseAgent
                     ];
                 }
 
-                // Portfolio analysis
-                $totalValue = $this->portfolioAnalyzer->calculateTotalValue($accounts);
+                // Portfolio analysis. The total comes from the one home every other
+                // surface reads (Rule 20), so the dashboard card cannot disagree
+                // with the net worth figure printed beside it.
+                $totalValue = $this->assetAggregator->calculateInvestmentTotal($userId);
                 $returns = $this->portfolioAnalyzer->calculateReturns($holdings);
                 $allocation = $this->portfolioAnalyzer->calculateAssetAllocationWithLookThrough($holdings);
                 $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($holdings);

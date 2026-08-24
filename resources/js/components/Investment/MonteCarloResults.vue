@@ -261,8 +261,8 @@ export default {
 
       // Create probability bands - each band shows the range for that confidence level
       // 90% probability: 10th percentile
-      // 85% probability: 15th percentile (interpolated)
-      // 80% probability: 20th percentile (interpolated)
+      // 85% probability: 15th percentile
+      // 80% probability: 20th percentile
       // 75% probability: 25th percentile
 
       return [
@@ -272,11 +272,11 @@ export default {
         },
         {
           name: '85% Probability',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_15 || (p.percentile_10 + (p.percentile_25 - p.percentile_10) * 0.33) })),
+          data: projections.map(p => ({ x: p.year, y: p.percentile_15 })),
         },
         {
           name: '80% Probability',
-          data: projections.map(p => ({ x: p.year, y: p.percentile_20 || (p.percentile_10 + (p.percentile_25 - p.percentile_10) * 0.67) })),
+          data: projections.map(p => ({ x: p.year, y: p.percentile_20 })),
         },
         {
           name: '75% Probability',

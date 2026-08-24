@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class DriveWatchChannel extends Model
 {
+    protected $table = 'pipeline_drive_watch_channels';
+
     protected $guarded = ['id'];
 
     protected $casts = [
@@ -21,6 +23,9 @@ class DriveWatchChannel extends Model
 
     public static function active(): ?self
     {
-        return static::query()->latest('id')->first();
+        return static::query()
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->first();
     }
 }

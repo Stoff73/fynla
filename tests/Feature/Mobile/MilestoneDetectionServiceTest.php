@@ -89,7 +89,7 @@ it('presents verified milestone progress and semantic next actions without finan
             'label' => 'Review your net worth',
             'destination' => [
                 'screen' => 'net_worth',
-                'params' => [],
+                'params' => (object) [],
                 'fallback' => 'dashboard',
             ],
         ],
@@ -105,7 +105,7 @@ it('presents verified milestone progress and semantic next actions without finan
 
     expect($lockedNetWorth['state'])->toBe('locked')
         ->and($lockedNetWorth['progress'])->toBeNull()
-        ->and($lockedNetWorth['next_action']['destination']['params'])->toBe([]);
+        ->and($lockedNetWorth['next_action']['destination']['params'])->toEqual((object) []);
 });
 
 it('preserves negative canonical progress while clamping only its percentage', function () {

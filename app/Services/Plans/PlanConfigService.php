@@ -6,6 +6,7 @@ namespace App\Services\Plans;
 
 use App\Constants\TaxDefaults;
 use App\Models\PlanConfiguration;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Arr;
 
 /**
@@ -29,6 +30,23 @@ class PlanConfigService
      * Cached active plan configuration (request-scoped)
      */
     private ?array $config = null;
+
+    /**
+     * Optional so `new PlanConfigService` keeps working — this service is
+     * constructed bare in several tests, and a required dependency would break
+     * them for no benefit. Resolved from the container on first use.
+     */
+    private ?TaxConfigService $taxConfig = null;
+
+    public function __construct(?TaxConfigService $taxConfig = null)
+    {
+        $this->taxConfig = $taxConfig;
+    }
+
+    private function taxConfig(): TaxConfigService
+    {
+        return $this->taxConfig ??= app(TaxConfigService::class);
+    }
 
     /**
      * Get the full active plan configuration
@@ -161,11 +179,31 @@ class PlanConfigService
     }
 
     /**
-     * Charitable giving threshold percentage for reduced IHT rate.
+     * Charitable giving threshold percentage for the reduced Inheritance Tax rate.
+     *
+     * W-0451. This read `estate.charitable_giving_threshold_percent` from the
+     * PLAN configuration — a **second home** for a value that
+     * `TaxConfigService::getCharitableThresholdPercent()` already owns and that
+     * the Schedule 1A calculation actually uses. Two admin screens could set the
+     * same statutory figure independently, so moving one changed what
+     * `/plans/estate` DISPLAYS while the calculation kept using the other.
+     *
+     * **A statutory threshold is not a plan preference.** Schedule 1A fixes it
+     * at 10%; it belongs in the tax configuration under Rule 2, and the plans
+     * surface reads it rather than keeping its own.
+     *
+     * Returned as a percentage (10.0), not a fraction (0.10), because that is
+     * the unit this method's callers have always published.
+     *
+     * Consequence, stated rather than buried: the plan configuration's
+     * `estate.charitable_giving_threshold_percent` key is now **inert**. It is
+     * left in the seeder rather than removed, because deleting a seeded key is a
+     * data change and this is a Rule 2 fix — but nothing reads it, and the next
+     * person to edit it should know that.
      */
     public function getCharitableGivingThreshold(): float
     {
-        return (float) $this->get('estate.charitable_giving_threshold_percent', 10.0);
+        return $this->taxConfig()->getCharitableThresholdPercent() * 100;
     }
 
     // =========================================================================

@@ -264,12 +264,16 @@ it('LetterToSpouseService immediate funds info lists single-owner-as-primary joi
         'institution' => 'JointBank',
     ]);
 
+    // The generators now take the letter's one financial position rather than a
+    // User, so that the prose, the cards and the exported document cannot state
+    // three different figures (W-0421). Reach is asserted through the same public
+    // entry point the letter itself uses.
     $service = app(LetterToSpouseService::class);
     $reflection = new ReflectionClass($service);
     $method = $reflection->getMethod('generateImmediateFundsInfo');
     $method->setAccessible(true);
 
-    $info = $method->invoke($service, $user);
+    $info = $method->invoke($service, $service->financialPosition($user));
 
     // Joint account (JointBank) should appear; individual (IndividualBank) should not
     expect($info)->toContain('JointBank');
@@ -307,7 +311,7 @@ it('LetterToSpouseService bank accounts info lists all single-owner accounts', f
     $method = $reflection->getMethod('generateBankAccountsInfo');
     $method->setAccessible(true);
 
-    $info = $method->invoke($service, $user);
+    $info = $method->invoke($service, $service->financialPosition($user));
 
     // Both user-owned accounts appear (individual + joint-as-primary)
     expect($info)->toContain('IndividualBank');
@@ -1658,6 +1662,8 @@ it('SavingsAgent::generateRecommendations (IIFE site 276) passes a JOINT-AWARE s
         app(LiquidityAnalyzer::class),
         app(RateComparator::class),
         app(SavingsDataReadinessService::class),
+        app(SavingsStore::class),
+        app(CrossModuleAssetAggregator::class),
         $spy,
     );
 
@@ -1689,6 +1695,8 @@ it('SavingsAgent::generateRecommendations (IIFE site 276) hands an EMPTY collect
         app(LiquidityAnalyzer::class),
         app(RateComparator::class),
         app(SavingsDataReadinessService::class),
+        app(SavingsStore::class),
+        app(CrossModuleAssetAggregator::class),
         $spy,
     );
 

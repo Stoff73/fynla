@@ -182,7 +182,7 @@
         v-if="showEditModal"
         :account="account"
         @close="showEditModal = false"
-        @saved="handleAccountSaved"
+        @save="handleAccountSaved"
       />
 
       <ConfirmDialog
@@ -287,7 +287,9 @@ export default {
   },
 
   methods: {
-    ...mapActions('savings', ['fetchAccount', 'deleteAccount']),
+    // `updateAccount` was absent here because nothing on this page ever called
+    // it — the edit never reached a request at all (W-0327).
+    ...mapActions('savings', ['fetchAccount', 'updateAccount', 'deleteAccount']),
 
     async loadAccount() {
       this.loading = true;
@@ -303,9 +305,37 @@ export default {
       }
     },
 
-    async handleAccountSaved() {
-      this.showEditModal = false;
-      await this.loadAccount();
+    // W-0327. Two faults, and fixing either alone still loses the edit.
+    //
+    // The modal emits `save` (CLAUDE.md Rule 3); this page listened for `saved`,
+    // so "Update Account" ran the modal's validation, emitted into the void and
+    // stopped — no request, no error, no message, modal left open. Five of the
+    // six other `SaveAccountModal` consumers already listen for `save`; this page
+    // was the lone outlier.
+    //
+    // And this handler took NO argument and made NO request. So renaming the
+    // event alone would have closed the modal and reloaded the unchanged
+    // account — the edit still lost, and now looking like it had been saved.
+    // Rule 3: the parent makes the call, closes on success, stays open on error.
+    //
+    // Mirrors `SavingsAccountDetailInline.vue::handleAccountSaved` exactly rather
+    // than inventing a second shape (Rule 20) — including its preview-mode branch,
+    // where the API returns a fake success and the database is deliberately not
+    // written, so reloading would show the old value.
+    async handleAccountSaved(savedData) {
+      try {
+        await this.updateAccount({ id: this.accountId, accountData: savedData });
+        this.showEditModal = false;
+
+        if (this.$store.getters['preview/isPreviewMode']) {
+          this.account = { ...this.account, ...savedData };
+        } else {
+          await this.loadAccount();
+        }
+      } catch (error) {
+        logger.error('Failed to update account:', error);
+        this.error = 'Failed to update account. Please try again.';
+      }
     },
 
     confirmDelete() {

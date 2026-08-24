@@ -239,6 +239,10 @@ export default {
 
     timeRemaining() {
       const days = this.goal.days_remaining;
+      // days_remaining floors at zero, so `days < 0` below was unreachable and a
+      // goal three weeks past its date read "Today" (W-0411). is_overdue is the
+      // field that can tell the two apart.
+      if (this.goal.is_overdue) return 'Overdue';
       if (days === undefined || days === null) return 'N/A';
       if (days < 0) return 'Overdue';
       if (days === 0) return 'Today';
@@ -255,6 +259,7 @@ export default {
     },
 
     statusText() {
+      if (this.goal.status_label) return this.goal.status_label;
       if (this.goal.status === 'completed') return 'Completed';
       if (this.goal.status === 'paused') return 'Paused';
       if (this.progressPercent >= 100) return 'Goal Achieved';

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline\Content;
 
-use App\Services\Pipeline\Google\GoogleOAuthClient;
+use App\Services\Pipeline\Google\GoogleServiceAccountClient;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -21,7 +21,7 @@ class GoogleDocExporter
 
     private const API_ROOT = 'https://www.googleapis.com/drive/v3';
 
-    public function __construct(private readonly GoogleOAuthClient $oauth) {}
+    public function __construct(private readonly GoogleServiceAccountClient $auth) {}
 
     /**
      * Export the given Google Doc to a local .docx file. Returns the
@@ -29,7 +29,7 @@ class GoogleDocExporter
      */
     public function exportToDocx(string $fileId, string $localPath): string
     {
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
         $dir = dirname($localPath);
         if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {

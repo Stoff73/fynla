@@ -27,6 +27,40 @@ if (Schema::hasTable('table_name')) { return; }
 if (Schema::hasColumn('table', 'column')) { return; }
 ```
 
+**Run a new migration once before it lands.** A migration that has never executed
+is invisible until it takes out every batch's test suite at the same moment:
+`RefreshDatabase` applies all pending migrations, so a broken one fails every
+DB-touching test with **0 assertions**, in every per-batch database identically.
+That looks like the deadlock contention mode but does not clear on retry.
+
+**On a shared dev database, migrate ONE file, not everything:**
+```bash
+php artisan migrate --path=database/migrations/2026_08_21_120000_my_migration.php
+```
+Bare `php artisan migrate` applies *every* pending migration, including other
+people's — and a data migration is theirs to run, not yours. This has already
+happened: one agent's bare `migrate` swept up two other batches' data migrations
+in the same batch number.
+
+**MySQL will not accept a bound parameter in DDL.** This fails with a syntax error
+near `?`:
+```php
+DB::statement('ALTER TABLE `t` MODIFY `c` DECIMAL(5,2) NULL COMMENT ?', [$comment]);  // WRONG
+```
+Inline it instead, escaping any quotes. Only ever inline a value you control —
+never request input:
+```php
+$comment = str_replace("'", "''", self::COLUMN_COMMENT);
+DB::statement("ALTER TABLE `t` MODIFY `c` DECIMAL(5,2) NULL COMMENT '{$comment}'");
+```
+
+**A data migration must also fix what was DERIVED from the bad data.** Correcting a
+source column while leaving a cached/derived column computed from its old value
+means the fix looks complete and the wrong number still renders. `db_pensions`
+carries `spouse_pension_projected_gbp`; migration `2026_08_21_120000` recalculates
+it for every row it corrects, and logs each change so a populated environment
+leaves a deploy-log record of exactly what moved.
+
 ## Common Column Patterns
 
 **Standard columns** (most tables):
@@ -91,7 +125,7 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Seeders
 
-**23 seeder classes** in `database/seeders/` (including `DatabaseSeeder` orchestrator).
+**Seeder classes** live in `database/seeders/`, orchestrated by `DatabaseSeeder`.
 
 **Phase 1 — Required Data** (always runs, 18 seeders, executed in this order):
 1. TaxConfigurationSeeder - 5 UK tax years
@@ -125,7 +159,7 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Factories
 
-64 factories in `database/factories/`. Structure:
+Factories live in `database/factories/`. Structure:
 ```php
 class MyModelFactory extends Factory {
     protected $model = MyModel::class;
@@ -142,3 +176,34 @@ class MyModelFactory extends Factory {
 ```
 
 Use `fake()` (not `$this->faker`). Chain states: `Model::factory()->state1()->state2()->create()`.
+
+
+## A `NOT NULL DEFAULT` makes "never asked" indistinguishable from "chose this"
+
+**Added 2026-08-22**, from the expenditure-sharing work.
+
+`users.expenditure_sharing_mode` is `enum('joint','separate') NOT NULL DEFAULT 'joint'`.
+**So a married user who has never opened the form, never seen the toggle and never formed
+a view reads identically to one who deliberately chose Joint.** Live shape on dev when
+this was found: **19 users, all `joint`, zero `separate`, 12 with a spouse — nobody has
+ever chosen. Every value is the default.**
+
+**The column had already turned an unanswered question into an answer before any feature
+read it.** Any code treating that value as a declaration inherits the fabrication — and
+a rule like *"if no preference is recorded, ask"* has nothing to detect, because the
+unanswered state is not expressible.
+
+**This is the same defect as a tri-state column behind a two-state control** (`NULL` /
+`true` / `false` rendered by a falsy check, so *"we have not asked you"* and *"you told
+us no"* look identical). Both destroy the distinction between an absent fact and a
+chosen one — which is the distinction half this board's defects turn on.
+
+**When adding a column that records a user's choice, ask what "not yet asked" looks
+like.** If the answer is "the same as one of the choices", either make it nullable or add
+a `..._declared_at` companion. **A default is a convenience for the schema, not a
+statement by the user** — and code downstream cannot tell the difference.
+
+**Where a default must stand, the consequence is disclosure, not arithmetic:** a surface
+acting on a defaulted value should say what it assumed, the way a form does by showing
+the setting beside the input. A surface with no such affordance — a chat turn, an API
+call — cannot rely on it silently.

@@ -21,6 +21,9 @@ struct FynView: View {
         .background(FynlaColor.pageBackground)
         .task { await onStart() }
         .onDisappear { model.stop() }
+        .onChange(of: model.navigationRequests) { _, _ in
+            settleNavigation()
+        }
         .onChange(of: model.phase) { _, phase in
             guard !phase.isBusy else { return }
             settleNavigation()

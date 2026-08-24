@@ -50,12 +50,14 @@
               <span class="mi-acct__provider">{{ acct.provider || acct.platform || 'Investment account' }}</span>
               <span class="mi-acct__meta">
                 <span v-if="isIsa(acct) && !typeMentionsIsa(acct)" class="mi-acct__tag">ISA</span>
+                <span v-if="isShared(acct)" class="mi-acct__tag">Joint</span>
                 <span class="mi-acct__type">{{ accountTypeLabel(acct) }}</span>
                 <span v-if="holdingCount(acct)" class="mi-acct__holdings">{{ holdingCount(acct) }} {{ holdingCount(acct) === 1 ? 'holding' : 'holdings' }}</span>
               </span>
             </div>
             <div class="mi-acct__right">
-              <span class="mi-acct__value">{{ fmt(acct.current_value) }}</span>
+              <span class="mi-acct__value">{{ fmt(userShareOf(acct)) }}</span>
+              <span v-if="isShared(acct)" class="mi-acct__share">Your {{ sharePercent(acct) }} of {{ fmt(acct.current_value) }}</span>
               <span class="mi-acct__view">View</span>
             </div>
           </button>
@@ -73,6 +75,9 @@ import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentForm
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+// The ONE ownership home, shared with the desktop SPA (Rule 19 + Rule 20).
+// /m has its own bundle but not its own ownership arithmetic.
+import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 export default {
   name: 'MobileInvestment',
@@ -101,7 +106,11 @@ export default {
       return String(r).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     },
     totalValue() {
-      return this.accounts.reduce((sum, a) => sum + (Number(a.current_value) || 0), 0);
+      // The viewer's share, not the full value of every record. /m used to
+      // total the FULL value of joint accounts here while /m/app/net-worth
+      // counted the correct half — the same screen pair disagreeing by
+      // £47,500 on one account (W-0015).
+      return calculateTotalUserShare(this.accounts, { valueField: 'current_value' });
     },
     accountCountLabel() {
       const n = this.accounts.length;
@@ -118,6 +127,9 @@ export default {
   },
   methods: {
     fmt(v) { return formatCurrency(v); },
+    isShared(a) { return isSharedRecord(a); },
+    userShareOf(a) { return calculateUserShare(a, { valueField: 'current_value' }); },
+    sharePercent(a) { return `${userSharePercent(a).toFixed(2)}%`; },
     accountTypeLabel(a) { return accountTypeLabel(a); },
     isIsa(a) { return isIsaAccount(a); },
     typeMentionsIsa(a) { return accountTypeLabel(a).toLowerCase().includes('isa'); },
@@ -144,6 +156,7 @@ export default {
 </script>
 
 <style scoped>
+.mi-acct__share { display: block; font-size: 12px; color: var(--neutral-500); }
 .mi-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 0; }
 .mi-row__label { font-size: 13px; color: var(--neutral-500); }
 .mi-row__value { font-size: 14px; font-weight: 700; color: var(--horizon-500); }

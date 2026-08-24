@@ -180,6 +180,7 @@ import LifeEventForm from './LifeEventForm.vue';
 import LifeEventDetailInline from './LifeEventDetailInline.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import { summariseUpcoming } from '../../../mobile/utils/lifeEvents.js';
 
 import logger from '@/utils/logger';
 export default {
@@ -245,32 +246,33 @@ export default {
       return events;
     },
 
-    incomeEvents() {
-      return (this.lifeEvents || []).filter(e => e.impact_type === 'income');
-    },
-
-    expenseEvents() {
-      return (this.lifeEvents || []).filter(e => e.impact_type === 'expense');
+    // W-0207: these three cards head a list introduced as "Future occurrences",
+    // so they count what is still to come. They used to sum every event on file,
+    // which put a confirmed inheritance from 2020 inside "Expected Income".
+    // The totals come from the one shared helper rather than being summed here,
+    // so the /m goals screen cannot disagree with this page.
+    eventTotals() {
+      return summariseUpcoming(this.lifeEvents);
     },
 
     totalIncome() {
-      return this.incomeEvents.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+      return this.eventTotals.expected_income;
     },
 
     totalExpense() {
-      return this.expenseEvents.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+      return this.eventTotals.expected_expense;
     },
 
     netImpact() {
-      return this.totalIncome - this.totalExpense;
+      return this.eventTotals.net_impact;
     },
 
     incomeCount() {
-      return this.incomeEvents.length;
+      return this.eventTotals.income_count;
     },
 
     expenseCount() {
-      return this.expenseEvents.length;
+      return this.eventTotals.expense_count;
     },
   },
 

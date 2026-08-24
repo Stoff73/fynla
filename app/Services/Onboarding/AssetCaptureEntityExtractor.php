@@ -66,7 +66,7 @@ final class AssetCaptureEntityExtractor
     {
         return match ($focus) {
             'protection' => 'create_protection_policy',
-            'savings', 'budgeting' => 'create_savings_account',
+            'savings' => 'create_savings_account',
             'retirement', 'occupational' => 'create_pension',
             'investment' => 'create_investment_account',
             default => null,
@@ -96,7 +96,7 @@ final class AssetCaptureEntityExtractor
 
         $entities = match ($focus) {
             'protection' => $this->extractProtectionPolicies($message),
-            'savings', 'budgeting' => $this->extractSavingsAccounts($message),
+            'savings' => $this->extractSavingsAccounts($message),
             'retirement' => $this->extractPensions($message),
             'occupational' => $this->extractOccupationalPensionAnswer($message),
             'investment' => $this->extractInvestmentAccounts($message),
@@ -205,7 +205,7 @@ final class AssetCaptureEntityExtractor
      */
     private function attachOwnership(string $focus, array $entities, string $message): array
     {
-        if ($entities === [] || ! in_array($focus, ['savings', 'budgeting', 'investment', 'property', 'liability'], true)) {
+        if ($entities === [] || ! in_array($focus, ['savings', 'investment', 'property', 'liability'], true)) {
             return $entities;
         }
 
@@ -304,7 +304,7 @@ final class AssetCaptureEntityExtractor
 
         return match ($focus) {
             'protection' => $this->protectionPersistedKeys($user, $cutoff),
-            'savings', 'budgeting' => $this->savingsPersistedKeys($user, $cutoff),
+            'savings' => $this->savingsPersistedKeys($user, $cutoff),
             'retirement', 'occupational' => $this->retirementPersistedKeys($user, $cutoff),
             'investment' => $this->investmentPersistedKeys($user, $cutoff),
             'property' => $this->propertyPersistedKeys($user, $cutoff),
@@ -1346,7 +1346,7 @@ final class AssetCaptureEntityExtractor
     {
         return match ($focus) {
             'protection' => $this->protectionIdentityKey($fields, $fromLlm),
-            'savings', 'budgeting' => $this->savingsIdentityKey($fields, $fromLlm),
+            'savings' => $this->savingsIdentityKey($fields, $fromLlm),
             'retirement', 'occupational' => $this->pensionIdentityKey($fields, $fromLlm),
             'investment' => $this->investmentIdentityKey($fields, $fromLlm),
             'property' => $this->propertyIdentityKey($fields, $fromLlm),

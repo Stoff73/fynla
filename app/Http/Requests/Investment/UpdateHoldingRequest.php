@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Investment;
 
+use App\Constants\HoldingSubTypes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Form Request for updating investment holdings.
@@ -36,9 +38,29 @@ class UpdateHoldingRequest extends FormRequest
             'purchase_date' => 'nullable|date',
             'current_price' => 'nullable|numeric|min:0',
             'current_value' => 'nullable|numeric|min:0',
+            // Units are the fact a user actually holds; the value is derived from
+            // them (App\Support\HoldingValuation). Every holding in the persona
+            // carries a unit count and none of them could be entered (W-0039).
+            'quantity' => ['nullable', 'numeric', 'min:0'],
             'dividend_yield' => 'nullable|numeric|min:0|max:100',
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];
+    }
+
+    /**
+     * An update that changes nothing is a bug upstream, not a no-op.
+     *
+     * Every rule above is nullable, so an empty body validated cleanly and the
+     * controller returned 200 with an untouched row. That is what let a store
+     * action send no body at all for months without anybody noticing (W-0009).
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            if (count(array_intersect_key($this->all(), $this->rules())) === 0) {
+                $v->errors()->add('holding', 'No holding fields were supplied to update.');
+            }
+        });
     }
 
     /**
@@ -62,17 +84,14 @@ class UpdateHoldingRequest extends FormRequest
 
     /**
      * Get valid sub types for fund holdings.
+     *
+     * Reads the one home rather than holding a copy — see the note on
+     * `StoreHoldingRequest::getSubTypes()`.
+     *
+     * @return list<string>
      */
     private function getSubTypes(): array
     {
-        return [
-            'equity_fund',
-            'bond_fund',
-            'mixed_fund',
-            'income_fund',
-            'index_fund',
-            'money_market_fund',
-            'property_fund',
-        ];
+        return HoldingSubTypes::ALL;
     }
 }

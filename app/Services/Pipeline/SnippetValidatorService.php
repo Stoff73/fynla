@@ -23,7 +23,7 @@ use RuntimeException;
 class SnippetValidatorService
 {
     public function __construct(
-        private readonly AnthropicOpusClient $anthropic,
+        private readonly PipelineAiClient $ai,
     ) {}
 
     /**
@@ -38,7 +38,7 @@ class SnippetValidatorService
         }
 
         try {
-            $completion = $this->anthropic->complete(
+            $completion = $this->ai->complete(
                 $this->systemBlocks(),
                 [['role' => 'user', 'content' => $this->userMessage($snippets, $transcript)]],
             );

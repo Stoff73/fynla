@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Jobs\Pipeline\ProcessInsightArticleJob;
 use App\Mail\Pipeline\ScriptReadyForReviewMail;
 use App\Models\Insights\InsightArticle;
-use App\Models\Pipeline\OAuthCredential;
 use App\Models\Pipeline\PipelineArticle;
 use App\Models\Pipeline\PipelineRun;
 use App\Services\Pipeline\Google\GoogleDriveService;
@@ -21,10 +20,26 @@ use Illuminate\Support\Facades\Mail;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    putenv('RANDFILE='.sys_get_temp_dir().'/fynla-openssl-random-state');
+
+    $key = openssl_pkey_new([
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($key, $privateKey);
+    $this->googleCredentialsPath = tempnam(sys_get_temp_dir(), 'fynla-pipeline-google-');
+    file_put_contents($this->googleCredentialsPath, json_encode([
+        'type' => 'service_account',
+        'project_id' => 'fynla-marketing-test',
+        'private_key_id' => 'test-key-id',
+        'private_key' => $privateKey,
+        'client_email' => 'pipeline@fynla-marketing-test.iam.gserviceaccount.com',
+        'token_uri' => 'https://oauth2.googleapis.com/token',
+    ], JSON_THROW_ON_ERROR));
+
     Config::set('pipeline.enabled', true);
-    Config::set('pipeline.google.oauth_client_id', 'test-client-id');
-    Config::set('pipeline.google.oauth_client_secret', 'test-client-secret');
-    Config::set('pipeline.google.oauth_redirect_uri', 'http://localhost:8000/pipeline/oauth/google/callback');
+    Config::set('services.ai_provider', 'anthropic');
+    Config::set('pipeline.google.service_account_credentials', $this->googleCredentialsPath);
     Config::set('pipeline.google.drive_folder_id', 'FOLDER123');
     Config::set('pipeline.google.tracker_sheet_id', 'SHEET123');
     Config::set('pipeline.anthropic.api_key', 'test-anthropic-key');
@@ -37,16 +52,11 @@ beforeEach(function () {
     // don't need to fake the Drive folder lookup/create round-trip.
     Cache::put('pipeline.google.drive.scripts_folder_id', 'SCRIPTS_FOLDER_ID', 3600);
 
-    OAuthCredential::create([
-        'provider' => 'google',
-        'account_email' => 'test@fynla.org',
-        'access_token' => 'test-access-token',
-        'refresh_token' => 'test-refresh-token',
-        'expires_at' => now()->addHour(),
-        'scopes' => ['https://www.googleapis.com/auth/drive.file'],
-    ]);
-
     Mail::fake();
+});
+
+afterEach(function () {
+    @unlink($this->googleCredentialsPath);
 });
 
 function fakeAnthropicScriptJson(): string
@@ -80,9 +90,36 @@ function fakeAnthropicResponse(?string $bodyJson = null): array
     ];
 }
 
+function fakeXaiResponse(?string $bodyJson = null): array
+{
+    return [
+        'id' => 'chatcmpl_test',
+        'model' => 'grok-4.3',
+        'choices' => [[
+            'index' => 0,
+            'message' => [
+                'role' => 'assistant',
+                'content' => $bodyJson ?? fakeAnthropicScriptJson(),
+            ],
+            'finish_reason' => 'stop',
+        ]],
+        'usage' => [
+            'prompt_tokens' => 1000,
+            'completion_tokens' => 500,
+            'total_tokens' => 1500,
+            'prompt_tokens_details' => ['cached_tokens' => 0],
+        ],
+    ];
+}
+
 it('runs the full happy path: script → drive → sheet → email', function () {
     Http::fake([
         'api.anthropic.com/*' => Http::response(fakeAnthropicResponse(), 200),
+        'oauth2.googleapis.com/token' => Http::response([
+            'access_token' => 'test-access-token',
+            'expires_in' => 3600,
+            'token_type' => 'Bearer',
+        ], 200),
         'googleapis.com/upload/drive/v3/files*' => Http::response([
             'id' => 'DOC_ID_123',
             'name' => 'Script — Test',
@@ -125,6 +162,53 @@ it('runs the full happy path: script → drive → sheet → email', function ()
         return $mail->hasTo('marketing@fynla.org')
             && $mail->pipelineArticle->is($pipelineArticle);
     });
+});
+
+it('uses the configured xAI provider for script generation', function () {
+    Config::set('services.ai_provider', 'xai');
+    Config::set('services.xai.api_key', 'test-xai-key');
+    Config::set('services.xai.base_url', 'https://api.x.ai/v1');
+    Config::set('services.xai.advanced_chat_model', 'grok-4.3');
+
+    Http::fake([
+        'api.x.ai/v1/chat/completions' => Http::response(fakeXaiResponse(), 200),
+        'oauth2.googleapis.com/token' => Http::response([
+            'access_token' => 'test-access-token',
+            'expires_in' => 3600,
+            'token_type' => 'Bearer',
+        ], 200),
+        'googleapis.com/upload/drive/v3/files*' => Http::response([
+            'id' => 'DOC_ID_XAI',
+            'name' => 'Script — xAI Test',
+            'webViewLink' => 'https://docs.google.com/document/d/DOC_ID_XAI/edit',
+        ], 200),
+        'sheets.googleapis.com/v4/spreadsheets/SHEET123/values/*' => Http::response([
+            'updates' => ['updatedRange' => 'Pipeline!A3:H3'],
+        ], 200),
+    ]);
+
+    $article = InsightArticle::factory()->published()->create();
+    $pipelineArticle = PipelineArticle::create([
+        'insight_article_id' => $article->id,
+        'status' => 'detected',
+    ]);
+
+    (new ProcessInsightArticleJob($pipelineArticle))->handle(
+        app(VideoScriptGeneratorService::class),
+        app(GoogleDriveService::class),
+        app(GoogleSheetsService::class),
+        app(ScriptsFolderLocator::class),
+    );
+
+    $pipelineArticle->refresh();
+
+    expect($pipelineArticle->status)->toBe('scripted')
+        ->and($pipelineArticle->script_drive_file_id)->toBe('DOC_ID_XAI')
+        ->and($pipelineArticle->script_model)->toBe('grok-4.3')
+        ->and($pipelineArticle->script_cost_gbp)->toBeGreaterThan(0)
+        ->and($pipelineArticle->tracking_sheet_row_id)->toBe('3');
+
+    expect(PipelineRun::where('stage', 'script')->where('status', 'success')->count())->toBe(1);
 });
 
 it('marks the article failed and records the error when Anthropic returns invalid JSON', function () {

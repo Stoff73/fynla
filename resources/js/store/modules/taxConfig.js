@@ -92,6 +92,10 @@ const getters = {
   dividendAdditionalRate: (state) => state.config?.dividend_tax?.additional_rate ?? null,
 
   // Gifting
+  // C4 — the taper schedule, so components stop writing it out. Four independent
+  // hardcoded copies existed (GiftCard, GiftingTimelineChart, GiftingStrategy prose,
+  // and the backend's own literal) while the configured table went unread.
+  ihtGiftTaperBands: (state) => state.config?.inheritance_tax?.potentially_exempt_transfers?.taper_relief ?? null,
   annualGiftExemption: (state) => state.config?.gifting_exemptions?.annual_exemption ?? null,
   smallGiftExemption: (state) => state.config?.gifting_exemptions?.small_gift_exemption ?? null,
 

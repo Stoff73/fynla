@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Cache;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -12,6 +13,13 @@ use Illuminate\Support\Facades\Cache;
  * Called from controllers and services whenever user financial or
  * personal data changes, ensuring all cached views, dashboards,
  * recommendations, and plans reflect the latest data.
+ *
+ * **This list is the contract, not a convenience.** Every cached figure a user
+ * can see is keyed on their id and lives for 24 hours; a key missing from here
+ * is a figure that can outlive the data it describes by a day, and there is
+ * nothing on screen to say so (W-0239). `UserDataCacheObserver` is the single
+ * caller on the write path, so a key added to a service without being added
+ * here is stale by default.
  */
 class CacheInvalidationService
 {
@@ -26,6 +34,10 @@ class CacheInvalidationService
         'estateagent',
         'goalsagent',
         'coordinatingagent',
+        // The tax agent was reachable only through RecommendationCacheObserver,
+        // which called it directly rather than through this service. Removing
+        // that observer would have dropped its keys silently.
+        'taxoptimisationagent',
     ];
 
     /**
@@ -79,11 +91,15 @@ class CacheInvalidationService
         Cache::forget("alerts_{$userId}");
         Cache::forget("mobile_dashboard_{$userId}");
 
-        // Module analysis caches
-        Cache::forget("protection_analysis_{$userId}");
-        Cache::forget("savings_analysis_{$userId}");
-        Cache::forget("estate_analysis_{$userId}");
-        Cache::forget("retirement_analysis_{$userId}");
+        // Module analysis caches. Derived from the module list rather than
+        // hand-written, because the hand-written version was missing
+        // `investment_analysis_{id}` — the InvestmentAgent's own 24-hour key,
+        // which no invalidation path in the application cleared. A user could
+        // edit an investment account, watch the dashboard blob rebuild, and be
+        // served yesterday's portfolio inside it (W-0239).
+        foreach (self::MODULES as $module) {
+            Cache::forget("{$module}_analysis_{$userId}");
+        }
         Cache::forget("retirement_projection_{$userId}");
         Cache::forget("retirement_income_{$userId}");
         Cache::forget("dc_pensions_portfolio_{$userId}");
@@ -104,9 +120,13 @@ class CacheInvalidationService
             Cache::forget("plan_{$type}_{$userId}");
         }
 
-        // Net worth
+        // Net worth. The date-keyed blob is NetWorthService's own
+        // (`getCachedNetWorth`) and was cleared only by NetWorthCacheObserver,
+        // so any write that reached this service instead left the headline
+        // figure stale for the rest of the day.
         Cache::forget("net_worth_overview_{$userId}");
         Cache::forget("net_worth_breakdown_{$userId}");
+        Cache::forget("net_worth:user_{$userId}:date_".Carbon::now()->toDateString());
 
         // Goals projections
         Cache::forget("goals_projection_{$userId}_individual");

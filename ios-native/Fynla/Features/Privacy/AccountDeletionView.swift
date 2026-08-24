@@ -6,6 +6,12 @@ struct AccountDeletionView: View {
 
     @State private var showsStartConfirmation = false
     @State private var managementError: String?
+    @FocusState private var focusedField: DeletionField?
+
+    private enum DeletionField: Hashable {
+        case verification
+        case confirmation
+    }
 
     var body: some View {
         ScrollView {
@@ -21,12 +27,21 @@ struct AccountDeletionView: View {
             }
             .padding(FynlaSpacing.standard)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
+            }
+        }
         .background(FynlaColor.pageBackground)
         .navigationTitle("Delete account")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            if model.state == .idle { await model.prepare() }
-        }
+        // `prepare()` is deliberately idempotent for active flows and resets
+        // terminal cancelled/failed outcomes. Calling it on every entry lets
+        // a user start a new deletion attempt after cancelling the previous
+        // one instead of returning to a permanently terminal card.
+        .task { await model.prepare() }
         .alert("Start account deletion?", isPresented: $showsStartConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Send verification code", role: .destructive) {
@@ -84,6 +99,7 @@ struct AccountDeletionView: View {
             Text("App Store subscription")
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityIdentifier("account-deletion.apple-warning")
             Text("Deleting your Fynla account does not cancel an App Store subscription. Manage it with Apple before continuing if you do not want it to renew.")
                 .font(FynlaTypography.body)
                 .foregroundStyle(FynlaColor.secondaryText)
@@ -101,7 +117,6 @@ struct AccountDeletionView: View {
             }
         }
         .deletionCard()
-        .accessibilityIdentifier("account-deletion.apple-warning")
     }
 
     private func readyCard(_ billing: AccountDeletionBillingState) -> some View {
@@ -109,6 +124,7 @@ struct AccountDeletionView: View {
             Text("Verify before deletion")
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityIdentifier("account-deletion.ready")
             Text(readyMessage(for: billing))
                 .font(FynlaTypography.body)
                 .foregroundStyle(FynlaColor.secondaryText)
@@ -117,7 +133,6 @@ struct AccountDeletionView: View {
             }
         }
         .deletionCard()
-        .accessibilityIdentifier("account-deletion.ready")
     }
 
     private func verificationCard(usesAuthenticator: Bool) -> some View {
@@ -125,6 +140,7 @@ struct AccountDeletionView: View {
             Text("Enter verification code")
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityIdentifier("account-deletion.verification")
             TextField(
                 "Six-digit code",
                 text: Binding(
@@ -135,6 +151,7 @@ struct AccountDeletionView: View {
             .keyboardType(.numberPad)
             .textContentType(.oneTimeCode)
             .textFieldStyle(.roundedBorder)
+            .focused($focusedField, equals: .verification)
             .accessibilityIdentifier("account-deletion.code")
             FynlaButton(
                 "Verify identity",
@@ -153,7 +170,6 @@ struct AccountDeletionView: View {
             }
         }
         .deletionCard()
-        .accessibilityIdentifier("account-deletion.verification")
     }
 
     private var executionCard: some View {
@@ -174,6 +190,7 @@ struct AccountDeletionView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .textFieldStyle(.roundedBorder)
+            .focused($focusedField, equals: .confirmation)
             .accessibilityIdentifier("account-deletion.confirmation")
             FynlaButton(
                 "Delete my account",
@@ -192,6 +209,7 @@ struct AccountDeletionView: View {
             Text("Deletion scheduled")
                 .font(FynlaTypography.sectionTitle)
                 .foregroundStyle(FynlaColor.primaryText)
+                .accessibilityIdentifier("account-deletion.scheduled")
             Text(message)
                 .font(FynlaTypography.body)
                 .foregroundStyle(FynlaColor.primaryText)
@@ -205,7 +223,6 @@ struct AccountDeletionView: View {
             }
         }
         .deletionCard()
-        .accessibilityIdentifier("account-deletion.scheduled")
     }
 
     private func resultCard(title: String, message: String) -> some View {

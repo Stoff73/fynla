@@ -99,11 +99,12 @@ it('create_savings_account blocks preview users', function (): void {
     expect(SavingsAccount::count())->toBe(0);
 });
 
-it('create_savings_account rejects duplicate account names for the same user', function (): void {
+it('create_savings_account asks rather than overwriting when the account already exists', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
     SavingsAccount::factory()->create([
         'user_id' => $user->id,
         'account_name' => 'Nationwide Cash ISA',
+        'current_balance' => 1000,
     ]);
 
     $result = $this->executeCaptureToolWithEvidence('create_savings_account', [
@@ -113,9 +114,13 @@ it('create_savings_account rejects duplicate account names for the same user', f
         'current_balance' => 5000,
     ], $user);
 
-    // Existing checkForDuplicate helper signals via `warning`, not `error`.
-    expect($result['warning'] ?? false)->toBeTrue();
+    // SPEC-crud-handler-contract C2: a different balance on a record the user
+    // already has is ambiguous — a correction, or a second account. RecaptureGuard
+    // writes nothing and asks. This replaced `checkForDuplicate`, which warned and
+    // discarded the value.
+    expect($result['error_type'] ?? null)->toBe('confirm_edit_required');
     expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
+    expect((float) SavingsAccount::where('user_id', $user->id)->first()->current_balance)->toBe(1000.0);
 });
 
 it('create_savings_account return shape does not contain fill_form action', function (): void {

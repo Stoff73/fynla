@@ -622,6 +622,16 @@ const routes = [
     },
   },
   {
+    // The spouse-permission notification email has always linked here
+    // (SpousePermissionRequest::toMail), and the route did not exist — the
+    // invitee followed it to a 404, which is part of why consent was never
+    // obtainable and the backend forged it instead (W-0347). Redirect rather
+    // than a second view: the sharing panel lives on the family screen, and two
+    // pages rendering one control is exactly the duplication Rule 20 forbids.
+    path: '/settings/spouse-permission',
+    redirect: '/settings/family',
+  },
+  {
     path: '/settings/family',
     name: 'FamilySettings',
     component: FamilySettings,

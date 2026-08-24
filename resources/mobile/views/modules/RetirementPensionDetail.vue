@@ -63,6 +63,10 @@
           <span class="m-detail-value">{{ dbSchemeTypeLabel(pension.scheme_type) }}</span>
         </div>
         <div class="m-detail-row">
+          <span class="m-detail-key">Scheme status</span>
+          <span class="m-detail-value">{{ schemeStatusLabel(pension.scheme_status) }}</span>
+        </div>
+        <div class="m-detail-row">
           <span class="m-detail-key">Accrued annual pension</span>
           <span class="m-detail-value">{{ fmt(pension.accrued_annual_pension) }}</span>
         </div>
@@ -148,6 +152,10 @@ import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import CanonicalPortfolio from '../../components/CanonicalPortfolio.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
+// The same mapper the web Defined Benefit forms and detail view read, imported
+// rather than copied (Rule 20). Pure JavaScript with no Vue or store dependency,
+// so it crosses the bundle boundary the way ownership.js already does.
+import { formatSchemeStatus } from '../../../js/components/Retirement/dbPensionFields.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -221,13 +229,12 @@ export default {
       // Mirrors RetirementProjectionService: salary-percentage schemes derive
       // the monthly figure from contribution percentages, otherwise use the
       // flat monthly amount.
-      const p = this.pension;
-      if (!p) return 0;
-      if (Number(p.employee_contribution_percent) > 0 && Number(p.annual_salary) > 0) {
-        const pct = Number(p.employee_contribution_percent || 0) + Number(p.employer_contribution_percent || 0);
-        return (pct * Number(p.annual_salary)) / 100 / 12;
-      }
-      return Number(p.monthly_contribution_amount || 0);
+      // CSJ 2026-08-23: /m never works anything out. This derived the monthly
+      // figure from the contribution percentages, preferring them over the flat
+      // amount — the OPPOSITE precedence to the backend, so a pension holding both
+      // was described differently here than everywhere else. `monthly_contribution`
+      // is appended by the model now (Rule 20).
+      return Number(this.pension?.monthly_contribution ?? 0);
     },
     heroLabel() {
       if (this.type === 'db') return 'Accrued annual pension';
@@ -260,6 +267,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     schemeTypeLabel(t) { return SCHEME_TYPES[t] || t || '—'; },
     dbSchemeTypeLabel(t) { return DB_SCHEME_TYPES[t] || t || '—'; },
+    schemeStatusLabel: formatSchemeStatus,
     goBack() { this.$router.push({ name: 'm-retirement' }); },
     async load() {
       this.loading = true;

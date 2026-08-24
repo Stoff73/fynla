@@ -30,6 +30,19 @@
         </div>
       </div>
 
+      <!--
+        W-0466 G3. This screen renders ONLY the enumerated `fields` list above, so the
+        caveat the engine publishes alongside the Inheritance Tax figure rendered
+        nowhere and `/m /module/estate` printed an unqualified number. It is deliberately
+        NOT added to `fields`: that list produces label/value rows, and a sentence is not
+        a value. Read straight off the summary, so it appears wherever the summary
+        carries one rather than only for estate.
+      -->
+      <div v-if="caveat || pensionCaveat" class="m-card">
+        <p v-if="caveat" class="me-caveat">{{ caveat }}</p>
+        <p v-if="pensionCaveat" class="me-caveat">{{ pensionCaveat }}</p>
+      </div>
+
       <div v-if="!rows.length" class="m-card m-state">
         <p class="m-sub">No additional detail available yet for this module.</p>
       </div>
@@ -137,6 +150,12 @@ export default {
     heroLabel() { return this.hero.label; },
     heroValue() { return this.hero.value; },
     heroSecondary() { return this.hero.secondary; },
+    // W-0466 G3 — the engine publishes this beside the tax figure; nothing on this
+    // screen was reading it. Not part of `fields`, which builds label/value rows.
+    caveat() { return this.summary?.unmodelled_relief_caveat || null; },
+    // W-0363 — the projected column omits defined contribution pensions. Same
+    // treatment as the caveat above, on the surface Rule 19 requires.
+    pensionCaveat() { return this.summary?.projected_pension_exclusion_caveat || null; },
     rows() {
       if (!this.summary) return [];
       // Pull the curated fields if present; fall back to flattening the summary.

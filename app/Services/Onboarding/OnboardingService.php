@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Exceptions\FinancialCalculationException;
+use App\Exceptions\SpouseCollisionException;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
@@ -12,7 +13,6 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\OnboardingProgress;
 use App\Models\RetirementProfile;
-use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\IngestSource;
@@ -25,8 +25,10 @@ use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Support\SharedExpenditure;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OnboardingService
 {
@@ -306,116 +308,46 @@ class OnboardingService
     }
 
     /**
-     * Handle spouse account linking during onboarding
+     * Handle spouse account linking during onboarding.
+     *
+     * Rule 20 — this was the third copy of spouse linking in the codebase, and
+     * the one that diverged furthest: given an email for an account that did not
+     * exist yet it created neither the account nor the link, just a bare
+     * family_members row with `linked_user_id` NULL. The user supplied the one
+     * thing needed to link the household and the household came back unlinked
+     * (W-0051). `SpouseLinkingService` is the single home.
      */
     protected function handleSpouseLinking(User $user, array $spouseData): void
     {
-        $spouseEmail = strtolower(trim($spouseData['email']));
+        $spouseEmail = strtolower(trim((string) ($spouseData['email'] ?? '')));
 
-        // Check if spouse account exists
-        $spouseAccount = User::where('email', $spouseEmail)->first();
+        if ($spouseEmail === '') {
+            return;
+        }
 
-        if ($spouseAccount) {
-            // Account exists - link them
-            if ($spouseAccount->id === $user->id) {
-                // Can't link to self
-                return;
+        $spouseData['email'] = $spouseEmail;
+
+        // This payload carries a single `name`; the linking service works in
+        // name parts (they become the spouse user's first_name/surname). Split
+        // here rather than teaching the service a second input shape.
+        if (empty($spouseData['first_name']) && ! empty($spouseData['name'])) {
+            $parts = array_values(array_filter(explode(' ', trim((string) $spouseData['name']))));
+            $spouseData['first_name'] = array_shift($parts) ?? '';
+            if ($parts !== [] && empty($spouseData['last_name'])) {
+                $spouseData['last_name'] = implode(' ', $parts);
             }
+        }
 
-            if ($user->spouse_id === $spouseAccount->id) {
-                // Already linked
-                return;
-            }
-
-            if ($spouseAccount->spouse_id && $spouseAccount->spouse_id !== $user->id) {
-                // Spouse already linked to someone else
-                return;
-            }
-
-            DB::transaction(function () use ($user, $spouseAccount, $spouseData) {
-                // Lock spouse row to prevent concurrent linking by another user
-                $spouseAccount = User::lockForUpdate()->find($spouseAccount->id);
-                if ($spouseAccount->spouse_id && $spouseAccount->spouse_id !== $user->id) {
-                    return;
-                }
-
-                // Link the accounts bidirectionally
-                $user->update([
-                    'spouse_id' => $spouseAccount->id,
-                    'marital_status' => 'married',
-                ]);
-
-                $spouseAccount->update([
-                    'spouse_id' => $user->id,
-                    'marital_status' => 'married',
-                ]);
-
-                $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseAccount->id);
-
-                // Create bidirectional spouse data sharing permissions
-                SpousePermission::updateOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'spouse_id' => $spouseAccount->id,
-                    ],
-                    [
-                        'status' => 'accepted',
-                        'responded_at' => now(),
-                    ]
-                );
-
-                SpousePermission::updateOrCreate(
-                    [
-                        'user_id' => $spouseAccount->id,
-                        'spouse_id' => $user->id,
-                    ],
-                    [
-                        'status' => 'accepted',
-                        'responded_at' => now(),
-                    ]
-                );
-
-                // Create family member record for the current user
-                FamilyMember::updateOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'relationship' => 'spouse',
-                    ],
-                    [
-                        'name' => $spouseAccount->name,
-                        'linked_user_id' => $spouseAccount->id,
-                        'date_of_birth' => $spouseData['date_of_birth'] ?? $spouseAccount->date_of_birth,
-                        'is_dependent' => false,
-                    ]
-                );
-
-                // Create reciprocal family member record for spouse
-                FamilyMember::updateOrCreate(
-                    [
-                        'user_id' => $spouseAccount->id,
-                        'relationship' => 'spouse',
-                    ],
-                    [
-                        'name' => $user->name,
-                        'linked_user_id' => $user->id,
-                        'date_of_birth' => $user->date_of_birth,
-                        'is_dependent' => false,
-                    ]
-                );
-            });
-        } else {
-            // Account doesn't exist yet - just create family member record
-            FamilyMember::updateOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'relationship' => 'spouse',
-                ],
-                [
-                    'name' => $spouseData['name'],
-                    'date_of_birth' => $spouseData['date_of_birth'],
-                    'is_dependent' => false,
-                ]
-            );
+        // Bulk onboarding saves have no channel to report a per-member failure
+        // and must not abandon the rest of the payload. A collision — the email
+        // belongs to another household, or to the user themselves — is logged
+        // and skipped, exactly as this method did before delegating.
+        try {
+            app(SpouseLinkingService::class)->linkOrCreateSpouse($user, $spouseData);
+        } catch (SpouseCollisionException|\InvalidArgumentException $e) {
+            Log::warning('[OnboardingService] Spouse linking skipped: '.$e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
         }
     }
 
@@ -565,38 +497,43 @@ class OnboardingService
                 }
             }
         } else {
-            // Joint mode or single user
-            // Check if user has a spouse - if so, apply 50/50 split
+            // Joint mode or single user.
+            //
+            // Each account stores ITS SHARE of the household's spending — half when
+            // the household shares, the whole of it when there is nobody to share
+            // with. The rule used to live here, in twenty-two inline divisions, and
+            // nowhere else: the profile path stored the full household figure and
+            // mirrored the full figure to the spouse, so a table that says
+            // "Joint (50/50) expenditure" charged one spouse everything and the
+            // other nothing (W-0190). One home now — App\Support\SharedExpenditure.
             $isJointMode = $user->spouse_id !== null;
-            $divisor = $isJointMode ? 2 : 1;
 
-            // Calculate halved values for joint mode, full values for single user
-            $expenditureData = [
-                'food_groceries' => ($data['food_groceries'] ?? 0) / $divisor,
-                'transport_fuel' => ($data['transport_fuel'] ?? 0) / $divisor,
-                'healthcare_medical' => ($data['healthcare_medical'] ?? 0) / $divisor,
-                'insurance' => ($data['insurance'] ?? 0) / $divisor,
-                'mobile_phones' => ($data['mobile_phones'] ?? 0) / $divisor,
-                'internet_tv' => ($data['internet_tv'] ?? 0) / $divisor,
-                'subscriptions' => ($data['subscriptions'] ?? 0) / $divisor,
-                'clothing_personal_care' => ($data['clothing_personal_care'] ?? 0) / $divisor,
-                'entertainment_dining' => ($data['entertainment_dining'] ?? 0) / $divisor,
-                'holidays_travel' => ($data['holidays_travel'] ?? 0) / $divisor,
-                'pets' => ($data['pets'] ?? 0) / $divisor,
-                'childcare' => ($data['childcare'] ?? 0) / $divisor,
-                'school_fees' => ($data['school_fees'] ?? 0) / $divisor,
-                'school_lunches' => ($data['school_lunches'] ?? 0) / $divisor,
-                'school_extras' => ($data['school_extras'] ?? 0) / $divisor,
-                'university_fees' => ($data['university_fees'] ?? 0) / $divisor,
-                'children_activities' => ($data['children_activities'] ?? 0) / $divisor,
-                'gifts_charity' => ($data['gifts_charity'] ?? 0) / $divisor,
-                'regular_savings' => ($data['regular_savings'] ?? 0) / $divisor,
-                'other_expenditure' => ($data['other_expenditure'] ?? 0) / $divisor,
-                'monthly_expenditure' => ($data['monthly_expenditure'] ?? 0) / $divisor,
-                'annual_expenditure' => ($data['annual_expenditure'] ?? 0) / $divisor,
+            $expenditureData = SharedExpenditure::shareOf([
+                'food_groceries' => $data['food_groceries'] ?? 0,
+                'transport_fuel' => $data['transport_fuel'] ?? 0,
+                'healthcare_medical' => $data['healthcare_medical'] ?? 0,
+                'insurance' => $data['insurance'] ?? 0,
+                'mobile_phones' => $data['mobile_phones'] ?? 0,
+                'internet_tv' => $data['internet_tv'] ?? 0,
+                'subscriptions' => $data['subscriptions'] ?? 0,
+                'clothing_personal_care' => $data['clothing_personal_care'] ?? 0,
+                'entertainment_dining' => $data['entertainment_dining'] ?? 0,
+                'holidays_travel' => $data['holidays_travel'] ?? 0,
+                'pets' => $data['pets'] ?? 0,
+                'childcare' => $data['childcare'] ?? 0,
+                'school_fees' => $data['school_fees'] ?? 0,
+                'school_lunches' => $data['school_lunches'] ?? 0,
+                'school_extras' => $data['school_extras'] ?? 0,
+                'university_fees' => $data['university_fees'] ?? 0,
+                'children_activities' => $data['children_activities'] ?? 0,
+                'gifts_charity' => $data['gifts_charity'] ?? 0,
+                'regular_savings' => $data['regular_savings'] ?? 0,
+                'other_expenditure' => $data['other_expenditure'] ?? 0,
+                'monthly_expenditure' => $data['monthly_expenditure'] ?? 0,
+                'annual_expenditure' => $data['annual_expenditure'] ?? 0,
                 'expenditure_entry_mode' => $data['expenditure_entry_mode'] ?? 'category',
-                'expenditure_sharing_mode' => 'joint',
-            ];
+                'expenditure_sharing_mode' => SharedExpenditure::MODE_JOINT,
+            ], $isJointMode);
 
             $user->update($expenditureData);
 

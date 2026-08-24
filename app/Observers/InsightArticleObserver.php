@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Jobs\Pipeline\ComposePostsJob;
 use App\Models\Insights\InsightArticle;
 use App\Models\Insights\InsightArticleRevision;
+use App\Models\Pipeline\ClipApproval;
+use App\Models\Pipeline\PipelineArticle;
+use App\Services\Pipeline\ClipApprovalService;
 use Illuminate\Support\Facades\Cache;
 
 class InsightArticleObserver
@@ -46,6 +50,7 @@ class InsightArticleObserver
     {
         $this->writeRevision($article);
         $this->bustCaches();
+        $this->resumeHeldComposition($article);
     }
 
     public function saved(InsightArticle $article): void
@@ -56,6 +61,33 @@ class InsightArticleObserver
     public function deleted(InsightArticle $article): void
     {
         $this->bustCaches();
+    }
+
+    /**
+     * The marketing pipeline now runs from the Drive upload, so by the time a
+     * founder publishes, the clips are usually already cut and composition is
+     * sitting in ComposePostsJob's publish hold (every post links to
+     * /insights/{slug}, which 404s until the article is live). Publishing is
+     * the only thing that hold waits for, and nothing else re-runs it — so the
+     * nudge belongs here, on the one write every publish path goes through.
+     */
+    private function resumeHeldComposition(InsightArticle $article): void
+    {
+        if (! $article->wasChanged('status') || $article->status !== 'published') {
+            return;
+        }
+
+        PipelineArticle::where('insight_article_id', $article->id)
+            ->where('status', 'rendered')
+            ->get()
+            ->each(function (PipelineArticle $pipelineArticle): void {
+                // Clip approval owns the "are the clips settled?" question
+                // whenever it is on; without it, ProcessVideoJob's own dispatch
+                // is what the guard held, so re-dispatch that.
+                ClipApproval::where('pipeline_article_id', $pipelineArticle->id)->exists()
+                    ? app(ClipApprovalService::class)->evaluateDownstream($pipelineArticle)
+                    : ComposePostsJob::dispatch($pipelineArticle);
+            });
     }
 
     private function writeRevision(InsightArticle $article): void

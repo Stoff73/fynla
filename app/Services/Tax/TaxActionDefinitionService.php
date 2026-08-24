@@ -167,7 +167,7 @@ class TaxActionDefinitionService
         User $user,
         int $priority
     ): array {
-        if ($user->marital_status !== 'married' || ! $user->spouse_id) {
+        if ($user->marital_status !== 'married' || ! $user->liveSpouseId()) {
             return [];
         }
 

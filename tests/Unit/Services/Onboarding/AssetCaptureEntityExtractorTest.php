@@ -375,12 +375,16 @@ describe('toolNameForFocus', function () {
     it('maps known focuses', function () {
         expect($this->extractor->toolNameForFocus('protection'))->toBe('create_protection_policy');
         expect($this->extractor->toolNameForFocus('savings'))->toBe('create_savings_account');
-        expect($this->extractor->toolNameForFocus('budgeting'))->toBe('create_savings_account');
         expect($this->extractor->toolNameForFocus('retirement'))->toBe('create_pension');
         expect($this->extractor->toolNameForFocus('investment'))->toBe('create_investment_account');
     });
 
     it('returns null for unsupported focuses so the director skips gap-fill', function () {
+        // 'budgeting' asks for monthly spending. It gap-filled savings accounts
+        // until 2026-08-18, so "housing £1500, food £600" could have been
+        // written as two savings accounts. Expenditure has no extractor — the
+        // set_expenditure tool owns that capture.
+        expect($this->extractor->toolNameForFocus('budgeting'))->toBeNull();
         expect($this->extractor->toolNameForFocus('estate'))->toBeNull();
         expect($this->extractor->toolNameForFocus('business'))->toBeNull();
         expect($this->extractor->toolNameForFocus('goals'))->toBeNull();

@@ -81,6 +81,15 @@ use Illuminate\Support\Facades\Log;
 final class OnboardingChatDirector
 {
     /**
+     * Focus for an advice -> capture handoff whose entity types match no
+     * module. Not a module itself: it advertises the whole write surface, so a
+     * record type the map has never seen still reaches a turn that can write
+     * it. See the note at the $unifiedFocus assignment for what happened when
+     * this was 'savings'.
+     */
+    public const HANDOFF_FALLBACK_FOCUS = 'inline_capture';
+
+    /**
      * Hard cap on how many advice turns may auto-advance within a single
      * response. Advice turns chain with no user input between them, so a
      * state-table cycle would otherwise recurse without bound (see the
@@ -432,6 +441,38 @@ final class OnboardingChatDirector
                 return;
             }
 
+            // At the FRONT DOOR, an unparseable answer is where users got
+            // stuck: path_choice offers two labels, the interruption handling
+            // above did not claim the message, and the retry below just asks
+            // again — forever (CSJ 2026-08-18, seen live on /m). A user who has
+            // logged in before must be able to get on with something else, so
+            // step aside and let advice Fyn answer what they actually said.
+            // Onboarding pauses; it is never marked complete.
+            //
+            // Only here. Deeper in the walk the user has context and the retry
+            // is the right response — and the interruption mechanism (store
+            // offers, inline module answers) still runs first, everywhere.
+            if ($currentStateId === OnboardingStateMachine::STATE_PATH_CHOICE && trim($message) !== '') {
+                $user->onboarding_fyn_step = null;
+                $user->save();
+                $this->recordProgress($user, OnboardingStateMachine::STATE_FREE_CHAT, [
+                    'paused' => true,
+                    'reason' => 'free_text_at_path_choice',
+                ]);
+
+                // Resolved lazily: AdviceFyn takes this director in its
+                // constructor, so a constructor-injected reference is a cycle.
+                yield from app(AdviceFyn::class)->handle(
+                    $user,
+                    $conversation,
+                    $message,
+                    $currentRoute,
+                    persistUserMessage: false,
+                );
+
+                return;
+            }
+
             // Can't parse the answer — re-ask without advancing. Also the
             // fallback for a volunteered-record classification whose
             // interruption handling declined to fire (e.g. it was also
@@ -512,6 +553,14 @@ final class OnboardingChatDirector
         // Terminal state: wrap up onboarding and navigate.
         if ($nextStateId === OnboardingStateMachine::STATE_DONE) {
             yield from $this->emitDoneTurn($user, $conversation);
+
+            return;
+        }
+
+        // The user asked for something else. Step aside rather than hold them
+        // at the front door (CSJ 2026-08-18).
+        if ($nextStateId === OnboardingStateMachine::STATE_FREE_CHAT) {
+            yield from $this->emitFreeChatTurn($user, $conversation);
 
             return;
         }
@@ -3434,7 +3483,7 @@ PROMPT;
         // recognises; estate / business / savetax fall through (no checker
         // mapping — handler-level dedup remains the floor for those).
         $entityType = match ($selection) {
-            'savings', 'budgeting' => 'savings_account',
+            'savings' => 'savings_account',
             'investment' => 'investment_account',
             'retirement' => 'pension',
             'protection' => 'protection_policy',
@@ -3647,12 +3696,8 @@ PROMPT;
                     continue;
                 }
 
-                if ($type === 'entity_created') {
-                    $record = [
-                        'type' => (string) ($event['entity_type'] ?? ''),
-                        'id' => $event['entity_id'] ?? null,
-                        'name' => (string) ($event['name'] ?? ''),
-                    ];
+                if (self::isRecordRowEvent($type)) {
+                    $record = self::recordRowFromEvent($event);
                     $recordKey = $record['type'].':'.(string) $record['id'];
                     $alreadyTracked = collect($recordsCreated)->contains(
                         static fn (array $tracked): bool => $recordKey === $tracked['type'].':'.(string) $tracked['id']
@@ -3685,12 +3730,8 @@ PROMPT;
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
                     foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
-                        if (($gapFillEvent['type'] ?? '') === 'entity_created') {
-                            $recordsCreated[] = [
-                                'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
-                                'id' => $gapFillEvent['entity_id'] ?? null,
-                                'name' => (string) ($gapFillEvent['name'] ?? ''),
-                            ];
+                        if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
+                            $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                         }
                         yield $gapFillEvent;
                     }
@@ -3711,12 +3752,8 @@ PROMPT;
                     yield $flushEvent;
                 }
                 foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
-                    if (($gapFillEvent['type'] ?? '') === 'entity_created') {
-                        $recordsCreated[] = [
-                            'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
-                            'id' => $gapFillEvent['entity_id'] ?? null,
-                            'name' => (string) ($gapFillEvent['name'] ?? ''),
-                        ];
+                    if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
+                        $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                     }
                     yield $gapFillEvent;
                 }
@@ -4232,9 +4269,19 @@ PROMPT;
             ->map(fn (array $failure): string => trim((string) ($failure['message'] ?? '')))
             ->first(fn (string $message): bool => $message !== '' && $message !== 'The write failed.');
 
-        return is_string($reason)
-            ? "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.'
-            : null;
+        if (! is_string($reason)) {
+            return null;
+        }
+
+        // A reason already phrased as a question is a request for one more
+        // detail, not a failure report. Asking it plainly is what a person
+        // would do; wrapping it in an apology and a system instruction is what
+        // we used to do, and it read as broken (CSJ 2026-08-17, live).
+        if (str_ends_with($reason, '?')) {
+            return $reason;
+        }
+
+        return "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.';
     }
 
     /**
@@ -5583,6 +5630,14 @@ PROMPT;
         return sprintf('Recorded — around £%s a year through Gift Aid.', number_format($amount, 0));
     }
 
+    /**
+     * Never claim a link the row does not carry. The free-text spouse capture
+     * (createSpouseFamilyMember, above) writes a row with no account behind it,
+     * and this acknowledgement told the user their accounts were linked anyway
+     * — so they walked away believing the household was set up when
+     * `users.spouse_id` was still NULL (W-0051). One predicate answers it:
+     * FamilyMember::isLinkedAccount().
+     */
     private function spouseAck(User $user): string
     {
         $spouse = FamilyMember::where('user_id', $user->id)
@@ -5592,6 +5647,10 @@ PROMPT;
 
         if ($spouse === null || $spouse->first_name === null) {
             return 'Got it — your spouse is now on file.';
+        }
+
+        if (! $spouse->isLinkedAccount()) {
+            return "Got it — I've added {$spouse->first_name}. Their own account isn't linked yet, so I'm only working from what you tell me. You can link it later from your family settings.";
         }
 
         return "Got it — I've added {$spouse->first_name} and linked the two of you.";
@@ -6161,6 +6220,40 @@ PROMPT;
      * onboarding_fyn_step so subsequent Fyn messages go through the normal
      * CoordinatingAgent path.
      */
+    /**
+     * Leave onboarding open but get out of the user's way.
+     *
+     * CSJ 2026-08-18: a user who has logged in before must never be stuck at
+     * the two-option front door. Choosing "Something else" pauses onboarding —
+     * the step pointer is nulled, which routes every later turn to advice Fyn
+     * (the canonical paused-onboarding case) — and Fyn simply asks what they
+     * want. `onboarding_completed` stays false, because they have not
+     * onboarded; nothing is marked done that was not done.
+     */
+    private function emitFreeChatTurn(User $user, AiConversation $conversation): \Generator
+    {
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_FREE_CHAT) ?? [];
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        yield ['type' => 'content', 'text' => $text];
+
+        $assistantMessage = $this->saveMessage(
+            $conversation,
+            'assistant',
+            $text,
+            ['metadata' => [
+                'onboarding_step' => OnboardingStateMachine::STATE_FREE_CHAT,
+            ]]
+        );
+
+        yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+
+        $user->onboarding_fyn_step = null;
+        $user->save();
+
+        $this->recordProgress($user, OnboardingStateMachine::STATE_FREE_CHAT, ['paused' => true]);
+    }
+
     private function emitDoneTurn(User $user, AiConversation $conversation): \Generator
     {
         $selection = $user->onboarding_fyn_selection ?? '';
@@ -6414,7 +6507,26 @@ PROMPT;
         // and as an executeTool argument for the deterministic gap-fill. No
         // shared transient: clear-ordering between the stream's finally and
         // the post-stream gap-fill must not matter.
-        yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
+        // CSJ 2026-08-17: answering Fyn's own outstanding question about a record is
+        // an EXPLICIT edit, so the write handler may amend it directly instead of
+        // asking again. Set on this service's own agent for the deterministic
+        // gap-fill/extractor writes, and passed separately into FynLoop::stream for
+        // the LLM dispatch — same both-paths discipline as confirmedFacts above,
+        // because CoordinatingAgent is container-transient.
+        if ($context->isContinuation) {
+            $this->coordinatingAgent->setExplicitEditEntityType(
+                $context->entityTypes[0] ?? null,
+                $context->continuationRecordId,
+            );
+        }
+
+        try {
+            yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
+        } finally {
+            if ($context->isContinuation) {
+                $this->coordinatingAgent->setExplicitEditEntityType(null);
+            }
+        }
     }
 
     /** @return \Generator<array<string, mixed>> */
@@ -6438,15 +6550,28 @@ PROMPT;
         // Mirror handleAssetCaptureTurn: derive the focus from the
         // CaptureContext and carry it for the duration of the turn (no-op
         // under legacy — the property is only read on the unified path).
-        // The `?? 'savings'` fallback is the deflection guarantee: a turn that
-        // reached handleInlineCapture is a write the classifier or the LLM
+        // The fallback is the deflection guarantee: a turn that reached
+        // handleInlineCapture is a write the classifier or the LLM
         // delegate_to_capture path has ALREADY cleared, so it must stay in
         // capture mode even when the entity type has no module focus (e.g. an
         // LLM-emitted entity the map below doesn't know). A null focus here
         // demotes the turn to advice mode, the CAPTURE bucket is dropped, and
         // the model deflects with the security refusal (June13 §6c).
+        //
+        // It falls back to 'inline_capture', NOT 'savings'. entity_types is a
+        // free-text array on the delegate_to_capture schema and the module map
+        // below covers assets only, so every household-shaped record advice can
+        // hand over — spouse, dependants, personal details, work, expenditure,
+        // charitable giving, state pension, retirement goals — used to land in
+        // the savings focus. The turn then read "you can use
+        // create_savings_account; anything else is not in scope for this Cash &
+        // Savings turn" while carrying the full write catalogue underneath, and
+        // the model's only scripted exit was the refusal. Same dead end as the
+        // budgeting alias (user 80, conversation 67, 2026-08-18), reached
+        // through the advice door instead of the walk. 'inline_capture' frames
+        // the turn as what it is and offers the whole write surface.
         $unifiedFocus = FynPromptMode::isUnified()
-            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? 'savings')
+            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? self::HANDOFF_FALLBACK_FOCUS)
             : null;
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
@@ -6502,6 +6627,8 @@ PROMPT;
             persistUserMessage: false,
             unifiedFocus: $unifiedFocus,
             confirmedFacts: $confirmedFacts,
+            explicitEditEntityType: $context->isContinuation ? ($context->entityTypes[0] ?? null) : null,
+            explicitEditRecordId: $context->isContinuation ? $context->continuationRecordId : null,
         );
 
         foreach ($generator as $event) {
@@ -6608,12 +6735,8 @@ PROMPT;
 
             // Track every record persisted by a create_* / direct-write handler
             // so the closing capture_complete event carries the full list.
-            if ($type === 'entity_created') {
-                $recordsCreated[] = [
-                    'type' => (string) ($event['entity_type'] ?? ''),
-                    'id' => $event['entity_id'] ?? null,
-                    'name' => (string) ($event['name'] ?? ''),
-                ];
+            if (self::isRecordRowEvent($type)) {
+                $recordsCreated[] = self::recordRowFromEvent($event);
             }
 
             yield $event;
@@ -6638,7 +6761,7 @@ PROMPT;
             $confirmedFacts,
             $failedAttemptTools,
         ) as $gapFillEvent) {
-            if (($gapFillEvent['type'] ?? '') === 'entity_created') {
+            if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                 $recordsCreated[] = [
                     'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
                     'id' => $gapFillEvent['entity_id'] ?? null,
@@ -6895,6 +7018,44 @@ PROMPT;
      *
      * @param  list<array{type: string, id: int|string|null, name: string}>  $records
      */
+    /**
+     * The one shape of a `capture_complete` record row, built from the entity
+     * event that produced it.
+     *
+     * SPEC-crud-handler-contract §5.3/§5.4 — the row carries the page the
+     * record lives on, resolved server-side by GateRoutes, so every client
+     * links to the same place instead of keeping its own route table (the web
+     * chat panel kept a fourth one until 2026-08-17).
+     *
+     * @param  array<string, mixed>  $event
+     * @return array{type: string, id: mixed, name: string, route: ?string, mobile_route: ?string, label: ?string}
+     */
+    /**
+     * Whether an event contributes a row to the closing capture_complete card.
+     *
+     * `entity_updated` counts because it is now also how a write with no record
+     * id reports itself — a capture_* handler or set_expenditure writing columns
+     * on `users`. Those pages all exist; without this the confirmation could not
+     * offer the View link that a created record gets, so the same fact was
+     * confirmable or not depending only on which handler happened to write it.
+     */
+    private static function isRecordRowEvent(string $type): bool
+    {
+        return $type === 'entity_created' || $type === 'entity_updated';
+    }
+
+    private static function recordRowFromEvent(array $event): array
+    {
+        return [
+            'type' => (string) ($event['entity_type'] ?? ''),
+            'id' => $event['entity_id'] ?? null,
+            'name' => (string) ($event['name'] ?? ''),
+            'route' => $event['route'] ?? null,
+            'mobile_route' => $event['mobile_route'] ?? null,
+            'label' => $event['label'] ?? null,
+        ];
+    }
+
     private function buildCaptureCompleteSummary(array $records): string
     {
         if (count($records) === 1) {
@@ -6913,37 +7074,13 @@ PROMPT;
      */
     private function captureToolSet(CaptureContext $context): array
     {
-        return [
-            'create_savings_account', 'create_investment_account', 'create_holding',
-            'create_pension', 'create_property', 'create_mortgage',
-            'create_protection_policy', 'create_family_member',
-            'create_goal', 'create_life_event', 'create_trust',
-            'create_will', 'update_will',
-            'create_power_of_attorney', 'update_power_of_attorney',
-            'create_asset', 'create_liability', 'create_estate_gift',
-            'create_chattel', 'create_business_interest',
-            'update_record', 'update_profile', 'set_expenditure',
-            // S0.5.r — what-if scenarios persist a WhatIfScenario row, so
-            // they route through the handoff like every other create_*.
-            'create_what_if_scenario',
-            // S0.5.r — delete is allowed in inline-capture so the user can
-            // ask Advice Fyn to remove a record and have the handoff dispatch
-            // delete_record for them.
-            'delete_record',
-            // SaveTax campaign sections 4-6 — used during the campaign-only
-            // post-expenditure state-machine branch. Always whitelisted; the
-            // state machine itself gates which states can call which tool.
-            'capture_salary_sacrifice',
-            'capture_spouse_work_status',
-            'capture_spouse_household_data',
-            'capture_spouse_non_working_assets',
-            // Pensioncheck campaign captures — whitelisted so a post-campaign
-            // "I want to retire at 62 on £30k" / "my State Pension forecast is
-            // £11,500" in advice mode can delegate to the same handlers the
-            // walk uses instead of dead-ending in update_record.
-            'capture_retirement_goals',
-            'capture_state_pension',
-        ];
+        // Rule 20 — one list. AdviceFyn::WRITE_TOOLS is the canonical set of
+        // write surfaces stripped from advice mode; every one of them must be
+        // dispatchable here or the strip creates a dead end the user cannot
+        // escape: advice will not write it, and the Fyn it delegates to has no
+        // tool for it. navigate_to_page is the one exclusion — it is stripped
+        // from advice as an escape hatch (S0.5.t), not because it writes.
+        return array_values(array_diff(AdviceFyn::WRITE_TOOLS, ['navigate_to_page']));
     }
 
     /**

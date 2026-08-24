@@ -5,10 +5,10 @@
         {{ propertyTypeLabel }}
       </span>
       <span v-if="isJoint" class="ownership-badge joint-badge">
-        Joint ({{ property.ownership_percentage }}%)
+        Joint ({{ sharePercent }}%)
       </span>
       <span v-if="isTenantsInCommon" class="ownership-badge tic-badge">
-        Tenants in Common ({{ property.ownership_percentage }}%)
+        Tenants in Common ({{ sharePercent }}%)
       </span>
     </div>
 
@@ -20,8 +20,8 @@
       <p class="property-location">
         {{ property.city }}, {{ property.postcode }}
       </p>
-      <p v-if="isSharedOwnership && property.joint_owner_name" class="property-coowner">
-        {{ ownershipLabel }} with {{ property.joint_owner_name }}
+      <p v-if="coOwner" class="property-coowner">
+        {{ ownershipLabel }} with {{ coOwner }}
       </p>
 
       <div class="property-details">
@@ -34,7 +34,7 @@
           </div>
 
           <div class="detail-row">
-            <span class="detail-label">{{ isSharedOwnership ? `Your Share (${property.ownership_percentage}%)` : 'Current Value' }}</span>
+            <span class="detail-label">{{ isSharedOwnership ? `Your Share (${sharePercent}%)` : 'Current Value' }}</span>
             <span class="detail-value">{{ formatCurrency(userShare) }}</span>
           </div>
 
@@ -56,6 +56,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { calculateUserShare, coOwnerName, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'PropertyCard',
@@ -106,22 +107,26 @@ export default {
       return this.property.full_value ?? this.property.current_value ?? 0;
     },
 
+    // The viewer's share, percentage and counterparty all come from the ONE
+    // ownership helper. Rendering the record's stored joint_owner_name
+    // unconditionally told the spouse the property was "Joint with <herself>",
+    // and would name the wrong party on a tenants-in-common asset held with
+    // someone outside the household (W-0016).
     userShare() {
-      // Single-record pattern: API provides user_share, or calculate from full value
-      if (this.property.user_share !== undefined) {
-        return this.property.user_share;
-      }
-      // Fallback: calculate from full value
-      if (this.isSharedOwnership && this.property.ownership_percentage) {
-        return this.fullPropertyValue * (this.property.ownership_percentage / 100);
-      }
-      return this.fullPropertyValue;
+      return calculateUserShare(this.property, { valueField: 'current_value' });
+    },
+
+    sharePercent() {
+      return userSharePercent(this.property).toFixed(2);
+    },
+
+    coOwner() {
+      return coOwnerName(this.property);
     },
 
     mortgageLabel() {
-      // For shared ownership (joint or tenants in common), show user's share label
-      if (this.isSharedOwnership && this.property.ownership_percentage) {
-        return `Your share of mortgage (${this.property.ownership_percentage}%)`;
+      if (this.property.mortgage_user_share !== undefined) {
+        return 'Your mortgage liability';
       }
       return 'Mortgage Outstanding';
     },
@@ -135,22 +140,26 @@ export default {
     },
 
     mortgageAmount() {
-      // Get mortgage balance, applying ownership split based on property ownership type
+      // Prefer the borrower-based liability calculated by the API. Property
+      // ownership and mortgage liability can have different percentages.
+      if (this.property.mortgage_user_share !== undefined) {
+        return parseFloat(this.property.mortgage_user_share) || 0;
+      }
+
       if (this.property.mortgages && this.property.mortgages.length > 0) {
-        const total = this.property.mortgages.reduce((sum, m) => sum + (m.outstanding_balance || 0), 0);
-        // Apply ownership split for shared ownership (joint or tenants in common)
-        if (this.isSharedOwnership && this.property.ownership_percentage) {
-          return total * (this.property.ownership_percentage / 100);
-        }
-        return total;
+        return this.property.mortgages.reduce((sum, mortgage) => {
+          const balance = parseFloat(mortgage.outstanding_balance) || 0;
+
+          if (mortgage.ownership_type === 'joint') {
+            return sum + (balance * ((parseFloat(mortgage.ownership_percentage) || 50) / 100));
+          }
+
+          return sum + balance;
+        }, 0);
       }
 
       // Fallback for properties without detailed mortgage records
-      const fullMortgage = this.property.mortgage_balance || this.property.outstanding_mortgage || 0;
-      if (this.isSharedOwnership && this.property.ownership_percentage) {
-        return fullMortgage * (this.property.ownership_percentage / 100);
-      }
-      return fullMortgage;
+      return this.property.mortgage_balance || this.property.outstanding_mortgage || 0;
     },
 
     equity() {

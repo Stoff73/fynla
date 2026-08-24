@@ -64,7 +64,17 @@ describe('PlanConfigService', function () {
             ->and($service->getTaxOptimisationGain())->toBe(0.04)
             ->and($service->getDefaultActionGain())->toBe(0.015)
             ->and($service->getEstateAgeGate())->toBe(40)
-            ->and($service->getCharitableGivingThreshold())->toBe(12.0)
+            // W-0451. This asserted 12.0 — the PLAN configuration's own
+            // `estate.charitable_giving_threshold_percent`. That key was a
+            // second home for Schedule 1A's statutory 10%, which
+            // `TaxConfigService` owns and which the calculation actually uses,
+            // so an admin could move this one and change what /plans/estate
+            // DISPLAYS while the tax computed against the other.
+            //
+            // The 12.0 above is still seeded in this fixture deliberately: it
+            // proves the plan key is now IGNORED rather than merely absent.
+            // A statutory threshold is not a plan preference.
+            ->and($service->getCharitableGivingThreshold())->toBe(10.0)
             ->and($service->getPlanCacheTTL())->toBe(900)
             ->and($service->getRetirementCacheTTL())->toBe(7200)
             ->and($service->getSavingsCacheTTL())->toBe(900);

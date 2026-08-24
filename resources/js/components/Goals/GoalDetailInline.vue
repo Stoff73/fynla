@@ -563,6 +563,7 @@ export default {
     },
 
     statusText() {
+      if (this.goal?.status_label) return this.goal.status_label;
       if (this.goal?.status === 'completed') return 'Completed';
       if (this.goal?.status === 'paused') return 'Paused';
       if (this.progressPercent >= 100) return 'Goal Achieved';
@@ -589,6 +590,8 @@ export default {
 
     timeRemaining() {
       const days = this.goal?.days_remaining;
+      // days_remaining floors at zero — see GoalCard (W-0411).
+      if (this.goal?.is_overdue) return 'Overdue';
       if (days === undefined || days === null) return '\u2014';
       if (days < 0) return 'Overdue';
       if (days === 0) return 'Today';

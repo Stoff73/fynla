@@ -6,16 +6,37 @@ use App\Models\Investment\RiskProfile;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Risk\AutoRiskCalculator;
+use App\Services\Savings\EmergencyFundCalculator;
+use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Shared\DependantsReach;
 
 beforeEach(function () {
     $this->netWorthService = Mockery::mock(NetWorthService::class);
+    // The full shape the real service returns. The capacity-for-loss factor now
+    // reads both terms of its ratio from this breakdown rather than running its
+    // own `user_id`-only queries (W-0273), so a mock that omits it is not a
+    // simplification — it is a different contract.
     $this->netWorthService->shouldReceive('calculateNetWorth')->andReturn([
         'net_worth' => 500000,
         'total_assets' => 600000,
         'total_liabilities' => 100000,
+        'breakdown' => [
+            'pensions' => 0.0,
+            'property' => 0.0,
+            'investments' => 0.0,
+            'cash' => 0.0,
+            'business' => 0.0,
+            'chattels' => 0.0,
+        ],
+        'has_db_pensions' => false,
     ]);
 
-    $this->calculator = new AutoRiskCalculator($this->netWorthService);
+    $this->calculator = new AutoRiskCalculator(
+        $this->netWorthService,
+        app(CrossModuleAssetAggregator::class),
+        app(EmergencyFundCalculator::class),
+        app(DependantsReach::class),
+    );
 });
 
 afterEach(function () {

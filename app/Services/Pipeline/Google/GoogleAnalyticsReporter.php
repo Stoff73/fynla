@@ -16,15 +16,14 @@ use RuntimeException;
  *   - WeeklySocialReport: to report sessions/engagement/conversions per
  *     platform to marketing@fynla.org.
  *
- * Uses the existing GoogleOAuthClient (analytics.readonly scope was
- * added; users must re-run pipeline:authorise-google to re-consent).
+ * Uses the pipeline service account with the analytics.readonly scope.
  * Direct HTTPS via Illuminate\Http — no google/apiclient dep.
  */
 class GoogleAnalyticsReporter
 {
     private const API_ROOT = 'https://analyticsdata.googleapis.com/v1beta';
 
-    public function __construct(private readonly GoogleOAuthClient $oauth) {}
+    public function __construct(private readonly GoogleServiceAccountClient $auth) {}
 
     /**
      * Aggregate metrics per pipeline utm_source over the given window.
@@ -185,7 +184,7 @@ class GoogleAnalyticsReporter
     private function runReport(array $payload): array
     {
         $propertyId = $this->propertyId();
-        $token = $this->oauth->accessToken();
+        $token = $this->auth->accessToken();
 
         $response = Http::withToken($token)
             ->timeout(60)

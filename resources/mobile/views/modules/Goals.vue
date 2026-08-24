@@ -62,6 +62,37 @@
           </button>
         </div>
       </div>
+
+      <!-- Life events -->
+      <div class="m-card">
+        <div class="mg-head" style="margin-top:0">
+          <p class="m-section-label">Life events</p>
+        </div>
+        <p v-if="!lifeEvents.length" class="m-sub" style="margin-bottom:0">
+          You haven't recorded any life events yet.
+        </p>
+        <template v-else>
+          <div class="mg-event__totals">
+            <span class="mg-event__total mg-event__total--income">{{ fmt(totalEventIncome) }} expected in</span>
+            <span class="mg-event__total mg-event__total--expense">{{ fmt(totalEventExpense) }} expected out</span>
+          </div>
+          <div v-for="event in lifeEvents" :key="event.id" class="mg-event">
+            <div class="mg-event__head">
+              <div class="mg-event__title-wrap">
+                <span class="mg-event__name">{{ event.event_name }}</span>
+                <span class="mg-event__type">{{ event.display_event_type }}</span>
+              </div>
+              <span class="mg-event__amount" :class="`mg-event__amount--${event.impact_type}`">
+                {{ event.impact_type === 'income' ? '+' : '-' }}{{ fmt(event.amount) }}
+              </span>
+            </div>
+            <div class="mg-event__foot">
+              <span class="mg-event__date">{{ formatDate(event.expected_date) }}</span>
+              <span class="mg-event__certainty">{{ certaintyLabel(event) }}</span>
+            </div>
+          </div>
+        </template>
+      </div>
     </template>
   </MobileChrome>
 </template>
@@ -72,6 +103,7 @@ import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
+import { summariseUpcoming } from '../../utils/lifeEvents.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -81,7 +113,7 @@ function formatCurrency(value) {
 export default {
   name: 'MobileGoals',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', goals: [], overview: null }),
+  data: () => ({ loading: true, error: '', goals: [], overview: null, lifeEvents: [] }),
   computed: {
     totalGoals() { return this.overview?.total_goals ?? this.goals.length; },
     onTrackCount() { return this.overview?.on_track_count ?? this.goals.filter((g) => g.is_on_track).length; },
@@ -104,6 +136,19 @@ export default {
     contextualRequest() {
       return this.goalRequest('add');
     },
+    // W-0207: "expected in" and "expected out" now mean what they say. These
+    // used to sum every event on file, so an inheritance received in 2020 was
+    // still being counted as money expected in. Shared with the web events tab
+    // so the two surfaces cannot drift.
+    eventTotals() {
+      return summariseUpcoming(this.lifeEvents);
+    },
+    totalEventIncome() {
+      return this.eventTotals.expected_income;
+    },
+    totalEventExpense() {
+      return this.eventTotals.expected_expense;
+    },
   },
   async created() { await this.load(); },
   methods: {
@@ -119,7 +164,10 @@ export default {
       const pct = Number(goal.progress_percentage) || 0;
       return pct >= 50 ? 'violet' : 'raspberry';
     },
+    // Served by the same GoalCalculationService the web reads, so /m cannot
+    // drift into calling an overdue goal "Complete" (W-0411, Rules 19 + 20).
     statusLabel(goal) {
+      if (goal.status_label) return goal.status_label;
       if ((Number(goal.progress_percentage) || 0) >= 100 || goal.status === 'completed') return 'Complete';
       return goal.is_on_track ? 'On track' : 'Behind';
     },
@@ -129,6 +177,20 @@ export default {
       const days = Number(goal.days_remaining);
       if (!isNaN(days) && days > 0) return `${days} ${days === 1 ? 'day' : 'days'} left`;
       return 'Target date passed';
+    },
+    formatDate(date) {
+      if (!date) return '—';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    },
+    certaintyLabel(event) {
+      // A completed or cancelled event says so; otherwise the certainty the user
+      // chose. Both come straight off the record — no second vocabulary here.
+      if (event.status === 'completed') return 'Completed';
+      if (event.status === 'cancelled') return 'Cancelled';
+      const certainty = event.certainty || '';
+      return certainty ? certainty.charAt(0).toUpperCase() + certainty.slice(1) : '';
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     goalRequest(action, goalId = null) {
@@ -169,13 +231,18 @@ export default {
       this.error = '';
       this.goals = [];
       this.overview = null;
+      this.lifeEvents = [];
       try {
-        const [listRes, overviewRes] = await Promise.all([
+        // The page is titled "Goals and life events" — the same endpoint the web
+        // events tab reads, so both surfaces see one set of records.
+        const [listRes, overviewRes, eventsRes] = await Promise.all([
           apiGet('/api/goals', store.token),
           apiGet('/api/goals/dashboard-overview', store.token),
+          apiGet('/api/life-events', store.token),
         ]);
         if (handleAuthExpiry(listRes, this.$router)) return;
         if (handleAuthExpiry(overviewRes, this.$router)) return;
+        if (handleAuthExpiry(eventsRes, this.$router)) return;
         if (listRes.ok) {
           this.goals = listRes.data?.data?.goals || listRes.data?.goals || [];
         } else {
@@ -184,6 +251,9 @@ export default {
         }
         if (overviewRes.ok) {
           this.overview = overviewRes.data?.data || overviewRes.data || null;
+        }
+        if (eventsRes.ok) {
+          this.lifeEvents = eventsRes.data?.data?.events || eventsRes.data?.events || [];
         }
       } catch {
         this.error = 'Network error. Please try again.';
@@ -229,4 +299,21 @@ export default {
 .mg-goal__foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .mg-goal__amounts { font-size: 13px; font-weight: 700; color: var(--horizon-500); }
 .mg-goal__remaining { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
+
+.mg-event__totals { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--light-gray); }
+.mg-event__total { font-size: 12px; font-weight: 700; }
+.mg-event__total--income { color: var(--spring-600); }
+.mg-event__total--expense { color: var(--raspberry-500); }
+.mg-event { padding: 14px 0; border-bottom: 1px solid var(--light-gray); }
+.mg-event:last-child { border-bottom: 0; padding-bottom: 0; }
+.mg-event__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.mg-event__title-wrap { min-width: 0; flex: 1; }
+.mg-event__name { display: block; font-size: 15px; font-weight: 700; color: var(--horizon-500); }
+.mg-event__type { display: block; font-size: 12px; color: var(--neutral-500); margin-top: 2px; }
+.mg-event__amount { flex-shrink: 0; font-size: 15px; font-weight: 700; white-space: nowrap; }
+.mg-event__amount--income { color: var(--spring-600); }
+.mg-event__amount--expense { color: var(--raspberry-500); }
+.mg-event__foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.mg-event__date { font-size: 12px; color: var(--neutral-500); }
+.mg-event__certainty { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--neutral-500); white-space: nowrap; }
 </style>

@@ -4,9 +4,28 @@
  * Generates a formatted HTML string for a UK will document.
  * Uses formal legal language with hybrid styling: Fynla header + serif legal body.
  *
+ * **Signature lines are blank, always.** Until 2026-08-21 this file drew the
+ * testator's name on the signature line once `signed_date` was typed, and each
+ * witness's name onto the witness signature line **the moment a witness row
+ * existed** — no date condition at all, so the witnesses' marks appeared more
+ * readily than the testator's own. Under Wills Act 1837 s.9 the witnesses'
+ * signatures are the formality a will's validity turns on, so those were the
+ * marks that mattered most. The rule now lives in `documentSignatures.js`, which
+ * this file and `lpaDocumentRenderer.js` both read (W-0101, Rule 20).
+ *
+ * **Unlike the Lasting Power of Attorney record, this document is not disclaimed
+ * as "not a will".** A will has no statutorily prescribed form, so this document,
+ * printed and properly executed, could take effect as one — saying otherwise would
+ * replace a false statement with a different false statement. What it says instead
+ * is that whether it takes effect *depends* on execution and on matters Fynla
+ * cannot see. The two instruments are governed by different regimes and the
+ * same-looking fix is right in one and wrong in the other.
+ *
  * Print approach follows the existing LetterToSpouse.vue pattern (buildLetterHtml / generatePDF).
  * All user content is escaped via escapeHtml() to prevent injection.
  */
+
+import { SIGNATURE_NOT_RECORDED, blankSignatureLine } from './documentSignatures';
 
 function escapeHtml(text) {
   if (!text) return '';
@@ -42,9 +61,13 @@ export function renderWillDocument(data) {
 
   let html = '';
 
-  // Title
+  // Title. The qualification sits with the title, from this one function, so the
+  // on-screen preview and the print output take it from the same place — trunk §4
+  // rules out putting it in a footer, which is where it used to live.
   html += `<h1>LAST WILL AND TESTAMENT</h1>`;
   html += `<h2>of ${name}</h2>`;
+  html += `<p class="doc-qualification">This document was prepared using Fynla's Will Builder from the details you entered, and does not constitute legal advice.</p>`;
+  html += `<p class="doc-qualification">Whether it takes effect as a will depends on how it is signed and witnessed, and on matters Fynla cannot see. Section 9 of the Wills Act 1837 is where those requirements are set out. Fynla has not checked any of them, and has recorded no signature.</p>`;
   html += `<hr class="title-rule" />`;
 
   // Opening declaration + revocation
@@ -168,17 +191,16 @@ export function renderWillDocument(data) {
     html += digitalText;
   }
 
-  // Attestation
+  // Attestation. The date stays blank even when the user has recorded one: the
+  // clause is in the testator's own voice ("I have hereunto set my hand this …"),
+  // so filling it in asserts an execution event Fynla did not witness — the same
+  // class of claim as drawing the mark, and a typed date is not a signature.
   html += `<h3>ATTESTATION</h3>`;
-  const signedDate = data.signed_date ? formatDate(data.signed_date) : '_______ day of _________________ 20_____';
-  html += `<p class="clause">IN WITNESS WHEREOF I have hereunto set my hand this ${signedDate}</p>`;
+  html += `<p class="clause">IN WITNESS WHEREOF I have hereunto set my hand this _______ day of _________________ 20_____</p>`;
   html += `<div class="signature-block">`;
-  if (data.signed_date) {
-    html += `<div class="sig-line"><div class="line signed-name">${escapeHtml(data.testator_full_name)}</div><p>SIGNED by the above named <strong>${name}</strong></p></div>`;
-  } else {
-    html += `<div class="sig-line"><div class="line"></div><p>SIGNED by the above named <strong>${name}</strong></p></div>`;
-  }
+  html += `<div class="sig-line">${blankSignatureLine()}<p>SIGNED by the above named <strong>${name}</strong></p></div>`;
   html += `</div>`;
+  html += `<p class="signature-notice">${SIGNATURE_NOT_RECORDED}</p>`;
 
   // Witnesses
   const witnesses = data.witnesses || [];
@@ -189,17 +211,21 @@ export function renderWillDocument(data) {
     html += `<div class="witness">`;
     html += `<p class="witness-label">WITNESS ${i + 1}</p>`;
     if (w) {
-      html += `<div class="witness-field"><span>Signature:</span><div class="line signed-name">${escapeHtml(w.name)}</div></div>`;
+      // Signature and Date stay blank. The printed name, address and occupation are
+      // details the user supplied about who will witness — they label a person. The
+      // signature is that person's hand and the date is when they used it, and Fynla
+      // has neither.
+      html += `<div class="witness-field"><span>Signature:</span>${blankSignatureLine()}</div>`;
       html += `<div class="witness-field"><span>Full Name:</span><div class="line filled">${escapeHtml(w.name)}</div></div>`;
       html += `<div class="witness-field"><span>Address:</span><div class="line filled">${escapeHtml(w.address || '')}</div></div>`;
       html += `<div class="witness-field"><span>Occupation:</span><div class="line filled">${escapeHtml(w.occupation || '')}</div></div>`;
-      html += `<div class="witness-field"><span>Date:</span><div class="line filled">${w.date ? formatDate(w.date) : ''}</div></div>`;
+      html += `<div class="witness-field"><span>Date:</span>${blankSignatureLine()}</div>`;
     } else {
-      html += `<div class="witness-field"><span>Signature:</span><div class="line"></div></div>`;
+      html += `<div class="witness-field"><span>Signature:</span>${blankSignatureLine()}</div>`;
       html += `<div class="witness-field"><span>Full Name:</span><div class="line"></div></div>`;
       html += `<div class="witness-field"><span>Address:</span><div class="line"></div></div>`;
       html += `<div class="witness-field"><span>Occupation:</span><div class="line"></div></div>`;
-      html += `<div class="witness-field"><span>Date:</span><div class="line"></div></div>`;
+      html += `<div class="witness-field"><span>Date:</span>${blankSignatureLine()}</div>`;
     }
     html += `</div>`;
   }
@@ -246,17 +272,9 @@ export function getWillDocumentStyles() {
     .witness-field { display: flex; align-items: flex-end; margin-bottom: 15px; gap: 8px; }
     .witness-field span { font-size: 10pt; white-space: nowrap; min-width: 80px; }
     .witness-field .line { flex: 1; border-bottom: 1px solid #000; min-height: 20px; }
-    .signed-name { font-family: 'Brush Script MT', 'Segoe Script', cursive; font-size: 18pt; padding-left: 6px; }
     .filled { font-size: 10pt; padding-left: 6px; }
-    .disclaimer {
-      margin-top: 50px;
-      padding-top: 15px;
-      border-top: 1px solid #ccc;
-      font-family: 'Segoe UI', sans-serif;
-      font-size: 8pt;
-      color: #717171;
-      text-align: center;
-    }
+    .doc-qualification { text-align: center; font-family: 'Segoe UI', sans-serif; font-size: 10pt; color: #717171; margin: 10px auto 0; max-width: 560px; }
+    .signature-notice { font-family: 'Segoe UI', sans-serif; font-size: 9pt; color: #717171; margin-top: 6px; }
     @media print {
       body { padding: 0; }
       .no-print { display: none; }
@@ -291,11 +309,17 @@ export function printWillDocument(data) {
     '<div class="fynla-header">',
     '<p>Generated using Fynla</p>',
     '</div>',
+    // The qualification is rendered by renderWillDocument() at the TOP of the
+    // document, so it reaches the screen and the print output from one place. It is
+    // deliberately not repeated in a footer: the sentence that used to live here —
+    // "This will is only legally valid once properly signed and witnessed in
+    // accordance with the Wills Act 1837" — read as a caution and was an overclaim.
+    // s.9(1) opens "No will shall be valid unless", stating NECESSARY conditions;
+    // "only legally valid once" states a SUFFICIENT one, which is the converse. It
+    // also named two of four limbs, dropping s.9(1)(b) — that the testator appears
+    // to have intended their signature to give effect to the will — behind the
+    // undefined word "properly", and called the draft "This will".
     content,
-    '<div class="disclaimer">',
-    'This document was prepared using Fynla\'s Will Builder tool and does not constitute legal advice.',
-    ' This will is only legally valid once properly signed and witnessed in accordance with the Wills Act 1837.',
-    '</div>',
     '</body>',
     '</html>',
   ].join('\n');

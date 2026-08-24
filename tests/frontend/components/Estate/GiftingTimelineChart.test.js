@@ -48,9 +48,22 @@ describe('GiftingTimelineChart', () => {
     expect(mountChart().vm.series[0].data[0].meta.status).toContain('7 years survived');
   });
 
-  it('calculates every taper-relief bracket', () => {
+  it('reports the relief the SERVER computed, not one derived from the gift age', () => {
+    // C4 — `calculateTaperRelief()` is gone. It was a fourth hardcoded copy of the
+    // schedule and, like the others, answered from age alone. Relief exists only
+    // where the gift bears tax (IHTM14611), which depends on the whole estate's
+    // cumulation and cannot be known in a chart component.
     const wrapper = mountChart();
-    expect([2.5, 3.5, 4.5, 5.5, 6.5, 7.5].map(wrapper.vm.calculateTaperRelief)).toEqual([0, 20, 40, 60, 80, 100]);
+
+    expect(wrapper.vm.taperReliefFor({ taper: { taper_relief_percent: 60, taper_saving: 4000 } })).toBe('60%');
+  });
+
+  it('says a gift within the allowance has no relief, however old', () => {
+    const wrapper = mountChart();
+
+    expect(wrapper.vm.taperReliefFor({ taper: null })).toBe('None — within your allowance');
+    expect(wrapper.vm.taperReliefFor({ taper: { taper_relief_percent: 80, taper_saving: 0 } }))
+      .toBe('None — within your allowance');
   });
 
   it('uses the danger colour for a recent potentially exempt transfer', () => {
@@ -87,10 +100,14 @@ describe('GiftingTimelineChart', () => {
     expect(mountChart().vm.formatCurrency(50000)).toBe('£50,000');
   });
 
-  it('handles exact taper boundaries', () => {
+  it('labels a gift by whether it is taxable, not by how old it is', () => {
     const wrapper = mountChart();
-    expect(wrapper.vm.calculateTaperRelief(3)).toBe(20);
-    expect(wrapper.vm.calculateTaperRelief(7)).toBe(100);
+
+    expect(wrapper.vm.getGiftStatus(6, 'pet', { taper: null })).toBe('Within your allowance');
+    expect(wrapper.vm.getGiftStatus(6, 'pet', { taper: { taper_relief_percent: 80, taper_saving: 3000 } }))
+      .toBe('Taper Relief (80%)');
+    expect(wrapper.vm.getGiftStatus(8, 'pet', { taper: null }))
+      .toBe('Inheritance Tax-Exempt (7 years survived)');
   });
 
   it('configures the current range-bar chart', () => {

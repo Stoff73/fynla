@@ -573,14 +573,26 @@ class GoalsController extends Controller
 
         try {
             // Get combined goals
+            // W-0471 — this read `$user->spouse_user_id`, which is NOT a column on
+            // `users` (the column is `spouse_id`). A missing attribute on an Eloquent
+            // MODEL returns null silently, so the clause became
+            // `where user_id = null`, matched nothing, and **the household branch
+            // never fired for any couple**. Measured: user 16 has `spouse_id = 17`
+            // and `spouse_user_id = NULL`.
+            //
+            // `liveSpouseId()` rather than `spouse_id`: it returns null once the
+            // partner's account is deleted, which is the retention decision
+            // (CSJ D1/D2, 2026-08-19 — keep the row, ignore it at read time).
+            $spouseId = $user->liveSpouseId();
+
             $goals = Goal::where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
                     ->orWhere('joint_owner_id', $user->id);
             })
-                ->orWhere(function ($query) use ($user) {
-                    $query->where('user_id', $user->spouse_user_id)
+                ->when($spouseId, fn ($q) => $q->orWhere(function ($query) use ($spouseId) {
+                    $query->where('user_id', $spouseId)
                         ->where('show_in_household_view', true);
-                })
+                }))
                 ->where('status', 'active')
                 ->orderBy('target_date')
                 ->get();

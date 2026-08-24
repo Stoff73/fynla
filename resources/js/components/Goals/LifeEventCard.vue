@@ -37,7 +37,11 @@
         <span class="text-sm text-neutral-500">Expected</span>
         <span class="text-sm font-medium text-horizon-500">{{ formatDate(event.expected_date) }}</span>
       </div>
-      <div v-if="yearsUntil !== null" class="flex justify-between">
+      <div v-if="event.has_occurred" class="flex justify-between">
+        <span class="text-sm text-neutral-500">Timing</span>
+        <span class="text-sm font-medium text-horizon-500">{{ occurredLabel }}</span>
+      </div>
+      <div v-else-if="yearsUntil !== null" class="flex justify-between">
         <span class="text-sm text-neutral-500">In</span>
         <span class="text-sm font-medium text-horizon-500">{{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}</span>
       </div>
@@ -70,6 +74,7 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
 import { formatDateLong } from '@/utils/dateFormatter';
+import { OCCURRED_LABEL } from '../../../mobile/utils/lifeEvents.js';
 
 export default {
   name: 'LifeEventCard',
@@ -118,6 +123,13 @@ export default {
 
     yearsUntil() {
       return this.event.years_until_event ?? null;
+    },
+
+    // W-0207: years_until_event used to be clamped at zero, so this row read
+    // "In 0 years" for an event from 2020 — the same words a user would see for
+    // one happening this year.
+    occurredLabel() {
+      return OCCURRED_LABEL;
     },
   },
 

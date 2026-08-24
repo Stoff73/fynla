@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Chattel;
 use App\Models\Estate\Will;
+use App\Models\Estate\WillDocument;
 use App\Models\LetterToSpouse;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Property;
@@ -115,6 +116,107 @@ describe('LetterEstateValidationService', function () {
             Will::factory()->withWill()->create([
                 'user_id' => $this->user->id,
                 'executor_name' => 'John Smith',
+            ]);
+
+            $result = $this->service->validateLetterAgainstEstate($this->user);
+
+            $executorWarnings = array_filter($result, fn ($w) => $w['type'] === 'executor_mismatch');
+            expect($executorWarnings)->toBeEmpty();
+        });
+
+        // Every fixture above names ONE executor, which is why W-0208 shipped: the
+        // check had never seen a list. These pin the PARTIES rather than the
+        // rendering — the same people written two ways must stay silent, and a
+        // real difference must still speak up.
+        it('does not warn when the same two executors are written with an ampersand and a comma', function () {
+            LetterToSpouse::factory()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones & Barclays Wealth',
+            ]);
+
+            Will::factory()->withWill()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones, Barclays Wealth',
+            ]);
+
+            $result = $this->service->validateLetterAgainstEstate($this->user);
+
+            $executorWarnings = array_filter($result, fn ($w) => $w['type'] === 'executor_mismatch');
+            expect($executorWarnings)->toBeEmpty();
+        });
+
+        it('does not warn when the same two executors are listed in a different order', function () {
+            LetterToSpouse::factory()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Barclays Wealth and Sarah Jones',
+            ]);
+
+            Will::factory()->withWill()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones, Barclays Wealth',
+            ]);
+
+            $result = $this->service->validateLetterAgainstEstate($this->user);
+
+            $executorWarnings = array_filter($result, fn ($w) => $w['type'] === 'executor_mismatch');
+            expect($executorWarnings)->toBeEmpty();
+        });
+
+        it('still warns when one of the two executors is a genuinely different person', function () {
+            LetterToSpouse::factory()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones & Michael Brown',
+            ]);
+
+            Will::factory()->withWill()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones, Barclays Wealth',
+            ]);
+
+            $result = $this->service->validateLetterAgainstEstate($this->user);
+
+            $executorWarnings = array_filter($result, fn ($w) => $w['type'] === 'executor_mismatch');
+            expect($executorWarnings)->toHaveCount(1);
+            expect(array_values($executorWarnings)[0]['severity'])->toBe('high');
+        });
+
+        it('still warns when the letter names only one of the two executors in the will', function () {
+            LetterToSpouse::factory()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones',
+            ]);
+
+            Will::factory()->withWill()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones, Barclays Wealth',
+            ]);
+
+            $result = $this->service->validateLetterAgainstEstate($this->user);
+
+            $executorWarnings = array_filter($result, fn ($w) => $w['type'] === 'executor_mismatch');
+            expect($executorWarnings)->toHaveCount(1);
+        });
+
+        // Discriminating case: the will document and the rendered string disagree,
+        // so this passes only if the structured executors are the ones consulted.
+        it('compares the will document executors rather than the rendered executor string', function () {
+            $document = WillDocument::factory()->complete()->create([
+                'user_id' => $this->user->id,
+                'executors' => [
+                    ['name' => 'Sarah Jones', 'address' => '1 High Street', 'relationship' => 'Sister', 'phone' => '07700 900001'],
+                    ['name' => 'Barclays Wealth', 'address' => '1 Churchill Place', 'relationship' => 'Professional', 'phone' => '07700 900002'],
+                ],
+            ]);
+
+            LetterToSpouse::factory()->create([
+                'user_id' => $this->user->id,
+                'executor_name' => 'Sarah Jones & Barclays Wealth',
+            ]);
+
+            Will::factory()->withWill()->create([
+                'user_id' => $this->user->id,
+                'will_document_id' => $document->id,
+                'executor_name' => 'Old Solicitor Firm',
             ]);
 
             $result = $this->service->validateLetterAgainstEstate($this->user);

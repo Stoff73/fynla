@@ -372,6 +372,9 @@ import {
 } from '../navigation/semanticDestinations.js';
 import { primaryNavigationSections } from '../navigation/navigationModel.js';
 import { issueWebHandoff } from '../navigation/webHandoff.js';
+// Shared with the web dashboard by relative path — the ownership.js precedent
+// (W-0015/F-0002). One rule, both surfaces.
+import { retirementHeadline } from '../../js/utils/retirementHeadline.js';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -582,14 +585,12 @@ export default {
       const efTarget = 6;
       const savValue = sav.total_savings != null ? sav.total_savings : sav.value;
 
-      // Retirement — projected income vs target as a bar.
+      // Retirement — headline from the shared rule (js/utils/retirementHeadline.js),
+      // the same one the web dashboard reads; bar is projected income vs target.
       const projected = num(ret.projected_income);
       const target = num(ret.target_income);
       const retPct = target > 0 ? Math.min(100, Math.round((projected / target) * 100)) : 0;
-      const pensionAssets = num(nw.breakdown?.assets?.pensions);
-      const retValue = num(ret.pot_value != null
-        ? ret.pot_value
-        : (pensionAssets > 0 ? pensionAssets : (ret.income_gap != null ? ret.income_gap : ret.value)));
+      const retHeadline = retirementHeadline(ret);
 
       // Investment — portfolio value as a full-width donut tile (5th panel).
       const inv = find('investment');
@@ -624,12 +625,12 @@ export default {
         },
         {
           key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock,
-          value: this.fmt(retValue), route: '/retirement',
+          value: this.fmt(retHeadline.value) + (retHeadline.isAnnualIncome ? '/year' : ''), route: '/retirement',
           viz: 'bar',
           barFill: retPct,
           barValue: target > 0 ? retPct + '%' : 'Target not set',
           barUnit: target > 0 ? 'of target' : '',
-          caption: target > 0 ? 'Towards your target' : (retValue > 0 ? 'Your pension pot' : 'Plan your retirement'),
+          caption: retHeadline.caption,
         },
         {
           key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true,

@@ -99,7 +99,10 @@ class DetectNewVideos extends Command
                 continue;
             }
 
-            if ($pipelineArticle->source_video_drive_file_id === $file['id']) {
+            if (
+                $pipelineArticle->source_video_drive_file_id === $file['id']
+                && $pipelineArticle->status !== 'failed'
+            ) {
                 continue;
             }
 

@@ -22,6 +22,10 @@
         <p class="m-hero-sub">{{ heroSub }}</p>
       </div>
 
+      <!-- The exclusion, stated where the figure is shown. Full sentence, its own
+           block, no clamp — a disclosure that is clipped is not a disclosure. -->
+      <p v-if="disclosure" class="m-sub mnwc-disclosure" data-testid="pension-disclosure">{{ disclosure }}</p>
+
       <!-- Items list -->
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">{{ isLiabilities ? 'Breakdown' : 'Items' }}</p>
@@ -61,6 +65,7 @@ import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { userSharePercent } from '../../../js/utils/ownership.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -85,7 +90,12 @@ function ownershipLabel(value) {
 const CONFIG = {
   property: { title: 'Property', sub: 'Homes and other property you own', source: 'detailed' },
   investments: { title: 'Investments', sub: 'Investment accounts and ISAs', source: 'detailed' },
-  pensions: { title: 'Pensions', sub: 'Accessible pension capital', source: 'detailed' },
+  // The pensions subtitle and disclosure come from the BACKEND
+  // (`App\Constants\PensionDisclosure`), not from here. `sub` is the fallback for a
+  // payload that predates them. It used to read "Accessible pension capital", which
+  // is the sentence that made a £0 line beside a £35,000-a-year NHS scheme read as a
+  // lost record rather than a statement (W-0241).
+  pensions: { title: 'Pensions', sub: 'What your pensions are worth as capital', source: 'detailed' },
   cash: { title: 'Cash & savings', sub: 'Savings accounts and cash', source: 'detailed' },
   business: { title: 'Business interests', sub: 'Your share of business holdings', source: 'detailed' },
   chattels: { title: 'Valuables', sub: 'Valuable personal possessions', source: 'detailed' },
@@ -101,7 +111,18 @@ export default {
     config() { return CONFIG[this.categoryKey] || { title: 'Net Worth', sub: '', source: 'detailed' }; },
     isLiabilities() { return this.categoryKey === 'liabilities'; },
     title() { return this.config.title; },
-    subtitle() { return this.config.sub; },
+    subtitle() {
+      // One home for the wording (Rule 20): the backend sends it with the figure it
+      // qualifies, so web, /m and native cannot drift into three different sentences.
+      return this.payload?.[this.categoryKey]?.subtitle || this.config.sub;
+    },
+    /**
+     * The Defined Benefit exclusion, as sent by the backend beside the figure.
+     *
+     * Null unless this household actually holds a Defined Benefit scheme — a
+     * disclosure shown to everyone explains nothing.
+     */
+    disclosure() { return this.payload?.[this.categoryKey]?.disclosure || ''; },
     total() {
       if (this.isLiabilities) return this.payload?.liabilities?.total_value ?? 0;
       return this.payload?.[this.categoryKey]?.total_value ?? 0;
@@ -134,7 +155,21 @@ export default {
         if (this.categoryKey === 'pensions' && it.annual_pension) fields.push(`${this.fmt(it.annual_pension)} a year`);
         if (this.categoryKey === 'business') {
           if (it.business_type) fields.push(titleCase(it.business_type));
-          if (it.ownership_percentage != null) fields.push(`${Math.round(Number(it.ownership_percentage))}% owned`);
+          // The viewer's share, not the record's stored primary-owner share —
+          // the joint owner holds the complement (W-0015).
+          if (it.ownership_percentage != null) fields.push(`${Math.round(userSharePercent(it))}% owned`);
+          // Companies House filing deadline, once close enough to act on.
+          // next_filing is computed server-side (NetWorthService) so this
+          // matches the web card exactly rather than re-deriving it here.
+          const filing = it.next_filing;
+          if (filing && filing.days_until <= 30) {
+            const label = filing.type === 'accounts' ? 'Accounts' : 'Confirmation statement';
+            const days = filing.days_until;
+            if (days < 0) fields.push(`${label} overdue by ${Math.abs(days)} ${Math.abs(days) === 1 ? 'day' : 'days'}`);
+            else if (days === 0) fields.push(`${label} due today`);
+            else if (days === 1) fields.push(`${label} due tomorrow`);
+            else fields.push(`${label} due in ${days} days`);
+          }
         }
         if (this.categoryKey === 'chattels') {
           if (it.chattel_type) fields.push(titleCase(it.chattel_type));
@@ -201,6 +236,7 @@ export default {
 </script>
 
 <style scoped>
+.mnwc-disclosure { margin: -4px 4px 14px; font-size: 13px; line-height: 1.5; color: var(--neutral-600); }
 .mnwc-item { display: block; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--horizon-200); background: transparent; text-align: left; }
 .mnwc-item--link { cursor: pointer; }
 .mnwc-item--link:active { opacity: 0.72; }

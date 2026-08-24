@@ -27,6 +27,16 @@ class UpdateBequestRequest extends FormRequest
         return [
             'beneficiary_name' => 'sometimes|string|max:255',
             'beneficiary_user_id' => 'nullable|exists:users,id',
+            // W-0394. These two were absent, so `validated()` dropped them and
+            // every bequest was stored with the schema default 'individual' —
+            // including both of the peak_earners household's charitable
+            // legacies. Bequest::isCharitable() re-derives the answer from the
+            // beneficiary name on read, which hid it; a charity the name list
+            // does not recognise had no such second chance and was worth
+            // nothing to the charitable total that decides the reduced
+            // Inheritance Tax rate.
+            'beneficiary_type' => 'sometimes|in:individual,charity,trust,organization',
+            'charity_registration_number' => 'nullable|string|max:50',
             'bequest_type' => 'sometimes|in:percentage,specific_amount,specific_asset,residuary',
             'percentage_of_estate' => 'nullable|numeric|min:0|max:100',
             'specific_amount' => 'nullable|numeric|min:0',

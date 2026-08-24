@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pipeline;
 
+use App\Services\AI\Cost\AiCostCalculator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -66,18 +67,27 @@ class CostCap
         $usdPerGbp = max(0.5, (float) config('pipeline.cost.usd_per_gbp', 1.27));
         $gbp = $usd / $usdPerGbp;
 
-        $perRequestCap = (float) config('pipeline.cost.per_request_gbp', 0.30);
-        if ($gbp > $perRequestCap) {
-            Log::channel('pipeline')->warning('Per-request cost cap exceeded.', [
-                'gbp_this_call' => round($gbp, 4),
-                'cap_gbp' => $perRequestCap,
-                'usage' => $usage,
-            ]);
-        }
+        return $this->recordCost($gbp, $usage);
+    }
 
-        Cache::increment($this->dailyKey(), (int) round($gbp * 10000));
+    /**
+     * Record usage for a model already present in the application's shared AI
+     * pricing table. This keeps xAI pipeline calls under the same daily and
+     * per-request guards without applying Anthropic Opus rates to them.
+     *
+     * @param  array{input_tokens?:int,output_tokens?:int,cache_creation_input_tokens?:int,cache_read_input_tokens?:int}  $usage
+     */
+    public function recordModelUsage(string $model, array $usage): float
+    {
+        $cost = app(AiCostCalculator::class)->compute(
+            model: $model,
+            inputTokens: (int) ($usage['input_tokens'] ?? 0),
+            outputTokens: (int) ($usage['output_tokens'] ?? 0),
+            cacheReadTokens: (int) ($usage['cache_read_input_tokens'] ?? 0),
+            cacheCreationTokens: (int) ($usage['cache_creation_input_tokens'] ?? 0),
+        );
 
-        return $gbp;
+        return $this->recordCost((float) $cost['gbp_cost'], $usage);
     }
 
     public function dailySpendGbp(): float
@@ -90,5 +100,21 @@ class CostCap
     private function dailyKey(): string
     {
         return 'pipeline.cost.day.'.now()->toDateString();
+    }
+
+    private function recordCost(float $gbp, array $usage): float
+    {
+        $perRequestCap = (float) config('pipeline.cost.per_request_gbp', 0.30);
+        if ($gbp > $perRequestCap) {
+            Log::channel('pipeline')->warning('Per-request cost cap exceeded.', [
+                'gbp_this_call' => round($gbp, 4),
+                'cap_gbp' => $perRequestCap,
+                'usage' => $usage,
+            ]);
+        }
+
+        Cache::increment($this->dailyKey(), (int) round($gbp * 10000));
+
+        return $gbp;
     }
 }

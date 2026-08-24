@@ -26,9 +26,15 @@ describe('PropertyCard.vue', () => {
     postcode: 'M1 1AE',
     property_type: 'buy_to_let',
     current_value: 300000,
-    mortgages: [{ id: 102, outstanding_balance: 150000 }],
+    mortgages: [{
+      id: 102,
+      outstanding_balance: 150000,
+      ownership_type: 'joint',
+      ownership_percentage: 50,
+    }],
     ownership_type: 'joint',
     ownership_percentage: 50,
+    mortgage_user_share: 75000,
   };
 
   const mortgageFreePropertyMock = {
@@ -96,7 +102,9 @@ describe('PropertyCard.vue', () => {
 
     const ownershipBadge = wrapper.find('.ownership-badge');
     expect(ownershipBadge.exists()).toBe(true);
-    expect(ownershipBadge.text()).toBe('Joint (50%)');
+    // Two decimals everywhere on the card, matching the share label beneath it
+    // and what the decimal column actually returns from the API.
+    expect(ownershipBadge.text()).toBe('Joint (50.00%)');
   });
 
   it('does not show ownership badge for individual properties', () => {
@@ -217,6 +225,27 @@ describe('PropertyCard.vue', () => {
 
   it('computes mortgageAmount correctly', () => {
     expect(wrapper.vm.mortgageAmount).toBe(200000);
+  });
+
+  it('uses the mortgage liability returned by the API instead of the property share', async () => {
+    await wrapper.setProps({
+      property: {
+        ...jointPropertyMock,
+        ownership_type: 'tenants_in_common',
+        ownership_percentage: 30,
+        user_share: 90000,
+        mortgage_user_share: 150000,
+        mortgages: [{
+          id: 102,
+          outstanding_balance: 150000,
+          ownership_type: 'individual',
+          ownership_percentage: 100,
+        }],
+      },
+    });
+
+    expect(wrapper.vm.mortgageAmount).toBe(150000);
+    expect(wrapper.vm.mortgageLabel).toBe('Your mortgage liability');
   });
 
   it('computes equity with ownership percentage', async () => {

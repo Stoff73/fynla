@@ -28,13 +28,6 @@ import {
 // terminal turn (campaign → /tax-strategy). Anything outside this set is a
 // desktop-only route with no /m screen and is ignored (the chat thread still
 // carries the result). Keep in step with OnboardingStateMachine::campaignVerifyConfig().
-export const ONBOARDING_NAV_ROUTES = [
-  '/tax-strategy', '/income', '/expenditure', '/savings', '/investment', '/retirement',
-  // Journey-path verify destinations (CSJ 2026-07-24: every data entry
-  // verifies) — all three have /m screens registered in router.js.
-  '/protection', '/estate', '/goals',
-];
-
 export default {
   created() {
     loadMobileSubscriptionStatus();
@@ -451,10 +444,10 @@ export default {
         this.$nextTick(this.scrollFyn);
         return;
       }
-      if (ev.type === 'entity_created') {
+      if (ev.type === 'entity_created' || ev.type === 'entity_updated' || ev.type === 'entity_deleted') {
         cursor.got = true;
         cursor.createdEntityNames = cursor.createdEntityNames || [];
-        if (ev.name) cursor.createdEntityNames.push(ev.name);
+        if (ev.name && ev.type === 'entity_created') cursor.createdEntityNames.push(ev.name);
         // Never clobber a bubble that already carries prose (a clarifying
         // question streamed before this create) — split the confirmation
         // into its own bubble, same dance as capture_complete below.
@@ -468,9 +461,26 @@ export default {
           }
         }
         confirmation.capturePending = true;
-        confirmation.text = cursor.createdEntityNames.length > 1
-          ? `Saved ${cursor.createdEntityNames.length} records.`
-          : (ev.name ? `Saved ${ev.name}.` : 'Your information was saved.');
+        if (ev.type === 'entity_deleted') {
+          confirmation.text = ev.name ? `Deleted ${ev.name}.` : 'That record was deleted.';
+        } else if (ev.type === 'entity_updated') {
+          confirmation.text = ev.name ? `Updated ${ev.name}.` : 'Your information was updated.';
+        } else {
+          confirmation.text = cursor.createdEntityNames.length > 1
+            ? `Saved ${cursor.createdEntityNames.length} records.`
+            : (ev.name ? `Saved ${ev.name}.` : 'Your information was saved.');
+        }
+        // The link to the page the record lives on. `mobile_route` is resolved
+        // server-side (GateRoutes) and is null for a page /m does not have, in
+        // which case the confirmation stands on its own rather than sending the
+        // user somewhere that does not exist.
+        if (ev.mobile_route && ev.type !== 'entity_deleted') {
+          confirmation.bubbles = [{
+            id: 'view_record',
+            label: ev.label ? `View ${ev.label}` : 'View record',
+            route: ev.mobile_route,
+          }];
+        }
         cursor.captureReply = confirmation;
         this.$nextTick(this.scrollFyn);
         return;
@@ -678,8 +688,21 @@ export default {
     // in front, then route. When the chat re-emits a navigation for the screen
     // we're ALREADY on (the dock re-showing the Gate-2 turn), keep the chat open
     // so the bubbles stay visible. Unknown desktop-only routes are ignored.
+    routeExistsOnMobile(routePath) {
+      try {
+        return this.$router.resolve(routePath).matched.length > 0;
+      } catch {
+        return false;
+      }
+    },
+
     handleOnboardingNavigation(routePath, section = null) {
-      if (!ONBOARDING_NAV_ROUTES.includes(routePath)) return;
+      // "Does /m have this screen?" is a question the /m router already answers.
+      // A hardcoded list here used to answer it instead, and drifted: it never
+      // gained /personal-information, so every View link the server resolved to
+      // Personal or Family Details was swallowed silently — the bubble rendered,
+      // the tap did nothing. The router cannot drift from itself (Rule 20).
+      if (!this.routeExistsOnMobile(routePath)) return;
       if (this.$route && this.$route.path === routePath) {
         // Re-verify on the screen the user is ALREADY on (a verify-edit just
         // applied here): close the chat so they actually see the updated page

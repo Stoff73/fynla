@@ -101,7 +101,7 @@
           <div class="flex items-center justify-between mb-3">
             <p class="text-sm text-neutral-500 font-medium">
               Inheritance Tax Summary
-              <span v-if="charitableBequest" class="ml-1 text-xs text-spring-600">({{ effectiveIHTRateLabel }} rate)</span>
+              <span v-if="ihtRateLabel" class="ml-1 text-xs" :class="qualifiesForReducedRate ? 'text-spring-600' : 'text-neutral-500'">({{ ihtRateLabel }})</span>
             </p>
             <svg class="h-4 w-4 text-horizon-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -115,7 +115,7 @@
             </div>
             <div>
               <p class="text-xs text-neutral-500 mb-1">Inheritance Tax Liability</p>
-              <p class="text-sm font-bold" :class="charitableBequest ? 'text-spring-700' : 'text-horizon-500'">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</p>
+              <p class="text-sm font-bold" :class="qualifiesForReducedRate ? 'text-spring-700' : 'text-horizon-500'">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</p>
               <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(standardTableProps?.ihtLiability?.projected || 0) }}</p>
             </div>
           </div>
@@ -196,27 +196,67 @@
               </svg>
               <h4 class="text-sm font-semibold text-horizon-500">Charitable Bequest</h4>
             </div>
-            <div v-if="savingCharitableBequest" class="animate-spin h-4 w-4 border-2 border-raspberry-500 border-t-transparent rounded-full"></div>
           </div>
+          <!--
+            W-0132. This card asked "Leave £148,444+ to charity to reduce your
+            Inheritance Tax rate?" with Yes/No unanswered, while the figure on the
+            card beside it was the REDUCED-rate liability produced by the £10,000
+            legacy the user had already left. It asked a question it had the answer
+            to, and then believed the answer it collected over the will.
+
+            Answering Yes did not record a gift — it set `users.charitable_bequest`,
+            which no calculation reads, and switched the table into a client-side
+            model assuming a donation the user had never made.
+
+            The will is the instrument (W-0020). The card states what is recorded and
+            what the server did with it, and the "what if" below is a clearly-labelled
+            scenario that changes no figure on the page — which is acceptance 2 of
+            this item.
+          -->
           <div class="space-y-3">
             <div class="text-xs">
-              <p class="text-neutral-500 mb-2">Leave {{ formatCurrency(charitableDonationAmount) }}+ to charity to reduce your Inheritance Tax rate?</p>
-              <div class="flex items-center space-x-4">
-                <label class="inline-flex items-center cursor-pointer">
-                  <input type="radio" :checked="charitableBequest === true" :disabled="savingCharitableBequest" class="form-radio text-raspberry-500 h-4 w-4" @change="toggleCharitableBequest(true)">
-                  <span class="ml-1.5 text-sm text-neutral-500">Yes</span>
-                </label>
-                <label class="inline-flex items-center cursor-pointer">
-                  <input type="radio" :checked="charitableBequest === false" :disabled="savingCharitableBequest" class="form-radio text-raspberry-500 h-4 w-4" @change="toggleCharitableBequest(false)">
-                  <span class="ml-1.5 text-sm text-neutral-500">No</span>
-                </label>
-              </div>
+              <!--
+                W-0399. This read "Your will leaves {charitable_deduction} to
+                charity" — and `charitable_deduction` is the POOLED household
+                exemption, not this user's will. Both spouses were told their own
+                will left £20,000 when each leaves £10,000, directly above a
+                message quoting the survivor's £10,000. Two correct figures, one
+                false label, and nothing saying they answer different questions.
+
+                Neither figure is "your will" on a married household:
+                `charitable_deduction` is the household's, and
+                `charitable_rate_test_amount` is the SURVIVOR's — which is not
+                the logged-in user half the time. The copy therefore names what
+                each figure IS rather than whose it is.
+
+                Both spouses on this persona leave £10,000 EACH, and that is
+                exactly why the two figures do NOT coincide: the exemption pools
+                to £20,000 while the rate test stays at the survivor's £10,000.
+                Two wills holding the same amount is not the same thing as two
+                FIGURES holding the same amount, and confusing those was how this
+                comment previously claimed the opposite. The wording still cannot
+                rely on them being equal — for a single person, or a couple where
+                only one partner left a legacy, they are.
+              -->
+              <p v-if="charitableLegacyRecorded" class="text-neutral-500">
+                <span class="font-semibold text-horizon-500">{{ formatCurrency(ihtData.charitable_deduction) }}</span>
+                is left to charity{{ charitableFiguresDiffer ? ' across your household' : '' }}, and comes out of the estate before Inheritance Tax is worked out.
+              </p>
+              <p v-if="charitableFiguresDiffer" class="text-neutral-500 mt-1">
+                The 10% test that decides the reduced rate looks only at the will operating on the second death, which leaves
+                <span class="font-semibold text-horizon-500">{{ formatCurrency(ihtData.charitable_rate_test_amount) }}</span>.
+              </p>
+              <p v-else-if="!charitableLegacyRecorded" class="text-neutral-500">Your will records no gifts to charity.</p>
+              <p v-if="ihtData.iht_rate_message" class="text-neutral-500 mt-2">{{ ihtData.iht_rate_message }}</p>
             </div>
-            <div v-if="charitableBequest" class="text-xs">
-              <p class="text-neutral-500">Potential Inheritance Tax Savings:</p>
-              <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(charitableBequestSavings) }}</p>
-              <p class="text-xs text-neutral-500 mt-1">Rate reduces from 40% to 36%</p>
+            <div v-if="!qualifiesForReducedRate && charitableBequestSavings > 0" class="text-xs border-t border-light-gray pt-3">
+              <p class="text-neutral-500">
+                If you left {{ formatCurrency(ihtData.charitable_threshold) }} or more, your rate would fall to {{ formatPercent(ihtReducedRate) }} and your estate would pay about:
+              </p>
+              <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(charitableBequestSavings) }} less</p>
+              <p class="text-neutral-500 mt-1">A scenario only — nothing above changes until the gift is in your will.</p>
             </div>
+            <button class="btn-secondary w-full text-xs" @click="navigateToWillTab">Manage bequests in your will</button>
           </div>
         </div>
 
@@ -319,8 +359,9 @@
         <IHTCalculationTable
           v-if="secondDeathTableProps"
           v-bind="secondDeathTableProps"
-          :charitable-bequest="charitableBequest"
-          :effective-i-h-t-rate-label="effectiveIHTRateLabel"
+          :iht-rate-label="ihtRateLabel"
+          :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
+          :projected-pension-exclusion-caveat="ihtData?.projected_pension_exclusion_caveat ?? null"
           :has-spouse-linked="hasSpouseLinked"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -342,8 +383,9 @@
         <p v-if="!isMarried && projection" class="text-sm text-neutral-500 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
         <IHTCalculationTable
           v-bind="standardTableProps"
-          :charitable-bequest="charitableBequest"
-          :effective-i-h-t-rate-label="effectiveIHTRateLabel"
+          :iht-rate-label="ihtRateLabel"
+          :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
+          :projected-pension-exclusion-caveat="ihtData?.projected_pension_exclusion_caveat ?? null"
           :has-spouse-linked="false"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -355,6 +397,14 @@
         />
       </div>
 
+      <!--
+        W-0466. The caveat block used to be rendered here. It now lives INSIDE
+        `IHTCalculationTable`, because `/plans/estate` renders that same table and
+        printed an unqualified figure while this screen carried the sentence — two
+        parents, one of them with the markup (round five, G2). Passed as the
+        `unmodelled-relief-caveat` prop below.
+      -->
+
       <!-- Tax Allowances Information -->
       <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div v-if="ihtData.nrb_message" class="bg-eggshell-500 rounded-lg p-4">
@@ -364,6 +414,19 @@
         <div v-if="ihtData.rnrb_message" class="bg-eggshell-500 rounded-lg p-4">
           <h3 class="text-sm font-semibold" :class="ihtData.rnrb_status === 'full' ? 'text-spring-800' : 'text-horizon-500'">Home Allowance</h3>
           <p class="mt-2 text-sm" :class="ihtData.rnrb_status === 'full' ? 'text-spring-800' : 'text-horizon-500'">{{ ihtData.rnrb_message }}</p>
+          <!--
+            W-0136 — the projected column's own residence-band position.
+            Only the current message was shown, so the sentence "your combined
+            estate is below the £2,000,000 taper threshold" sat directly beneath a
+            projected column reading £4.37m. The two are now stated separately and
+            labelled, rather than one standing in for both.
+          -->
+          <p
+            v-if="ihtData.projected_rnrb_message && ihtData.projected_rnrb_message !== ihtData.rnrb_message"
+            class="mt-2 text-sm text-horizon-500"
+          >
+            <span class="font-medium">At age {{ ihtData.estimated_age_at_death }}:</span> {{ ihtData.projected_rnrb_message }}
+          </p>
         </div>
       </div>
     </template>
@@ -409,13 +472,27 @@
         </div>
         <div class="bg-eggshell-500 rounded p-3">
           <p class="text-xs text-neutral-500">Final Cash (Age {{ cashProjectionBreakdown.death_age }})</p>
-          <p class="text-sm font-semibold" :class="cashProjectionBreakdown.final_cash_raw >= 0 ? 'text-horizon-500' : 'text-raspberry-700'">
-            {{ formatCurrency(cashProjectionBreakdown.final_cash_capped) }}
-            <span v-if="cashProjectionBreakdown.final_cash_raw < 0" class="text-xs text-raspberry-500 block">
-              ({{ formatCurrency(cashProjectionBreakdown.final_cash_raw) }} shortfall from investments)
+          <p class="text-sm font-semibold" :class="cashProjectionBreakdown.shortfall > 0 ? 'text-raspberry-700' : 'text-horizon-500'">
+            {{ formatCurrency(cashProjectionBreakdown.final_cash) }}
+            <span v-if="cashProjectionBreakdown.shortfall > 0" class="text-xs text-raspberry-500 block">
+              {{ formatCurrency(cashProjectionBreakdown.shortfall) }} of spending your cash cannot cover
             </span>
           </p>
         </div>
+      </div>
+
+      <!-- What this projection had to assume, because a missing figure must never
+           read as a real figure of zero. -->
+      <div
+        v-if="cashProjectionBreakdown.assumptions && cashProjectionBreakdown.assumptions.length"
+        class="mb-4 rounded border border-violet-200 bg-violet-50 p-3"
+      >
+        <p class="text-xs font-medium text-violet-700 mb-1">What we had to assume</p>
+        <ul class="text-xs text-neutral-500 space-y-1">
+          <li v-for="(assumption, index) in cashProjectionBreakdown.assumptions" :key="index">
+            {{ assumption }}
+          </li>
+        </ul>
       </div>
 
       <!-- Year-by-Year Table -->
@@ -531,7 +608,14 @@
             </p>
             <ul class="list-disc list-inside space-y-1">
               <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ annualGiftExemption.toLocaleString() }}/year)</li>
-              <li>Charitable giving (can reduce Inheritance Tax rate from 40% to 36% if ≥10% to charity)</li>
+              <!--
+                W-0451. Three rate literals in one line, in the component whose
+                sentence two cards above now moves with configuration. Under a
+                31%/12% configuration this card would have read "Reduced
+                Inheritance Tax rate of 31% applies" and "from 40% to 36%" at the
+                same time.
+              -->
+              <li>Charitable giving (can reduce Inheritance Tax rate from {{ formatPercent(ihtStandardRate) }} to {{ formatPercent(ihtReducedRate) }} if {{ charitableThresholdLabel }} or more goes to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
               <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
               <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to £175,000)</li>
@@ -647,8 +731,6 @@ import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
 import IHTCalculationTable from './IHTCalculationTable.vue';
 import EstateLifeEventsImpact from './EstateLifeEventsImpact.vue';
 import LetterEstateWarnings from './LetterEstateWarnings.vue';
-import estateService from '../../services/estateService';
-import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
@@ -692,15 +774,13 @@ export default {
       showPlus5Years: false,
       showCashProjectionTable: true,
       expandedAllowances: false,
-      charitableBequest: null,
-      savingCharitableBequest: false,
     };
   },
 
   computed: {
     ...mapState('estate', ['analysis', 'gifts', 'lifeEvents', 'lifeEventImpact', 'lpas']),
     ...mapGetters('estate', ['netWorthValue', 'ihtLiability', 'ihtExemptAssets']),
-    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'annualGiftExemption']),
+    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'ihtRnrbTaperThreshold', 'annualGiftExemption']),
     ...mapGetters('auth', ['currentUser']),
 
     hasSpouseLinked() {
@@ -739,8 +819,7 @@ export default {
     retirementSurplus() {
       if (!this.cashProjectionBreakdown) return 0;
       const income = this.cashProjectionBreakdown.retirement_income +
-        this.cashProjectionBreakdown.state_pension_user +
-        this.cashProjectionBreakdown.state_pension_spouse;
+        this.cashProjectionBreakdown.state_pension_income;
       return income - this.cashProjectionBreakdown.retirement_expenses;
     },
 
@@ -886,7 +965,6 @@ export default {
     immediatelyGiftableAmount() {
       // Calculate assets that can be gifted immediately (liquid assets)
       const netWorth = this.ihtData?.net_estate_value || 0;
-      const taxableEstate = this.ihtData?.taxable_estate || 0;
 
       // Estimate liquid assets as a percentage of net worth (simplified)
       // In a real scenario, this would come from the backend with actual liquid asset calculations
@@ -894,39 +972,121 @@ export default {
     },
 
     charitableBequestSavings() {
-      // Calculate potential IHT savings if 10%+ is left to charity (rate drops from 40% to 36%)
-      const taxableEstate = this.ihtData?.taxable_estate || 0;
-      const currentIHT = taxableEstate * this.ihtStandardRate;
-      const reducedIHT = taxableEstate * this.ihtReducedRate;
-      return currentIHT - reducedIHT;
+      /*
+       * W-0451 — THE FOURTH MECHANISM, and the one that made this a Rule 20 fix
+       * rather than a service fix.
+       *
+       * This computed the saving in the browser as the rate differential on the
+       * chargeable estate, and rendered it under "If you left £X or more, your
+       * rate would fall to 36% and your estate would pay about £Y less". Two
+       * things were wrong with that, and neither is visible from this file:
+       *
+       *   1. It is the wrong answer to the sentence above it. Leaving £X does not
+       *      only change the RATE — the gift itself leaves the estate under the
+       *      section 23(1) exemption, so the reduced rate applies to a smaller
+       *      estate. Holding the estate still understates the saving.
+       *   2. It was a fourth answer. `EstateAgent`'s decision trace and
+       *      `/plans/estate` each published their own, and all three differed.
+       *
+       * The server settles it once, from the chargeable estate and the shortfall
+       * (`IHTCalculationService::assessTaxPosition()`), and publishes the two
+       * Inheritance Tax bills alongside it so the figure can be checked. This
+       * card reads that answer. It computes nothing.
+       */
+      return Number(this.ihtData?.charitable_rate_saving ?? 0);
     },
 
-    // Charitable bequest calculations for IHT table
-    // Baseline = Net Estate - NRB - other exemptions (NOT including RNRB)
-    charitableBaseline() {
-      const netEstate = this.ihtData?.net_estate_value || 0;
-      const nrb = this.ihtData?.nrb_available || this.ihtNilRateBand;
-      // Baseline excludes RNRB - only NRB and other exemptions (like spouse exemption)
-      return Math.max(0, netEstate - nrb);
+    /**
+     * W-0132 — the recorded charitable position, from the will.
+     *
+     * `charitable_deduction` is what the server actually deducted under IHTA 1984
+     * s23, and `iht_rate_type` is the answer to the 10% test it actually ran. Both
+     * come from the recorded will (W-0020), which is the instrument HMRC reads. The
+     * card used to ask the user the same question through a toggle and then believe
+     * the toggle over the will.
+     */
+    charitableLegacyRecorded() {
+      return (this.ihtData?.charitable_deduction || 0) > 0;
     },
 
-    charitableDonationAmount() {
-      // Minimum 10% of baseline required for reduced 36% rate
-      return this.charitableBaseline * 0.10;
+    qualifiesForReducedRate() {
+      return this.ihtData?.iht_rate_type === 'reduced';
     },
 
-    effectiveIHTRateLabel() {
-      return this.charitableBequest ? '36%' : '40%';
+    /**
+     * Do the two charitable figures answer with different numbers?
+     *
+     * W-0399. `charitable_deduction` is the pooled section 23(1) exemption —
+     * every household member's legacy leaves the combined estate.
+     * `charitable_rate_test_amount` is what Schedule 1A's 10% test compares, and
+     * that is the survivor's will alone, because the statute tests one deceased
+     * person's estate. Summing both wills for the rate test would over-qualify
+     * households for the reduced rate.
+     *
+     * They coincide for a single person, and for a couple where only one partner
+     * left a legacy. They diverge exactly when both did — which is the case the
+     * old copy got wrong, and the case this persona cannot demonstrate, because
+     * both spouses happen to leave the same £10,000.
+     */
+    /**
+     * The Schedule 1A threshold as a label, from the server's own figures.
+     *
+     * W-0451. `charitable_threshold` is the cash amount; the PERCENTAGE it
+     * represents was hardcoded as "10%" in the strategies list. Derived from the
+     * two figures the payload already carries rather than re-reading config on
+     * the client, so the label cannot disagree with the amount beside it.
+     */
+    charitableThresholdLabel() {
+      const threshold = Number(this.ihtData?.charitable_threshold ?? 0);
+      const baseline = Number(this.ihtData?.charitable_baseline ?? 0);
+
+      if (!baseline || !threshold) return '10%';
+
+      const percent = (threshold / baseline) * 100;
+      return `${Number(percent.toFixed(2))}%`;
     },
 
-    // Charitable donation for projected values
-    // Baseline = Net Estate - NRB (excluding RNRB)
-    charitableDonationProjected() {
-      const netEstate = this.projection?.at_death?.net_estate || this.secondDeathData?.second_death_analysis?.iht_calculation?.net_estate_value || 0;
-      const nrb = this.ihtData?.nrb_available || this.ihtNilRateBand;
-      const baseline = Math.max(0, netEstate - nrb);
-      return baseline * 0.10;
+    charitableFiguresDiffer() {
+      const exemption = this.ihtData?.charitable_deduction || 0;
+      const rateTest = this.ihtData?.charitable_rate_test_amount;
+
+      if (rateTest === undefined || rateTest === null) return false;
+
+      return Math.round(exemption) !== Math.round(rateTest);
     },
+
+    /**
+     * The rate the liability beside it was calculated at, per column.
+     *
+     * Was `charitableBequest ? '36%' : '40%'` — two hardcoded strings decided by a
+     * user toggle that never loaded, so the label read 40% permanently while the
+     * figure next to it had been computed at 36%. £397,651 sat under a label saying
+     * it should have been £441,834.
+     *
+     * Two rules here, and both were broken before:
+     *   * the percentages come from the server (`iht_rate_percent`), never from
+     *     literals — the configured rates are `TaxConfigService`'s to decide
+     *     (Rule 2), and 36/40 only happened to match this tax year; and
+     *   * the current and projected columns are stated separately when they differ,
+     *     because the projection re-runs the 10% test against the projected estate
+     *     (W-0136) and can legitimately reach a different rate.
+     */
+    ihtRateLabel() {
+      const now = this.ihtData?.iht_rate_percent;
+      const projected = this.ihtData?.projected_iht_rate_percent;
+
+      if (now == null) return null;
+      if (projected == null || projected === now) return `${now}%`;
+
+      return `${now}% today, ${projected}% at age ${this.ihtData.estimated_age_at_death}`;
+    },
+
+    // W-0132 — `charitableBaseline`, `charitableDonationAmount` and
+    // `charitableDonationProjected` lived here. All three existed to size an ASSUMED
+    // donation of 10% of baseline, which the table then deducted as though the user
+    // had made it. The threshold a user actually has to clear is
+    // `charitable_threshold`, computed by the server against the estate it is
+    // testing, and it is now read from the payload instead of re-derived here.
 
     // Estate after NRB (baseline for charitable bequest) - for non-married users
     estateAfterNRB() {
@@ -979,23 +1139,6 @@ export default {
       const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || this.ihtNilRateBand) +
                        (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || this.ihtNilRateBand);
       return Math.max(0, netEstate - totalNRB);
-    },
-
-    // Charitable donation amounts for second death scenario
-    charitableDonationSecondDeath() {
-      return this.secondDeathEstateAfterNRB * 0.10;
-    },
-
-    charitableDonationSecondDeathProjected() {
-      return this.secondDeathEstateAfterNRBProjected * 0.10;
-    },
-
-    charitableDonationSecondDeathMinus5() {
-      return this.secondDeathEstateAfterNRBMinus5 * 0.10;
-    },
-
-    charitableDonationSecondDeathPlus5() {
-      return this.secondDeathEstateAfterNRBPlus5 * 0.10;
     },
 
     // Projected subtotals for second death breakdown
@@ -1155,7 +1298,6 @@ export default {
       if (!this.projection?.now) return null;
 
       const years = this.yearsToDeathMinus5;
-      const currentNetEstate = this.projection.now.net_estate || 0;
       const currentAssets = this.projection.now.assets || 0;
       const currentLiabilities = this.projection.now.liabilities || 0;
       const totalAllowance = (this.ihtData?.nrb_available || this.ihtNilRateBand) + (this.ihtData?.rnrb_available || 0);
@@ -1183,7 +1325,6 @@ export default {
       if (!this.projection?.now) return null;
 
       const years = this.yearsToDeathPlus5;
-      const currentNetEstate = this.projection.now.net_estate || 0;
       const currentAssets = this.projection.now.assets || 0;
       const currentLiabilities = this.projection.now.liabilities || 0;
       const totalAllowance = (this.ihtData?.nrb_available || this.ihtNilRateBand) + (this.ihtData?.rnrb_available || 0);
@@ -1318,9 +1459,8 @@ export default {
           rnrbFromSpouse: currentCalc.rnrb_from_spouse || 0,
           totalRnrb: (currentCalc.rnrb_individual || 0) + (currentCalc.rnrb_from_spouse || 0),
           rnrbEligible: projectedCalc.rnrb_eligible || false,
-          rnrbTapered: currentCalc.rnrb_tapered || false,
-          rnrbTaperThreshold: currentCalc.rnrb_taper_threshold || 2000000,
-          rnrbTaperAmount: currentCalc.rnrb_taper_amount || 0,
+          rnrbStatus: currentCalc.rnrb_tapered ? 'tapered' : (currentCalc.rnrb_status || 'none'),
+          rnrbTaperThreshold: currentCalc.rnrb_taper_threshold || this.ihtRnrbTaperThreshold,
           showSeparateSpouseAllowances: true,
         },
         estateAfterNRB: {
@@ -1329,39 +1469,28 @@ export default {
           projected: this.secondDeathEstateAfterNRBProjected,
           plus5: this.secondDeathEstateAfterNRBPlus5,
         },
+        // W-0132. Both of these branched on `charitableBequest` and, when it was
+        // true, replaced the server's figures with a client-side model that deducted
+        // an ASSUMED donation of 10% of baseline and applied the reduced rate to the
+        // result. For Priya that invented a £148,444 gift she has not made and is not
+        // in her will, and produced £344,211 where the server said £397,651 — while
+        // the drill-down of the same component, at the same instant, showed the
+        // server's figure. Two answers to one question, on one screen.
+        //
+        // The server is the answer. It reads the recorded will, pools the household's
+        // legacies for the s23 exemption and runs the 10% test against the survivor's
+        // estate. The frontend renders what it returns and computes nothing.
         taxableEstate: {
-          now: this.charitableBequest
-            ? Math.max(0, (currentCalc.taxable_estate || 0) - this.charitableDonationSecondDeath)
-            : (currentCalc.taxable_estate || 0),
-          minus5: this.charitableBequest
-            ? Math.max(0, this.secondDeathProjectionMinus5.taxable_estate - this.charitableDonationSecondDeathMinus5)
-            : this.secondDeathProjectionMinus5.taxable_estate,
-          projected: this.charitableBequest
-            ? Math.max(0, this.taxableEstateProjected - this.charitableDonationSecondDeathProjected)
-            : this.taxableEstateProjected,
-          plus5: this.charitableBequest
-            ? Math.max(0, this.secondDeathProjectionPlus5.taxable_estate - this.charitableDonationSecondDeathPlus5)
-            : this.secondDeathProjectionPlus5.taxable_estate,
+          now: currentCalc.taxable_estate || 0,
+          minus5: this.secondDeathProjectionMinus5.taxable_estate,
+          projected: this.taxableEstateProjected,
+          plus5: this.secondDeathProjectionPlus5.taxable_estate,
         },
         ihtLiability: {
-          now: this.charitableBequest
-            ? Math.max(0, (currentCalc.taxable_estate || 0) - this.charitableDonationSecondDeath) * this.ihtReducedRate
-            : (currentCalc.iht_liability || 0),
-          minus5: this.charitableBequest
-            ? Math.max(0, this.secondDeathProjectionMinus5.taxable_estate - this.charitableDonationSecondDeathMinus5) * this.ihtReducedRate
-            : this.secondDeathProjectionMinus5.iht_liability,
-          projected: this.charitableBequest
-            ? Math.max(0, this.taxableEstateProjected - this.charitableDonationSecondDeathProjected) * this.ihtReducedRate
-            : this.ihtLiabilityProjected,
-          plus5: this.charitableBequest
-            ? Math.max(0, this.secondDeathProjectionPlus5.taxable_estate - this.charitableDonationSecondDeathPlus5) * this.ihtReducedRate
-            : this.secondDeathProjectionPlus5.iht_liability,
-        },
-        charitableDonation: {
-          now: this.charitableDonationSecondDeath,
-          minus5: this.charitableDonationSecondDeathMinus5,
-          projected: this.charitableDonationSecondDeathProjected,
-          plus5: this.charitableDonationSecondDeathPlus5,
+          now: currentCalc.iht_liability || 0,
+          minus5: this.secondDeathProjectionMinus5.iht_liability,
+          projected: this.ihtLiabilityProjected,
+          plus5: this.secondDeathProjectionPlus5.iht_liability,
         },
         showSpouse: this.secondDeathData.data_sharing_enabled && !!this.secondDeathData.assets_breakdown?.spouse,
         estimatedAge: analysis.second_death?.estimated_age_at_death || 0,
@@ -1399,18 +1528,75 @@ export default {
           },
         },
         allowances: {
+          // W-0154 F2. These lines are shown together, so they have to reconcile:
+          //   nrb + nrbFromSpouseModelled + nrbFromSpouse − nrbGiftDeduction = totalNrb
+          // Until 2026-08-21 only three were rendered — £325,000, £0 and £500,000 —
+          // and the £175,000 gap was two unlabelled effects netting out: a modelled
+          // second-death spouse band of +£325,000 and a gift deduction of −£150,000
+          // that had no field anywhere in the payload.
+          //
+          // `nrbFromSpouse` stays as it is and stays 0 for a living couple: there is
+          // no transferable band until the first death (IHTA 1984 s8A). The doubled
+          // band is a modelling assumption and is labelled as one.
           nrb: this.ihtData?.nrb_individual || this.ihtNilRateBand,
+          nrbFromSpouseModelled: this.ihtData?.nrb_spouse_modelled || 0,
+          nrbGiftDeduction: this.ihtData?.nrb_gift_deduction || 0,
           nrbFromSpouse: this.ihtData?.nrb_transferred || 0,
           totalNrb: this.ihtData?.nrb_available || this.ihtNilRateBand,
           rnrbIndividual: this.ihtData?.rnrb_individual || 0,
+          rnrbSpouseModelled: this.ihtData?.rnrb_spouse_modelled || 0,
+          rnrbResidenceCapReduction: this.ihtData?.rnrb_residence_cap_reduction || 0,
+          rnrbTaperReduction: this.ihtData?.rnrb_taper_reduction || 0,
           rnrbFromSpouse: this.ihtData?.rnrb_transferred || 0,
           totalRnrb: this.ihtData?.rnrb_available || 0,
           rnrbEligible: (this.ihtData?.rnrb_available || 0) > 0,
-          rnrbTapered: false,
-          rnrbTaperThreshold: 2000000,
-          rnrbTaperAmount: 0,
+          rnrbStatus: this.ihtData?.rnrb_status || 'none',
+          rnrbTaperThreshold: this.ihtRnrbTaperThreshold,
           // Show breakdown for widows with transferred allowances
           showSeparateSpouseAllowances: (this.ihtData?.is_widowed && (this.ihtData?.nrb_transferred > 0 || this.ihtData?.rnrb_transferred > 0)) || false,
+        },
+        // W-0136 — the allowances AT DEATH. The nil rate band carries forward, the
+        // residence band does not: it tapers £1 for every £2 the estate exceeds the
+        // threshold, and on a projection that has roughly doubled it is frequently
+        // extinguished altogether. Printing the current £350,000 against a £4.37m
+        // column understated this household's projected tax by £152,356.
+        allowancesProjected: {
+          nrb: this.ihtData?.nrb_individual || this.ihtNilRateBand,
+          nrbFromSpouseModelled: this.ihtData?.nrb_spouse_modelled || 0,
+          nrbGiftDeduction: this.ihtData?.nrb_gift_deduction || 0,
+          nrbFromSpouse: this.ihtData?.nrb_transferred || 0,
+          totalNrb: this.ihtData?.projected_nrb_available ?? (this.ihtData?.nrb_available || this.ihtNilRateBand),
+          rnrbIndividual: this.ihtData?.projected_rnrb_individual || 0,
+          rnrbSpouseModelled: this.ihtData?.projected_rnrb_spouse_modelled || 0,
+          rnrbResidenceCapReduction: this.ihtData?.projected_rnrb_residence_cap_reduction || 0,
+          rnrbTaperReduction: this.ihtData?.projected_rnrb_taper_reduction || 0,
+          rnrbFromSpouse: this.ihtData?.projected_rnrb_transferred || 0,
+          totalRnrb: this.ihtData?.projected_rnrb_available || 0,
+          rnrbEligible: (this.ihtData?.projected_rnrb_available || 0) > 0,
+          rnrbStatus: this.ihtData?.projected_rnrb_status || 'none',
+          rnrbTaperThreshold: this.ihtRnrbTaperThreshold,
+          showSeparateSpouseAllowances: (this.ihtData?.is_widowed && (this.ihtData?.nrb_transferred > 0 || this.ihtData?.rnrb_transferred > 0)) || false,
+        },
+        // The charitable legacies actually recorded and actually deducted. The
+        // what-if figure this used to be distinguished from is gone (W-0132) — the
+        // table shows the user's real position and nothing else.
+        // C3 — relief reduces the chargeable estate, so it needs a row or the
+        // column stops adding up (tax-compliance-reviewer F3).
+        businessRelief: {
+          now: this.ihtData?.business_relief_deduction || 0,
+          minus5: this.ihtData?.business_relief_deduction || 0,
+          // W-0465. These fell back to the CURRENT deduction because the server
+          // published no projected figure — a fallback that was only ever right by
+          // accident, and wrong the moment the projected relief differs (a business
+          // over the cap, or one that stops qualifying). The server publishes it now.
+          projected: this.ihtData?.projected_business_relief_deduction || 0,
+          plus5: this.ihtData?.projected_business_relief_deduction || 0,
+        },
+        charitableExemption: {
+          now: this.ihtData?.charitable_deduction || 0,
+          minus5: this.ihtData?.charitable_deduction || 0,
+          projected: this.ihtData?.projected_charitable_deduction || 0,
+          plus5: this.ihtData?.projected_charitable_deduction || 0,
         },
         estateAfterNRB: {
           now: this.estateAfterNRB,
@@ -1418,39 +1604,19 @@ export default {
           projected: this.estateAfterNRBProjected,
           plus5: this.estateAfterNRBPlus5,
         },
+        // W-0132 — see the note on the same two keys in `secondDeathTableProps`.
+        // The server's figures, unmodified. No assumed donation, no client-side rate.
         taxableEstate: {
-          now: this.charitableBequest
-            ? Math.max(0, (this.ihtData?.taxable_estate || 0) - this.charitableDonationAmount)
-            : (this.ihtData?.taxable_estate || 0),
-          minus5: this.charitableBequest
-            ? Math.max(0, (this.projectionMinus5?.taxable_estate || 0) - this.charitableDonationAmount)
-            : (this.projectionMinus5?.taxable_estate || 0),
-          projected: this.charitableBequest
-            ? Math.max(0, (this.projection?.at_death?.taxable_estate || 0) - this.charitableDonationProjected)
-            : (this.projection?.at_death?.taxable_estate || 0),
-          plus5: this.charitableBequest
-            ? Math.max(0, (this.projectionPlus5?.taxable_estate || 0) - this.charitableDonationProjected)
-            : (this.projectionPlus5?.taxable_estate || 0),
+          now: this.ihtData?.taxable_estate || 0,
+          minus5: this.projectionMinus5?.taxable_estate || 0,
+          projected: this.projection?.at_death?.taxable_estate || 0,
+          plus5: this.projectionPlus5?.taxable_estate || 0,
         },
         ihtLiability: {
-          now: this.charitableBequest
-            ? Math.max(0, (this.ihtData?.taxable_estate || 0) - this.charitableDonationAmount) * this.ihtReducedRate
-            : (this.ihtData?.estate_iht_liability || 0),
-          minus5: this.charitableBequest
-            ? Math.max(0, (this.projectionMinus5?.taxable_estate || 0) - this.charitableDonationAmount) * this.ihtReducedRate
-            : (this.projectionMinus5?.iht_liability || 0),
-          projected: this.charitableBequest
-            ? Math.max(0, (this.projection?.at_death?.taxable_estate || 0) - this.charitableDonationProjected) * this.ihtReducedRate
-            : (this.projection?.at_death?.iht_liability || 0),
-          plus5: this.charitableBequest
-            ? Math.max(0, (this.projectionPlus5?.taxable_estate || 0) - this.charitableDonationProjected) * this.ihtReducedRate
-            : (this.projectionPlus5?.iht_liability || 0),
-        },
-        charitableDonation: {
-          now: this.charitableDonationAmount,
-          minus5: this.charitableDonationAmount, // Same as now for this scenario
-          projected: this.charitableDonationProjected,
-          plus5: this.charitableDonationProjected, // Same as projected for this scenario
+          now: this.ihtData?.estate_iht_liability || 0,
+          minus5: this.projectionMinus5?.iht_liability || 0,
+          projected: this.projection?.at_death?.iht_liability || 0,
+          plus5: this.projectionPlus5?.iht_liability || 0,
         },
         showSpouse: !!this.secondDeathData?.assets_breakdown?.spouse,
         estimatedAge: this.projection?.at_death?.estimated_age_at_death || 0,
@@ -1463,7 +1629,6 @@ export default {
 
   mounted() {
     this.checkUserMaritalStatus();
-    this.loadCharitableBequest();
     this.loadIHTCalculation();
     this.$store.dispatch('estate/fetchLpas').catch(() => {});
   },
@@ -1492,7 +1657,7 @@ export default {
         this.isMarried = user.marital_status === 'married';
         // Widowed and divorced users should not see spouse options
         const excludedStatuses = ['widowed', 'divorced'];
-        this.hasSpouse = user.spouse_id !== null && !excludedStatuses.includes(user.marital_status);
+        this.hasSpouse = user.live_spouse_id != null && !excludedStatuses.includes(user.marital_status);
         this.userGender = user.gender || 'male';
       }
     },
@@ -1535,30 +1700,14 @@ export default {
       this.$router.push('/estate/power-of-attorney');
     },
 
-    loadCharitableBequest() {
-      const user = this.currentUser;
-      if (user) {
-        this.charitableBequest = user.charitable_bequest;
-      }
-    },
-
-    async toggleCharitableBequest(value) {
-      this.savingCharitableBequest = true;
-      try {
-        await userProfileService.updateCharitableBequest(value);
-        this.charitableBequest = value;
-        // Refresh user data in store
-        await this.$store.dispatch('auth/fetchUser');
-        // Reload IHT calculation to reflect charitable bequest changes
-        await this.loadIHTCalculation();
-      } catch (error) {
-        logger.error('Failed to update charitable bequest:', error);
-        // Revert to previous value on error
-        this.charitableBequest = !value;
-      } finally {
-        this.savingCharitableBequest = false;
-      }
-    },
+    // W-0132 — `loadCharitableBequest()` and `toggleCharitableBequest()` lived here
+    // until 2026-08-22. They read and wrote `users.charitable_bequest`, a column no
+    // calculation consults: `determineIHTRate()` reads the recorded will. Writing it
+    // worked, reading it back never did (the user payload the client holds has no
+    // such key), so the rate label was permanently 40% whatever the user answered
+    // and whatever their will said. A control that records an intention nothing acts
+    // on is not a setting. The will is where a charitable gift is recorded, and the
+    // card now links there.
 
     async loadIHTCalculation() {
       // Preview mode now uses real database users, so we use the API call
@@ -1582,26 +1731,101 @@ export default {
               gross_estate_value: response.calculation?.total_gross_assets || response.iht_summary.current.net_estate, // Fallback to net_estate
               nrb_available: response.iht_summary.current.nrb_available,
               nrb_individual: response.iht_summary.current.nrb_individual || response.iht_summary.current.nrb_available,
+              // W-0134: these two were published by the server and dropped here, so
+              // the table's gift-deduction row was fed `undefined || 0` and never
+              // rendered. The column was £150,000 adrift and the row that explained
+              // it existed in the template the whole time.
+              nrb_spouse_modelled: response.iht_summary.current.nrb_spouse_modelled || 0,
+              nrb_gift_deduction: response.iht_summary.current.nrb_gift_deduction || 0,
               nrb_transferred: response.iht_summary.current.nrb_transferred || 0,
               nrb: response.iht_summary.current.nrb_available, // Legacy alias
               nrb_message: response.iht_summary.current.nrb_message,
               rnrb_available: response.iht_summary.current.rnrb_available,
               rnrb_eligible: response.iht_summary.current.rnrb_available > 0, // Eligible if RNRB > 0
               rnrb_individual: response.iht_summary.current.rnrb_individual || 0,
+              business_relief_deduction: response.iht_summary.current.business_relief_deduction || 0,
+              // W-0466. `?? null` deliberately: this mapping ENUMERATES the payload
+              // rather than spreading it, so a field left out here is invisible on
+              // screen no matter what the server publishes — the same defect shape
+              // as W-0134 and W-0399 above.
+              unmodelled_relief_caveat: response.iht_summary.current.unmodelled_relief_caveat ?? null,
+              projected_pension_exclusion_caveat: response.iht_summary.current.projected_pension_exclusion_caveat ?? null,
+              rnrb_spouse_modelled: response.iht_summary.current.rnrb_spouse_modelled || 0,
+              rnrb_residence_cap_reduction: response.iht_summary.current.rnrb_residence_cap_reduction || 0,
+              rnrb_taper_reduction: response.iht_summary.current.rnrb_taper_reduction || 0,
               rnrb_transferred: response.iht_summary.current.rnrb_transferred || 0,
               rnrb_status: response.iht_summary.current.rnrb_status,
               is_widowed: response.iht_summary.is_widowed || false,
               rnrb_message: response.iht_summary.current.rnrb_message,
               total_allowance: response.iht_summary.current.total_allowances,
+              charitable_deduction: response.iht_summary.current.charitable_deduction || 0,
+              // W-0399, and the third instance of the same shape in one batch:
+              // the service computed this, the controller published it, and this
+              // hand-written mapping — which does not spread the payload, it
+              // enumerates it — dropped it one layer before the card. A field
+              // absent from an allowlist is invisible in exactly the way a field
+              // absent from a Resource is (`app/Http/CLAUDE.md` axis 7).
+              //
+              // `?? null` rather than `|| 0`: the card distinguishes "no
+              // distinction to draw" from "nothing given to charity", and a
+              // zero-coalescing default would collapse those two into one.
+              charitable_rate_test_amount: response.iht_summary.current.charitable_rate_test_amount ?? null,
               taxable_estate: response.iht_summary.current.taxable_estate,
               estate_iht_liability: response.iht_summary.current.iht_liability,
-              iht_rate: response.iht_summary.current.effective_rate / 100,
+              // W-0132. This read `effective_rate / 100`, which is NOT the
+              // Inheritance Tax rate — the service defines it as the liability as a
+              // percentage of the WHOLE net estate (`IHTCalculationService`:
+              // `$ihtLiability / $totalNetEstate * 100`), so it lands nearer 12% than
+              // 40%. The rate the liability was calculated at is `iht_rate_percent`,
+              // and it was dropped here along with the type and the message. Same
+              // family of defect as W-0134's dropped allowance fields: published by
+              // the server, discarded by a hand-written mapping, then re-derived
+              // wrongly downstream.
+              iht_rate_percent: response.iht_summary.current.iht_rate_percent,
+              iht_rate_type: response.iht_summary.current.iht_rate_type,
+              iht_rate_message: response.iht_summary.current.iht_rate_message,
+              charitable_threshold: response.calculation?.charitable_threshold ?? 0,
+              // W-0451, and the FOURTH time this batch has hit the same shape —
+              // caught before shipping this time, not after. `charitableThresholdLabel`
+              // derives the Schedule 1A percentage from these two figures, and
+              // the baseline was published by the service, carried on
+              // `calculation`, and absent from this allowlist. Adding a computed
+              // that reads a key means checking the key arrives.
+              charitable_baseline: response.calculation?.charitable_baseline ?? 0,
+              // W-0451, and the FIFTH instance of the allowlist shape. Adding a
+              // computed that reads a key means checking the key arrives — so
+              // this line and `charitableBequestSavings` were written together,
+              // not one after the other. Without it the card would render
+              // "£0 less" and the block would vanish behind its own `v-if`,
+              // which is the quietest way this failure can present.
+              charitable_rate_saving: response.calculation?.charitable_rate_saving ?? 0,
               liabilities: response.calculation?.total_liabilities || 0,
 
-              // Projected values
+              // Projected values. W-0136: the projection has its OWN allowances —
+              // the residence band tapers away as the estate grows — so these are
+              // not the current figures and must not be substituted for them.
+              // W-0465. This enumerating mapping is where a published field goes to
+              // die (W-0134, W-0399, W-0466 above) — the server can publish it and
+              // the table will still show nothing.
+              projected_business_relief_deduction: response.iht_summary.projected.business_relief_deduction || 0,
               projected_net_estate: response.iht_summary.projected.net_estate,
               projected_taxable_estate: response.iht_summary.projected.taxable_estate,
               projected_iht_liability: response.iht_summary.projected.iht_liability,
+              projected_nrb_available: response.iht_summary.projected.nrb_available,
+              projected_rnrb_available: response.iht_summary.projected.rnrb_available,
+              projected_rnrb_individual: response.iht_summary.projected.rnrb_individual || 0,
+              projected_rnrb_spouse_modelled: response.iht_summary.projected.rnrb_spouse_modelled || 0,
+              projected_rnrb_residence_cap_reduction: response.iht_summary.projected.rnrb_residence_cap_reduction || 0,
+              projected_rnrb_taper_reduction: response.iht_summary.projected.rnrb_taper_reduction || 0,
+              projected_rnrb_transferred: response.iht_summary.projected.rnrb_transferred || 0,
+              projected_rnrb_status: response.iht_summary.projected.rnrb_status,
+              projected_rnrb_message: response.iht_summary.projected.rnrb_message,
+              projected_total_allowances: response.iht_summary.projected.total_allowances,
+              projected_charitable_deduction: response.iht_summary.projected.charitable_deduction || 0,
+              // The projection re-runs the 10% test against the projected estate
+              // (W-0136), so its rate can legitimately differ from today's. One label
+              // printed across both columns would be wrong in one of them.
+              projected_iht_rate_percent: response.iht_summary.projected.iht_rate_percent,
               years_to_death: response.iht_summary.projected.years_to_death,
               estimated_age_at_death: response.iht_summary.projected.estimated_age_at_death,
             };

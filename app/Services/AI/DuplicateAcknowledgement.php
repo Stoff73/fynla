@@ -89,7 +89,7 @@ final class DuplicateAcknowledgement
 
         return match ($focus) {
             'protection' => $this->protectionDescriptors($user, $extracted),
-            'savings', 'budgeting' => $this->savingsDescriptors($user, $extracted),
+            'savings' => $this->savingsDescriptors($user, $extracted),
             'investment' => $this->investmentDescriptors($user, $extracted),
             'retirement' => $this->retirementDescriptors($user, $extracted),
             'property' => $this->propertyDescriptors($user, $extracted),

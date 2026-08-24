@@ -117,6 +117,42 @@ class WillController extends Controller
     }
 
     /**
+     * Record what kind of beneficiary this gift names, where the caller has not said.
+     *
+     * W-0394. `beneficiary_type` reached neither request class, so `validated()`
+     * dropped it and every bequest this controller wrote took the schema default
+     * `individual` — both of the peak_earners household's charitable legacies
+     * among them. The classification is not invented here: it is
+     * Bequest::inferBeneficiaryType(), the same judgement Bequest::isCharitable()
+     * reaches on read, so the stored row and the derived answer cannot disagree
+     * (Rule 20).
+     *
+     * An explicit type from the caller always wins — this only fills a silence,
+     * and only when the name is being written, so an unrelated update to an
+     * amount or a condition never reclassifies a beneficiary behind the user's
+     * back.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function classifyBeneficiary(array $validated): array
+    {
+        if (isset($validated['beneficiary_type'])) {
+            return $validated;
+        }
+
+        $name = trim((string) ($validated['beneficiary_name'] ?? ''));
+
+        if ($name === '') {
+            return $validated;
+        }
+
+        $validated['beneficiary_type'] = Bequest::inferBeneficiaryType($name);
+
+        return $validated;
+    }
+
+    /**
      * Get all bequests for user's will
      */
     public function getBequests(Request $request): JsonResponse
@@ -159,6 +195,7 @@ class WillController extends Controller
 
         $validated['will_id'] = $will->id;
         $validated['user_id'] = $user->id;
+        $validated = $this->classifyBeneficiary($validated);
 
         // Auto-set priority order if not provided
         if (! isset($validated['priority_order'])) {
@@ -190,7 +227,7 @@ class WillController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $bequest->update($validated);
+        $bequest->update($this->classifyBeneficiary($validated));
 
         // Invalidate cache
         $this->cacheInvalidation->invalidateForUser($user->id);
@@ -218,7 +255,16 @@ class WillController extends Controller
         // Invalidate cache
         $this->cacheInvalidation->invalidateForUser($user->id);
 
-        return response()->noContent();
+        // The house convention for a delete is 200 with a success body (see
+        // SavingsController::destroyAccount, PropertyController::destroy and
+        // app/Http/CLAUDE.md). This returned noContent() against the declared
+        // : JsonResponse type, so every delete removed the row and THEN threw a
+        // TypeError — the user was shown an error for an action that had already
+        // succeeded, and would reasonably retry (W-0041, second instance).
+        return response()->json([
+            'success' => true,
+            'message' => 'Bequest deleted successfully',
+        ]);
     }
 
     /**

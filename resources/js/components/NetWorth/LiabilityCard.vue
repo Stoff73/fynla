@@ -24,9 +24,7 @@
       <div class="liability-details">
         <div v-if="isJoint" class="detail-row">
           <span class="detail-label">Ownership</span>
-          <span class="detail-value">
-            Joint{{ liability.ownership_percentage ? ' (' + liability.ownership_percentage + '% yours)' : '' }}
-          </span>
+          <span class="detail-value">{{ ownershipLabel }}</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ isJoint ? 'Total Balance' : 'Balance Owed' }}</span>
@@ -64,6 +62,8 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+// Ownership display via resources/js/utils/ownership.js — the ONE home (W-0015).
+import { calculateUserShare, getOwnershipLabel, isSharedRecord, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'LiabilityCard',
@@ -113,14 +113,38 @@ export default {
     },
 
     isJoint() {
-      return this.liability.ownership_type === 'joint' || this.liability.ownership_type === 'tenants_in_common';
+      return isSharedRecord(this.liability);
     },
 
+    // "Joint (40.00% yours)" was printed against a tenants-in-common property —
+    // a different basis, and the very distinction W-0228 turned on.
+    // `getOwnershipLabel` is the one home for the word.
+    ownershipLabel() {
+      const label = getOwnershipLabel(this.liability.ownership_type);
+
+      if (!this.isJoint) {
+        return label;
+      }
+
+      return `${label} (${userSharePercent(this.liability, this.viewerId)}% yours)`;
+    },
+
+    // `calculateUserShare` prefers the API's `user_share` — computed by the one
+    // reader, which for a mortgage means resolving the property securing it
+    // (W-0228) — and only calculates when the payload does not carry it. The
+    // local arithmetic this replaced assumed the viewer was always the primary
+    // owner, so at a 40/60 split the co-owner was shown the OTHER party's share.
     userShare() {
       if (!this.isJoint) return null;
-      const balance = parseFloat(this.liability.current_balance) || 0;
-      const pct = parseFloat(this.liability.ownership_percentage) || 50;
-      return balance * (pct / 100);
+
+      return calculateUserShare(this.liability, {
+        viewerId: this.viewerId,
+        valueField: 'current_balance',
+      });
+    },
+
+    viewerId() {
+      return this.$store?.state?.auth?.user?.id ?? null;
     },
 
     typeClass() {

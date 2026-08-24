@@ -48,6 +48,11 @@ class LifeEventController extends Controller
                 'data' => [
                     'events' => $events,
                     'count' => $events->count(),
+                    // W-0207: the expected income and expenditure totals are
+                    // served, not left to each client to sum. Web and /m were
+                    // adding the list up separately and both counted events that
+                    // had already happened as money still to come.
+                    'summary' => $this->lifeEventService->summariseUpcoming($events),
                 ],
             ]);
         } catch (\Exception $e) {

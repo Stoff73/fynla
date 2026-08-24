@@ -27,7 +27,6 @@ beforeEach(function () {
  *      joint-owned investment accounts are included in the user's
  *      total (was `where('user_id', ?)` only).
  */
-
 it('estimateInterestRate reads cash yield from TaxConfigService', function () {
     $service = app(TaxDragCalculator::class);
 

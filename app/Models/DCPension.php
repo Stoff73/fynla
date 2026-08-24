@@ -79,6 +79,46 @@ class DCPension extends Model
         'annual_allowance_used_gbp_calculated_at',
     ];
 
+    /**
+     * THE monthly contribution into this pension (Rule 20).
+     *
+     * A pension records its contributions in one of two ways — a flat monthly
+     * amount, or employee/employer percentages of salary — and something has to
+     * decide which wins when both are present. Two places decided, differently:
+     * `RetirementStrategyService::calculateTotalContributions()` takes the flat
+     * amount first and falls back to the percentages, while `/m`'s
+     * `RetirementPensionDetail.vue` took the PERCENTAGES first and fell back to the
+     * flat amount — so a pension holding both was described differently depending
+     * which screen you were on.
+     *
+     * The flat amount wins, matching the backend: it is what the user actually
+     * typed as their contribution, where the percentages may be a stale echo of a
+     * salary that has since changed.
+     *
+     * Appended so every serialisation carries it and no client has to work it out —
+     * CSJ, 2026-08-23: `/m` displays what the backend computed, it never calculates.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['monthly_contribution'];
+
+    public function getMonthlyContributionAttribute(): float
+    {
+        if ((float) ($this->monthly_contribution_amount ?? 0) > 0) {
+            return round((float) $this->monthly_contribution_amount, 2);
+        }
+
+        $salary = (float) ($this->annual_salary ?? 0);
+        if ($salary <= 0) {
+            return 0.0;
+        }
+
+        $percent = (float) ($this->employee_contribution_percent ?? 0)
+            + (float) ($this->employer_contribution_percent ?? 0);
+
+        return round($salary * $percent / 100 / 12, 2);
+    }
+
     protected $casts = [
         'current_fund_value' => 'decimal:2',
         'annual_salary' => 'decimal:2',

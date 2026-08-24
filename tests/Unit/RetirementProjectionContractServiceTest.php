@@ -85,7 +85,7 @@ it('calculates the primary DC value from stated assumptions rather than an uncer
     ))->toBe(236_260.18);
 });
 
-it('builds one planning contract whose age bands reconcile every pension product', function (): void {
+it('uses the user target age for a DC pension whose scheme age is later', function (): void {
     $user = (new User)->setRawAttributes([
         'id' => 99,
         'date_of_birth' => '1976-08-10',
@@ -95,7 +95,7 @@ it('builds one planning contract whose age bands reconcile every pension product
     $dc = (new DCPension)->setRawAttributes([
         'id' => 1,
         'scheme_name' => 'SIPP',
-        'retirement_age' => 60,
+        'retirement_age' => 67,
         'current_fund_value' => 100_000,
     ]);
     $db = (new DBPension)->setRawAttributes([
@@ -114,6 +114,7 @@ it('builds one planning contract whose age bands reconcile every pension product
     $user->setRelation('dcPensions', new Collection([$dc]));
     $user->setRelation('dbPensions', new Collection([$db]));
     $user->setRelation('statePension', $state);
+    $user->setRelation('retirementProfile', null);
 
     $projector = new class extends RetirementProjectionService
     {
@@ -123,7 +124,7 @@ it('builds one planning contract whose age bands reconcile every pension product
         {
             return [
                 'pension_id' => $pensionId,
-                'retirement_age' => 60,
+                'retirement_age' => 67,
                 'current_value' => 100_000.0,
                 'monthly_contribution' => 500.0,
                 'years_to_retirement' => 10,
@@ -175,6 +176,7 @@ it('builds one planning contract whose age bands reconcile every pension product
         ->and($contract['planning_total_at_target_age'])->toBe(11_104.23)
         ->and($contract['assumptions']['sustainable_withdrawal_rate']['percent'])->toBe(4.7)
         ->and($contract['products'])->toHaveCount(3)
+        ->and($contract['products'][0]['commencement_age'])->toBe(60)
         ->and($contract['products'][0]['monthly_contribution'])->toBe(500.0)
         ->and($contract['products'][0]['projected_value'])->toBe(236_260.18)
         ->and($contract['products'][0]['annual_income'])->toBe(11_104.23)

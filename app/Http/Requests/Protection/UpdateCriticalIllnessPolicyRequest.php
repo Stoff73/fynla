@@ -18,7 +18,11 @@ class UpdateCriticalIllnessPolicyRequest extends BasePolicyRequest
             'premium_frequency' => ['sometimes', Rule::in(['monthly', 'quarterly', 'annually'])],
             'policy_start_date' => ['sometimes', 'date', 'before_or_equal:today'],
             'policy_end_date' => ['sometimes', 'nullable', 'date', 'after:policy_start_date'],
-            'policy_term_years' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            // The form sends every field it renders, and the term is blank on a
+            // policy recorded by its dates — the other four update requests all
+            // allow null here, so editing a critical illness policy was the only
+            // one that answered 422 "Policy term must be a whole number".
+            'policy_term_years' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:50'],
         ];
 
         return array_merge($commonOverrides, [

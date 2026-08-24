@@ -11,7 +11,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\PlanActionFundingSelection;
 use App\Models\User;
-use App\Services\Stores\SavingsStore;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentActionDefinitionService;
@@ -25,6 +24,7 @@ use App\Services\Investment\Recommendation\SafetyCheckService;
 use App\Services\Investment\Recommendation\SpouseOptimisationService;
 use App\Services\Investment\Recommendation\TransferRecommendationService;
 use App\Services\Investment\Recommendation\UserContextBuilder;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -505,6 +505,9 @@ class InvestmentPlanService extends BasePlanService
             'gross_income' => $this->roundToPenny($grossIncome),
             'net_income' => $this->roundToPenny($incomeData['net_income']),
             'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            // W-0140: what the figure above is made of. One composition, from the
+            // profile, shown identically on every plan surface.
+            'expenditure_composition' => $incomeData['expenditure_composition'],
             'disposable_income' => $this->roundToPenny($incomeData['annual']),
             'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
             'risk_level' => $riskProfile->risk_level ?? null,

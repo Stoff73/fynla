@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Stores\Normalisers;
 
 use App\Services\TaxConfigService;
+use App\Support\SharedOwnership;
 
 class SavingsAccountNormaliser
 {
@@ -13,7 +14,7 @@ class SavingsAccountNormaliser
      * by SavingsStore::create(). Replicates the ownership / country logic
      * that previously lived in SavingsController::storeAccount (lines 266-285).
      */
-    public function fromForm(array $request, bool $partial = false): array
+    public function fromForm(array $request, bool $partial = false, ?object $existing = null): array
     {
         $data = $request;
 
@@ -22,11 +23,16 @@ class SavingsAccountNormaliser
         }
 
         $ownershipType = $data['ownership_type'] ?? null;
-        if (! $partial && $ownershipType === 'individual' && ! isset($data['ownership_percentage'])) {
-            $data['ownership_percentage'] = 100.00;
-        }
-        if (! $partial && $ownershipType === 'joint' && ! isset($data['ownership_percentage'])) {
-            $data['ownership_percentage'] = 50.00;
+
+        // ownership_percentage — one rule, one home (App\Support\SharedOwnership).
+        // A partial update that says nothing about ownership must not inject a
+        // share; one that names an ownership_type goes through the same rule as
+        // a create, so a joint account can never be stored at 100/0 (W-0013/W-0014).
+        if ($ownershipType !== null && (! $partial || array_key_exists('ownership_type', $request))) {
+            // On an update the stored record comes too, so an account converted
+            // to joint without a stated split keeps the share it already had
+            // rather than being re-defaulted to 50 (W-0040).
+            $data = SharedOwnership::applyTo($data, $ownershipType, $existing);
         }
 
         // Reset ownership fields when switching back to individual.
@@ -34,7 +40,7 @@ class SavingsAccountNormaliser
         // SavingsController::updateAccount (lines 387-391).
         if ($ownershipType === 'individual') {
             $data['joint_owner_id'] = null;
-            $data['ownership_percentage'] = 100.00;
+            $data['ownership_percentage'] = SharedOwnership::INDIVIDUAL_PERCENTAGE;
             $data['trust_id'] = null;
         }
 
@@ -133,9 +139,10 @@ class SavingsAccountNormaliser
             'is_isa' => $isIsa,
             'is_emergency_fund' => (bool) ($toolParams['is_emergency_fund'] ?? false),
             'ownership_type' => $toolParams['ownership_type'] ?? 'individual',
-            'ownership_percentage' => isset($toolParams['ownership_percentage'])
-                ? (float) $toolParams['ownership_percentage']
-                : 100.00,
+            'ownership_percentage' => SharedOwnership::primaryOwnerPercentage(
+                $toolParams['ownership_type'] ?? 'individual',
+                $toolParams['ownership_percentage'] ?? null,
+            ),
             'joint_owner_id' => $toolParams['joint_owner_id'] ?? null,
             'trust_id' => $toolParams['trust_id'] ?? null,
         ];

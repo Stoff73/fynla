@@ -47,8 +47,20 @@
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
-    <!-- Allocation Chart and Legend (when holdings exist) -->
-    <div v-else-if="filteredHoldings.length > 0" class="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!--
+      Chart, legend AND table — one branch, not two.
+
+      These were two consecutive `v-else-if="filteredHoldings.length > 0"` in the
+      same chain, so the second could never be reached: with holdings you got the
+      donut and the legend, and the table below it had NEVER rendered. Everything
+      only the table shows went with it — purchase price, current price, the
+      purchase date and ISIN in the expanded row, the cost basis, the return, and
+      the per-row Edit and Delete buttons (W-0442). The empty state was reachable;
+      the table was not.
+    -->
+    <template v-else-if="filteredHoldings.length > 0">
+    <!-- Allocation Chart and Legend -->
+    <div class="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Chart Card -->
       <div class="bg-white border border-light-gray rounded-lg p-6">
         <h3 class="text-lg font-semibold text-horizon-500 mb-4">
@@ -132,7 +144,7 @@
     </div>
 
     <!-- Holdings Table -->
-    <div v-else-if="filteredHoldings.length > 0" class="overflow-x-auto border border-light-gray rounded-lg">
+    <div class="overflow-x-auto border border-light-gray rounded-lg">
       <table class="min-w-full divide-y divide-light-gray">
         <thead class="bg-eggshell-500">
           <tr>
@@ -153,6 +165,19 @@
             >
               Type
               <span v-if="sortField === 'asset_type'" class="ml-1">
+                {{ sortDirection === 'asc' ? '↑' : '↓' }}
+              </span>
+            </th>
+            <!-- Units are the fact a holding is made of; the value is derived
+                 from them (App\Support\HoldingValuation). W-0039 made them
+                 enterable and no table has ever shown one back. -->
+            <th
+              scope="col"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
+              @click="sortBy('quantity')"
+            >
+              Units Held
+              <span v-if="sortField === 'quantity'" class="ml-1">
                 {{ sortDirection === 'asc' ? '↑' : '↓' }}
               </span>
             </th>
@@ -210,7 +235,7 @@
               scope="col"
               class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider"
             >
-              OCF (%)
+              Ongoing Charge Figure (%)
             </th>
             <th
               scope="col"
@@ -236,14 +261,22 @@
                 {{ formatAssetType(holding.asset_type) }}
               </span>
             </td>
+            <td class="px-4 py-3 text-sm text-right text-horizon-500" data-testid="holding-units">
+              {{ formatUnits(holding.quantity) }}
+            </td>
             <td class="px-4 py-3 text-sm text-right text-horizon-500">
               {{ (holding.allocation_percent || 0).toFixed(2) }}%
             </td>
+            <!-- Pence, not whole pounds. `formatCurrency` rounds, and these are
+                 UNIT prices: the persona's L&G UK Property went in at £1.35 and
+                 stands at £1.28, and both rendered as "£1" — two different facts
+                 displayed as one number (W-0442). Holding VALUES below stay
+                 whole-pound; a £9,525 position does not need its pence. -->
             <td class="px-4 py-3 text-sm text-right text-horizon-500">
-              {{ formatCurrency(holding.purchase_price) }}
+              {{ formatCurrencyWithPence(holding.purchase_price) }}
             </td>
             <td class="px-4 py-3 text-sm text-right text-horizon-500">
-              {{ formatCurrency(holding.current_price) }}
+              {{ formatCurrencyWithPence(holding.current_price) }}
             </td>
             <td class="px-4 py-3 text-sm text-right font-medium text-horizon-500">
               {{ formatCurrency(holding.current_value) }}
@@ -280,7 +313,7 @@
 
           <!-- Expanded Row Detail -->
           <tr v-if="expandedRow" :key="`${expandedRow}-detail`" class="bg-eggshell-500">
-            <td colspan="9" class="px-4 py-4">
+            <td colspan="10" class="px-4 py-4">
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span class="text-neutral-500">Purchase Date:</span>
@@ -314,7 +347,7 @@
         <!-- Total Row -->
         <tfoot class="bg-savannah-100 font-semibold">
           <tr>
-            <td colspan="5" class="px-4 py-3 text-sm text-horizon-500">Total</td>
+            <td colspan="6" class="px-4 py-3 text-sm text-horizon-500">Total</td>
             <td class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatCurrency(totalValue) }}</td>
             <td class="px-4 py-3 text-sm text-right" :class="getReturnClass(averageReturn)">
               {{ formatReturn(averageReturn) }}
@@ -324,6 +357,7 @@
         </tfoot>
       </table>
     </div>
+    </template>
 
     <!-- Empty State -->
     <div v-else class="text-center py-12 bg-white border border-light-gray rounded-lg">
@@ -347,6 +381,7 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { CHART_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
+import { formatUnits } from '@/utils/holdingUnits';
 
 export default {
   name: 'HoldingsTable',
@@ -477,6 +512,8 @@ export default {
   },
 
   methods: {
+    formatUnits,
+
     lightenColor(hex, amount) {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);

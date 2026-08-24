@@ -22,7 +22,15 @@ class PensionProjector
 {
     private const DEFAULT_GROWTH_RATE = 0.05; // 5% fallback if no risk profile (used when RiskPreferenceService unavailable)
 
-    private const DEFAULT_RETIREMENT_AGE = 67;
+    /**
+     * Deliberately the same 67 as `DBPension::DEFAULT_NORMAL_RETIREMENT_AGE`, so that
+     * a pension cannot count as income from one age while being projected forward
+     * from another (W-0036).
+     *
+     * Public because the estate's cash-flow projection needs the same answer and used
+     * to carry a private 68 of its own.
+     */
+    public const DEFAULT_RETIREMENT_AGE = 67;
 
     public function __construct(
         private readonly RiskPreferenceService $riskService,

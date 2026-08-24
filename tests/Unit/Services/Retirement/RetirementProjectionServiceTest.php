@@ -13,6 +13,7 @@ use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Shared\MonteCarloEngine;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -35,32 +36,30 @@ beforeEach(function () {
     $this->mockRiskService->shouldReceive('getRiskProfile')
         ->andReturn(['risk_level' => 'medium']);
 
+    // Scripted to the shape the real simulator returns when asked for band
+    // percentiles: every band the chart reports is measured, so the fixture must
+    // carry the 5th, 15th and 20th rather than leaving them to be interpolated.
+    $band = fn (array $values) => collect(MonteCarloEngine::BAND_PERCENTILES)
+        ->map(fn (int $p, int $i) => ['percentile' => "{$p}th", 'value' => $values[$i]])
+        ->all();
+
     $this->mockSimulator = Mockery::mock(MonteCarloSimulator::class);
     $this->mockSimulator->shouldReceive('simulate')
         ->andReturn([
+            'summary' => ['start_value' => 100000],
             'year_by_year' => [
                 [
                     'year' => 1,
-                    'percentiles' => [
-                        ['percentile' => '10th', 'value' => 105000],
-                        ['percentile' => '25th', 'value' => 110000],
-                        ['percentile' => '50th', 'value' => 120000],
-                        ['percentile' => '75th', 'value' => 130000],
-                        ['percentile' => '90th', 'value' => 140000],
-                    ],
+                    'percentiles' => $band([102000, 105000, 107000, 108000, 110000, 120000, 130000, 140000]),
                 ],
                 [
                     'year' => 20,
-                    'percentiles' => [
-                        ['percentile' => '10th', 'value' => 300000],
-                        ['percentile' => '25th', 'value' => 350000],
-                        ['percentile' => '50th', 'value' => 450000],
-                        ['percentile' => '75th', 'value' => 550000],
-                        ['percentile' => '90th', 'value' => 650000],
-                    ],
+                    'percentiles' => $band([280000, 300000, 320000, 335000, 350000, 450000, 550000, 650000]),
                 ],
             ],
         ]);
+    $this->mockSimulator->shouldReceive('extractProbabilityBands')
+        ->andReturnUsing(fn (array $simulation) => (new MonteCarloEngine)->extractProbabilityBands($simulation));
 
     $this->mockRequiredCapitalCalculator = Mockery::mock(RequiredCapitalCalculator::class);
     $this->mockRequiredCapitalCalculator->shouldReceive('calculate')
@@ -237,6 +236,20 @@ describe('projectPensionPot', function () {
         expect($result['current_age'])->toBe(40)
             ->and($result['current_age_source'])->toBe('assumed')
             ->and($result['years_to_retirement'])->toBe(25);
+    });
+
+    it('uses the user target age for an individual pension whose scheme age is later', function () {
+        $pension = DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'retirement_age' => 67,
+            'current_fund_value' => 85_000,
+            'monthly_contribution_amount' => 500,
+        ]);
+
+        $result = $this->service->projectIndividualDCPension($pension->id, $this->user->id);
+
+        expect($result['retirement_age'])->toBe(65)
+            ->and($result['years_to_retirement'])->toBe(20);
     });
 });
 

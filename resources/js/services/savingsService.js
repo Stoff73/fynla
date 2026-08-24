@@ -48,8 +48,9 @@ const savingsService = {
      * @param {String} taxYear - Tax year (e.g., '2024-25')
      * @returns {Promise} ISA allowance data
      */
-    async getISAAllowance(taxYear) {
-        const response = await api.get(`/savings/isa-allowance/${taxYear}`);
+    async getISAAllowance(taxYear = null) {
+        // Omitting the year lets the server resolve the active one (Rule 2).
+        const response = await api.get(`/savings/isa-allowance${taxYear ? `/${taxYear}` : ''}`);
         return response.data;
     },
 

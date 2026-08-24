@@ -76,6 +76,7 @@ class SavingsController extends Controller
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = $this->savingsStore->forUser($user)->take(100);
+        $accounts->loadMissing(['user:id,first_name,surname', 'jointOwner:id,first_name,surname']);
 
         // Transform accounts using resource and add calculated fields
         $accounts = $accounts->map(function ($account) use ($user) {
@@ -84,6 +85,12 @@ class SavingsController extends Controller
             $resourceData['full_balance'] = (float) $account->current_balance;
             $resourceData['is_primary_owner'] = $this->isPrimaryOwner($account, $user->id);
             $resourceData['is_shared'] = $this->isSharedOwnership($account);
+            // Owner names, same shape as showAccount and the property/investment
+            // lists, so the card can name the OTHER party rather than the viewer.
+            $owner = $account->user;
+            $jointOwner = $account->jointOwner;
+            $resourceData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
+            $resourceData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
 
             return $resourceData;
         });
@@ -144,6 +151,46 @@ class SavingsController extends Controller
         // Per-child savings status
         $childrenSavings = $this->buildChildrenSavingsStatus($user, $rawAccounts);
 
+        // The emergency-fund figures the page displays, read rather than
+        // re-derived (W-0335, Rule 20).
+        //
+        // This key used to be `null` with the comment "Placeholder for analysis
+        // data", and nothing in the app dispatched the analyze action that would
+        // have filled it — so `/savings` computed its own runway in JavaScript and
+        // disagreed with the dashboard. The division itself is not the hard part:
+        // the DENOMINATOR is, because `SavingsAgent` divides by RESOLVED monthly
+        // expenditure — a priority chain, not the single column the payload's
+        // `expenditure_profile` carries. One household proves the chain branches:
+        // one spouse resolves from `expenditure_profile`, the other from
+        // `user_monthly`.
+        //
+        // Deliberately narrow. `runway_months` and the fund value only —
+        // `adequacy.adequacy_score` stays server-side, because a numerical rating
+        // must never reach a user-facing surface (Rule 12).
+        $analysis = null;
+        try {
+            $savingsAnalysis = $this->savingsAgent->analyze($user->id);
+
+            if (($savingsAnalysis['emergency_fund'] ?? null) !== null) {
+                $analysis = [
+                    'summary' => [
+                        'total_savings' => $savingsAnalysis['summary']['total_savings'] ?? null,
+                        'monthly_expenditure' => $savingsAnalysis['summary']['monthly_expenditure'] ?? null,
+                        'expenditure_source' => $savingsAnalysis['summary']['expenditure_source'] ?? null,
+                    ],
+                    'emergency_fund' => [
+                        'runway_months' => $savingsAnalysis['emergency_fund']['runway_months'] ?? null,
+                        'target' => $savingsAnalysis['emergency_fund']['target'] ?? null,
+                    ],
+                ];
+            }
+        } catch (\Throwable $e) {
+            // The page renders without it — the store falls back to dividing the
+            // accounts' own shares by the profile's monthly figure. Reported so a
+            // silent absence is still visible somewhere.
+            report($e);
+        }
+
         // Get life events and goal strategies relevant to savings/cash
         try {
             $lifeEvents = $this->lifeEventIntegration->getEventsForModule($user->id, 'savings');
@@ -174,7 +221,7 @@ class SavingsController extends Controller
                 'fscs_exposure' => $fscsExposure,
                 'emergency_fund_target' => $emergencyFundTarget,
                 'children_savings' => $childrenSavings,
-                'analysis' => null, // Placeholder for analysis data
+                'analysis' => $analysis,
                 'life_events' => $lifeEvents,
                 'life_event_impact' => $lifeEventImpact,
                 'goal_strategies' => $goalStrategies,
@@ -245,9 +292,13 @@ class SavingsController extends Controller
     /**
      * Get ISA allowance status for a tax year
      */
-    public function isaAllowance(Request $request, string $taxYear): JsonResponse
+    public function isaAllowance(Request $request, ?string $taxYear = null): JsonResponse
     {
         $user = $request->user();
+
+        // The active tax year is a server fact (Rule 2) — callers that do not
+        // care which year it is may omit it.
+        $taxYear ??= app(TaxConfigService::class)->getTaxYear();
 
         try {
             $allowanceStatus = $this->isaTracker->getISAAllowanceStatus($user->id, $taxYear);
@@ -350,7 +401,14 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            $canonical = $this->normaliser->fromForm($request->validated(), partial: true);
+            // The stored account comes too, so an update that says nothing about
+            // the split keeps the share already on it rather than re-defaulting
+            // to 50 (W-0040). Read through the store, not the model: the savings
+            // boundary is locked and says every joint-aware read funnels through
+            // SavingsStore, which is also where the owner guard lives.
+            $existing = $this->savingsStore->find($id, $user);
+
+            $canonical = $this->normaliser->fromForm($request->validated(), partial: true, existing: $existing);
             $account = $this->savingsStore->update($id, $canonical, $user, IngestSource::FORM);
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);

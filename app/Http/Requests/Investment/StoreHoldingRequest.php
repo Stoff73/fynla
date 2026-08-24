@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Investment;
 
+use App\Constants\HoldingSubTypes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -37,6 +38,10 @@ class StoreHoldingRequest extends FormRequest
             'purchase_date' => 'nullable|date',
             'current_price' => 'nullable|numeric|min:0',
             'current_value' => 'sometimes|numeric|min:0',
+            // Units are the fact a user actually holds; the value is derived from
+            // them (App\Support\HoldingValuation). Every holding in the persona
+            // carries a unit count and none of them could be entered (W-0039).
+            'quantity' => ['nullable', 'numeric', 'min:0'],
             'dividend_yield' => 'nullable|numeric|min:0|max:100',
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];
@@ -63,17 +68,16 @@ class StoreHoldingRequest extends FormRequest
 
     /**
      * Get valid sub types for fund holdings.
+     *
+     * Reads the one home rather than holding a copy. The identical list lived
+     * here and on `UpdateHoldingRequest`, and `DCPensionHoldingsController` had
+     * no rule for the column at all — so fixing that would have made a third
+     * copy, which Rule 20 names as the violation rather than the fix.
+     *
+     * @return list<string>
      */
     private function getSubTypes(): array
     {
-        return [
-            'equity_fund',
-            'bond_fund',
-            'mixed_fund',
-            'income_fund',
-            'index_fund',
-            'money_market_fund',
-            'property_fund',
-        ];
+        return HoldingSubTypes::ALL;
     }
 }

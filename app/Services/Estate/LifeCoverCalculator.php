@@ -6,6 +6,7 @@ namespace App\Services\Estate;
 
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\Settings\AssumptionsService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -14,7 +15,8 @@ class LifeCoverCalculator
 {
     public function __construct(
         private readonly AssumptionsService $assumptionsService,
-        private readonly FutureValueCalculator $futureValueCalculator
+        private readonly FutureValueCalculator $futureValueCalculator,
+        private readonly LifeCoverReach $lifeCoverReach,
     ) {}
 
     /**
@@ -454,11 +456,26 @@ class LifeCoverCalculator
             if (! $policy->in_trust) {
                 $sumAssured = number_format((float) $policy->sum_assured);
                 $policyName = $policy->provider ?? 'Life Insurance Policy';
+
+                // What is TRUE about the cover, and what the reader can ACT ON, are two
+                // different things, and this warning used to conflate them (W-0382).
+                // A joint-life policy reaches the other life assured, so this loop now
+                // sees policies the reader does not hold — and it told her the proceeds
+                // fall into "your taxable estate" and to "contact your provider", about
+                // a contract that is neither hers nor changeable by her. The fact is
+                // hers to know; the action is the policyholder's.
+                $isOwn = $this->lifeCoverReach->isOwnedBy($policy, $user);
+                $holder = $isOwn ? null : $this->lifeCoverReach->otherLifeAssured($policy, $user);
+
+                $message = $isOwn
+                    ? "{$policyName} (£{$sumAssured}) is not written in trust. Without trust placement, the policy proceeds will form part of your taxable estate and may be subject to Inheritance Tax. Contact your provider to place this policy in trust."
+                    : "{$policyName} (£{$sumAssured}) is not written in trust. Without trust placement, the policy proceeds will form part of the policyholder's taxable estate and may be subject to Inheritance Tax. This policy is held by ".($holder ?? 'the other life assured').', so placing it in trust is arranged by them.';
+
                 $warnings[] = [
                     'type' => 'not_in_trust',
                     'severity' => 'high',
                     'policy_id' => $policy->id,
-                    'message' => "{$policyName} (£{$sumAssured}) is not written in trust. Without trust placement, the policy proceeds will form part of your taxable estate and may be subject to Inheritance Tax. Contact your provider to place this policy in trust.",
+                    'message' => $message,
                 ];
             }
 

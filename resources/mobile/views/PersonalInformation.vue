@@ -40,12 +40,102 @@
         </dl>
       </section>
 
+      <section
+        v-if="dependants.length"
+        class="m-card profile-card"
+        aria-labelledby="profile-dependants-heading"
+        data-testid="personal-information-dependants"
+      >
+        <h2 id="profile-dependants-heading" class="m-section-label">Dependants</h2>
+        <dl class="profile-list">
+          <div v-for="dependant in dependants" :key="dependant.id" class="profile-row">
+            <dt>{{ dependant.first_name || dependant.name || 'Dependant' }}</dt>
+            <dd>{{ dependantLabel(dependant) }}</dd>
+          </div>
+        </dl>
+      </section>
+
       <section class="m-card profile-card" aria-labelledby="profile-domicile-heading">
         <h2 id="profile-domicile-heading" class="m-section-label">Domicile</h2>
         <p class="m-sub profile-copy">{{ domicileLabel }}</p>
         <p v-if="profile.domicile_info?.country_of_birth" class="profile-note">
           Country of birth: {{ profile.domicile_info.country_of_birth }}
         </p>
+      </section>
+
+      <section class="m-card profile-card" aria-labelledby="profile-health-heading">
+        <div class="profile-head">
+          <h2 id="profile-health-heading" class="m-section-label">Health and lifestyle</h2>
+          <button
+            v-if="!editingHealth"
+            type="button"
+            class="m-btn-ghost profile-edit"
+            data-testid="health-edit"
+            @click="startEditingHealth"
+          >Edit</button>
+        </div>
+
+        <p v-if="healthError" class="m-err" role="alert" data-testid="health-error">{{ healthError }}</p>
+
+        <dl v-if="!editingHealth" class="profile-list">
+          <div class="profile-row">
+            <dt>General health</dt>
+            <dd data-testid="health-status-value">{{ healthStatusLabel }}</dd>
+          </div>
+          <div class="profile-row">
+            <dt>Smoking</dt>
+            <dd data-testid="smoking-status-value">{{ smokingStatusLabel }}</dd>
+          </div>
+          <div class="profile-row">
+            <dt>Highest education level</dt>
+            <dd data-testid="education-level-value">{{ educationLevelLabel }}</dd>
+          </div>
+        </dl>
+
+        <form v-else class="profile-form" @submit.prevent="saveHealth">
+          <label class="profile-field">
+            <span class="profile-field__label">Are you in good health?</span>
+            <select v-model="healthForm.health_status" class="profile-input" data-testid="health-status-input">
+              <option value="">Select an answer</option>
+              <option v-for="option in healthStatusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+
+          <label class="profile-field">
+            <span class="profile-field__label">Do you smoke?</span>
+            <select v-model="healthForm.smoking_status" class="profile-input" data-testid="smoking-status-input">
+              <option value="">Select an answer</option>
+              <option v-for="option in smokingStatusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+
+          <label class="profile-field">
+            <span class="profile-field__label">Highest education level</span>
+            <select v-model="healthForm.education_level" class="profile-input" data-testid="education-level-input">
+              <option value="">Select an answer</option>
+              <option v-for="option in educationLevelOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+
+          <p class="profile-note">
+            Health and smoking details shape your protection premium estimates and life expectancy projections.
+          </p>
+
+          <div class="profile-actions">
+            <button type="button" class="m-btn-ghost" data-testid="health-cancel" :disabled="savingHealth" @click="cancelEditingHealth">
+              Cancel
+            </button>
+            <button type="submit" class="m-btn profile-save" data-testid="health-save" :disabled="savingHealth">
+              {{ savingHealth ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
       </section>
 
       <section class="m-card profile-card" aria-labelledby="profile-summary-heading">
@@ -63,9 +153,17 @@
 </template>
 
 <script>
-import { apiGet } from '../api.js';
+import { apiGet, apiPut } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import {
+  HEALTH_STATUS_OPTIONS,
+  SMOKING_STATUS_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  formatHealthStatus,
+  formatSmokingStatus,
+  formatEducationLevel,
+} from '../constants/profileOptions.js';
 import { buildContextualConversationRequest } from '../fyn/contextualConversation.js';
 import { store } from '../store.js';
 
@@ -76,6 +174,13 @@ export default {
     loading: true,
     error: '',
     profile: null,
+    healthStatusOptions: HEALTH_STATUS_OPTIONS,
+    smokingStatusOptions: SMOKING_STATUS_OPTIONS,
+    educationLevelOptions: EDUCATION_LEVEL_OPTIONS,
+    editingHealth: false,
+    savingHealth: false,
+    healthError: '',
+    healthForm: { health_status: '', smoking_status: '', education_level: '' },
   }),
   computed: {
     contextualRequest() {
@@ -92,6 +197,9 @@ export default {
     personalInfo() {
       return this.profile?.personal_info || {};
     },
+    dependants() {
+      return (this.profile?.family_members || []).filter((member) => member.is_dependent);
+    },
     householdLabel() {
       return this.profile?.household?.name
         || (this.profile?.spouse?.name ? `Household with ${this.profile.spouse.name}` : 'Single-person household');
@@ -103,6 +211,15 @@ export default {
         ? domicile.domicile_status.replaceAll('_', ' ')
         : 'Not recorded';
     },
+    healthStatusLabel() {
+      return formatHealthStatus(this.personalInfo.health_status);
+    },
+    smokingStatusLabel() {
+      return formatSmokingStatus(this.personalInfo.smoking_status);
+    },
+    educationLevelLabel() {
+      return formatEducationLevel(this.personalInfo.education_level);
+    },
     address() {
       const address = this.personalInfo.address || {};
       return [address.line_1, address.line_2, address.city, address.county, address.postcode]
@@ -112,8 +229,61 @@ export default {
   },
   created() {
     this.load();
+    // A View link tapped while already on this screen re-navigates to the same
+    // route, so nothing remounts and created() never runs again. Same tick the
+    // other /m screens watch.
+    this.$watch(() => store.screenRefreshTick, () => { this.load(); });
   },
   methods: {
+    startEditingHealth() {
+      this.healthError = '';
+      this.healthForm = {
+        health_status: this.personalInfo.health_status || '',
+        smoking_status: this.personalInfo.smoking_status || '',
+        education_level: this.personalInfo.education_level || '',
+      };
+      this.editingHealth = true;
+    },
+    cancelEditingHealth() {
+      this.editingHealth = false;
+      this.healthError = '';
+    },
+    /**
+     * Same endpoint and same validator as the desktop Health & Lifestyle form —
+     * PUT /api/user/profile/personal -> UpdatePersonalInfoRequest. /m does not get
+     * its own write path (Rule 20), which also means it inherits that request's
+     * handling of an unanswered select: '' becomes null via
+     * ConvertEmptyStringsToNull, and prepareForValidation drops the key rather
+     * than writing null to smoking_status, which is NOT NULL (W-0006).
+     */
+    async saveHealth() {
+      this.savingHealth = true;
+      this.healthError = '';
+      try {
+        const { ok, status, data } = await apiPut('/api/user/profile/personal', this.healthForm, store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
+        if (!ok) {
+          this.healthError = data?.message || 'We could not save your health and lifestyle details.';
+          return;
+        }
+        this.editingHealth = false;
+        await this.load();
+      } catch {
+        this.healthError = 'Network error. Please try again.';
+      } finally {
+        this.savingHealth = false;
+      }
+    },
+    dependantLabel(dependant) {
+      const relationship = {
+        child: 'Child',
+        parent: 'Parent',
+        other_dependent: 'Dependant',
+      }[dependant.relationship] || 'Dependant';
+      const age = dependant.age;
+
+      return age == null ? relationship : `${relationship}, aged ${age}`;
+    },
     money(value) {
       if (value == null || value === '' || Number.isNaN(Number(value))) return '—';
       return new Intl.NumberFormat('en-GB', {
@@ -152,4 +322,15 @@ export default {
 .profile-row--total dt, .profile-row--total dd { font-size: 15px; font-weight: 800; }
 .profile-copy { margin: 0; }
 .profile-note { margin: 8px 0 0; color: var(--neutral-500); font-size: 12px; }
+.profile-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.profile-head .m-section-label { margin-bottom: 8px; }
+.profile-edit { flex: 0 0 auto; padding: 6px 12px; }
+.profile-form { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.profile-field { display: flex; flex-direction: column; gap: 6px; }
+.profile-field__label { color: var(--neutral-500); font-size: 13px; }
+.profile-input { width: 100%; padding: 12px; border: 1px solid var(--horizon-200); border-radius: 8px; background: var(--white); color: var(--horizon-500); font-size: 15px; }
+.profile-input:focus { outline: 2px solid var(--violet-500); outline-offset: 1px; }
+.profile-actions { display: flex; gap: 10px; align-items: center; }
+.profile-actions .m-btn-ghost { flex: 0 0 auto; }
+.profile-save { flex: 1 1 auto; }
 </style>

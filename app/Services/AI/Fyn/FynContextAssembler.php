@@ -23,6 +23,8 @@ use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
+use App\Services\Estate\WillTypePolicy;
+use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -55,6 +57,7 @@ final class FynContextAssembler
         private readonly ProceduralContributionCollector $proceduralContributions,
         private readonly ProceduralVersionHolder $proceduralVersions,
         private readonly ContextualResourceResolver $contextualResources,
+        private readonly WillTypePolicy $willTypePolicy,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -276,6 +279,11 @@ final class FynContextAssembler
                 $lines[] = $gettingStarted;
             }
 
+            $willStructure = $this->willStructureDirective($ctx);
+            if ($willStructure !== null) {
+                $lines[] = $willStructure;
+            }
+
             $lines[] = $this->voicingRules();
         }
 
@@ -303,6 +311,7 @@ final class FynContextAssembler
                 $lines[] = FynCaptureTurnInstructions::render(
                     $this->focusLabel($focus),
                     implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
+                    isModuleWalk: $focus !== OnboardingChatDirector::HANDOFF_FALLBACK_FOCUS,
                 );
             }
         }
@@ -547,6 +556,54 @@ The user is asking you to explain a figure or action already shown in their save
 GROUNDING;
     }
 
+    /**
+     * W-0019 — Fyn reaches the same answer as the will builder form, from the
+     * same source (Rule 20). Fynla builds mirror wills only for married users;
+     * anything else is refused with a solicitor referral, and Fyn must quote
+     * the refusal rather than compose its own, or the two surfaces drift into
+     * two vocabularies.
+     */
+    private function willStructureDirective(FynTurnContext $ctx): ?string
+    {
+        if (! $this->willTypePolicy->isMarried($ctx->user)) {
+            return null;
+        }
+
+        // Deliberately narrow: a bare \bwill\b would fire on the modal verb in
+        // "I will retire at 60" and inject this block into most turns.
+        $mentionsAWill = preg_match(
+            '/\bwills\b|\btestament\b|\bwill\s+builder\b'
+            .'|\b(my|a|the|your|our|new|another|second|separate|mirror|simple|one[- ]sided|single)\s+will\b'
+            .'|\b(write|writing|make|making|draft|drafting|build|building|create|creating|set\s+up|setting\s+up|update|updating|change|changing|amend|amending)\s+(a|my|the|our|their)?\s*will\b/i',
+            $ctx->message,
+        ) === 1;
+
+        if (! $mentionsAWill) {
+            return null;
+        }
+
+        $married = WillTypePolicy::asText(WillTypePolicy::REFUSAL_MARRIED);
+        $noPartner = WillTypePolicy::asText(WillTypePolicy::REFUSAL_NO_MIRROR_PARTNER);
+
+        return <<<DIRECTIVE
+<will_structure_policy>
+The user is married or in a civil partnership. Fynla builds mirror wills only for these users — a matching pair, one for each partner.
+
+If they ask you to build, draft or set up any other kind of will — a simple will, a one-sided will, a will for them alone — do not draft, outline or part-build it, and do not offer a workaround. Reply with this text, unchanged:
+
+"{$married}"
+
+If they want a mirror will but tell you their spouse or civil partner will not make a matching one, reply with this text instead, unchanged:
+
+"{$noPartner}"
+
+You may open with a short natural line, but the text above must appear unchanged, and you must not add exceptions, caveats or alternatives to it. Do not close this particular reply with a follow-up question offering any other kind of will; the only follow-up you may offer is to start their mirror wills.
+
+Recording the details of a will they have already made elsewhere is unaffected — keep capturing those details as normal. A will they only intend to make outside Fynla is not a will to record; that is the same refusal.
+</will_structure_policy>
+DIRECTIVE;
+    }
+
     private function resolveFirstName(User $user): string
     {
         $first = trim((string) ($user->first_name ?? ''));
@@ -571,20 +628,10 @@ Ambiguity: if a figure the user gave you is ambiguous in a way that changes the 
 RULES;
     }
 
+    /** Delegates to the one focus → label map (Rule 20). */
     private function focusLabel(?string $focus): string
     {
-        return match ($focus) {
-            'savings', 'budgeting' => 'Cash & Savings',
-            'investment' => 'Investments',
-            'retirement' => 'Retirement',
-            'protection' => 'Protection',
-            'estate' => 'Estate Planning',
-            'business' => 'Business',
-            'goals' => 'Goals',
-            'savetax' => 'SaveTax',
-            'pensioncheck' => 'Pension Check',
-            default => (string) $focus,
-        };
+        return OnboardingPromptBuilder::focusLabel((string) $focus);
     }
 
     /**

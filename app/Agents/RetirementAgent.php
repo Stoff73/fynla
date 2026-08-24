@@ -78,7 +78,12 @@ class RetirementAgent extends BaseAgent
                     return $this->response(true, 'Readiness check incomplete', [
                         'can_proceed' => false,
                         'readiness_checks' => $readiness,
-                        'summary' => null,
+                        // A blocking readiness check stops the ANALYSIS. It does not
+                        // stop the pensions from existing, and a card reading this
+                        // response must still be able to say what the household holds
+                        // (W-0244). Same facts, same shape, same home as the
+                        // no-target branch below.
+                        'summary' => $this->provisionSummary($gateUser),
                         'income_projection' => null,
                         'breakdown' => null,
                         'annual_allowance' => null,
@@ -111,12 +116,23 @@ class RetirementAgent extends BaseAgent
                     atMicrotime: microtime(true),
                 ));
 
-                if (! $hasProfile) {
-                    return $this->response(false, 'No retirement profile found', []);
-                }
-
-                // Project total retirement income
+                // Project total retirement income. Every figure this returns is
+                // derived from the pension records themselves — each DC scheme
+                // carries its own retirement age, and `getUserAge` falls back to
+                // `users.date_of_birth` — so it is a fact about what the user
+                // HOLDS and does not depend on a retirement profile existing.
                 $incomeProjection = $this->projector->projectTotalRetirementIncome($userId);
+
+                if (! $hasProfile) {
+                    return $this->factsWithoutTarget(
+                        $user,
+                        $dcPensions,
+                        $dbPensions,
+                        $statePension,
+                        $incomeProjection,
+                        $userId,
+                    );
+                }
 
                 $targetIncome = (float) $profile->target_retirement_income;
                 $statePensionAge = $statePension->state_pension_age ?? 67;
@@ -161,6 +177,8 @@ class RetirementAgent extends BaseAgent
                     'current_dc_value' => $currentDcValue,
                     'total_dc_value' => $incomeProjection['dc_total_value'],
                     'total_pensions_count' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
+                    'has_retirement_target' => true,
+                    'guaranteed_annual_income' => $this->guaranteedAnnualIncome($incomeProjection),
                 ];
 
                 // Detailed breakdown
@@ -261,6 +279,9 @@ class RetirementAgent extends BaseAgent
         $resultPath = match (true) {
             isset($result['success']) && $result['success'] === false => 'success_false',
             isset($result['data']['can_proceed']) && $result['data']['can_proceed'] === false => 'readiness_blocked',
+            // Facts answered, target absent. Distinct from 'happy' so the eval trace
+            // can still tell the two apart now that both return success: true.
+            ($result['data']['summary']['has_retirement_target'] ?? null) === false => 'no_retirement_target',
             default => 'happy',
         };
         event(new EngineCalled(
@@ -275,18 +296,173 @@ class RetirementAgent extends BaseAgent
     }
 
     /**
+     * What the user HOLDS, for a user who has not told us what they are AIMING AT.
+     *
+     * These are two different facts and they used to share one answer: without a
+     * `retirement_profiles` row this method's caller returned `success: false` with
+     * an empty data array — no pot, no schemes, no State Pension, not even a count.
+     * A household holding £500,000 of Defined Contribution pensions, an NHS final
+     * salary scheme paying £35,000 a year and a State Pension forecast was told it
+     * had not started, and every consumer asking "does this user have retirement
+     * provision" was told no (W-0244).
+     *
+     * **The dividing line, and it is the whole point of the shape:** everything
+     * derived from the pension RECORDS is present and real — the pot, the schemes,
+     * the guaranteed income, the counts, the annual allowance position. Everything
+     * derived from the TARGET is null — the projection against a goal, the income
+     * gap, years to retirement, the decumulation plan. `summary.has_retirement_target`
+     * is the flag consumers should branch on. `success` is not that flag and must
+     * never be used as one again.
+     *
+     * The key set is deliberately identical to the happy path's, so a consumer
+     * reading `summary.income_gap` gets `null` rather than a missing key, and
+     * `ToolResultContract::REQUIRED_KEYS['retirement']` is satisfied without a
+     * special case.
+     *
+     * @param  array<string, mixed>  $incomeProjection
+     * @return array<string, mixed>
+     */
+    private function factsWithoutTarget(
+        ?User $user,
+        Collection $dcPensions,
+        Collection $dbPensions,
+        $statePension,
+        array $incomeProjection,
+        int $userId,
+    ): array {
+        return $this->response(true, 'Retirement provision found; no retirement target set yet', [
+            'summary' => $this->provisionSummary($user, $dcPensions, $dbPensions, $statePension, $incomeProjection),
+            'income_projection' => $incomeProjection,
+            'breakdown' => [
+                'dc_pensions' => $this->formatDCPensions($dcPensions, $incomeProjection),
+                'db_pensions' => $this->formatDBPensions($dbPensions),
+                'state_pension' => $this->formatStatePension($statePension, $incomeProjection),
+            ],
+            'annual_allowance' => $this->allowanceChecker->checkAnnualAllowance(
+                $userId,
+                $this->taxConfig->getTaxYear(),
+            ),
+            // The absent target, stated as the absence it is.
+            'profile' => null,
+            'decumulation' => null,
+            'post_retirement_goals' => [],
+            'missing_for_quality_advice' => $this->findMissingForQualityAdvice(
+                $user,
+                null,
+                $statePension,
+                $dcPensions,
+                $dbPensions,
+            ),
+        ]);
+    }
+
+    /**
+     * The record-derived half of the summary: what this household holds, with every
+     * target-derived figure explicitly null.
+     *
+     * **One home, read by both branches that answer without a usable target** — the
+     * readiness-gated branch and the no-profile branch — so the two cannot drift into
+     * telling a user different things about the same pensions (Rule 20). The key set
+     * matches the happy path's, so a consumer reading `summary.income_gap` gets null
+     * rather than a missing key.
+     *
+     * Callers that already hold the loaded collections pass them in; the readiness
+     * gate does not, so they are loaded here.
+     *
+     * @param  array<string, mixed>|null  $incomeProjection
+     * @return array<string, mixed>
+     */
+    private function provisionSummary(
+        ?User $user,
+        ?Collection $dcPensions = null,
+        ?Collection $dbPensions = null,
+        $statePension = null,
+        ?array $incomeProjection = null,
+    ): array {
+        $dcPensions ??= $user?->dcPensions ?? collect();
+        $dbPensions ??= $user?->dbPensions ?? collect();
+        $statePension ??= $user?->statePension;
+        $incomeProjection ??= $user !== null
+            ? $this->projector->projectTotalRetirementIncome($user->id)
+            : [];
+
+        return [
+            // Target-derived — null, not zero. Zero is a figure; these are absent.
+            'years_to_retirement' => null,
+            'target_retirement_age' => null,
+            'projected_retirement_income' => null,
+            'target_retirement_income' => null,
+            'income_gap' => null,
+            'retires_before_spa' => null,
+            'income_after_spa' => null,
+            'income_gap_after_spa' => null,
+            // Record-derived — facts about what this household holds.
+            // The `?? 67` mirrors the happy path's fallback exactly, literal included,
+            // so the branches cannot drift. That hardcoded age predates this work and
+            // is raised, not changed here.
+            'state_pension_age' => $statePension->state_pension_age ?? 67,
+            'state_pension_income' => $incomeProjection['state_pension_income'] ?? 0,
+            'current_dc_value' => (float) $dcPensions->sum('current_fund_value'),
+            'total_dc_value' => $incomeProjection['dc_total_value'] ?? 0,
+            'total_pensions_count' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
+            // Reflects whether a target EXISTS, not whether it could be projected
+            // against. A readiness-blocked household may well have stated a target;
+            // saying otherwise would be a second way of confusing the two facts.
+            'has_retirement_target' => $user?->retirementProfile !== null,
+            'guaranteed_annual_income' => $this->guaranteedAnnualIncome($incomeProjection),
+        ];
+    }
+
+    /**
+     * Retirement income already secured by schemes that pay an income rather than
+     * hold a balance — Defined Benefit plus State Pension.
+     *
+     * One home, read by both branches of `analyze()` and by every card that needs
+     * it, so a household whose whole provision is a final salary scheme cannot be
+     * shown a balance of zero on one surface and its real income on another
+     * (Rule 20).
+     *
+     * **Basis caveat** (`app/Services/CLAUDE.md`): the Defined Benefit component is
+     * nominal at retirement and the State Pension component is in today's money.
+     * Every existing consumer of `PensionProjector` already sums them this way —
+     * this consolidates that behaviour, it does not introduce the mixing and does
+     * not fix it. Reconciling the two bases is W-0245's territory.
+     *
+     * @param  array<string, mixed>  $incomeProjection
+     */
+    private function guaranteedAnnualIncome(array $incomeProjection): float
+    {
+        return round(
+            (float) ($incomeProjection['db_annual_income'] ?? 0)
+            + (float) ($incomeProjection['state_pension_income'] ?? 0),
+            2
+        );
+    }
+
+    /**
      * Per-agent contract gap field (S1.6.b).
      *
      * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
      */
     private function findMissingForQualityAdvice(
-        User $user,
-        RetirementProfile $profile,
+        ?User $user,
+        ?RetirementProfile $profile,
         $statePension,
         Collection $dcPensions,
         Collection $dbPensions,
     ): array {
         $gaps = [];
+
+        // The absent profile is itself the gap, and naming it is what lets the
+        // caller ask for a target instead of telling a household with £500,000 of
+        // pensions that it has no retirement provision (W-0244).
+        if ($profile === null) {
+            $gaps[] = [
+                'field' => 'retirement_profile',
+                'why' => 'No target retirement age or income has been set, so nothing can be projected against a goal. What the user already holds is known and unaffected.',
+                'severity' => 'blocking',
+            ];
+        }
 
         if ((float) ($profile->target_retirement_income ?? 0) <= 0) {
             $gaps[] = [
@@ -312,7 +488,7 @@ class RetirementAgent extends BaseAgent
             ];
         }
 
-        if ($user->marital_status === 'married' && $profile->spouse_life_expectancy === null) {
+        if ($user?->marital_status === 'married' && $profile?->spouse_life_expectancy === null) {
             $gaps[] = [
                 'field' => 'spouse_life_expectancy',
                 'why' => 'Joint-life decumulation planning depends on the spouse life expectancy.',

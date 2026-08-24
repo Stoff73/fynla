@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Stores;
 
+use App\Constants\InvestmentDefaults;
+use App\Constants\PensionEnums;
 use App\Events\Pension\DBPensionCreated;
 use App\Events\Pension\DBPensionDeleted;
 use App\Events\Pension\DBPensionRestored;
@@ -31,6 +33,7 @@ use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PensionStore
 {
@@ -586,13 +589,24 @@ class PensionStore
             'expected_return_percent' => 'sometimes|nullable|numeric|min:0|max:20',
             'has_flexibly_accessed' => 'sometimes|boolean',
             'flexible_access_date' => 'sometimes|nullable|date|before_or_equal:today',
-            'salary_sacrifice' => 'sometimes|boolean',
+            // `dc_pensions.salary_sacrifice` is tinyint(1) NULL — null is a
+            // storable value meaning "not stated", and DCPensionForm sends exactly
+            // that when the checkbox has never been touched. Without `nullable`
+            // this rejected it as "must be true or false" (W-0262): the field had
+            // no rule in StoreDCPensionRequest, so `validated()` stripped it and
+            // the mismatch could not surface until that rule was added.
+            'salary_sacrifice' => 'sometimes|nullable|boolean',
             'employer_ni_rebate_pct' => 'sometimes|nullable|numeric|min:0|max:1',
             'beneficiary_id' => 'sometimes|nullable|integer|exists:users,id',
             'beneficiary_name' => 'sometimes|nullable|string|max:255',
             'investment_strategy' => 'sometimes|nullable|string|max:255',
             'member_number' => 'sometimes|nullable|string|max:255',
-            'risk_preference' => 'sometimes|nullable|string|max:64',
+            // The column is enum('low','lower_medium','medium','upper_medium','high')
+            // — any other string passed `string|max:64` and died as a QueryException
+            // at the column, exactly as `inflation_protection` did below before it
+            // was tightened. The vocabulary comes from one constant, not a list
+            // retyped here (W-0262).
+            'risk_preference' => ['sometimes', 'nullable', Rule::in(InvestmentDefaults::RISK_PREFERENCES)],
             'has_custom_risk' => 'sometimes|boolean',
         ];
 
@@ -607,6 +621,10 @@ class PensionStore
         $rules = [
             'scheme_name' => ($partial ? 'sometimes|' : 'required|').'string|max:255',
             'scheme_type' => ($partial ? 'sometimes|' : 'required|').'in:final_salary,career_average,public_sector',
+            // W-0032. Optional and nullable: null means the user has not stated a
+            // status, which DBPension::isInPayment() reads as "fall back to age".
+            // The vocabulary comes from PensionEnums, not from a list retyped here.
+            'scheme_status' => 'sometimes|nullable|in:'.implode(',', PensionEnums::SCHEME_STATUSES),
             'accrued_annual_pension' => 'sometimes|nullable|numeric|min:0|max:999999.99',
             'pensionable_service_years' => 'sometimes|nullable|numeric|min:0|max:99',
             'pensionable_salary' => 'sometimes|nullable|numeric|min:0|max:999999.99',
@@ -614,7 +632,9 @@ class PensionStore
             'revaluation_method' => 'sometimes|nullable|string|max:64',
             'spouse_pension_percent' => 'sometimes|nullable|numeric|min:0|max:100',
             'lump_sum_entitlement' => 'sometimes|nullable|numeric|min:0',
-            'inflation_protection' => 'sometimes|nullable|string|max:64',
+            // The column is enum('cpi','rpi','fixed','none') NOT NULL — any other
+            // string got past `string|max:64` and died as a QueryException.
+            'inflation_protection' => 'sometimes|nullable|in:cpi,rpi,fixed,none',
         ];
 
         $validator = Validator::make($data, $rules);

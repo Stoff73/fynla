@@ -44,6 +44,33 @@ final class InvestmentDefaults
         'high' => 5, 'adventurous' => 5, 'aggressive' => 5,
     ];
 
+    /**
+     * The values a per-product risk override column can actually hold.
+     *
+     * This is the STORABLE vocabulary, which is narrower than RISK_LEVEL_MAP
+     * above: that map also accepts legacy labels (`cautious`, `balanced`,
+     * `growth`, `aggressive`) so a reader can normalise whatever it is handed,
+     * but the columns are
+     * `enum('low','lower_medium','medium','upper_medium','high')` and reject the
+     * aliases outright. A validator that reads the map's keys would therefore
+     * admit five values the database refuses.
+     *
+     * Both `dc_pensions.risk_preference` and `investment_accounts.risk_preference`
+     * are that enum. The list was retyped inline in at least four places before
+     * this constant existed (`RiskPreferenceController` twice,
+     * `AccountProjectionsRequest`, `AutoRiskCalculator::$riskOrder`); those copies
+     * are left alone here, but nothing new should add a fifth.
+     *
+     * @var list<string>
+     */
+    public const RISK_PREFERENCES = [
+        'low',
+        'lower_medium',
+        'medium',
+        'upper_medium',
+        'high',
+    ];
+
     // ==================== Asset Class Mapping ====================
 
     /**

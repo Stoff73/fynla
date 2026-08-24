@@ -17,6 +17,12 @@ describe('FamilyMembers.vue', () => {
   let wrapper;
   let store;
 
+  // Jane is a LINKED spouse — an account really does sit behind this row, which
+  // is what the card's "Account Linked" badge claims and why she has no Edit or
+  // Delete. The fixture used to omit `is_linked_account`, so it described the
+  // W-0051 orphan while the tests around it asserted the behaviour of a linked
+  // account. Both facts have to be on the row now that the component reads the
+  // link rather than the relationship string.
   const familyMembers = [
     {
       id: 1,
@@ -25,6 +31,8 @@ describe('FamilyMembers.vue', () => {
       date_of_birth: '1992-05-15',
       gender: 'female',
       is_dependent: false,
+      linked_user_id: 30,
+      is_linked_account: true,
     },
     {
       id: 2,
@@ -33,17 +41,49 @@ describe('FamilyMembers.vue', () => {
       date_of_birth: '2015-08-20',
       gender: 'male',
       is_dependent: true,
+      linked_user_id: null,
+      is_linked_account: false,
     },
   ];
 
-  const createTestStore = (members = familyMembers) => createStore({
+  /**
+   * The row onboarding used to produce: relationship 'spouse', no account behind
+   * it. It rendered as "Account Linked" with no controls, so a misspelt name was
+   * permanent on every surface (W-0051).
+   */
+  const unlinkedSpouse = {
+    id: 3,
+    name: 'Arjun Raman',
+    relationship: 'spouse',
+    date_of_birth: '1977-06-02',
+    gender: 'male',
+    is_dependent: false,
+    linked_user_id: null,
+    is_linked_account: false,
+  };
+
+  // W-0132 — the recorded will, as `WillAnalysisService::charitableBequestSummary()`
+  // publishes it on the profile this page already loads. Priya Raman's position when
+  // the defect was raised: one £10,000 legacy to Cancer Research UK, on an account
+  // whose `users.charitable_bequest` column was NULL.
+  const oneFixedLegacy = {
+    has_bequests: true,
+    count: 1,
+    fixed_total: 10000,
+    has_estate_share: false,
+  };
+
+  const createTestStore = (members = familyMembers, charitableBequests = oneFixedLegacy) => createStore({
     state: {
       aiFormFill: { pendingFill: null },
     },
     modules: {
       userProfile: {
         namespaced: true,
-        state: () => ({ familyMembers: structuredClone(members) }),
+        state: () => ({
+          familyMembers: structuredClone(members),
+          profile: { charitable_bequests: charitableBequests },
+        }),
         actions: {
           fetchProfile: vi.fn(() => Promise.resolve()),
           updatePersonalInfo: vi.fn(() => Promise.resolve()),
@@ -143,12 +183,53 @@ describe('FamilyMembers.vue', () => {
     expect(wrapper.findComponent({ name: 'FamilyMemberFormModal' }).props('member')).toBeNull();
   });
 
-  it('offers edit and delete actions only for editable non-spouse members', () => {
+  // Renamed from "only for editable non-spouse members". The relationship was
+  // never the rule — it stood in for one, wrongly. Leaving the old name would
+  // re-encode the thing W-0051 removed.
+  it('withholds edit and delete from a linked account, not from a relationship', () => {
     const editButtons = wrapper.findAll('button').filter((button) => button.text() === 'Edit');
     const deleteButtons = wrapper.findAll('button').filter((button) => button.text() === 'Delete');
 
     expect(editButtons).toHaveLength(1);
     expect(deleteButtons).toHaveLength(1);
+    expect(wrapper.text()).toContain('Account Linked');
+    expect(wrapper.text()).toContain('Linked account');
+  });
+
+  it('gives an unlinked spouse the same edit and delete as any other record', async () => {
+    const orphanWrapper = mountComponent(createTestStore([unlinkedSpouse]));
+    await flushPromises();
+
+    const editButtons = orphanWrapper.findAll('button').filter((button) => button.text() === 'Edit');
+    const deleteButtons = orphanWrapper.findAll('button').filter((button) => button.text() === 'Delete');
+
+    expect(editButtons).toHaveLength(1);
+    expect(deleteButtons).toHaveLength(1);
+  });
+
+  it('does not claim a link an unlinked spouse does not have', async () => {
+    const orphanWrapper = mountComponent(createTestStore([unlinkedSpouse]));
+    await flushPromises();
+
+    expect(orphanWrapper.text()).not.toContain('Account Linked');
+    expect(orphanWrapper.text()).not.toContain('Linked account');
+  });
+
+  it('tells the user plainly that an unlinked spouse shares nothing yet', async () => {
+    const orphanWrapper = mountComponent(createTestStore([unlinkedSpouse]));
+    await flushPromises();
+
+    expect(orphanWrapper.text()).toContain('not linked');
+  });
+
+  it('can open an unlinked spouse in edit mode', async () => {
+    const orphanWrapper = mountComponent(createTestStore([unlinkedSpouse]));
+    await flushPromises();
+
+    const editButton = orphanWrapper.findAll('button').find((button) => button.text() === 'Edit');
+    await editButton.trigger('click');
+
+    expect(orphanWrapper.vm.selectedMember).toEqual(unlinkedSpouse);
   });
 
   it('opens the child in edit mode', async () => {
@@ -226,5 +307,84 @@ describe('FamilyMembers.vue', () => {
 
     expect(familyMembersService.deleteFamilyMember).toHaveBeenCalledWith(2);
     expect(wrapper.vm.showDeleteConfirm).toBe(false);
+  });
+  /**
+   * W-0132 — the card asked a question it already had the answer to.
+   *
+   * It read `users.charitable_bequest`, a column written by a toggle on /estate and
+   * never loaded back into the client, so it answered "Not set" for a user whose
+   * will contained a £10,000 charitable legacy the estate calculation was already
+   * using to apply the reduced rate. NULL ("we have not asked you") and false ("you
+   * told us no") were both falsy and rendered identically.
+   *
+   * The assertion that matters is the CROSS one: the auth user's toggle says false
+   * throughout this suite, so a card that still consulted it would fail here even
+   * though every figure on the page came from a fixture.
+   */
+  describe('the charitable bequest card', () => {
+    it('answers from the recorded will, not from the users.charitable_bequest toggle', async () => {
+      // `auth.user.charitable_bequest` is false in this store, and the will has a
+      // legacy in it. The old card printed "No".
+      expect(store.state.auth.user.charitable_bequest).toBe(false);
+
+      const text = wrapper.text();
+      expect(text).toContain('Yes');
+      expect(text).toContain('Your will records one charitable gift, totalling £10,000.');
+    });
+
+    it('no longer asks the user a question the will answers', () => {
+      expect(wrapper.text()).not.toContain('Do you wish to leave anything to charity?');
+    });
+
+    it('never renders the unanswerable third state', async () => {
+      // NULL and false were indistinguishable and produced "Not set", which the user
+      // could not clear because the control had only two options.
+      for (const summary of [oneFixedLegacy, { has_bequests: false, count: 0, fixed_total: 0, has_estate_share: false }, undefined]) {
+        const scoped = mountComponent(createTestStore(familyMembers, summary));
+        await flushPromises();
+
+        expect(scoped.text()).not.toContain('Not set');
+      }
+    });
+
+    it('says nothing is recorded when the will has no charitable gift', async () => {
+      const scoped = mountComponent(createTestStore(familyMembers, {
+        has_bequests: false,
+        count: 0,
+        fixed_total: 0,
+        has_estate_share: false,
+      }));
+      await flushPromises();
+
+      expect(scoped.text()).toContain('None recorded');
+      expect(scoped.text()).toContain('Your will records no gifts to charity.');
+    });
+
+    it('names a share of the estate rather than totalling it as nothing', async () => {
+      // A percentage or residuary gift has no value until an estate is valued. It
+      // must be named, never counted as £0 inside a printed total.
+      const scoped = mountComponent(createTestStore(familyMembers, {
+        has_bequests: true,
+        count: 1,
+        fixed_total: 0,
+        has_estate_share: true,
+      }));
+      await flushPromises();
+
+      expect(scoped.text()).toContain('Your will records one charitable gift, given as a share of your estate.');
+      expect(scoped.text()).not.toContain('totalling £0');
+    });
+
+    it('states both parts when the will mixes a fixed sum with a share of the estate', async () => {
+      const scoped = mountComponent(createTestStore(familyMembers, {
+        has_bequests: true,
+        count: 2,
+        fixed_total: 10000,
+        has_estate_share: true,
+      }));
+      await flushPromises();
+
+      expect(scoped.text()).toContain('Your will records 2 charitable gifts: £10,000 in fixed sums, plus a share of your estate.');
+    });
   });
 });

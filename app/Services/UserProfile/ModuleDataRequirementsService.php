@@ -598,6 +598,20 @@ class ModuleDataRequirementsService
     ];
 
     /**
+     * Requirements that exist only while they are unsatisfied.
+     *
+     * `income_needs_update` is a staleness flag raised when a user's employment
+     * status changes — it asks them to revisit a figure, it is not a piece of
+     * data they can supply once and be done with. Listing it like one put
+     * "Income needs updating" under COMPLETED beside "OUTSTANDING (0) — All
+     * items complete", on the one panel whose whole job is saying what is still
+     * missing (W-0177). When the flag is down there is nothing to say.
+     */
+    private const FLAG_REQUIREMENTS = [
+        'income_needs_update',
+    ];
+
+    /**
      * Route to module mapping.
      */
     private const ROUTE_MODULE_MAP = [
@@ -626,6 +640,12 @@ class ModuleDataRequirementsService
         // Check field requirements
         foreach ($requirements['fields'] ?? [] as $fieldKey => $fieldConfig) {
             $isFilled = $this->isFieldFilled($user, $fieldKey);
+
+            // A satisfied flag is not a completed requirement — it is nothing at
+            // all, and counting it as one made the panel contradict itself.
+            if ($isFilled && in_array($fieldKey, self::FLAG_REQUIREMENTS, true)) {
+                continue;
+            }
 
             $requirement = [
                 'key' => $fieldKey,
@@ -784,6 +804,6 @@ class ModuleDataRequirementsService
         }
 
         // Married users need spouse_id to be set
-        return $user->spouse_id !== null;
+        return $user->liveSpouseId() !== null;
     }
 }

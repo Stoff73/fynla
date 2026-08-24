@@ -61,6 +61,8 @@
       :show="showModal"
       :holding="selectedHolding"
       :accounts="accounts"
+      :save-error="error"
+      :field-errors="fieldErrors"
       @save="handleSubmit"
       @close="closeModal"
     />
@@ -138,6 +140,7 @@ export default {
       showDeleteModal: false,
       holdingToDelete: null,
       error: null,
+      fieldErrors: null,
       successMessage: null,
       deleting: false,
       successTimeout: null,
@@ -223,6 +226,7 @@ export default {
           // Update existing holding (store action handles analysis)
           await this.updateHolding({ id: formData.id, data: formData });
           this.successMessage = 'Holding updated successfully';
+
         } else {
           // Create new holding (store action handles analysis)
           await this.createHolding(formData);
@@ -233,6 +237,10 @@ export default {
         if (this.$store.state.aiFormFill.pendingFill) {
           this.$store.dispatch('aiFormFill/completeFill');
         }
+
+        // Close only once the save has actually succeeded — HoldingForm no
+        // longer closes itself (W-0009).
+        this.closeModal();
 
         // Refresh data to get latest from server
         // Note: analyseInvestment() is already called by the store actions above
@@ -246,6 +254,10 @@ export default {
       } catch (error) {
         logger.error('Error saving holding:', error);
         this.error = error.response?.data?.message || 'Failed to save holding. Please try again.';
+        // A 422 carries the useful part in `errors`, keyed by field. Without
+        // passing it down, the only thing the user saw was the generic banner
+        // at the top of a modal they had scrolled past (W-0261).
+        this.fieldErrors = error.response?.data?.errors || null;
       }
     },
 
@@ -286,6 +298,7 @@ export default {
 
     clearMessages() {
       this.error = null;
+      this.fieldErrors = null;
       this.successMessage = null;
     },
 

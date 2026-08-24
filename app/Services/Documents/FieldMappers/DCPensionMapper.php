@@ -99,28 +99,12 @@ class DCPensionMapper extends AbstractFieldMapper
     }
 
     /**
-     * Parse contribution percentage - handles both decimal (0.05) and whole number (5) formats.
+     * Contribution percentages are stored in percentage points (5 for 5%).
+     * Shares one helper with DBPensionMapper so the two cannot disagree — they
+     * did, and the Defined Benefit side was wrong by a factor of 100 (W-0030).
      */
     private function parseContributionPercent(mixed $value): ?float
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $percent = $this->parsePercentage($value);
-
-        if ($percent === null) {
-            return null;
-        }
-
-        // The database stores as whole numbers (5 for 5%), not decimals
-        // But AI may return either format
-        if ($percent < 1) {
-            // It's in decimal form (0.05), convert to whole number
-            return $percent * 100;
-        }
-
-        // Already a whole number
-        return $percent;
+        return $this->parsePercentagePoints($value);
     }
 }

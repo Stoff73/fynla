@@ -1007,17 +1007,18 @@ it('rejects foreign ownership links through the direct savings API', function ()
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['joint_owner_id']);
 
-    foreach (['joint', 'tenants_in_common'] as $ownershipType) {
-        $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
-            'account_name' => 'Missing explicit share',
-            'account_type' => 'easy_access',
-            'current_balance' => 20000,
-            'ownership_type' => $ownershipType,
-            'joint_owner_id' => $spouse->id,
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors(['ownership_percentage']);
-    }
-
+    // Neither end of the range is a split two people can hold: 0 gives the primary
+    // owner none of an account filed under their own name, 100 gives them all of
+    // it. Both are individual ownership wearing the wrong `ownership_type`, and per
+    // CSJ's ruling on W-0040 a stated share is refused rather than quietly
+    // corrected.
+    //
+    // An UNSTATED share used to be refused here too. It no longer is: no savings
+    // form exposes a share input, so requiring one made a joint savings account
+    // impossible to create on any surface (W-0013). An absent share now resolves
+    // once, in App\Support\SharedOwnership, and that contract is gated in full by
+    // the test directly below — which needs a fresh user per case because the free
+    // tier caps a household at two savings accounts.
     foreach ([0, 100] as $invalidShare) {
         $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
             'account_name' => 'Invalid explicit share',
@@ -1041,6 +1042,56 @@ it('rejects foreign ownership links through the direct savings API', function ()
 
     expect(SavingsAccount::where('user_id', $user->id)->sole()->trust_id)->toBe($ownTrust->id);
 });
+
+/**
+ * The other half of the savings ownership gate: what a shared account's share
+ * RESOLVES to when the caller did not state a usable one.
+ *
+ * This narrows a gate that previously required every shared savings account to
+ * carry an explicit share. It was narrowed deliberately, not eroded: the share
+ * is resolved in exactly one place for every asset type
+ * (App\Support\SharedOwnership) and written to the SINGLE record as the primary
+ * owner's share, the joint owner holding the remainder (Rule 6). What is gated
+ * now is the resolved figure itself, so a change to the default cannot pass
+ * unnoticed, and the fact that a share the caller DID state is never swallowed
+ * by it.
+ */
+it('resolves the share of a shared savings account through the one shared rule', function (string $ownershipType, mixed $submittedShare, float $expectedShare): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+    $user->update(['spouse_id' => $spouse->id]);
+    $spouse->update(['spouse_id' => $user->id]);
+
+    $payload = [
+        'account_name' => 'Shared savings account',
+        'account_type' => 'easy_access',
+        'current_balance' => 20000,
+        'ownership_type' => $ownershipType,
+        'joint_owner_id' => $spouse->id,
+    ];
+
+    if ($submittedShare !== null) {
+        $payload['ownership_percentage'] = $submittedShare;
+    }
+
+    $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $payload)->assertCreated();
+
+    $account = SavingsAccount::where('user_id', $user->id)->sole();
+
+    expect((float) $account->ownership_percentage)->toBe($expectedShare)
+        ->and($account->joint_owner_id)->toBe($spouse->id)
+        ->and($account->ownership_type)->toBe($ownershipType);
+})->with([
+    // The savings modal sends no share at all — the case that used to 422.
+    'joint, share not stated' => ['joint', null, 50.0],
+    'tenants in common, share not stated' => ['tenants_in_common', null, 50.0],
+    // A share the caller did state survives the default untouched. This is the
+    // half that makes the default safe: an absent share is resolved, a stated one
+    // is never rewritten. A stated share that is not a split at all (0 or 100) is
+    // refused by the test above rather than corrected — W-0040.
+    'an uneven share the caller stated' => ['joint', 70, 70.0],
+]);
 
 it('prevents direct savings updates from creating a shared ISA', function (): void {
     $this->seed(TierConfigurationSeeder::class);

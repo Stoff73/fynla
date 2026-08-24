@@ -19,7 +19,8 @@
       <div class="m-card m-hero">
         <p class="m-sub m-label">Full balance</p>
         <p class="m-metric">{{ fmt(fullBalance) }}</p>
-        <p v-if="isJoint" class="m-hero-sub">Your share ({{ account.ownership_percentage }}%): {{ fmt(userShare) }}</p>
+        <p v-if="isJoint" class="m-hero-sub">Your share ({{ sharePercent }}): {{ fmt(userShare) }}</p>
+        <p v-if="coOwner" class="m-hero-sub">Held with {{ coOwner }}</p>
         <div v-if="tags.length" class="msa-tags">
           <span v-for="t in tags" :key="t.label" class="msa-tag" :class="t.cls">{{ t.label }}</span>
         </div>
@@ -78,6 +79,7 @@ import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
+import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -141,22 +143,29 @@ export default {
       if (!this.account) return 'Account details';
       return this.accountTypeLabel(this.account.account_type);
     },
-    isJoint() { return this.account?.ownership_type === 'joint'; },
+    // Ownership display via the ONE home shared with the desktop SPA
+    // (Rule 19 + Rule 20). The stored percentage is the PRIMARY owner's, so
+    // rendering it to the joint owner shows the wrong side of the split.
+    isJoint() { return isSharedRecord(this.account); },
     fullBalance() {
       return this.account?.full_balance ?? this.account?.current_balance ?? 0;
     },
     userShare() {
-      if (this.account?.user_share != null) return this.account.user_share;
-      if (this.isJoint && this.account?.ownership_percentage) {
-        return this.fullBalance * (Number(this.account.ownership_percentage) / 100);
-      }
-      return this.fullBalance;
+      return calculateUserShare(this.account, { valueField: 'current_balance' });
+    },
+    sharePercent() {
+      return `${userSharePercent(this.account).toFixed(2)}%`;
+    },
+    coOwner() {
+      return coOwnerName(this.account);
     },
     rateNum() { return Number(this.account?.interest_rate || 0); },
-    annualInterest() {
-      return Number(this.fullBalance) * (this.rateNum / 100);
-    },
-    monthlyInterest() { return this.annualInterest / 12; },
+    // CSJ 2026-08-23: /m never works anything out. These were
+    // `balance * (rate / 100)` and `/ 12` in the client; the model appends both
+    // now, so this screen and the Personal Savings Allowance work cannot disagree
+    // about what an account earns (Rule 20).
+    annualInterest() { return Number(this.account?.annual_interest ?? 0); },
+    monthlyInterest() { return Number(this.account?.monthly_interest ?? 0); },
     tags() {
       const out = [];
       if (this.account?.is_emergency_fund) out.push({ label: 'Emergency fund', cls: 'msa-tag--ef' });
@@ -168,7 +177,7 @@ export default {
         { key: 'Full balance', value: this.fmt(this.fullBalance) },
       ];
       if (this.isJoint) {
-        rows.push({ key: `Your share (${this.account.ownership_percentage}%)`, value: this.fmt(this.userShare) });
+        rows.push({ key: `Your share (${this.sharePercent})`, value: this.fmt(this.userShare) });
       }
       rows.push({ key: 'Interest rate', value: this.rate(this.account.interest_rate) });
       rows.push({ key: 'Monthly interest', value: this.fmt(this.monthlyInterest) });

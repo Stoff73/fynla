@@ -1,6 +1,6 @@
 # Marketing Pipeline — Stage 5 Setup
 
-Stage 5 = *"a marketing team member uploads a `.docx` (or writes a native Google Doc) into `Marketing Automation ▸ Articles`; overnight the pipeline auto-imports it as a draft InsightArticle; admin reviews + publishes locally; pushes to dev; when it looks right, a whitelisted publisher pushes it live on fynla.org — without a code deploy."*
+Stage 5 = *"a marketing team member uploads a `.docx` (or writes a native Google Doc) into `Marketing Automation ▸ Articles`; the polling pipeline auto-imports it as a draft InsightArticle; admin reviews + publishes locally; pushes to dev; when it looks right, a whitelisted publisher pushes it live on fynla.org — without a code deploy."*
 
 Prerequisites: Stages 1 + 2 + 3 + 4 already set up (see the other `STAGE-*-SETUP.md` docs).
 
@@ -12,26 +12,25 @@ Governed by `fynlaDesignGuide.md` (CMS UI colours + typography). No new external
 
 | Item | Where you get it | Notes |
 |---|---|---|
-| `Articles` subfolder in the Marketing Automation Drive folder | Create it manually in Drive alongside the existing `Videos` subfolder | The `ArticlesFolderLocator` finds it by name |
+| Existing `Articles` direct child in the Marketing Automation Shared Drive | Do not rename, replace, or recreate it | The `ArticlesFolderLocator` finds it by name |
 | PhpOffice/PhpWord | `composer require phpoffice/phpword` (already added) | Parses `.docx` |
-| Fresh Google OAuth grant | `php artisan pipeline:authorise-google` | Analytics readonly scope was added — re-consent required (only once) |
+| Service account with Shared Drive access | See `STAGE-2-SETUP.md` | No browser authorisation required |
 | Shared sync token | Generate a random 40-char string with `php artisan tinker --execute="echo Str::random(48);"` | Same value goes into local .env and each target env's .env |
 
 ---
 
-## 1. Re-consent Google OAuth (Analytics scope was added)
+## 1. Confirm service-account access
 
-Same command as before:
+Confirm the service-account `client_email` is still a Content manager of the
+Marketing Automation Shared Drive. The same unattended credentials are used
+for Drive, Docs, Sheets and Analytics; no additional login is required.
 
-```bash
-php artisan pipeline:authorise-google
-```
+## 2. Confirm the existing `Articles` subfolder in Drive
 
-Sign in as `marketing@fynla.org`, Advanced → Go anyway → Allow. Note the new "See Google Analytics data" permission on the consent screen.
-
-## 2. Create the `Articles` subfolder in Drive
-
-Under Marketing Automation, create a new folder called `Articles` (case-sensitive). Marketing team members upload `.docx` files or create native Google Docs here.
+Confirm that the existing direct child is named `Articles` (case-sensitive).
+Marketing team members upload `.docx` files or create native Google Docs here.
+Do not reorganise the Marketing Automation Shared Drive or move/delete legacy
+originals; imported assets are preserved copies.
 
 ## 3. Generate + set the sync token
 
@@ -61,7 +60,15 @@ PIPELINE_SYNC_TOKEN=<value that matches what the local sends>
 
 ## 4. Turn on the pipeline
 
-`PIPELINE_ENABLED=true` in local `.env` + `config:clear`.
+Before enabling anything, confirm this is the one development runner named
+`csjones-development`, production still has `PIPELINE_ENABLED=false`, and
+development retains `PIPELINE_COMPOSE_AFTER_RENDER=false` and
+`PIPELINE_SOCIAL_DRY_RUN=true`. If any condition is not confirmed, stop and do
+not run the smoke test. See `GOOGLE-DRIVE-SETUP-RUNBOOK.md` for the full
+commissioning sequence.
+
+On that development runner only, set `PIPELINE_ENABLED=true` in local `.env`,
+then run `php artisan config:clear`.
 
 ### 4a. Turn on the public `/insights/{slug}` route
 
@@ -104,9 +111,9 @@ Anyone else needs to be added to this list before they can push live.
 
 ### For the marketing team (no dev involvement)
 
-1. **Write** an article in Word or Google Docs. Structure it with headings (Heading 2, 3, 4), paragraphs, bulleted lists. Bold, italic, links all work.
+1. **Write** an article in Word or Google Docs. Use Heading 1 for the article title, Heading 2 and Heading 3 for nested sections, then paragraphs and bulleted or numbered lists. Bold, italic, and links all work.
 2. **Save** as `.docx` into Marketing Automation ▸ Articles (or leave it as a Google Doc — both are supported).
-3. **Wait until the next morning** (or trigger `php artisan pipeline:detect-new-article-docs` manually). The article appears in the CMS as a draft.
+3. **Wait for the configured polling interval** (default five minutes), or trigger `php artisan pipeline:detect-new-article-docs` manually. The article appears in the CMS as a draft.
 4. **Open** `/admin/pipeline/articles`. Find the new draft.
 5. **Edit**: fix category, add tags, link to a campaign (optional), tweak the summary. Save.
 6. **Publish locally** — see it at `/insights/{slug}` on `localhost:8000`.
@@ -116,13 +123,16 @@ Anyone else needs to be added to this list before they can push live.
 
 ### The scheduler
 
-The pipeline runs these commands automatically:
+The four detector commands poll every `PIPELINE_POLL_FREQUENCY_MINUTES`
+(default five minutes), rather than at fixed daily times. The optional Drive
+webhook is renewed daily at 05:00; that is not detector polling.
 
-| Time | Command | Purpose |
+| Interval | Command | Purpose |
 |---|---|---|
-| Daily 06:45 | `pipeline:detect-new-article-docs` | Word → draft InsightArticle |
-| Daily 07:00 | `pipeline:detect-new-articles` | Stage 1 (video pipeline detects published articles) |
-| Daily 07:30 | `pipeline:detect-new-videos` | Stage 3 |
+| Configurable; default every 5 minutes | `pipeline:detect-new-article-docs` | Word/Google Doc → draft InsightArticle |
+| Configurable; default every 5 minutes | `pipeline:detect-new-articles` | Stage 1 (video pipeline detects published articles) |
+| Configurable; default every 5 minutes | `pipeline:detect-new-document-articles` | Published CMS article → script pipeline |
+| Configurable; default every 5 minutes | `pipeline:detect-new-videos` | Stage 3 |
 | Hourly | `pipeline:schedule-ready-posts` | Stage 4 |
 | Monday 06:00 | `pipeline:recalculate-optimal-times` | Stage 4 |
 | Monday 09:00 | `pipeline:weekly-social-report` | Stage 4 |
@@ -163,13 +173,14 @@ To use a campaign CTA on an article:
 
 | Word construct | InsightArticle block type |
 |---|---|
-| Heading 2 / 3 / 4 | `heading` |
+| Heading 1 | Article title (and a heading block) |
+| Heading 2 / 3 | Nested `heading` blocks |
 | Body paragraph | `paragraph` (with `<strong>`, `<em>`, `<a>`) |
 | Bulleted / numbered list | `list` |
 | Simple table | flattened into a `paragraph` |
 | Images | **skipped** (MVP — add via CMS if needed) |
 | Comments, footnotes, tracked changes | ignored |
-| Custom paragraph styles (Heading 1, Heading 5+, etc.) | flattened to `paragraph` |
+| Heading 4+, custom paragraph styles | flattened to `paragraph` |
 
 If a marketing team member uses formatting the parser doesn't understand, it either flattens sensibly or logs the skip to `storage/logs/pipeline*.log`.
 
@@ -187,8 +198,8 @@ To disable ONLY auto-import (keep the CMS operational for manually-created artic
 
 | Symptom | Fix |
 |---|---|
-| Article doesn't appear after upload | Wait until 06:45 next day, or run `php artisan pipeline:detect-new-article-docs` manually |
-| "Could not find an Articles subfolder" | Create the folder in Drive under Marketing Automation |
+| Article doesn't appear after upload | Wait for the configured polling interval (default five minutes), or run `php artisan pipeline:detect-new-article-docs` manually |
+| "Could not find an Articles subfolder" | Confirm the existing direct child is named `Articles`; do not create a replacement folder |
 | **`/insights/{slug}` returns "Oh no, we messed up!" 404** even though the article is published + the API returns 200 | `VITE_INSIGHTS_CMS_ENABLED=true` is missing from `.env` OR the current Vite/prod build predates that env value. Add it + restart Vite (local) or re-run the deploy build script (dev/prod). |
 | Push to dev returns "sync endpoint not configured on this environment" | Target env's `.env` missing `PIPELINE_SYNC_TOKEN`; `config:clear` after adding |
 | Push to dev returns "invalid sync token" | Local's `PIPELINE_SYNC_TOKEN_DEV` doesn't match dev's `PIPELINE_SYNC_TOKEN` |

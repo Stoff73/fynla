@@ -181,15 +181,26 @@ class RetirementPlanService extends BasePlanService
         $incomeGap = $summary['income_gap'] ?? 0;
         $retirementAge = $summary['target_retirement_age'] ?? 0;
 
+        // Whether this household has told us what it is AIMING AT. It is a separate
+        // question from what it HOLDS, and the two used to share one answer: without
+        // a retirement profile the agent returned nothing and this plan was never
+        // built at all (W-0244). Now that the plan IS built from the pension facts,
+        // every sentence below that describes a target has to survive not having one
+        // — otherwise the plan promises "retirement at age 0 with £0 per month" and
+        // congratulates the user on meeting a target they never set.
+        $hasTarget = ($summary['has_retirement_target'] ?? true) === true;
+
         // Monthly target after tax (approximate: annual target / 12)
         $monthlyTarget = $targetIncome > 0 ? round($targetIncome / 12) : 0;
 
         // Introduction sentence
-        $introduction = sprintf(
-            'This plan aims to show you how you can achieve retirement at age %d with %s per month after tax, so you can enjoy your retirement.',
-            $retirementAge,
-            $this->formatCurrency($monthlyTarget)
-        );
+        $introduction = $hasTarget
+            ? sprintf(
+                'This plan aims to show you how you can achieve retirement at age %d with %s per month after tax, so you can enjoy your retirement.',
+                $retirementAge,
+                $this->formatCurrency($monthlyTarget)
+            )
+            : 'This plan sets out the retirement provision you already hold. Tell us the age you would like to retire and the income you would like to retire on, and it will also show you how close you are to it.';
 
         // Goals summary for the table
         $allGoals = array_merge($goals['linked'] ?? [], $goals['unlinked'] ?? []);
@@ -218,10 +229,14 @@ class RetirementPlanService extends BasePlanService
         }
         $totalActions = count($actions);
 
-        // Closing statement
-        $closing = $incomeGap <= 0
-            ? 'Your current pension arrangements are projected to meet your retirement income target. The details below confirm your position and highlight opportunities to strengthen it further.'
-            : 'The solutions and recommendations outlined below are achievable steps that can bring you closer to your desired retirement income.';
+        // Closing statement. With no target there is nothing to be on track FOR, so
+        // the plan says what it knows rather than claiming a target has been met —
+        // a null income gap is an absent measurement, not a surplus.
+        $closing = match (true) {
+            ! $hasTarget => 'The details below set out the pensions you hold and the income they are on course to provide. Adding a target retirement age and income will let this plan measure them against it.',
+            $incomeGap <= 0 => 'Your current pension arrangements are projected to meet your retirement income target. The details below confirm your position and highlight opportunities to strengthen it further.',
+            default => 'The solutions and recommendations outlined below are achievable steps that can bring you closer to your desired retirement income.',
+        };
 
         return [
             'opening' => 'Thank you for using Fynla. Here is your personalised Retirement Plan based on your pensions and retirement goals.',
@@ -231,7 +246,7 @@ class RetirementPlanService extends BasePlanService
             'actions_summary' => $actionsSummary,
             'total_actions' => $totalActions,
             'closing' => $closing,
-            'on_track' => $incomeGap <= 0,
+            'on_track' => $hasTarget ? $incomeGap <= 0 : null,
         ];
     }
 
@@ -292,6 +307,9 @@ class RetirementPlanService extends BasePlanService
             'gross_income' => $this->roundToPenny($grossIncome),
             'net_income' => $this->roundToPenny($incomeData['net_income']),
             'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            // W-0140: what the figure above is made of. One composition, from the
+            // profile, shown identically on every plan surface.
+            'expenditure_composition' => $incomeData['expenditure_composition'],
             'disposable_income' => $this->roundToPenny($incomeData['annual']),
             'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
             'risk_level' => $riskProfile->risk_level ?? null,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Retirement;
 
+use App\Constants\PensionEnums;
 use App\Services\Stores\PensionStore;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -39,6 +40,12 @@ class StoreDBPensionRequest extends FormRequest
         return [
             'scheme_name' => ['nullable', 'string', 'max:255'],
             'scheme_type' => ['nullable', 'in:final_salary,career_average,public_sector'],
+            // W-0032. Both Defined Benefit forms send the stored value, not the label
+            // they display, so this validates the stored vocabulary — taken from the
+            // one declaration rather than retyped here, so it cannot drift. The list
+            // lives in App\Constants and not on DBPension because the pension store
+            // boundary (LOCKED) rightly keeps pension models out of form requests.
+            'scheme_status' => ['nullable', 'in:'.implode(',', PensionEnums::SCHEME_STATUSES)],
             'accrued_annual_pension' => ['nullable', 'numeric', 'min:0'],
             'pensionable_service_years' => ['nullable', 'numeric', 'min:0', 'max:50'],
             'pensionable_salary' => ['nullable', 'numeric', 'min:0'],

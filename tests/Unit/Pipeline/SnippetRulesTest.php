@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Services\Pipeline\AnthropicOpusClient;
 use App\Services\Pipeline\HighlightSelectorService;
+use App\Services\Pipeline\PipelineAiClient;
 use App\Services\Pipeline\SnippetValidatorService;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
@@ -23,9 +23,9 @@ afterEach(function () {
     Mockery::close();
 });
 
-function fakeClient(string $json): AnthropicOpusClient
+function fakeClient(string $json): PipelineAiClient
 {
-    $mock = Mockery::mock(AnthropicOpusClient::class);
+    $mock = Mockery::mock(PipelineAiClient::class);
     $mock->shouldReceive('complete')->andReturn(['text' => $json, 'usage' => [], 'gbp' => 0.0]);
 
     return $mock;
@@ -101,7 +101,7 @@ it('validator drops a snippet it marks invalid', function () {
 });
 
 it('validator falls back to the original ranges when the AI check errors', function () {
-    $mock = Mockery::mock(AnthropicOpusClient::class);
+    $mock = Mockery::mock(PipelineAiClient::class);
     $mock->shouldReceive('complete')->andThrow(new RuntimeException('api down'));
 
     $original = [['start' => 30.0, 'end' => 45.0, 'reason' => 'original']];
@@ -112,7 +112,7 @@ it('validator falls back to the original ranges when the AI check errors', funct
 
 it('validator is a no-op when disabled', function () {
     Config::set('pipeline.video.snippet_validation_enabled', false);
-    $mock = Mockery::mock(AnthropicOpusClient::class);
+    $mock = Mockery::mock(PipelineAiClient::class);
     $mock->shouldNotReceive('complete');
 
     $original = [['start' => 30.0, 'end' => 45.0, 'reason' => 'original']];

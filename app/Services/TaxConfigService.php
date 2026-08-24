@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Constants\TaxDefaults;
 use App\Services\Stores\TaxConfigStore;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
@@ -287,6 +288,82 @@ class TaxConfigService
     }
 
     /**
+     * The reduced Inheritance Tax rate for a qualifying charitable estate
+     * (IHTA 1984 s.7(1A)).
+     *
+     * Centralised following the same precedent as getCLTLifetimeRate(): the
+     * `?? 0.36` lookup was duplicated across WillAnalysisService (×2),
+     * IHTCalculationService, EstateAgent, GiftingStrategy and
+     * TaxSettingsController, alongside a seventh consumer reading
+     * TaxDefaults::IHT_CHARITABLE_RATE — two fallback conventions, seven sites.
+     *
+     * **THIS NOTE NO LONGER ASSERTS A COUNT, BECAUSE EVERY COUNT OF IT HAS BEEN
+     * WRONG (W-0451).**
+     *
+     * The paragraph above claimed the consolidation was complete; it was not.
+     * The first correction named ONE survivor; there were two. The
+     * tax-compliance gate named TWO; `grep -rn '?? 0.36' app/` then found
+     * **four** — `WillAnalysisService`, `GiftingStrategy`, `EstateAgent:694`,
+     * and `TaxSettingsController:330`, the last inside the admin screen that
+     * displays the tax settings themselves, hardcoding "10%+" in the same
+     * sentence.
+     *
+     * **Three successive statements of the number, by three different authors,
+     * each confident and each wrong.** The number is not the durable thing. The
+     * check is:
+     *
+     *     grep -rn '?? 0\.36' app/ | grep -v ':\s*\*\|// '   # the literal fallback
+     *     grep -rn 'reduced_rate_charity' app/               # every direct array read
+     *
+     * A direct array read is a survivor only when it falls back to a LITERAL.
+     * Falling back to `TaxDefaults::IHT_CHARITABLE_RATE` is the sanctioned
+     * convention — `EstatePlanService:508` and `TaxConfigSnapshotService:90` do
+     * that and must not be "fixed".
+     *
+     * **THE FILTER IS NOT COSMETIC.** The unfiltered grep now returns five hits
+     * and four of them are the COMMENTS written to explain the fixes — including
+     * two lines of this docblock. **A grep-based check degrades as the fix it
+     * checks for gets documented**, which is a fourth way for a completion claim
+     * to stop the next reader looking, and it took one cycle to appear.
+     *
+     * **WHAT THE LAST PASS ACTUALLY DID, because naming four and fixing three is
+     * how this note went wrong the previous three times (W-0451 gate, C4):**
+     *
+     *     WillAnalysisService   routed
+     *     GiftingStrategy       routed
+     *     EstateAgent:705       routed
+     *     TaxSettingsController:330   **NAMED AND LEFT STANDING** — still there
+     *
+     * It is admin-facing, so lower severity than the user-facing three, but it is
+     * the **Tax Settings screen**: the one place a hardcoded rate contradicts the
+     * very configuration it is rendering, and its sentence hardcodes the 10%
+     * threshold as well. Filed as **W-0461**.
+     *
+     * **A completion note is load-bearing: if a consolidation leaves a survivor,
+     * the note is the thing that hides it** — a reader checking whether the
+     * duplication was dealt with finds a docblock saying it was, and stops.
+     * **So this one records the command, the exclusions, and the one it did not
+     * fix.** A conclusion goes stale; a command plus a known survivor does not.
+     */
+    public function getCharitableReducedRate(): float
+    {
+        return (float) ($this->get('inheritance_tax.reduced_rate_charity') ?? TaxDefaults::IHT_CHARITABLE_RATE);
+    }
+
+    /**
+     * The proportion of the baseline amount that must pass to charity for the
+     * reduced rate to apply (IHTA 1984 Sch 1A) — 10%.
+     *
+     * Read from configuration because the key is seeded AND rendered in the
+     * admin Tax Settings screen as though it governs the calculation. Until
+     * this accessor existed nothing read it, so the admin control was inert.
+     */
+    public function getCharitableThresholdPercent(): float
+    {
+        return (float) ($this->get('inheritance_tax.charity_threshold_percent') ?? TaxDefaults::IHT_CHARITY_THRESHOLD);
+    }
+
+    /**
      * Get the 14-year rule configuration
      *
      * @return array Contains lookback periods and calculation steps
@@ -330,19 +407,48 @@ class TaxConfigService
      */
     public function getGiftTaxRate(int|float $yearsSurvived, string $type = 'pet'): float
     {
-        $taperRelief = $this->getTaperRelief($type);
+        // The two schedules are shaped differently and only one of them worked.
+        //
+        // Potentially-exempt-transfer bands carry `tax_rate` outright (0.32 = "80%
+        // of 40%"). Chargeable-lifetime-transfer bands carry `tax_percent` — the
+        // PERCENTAGE OF THE DEATH RATE still payable — and no `tax_rate` at all, so
+        // `$band['tax_rate'] ?? 0.40` matched nothing and returned the hardcoded
+        // default: **every chargeable lifetime transfer was rated at the full 40%
+        // however long the donor had survived.** Measured before the fix: 0.40 at
+        // every year from 0 to 8.
+        //
+        // s7(4) charges "the following PERCENTAGE OF THE RATE OR RATES REFERRED TO
+        // IN SUBSECTION (1)", and s7(1) is the death rate — so `death_rate ×
+        // tax_percent / 100` is a transcription of the statute rather than a
+        // convenience.
+        //
+        // Handled HERE rather than in a caller: `FailedGiftTaxCalculator` briefly
+        // carried its own band walk to work around this, which left the canonical
+        // accessor still broken, still public, and still answering 40% to whoever
+        // called it next — two mechanisms for one question, which is the thing
+        // Rule 20 exists to stop.
+        $deathRate = $type === 'clt'
+            ? (float) ($this->get('inheritance_tax.chargeable_lifetime_transfers.death_rate')
+                ?? $this->get('inheritance_tax.standard_rate', TaxDefaults::IHT_RATE))
+            : (float) $this->get('inheritance_tax.standard_rate', TaxDefaults::IHT_RATE);
 
-        foreach ($taperRelief as $band) {
-            $minYears = $band['min_years'] ?? 0;
-            $maxYears = $band['max_years'] ?? PHP_INT_MAX;
+        foreach ($this->getTaperRelief($type) as $band) {
+            $minYears = (float) ($band['min_years'] ?? 0);
+            $maxYears = ($band['max_years'] ?? null) === null ? INF : (float) $band['max_years'];
 
             if ($yearsSurvived >= $minYears && $yearsSurvived < $maxYears) {
-                return $band['tax_rate'] ?? 0.40;
+                if (array_key_exists('tax_rate', $band)) {
+                    return (float) $band['tax_rate'];
+                }
+
+                // Rounded: 0.40 × 20/100 lands on 0.08000000000000002, and this rate
+                // is published, printed as a percentage and compared against others.
+                return round($deathRate * ((float) ($band['tax_percent'] ?? 100) / 100), 6);
             }
         }
 
-        // Default to full rate if no band matches
-        return $this->get('inheritance_tax.standard_rate', 0.40);
+        // No band matched — the full rate for the type, from configuration.
+        return $deathRate;
     }
 
     /**

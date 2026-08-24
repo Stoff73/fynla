@@ -22,6 +22,7 @@ use App\Services\Stores\IngestSource;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\PropertyStore;
+use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -89,11 +90,16 @@ class PropertyController extends Controller
             $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
             $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
-            // Calculate user's mortgage share if mortgages exist
+            // Mortgage liability follows the borrower configuration, not the
+            // property's ownership percentage. Aggregate in case a property
+            // has more than one mortgage.
             if ($property->mortgages && $property->mortgages->count() > 0) {
-                $mortgage = $property->mortgages->first();
-                $propertyData['mortgage_user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-                $propertyData['mortgage_full_balance'] = (float) $mortgage->outstanding_balance;
+                $propertyData['mortgage_user_share'] = (float) $property->mortgages
+                    ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
+                $propertyData['mortgage_full_balance'] = (float) $property->mortgages
+                    ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
+                $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
+                    ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
             }
 
             return $propertyData;
@@ -146,12 +152,6 @@ class PropertyController extends Controller
             $validated['country'] = 'United Kingdom';
         }
 
-        // For joint/tenants_in_common, default to 50/50 split if user left ownership_percentage at 100.
-        $ownershipType = $validated['ownership_type'] ?? 'individual';
-        if (in_array($ownershipType, ['joint', 'tenants_in_common'], true) && ($validated['ownership_percentage'] ?? 100.00) == 100.00) {
-            $validated['ownership_percentage'] = 50.00;
-        }
-
         // Normalise and route through PropertyStore (SP1 Pass 4 PR 2).
         $canonical = $this->propertyNormaliser->fromForm($validated);
 
@@ -171,9 +171,6 @@ class PropertyController extends Controller
         // fields below remain a direct Mortgage create via MortgageService —
         // Pass 5 will route those through MortgageStore.
         $this->mortgageService->createFromPropertyData($property, $validated, $user);
-
-        // Sync rental income to user table
-        $this->syncUserRentalIncome($user);
 
         // Load mortgages relationship before returning
         $property->load('mortgages');
@@ -232,11 +229,16 @@ class PropertyController extends Controller
         $propertyData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
         $propertyData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : ($property->joint_owner_name ?? null);
 
-        // Calculate user's mortgage share if mortgages exist
+        // Mortgage liability follows the borrower configuration, not the
+        // property's ownership percentage. Aggregate in case a property has
+        // more than one mortgage.
         if ($property->mortgages && $property->mortgages->count() > 0) {
-            $mortgage = $property->mortgages->first();
-            $propertyData['mortgage_user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-            $propertyData['mortgage_full_balance'] = (float) $mortgage->outstanding_balance;
+            $propertyData['mortgage_user_share'] = (float) $property->mortgages
+                ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
+            $propertyData['mortgage_full_balance'] = (float) $property->mortgages
+                ->sum(fn ($mortgage) => (float) $mortgage->outstanding_balance);
+            $propertyData['mortgage_user_monthly_payment'] = (float) $property->mortgages
+                ->sum(fn ($mortgage) => $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id));
         }
 
         return response()->json([
@@ -268,12 +270,13 @@ class PropertyController extends Controller
         $ownershipType = $validated['ownership_type'] ?? $existingProperty->ownership_type;
         $jointOwnerId = $validated['joint_owner_id'] ?? $existingProperty->joint_owner_id;
 
-        if (in_array($ownershipType, ['joint', 'tenants_in_common'], true) && $jointOwnerId) {
-            if (! isset($validated['ownership_percentage'])) {
-                $validated['ownership_percentage'] = 50.00;
-            }
+        if (SharedOwnership::isShared($ownershipType) && $jointOwnerId) {
+            // Pass the stored record so an update that says nothing about the
+            // split keeps the share already on it rather than re-defaulting to
+            // 50 (W-0040).
+            $validated = SharedOwnership::applyTo($validated, $ownershipType, $existingProperty);
         } elseif ($ownershipType === 'individual') {
-            $validated['ownership_percentage'] = 100.00;
+            $validated['ownership_percentage'] = SharedOwnership::INDIVIDUAL_PERCENTAGE;
             $validated['joint_owner_id'] = null;
         }
 
@@ -292,9 +295,6 @@ class PropertyController extends Controller
         }
 
         $property->load(['mortgages', 'household', 'trust']);
-
-        // Sync rental income to user table
-        $this->syncUserRentalIncome($user);
 
         $summary = $this->propertyService->getPropertySummary($property);
         $propertyData = (new PropertyResource($property))->toArray(request());
@@ -348,9 +348,6 @@ class PropertyController extends Controller
             // Route Property soft-delete through PropertyStore (SP1 Pass 4 PR 2).
             $this->propertyStore->delete($id, $user, 'user_requested');
         });
-
-        // Sync rental income after deletion
-        $this->syncUserRentalIncome($user);
 
         return response()->json([
             'success' => true,
@@ -462,10 +459,14 @@ class PropertyController extends Controller
             ],
         ];
 
+        // Post-edit share via the same trait as the before-value (W-0015).
+        $afterProperty = clone $property;
+        $afterProperty->current_value = $validated['current_value'];
+
         $afterValues = [
             'current_value' => [
                 'full_value' => $validated['current_value'],
-                'user_share' => $validated['current_value'] * (($property->ownership_percentage ?? 100) / 100),
+                'user_share' => $this->calculateUserShare($afterProperty, $user->id),
             ],
         ];
 
@@ -482,29 +483,10 @@ class PropertyController extends Controller
         );
     }
 
-    /**
-     * Sync rental income from properties to user table
-     *
-     * Single-record pattern: Apply ownership percentage when calculating
-     * user's share of rental income.
-     * PR 5 will route this read through PropertyStore::forUser.
-     */
-    private function syncUserRentalIncome(User $user): void
-    {
-        $properties = Property::forUserOrJoint($user->id)->get();
-
-        $annualRentalIncome = $properties->sum(function ($property) use ($user) {
-            $monthlyRental = $property->monthly_rental_income ?? 0;
-
-            // Apply ownership percentage to get user's share
-            $userShare = $this->calculateUserShare(
-                (object) ['current_value' => $monthlyRental, 'user_id' => $property->user_id, 'joint_owner_id' => $property->joint_owner_id, 'ownership_type' => $property->ownership_type, 'ownership_percentage' => $property->ownership_percentage],
-                $user->id
-            );
-
-            return $userShare * 12;
-        });
-
-        $user->update(['annual_rental_income' => $annualRentalIncome]);
-    }
+    // syncUserRentalIncome() lived here. It carried its own ownership arithmetic —
+    // a third copy of the rental figure, gross where the other two are net of
+    // allowable letting expenses — and it wrote only the acting user, so the joint
+    // owner's half of the rent was credited to nobody (W-0173). Deleted: the fact
+    // belongs to the Property record, so PropertyRentalIncomeObserver syncs it for
+    // every user the record reaches, from the one home (W-0175).
 }

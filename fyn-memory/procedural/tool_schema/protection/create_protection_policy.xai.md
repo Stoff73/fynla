@@ -3,7 +3,7 @@ procedure_id: 'protection.tool.create_protection_policy'
 kind: tool_schema
 module: protection
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -91,7 +91,7 @@ effective_from: 2026-06-02
                     "boolean",
                     "null"
                 ],
-                "description": "Whether written in trust for IHT. Default false."
+                "description": "Whether written in trust for Inheritance Tax. Default false."
             }
         },
         "required": [

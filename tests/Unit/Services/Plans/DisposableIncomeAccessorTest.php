@@ -26,11 +26,19 @@ describe('DisposableIncomeAccessor', function () {
         $accessor = new DisposableIncomeAccessor($profileService);
         $result = $accessor->getForUser($user);
 
+        // W-0140: the composition falls back to "nothing disclosed" when the
+        // profile carries no expenditure presentation — it is never invented.
         expect($result)->toBe([
             'annual' => 15000.00,
             'monthly' => 1250.00,
             'net_income' => 45000.00,
             'annual_expenditure' => 30000.00,
+            'expenditure_composition' => [
+                'recorded_annual' => 0.0,
+                'commitments_annual' => 0.0,
+                'has_recorded_expenditure' => false,
+                'basis' => null,
+            ],
         ]);
     });
 
@@ -51,6 +59,12 @@ describe('DisposableIncomeAccessor', function () {
             'monthly' => 0.0,
             'net_income' => 0.0,
             'annual_expenditure' => 0.0,
+            'expenditure_composition' => [
+                'recorded_annual' => 0.0,
+                'commitments_annual' => 0.0,
+                'has_recorded_expenditure' => false,
+                'basis' => null,
+            ],
         ]);
     });
 

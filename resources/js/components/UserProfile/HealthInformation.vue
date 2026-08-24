@@ -65,11 +65,9 @@
               required
             >
               <option value="">Select...</option>
-              <option value="yes">Yes</option>
-              <option value="yes_previous">Yes, previous health conditions</option>
-              <option value="no_previous">No, previous health conditions</option>
-              <option value="no_existing">No, existing health conditions</option>
-              <option value="no_both">No, previous and existing health conditions</option>
+              <option v-for="option in healthStatusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
             <p class="mt-1 text-body-sm text-neutral-500">
               Affects protection insurance premiums
@@ -88,10 +86,9 @@
               required
             >
               <option value="">Select...</option>
-              <option value="never">Never smoked</option>
-              <option value="quit_recent">No, gave up 12 months or sooner</option>
-              <option value="quit_long_ago">No, gave up more than 12 months ago</option>
-              <option value="yes">Yes</option>
+              <option v-for="option in smokingStatusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
             <p class="mt-1 text-body-sm text-neutral-500">
               Significantly impacts insurance premiums
@@ -109,12 +106,9 @@
               class="input-field"
             >
               <option value="">Select...</option>
-              <option value="secondary">Secondary (GCSE/O-Levels)</option>
-              <option value="a_level">A-Levels/Vocational</option>
-              <option value="undergraduate">Undergraduate Degree</option>
-              <option value="postgraduate">Postgraduate Degree</option>
-              <option value="professional">Professional Qualification</option>
-              <option value="other">Other</option>
+              <option v-for="option in educationLevelOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
             <p class="mt-1 text-body-sm text-neutral-500">
               Optional - helps with occupation profiling
@@ -150,6 +144,14 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import userProfileService from '@/services/userProfileService';
+import {
+  HEALTH_STATUS_OPTIONS,
+  SMOKING_STATUS_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  formatHealthStatus,
+  formatSmokingStatus,
+  formatEducationLevel,
+} from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
 export default {
@@ -186,38 +188,9 @@ export default {
       }
     }, { immediate: true });
 
-    const formatHealthStatus = (status) => {
-      const statusMap = {
-        'yes': 'Yes, good health',
-        'yes_previous': 'Yes, previous health conditions',
-        'no_previous': 'No, previous health conditions',
-        'no_existing': 'No, existing health conditions',
-        'no_both': 'No, previous and existing health conditions',
-      };
-      return statusMap[status] || 'Not specified';
-    };
-
-    const formatSmokingStatus = (status) => {
-      const statusMap = {
-        'never': 'Never smoked',
-        'quit_recent': 'No, gave up 12 months or sooner',
-        'quit_long_ago': 'No, gave up more than 12 months ago',
-        'yes': 'Yes',
-      };
-      return statusMap[status] || 'Not specified';
-    };
-
-    const formatEducationLevel = (level) => {
-      const levelMap = {
-        'secondary': 'Secondary (GCSE/O-Levels)',
-        'a_level': 'A-Levels/Vocational',
-        'undergraduate': 'Undergraduate Degree',
-        'postgraduate': 'Postgraduate Degree',
-        'professional': 'Professional Qualification',
-        'other': 'Other',
-      };
-      return levelMap[level] || 'Not specified';
-    };
+    // The three private label maps that used to live here are gone: they were a
+    // second copy of the option lists directly above them, and had to be edited
+    // in step or a saved value rendered as "Not specified" (W-0031).
 
     const startEditing = () => {
       formData.value = {
@@ -259,6 +232,9 @@ export default {
       error,
       displayData,
       formData,
+      healthStatusOptions: HEALTH_STATUS_OPTIONS,
+      smokingStatusOptions: SMOKING_STATUS_OPTIONS,
+      educationLevelOptions: EDUCATION_LEVEL_OPTIONS,
       formatHealthStatus,
       formatSmokingStatus,
       formatEducationLevel,

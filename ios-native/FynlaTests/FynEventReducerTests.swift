@@ -10,7 +10,16 @@ struct FynEventReducerTests {
 
         #expect(events[0] == .conversationCreated("321"))
         #expect(events[1] == .text("I have saved that. "))
-        #expect(events[2] == .entityCreated(name: "Cash ISA"))
+        #expect(events[2] == .entityWrite(
+            FynEntityWrite(
+                action: .created,
+                entityType: "savings_account",
+                entityID: 77,
+                name: "Cash ISA",
+                route: "/savings",
+                label: "Bank Accounts"
+            )
+        ))
         #expect(events[3] == .captureComplete(summary: "Saved Cash ISA with a balance of £12,000."))
         #expect(events[4] == .onboardingAdvance)
         #expect(events[5] == .quickReplies(
@@ -35,16 +44,60 @@ struct FynEventReducerTests {
         var reducer = FynEventReducer()
 
         reducer.reduce(.text("Saving your account."), into: &state)
-        reducer.reduce(.entityCreated(name: "Cash ISA"), into: &state)
+        reducer.reduce(
+            .entityWrite(
+                FynEntityWrite(
+                    action: .created,
+                    entityType: "savings_account",
+                    entityID: 77,
+                    name: "Cash ISA",
+                    route: "/savings",
+                    label: "Bank Accounts"
+                )
+            ),
+            into: &state
+        )
         #expect(state.messages.last?.capture == .pending(names: ["Cash ISA"]))
+        // SPEC-crud-handler-contract 5.4/5.5 — the record is linkable now that
+        // the decoder keeps the route the server resolved.
+        #expect(state.messages.last?.replies.last?.route == "/savings")
+        #expect(state.messages.last?.replies.last?.label == "View Bank Accounts")
 
         reducer.reduce(
             .captureComplete(summary: "Saved Cash ISA with a balance of £12,000."),
             into: &state
         )
-        #expect(state.messages.last?.capture == .confirmed(
-            summary: "Saved Cash ISA with a balance of £12,000."
-        ))
+        // Fyn already said it in prose ("Saving your account."), so the chip
+        // stands down rather than repeating the same news underneath it — the
+        // bubble renders text and chip together, and both carrying the summary
+        // confirmed the save twice (CSJ, live 2026-08-18).
+        #expect(state.messages.last?.capture == nil)
+        #expect(state.messages.last?.text == "Saving your account.")
+    }
+
+    @Test
+    func captureCompleteSpeaksWhenFynHasNotAlready() throws {
+        var state = FynReductionState()
+        var reducer = FynEventReducer()
+
+        reducer.reduce(
+            .entityWrite(
+                FynEntityWrite(
+                    action: .created,
+                    entityType: "goal",
+                    entityID: 12,
+                    name: "House Deposit",
+                    route: "/goals",
+                    label: "Goals"
+                )
+            ),
+            into: &state
+        )
+        reducer.reduce(.captureComplete(summary: "Saved to your records"), into: &state)
+
+        // Nothing was streamed, so the confirmation is the chip's to carry.
+        #expect(state.messages.last?.capture == .confirmed(summary: "Saved to your records"))
+        #expect(state.messages.last?.text == "Saved to your records")
     }
 
     @Test
@@ -80,6 +133,26 @@ struct FynEventReducerTests {
         state.pendingNavigation = nil
         reducer.reduce(.navigation(path: "/admin", section: nil), into: &state)
         #expect(state.pendingNavigation == nil)
+    }
+
+    @Test
+    func journeyVerifyDestinationsResolve() {
+        // 2026-07-24: the journey path verifies every data entry — the
+        // protection/estate/goals screens must accept the navigate, matching
+        // /m's ONBOARDING_NAV_ROUTES.
+        var state = FynReductionState()
+        var reducer = FynEventReducer()
+
+        reducer.reduce(.navigation(path: "/protection", section: "protection"), into: &state)
+        #expect(state.pendingNavigation == FynNavigation(route: .protection(policyType: nil, id: nil), section: "protection"))
+
+        state.pendingNavigation = nil
+        reducer.reduce(.navigation(path: "/estate", section: nil), into: &state)
+        #expect(state.pendingNavigation == FynNavigation(route: .estate, section: nil))
+
+        state.pendingNavigation = nil
+        reducer.reduce(.navigation(path: "/goals", section: nil), into: &state)
+        #expect(state.pendingNavigation == FynNavigation(route: .goals, section: nil))
     }
 
     @Test

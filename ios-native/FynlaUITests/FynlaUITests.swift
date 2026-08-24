@@ -839,6 +839,105 @@ final class FynlaUITests: XCTestCase {
     }
 
     @MainActor
+    func testSettingsNotificationPreferencesJourney() throws {
+        let app = openSettings(mode: "unlocked")
+
+        // Notifications is a native destination, not a decorative settings
+        // row. Exercise every preference using a deterministic authorised
+        // test composition so no system permission prompt masks the app UI.
+        let notifications = app.buttons["settings.notifications"]
+        assertReachable(notifications, in: app)
+        notifications.tap()
+        XCTAssertTrue(element("notifications.screen", in: app).waitForExistence(timeout: 3))
+        for key in [
+            "policy_renewals",
+            "goal_milestones",
+            "contribution_reminders",
+            "market_updates",
+            "fyn_daily_insight",
+            "security_alerts",
+            "payment_alerts",
+            "mortgage_rate_alerts",
+            "estate_alerts",
+        ] {
+            let preference = app.switches["notifications.preference.\(key)"]
+            assertReachable(preference, in: app)
+            let before = preference.value as? String
+            preference.tap()
+            XCTAssertNotEqual(preference.value as? String, before)
+        }
+
+        attachAcceptance(app, name: "Settings-notification-preferences-journey")
+    }
+
+    @MainActor
+    func testSettingsLeafScreensPrivacyDataAndLegalJourney() throws {
+        let app = openSettings(mode: "unlocked")
+
+        // Privacy must load server-shaped consent data, allow the optional
+        // marketing preference to change, and expose both data workflows.
+        let privacy = app.buttons["settings.privacy"]
+        assertReachable(privacy, in: app)
+        privacy.tap()
+        XCTAssertTrue(element("privacy.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("privacy.consent.terms", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("privacy.consent.privacy", in: app).exists)
+        XCTAssertTrue(element("privacy.consent.data_processing", in: app).exists)
+        let marketing = app.switches["privacy.consent.marketing"]
+        assertReachable(marketing, in: app)
+        XCTAssertEqual(marketing.value as? String, "0")
+        marketing.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)
+        ).tap()
+        let consentAcknowledged = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == '1'"),
+            object: marketing
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [consentAcknowledged], timeout: 3),
+            .completed
+        )
+
+        let export = app.buttons["privacy.export.open"]
+        assertReachable(export, in: app)
+        export.tap()
+        XCTAssertTrue(element("privacy.export.screen", in: app).waitForExistence(timeout: 3))
+        app.buttons["privacy.export.request"].tap()
+        XCTAssertTrue(element("privacy.export.ready", in: app).waitForExistence(timeout: 3))
+        let closeShare = app.buttons["header.closeButton"]
+        XCTAssertTrue(closeShare.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Copy"].exists)
+        XCTAssertTrue(app.staticTexts["Save to Files"].exists)
+        closeShare.tap()
+        XCTAssertFalse(closeShare.waitForExistence(timeout: 3))
+        app.navigationBars.buttons.firstMatch.tap()
+
+        let nestedDeletion = app.buttons["privacy.deletion.open"]
+        assertReachable(nestedDeletion, in: app)
+        nestedDeletion.tap()
+        completeScheduledDeletionJourney(in: app)
+        app.navigationBars.buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(element("settings.screen", in: app).waitForExistence(timeout: 3))
+
+        // The direct deletion row must resolve to the same complete native
+        // flow, even after the previous model reached a terminal state.
+        let directDeletion = app.buttons["settings.account-deletion"]
+        assertReachable(directDeletion, in: app)
+        directDeletion.tap()
+        XCTAssertTrue(element("account-deletion.screen", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(element("account-deletion.ready", in: app).waitForExistence(timeout: 3))
+        app.navigationBars.buttons.firstMatch.tap()
+
+        attachAcceptance(app, name: "Settings-leaf-privacy-data-legal-journey")
+    }
+
+    @MainActor
+    func testSettingsBrowserLinksJourney() throws {
+        verifySettingsBrowserLinks()
+    }
+
+    @MainActor
     func testFaceIDOptInIsReachableAfterFullAuthentication() throws {
         let app = app(mode: "face-id-opt-in")
         app.launch()
@@ -1263,7 +1362,13 @@ final class FynlaUITests: XCTestCase {
     private func assertReachable(_ element: XCUIElement, in app: XCUIApplication) {
         let viewport = app.windows.firstMatch.frame
         for _ in 0..<8 where !element.isHittable {
-            if element.frame.midY < viewport.midY {
+            // Lazy stacks do not materialise below-the-fold controls until
+            // the scroll view advances. An absent element has no meaningful
+            // frame, so always move forward until it exists before deciding
+            // which direction brings an existing row into the viewport.
+            if !element.exists {
+                app.swipeUp()
+            } else if element.frame.midY < viewport.midY {
                 app.swipeDown()
             } else {
                 app.swipeUp()
@@ -1280,6 +1385,85 @@ final class FynlaUITests: XCTestCase {
         let item = app.buttons[identifier]
         assertReachable(item, in: app)
         item.tap()
+    }
+
+    @MainActor
+    private func completeScheduledDeletionJourney(in app: XCUIApplication) {
+        XCTAssertTrue(element("account-deletion.screen", in: app).waitForExistence(timeout: 3))
+        let ready = element("account-deletion.ready", in: app)
+        XCTAssertTrue(ready.waitForExistence(timeout: 3))
+        let start = app.buttons["Start account deletion"]
+        assertReachable(start, in: app)
+        start.tap()
+        let sendCode = app.alerts.buttons["Send verification code"]
+        XCTAssertTrue(sendCode.waitForExistence(timeout: 3))
+        sendCode.tap()
+
+        type("123456", into: "account-deletion.code", in: app)
+        // SwiftUI exposes the keyboard accessory toolbar as an application
+        // button rather than as a descendant of the software keyboard.
+        let done = app.buttons["Done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 3))
+        done.tap()
+        let verify = app.buttons["Verify identity"]
+        assertReachable(verify, in: app)
+        verify.tap()
+        let confirmation = app.textFields["account-deletion.confirmation"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 3))
+        confirmation.tap()
+        confirmation.typeText("Delete my Account")
+        let confirmationDone = app.buttons["Done"]
+        XCTAssertTrue(confirmationDone.waitForExistence(timeout: 3))
+        confirmationDone.tap()
+        let execute = app.buttons["account-deletion.execute"]
+        assertReachable(execute, in: app)
+        execute.tap()
+
+        let scheduled = element("account-deletion.scheduled", in: app)
+        XCTAssertTrue(scheduled.waitForExistence(timeout: 3))
+        let cancel = app.buttons["Cancel scheduled deletion"]
+        assertReachable(cancel, in: app)
+        cancel.tap()
+        XCTAssertTrue(app.staticTexts["Deletion cancelled"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    private func verifySettingsBrowserLinks() {
+        // Help and legal links intentionally open inside Fynla. Open and
+        // inspect each sheet to prove the URLs are actionable. Relaunch between
+        // destinations rather than dismissing, because Safari's remote controls
+        // cannot be driven by XCTest on every simulator.
+        for identifier in [
+            "settings.link.help-and-support",
+            "settings.link.privacy-policy",
+            "settings.link.terms-of-service",
+        ] {
+            let app = openSettings(mode: "unlocked")
+            let link = app.buttons[identifier]
+            assertReachable(link, in: app)
+            link.tap()
+
+            // SFSafariViewController is hosted by SafariViewService, so query it
+            // from the service process rather than incorrectly treating it as a
+            // descendant of the Fynla process. Match the dismiss control on both
+            // namings: it is exposed as "Close" here, and asserting on "Done"
+            // alone is what made this test fail against a working app.
+            let safari = XCUIApplication(bundleIdentifier: "com.apple.SafariViewService")
+            let dismiss = safari.buttons.matching(
+                NSPredicate(format: "identifier IN %@ OR label IN %@", ["Close", "Done"], ["Close", "Done"])
+            ).firstMatch
+            XCTAssertTrue(dismiss.waitForExistence(timeout: 10), "\(identifier) did not open Safari")
+
+            // Chrome alone would also appear for a blank sheet, so check the
+            // address bar carries a URL — that is what "actionable" means here.
+            let address = safari.buttons["URL"]
+            XCTAssertTrue(address.waitForExistence(timeout: 10), "\(identifier) opened Safari with no address bar")
+            XCTAssertFalse(
+                ((address.value as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                "\(identifier) opened Safari without loading a URL"
+            )
+            app.terminate()
+        }
     }
 
     @MainActor

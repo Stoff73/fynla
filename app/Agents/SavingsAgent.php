@@ -21,13 +21,17 @@ use App\Services\Savings\PSACalculator;
 use App\Services\Savings\RateComparator;
 use App\Services\Savings\SavingsActionDefinitionService;
 use App\Services\Savings\SavingsDataReadinessService;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesExpenditure;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class SavingsAgent extends BaseAgent
 {
+    use CalculatesOwnershipShare;
     use ResolvesExpenditure;
 
     protected int $cacheTtl = 1800;
@@ -39,6 +43,8 @@ class SavingsAgent extends BaseAgent
         private readonly LiquidityAnalyzer $liquidityAnalyzer,
         private readonly RateComparator $rateComparator,
         private readonly SavingsDataReadinessService $readinessService,
+        private readonly SavingsStore $savingsStore,
+        private readonly CrossModuleAssetAggregator $assetAggregator,
         private readonly ?SavingsActionDefinitionService $actionDefinitionService = null,
         private readonly ?PSACalculator $psaCalculator = null,
         private readonly ?FSCSAssessor $fscsAssessor = null,
@@ -76,11 +82,23 @@ class SavingsAgent extends BaseAgent
             }
 
             return $this->remember("savings_analysis_{$userId}", function () use ($userId, $user) {
-                // User already loaded above with savings accounts eager-loaded
-                $accounts = $user?->savingsAccounts ?? collect();
+                // Reach, then fraction (F-0019). `$user->savingsAccounts` is a plain
+                // hasMany on `user_id`, so a joint account recorded on the spouse's
+                // login was invisible here while the same account was counted whole
+                // against the recorder — the two halves of W-0238. The store's read
+                // is `forUserOrJoint`, and `userShareView` charges each account at
+                // this user's share, so every figure below is derived from a
+                // reach-complete set at the right fraction.
+                $accounts = $this->atUserShare(
+                    $user ? $this->savingsStore->forUser($user) : new EloquentCollection,
+                    $userId
+                );
                 $goals = SavingsGoal::where('user_id', $userId)->get();
 
-                $totalSavings = $accounts->sum('current_balance');
+                // The one home for what this user's cash is worth (Rule 20) — the
+                // same figure `/net-worth` and the dashboard's net worth block read,
+                // so the card cannot disagree with the total beside it.
+                $totalSavings = $this->assetAggregator->calculateCashTotal($userId);
 
                 // Resolve monthly expenditure using standardised fallback chain
                 $resolved = $user ? $this->resolveMonthlyExpenditure($user) : ['amount' => 0.0, 'source' => 'none', 'label' => 'Not Set'];

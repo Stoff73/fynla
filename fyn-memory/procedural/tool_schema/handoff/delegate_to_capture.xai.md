@@ -3,15 +3,15 @@ procedure_id: 'handoff.tool.delegate_to_capture'
 kind: tool_schema
 module: handoff
 provider: xai
-version: 1
+version: 2
 active: true
-effective_from: 2026-06-02
+effective_from: 2026-08-19
 ---
 
 ```json
 {
     "name": "delegate_to_capture",
-    "description": "Internal. Emit when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture. Never shown to the user.",
+    "description": "Internal. Emit whenever the user states a fact about their own finances or household, or asks you to record, save, add, update or correct one, and whenever you cannot answer without data they have not supplied. Never shown to the user. This is the ONLY way a write reaches the database from advice mode, so emit it rather than refusing or saying you cannot record something.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -24,7 +24,7 @@ effective_from: 2026-06-02
                 "items": {
                     "type": "string"
                 },
-                "description": "Record types to capture."
+                "description": "Record types to capture. Any type is accepted, not only assets: dc_pension, savings_account, investment_account, property, mortgage, protection_policy, goal, chattel, and also personal_details, spouse, dependant, work_details, expenditure, charitable_giving, state_pension, retirement_goals. If none fits, emit your own best description rather than omitting the call."
             },
             "fields_needed": {
                 "type": [

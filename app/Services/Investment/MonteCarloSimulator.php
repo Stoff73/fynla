@@ -38,8 +38,9 @@ class MonteCarloSimulator extends MonteCarloEngine
      * @param  float  $volatility  Annual volatility/std deviation (e.g., 0.15 for 15%)
      * @param  int  $years  Number of years to simulate
      * @param  int  $iterations  Number of simulation runs (default 1000)
-     * @param  string|null  $cacheKey  Optional cache key for 24-hour caching
+     * @param  string|null  $cacheKey  Optional cache key PREFIX — see fingerprintKey()
      * @param  array  $scheduledInjections  Optional year-indexed lump sum injections
+     * @param  int[]|null  $percentilePoints  Percentiles to report; null = SUMMARY_PERCENTILES
      * @return array Simulation results with percentiles
      */
     public function simulate(
@@ -50,8 +51,20 @@ class MonteCarloSimulator extends MonteCarloEngine
         int $years,
         int $iterations = 1000,
         ?string $cacheKey = null,
-        array $scheduledInjections = []
+        array $scheduledInjections = [],
+        ?array $percentilePoints = null
     ): array {
+        $cacheKey = $cacheKey === null ? null : $this->fingerprintKey($cacheKey, [
+            'start' => $startValue,
+            'monthly' => $monthlyContribution,
+            'return' => $expectedReturn,
+            'volatility' => $volatility,
+            'years' => $years,
+            'iterations' => $iterations,
+            'injections' => $scheduledInjections,
+            'percentiles' => $percentilePoints,
+        ]);
+
         // Check cache if key provided
         if ($cacheKey !== null) {
             $cached = $this->getCachedResult($cacheKey);
@@ -68,7 +81,8 @@ class MonteCarloSimulator extends MonteCarloEngine
             $volatility,
             $years,
             $iterations,
-            $scheduledInjections
+            $scheduledInjections,
+            $percentilePoints
         );
 
         // Reshape to the investment module format that all consumers expect
@@ -80,6 +94,45 @@ class MonteCarloSimulator extends MonteCarloEngine
         }
 
         return $results;
+    }
+
+    /**
+     * Append a fingerprint of the simulation's inputs to the caller's key prefix.
+     *
+     * A cached simulation is only reusable for the inputs that produced it. Callers
+     * name WHOSE projection this is ("user_16_portfolio_5y"); this method makes the key
+     * describe WHAT WAS SIMULATED. Any change to capital, contributions, expected
+     * return, volatility, horizon, iterations, life-event injections or the reported
+     * percentiles yields a different key, so the previous answer is never served
+     * against inputs that no longer produce it.
+     *
+     * This is why the cache needs no invalidation hook: a stale entry is unreachable
+     * rather than wrong, and expires on its own TTL.
+     *
+     * The prefix is preserved verbatim so clearUserCache()'s "user_{id}_%" match, and
+     * the readability of the key in the cache table, both still hold.
+     */
+    private function fingerprintKey(string $prefix, array $inputs): string
+    {
+        return $prefix.'_s'.substr(md5((string) json_encode($this->sortDeep($inputs))), 0, 12);
+    }
+
+    /**
+     * Sort every keyed array in the structure so ordering cannot change the fingerprint.
+     *
+     * A life-event map built in a different order describes the same simulation and
+     * must produce the same key.
+     */
+    private function sortDeep(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $value = array_map(fn ($item) => $this->sortDeep($item), $value);
+        ksort($value);
+
+        return $value;
     }
 
     /**
@@ -235,6 +288,16 @@ class MonteCarloSimulator extends MonteCarloEngine
         ?string $cacheKey = null,
         array $scheduledInjections = []
     ): array {
+        $cacheKey = $cacheKey === null ? null : $this->fingerprintKey($cacheKey, [
+            'start' => $startValue,
+            'monthly' => $monthlyContribution,
+            'years' => $years,
+            'iterations' => $iterations,
+            'injections' => $scheduledInjections,
+            'assets' => $assetClasses,
+            'correlations' => $correlationMatrix,
+        ]);
+
         // Check cache
         if ($cacheKey !== null) {
             $cached = $this->getCachedResult($cacheKey);
@@ -242,6 +305,16 @@ class MonteCarloSimulator extends MonteCarloEngine
                 return $cached;
             }
         }
+
+        $this->seedFromInputs([
+            $startValue,
+            $monthlyContribution,
+            $years,
+            $iterations,
+            $scheduledInjections,
+            $assetClasses,
+            $correlationMatrix,
+        ]);
 
         $matrixOps = new MatrixOperations;
         $n = count($assetClasses);
@@ -294,6 +367,8 @@ class MonteCarloSimulator extends MonteCarloEngine
             $yearlyResults[] = $yearlyValues;
         }
 
+        mt_srand();
+
         sort($finalValues);
 
         // Build year-by-year percentiles with 'final_value' key
@@ -329,7 +404,9 @@ class MonteCarloSimulator extends MonteCarloEngine
         }
 
         $totalContributions = $startValue + ($monthlyContribution * $totalMonths);
-        $medianValue = $finalPercentiles[2]['value'] ?? 0;
+        // Read the median by name, not by position: the reported percentile set is
+        // configurable, so the 50th is not reliably the third entry.
+        $medianValue = $this->getPercentileValue($finalValues, 50);
 
         $output = [
             'summary' => [

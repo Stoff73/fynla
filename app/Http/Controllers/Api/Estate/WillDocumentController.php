@@ -9,6 +9,7 @@ use App\Http\Requests\Estate\SaveWillDocumentRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\WillDocument;
 use App\Services\Estate\WillDocumentService;
+use App\Services\Estate\WillTypePolicy;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,8 +20,36 @@ class WillDocumentController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly WillDocumentService $service
+        private readonly WillDocumentService $service,
+        private readonly WillTypePolicy $willTypePolicy
     ) {}
+
+    /**
+     * W-0019 — a married user builds mirror wills only, on every surface.
+     *
+     * Server-side because the web will builder is not the only way in: /m hands
+     * off to it, and Fyn can steer a user here. Hiding the option in one client
+     * is not the rule being enforced.
+     *
+     * @return JsonResponse|null Null when the request may proceed.
+     */
+    private function refuseUnsupportedWillType(Request $request, ?string $willType): ?JsonResponse
+    {
+        $refusal = $this->willTypePolicy->refusalFor($request->user(), $willType);
+
+        if ($refusal === null) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => WillTypePolicy::asText($refusal),
+            'data' => [
+                'refusal_heading' => WillTypePolicy::REFUSAL_HEADING,
+                'refusal' => $refusal,
+            ],
+        ], 422);
+    }
 
     /**
      * Get pre-populated data from user profile.
@@ -71,6 +100,10 @@ class WillDocumentController extends Controller
                 'domicile_confirmed' => 'nullable|in:england_wales,scotland,northern_ireland,other',
             ]);
 
+            if ($refused = $this->refuseUnsupportedWillType($request, $validated['will_type'])) {
+                return $refused;
+            }
+
             $doc = $this->service->createDraft($request->user(), $validated);
 
             return response()->json([
@@ -115,6 +148,15 @@ class WillDocumentController extends Controller
                 ->findOrFail($id);
 
             $step = $request->input('step');
+
+            // The intro step is where a will's type can change after creation —
+            // the one other way into a one-sided will for a married user.
+            if ($step === 'intro' && $request->filled('will_type')) {
+                if ($refused = $this->refuseUnsupportedWillType($request, $request->input('will_type'))) {
+                    return $refused;
+                }
+            }
+
             $updated = $this->service->updateStep($doc, $step, $request->validated());
 
             return response()->json([

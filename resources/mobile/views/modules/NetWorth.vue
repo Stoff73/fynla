@@ -17,9 +17,10 @@
         <p class="m-hero-sub">{{ fmt(totalAssets) }} in assets, less {{ fmt(totalLiabilities) }} of liabilities.</p>
       </div>
 
-      <p v-if="hasDbPensions" class="m-sub mnw-note">
-        Defined Benefit pensions are excluded from net worth — they provide a guaranteed income rather than accessible capital.
-      </p>
+      <!-- The wording comes from the backend (`App\Constants\PensionDisclosure`),
+           not from here. Three surfaces each held their own copy of this sentence,
+           which is how they drift (Rule 20, W-0241). -->
+      <p v-if="dbPensionDisclosure" class="m-sub mnw-note">{{ dbPensionDisclosure }}</p>
 
       <div class="m-card mnw-history">
         <div>
@@ -104,6 +105,7 @@ export default {
     totalAssets() { return this.overview?.total_assets ?? 0; },
     totalLiabilities() { return this.overview?.total_liabilities ?? 0; },
     hasDbPensions() { return !!this.overview?.has_db_pensions; },
+    dbPensionDisclosure() { return this.overview?.db_pension_disclosure || ''; },
     assetCategories() {
       const detailed = this.detailed || {};
       const cats = [];

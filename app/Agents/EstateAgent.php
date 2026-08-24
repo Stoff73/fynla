@@ -8,7 +8,6 @@ use App\Constants\TaxDefaults;
 use App\Events\Eval\EngineCalled;
 use App\Models\Estate\Will;
 use App\Models\Goal;
-use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Estate\ComprehensiveEstatePlanService;
@@ -19,6 +18,7 @@ use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\LifeCoverCalculator;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 use App\Services\Estate\WillAnalysisService;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
 
@@ -50,7 +50,8 @@ class EstateAgent extends BaseAgent
         private readonly TaxConfigService $taxConfig,
         private readonly RecommendationPersonaliser $personaliser,
         private readonly EstateDataReadinessService $readinessService,
-        private readonly LifeCoverCalculator $lifeCoverCalculator
+        private readonly LifeCoverCalculator $lifeCoverCalculator,
+        private readonly LifeCoverReach $lifeCoverReach
     ) {}
 
     /**
@@ -98,22 +99,46 @@ class EstateAgent extends BaseAgent
                 ]);
             }
 
-            $cacheKey = "estate_analysis_{$userId}";
+            // Derived, never hand-built. This read `"estate_analysis_{$userId}"`
+            // while `invalidateUserCache()` forgot `getUserCacheKey()`'s
+            // `v1_estateagent_{id}_analysis` — a key-name mismatch, so every
+            // invalidation cleared a key nothing had ever written and the stale
+            // analysis survived for the full time-to-live. Both halves read as
+            // correct in isolation, which is why reviewing the invalidation
+            // *logic* never found it (W-0381).
+            $cacheKey = $this->getUserCacheKey($userId, 'analysis');
             $cacheTags = ['estate', 'user_'.$userId];
 
             return $this->remember($cacheKey, function () use ($user, $userId) {
 
-                // Load all life insurance policies in a single query and filter in-memory
-                $allLifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
-                $lifePoliciesInTrust = $allLifePolicies->where('in_trust', true);
-                $lifePoliciesNotInTrust = $allLifePolicies->filter(fn ($p) => ! $p->in_trust);
+                // Which policies cover THIS user's life — their own, plus any
+                // joint-life policy their linked spouse recorded. This read
+                // `where('user_id', …)`, so it stopped at the account that typed the
+                // policy in: the other life assured had her estate plan assessed,
+                // itemised and gap-listed as though the £500,000 joint-life policy
+                // insuring her did not exist (W-0342). `:119` below had already been
+                // routed to the same reader in W-0186 and this one had not, so her
+                // household cover-in-trust figure was right while everything derived
+                // from this collection was blind.
+                $allLifePolicies = $this->lifeCoverReach->policiesCovering($user);
 
-                $spouseLifeCoverInTrust = 0;
-                if ($user->spouse) {
-                    $spouseLifeCoverInTrust = LifeInsurancePolicy::where('user_id', $user->spouse->id)
-                        ->where('in_trust', true)
-                        ->sum('sum_assured');
-                }
+                // Deliberately the user's OWN policies, not the ones covering them:
+                // this figure drives "place this policy in trust", an action only the
+                // policy's owner can take. Filtered from the set above rather than
+                // re-queried, and ownership comes from the same reader so there is one
+                // answer to "is this mine" (Rule 20).
+                $lifePoliciesNotInTrust = $allLifePolicies->filter(
+                    fn ($p) => $this->lifeCoverReach->isOwnedBy($p, $user) && ! $p->in_trust
+                );
+
+                // The household's in-trust cover AND the policies behind it, from one
+                // pass over one set. This summed the user's cover and the spouse's,
+                // then printed the count of the user's OWN policies beside it — so a
+                // spouse with no policy of her own read "Cover in Trust £500,000 ·
+                // Total Policies 0" (W-0186). A total and its count now cannot
+                // disagree, because they come from the same place.
+                $householdCoverInTrust = $this->lifeCoverReach->householdCoverInTrust($user);
+                $spouseLifeCoverInTrust = $householdCoverInTrust['spouse_amount'];
 
                 // Aggregate all estate assets into summary
                 $assetSummary = $this->buildAssetSummary($user);
@@ -188,13 +213,33 @@ class EstateAgent extends BaseAgent
                 }
 
                 // Analyze charitable bequests
+                //
+                // W-0451 / W-0452. This used to hand `WillAnalysisService` the
+                // INDIVIDUAL's net estate (`$assetSummary['net_estate']`) with the
+                // HOUSEHOLD's available nil rate band — one person's assets against
+                // two people's allowance — and let it strike its own baseline and
+                // total the logged-in user's own bequests. So the charitable
+                // position on `/plans/estate` was computed on a different estate
+                // from the one the Inheritance Tax calculation had already settled,
+                // and from a different person's will. `/plans/estate` printed 4.2%
+                // where `/estate` printed 0.8% for the same household.
+                //
+                // The whole position now comes from the calculation: the baseline,
+                // the threshold, the survivor's donated amount, the shortfall and
+                // the two Inheritance Tax bills. Nothing is re-derived here.
+                //
+                // Deliberately skipped when the calculation failed above. There is
+                // no charitable position to describe for an estate we could not
+                // compute, and producing one from a second source is exactly the
+                // parallel mechanism this change removes.
                 $charitableAnalysis = [];
-                try {
-                    $netEstate = $assetSummary['net_estate'] ?? 0;
-                    $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests($user, $netEstate);
-                } catch (\Throwable $e) {
-                    report($e);
-                    // Continue without charitable analysis
+                if ($ihtCalculation !== null) {
+                    try {
+                        $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests($ihtCalculation);
+                    } catch (\Throwable $e) {
+                        report($e);
+                        // Continue without charitable analysis
+                    }
                 }
 
                 // Will review status
@@ -304,6 +349,13 @@ class EstateAgent extends BaseAgent
                             'total_liabilities' => $assetSummary['total_liabilities'] ?? 0,
                             'iht_liability' => $ihtLiability,
                             'effective_tax_rate' => round($effectiveTaxRate, 2),
+                            // W-0466 F3 — carried alongside the liability so every
+                            // consumer of THIS summary gets the caveat with the
+                            // figure rather than one without the other. `/m` Insights
+                            // and the `/m` module-detail screen both read it, and
+                            // both printed an unqualified number for a
+                            // business-owning household.
+                            'unmodelled_relief_caveat' => $ihtCalculation['unmodelled_relief_caveat'] ?? null,
                         ],
                         'asset_breakdown' => $assetSummary['breakdown'] ?? [],
                         'iht_calculation' => $ihtCalculation,
@@ -313,11 +365,15 @@ class EstateAgent extends BaseAgent
                         'charitable_analysis' => $charitableAnalysis,
                         'will_review_status' => $willReviewStatus,
                         'life_cover' => [
-                            'user_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured'),
-                            'spouse_cover_in_trust' => (float) $spouseLifeCoverInTrust,
-                            'total_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured') + $spouseLifeCoverInTrust,
+                            'user_cover_in_trust' => $householdCoverInTrust['user_amount'],
+                            'spouse_cover_in_trust' => $householdCoverInTrust['spouse_amount'],
+                            'total_cover_in_trust' => $householdCoverInTrust['total'],
                             'total_cover_not_in_trust' => (float) $lifePoliciesNotInTrust->sum('sum_assured'),
-                            'policy_count' => $lifePoliciesInTrust->count(),
+                            // Counts the policies behind `total_cover_in_trust` — the
+                            // household's, because that figure is the household's.
+                            'policy_count' => $householdCoverInTrust['count'],
+                            // Deliberately individual: this figure drives "place this
+                            // policy in trust", which only the policy's owner can do.
                             'policies_not_in_trust_count' => $lifePoliciesNotInTrust->count(),
                             'policy_assessment' => $policyAssessment,
                         ],
@@ -660,9 +716,20 @@ class EstateAgent extends BaseAgent
 
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $standardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $reducedRate = (float) ($ihtConfig['reduced_rate_charity'] ?? 0.36);
+        // W-0451. This read the configuration array with its own `?? 0.36` — one
+        // more copy of the duplication `TaxConfigService::getCharitableReducedRate()`
+        // is the single home for, sitting in the very method whose sentences this
+        // item rewrites. Routed rather than left standing beside a corrected figure.
+        $reducedRate = $this->taxConfig->getCharitableReducedRate();
         $standardRatePercent = round($standardRate * 100);
         $reducedRatePercent = round($reducedRate * 100);
+        // W-0451. The Schedule 1A threshold was written out as a literal "10%"
+        // five times in this method while the two rates beside it were
+        // interpolated from configuration — the half-fixed shape W-0432 warns
+        // about, in one of the sites `TaxConfigService`'s own docblock names.
+        // Move the configured threshold to 12% and this method said 10% in five
+        // sentences whose arithmetic had already used 12%.
+        $thresholdPercent = round($this->taxConfig->getCharitableThresholdPercent() * 100);
 
         $status = $charitableAnalysis['status'] ?? 'below';
         $shortfall = $charitableAnalysis['shortfall'] ?? 0;
@@ -671,39 +738,88 @@ class EstateAgent extends BaseAgent
         $charitableTotal = $charitableAnalysis['charitable_total'] ?? 0;
         $baseline = $charitableAnalysis['baseline'] ?? 0;
         $threshold = $charitableAnalysis['threshold'] ?? 0;
+        $taxableEstate = (float) ($charitableAnalysis['taxable_estate'] ?? 0);
 
-        // Calculate actual percentage of baseline
-        $currentPercentage = $baseline > 0 ? ($charitableTotal / $baseline) * 100 : 0;
+        // W-0452. This divided the charitable total by the baseline to obtain a
+        // percentage the household calculation had already published — a third
+        // site computing a figure `/estate` and `/plans/estate` were computing
+        // two different ways. It reads the one answer now.
+        $currentPercentage = (float) ($charitableAnalysis['charitable_percent'] ?? 0);
+
+        // W-0451 C1 — WHOSE POSITION THIS IS.
+        //
+        // Every sentence below said `$ctx['first_name']` — whoever is logged in.
+        // The figures beside them are the SURVIVOR's, because Schedule 1A tests
+        // the estate of one deceased person and this service models to the second
+        // death. When the reader is not the survivor, the sentences reported the
+        // survivor's charitable position under the reader's name and told the
+        // reader to add a legacy to their OWN will.
+        //
+        // **That instruction cannot work.** A legacy in the first-to-die's will
+        // raises the pooled section 23(1) exemption and leaves the rate-test
+        // amount untouched, so the rate stays at the standard rate, the estate is
+        // smaller by the whole gift, and the identical instruction is issued
+        // again on the next run.
+        //
+        // The name comes from the same resolution that chose the will.
+        $rateTestName = $charitableAnalysis['rate_test_member_first_name'] ?? $ctx['first_name'];
+        $rateTestIsReader = (bool) ($charitableAnalysis['rate_test_is_requesting_user'] ?? true);
+
+        // Said once, and only when it is needed — the reader is looking at
+        // someone else's will and is owed the reason. Matches the disclosure
+        // `/estate`'s charitable card already carries (`IHTPlanning.vue:246`).
+        $secondDeathNote = $rateTestIsReader
+            ? ''
+            : ' The '.$thresholdPercent.'% test looks only at the will operating on the second death, which is '.$rateTestName.'\'s.';
 
         $trace[] = [
-            'question' => 'Do '.$ctx['first_name'].'\'s charitable bequests reach the 10% threshold for the reduced Inheritance Tax rate?',
+            'question' => 'Do '.$rateTestName.'\'s charitable bequests reach the '.$thresholdPercent.'% threshold for the reduced Inheritance Tax rate?',
             'data_field' => 'Charitable bequest percentage of baseline',
             'data_value' => round($currentPercentage, 1).'% (£'.number_format($charitableTotal, 0).' of £'.number_format($baseline, 0).' baseline)',
-            'threshold' => '10% of baseline (£'.number_format($threshold, 0).')',
+            'threshold' => $thresholdPercent.'% of baseline (£'.number_format($threshold, 0).')',
             'passed' => $status !== 'below',
-            'explanation' => $status !== 'below'
-                ? $ctx['first_name'].'\'s charitable giving of £'.number_format($charitableTotal, 0).' meets or exceeds the 10% threshold of £'.number_format($threshold, 0).', qualifying for the reduced '.$reducedRatePercent.'% rate.'
-                : $ctx['first_name'].'\'s charitable giving of £'.number_format($charitableTotal, 0).' is '.round($currentPercentage, 1).'% of the £'.number_format($baseline, 0).' baseline (net estate minus Nil Rate Band). The 10% threshold is £'.number_format($threshold, 0).'.',
+            'explanation' => ($status !== 'below'
+                ? $rateTestName.'\'s charitable giving of £'.number_format($charitableTotal, 0).' meets or exceeds the '.$thresholdPercent.'% threshold of £'.number_format($threshold, 0).', qualifying for the reduced '.$reducedRatePercent.'% rate.'
+                : $rateTestName.'\'s charitable giving of £'.number_format($charitableTotal, 0).' is '.round($currentPercentage, 1).'% of the £'.number_format($baseline, 0).' baseline (net estate minus Nil Rate Band). The '.$thresholdPercent.'% threshold is £'.number_format($threshold, 0).'.')
+                .$secondDeathNote,
         ];
 
         if ($status === 'below' && $potentialSaving > 0) {
-            // Show the IHT rate reduction calculation
-            $taxableEstate = $ctx['taxable_estate'];
-            $currentTax = $taxableEstate * $standardRate;
-            $reducedTax = $taxableEstate * $reducedRate;
+            // W-0451 — THE SENTENCE THAT CONTRADICTED ITSELF.
+            //
+            // It struck both bills on the SAME taxable estate and then quoted a
+            // saving computed somewhere else on a different base:
+            //
+            //   "On the taxable estate of £858,780: at 40% = £343,512,
+            //    at 36% = £309,161 — saving £19,580."
+            //
+            // £343,512 − £309,161 = £34,351. A £14,771 error — 43% — on a
+            // decision trace whose entire purpose is that a reader can check it.
+            //
+            // Both bills, both bases and the saving now come from the one
+            // definition in `IHTCalculationService::assessTaxPosition()`, so the
+            // subtraction the reader performs IS the subtraction the application
+            // performed. And the second bill names its own base: increasing the
+            // gift lowers the rate AND removes the gift from the estate, so 36%
+            // is charged on a smaller estate than 40% was. A sentence that
+            // printed one base for two bills could not be made to add up.
+            $taxableEstateIfQualifying = (float) ($charitableAnalysis['taxable_estate_if_qualifying'] ?? 0);
+            $currentTax = (float) ($charitableAnalysis['tax_at_standard_rate'] ?? 0);
+            $reducedTax = (float) ($charitableAnalysis['tax_at_reduced_rate'] ?? 0);
 
             $trace[] = [
                 'question' => 'How much additional charitable giving is needed and what would it save?',
-                'data_field' => 'Shortfall to 10% threshold',
+                'data_field' => 'Shortfall to '.$thresholdPercent.'% threshold',
                 'data_value' => '£'.number_format($shortfall, 0),
                 'threshold' => '£0 (no shortfall)',
                 'passed' => false,
-                'explanation' => 'If '.$ctx['first_name'].' increases charitable bequests by £'.number_format($shortfall, 0)
-                    .' (to reach £'.number_format($threshold, 0).'), the Inheritance Tax rate drops from '.$standardRatePercent.'% to '.$reducedRatePercent.'%.'
-                    .' On the taxable estate of £'.number_format($taxableEstate, 0)
-                    .': at '.$standardRatePercent.'% = £'.number_format($currentTax, 0)
-                    .', at '.$reducedRatePercent.'% = £'.number_format($reducedTax, 0)
-                    .' — saving £'.number_format($potentialSaving, 0).'.',
+                'explanation' => 'If '.$rateTestName.' increases charitable bequests by £'.number_format($shortfall, 0)
+                    .' (to reach £'.number_format($threshold, 0).'), the Inheritance Tax rate drops from '.$standardRatePercent.'% to '.$reducedRatePercent.'%'
+                    .' and the additional £'.number_format($shortfall, 0).' leaves the estate as an exempt gift.'
+                    .' As the will stands: '.$standardRatePercent.'% of the taxable estate of £'.number_format($taxableEstate, 0).' = £'.number_format($currentTax, 0).'.'
+                    .' With the larger gift: '.$reducedRatePercent.'% of £'.number_format($taxableEstateIfQualifying, 0).' = £'.number_format($reducedTax, 0).'.'
+                    .' Saving £'.number_format($potentialSaving, 0).'.'
+                    .$secondDeathNote,
             ];
 
             return [
@@ -711,9 +827,13 @@ class EstateAgent extends BaseAgent
                 'priority' => 'high',
                 'step' => 1,
                 'title' => 'Charitable Bequest Opportunity',
-                'description' => "Increase charitable giving by {$this->formatCurrency($shortfall)} to qualify for the reduced {$reducedRatePercent}% Inheritance Tax rate and save {$this->formatCurrency($potentialSaving)}.",
+                // W-0451 C1. The description and the action both named the reader.
+                // The action is the one that mattered: "Add £X to YOUR will" is not
+                // merely mis-addressed when the reader is not the survivor, it is an
+                // instruction that cannot produce the outcome the sentence promises.
+                'description' => "Increase charitable giving in {$rateTestName}'s will by {$this->formatCurrency($shortfall)} to qualify for the reduced {$reducedRatePercent}% Inheritance Tax rate and save {$this->formatCurrency($potentialSaving)}.",
                 'actions' => [
-                    "Add {$this->formatCurrency($shortfall)} in charitable bequests to {$ctx['first_name']}'s will",
+                    "Add {$this->formatCurrency($shortfall)} in charitable bequests to {$rateTestName}'s will",
                     'Consider leaving to registered UK charities',
                     "This reduces the Inheritance Tax rate from {$standardRatePercent}% to {$reducedRatePercent}%",
                 ],
@@ -729,8 +849,19 @@ class EstateAgent extends BaseAgent
                 'data_value' => '£'.number_format($currentSaving, 0),
                 'threshold' => '£0',
                 'passed' => true,
-                'explanation' => $ctx['first_name'].'\'s charitable giving of £'.number_format($charitableTotal, 0)
-                    .' qualifies for the reduced '.$reducedRatePercent.'% rate, saving £'.number_format($currentSaving, 0).' on the taxable estate of £'.number_format($ctx['taxable_estate'], 0).'.',
+                // W-0451. This named a saving and a taxable estate and left the
+                // reader no way to get from one to the other. An estate already
+                // qualifying has no shortfall, so both bills sit on the same
+                // chargeable estate and the difference IS the rate differential
+                // on it — which is what "the reduced rate is worth" means for
+                // someone who already has it. Printed, so it subtracts.
+                'explanation' => $rateTestName.'\'s charitable giving of £'.number_format($charitableTotal, 0)
+                    .' qualifies for the reduced '.$reducedRatePercent.'% rate.'
+                    .' On the taxable estate of £'.number_format($taxableEstate, 0)
+                    .': at '.$standardRatePercent.'% = £'.number_format((float) ($charitableAnalysis['tax_at_standard_rate'] ?? 0), 0)
+                    .', at '.$reducedRatePercent.'% = £'.number_format((float) ($charitableAnalysis['tax_at_reduced_rate'] ?? 0), 0)
+                    .' — saving £'.number_format($currentSaving, 0).'.'
+                    .$secondDeathNote,
             ];
 
             return [
@@ -738,7 +869,7 @@ class EstateAgent extends BaseAgent
                 'priority' => 'low',
                 'step' => 1,
                 'title' => 'Charitable Rate Applied',
-                'description' => "{$ctx['first_name']}'s charitable giving qualifies for the reduced {$reducedRatePercent}% Inheritance Tax rate, saving {$this->formatCurrency($currentSaving)}.",
+                'description' => "{$rateTestName}'s charitable giving qualifies for the reduced {$reducedRatePercent}% Inheritance Tax rate, saving {$this->formatCurrency($currentSaving)}.",
                 'actions' => ['Your current charitable bequests are sufficient for the reduced rate'],
                 'current_saving' => $currentSaving,
                 'decision_trace' => $trace,
@@ -1507,10 +1638,43 @@ class EstateAgent extends BaseAgent
 
     /**
      * Build asset summary array from gathered assets and liabilities.
+     *
+     * W-0397. This summed EVERY gathered asset, including the ones flagged
+     * `is_iht_exempt`, and it was the only mechanism in the application that
+     * did. `IHTCalculationService` rejects them (`:167-168`) and so does
+     * `NetWorthAnalyzer`, so one user was shown two different own-estate figures
+     * in one session: the mobile dashboard said £1,489,500 where the will
+     * planning screen and the /m estate screen both said £989,500 — his
+     * £500,000 of defined contribution pensions, exactly.
+     *
+     * Filtering here rather than at each reader, because the figure is not
+     * merely displayed. It feeds the gifting strategy (`:183`), and an estate
+     * inflated by exempt assets raises every threshold struck against it. That
+     * is W-0154's third defect in a second place.
+     *
+     * **It no longer feeds the charitable 10% test.** This docblock said it did,
+     * and until W-0452 that was true and was the defect: the charitable baseline
+     * was struck on this INDIVIDUAL figure while the threshold it was compared
+     * against came from the household calculation. The charitable position now
+     * comes whole from `IHTCalculationService::calculate()` (`:231`). Corrected
+     * here rather than left standing, because a stale docblock is the next
+     * reader's premise.
+     *
+     * There is no consumer for whom the unfiltered figure was right. The two
+     * that read it as `net_worth` (`DashboardAggregator:407`,
+     * `CoordinatingAgent:839`) now agree with `NetWorthAnalyzer`, the module
+     * that actually answers that question and which already excluded them.
+     *
+     * `gross_estate` and the liquidity breakdown are filtered on the same set,
+     * because a breakdown that does not reconcile to its own total is how this
+     * class of defect hides. Only `illiquid` moves: cash, savings and
+     * investments are never flagged exempt.
      */
     private function buildAssetSummary(User $user): array
     {
-        $assets = $this->assetAggregator->gatherUserAssets($user);
+        $assets = $this->assetAggregator->gatherUserAssets($user)
+            ->reject(fn ($asset) => $asset->is_iht_exempt ?? false);
+
         $grossEstate = $assets->sum('current_value');
         $totalLiabilities = $this->assetAggregator->calculateUserLiabilities($user);
         $netEstate = $grossEstate - $totalLiabilities;
@@ -1661,6 +1825,10 @@ class EstateAgent extends BaseAgent
      */
     public function invalidateCache(int $userId): void
     {
+        // The canonical key comes from `invalidateUserCache()`. The legacy
+        // `estate_analysis_{id}` string is kept only to drain entries written by
+        // the pre-W-0381 code, which would otherwise outlive the deploy by a full
+        // time-to-live; it is written by nothing now.
         $this->invalidateUserCache($userId, [
             "estate_analysis_{$userId}",
         ]);

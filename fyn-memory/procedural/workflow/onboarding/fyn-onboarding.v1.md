@@ -24,6 +24,7 @@ path_choice:
   bubbles:
     - { id: journey, label: 'Follow a journey' }
     - { id: focus, label: 'Pick a focus' }
+    - { id: skip, label: 'Something else' }
   capture_field: onboarding_fyn_path
   next: { branch: nextFromPathChoice }
 
@@ -398,6 +399,12 @@ add_more:
     - { id: done, label: "I'm done" }
   capture_field: null
   next: { branch: nextFromAddMore }
+
+free_chat:
+  turn_type: terminal
+  prompt_text: 'No problem. What would you like help with?'
+  capture_field: null
+  next: null
 
 done:
   turn_type: terminal

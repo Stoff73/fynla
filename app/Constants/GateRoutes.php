@@ -60,10 +60,14 @@ final class GateRoutes
 
     public const DASHBOARD = 'dashboard';
 
+    public const CHATTELS = 'chattels';
+
+    public const BUSINESS = 'business';
+
     /** @var array<string, array{label: string, web: string, mobile: ?string}> */
     public const MAP = [
-        self::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => null],
-        self::FAMILY_DETAILS => ['label' => 'Family Details', 'web' => '/settings/family', 'mobile' => null],
+        self::PERSONAL_DETAILS => ['label' => 'Personal Details', 'web' => '/settings/personal', 'mobile' => '/personal-information'],
+        self::FAMILY_DETAILS => ['label' => 'Family Details', 'web' => '/settings/family', 'mobile' => '/personal-information'],
         self::INCOME => ['label' => 'Income', 'web' => '/valuable-info?section=income', 'mobile' => '/income'],
         self::EXPENDITURE => ['label' => 'Expenditure', 'web' => '/valuable-info?section=expenditure', 'mobile' => '/expenditure'],
         self::PROTECTION => ['label' => 'Protection', 'web' => '/protection', 'mobile' => '/protection'],
@@ -85,7 +89,104 @@ final class GateRoutes
         self::CONVERSATION_HISTORY => ['label' => 'Conversation History', 'web' => '/dashboard', 'mobile' => '/conversation-history'],
         self::ADMIN => ['label' => 'Admin Panel', 'web' => '/admin', 'mobile' => null],
         self::DASHBOARD => ['label' => 'Dashboard', 'web' => '/dashboard', 'mobile' => '/dashboard'],
+        // Valuables and business interests have their own pages under net
+        // worth; linking to the module root made the user hunt for what they
+        // had just added.
+        self::CHATTELS => ['label' => 'Valuables', 'web' => '/net-worth/chattels', 'mobile' => '/net-worth/chattels'],
+        self::BUSINESS => ['label' => 'Business Interests', 'web' => '/net-worth/business', 'mobile' => '/net-worth/business'],
     ];
+
+    /**
+     * Which page shows a record Fyn just wrote, per entity type.
+     *
+     * SPEC-crud-handler-contract §5.4 and §7.3 (CSJ): the link points at the
+     * module page listing the record, with no per-record deep link. It lives
+     * here rather than in a new resolver because this class already holds the
+     * one web/mobile route table — a second one is the Rule 20 failure.
+     *
+     * An entity absent from this map gets no link, not a guessed one.
+     *
+     * @var array<string, string>
+     */
+    private const ENTITY_DESTINATIONS = [
+        'dc_pension' => self::RETIREMENT,
+        'db_pension' => self::RETIREMENT,
+        'savings_account' => self::SAVINGS,
+        'investment_account' => self::INVESTMENT,
+        'investment_holding' => self::INVESTMENT,
+        'property' => self::PROPERTY,
+        'mortgage' => self::LIABILITIES,
+        'life_insurance_policy' => self::PROTECTION,
+        'critical_illness_policy' => self::PROTECTION,
+        'income_protection_policy' => self::PROTECTION,
+        'goal' => self::GOALS,
+        'life_event' => self::GOALS,
+        'estate_asset' => self::ESTATE,
+        'estate_liability' => self::LIABILITIES,
+        'estate_gift' => self::ESTATE,
+        'will' => self::ESTATE,
+        'lasting_power_of_attorney' => self::ESTATE,
+        'trust' => self::ESTATE,
+        'family_member' => self::FAMILY_DETAILS,
+        'business_interest' => self::BUSINESS,
+        'chattel' => self::CHATTELS,
+    ];
+
+    /**
+     * Which page shows a grouped capture, per field group.
+     *
+     * The entity map above only answers for writes that produce a record with
+     * an id. A capture_* handler writes columns on `users` and its satellites,
+     * so it has no entity to name — and so, until now, its confirmation offered
+     * the user no way to see what had just been recorded, even though every one
+     * of these pages already existed.
+     *
+     * Lives here beside ENTITY_DESTINATIONS deliberately: one route table, per
+     * the note above.
+     *
+     * @var array<string, string>
+     */
+    private const FIELD_GROUP_DESTINATIONS = [
+        'personal' => self::PERSONAL_DETAILS,
+        'spouse' => self::FAMILY_DETAILS,
+        'dependants' => self::FAMILY_DETAILS,
+        'work' => self::INCOME,
+        'expenditure' => self::EXPENDITURE,
+        'campaign_charitable_giving' => self::EXPENDITURE,
+        'campaign_pension_history' => self::RETIREMENT,
+        'campaign_retirement_goals' => self::RETIREMENT,
+        'campaign_state_pension' => self::RETIREMENT,
+        'campaign_spouse_household' => self::TAX_STRATEGY,
+        'campaign_spouse_non_working_assets' => self::TAX_STRATEGY,
+    ];
+
+    /**
+     * The page showing a grouped capture, or null when the group has none.
+     *
+     * @return array{label: string, web: string, mobile: ?string}|null
+     */
+    public static function forFieldGroup(string $fieldGroup): ?array
+    {
+        $destination = self::FIELD_GROUP_DESTINATIONS[$fieldGroup] ?? null;
+
+        return $destination === null ? null : self::resolve($destination);
+    }
+
+    /**
+     * The page showing this entity type, or null when it has none.
+     *
+     * `mobile` is null for destinations `/m` does not implement, in which case
+     * that surface shows the confirmation without a link rather than sending
+     * the user somewhere that does not exist.
+     *
+     * @return array{label: string, web: string, mobile: ?string}|null
+     */
+    public static function forEntityType(string $entityType): ?array
+    {
+        $destination = self::ENTITY_DESTINATIONS[$entityType] ?? null;
+
+        return $destination === null ? null : self::resolve($destination);
+    }
 
     /** @var array<string, string> */
     private const LEGACY_ROUTE_DESTINATIONS = [
@@ -157,7 +258,7 @@ final class GateRoutes
      * values remain server-owned presentation data and never belong here.
      *
      * @param  array<string, int|string>  $params
-     * @return array{screen: string, params: array<string, int|string>, fallback: string}
+     * @return array{screen: string, params: array<string, int|string>|object, fallback: string}
      */
     public static function destination(
         string $screen,
@@ -176,7 +277,9 @@ final class GateRoutes
 
         return [
             'screen' => $screen,
-            'params' => $params,
+            // PHP's empty array serializes as `[]`, but semantic parameters are
+            // a named JSON map. Preserve that contract even when the map is empty.
+            'params' => $params === [] ? (object) [] : $params,
             'fallback' => $resolvedFallback,
         ];
     }

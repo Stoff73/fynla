@@ -47,6 +47,7 @@ const CATEGORIES = [
   { key: 'clothing_personal_care', label: 'Clothing & personal care' },
   { key: 'entertainment_dining', label: 'Entertainment & dining' },
   { key: 'childcare', label: 'Childcare' },
+  { key: 'charitable_donations', label: 'Charitable donations' },
   { key: 'other_expenditure', label: 'Other' },
 ];
 

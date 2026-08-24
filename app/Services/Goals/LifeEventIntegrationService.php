@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Goals;
 
 use App\Models\LifeEvent;
+use Illuminate\Support\Collection;
 
 /**
  * Life Event Integration Service
@@ -124,13 +125,30 @@ class LifeEventIntegrationService
      */
     public function getEventsForModule(int $userId, string $module, bool $includeHousehold = false): array
     {
-        $events = $this->lifeEventService->getActiveEventsForProjection($userId, $includeHousehold);
-
-        return $events
-            ->filter(fn (LifeEvent $event) => $this->isRelevantToModule($event->event_type, $module))
+        return $this->relevantEvents($userId, $module, $includeHousehold)
             ->map(fn (LifeEvent $event) => $this->formatEventForModule($event, $module, $userId))
             ->values()
             ->toArray();
+    }
+
+    /**
+     * The module's events that have not happened yet, as models.
+     *
+     * W-0207: the panel these feed is titled "Upcoming Life Events" and the
+     * summary below calls its fields `upcoming_income` and `upcoming_expense`,
+     * but nothing here filtered by date at all. A confirmed 2020 inheritance was
+     * listed as upcoming and, because `next_event` takes the earliest date, was
+     * also named as the user's *next* event — six years after it happened.
+     *
+     * @return Collection<int, LifeEvent>
+     */
+    private function relevantEvents(int $userId, string $module, bool $includeHousehold): Collection
+    {
+        $events = $this->lifeEventService->getActiveEventsForProjection($userId, $includeHousehold);
+
+        return $this->lifeEventService->upcoming($events)
+            ->filter(fn (LifeEvent $event) => $this->isRelevantToModule($event->event_type, $module))
+            ->values();
     }
 
     /**
@@ -140,30 +158,19 @@ class LifeEventIntegrationService
      */
     public function getModuleImpactSummary(int $userId, string $module, bool $includeHousehold = false): array
     {
-        $events = $this->getEventsForModule($userId, $module, $includeHousehold);
+        $events = $this->relevantEvents($userId, $module, $includeHousehold);
+        $totals = $this->lifeEventService->summariseUpcoming($events);
 
-        $upcomingIncome = 0.0;
-        $upcomingExpense = 0.0;
-        $nextEvent = null;
-
-        foreach ($events as $event) {
-            if ($event['impact_type'] === 'income') {
-                $upcomingIncome += $event['amount'];
-            } else {
-                $upcomingExpense += $event['amount'];
-            }
-
-            if ($nextEvent === null || $event['expected_date'] < $nextEvent['expected_date']) {
-                $nextEvent = $event;
-            }
-        }
+        $next = $events->sortBy('expected_date')->first();
 
         return [
-            'upcoming_income' => round($upcomingIncome, 2),
-            'upcoming_expense' => round($upcomingExpense, 2),
-            'net_impact' => round($upcomingIncome - $upcomingExpense, 2),
-            'event_count' => count($events),
-            'next_event' => $nextEvent,
+            'upcoming_income' => $totals['expected_income'],
+            'upcoming_expense' => $totals['expected_expense'],
+            'net_impact' => $totals['net_impact'],
+            'event_count' => $events->count(),
+            'next_event' => $next === null
+                ? null
+                : $this->formatEventForModule($next, $module, $userId),
         ];
     }
 

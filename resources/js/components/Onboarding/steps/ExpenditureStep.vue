@@ -81,7 +81,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '../UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import ExpenditureForm from '../../UserProfile/ExpenditureForm.vue';
 
@@ -91,7 +90,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     ExpenditureForm,
   },
 
@@ -108,7 +106,7 @@ export default {
     const user = computed(() => store.getters['auth/currentUser']);
 
     const isMarried = computed(() => {
-      return user.value?.marital_status === 'married' && !!user.value?.spouse_id;
+      return user.value?.marital_status === 'married' && !!user.value?.live_spouse_id;
     });
 
     const spouseName = computed(() => {
@@ -117,10 +115,10 @@ export default {
     });
 
     const fetchSpouseData = async () => {
-      if (!user.value?.spouse_id) return;
+      if (!user.value?.live_spouse_id) return;
 
       try {
-        const response = await store.dispatch('auth/fetchUserById', user.value.spouse_id);
+        const response = await store.dispatch('auth/fetchUserById', user.value.live_spouse_id);
         spouseData.value = response || {};
       } catch (err) {
         logger.error('Failed to fetch spouse data:', err);
@@ -231,7 +229,7 @@ export default {
             initialData.value = stepData;
           }
         }
-      } catch (err) {
+      } catch {
         // No existing data, start with empty form
       }
 

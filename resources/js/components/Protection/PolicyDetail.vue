@@ -63,18 +63,27 @@
             <p class="text-base sm:text-lg text-neutral-500 mt-1">{{ policyTypeLabel }}</p>
           </div>
           <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 w-full sm:w-auto">
-            <button
-              @click="showEditModal = true"
-              class="w-full sm:w-auto px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors"
-            >
-              Edit
-            </button>
-            <button
-              @click="confirmDelete"
-              class="w-full sm:w-auto px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
-            >
-              Delete
-            </button>
+            <!-- A joint-life policy covers both spouses but is recorded once, on the
+                 account that entered it. The write path is scoped to that account, so
+                 an edit from the other life assured would fail — say where it lives
+                 instead of offering a button that cannot work (W-0186). -->
+            <p v-if="!canEditPolicy" class="text-sm text-neutral-500 sm:text-right">
+              {{ sharedRecordNote }}
+            </p>
+            <template v-else>
+              <button
+                @click="showEditModal = true"
+                class="w-full sm:w-auto px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                @click="confirmDelete"
+                class="w-full sm:w-auto px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
+              >
+                Delete
+              </button>
+            </template>
           </div>
         </div>
 
@@ -139,6 +148,12 @@
                   <div v-if="isLifePolicy && lifePolicyTypeLabel" class="flex justify-between">
                     <dt class="text-sm text-neutral-500">Life Policy Type:</dt>
                     <dd class="text-sm font-medium text-horizon-500">{{ lifePolicyTypeLabel }}</dd>
+                  </div>
+                  <div v-if="isLifePolicy && policy.joint_life" class="flex justify-between">
+                    <dt class="text-sm text-neutral-500">Joint Life:</dt>
+                    <dd class="text-sm font-medium text-horizon-500">
+                      {{ policy.joint_life_with ? `Yes, with ${policy.joint_life_with}` : 'Yes' }}
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -338,6 +353,20 @@ export default {
   computed: {
     ...mapGetters('protection', ['policies']),
 
+    // A policy reaching this account through a joint-life link belongs to the
+    // spouse who recorded it. It is theirs to change, and the API refuses an edit
+    // from anyone else, so the buttons are not offered here (W-0186).
+    canEditPolicy() {
+      return this.policy?.is_own_policy !== false;
+    },
+
+    sharedRecordNote() {
+      const name = this.policy?.joint_life_with;
+      return name
+        ? `Joint life policy recorded on ${name}'s account. Edit it there.`
+        : 'Joint life policy recorded on your spouse\'s account. Edit it there.';
+    },
+
     tabs() {
       const baseTabs = [
         { id: 'overview', label: 'Overview' },
@@ -419,10 +448,17 @@ export default {
       return this.policy?.policy_term_years || this.policy?.term_years;
     },
 
+    // The recorded end date is the source of truth. Deriving it from start +
+    // term was the only path here, so a date the user typed never appeared on
+    // screen and a policy with an end date but no term showed none (W-0026).
+    // Term stays as the fallback for policies recorded before the end date
+    // could be entered.
     policyEndDate() {
+      const recorded = this.policy?.policy_end_date || this.policy?.end_date;
+      if (recorded) return recorded;
+
       if (!this.policyStartDate || !this.policyTermYears) return null;
-      const startDate = new Date(this.policyStartDate);
-      const endDate = new Date(startDate);
+      const endDate = new Date(this.policyStartDate);
       endDate.setFullYear(endDate.getFullYear() + this.policyTermYears);
       return endDate;
     },
@@ -444,10 +480,10 @@ export default {
 
       if (startDate > now) return false; // Not started yet
 
-      if (this.policyTermYears) {
-        const endDate = new Date(startDate);
-        endDate.setFullYear(endDate.getFullYear() + this.policyTermYears);
-        return endDate > now;
+      // Reads the same end date the panel displays, so cover that has expired
+      // by its recorded end date is not reported as still active.
+      if (this.policyEndDate) {
+        return new Date(this.policyEndDate) > now;
       }
 
       if (this.policy?.benefit_period_months) {

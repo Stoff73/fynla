@@ -50,18 +50,23 @@ const getters = {
     // Try to find spouse in family members (has details like date_of_birth, name)
     const spouseInFamily = state.familyMembers.find(member => member.relationship === 'spouse');
 
-    // If spouse_id is set (account linking completed), use it as the canonical ID
-    if (currentUser.spouse_id) {
+    // If a LIVE spouse account is linked, use its ID as the canonical one.
+    // `spouse_id` outlives the partner deleting their account (everything is
+    // retained for regulatory purposes), so branching on it would hand the UI an
+    // ID it can no longer fetch. `live_spouse_id` is null from that moment, and
+    // we fall through to the family-member record below — which is the user's
+    // OWN record of their spouse, on their own account.
+    if (currentUser.live_spouse_id) {
       if (spouseInFamily) {
         return withName({
           ...spouseInFamily,
-          id: currentUser.spouse_id,
+          id: currentUser.live_spouse_id,
         });
       }
 
       if (currentUser.spouse) {
         return withName({
-          id: currentUser.spouse_id,
+          id: currentUser.live_spouse_id,
           first_name: currentUser.spouse.first_name || '',
           last_name: currentUser.spouse.last_name || currentUser.spouse.surname || '',
           name: currentUser.spouse.name || '',
@@ -71,14 +76,15 @@ const getters = {
       }
 
       return withName({
-        id: currentUser.spouse_id,
+        id: currentUser.live_spouse_id,
         first_name: '',
         last_name: '',
         relationship: 'spouse',
       });
     }
 
-    // No spouse_id but spouse exists as family member (entered during onboarding without account linking)
+    // No live spouse account, but a spouse exists as a family member (entered
+    // during onboarding without account linking, or the account has since gone)
     if (spouseInFamily) {
       return withName({
         ...spouseInFamily,
@@ -180,8 +186,10 @@ const actions = {
           marital_status: user.marital_status,
           phone: user.phone,
           education_level: user.education_level,
-          good_health: user.good_health,
-          smoker: user.smoker,
+          // `good_health` / `smoker` are not columns on `users` — both read
+          // undefined on every user. The real fields are these two (W-0006).
+          health_status: user.health_status,
+          smoking_status: user.smoking_status,
           address: {
             line_1: user.address_line_1,
             line_2: user.address_line_2,

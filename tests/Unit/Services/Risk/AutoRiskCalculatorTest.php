@@ -2,22 +2,63 @@
 
 declare(strict_types=1);
 
-use App\Models\DCPension;
 use App\Models\FamilyMember;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Risk\AutoRiskCalculator;
+use App\Services\Savings\EmergencyFundCalculator;
+use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Shared\DependantsReach;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+/**
+ * The shape `NetWorthService::calculateNetWorth()` actually returns.
+ *
+ * This mock used to return `['net_worth' => N]` and nothing else, which was
+ * sufficient only while the calculator derived investments and pensions itself
+ * with its own `user_id`-only queries. It no longer does: both terms of the
+ * capacity-for-loss ratio now come from the net worth breakdown, so the two
+ * cannot describe different sets of records (W-0273).
+ *
+ * **A mock cannot prove that breakdown is reach-complete or share-correct** — it
+ * asserts whatever it was told to say. That claim is tested against real records,
+ * including an asymmetric joint split, in
+ * `tests/Feature/Risk/RiskFactorsReachTheHouseholdTest.php`. What this file tests
+ * is the banding: given a ratio, which level comes out.
+ */
+function riskNetWorthPayload(
+    float $netWorth,
+    float $investments = 0.0,
+    float $pensions = 0.0,
+    bool $hasDefinedBenefit = false
+): array {
+    return [
+        'net_worth' => $netWorth,
+        'breakdown' => [
+            'pensions' => $pensions,
+            'property' => 0.0,
+            'investments' => $investments,
+            'cash' => 0.0,
+            'business' => 0.0,
+            'chattels' => 0.0,
+        ],
+        'has_db_pensions' => $hasDefinedBenefit,
+    ];
+}
+
 beforeEach(function () {
     // Mock the NetWorthService
     $this->netWorthService = Mockery::mock(NetWorthService::class);
-    $this->calculator = new AutoRiskCalculator($this->netWorthService);
+    $this->calculator = new AutoRiskCalculator(
+        $this->netWorthService,
+        app(CrossModuleAssetAggregator::class),
+        app(EmergencyFundCalculator::class),
+        app(DependantsReach::class),
+    );
 });
 
 afterEach(function () {
@@ -37,7 +78,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
 
@@ -57,7 +98,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 150000]);
+                ->andReturn(riskNetWorthPayload(150000));
 
             $result = $this->calculator->calculateRiskProfile($user);
 
@@ -72,11 +113,13 @@ describe('AutoRiskCalculator', function () {
         it('returns HIGH when investments are 15% or less of net worth', function () {
             $user = User::factory()->create();
 
-            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 5000]);
-            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 5000]);
-
+            // The records live in the net worth breakdown, not in a second query
+            // this calculator runs for itself — that second query was the defect
+            // (W-0273). Creating rows here would assert nothing: they were never
+            // read after the fix, and a fixture nothing reads is how a test comes
+            // to pass for the wrong reason.
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]); // 10% in investments
+                ->andReturn(riskNetWorthPayload(100000, investments: 5000, pensions: 5000)); // 10% in investments
 
             $result = $this->calculator->calculateRiskProfile($user);
             $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
@@ -88,11 +131,13 @@ describe('AutoRiskCalculator', function () {
         it('returns MEDIUM when investments are 15-50% of net worth', function () {
             $user = User::factory()->create();
 
-            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 15000]);
-            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 15000]);
-
+            // The records live in the net worth breakdown, not in a second query
+            // this calculator runs for itself — that second query was the defect
+            // (W-0273). Creating rows here would assert nothing: they were never
+            // read after the fix, and a fixture nothing reads is how a test comes
+            // to pass for the wrong reason.
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]); // 30% in investments
+                ->andReturn(riskNetWorthPayload(100000, investments: 15000, pensions: 15000)); // 30% in investments
 
             $result = $this->calculator->calculateRiskProfile($user);
             $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
@@ -103,11 +148,13 @@ describe('AutoRiskCalculator', function () {
         it('returns LOWER_MEDIUM when investments are 50-75% of net worth', function () {
             $user = User::factory()->create();
 
-            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 30000]);
-            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 30000]);
-
+            // The records live in the net worth breakdown, not in a second query
+            // this calculator runs for itself — that second query was the defect
+            // (W-0273). Creating rows here would assert nothing: they were never
+            // read after the fix, and a fixture nothing reads is how a test comes
+            // to pass for the wrong reason.
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]); // 60% in investments
+                ->andReturn(riskNetWorthPayload(100000, investments: 30000, pensions: 30000)); // 60% in investments
 
             $result = $this->calculator->calculateRiskProfile($user);
             $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
@@ -118,11 +165,13 @@ describe('AutoRiskCalculator', function () {
         it('returns LOW when investments exceed 75% of net worth', function () {
             $user = User::factory()->create();
 
-            InvestmentAccount::factory()->create(['user_id' => $user->id, 'current_value' => 40000]);
-            DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 40000]);
-
+            // The records live in the net worth breakdown, not in a second query
+            // this calculator runs for itself — that second query was the defect
+            // (W-0273). Creating rows here would assert nothing: they were never
+            // read after the fix, and a fixture nothing reads is how a test comes
+            // to pass for the wrong reason.
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]); // 80% in investments
+                ->andReturn(riskNetWorthPayload(100000, investments: 40000, pensions: 40000)); // 80% in investments
 
             $result = $this->calculator->calculateRiskProfile($user);
             $capacityFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'capacity_for_loss');
@@ -140,7 +189,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $timeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'time_horizon');
@@ -156,7 +205,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $timeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'time_horizon');
@@ -172,7 +221,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $timeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'time_horizon');
@@ -188,7 +237,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $timeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'time_horizon');
@@ -202,7 +251,7 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create();
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $knowledgeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'knowledge_level');
@@ -218,7 +267,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $knowledgeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'knowledge_level');
@@ -234,7 +283,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $knowledgeFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'knowledge_level');
@@ -248,7 +297,7 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create();
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $dependantsFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'dependants');
@@ -261,7 +310,7 @@ describe('AutoRiskCalculator', function () {
             FamilyMember::factory()->create(['user_id' => $user->id, 'is_dependent' => true]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $dependantsFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'dependants');
@@ -274,7 +323,7 @@ describe('AutoRiskCalculator', function () {
             FamilyMember::factory()->count(3)->create(['user_id' => $user->id, 'is_dependent' => true]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $dependantsFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'dependants');
@@ -288,7 +337,7 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create(['employment_status' => 'employed']);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $employmentFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'employment');
@@ -300,7 +349,7 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create(['employment_status' => 'self_employed']);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $employmentFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'employment');
@@ -312,7 +361,7 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create(['employment_status' => 'retired']);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $employmentFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'employment');
@@ -326,12 +375,17 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create(['monthly_expenditure' => 2000]);
             SavingsAccount::factory()->create([
                 'user_id' => $user->id,
-                'is_emergency_fund' => true,
+                // Deliberately NOT flagged. While this factor counted only
+                // flagged accounts, a flagged fixture made the right answer and
+                // the wrong answer the same number and the test could not fail
+                // (tests/CLAUDE.md §4, the Collision variant). Unflagged, it
+                // reads 0 months against the old rule and 7.5 months against the new.
+                'is_emergency_fund' => false,
                 'current_balance' => 15000, // 7.5 months
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $emergencyFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'emergency_cash');
@@ -343,12 +397,17 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create(['monthly_expenditure' => 2000]);
             SavingsAccount::factory()->create([
                 'user_id' => $user->id,
-                'is_emergency_fund' => true,
+                // Deliberately NOT flagged. While this factor counted only
+                // flagged accounts, a flagged fixture made the right answer and
+                // the wrong answer the same number and the test could not fail
+                // (tests/CLAUDE.md §4, the Collision variant). Unflagged, it
+                // reads 0 months against the old rule and 4 months against the new.
+                'is_emergency_fund' => false,
                 'current_balance' => 8000, // 4 months
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $emergencyFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'emergency_cash');
@@ -360,12 +419,17 @@ describe('AutoRiskCalculator', function () {
             $user = User::factory()->create(['monthly_expenditure' => 2000]);
             SavingsAccount::factory()->create([
                 'user_id' => $user->id,
-                'is_emergency_fund' => true,
+                // Deliberately NOT flagged. While this factor counted only
+                // flagged accounts, a flagged fixture made the right answer and
+                // the wrong answer the same number and the test could not fail
+                // (tests/CLAUDE.md §4, the Collision variant). Unflagged, it
+                // reads 0 months against the old rule and 2 months against the new.
+                'is_emergency_fund' => false,
                 'current_balance' => 4000, // 2 months
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $emergencyFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'emergency_cash');
@@ -382,7 +446,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $surplusFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'surplus_cash');
@@ -397,7 +461,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $surplusFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'surplus_cash');
@@ -412,7 +476,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
             $surplusFactor = collect($result['factor_breakdown'])->firstWhere('factor', 'surplus_cash');
@@ -444,7 +508,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 200000]);
+                ->andReturn(riskNetWorthPayload(200000));
 
             $result = $this->calculator->calculateRiskProfile($user);
 
@@ -467,7 +531,7 @@ describe('AutoRiskCalculator', function () {
             ]);
 
             $this->netWorthService->shouldReceive('calculateNetWorth')
-                ->andReturn(['net_worth' => 100000]);
+                ->andReturn(riskNetWorthPayload(100000));
 
             $result = $this->calculator->calculateRiskProfile($user);
 

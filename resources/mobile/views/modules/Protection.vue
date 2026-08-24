@@ -89,6 +89,7 @@
             <div class="mp-policy__main">
               <span class="mp-policy__provider">{{ p.provider || 'Unknown provider' }}</span>
               <span class="mp-policy__type">{{ p.typeLabel }}</span>
+              <span v-if="p.sharedNote" class="mp-policy__type">{{ p.sharedNote }}</span>
             </div>
             <div class="mp-policy__right">
               <span class="mp-policy__cover">{{ p.coverDisplay }}</span>
@@ -159,6 +160,14 @@ export default {
             premiumDisplay: raw.premium_amount
               ? `${formatCurrency(raw.premium_amount)} / ${this.shortFrequency(raw.premium_frequency)}`
               : 'No premium recorded',
+            // A joint-life policy covers both spouses and is recorded once, on the
+            // account that entered it. Name the other life assured, and say whose
+            // record it is when it is not this one's (W-0186).
+            sharedNote: raw.joint_life
+              ? (raw.is_own_policy === false
+                ? `Joint life with ${raw.joint_life_with || 'your spouse'} — recorded on their account`
+                : `Joint life with ${raw.joint_life_with || 'your spouse'}`)
+              : null,
           });
         });
       };

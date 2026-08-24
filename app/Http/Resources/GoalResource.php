@@ -46,6 +46,8 @@ class GoalResource extends JsonResource
             'days_remaining' => $this->days_remaining,
             'months_remaining' => $this->months_remaining,
             'is_on_track' => $this->is_on_track,
+            'is_overdue' => $this->is_overdue,
+            'status_label' => $this->status_label,
             'current_milestone' => $this->current_milestone,
             'next_milestone' => $this->next_milestone,
             'required_monthly_contribution' => $this->required_monthly_contribution,

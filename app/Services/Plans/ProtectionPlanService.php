@@ -236,6 +236,9 @@ class ProtectionPlanService extends BasePlanService
             'gross_income' => $this->roundToPenny($grossIncome),
             'net_income' => $this->roundToPenny($incomeData['net_income']),
             'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            // W-0140: what the figure above is made of. One composition, from the
+            // profile, shown identically on every plan surface.
+            'expenditure_composition' => $incomeData['expenditure_composition'],
             'disposable_income' => $this->roundToPenny($incomeData['annual']),
             'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
             'occupation' => $profile['occupation'] ?? null,

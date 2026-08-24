@@ -50,18 +50,24 @@ yarn-error.log
 # Design source files and screenshots (root-level)
 /*.png
 /*.pdf
+
+# Agent/session screenshots — filed here by month, never left loose at root
+/screenshots/
+
+# Python virtualenvs (Apple StoreKit verifier bridge)
+/.venv/
 /logo/
 /portraits/
 /Feb/
-/appMapping/
-/revolut/*.pdf
+/docs/archive/appMapping/
+/docs/archive/revolut/*.pdf
 
 # Planning/review docs (local only)
 /March2Update/
 /April/
 /brett/
 /email-mockups.html
-/revolut/
+/docs/archive/revolut/
 
 # build files
 /public/build/
@@ -88,9 +94,9 @@ public/mockups/
 public/images/Fyn/Fyn-Brain-Animation.mov
 
 # Temp files (snapshots, prompts, uploads, test artifacts)
-scenario1-before-submit.md
-systemPrompt.md
-fynlaUpload.xlsx
+docs/archive/scenario1-before-submit.md
+docs/archive/systemPrompt.md
+docs/archive/fynlaUpload.xlsx
 test-screenshots/
 
 # Session TODO (local only)
@@ -99,3 +105,12 @@ March/*/CSJTODO.md
 mcp-servers/
 fynlaBrain/
 .smoke-evidence/
+
+# Workforce runtime logs (append-only, machine-local)
+workforce/ops/log/*.log
+
+# Xcode archives and export artifacts (56 MB of DWARF per build)
+ios-native/build/
+
+# Playwright run artifacts
+/test-results/

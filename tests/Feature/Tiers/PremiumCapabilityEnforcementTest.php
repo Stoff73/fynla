@@ -52,6 +52,31 @@ it('does not stop Premium requests at the capability boundary', function (string
     'Letter to Spouse' => ['PUT', '/api/user/letter-to-spouse'],
 ]);
 
+it('does not let the letter financial position outrun the letter itself for a Free user', function () {
+    // `CheckSubscription::READ_ONLY_EXCLUDED_PATHS` contains `api/user/`, and
+    // `isExcludedPath()` short-circuits on any GET BEFORE `checkCapability()`
+    // runs. So the `letter_to_spouse` capability is write-only in practice, and
+    // `GET /api/user/letter-to-spouse` has never been gated either (W-0426).
+    //
+    // That is a product decision about the letter, not about this route. What
+    // this case pins is the property that IS mine to guarantee: the new
+    // financial-position endpoint is **never more permissive than the letter it
+    // belongs to**, whichever way that decision goes. Asserting a flat 403 here
+    // would assert a behaviour the application does not have.
+    $free = User::factory()->create(['tier' => 'free']);
+
+    $letter = $this->actingAs($free, 'sanctum')->getJson('/api/user/letter-to-spouse');
+    $position = $this->actingAs($free, 'sanctum')->getJson('/api/user/letter-to-spouse/financial-position');
+
+    expect($position->status())->toBe($letter->status());
+
+    // And if the letter is ever closed to Free, this must close with it rather
+    // than becoming the way round the gate.
+    if ($letter->status() === 403) {
+        expect($position->json('error'))->toBe($letter->json('error'));
+    }
+});
+
 it('removes detailed expenditure fields from Free responses', function () {
     $free = User::factory()->create([
         'tier' => 'free',

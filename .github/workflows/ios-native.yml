@@ -37,7 +37,11 @@ jobs:
     # PR7 adds a second accessibility-sized closure journey after the full
     # serial UI suite. The first green run completed in 44m28s, so retain a
     # meaningful failure bound without making normal runner variance a red.
-    timeout-minutes: 60
+    # 60 was enough only while the UI tests failed fast and the steps after them
+    # were skipped. Now that they pass, the job runs to the end and needs longer:
+    # the run that proved the keyboard fix reached the production build at ~53
+    # minutes and was cancelled at 60 with the build 7.5 minutes in.
+    timeout-minutes: 90
     env:
       # Xcode 26.4 and 26.5 do not synchronise command-line StoreKit test
       # configurations (FB22237318). GitHub's macOS 26 image retains 26.3.
@@ -88,6 +92,19 @@ jobs:
           udid="$(xcrun simctl create "Fynla CI iPhone 11 ${GITHUB_RUN_ID}" "$device_type_id" "$runtime_id")"
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
           echo "destination=platform=iOS Simulator,id=$udid" >> "$GITHUB_OUTPUT"
+
+          # A simulator created fresh on a fresh runner has the hardware keyboard
+          # connected, so the software keyboard never appears. XCTest then types
+          # into a focused field and the keystrokes go nowhere, and the taps land
+          # on the docked Fyn bar at the bottom of the screen instead — which
+          # opens Fyn over the page and makes everything below it unhittable.
+          # That is the "Not hittable ... Keyboard Focused" failure, and it is why
+          # these tests pass on a developer machine, where the preference persists
+          # as off, and fail only here.
+          defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false
+          /usr/libexec/PlistBuddy \
+            -c "Add :DevicePreferences:${udid}:ConnectHardwareKeyboard bool false" \
+            ~/Library/Preferences/com.apple.iphonesimulator.plist 2>/dev/null || true
 
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b

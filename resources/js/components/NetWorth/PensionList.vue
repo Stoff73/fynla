@@ -13,6 +13,17 @@
 
     <!-- Main Dashboard View -->
     <template v-else>
+      <!-- Retirement target (W-0035). Sits above the tabs, and above the empty
+           state in particular: a user with no pensions yet is exactly who needs to
+           state what they are aiming at before anything is projected for them. -->
+      <RetirementTargetCard
+        v-if="!loading && !error"
+        ref="retirementTarget"
+        :profile="profile"
+        :required-capital="requiredCapital"
+        @save="handleRetirementTargetSave"
+      />
+
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -84,8 +95,16 @@
 
                 <!-- Income Breakdown -->
                 <div class="guaranteed-breakdown">
-                  <!-- DB Pensions Detail -->
-                  <div v-for="pension in dbPensions" :key="'detail-db-' + pension.id" class="guaranteed-item">
+                  <!-- DB Pensions Detail. Clickable for the same reason the CTA row moved
+                       out of the projections branch: this is the only view a Defined
+                       Benefit-only user ever sees, so without it they can neither open,
+                       edit nor delete the pension they just entered (W-0010). -->
+                  <div
+                    v-for="pension in dbPensions"
+                    :key="'detail-db-' + pension.id"
+                    @click="selectPension(pension, 'db')"
+                    class="guaranteed-item guaranteed-item-clickable"
+                  >
                     <div class="guaranteed-item-header">
                       <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
                       <span class="guaranteed-item-name">{{ pension.scheme_name || 'Defined Benefit Pension' }}</span>
@@ -111,7 +130,11 @@
                   </div>
 
                   <!-- State Pension Detail -->
-                  <div v-if="statePension" class="guaranteed-item">
+                  <div
+                    v-if="statePension"
+                    @click="selectPension(statePension, 'state')"
+                    class="guaranteed-item guaranteed-item-clickable"
+                  >
                     <div class="guaranteed-item-header">
                       <span class="badge badge-state">State Pension</span>
                       <span class="guaranteed-item-name">UK State Pension</span>
@@ -136,7 +159,7 @@
                 <!-- Income vs Need -->
                 <div v-if="targetIncome > 0" class="guaranteed-comparison">
                   <div class="comparison-row">
-                    <span>Income Need</span>
+                    <span>{{ targetIncomeIsStated ? 'Income Need' : 'Income Need (worked out for you)' }}</span>
                     <span class="font-semibold">{{ formatCurrency(targetIncome) }}/year</span>
                   </div>
                   <div class="comparison-row" :class="guaranteedIncome >= targetIncome ? 'text-spring-600' : 'text-violet-600'">
@@ -173,11 +196,14 @@
                   <div class="planner-card-metrics">
                     <div class="planner-metric">
                       <span class="planner-metric-label">Target Income</span>
-                      <span class="planner-metric-value">{{ formatCurrency(targetIncome) }}</span>
+                      <span class="planner-metric-value">{{ targetIncomeLabel }}</span>
                     </div>
                     <div class="planner-metric">
                       <span class="planner-metric-label">Projected Gross Income</span>
-                      <span class="planner-metric-value" :class="projectedNetIncome >= targetIncome * 0.9 ? 'green' : 'red'">{{ formatCurrency(projectedNetIncome) }}</span>
+                      <!-- No target means nothing to compare against, so no verdict
+                           colour — green here used to mean "beats the invented
+                           £35,000" (W-0035). -->
+                      <span class="planner-metric-value" :class="targetIncome > 0 ? (projectedNetIncome >= targetIncome * 0.9 ? 'green' : 'red') : ''">{{ formatCurrency(projectedNetIncome) }}</span>
                     </div>
                   </div>
                 </div>
@@ -310,32 +336,6 @@
                   <span>Defined Contribution fund depletes at age {{ fundDepletionAge }}</span>
                 </div>
 
-                <!-- Inline CTAs — moved out of the global SubNavBar. Same format and colours
-                     as the retired SubNavBar CTAs (raspberry primary + bordered secondary). -->
-                <div class="pension-cta-row">
-                  <button
-                    v-preview-disabled="'add'"
-                    type="button"
-                    @click="openCreatePensionForm()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Pension
-                  </button>
-                  <button
-                    v-preview-disabled
-                    type="button"
-                    @click="showUploadModal = true;"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-white text-horizon-500 border border-light-gray hover:bg-savannah-100"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                    </svg>
-                    Upload Statement
-                  </button>
-                </div>
               </div>
 
               <!-- Monte Carlo Chart (right column) -->
@@ -377,6 +377,38 @@
               </div>
               </div>
             </template>
+
+            <!-- Inline CTAs — moved out of the global SubNavBar. Same format and colours
+                 as the retired SubNavBar CTAs (raspberry primary + bordered secondary).
+                 These sit OUTSIDE the projections branches on purpose: they used to live
+                 inside the pension-cards column, which only renders once a Defined
+                 Contribution pension exists — so a user whose only pension was Defined
+                 Benefit had no way to add a Defined Contribution or State Pension, while
+                 the completeness banner on the same page still asked for both (W-0010). -->
+            <div class="pension-cta-row">
+              <button
+                v-preview-disabled="'add'"
+                type="button"
+                @click="openCreatePensionForm()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Pension
+              </button>
+              <button
+                v-preview-disabled
+                type="button"
+                @click="showUploadModal = true;"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-white text-horizon-500 border border-light-gray hover:bg-savannah-100"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                Upload Statement
+              </button>
+            </div>
         </div>
 
       </template>
@@ -458,6 +490,7 @@ import PensionPotProjectionChart from '@/components/Retirement/PensionPotProject
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
+import RetirementTargetCard from '@/components/Retirement/RetirementTargetCard.vue';
 import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrategyCard.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
@@ -478,6 +511,7 @@ export default {
     FutureValueTab,
     RetirementIncomeTab,
     CapitalAdequacyTab,
+    RetirementTargetCard,
     DecumulationStrategyCard,
     ModuleStatusBar,
     LimitReachedModal,
@@ -571,8 +605,28 @@ export default {
       if (this.requiredCapital?.required_income) {
         return this.requiredCapital.required_income;
       }
-      // Fallback to projections or profile
-      return this.projections?.income_drawdown?.target_income || this.profile?.target_retirement_income || 35000;
+      // Fallback to projections or profile. The £35,000 that used to close this
+      // chain was invented — with no target and no projection it was shown as the
+      // user's own figure, and required capital was derived from it (W-0035).
+      return this.projections?.income_drawdown?.target_income || this.profile?.target_retirement_income || 0;
+    },
+
+    /**
+     * Whether the target on screen is one the user stated or one the calculator
+     * derived. 'profile' vs 'calculated' comes from
+     * RequiredCapitalCalculator::getIncomeSource(); the API has always been honest
+     * about it and nothing surfaced the distinction to the user.
+     */
+    targetIncomeIsStated() {
+      return this.requiredCapital?.income_source === 'profile'
+        || Number(this.profile?.target_retirement_income) > 0;
+    },
+
+    targetIncomeLabel() {
+      if (this.targetIncome <= 0) return 'Not set';
+      return this.targetIncomeIsStated
+        ? this.formatCurrency(this.targetIncome)
+        : `${this.formatCurrency(this.targetIncome)} (worked out for you)`;
     },
 
     requiredCapitalValue() {
@@ -716,6 +770,7 @@ export default {
       'createDBPension',
       'updateDBPension',
       'updateStatePension',
+      'updateRetirementGoals',
       'setActiveTab',
     ]),
     ...mapActions('netWorth', ['setDetailView']),
@@ -798,6 +853,33 @@ export default {
       this.openCreatePensionForm();
     },
 
+    /**
+     * W-0035. Every retirement figure on this screen derives from the target, so a
+     * successful save has to pull the whole module back down — leaving required
+     * capital, the projection and capital adequacy showing figures built on the old
+     * target would be worse than showing nothing.
+     */
+    async handleRetirementTargetSave(payload) {
+      try {
+        // The action refreshes required capital and the projections itself, and
+        // swallows failures there — the target is saved either way, and reporting a
+        // refresh timeout as a failed save would have the user retyping a figure the
+        // database already holds.
+        await this.updateRetirementGoals(payload);
+        this.$refs.retirementTarget?.saveSucceeded();
+        this.successMessage = 'Retirement target saved';
+        if (this.successTimeout) clearTimeout(this.successTimeout);
+        this.successTimeout = setTimeout(() => {
+          this.successMessage = null;
+        }, 5000);
+      } catch (error) {
+        logger.error('Failed to save retirement target:', error);
+        // Keeps the form open with the message on it (Rule 3), rather than closing
+        // and letting the user assume it saved.
+        this.$refs.retirementTarget?.saveFailed(error.response?.data?.message);
+      }
+    },
+
     async handlePensionSave(data) {
       const pensionType = data._pensionType;
       delete data._pensionType;
@@ -850,11 +932,16 @@ export default {
     },
 
     async loadProjectionsAndStrategies() {
-      // Don't load projections/strategies if no pensions exist
-      if (this.allPensions.length === 0) {
-        return;
-      }
       try {
+        // Required capital is fetched whether or not a pension exists: it carries
+        // the retirement target and `income_source`, and a user with no pensions is
+        // exactly who needs to see what they are aiming at (W-0035). /m fetches it
+        // unconditionally for the same reason — the two surfaces read one endpoint.
+        if (this.allPensions.length === 0) {
+          await this.fetchRequiredCapital();
+          return;
+        }
+
         // Fetch projections, required capital, and retirement income in parallel
         await Promise.all([
           this.fetchProjections(),
@@ -1390,6 +1477,16 @@ export default {
   padding: 16px;
   border-radius: 8px;
   @apply bg-savannah-100 border border-light-gray;
+}
+
+.guaranteed-item-clickable {
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guaranteed-item-clickable:hover {
+  @apply border-raspberry-300;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .guaranteed-item-header {

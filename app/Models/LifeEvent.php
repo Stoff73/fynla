@@ -82,6 +82,7 @@ class LifeEvent extends Model
         'signed_amount',
         'display_event_type',
         'years_until_event',
+        'has_occurred',
     ];
 
     /**
@@ -167,7 +168,15 @@ class LifeEvent extends Model
     }
 
     /**
-     * Get years until the event occurs.
+     * Get years until the event occurs — negative once the date has passed.
+     *
+     * W-0207: this used to clamp with max(0, …). An event dated 2020 therefore
+     * reported 0 and every surface rendered it as "In 0 years", indistinguishable
+     * from one happening this year. The sign was the only thing carrying "this
+     * has already happened" and the clamp destroyed it at source, so no consumer
+     * could tell the two apart however carefully it read the value.
+     *
+     * The arithmetic for events still to come is unchanged.
      */
     public function getYearsUntilEventAttribute(): ?int
     {
@@ -177,7 +186,42 @@ class LifeEvent extends Model
 
         $diff = now()->startOfYear()->diffInYears($this->expected_date, false);
 
-        return max(0, (int) ceil($diff));
+        return (int) ceil($diff);
+    }
+
+    /**
+     * Has this event already happened?
+     *
+     * The one home for the question (Rule 20). Four surfaces presented life
+     * events as money still to come and not one of them asked this: the goals
+     * projection summary, the module "Upcoming Life Events" panel, the web
+     * events tab and the /m goals screen.
+     *
+     * A date that has passed is enough on its own — status is not sufficient,
+     * because W-0029 deliberately allows a past-dated event to be recorded (a
+     * completed inheritance needs somewhere to go) and nothing obliges the user
+     * to mark it completed afterwards. The persona's confirmed 2020 inheritance
+     * is exactly that: still `expected`, six years after the fact.
+     *
+     * Today counts as still to come — an event dated today has not been
+     * overtaken until the day is out.
+     */
+    public function hasOccurred(): bool
+    {
+        if ($this->status === 'completed') {
+            return true;
+        }
+
+        return $this->expected_date !== null
+            && $this->expected_date->lt(now()->startOfDay());
+    }
+
+    /**
+     * Expose hasOccurred() to every client, so no surface re-derives it.
+     */
+    public function getHasOccurredAttribute(): bool
+    {
+        return $this->hasOccurred();
     }
 
     /**

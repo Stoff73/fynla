@@ -17,10 +17,16 @@
     </button>
     <!-- Divider when sidebar collapsed (icon-only mode) -->
     <div v-else class="mx-3 my-2 border-t border-light-gray"></div>
-    <!-- Collapsible content -->
+    <!-- Collapsible content. `invisible` is load-bearing, not cosmetic: the
+         grid-rows collapse only clips painting, so without it every item in a
+         closed section keeps a full-size layout box, stays in the tab order and
+         stays in the accessibility tree while being invisible and unclickable
+         (W-0209 — 26 nav items, not just one). Transitioning `visibility`
+         alongside the rows keeps the close animation intact: CSS holds
+         `visible` for the whole duration and only flips at the end. -->
     <div
-      class="grid transition-[grid-template-rows] duration-200 ease-out"
-      :class="collapsed || expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
+      class="grid transition-[grid-template-rows,visibility] duration-200 ease-out"
+      :class="collapsed || expanded ? 'grid-rows-[1fr] visible' : 'grid-rows-[0fr] invisible'"
     >
       <div class="overflow-hidden">
         <div class="flex flex-col">

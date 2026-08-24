@@ -100,3 +100,27 @@ it('does not pick up draft or archived articles', function () {
     expect(PipelineArticle::count())->toBe(1);
     Bus::assertDispatchedTimes(ProcessInsightArticleJob::class, 1);
 });
+
+it('enters a Drive-imported draft into the pipeline without waiting for a founder to publish', function () {
+    $imported = InsightArticle::factory()->create([
+        'status' => 'draft',
+        'source_docx_drive_file_id' => '1OZNB-iQ9pXsjmJbP0LpADvzekzD-YsyP',
+        'source_docx_imported_at' => now(),
+    ]);
+
+    $this->artisan('pipeline:detect-new-articles')->assertExitCode(0);
+
+    expect(PipelineArticle::where('insight_article_id', $imported->id)->exists())->toBeTrue();
+    Bus::assertDispatchedTimes(ProcessInsightArticleJob::class, 1);
+});
+
+it('leaves a hand-written CMS draft out of the pipeline', function () {
+    InsightArticle::factory()->create(['status' => 'draft']);
+
+    $this->artisan('pipeline:detect-new-articles')
+        ->expectsOutputToContain('No new articles')
+        ->assertExitCode(0);
+
+    expect(PipelineArticle::count())->toBe(0);
+    Bus::assertNothingDispatched();
+});

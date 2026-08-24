@@ -6,6 +6,7 @@ namespace App\Services\Protection;
 
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
@@ -19,7 +20,8 @@ class CoverageGapAnalyzer
 
     public function __construct(
         private UKTaxCalculator $taxCalculator,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly CrossModuleAssetAggregator $assetAggregator
     ) {}
 
     /**
@@ -44,6 +46,20 @@ class CoverageGapAnalyzer
     /**
      * Calculate debt protection need.
      * Uses ProtectionProfile fields if provided, otherwise pulls from actual records.
+     *
+     * **A protection need is personal, so it is the user's SHARE of each debt.**
+     * This read the whole of every record the user was primary owner of, at 100%:
+     * a joint mortgage charged him his wife's half as well, and a tenants-in-common
+     * mortgage charged him the share belonging to a co-owner who has no account
+     * here at all (W-0187). Counting a third party's debt as cover a user must buy
+     * is the same class of error as putting their share of a property into his
+     * estate, which the property and estate modules already refuse to do.
+     *
+     * Both halves now come from CrossModuleAssetAggregator, the one home for
+     * "what does this user owe" — reach-complete (it picks up a mortgage on a
+     * jointly-owned property even where the user is not the borrower) and
+     * fraction-correct (a share belonging to someone with no account reduces the
+     * user's figure without being credited to anyone).
      */
     public function calculateDebtProtectionNeed(ProtectionProfile $profile): float
     {
@@ -56,16 +72,8 @@ class CoverageGapAnalyzer
             return $mortgageBalance + $otherDebts;
         }
 
-        // Otherwise, pull from actual records
-        $user = $profile->user;
-
-        // Get total mortgage debt from mortgages table
-        $totalMortgageDebt = (float) $user->mortgages()->sum('outstanding_balance');
-
-        // Get total other liabilities from liabilities table
-        $totalOtherDebt = (float) $user->liabilities()->sum('current_balance');
-
-        return $totalMortgageDebt + $totalOtherDebt;
+        // Otherwise, pull from actual records — at the user's share of each.
+        return $this->assetAggregator->calculateLiabilityTotals((int) $profile->user_id)['total'];
     }
 
     /**
@@ -259,20 +267,30 @@ class CoverageGapAnalyzer
         // Total gap is based on total coverage (life + CI), not just allocated amount
         $totalGap = max(0, $totalNeed - $totalCoverage);
 
+        $gapsByCategory = [
+            'human_capital_gap' => $humanCapitalGap,
+            'debt_protection_gap' => $debtGap,
+            'final_expenses_gap' => $finalExpensesGap,
+            'education_funding_gap' => $educationGap,
+            'income_protection_gap' => $incomeProtectionGap,
+            'disability_coverage_gap' => $disabilityGap,
+            'sickness_illness_gap' => $sicknessGap,
+        ];
+
         return [
             'total_need' => $totalNeed,
             'total_coverage' => $totalCoverage,
             'total_coverage_used' => $totalCoverageUsed,
             'total_gap' => $totalGap,
-            'gaps_by_category' => [
-                'human_capital_gap' => $humanCapitalGap,
-                'debt_protection_gap' => $debtGap,
-                'final_expenses_gap' => $finalExpensesGap,
-                'education_funding_gap' => $educationGap,
-                'income_protection_gap' => $incomeProtectionGap,
-                'disability_coverage_gap' => $disabilityGap,
-                'sickness_illness_gap' => $sicknessGap,
-            ],
+            // W-0479 — published here rather than counted by each consumer. Two
+            // dashboards were deriving it from shapes this method has never emitted
+            // (`$gap['gap']` on `/m` and native, `$gap['shortfall']` on web), so both
+            // read ZERO for every household in the application's history — and the
+            // count gates `detectProtectionAdequate()`, which told households with at
+            // least one policy that "your protection now covers what your family would
+            // need". The producer publishes the number; consumers stop guessing.
+            'critical_gap_count' => $this->countCriticalGaps($gapsByCategory, $totalGap),
+            'gaps_by_category' => $gapsByCategory,
             'coverage_allocated' => [
                 'debt_covered' => $debtCovered,
                 'human_capital_covered' => $humanCapitalCovered,
@@ -320,7 +338,7 @@ class CoverageGapAnalyzer
         $spousePermissionDenied = false;
 
         // Check for spouse and track spouse income separately
-        if ($user->spouse_id && $user->marital_status === 'married') {
+        if ($user->liveSpouseId() && $user->marital_status === 'married') {
             // Check if spouse permission is accepted (either direction)
             if ($user->hasAcceptedSpousePermission()) {
                 // Permission granted - track spouse income (REDUCES protection need)
@@ -460,5 +478,43 @@ class CoverageGapAnalyzer
                 'esa_note' => 'Employment and Support Allowance is subject to National Insurance contribution eligibility',
             ],
         ];
+    }
+
+    /**
+     * How many DISTINCT protection gaps this household has. W-0479.
+     *
+     * `disability_coverage_gap` and `sickness_illness_gap` are deliberately not
+     * counted: the comment above their calculation says it outright — "IP is primary;
+     * disability and sickness are supplementary" — and they carry the SAME shortfall
+     * as `income_protection_gap` when there is no separate cover. Counting all three
+     * turns one uncovered income into "3 critical gaps".
+     *
+     * @param  array<string, float|int>  $gapsByCategory
+     */
+    private function countCriticalGaps(array $gapsByCategory, float $totalGap): int
+    {
+        $countable = [
+            'human_capital_gap',
+            'debt_protection_gap',
+            'final_expenses_gap',
+            'education_funding_gap',
+            'income_protection_gap',
+        ];
+
+        $count = 0;
+
+        foreach ($countable as $category) {
+            if (($gapsByCategory[$category] ?? 0) > 0) {
+                $count++;
+            }
+        }
+
+        // A total shortfall with no category above zero is still a gap, and reporting
+        // none would be the same silent under-count this item exists to end.
+        if ($count === 0 && $totalGap > 0) {
+            return 1;
+        }
+
+        return $count;
     }
 }

@@ -93,4 +93,12 @@ return [
         'key' => env('PEXELS_API_KEY'),
     ],
 
+    // Companies House Public Data API — reads statutory filing due dates for a
+    // limited company the user has told us they own. Free key from
+    // https://developer.company-information.service.gov.uk/ (Basic auth: key as
+    // username, blank password). Absent key = feature silently inert.
+    'companies_house' => [
+        'key' => env('COMPANIES_HOUSE_API_KEY'),
+    ],
+
 ];

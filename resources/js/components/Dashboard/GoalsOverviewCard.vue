@@ -68,12 +68,12 @@
                   <span
                     v-if="goal.is_on_track"
                     class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-spring-500"
-                    title="On track"
+                    :title="goal.status_label || 'On track'"
                   ></span>
                   <span
                     v-else
                     class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-violet-500"
-                    title="Behind schedule"
+                    :title="goal.status_label || 'Behind schedule'"
                   ></span>
                 </div>
                 <div class="flex items-center gap-1">

@@ -1,0 +1,146 @@
+<title>Fynla Fix Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F7F6F4; --card:#FFFFFF; --rule:#E7E5E2; --rule-soft:#F1F0EE;
+  --ink:#1F2A44; --ink-2:#4A5568; --muted:#717171;
+  --accent:#E83E6D;
+  --sev-critical:#BE185D; --sev-high:#E83E6D; --sev-medium:#5854E6; --sev-low:#94A3B8;
+  --chip:#FFFFFF; --chip-on:#1F2A44; --chip-on-ink:#FFFFFF;
+  --shadow:0 1px 2px rgba(31,42,68,.06), 0 1px 8px rgba(31,42,68,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0B1120; --card:#161F33; --rule:#26314A; --rule-soft:#1D2740;
+    --ink:#EEF2F8; --ink-2:#B7C0D2; --muted:#8E9AB0;
+    --accent:#F2698F;
+    --sev-critical:#F2578E; --sev-high:#F2698F; --sev-medium:#8C89F0; --sev-low:#7E8CA5;
+    --chip:#1D2740; --chip-on:#EEF2F8; --chip-on-ink:#0B1120;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0B1120; --card:#161F33; --rule:#26314A; --rule-soft:#1D2740;
+  --ink:#EEF2F8; --ink-2:#B7C0D2; --muted:#8E9AB0;
+  --accent:#F2698F;
+  --sev-critical:#F2578E; --sev-high:#F2698F; --sev-medium:#8C89F0; --sev-low:#7E8CA5;
+  --chip:#1D2740; --chip-on:#EEF2F8; --chip-on-ink:#0B1120;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:40px 24px 72px}
+header{display:flex; flex-direction:column; gap:6px; margin-bottom:28px}
+h1{font-size:clamp(28px,4vw,38px); font-weight:900; letter-spacing:-.022em; margin:0; text-wrap:balance}
+.sub{color:var(--muted); font-size:14px}
+.stamp{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px; color:var(--muted); letter-spacing:.01em}
+
+/* summary rail */
+.rail{display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:12px; margin:24px 0 8px}
+.stat{background:var(--card); border:1px solid var(--rule); border-radius:10px; padding:14px 16px; box-shadow:var(--shadow); position:relative; overflow:hidden}
+.stat::before{content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--bar,var(--rule))}
+.stat .n{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; font-size:30px; font-weight:600; line-height:1; letter-spacing:-.02em}
+.stat .k{font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-top:7px; font-weight:600}
+.stat .note{font-size:11.5px; color:var(--muted); margin-top:4px}
+
+.callout{background:var(--card); border:1px solid var(--rule); border-left:3px solid var(--sev-critical); border-radius:10px; padding:14px 18px; margin:20px 0 4px; box-shadow:var(--shadow)}
+.callout h2{margin:0 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--sev-critical); font-weight:700}
+.callout p{margin:0; font-size:14px; color:var(--ink-2)}
+.callout a{color:inherit}
+
+/* controls */
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:28px 0 14px; padding-top:22px; border-top:1px solid var(--rule)}
+.chip{font:inherit; font-size:12.5px; font-weight:500; padding:6px 12px; border-radius:999px; border:1px solid var(--rule); background:var(--chip); color:var(--ink-2); cursor:pointer; transition:background .12s,color .12s,border-color .12s}
+.chip:hover{border-color:var(--sev-low)}
+.chip[aria-pressed="true"]{background:var(--chip-on); color:var(--chip-on-ink); border-color:var(--chip-on)}
+.chip:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+input[type=search]{font:inherit; font-size:13px; padding:6px 12px; border-radius:999px; border:1px solid var(--rule); background:var(--chip); color:var(--ink); min-width:220px; flex:1 1 220px}
+.count{margin-left:auto; font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums}
+
+/* groups + rows */
+.group{margin-top:26px}
+.group>h2{display:flex; align-items:baseline; gap:10px; font-size:12px; text-transform:uppercase; letter-spacing:.09em; margin:0 0 10px; font-weight:700; color:var(--sev)}
+.group>h2 .gn{font-family:"IBM Plex Mono",ui-monospace,monospace; color:var(--muted); font-weight:500; letter-spacing:0}
+.list{display:flex; flex-direction:column; gap:6px}
+details.item{background:var(--card); border:1px solid var(--rule); border-radius:9px; box-shadow:var(--shadow); overflow:hidden}
+details.item[open]{border-color:var(--sev)}
+summary{list-style:none; cursor:pointer; display:grid; grid-template-columns:4px 78px 1fr auto; align-items:start; gap:0 14px; padding:0}
+summary::-webkit-details-marker{display:none}
+.stripe{background:var(--sev); align-self:stretch}
+.rid{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12.5px; font-weight:600; color:var(--sev); padding:12px 0 12px 12px; font-variant-numeric:tabular-nums}
+.rtitle{padding:12px 0; font-size:14px; line-height:1.45; color:var(--ink)}
+.rmeta{display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; padding:11px 14px 11px 0}
+.tag{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:600; padding:3px 8px; border-radius:5px; border:1px solid var(--rule); color:var(--muted); white-space:nowrap}
+.tag.blocked{color:var(--sev-critical); border-color:var(--sev-critical)}
+.tag.gate{color:var(--sev-medium); border-color:var(--sev-medium)}
+.tag.unowned{color:var(--sev-low); border-color:var(--sev-low)}
+.body{padding:0 18px 16px 94px; font-size:13.5px; color:var(--ink-2); border-top:1px solid var(--rule-soft); margin-top:2px; padding-top:12px}
+.body .path{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px; color:var(--muted); margin-top:9px; word-break:break-all}
+.empty{color:var(--muted); font-size:13.5px; padding:22px 2px}
+
+/* handoff */
+.hoff{margin-top:34px; border-top:1px solid var(--rule); padding-top:24px}
+.hoff>details>summary{display:block; padding:0; cursor:pointer}
+.hoff h2{font-size:15px; font-weight:700; margin:0 0 4px}
+.hoff .sub{margin-bottom:12px}
+.hgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:5px; margin-top:14px}
+.hrow{display:grid; grid-template-columns:74px 1fr; gap:9px; font-size:12.5px; padding:6px 9px; border-radius:6px; background:var(--card); border:1px solid var(--rule-soft); align-items:start}
+.hrow .hid{font-family:"IBM Plex Mono",ui-monospace,monospace; font-weight:600; color:var(--sev); font-size:11.5px}
+.hrow .ht{color:var(--ink-2); line-height:1.4}
+footer{margin-top:44px; padding-top:18px; border-top:1px solid var(--rule); font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:6px 20px}
+@media (max-width:640px){
+  .wrap{padding:26px 15px 56px}
+  summary{grid-template-columns:4px 1fr; gap:0 10px}
+  .rid{padding:11px 0 0 11px}
+  .rtitle{padding:3px 12px 10px 11px; grid-column:2}
+  .rmeta{grid-column:2; justify-content:flex-start; padding:0 12px 11px 11px}
+  .body{padding-left:15px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Fynla Fix Queue</h1>
+  <p class="sub">Board items still waiting to be fixed &mdash; not yet started, blocked, or in progress.</p>
+  <p class="stamp" id="stamp"></p>
+</header>
+
+<section class="rail" id="rail"></section>
+<div id="callouts"></div>
+
+<div class="controls">
+  <button class="chip" data-sev="all" aria-pressed="true">All</button>
+  <button class="chip" data-sev="critical" aria-pressed="false">Critical</button>
+  <button class="chip" data-sev="high" aria-pressed="false">High</button>
+  <button class="chip" data-sev="medium" aria-pressed="false">Medium</button>
+  <button class="chip" data-sev="low" aria-pressed="false">Low</button>
+  <button class="chip" data-flag="blocked" aria-pressed="false">Blocked</button>
+  <button class="chip" data-flag="gate" aria-pressed="false">Gated</button>
+  <button class="chip" data-flag="unowned" aria-pressed="false">Unowned</button>
+  <input type="search" id="q" placeholder="Search id or title" aria-label="Search the queue">
+  <span class="count" id="count"></span>
+</div>
+
+<div id="groups"></div>
+
+<div class="hoff">
+  <details>
+    <summary><h2>Fixed, awaiting verification</h2></summary>
+    <p class="sub">These are not in the fix queue &mdash; the work is done and they sit at <code>handoff</code> waiting on quality-lead. A green acceptance list is a moment-in-time claim, so absence of browser evidence on any of these is a prompt to look, not a verdict.</p>
+    <div class="hgrid" id="hgrid"></div>
+  </details>
+</div>
+
+<footer>
+  <span id="f1"></span><span id="f2"></span><span>Source: workforce/ops/board/</span>
+</footer>
+</div>
+
+<script>

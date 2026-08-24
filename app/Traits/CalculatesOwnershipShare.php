@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use App\Exceptions\FinancialCalculationException;
+use App\Models\Mortgage;
+use App\Support\SecuringPropertyResolver;
+use App\Support\SharedOwnership;
+use Illuminate\Support\Collection;
+
 /**
  * Trait for calculating user's share of jointly-owned assets.
  *
@@ -69,21 +75,128 @@ trait CalculatesOwnershipShare
             return $asset->user_id === $userId ? $fullValue : 0.0;
         }
 
-        // Joint or tenants_in_common ownership - use ownership_percentage (default 50)
-        $jointPercentage = $percentage !== 100.0 ? $percentage : 50.0;
-
+        // Joint or tenants_in_common ownership - the stored ownership_percentage IS
+        // the primary owner's share. This used to silently rewrite a stored 100 to 50,
+        // which masked the write-side bug that stored joint assets at 100/0 (W-0014)
+        // and made every non-trait consumer disagree with every trait consumer
+        // (W-0015). SharedOwnership normalises the share on the way IN instead.
         if ($asset->user_id === $userId) {
             // Primary owner gets their ownership_percentage
-            return $fullValue * ($jointPercentage / 100);
+            return $fullValue * ($percentage / 100);
         }
 
         if (($asset->joint_owner_id ?? null) === $userId) {
             // Secondary owner gets the complementary share
-            return $fullValue * ((100 - $jointPercentage) / 100);
+            return $fullValue * (SharedOwnership::jointOwnerPercentage($percentage) / 100);
         }
 
         // User not associated with this asset
         return 0.0;
+    }
+
+    /**
+     * The user's own view of a set of records: the same records, each carrying
+     * THIS user's share in place of the full value.
+     *
+     * A module analysis derives dozens of figures from one collection — a
+     * liquidity ladder, a rate comparison, a deposit-protection exposure. Every
+     * one of them sums the value column, so handing them the raw records charges
+     * the recording owner with the whole of a jointly-held account and shows the
+     * co-owner nothing (W-0238). Applying the share once, here, keeps every
+     * derived figure at the user's fraction without each analyzer learning about
+     * ownership.
+     *
+     * **The returned models are read-only presentation copies.** They are clones
+     * carrying a value the database does not hold, so saving one would write a
+     * half-balance over a whole one. Every consumer of this method must be a pure
+     * reader; nothing here may be persisted.
+     *
+     * @param  iterable<int, object>  $assets
+     * @return Collection<int, object>
+     */
+    protected function atUserShare(iterable $assets, int $userId): Collection
+    {
+        // Keep the caller's collection class. An Eloquent collection of models
+        // maps to an Eloquent collection, which is what the analyzers type-hint;
+        // a bare collect() would hand them a base collection and TypeError.
+        $collection = $assets instanceof Collection ? $assets : collect($assets);
+
+        return $collection->map(function (object $asset) use ($userId): object {
+            $view = clone $asset;
+            $view->{$this->userShareColumn($asset)} = $this->calculateUserShare($asset, $userId);
+
+            return $view;
+        });
+    }
+
+    /**
+     * What proportion of a record belongs to this user, as a multiplier in 0..1.
+     *
+     * For figures that hang off a record without carrying ownership columns of
+     * their own — a holding belongs to an investment account, and the account is
+     * what is jointly held. Asking `calculateUserShare` for the record's value
+     * and dividing would break on a record valued at zero, so this asks the same
+     * question of a unit-valued probe instead. One home, one set of rules; only
+     * the value it is asked about differs.
+     *
+     * **The probe copies the ownership pair and nothing else, so this method is
+     * only sound while a share is a pure function of the columns ON the record.**
+     * A mortgage is not: CSJ's ruling makes its share follow the property
+     * securing it (W-0228), and a probe built here would have discarded
+     * `property_id` — the one field that rule needs — and returned a confidently
+     * wrong fraction with nothing to indicate it. That is why the guard below
+     * throws rather than falling through: a silent wrong share is the failure
+     * mode this whole family of defects is made of.
+     *
+     * @throws FinancialCalculationException when asked about a record whose share
+     *                                       depends on a related record
+     */
+    protected function userShareFraction(object $asset, int $userId): float
+    {
+        if (isset($asset->property_id) || $asset instanceof Mortgage) {
+            throw FinancialCalculationException::invalidInput(
+                'asset',
+                $asset::class,
+                'A mortgage share follows the property securing it (W-0228), not the '
+                .'ownership columns on the mortgage row, so it cannot be answered from '
+                .'a probe. Use calculateUserMortgageShare, which resolves the property.'
+            );
+        }
+
+        $probe = (object) [
+            'user_id' => $asset->user_id ?? null,
+            'joint_owner_id' => $asset->joint_owner_id ?? null,
+            'ownership_type' => $asset->ownership_type ?? 'individual',
+            'ownership_percentage' => $asset->ownership_percentage ?? 100,
+        ];
+
+        // A business interest's percentage is a shareholding and applies even
+        // when individually held, which calculateUserShare detects from these two
+        // fields being present together. The probe has to look like one or the
+        // rule it is asking about would not fire.
+        if (isset($asset->current_valuation, $asset->business_name)) {
+            $probe->current_valuation = 1.0;
+            $probe->business_name = $asset->business_name;
+        } else {
+            $probe->current_value = 1.0;
+        }
+
+        return $this->calculateUserShare($probe, $userId);
+    }
+
+    /**
+     * Which attribute holds the value that a share applies to. Mirrors the
+     * fallback chain in calculateUserShare/getFullValue so the two cannot drift.
+     */
+    private function userShareColumn(object $asset): string
+    {
+        return match (true) {
+            isset($asset->current_value) => 'current_value',
+            isset($asset->current_balance) => 'current_balance',
+            isset($asset->current_valuation) => 'current_valuation',
+            isset($asset->outstanding_balance) => 'outstanding_balance',
+            default => 'current_value',
+        };
     }
 
     /**
@@ -97,25 +210,100 @@ trait CalculatesOwnershipShare
     {
         $fullBalance = (float) ($mortgage->outstanding_balance ?? 0);
 
-        $ownershipType = $mortgage->ownership_type ?? 'individual';
+        return $this->calculateUserMortgageAmountShare($mortgage, $userId, $fullBalance);
+    }
+
+    /**
+     * Calculate the user's share of a mortgage monthly payment.
+     */
+    protected function calculateUserMortgageMonthlyPaymentShare(object $mortgage, int $userId): float
+    {
+        $fullPayment = (float) ($mortgage->monthly_payment ?? 0);
+
+        return $this->calculateUserMortgageAmountShare($mortgage, $userId, $fullPayment);
+    }
+
+    /**
+     * **A debt is shared exactly as the asset securing it is shared** — CSJ's
+     * ruling, 2026-08-22, recorded in full on W-0228. Not open to
+     * re-litigation.
+     *
+     * The docblock that used to sit here said the opposite: *"mortgage liability
+     * follows the mortgage borrower(s), not the ownership percentage recorded on
+     * the linked property."* It was wrong, and it was the load-bearing part —
+     * the code below matched it exactly, so a reviewer checking one against the
+     * other passed it. Deleted rather than corrected, because the rule now lives
+     * in the code as `propertyOwnershipFor()`, not in prose beside it.
+     *
+     * What the mismatch cost, live on one household at once: the property detail
+     * read "Your Mortgage Share (40%) £48,000" while the Mortgage tab read
+     * "Your mortgage liability £60,000" — two figures for one debt, four inches
+     * apart, because the property said tenants-in-common 40% and the mortgage row
+     * said joint 50%.
+     *
+     * **The property is authoritative.** Where a mortgage has no property to
+     * resolve against, the mortgage's own columns are the only information that
+     * exists and are used — stated here so the fallback is not mistaken for the
+     * rule.
+     *
+     * **Accepted limitation (CSJ, knowingly):** this cannot express a mortgage in
+     * one spouse's sole name against a jointly-owned property. Do not add a
+     * borrower-split field to work around it, and do not raise it as a defect.
+     */
+    private function calculateUserMortgageAmountShare(object $mortgage, int $userId, float $fullAmount): float
+    {
+        $securing = $this->propertyOwnershipFor($mortgage);
+
+        $ownershipType = $securing->ownership_type ?? 'individual';
 
         // Individual ownership
         if ($ownershipType === 'individual' || $ownershipType === 'trust') {
-            return $mortgage->user_id === $userId ? $fullBalance : 0.0;
+            return $securing->user_id === $userId ? $fullAmount : 0.0;
         }
 
         // Joint ownership
-        $percentage = (float) ($mortgage->ownership_percentage ?? 50);
+        $percentage = (float) ($securing->ownership_percentage ?? 50);
 
-        if ($mortgage->user_id === $userId) {
-            return $fullBalance * ($percentage / 100);
+        if ($securing->user_id === $userId) {
+            return $fullAmount * ($percentage / 100);
         }
 
-        if (($mortgage->joint_owner_id ?? null) === $userId) {
-            return $fullBalance * ((100 - $percentage) / 100);
+        if (($securing->joint_owner_id ?? null) === $userId) {
+            return $fullAmount * ((100 - $percentage) / 100);
         }
 
         return 0.0;
+    }
+
+    /**
+     * The ownership a mortgage inherits from the property securing it — the ONE
+     * reader for that question (Rule 20).
+     *
+     * Four mechanisms answered it before, and they did not agree:
+     *
+     * | Mechanism | Behaviour |
+     * |---|---|
+     * | `calculateUserMortgageAmountShare` | read the pair off the **mortgage row** — the bug |
+     * | `EstateController::index` | copied the property's pair onto the mortgage — right, and a second implementation |
+     * | `PropertyService::calculateTaxPosition` | its own inline `$ownershipMultiplier` over the property — right, and a third |
+     * | `PropertyService::calculateUserEquity` | its own inline copy again — right, and a fourth |
+     *
+     * All four now compose from this. Nothing here re-derives a share: it
+     * resolves WHICH record the share is read from, and `calculateUserShare`
+     * still answers what the share is.
+     *
+     * The resolution itself lives in `SecuringPropertyResolver`, a container
+     * singleton, because it has to memoise and **a `static` declared in a trait
+     * is per using class** — a dozen services use this trait, so a static here
+     * would be a dozen caches with no single way to clear any of them.
+     *
+     * @return object carrying user_id, joint_owner_id, ownership_type and
+     *                ownership_percentage — the property's where one secures the
+     *                mortgage, the mortgage's own where none does
+     */
+    private function propertyOwnershipFor(object $mortgage): object
+    {
+        return app(SecuringPropertyResolver::class)->for($mortgage);
     }
 
     /**
@@ -151,9 +339,7 @@ trait CalculatesOwnershipShare
      */
     protected function isSharedOwnership(object $asset): bool
     {
-        $ownershipType = $asset->ownership_type ?? 'individual';
-
-        return in_array($ownershipType, ['joint', 'tenants_in_common'], true);
+        return SharedOwnership::isShared($asset->ownership_type ?? 'individual');
     }
 
     /**
