@@ -8,6 +8,20 @@ A comprehensive financial planning web application designed for UK individuals a
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue?logo=mysql)
 
 > **GOLDEN RULE #20 (CSJ, NEVER IGNORE):** every Fyn change — prompt, vocabulary, behaviour, rendering — is made ONCE, in ONE place, for ALL surfaces and paths. If more than one mechanism implements the behaviour, consolidating to one source is PART of the fix. Full text: `CLAUDE.md` Rule 20.
+---
+
+## Quick Stats
+
+| Metric | Count |
+|--------|-------|
+| Vue Components | 677 |
+| PHP Services | 427 |
+| PHP Controllers | 124 |
+| Eloquent Models | 130 |
+| API Endpoints | 600+ |
+| Vuex Store Modules | 35 |
+| Agents | 9 |
+| Test Cases | 5,100+ |
 
 ---
 

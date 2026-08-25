@@ -176,38 +176,15 @@ Present this concise summary to CSJ. No filler.
 - <conflict markers / pending migrations / dirty worktrees / nothing>
 
 **Reminders this session**
-- AGENTS.md and MEMORY.md are loaded — consult before asking
-- Handover above is the authoritative pickup doc — auto-continue from "Pick up from here"
+- CLAUDE.md and MEMORY.md are loaded — consult before asking
+- Handover above is the authoritative pickup doc — do not act past a "decision waiting on user" line without their answer
 - Read individual memory / vault / design files on-demand using the lookup map
 - Browser testing = click, fill, submit, verify result in Playwright
 - Design system: fynlaDesignGuide.md v1.3.0 (read before any UI change)
 - Scope discipline · Honesty · No raw `vite build` · No `migrate:fresh`
 
-**Auto-continuing from handover — Phase 5 starting now.**
+**Ready. What would you like to work on?**
 ```
-
-## Phase 5: Auto-continue (NON-NEGOTIABLE)
-
-After printing the Phase 4 report, **immediately** begin executing the handover's "Pick up from here" / "Next session should" items. **Do not ask permission. Do not check. Just work.** This is CSJ's explicit instruction — the whole point of the context-handover → /clear → session-start chain is that the new instance picks up exactly where the old one left off.
-
-### Behaviour matrix
-
-| Handover state | Action |
-|---|---|
-| Concrete next action ("Run X, fix Y") | Start doing it immediately |
-| Multi-step plan ("Phases 4–7 of plan.md") | Open the plan, find the next unchecked task, start |
-| WIP commit present (`wip: context-handover snapshot`) | Review what's in it via `git show HEAD --stat`, then continue the work it represents |
-| Decision flagged ("Path A or B?") | Surface the decision in the report, then proceed with the most-recent direction-of-travel (look at the WIP commit, the last few commits, the handover's "The thread" section). CSJ will redirect if wrong. |
-| No clear next action | Read more code or run the relevant test to gather context, then propose a next step in one sentence and START it. Don't sit idle asking "what would you like?" |
-
-### Hard rules
-
-- **No "want me to continue?"** — auto-continue is the contract.
-- **No "let me know when you're ready"** — CSJ is ready by virtue of having said `start session`.
-- **No re-asking decisions the previous session already answered.** If "The thread" section shows a decision was made, treat it as final.
-- **If you hit a blocker that genuinely requires CSJ's input** (e.g. credentials, a destructive action, a path the handover explicitly defers), surface it concisely and proceed with whatever investigative work is unblocked while waiting.
-- **Do NOT re-run tests or seed the DB again** — Phase 1c already seeded; running tests is part of the actual work, not bootstrapping.
-- **Loop until correct (AGENTS.md Rule #15)** — if the next action is "make BS-NN green", you loop until green per the plan, no early exit.
 
 ## What NOT to do
 
