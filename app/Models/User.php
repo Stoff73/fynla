@@ -175,7 +175,6 @@ class User extends Authenticatable
         'other_expenditure' => 'decimal:2',
         'rent' => 'decimal:2',
         'utilities' => 'decimal:2',
-        'charitable_bequest' => 'boolean',
         'liabilities_reviewed' => 'boolean',
         'onboarding_completed' => 'boolean',
         'onboarding_skipped_steps' => 'array',

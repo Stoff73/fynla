@@ -328,7 +328,7 @@ class MortgageStore
             // before it ever reaches here, on purpose. A column wider than its
             // rule is only a defect when it refuses something a user can
             // legitimately do — which is why this line changed and that one did not.
-            'rate_type' => 'sometimes|nullable|in:fixed,variable,tracker,discount,mixed',
+            'rate_type' => 'sometimes|nullable|in:fixed,variable,tracker,discount,mixed,capped,offset',
             'original_loan_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'remaining_term_months' => 'sometimes|nullable|integer|min:0|max:600',
             'start_date' => 'sometimes|nullable|date',

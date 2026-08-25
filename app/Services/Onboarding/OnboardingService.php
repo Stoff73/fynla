@@ -259,12 +259,10 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        // Save charitable bequest preference
-        if (isset($data['charitable_bequest'])) {
-            $user->update([
-                'charitable_bequest' => $data['charitable_bequest'],
-            ]);
-        }
+        // W-0221: a second write into `users.charitable_bequest` used to sit here.
+        // The column was read by nothing and has been dropped — a charitable
+        // intention is recorded as a bequest on the will, not as a boolean beside
+        // the family members. Onboarding no longer collects it.
 
         if (! isset($data['family_members']) || ! is_array($data['family_members'])) {
             return;

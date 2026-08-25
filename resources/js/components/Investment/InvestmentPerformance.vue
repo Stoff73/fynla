@@ -94,7 +94,8 @@
             :data="selectedProjectionData"
             title="Portfolio Value"
             :risk-source="portfolioProjection.risk_source"
-            :expected-return="portfolioProjection.expected_return"
+            :expected-return="portfolioProjection.gross_expected_return ?? portfolioProjection.expected_return"
+            :fee-drag-percent="portfolioProjection.fee_drag_percent"
             :risk-level="portfolioProjection.risk_level"
             :life-events="portfolioProjections?.life_events_applied || []"
           />

@@ -601,7 +601,7 @@ MORTGAGE STATEMENT - Extract:
 - original_loan_amount: Original loan amount
 - outstanding_balance: Current balance
 - interest_rate: Current rate as decimal (3.5% = 0.035)
-- rate_type: One of [fixed, variable, tracker, discount, mixed]
+- rate_type: One of [fixed, variable, tracker, discount, mixed, capped, offset]
 - rate_fix_end_date: Fixed rate end date (YYYY-MM-DD) if applicable
 - monthly_payment: Monthly payment amount
 - start_date: Mortgage start date (YYYY-MM-DD)

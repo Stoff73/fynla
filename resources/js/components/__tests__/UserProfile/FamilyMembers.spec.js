@@ -65,7 +65,8 @@ describe('FamilyMembers.vue', () => {
   // W-0132 — the recorded will, as `WillAnalysisService::charitableBequestSummary()`
   // publishes it on the profile this page already loads. Priya Raman's position when
   // the defect was raised: one £10,000 legacy to Cancer Research UK, on an account
-  // whose `users.charitable_bequest` column was NULL.
+  // whose `users.charitable_bequest` column was NULL. That column no longer exists
+  // (W-0221); the will is the only record of the answer.
   const oneFixedLegacy = {
     has_bequests: true,
     count: 1,
@@ -320,6 +321,13 @@ describe('FamilyMembers.vue', () => {
    * The assertion that matters is the CROSS one: the auth user's toggle says false
    * throughout this suite, so a card that still consulted it would fail here even
    * though every figure on the page came from a fixture.
+   *
+   * **W-0221 dropped `users.charitable_bequest`**, so the server can no longer send
+   * that key at all. The decoy below is KEPT deliberately: it is now a hostile value
+   * that could never arrive, which is exactly what makes it a guard on the
+   * COMPONENT. A card rewritten to read `auth.user.charitable_bequest` would get
+   * `undefined`, fall to falsy, and print "No" on a will holding a legacy — the
+   * original defect, reachable without the column.
    */
   describe('the charitable bequest card', () => {
     it('answers from the recorded will, not from the users.charitable_bequest toggle', async () => {

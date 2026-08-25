@@ -50,7 +50,7 @@ class UpdateMortgageRequest extends FormRequest
 
             // Interest
             'interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
-            'rate_type' => ['sometimes', 'nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
+            'rate_type' => ['sometimes', 'nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed', 'capped', 'offset'])],
             'rate_fix_end_date' => ['sometimes', 'nullable', 'date'],
 
             // Mixed rate type fields (fixed vs variable split)

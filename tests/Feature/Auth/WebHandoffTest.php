@@ -176,7 +176,7 @@ it('keeps the destination allowlist in step with the native mirror', function ()
         WebHandoffDestination::cases()
     ))->toBe([
         'admin', 'subscription', 'settings', 'privacy', 'notifications', 'estate_will',
-        'estate_iht',
+        'estate_iht', 'risk_profile',
     ]);
 });
 
@@ -207,4 +207,26 @@ it('rejects a camelCase destination, which is what an unmirrored Swift enum send
     $this->postJson('/api/v1/mobile/web-handoffs', [
         'destination' => 'estateWill',
     ])->assertStatus(422);
+});
+
+// W-0279. `/m` prints the risk engine's conclusion — "Attitude to risk: Balanced" —
+// and has no route to the nine factors behind it, because `resources/mobile/router.js`
+// has no risk route at all. Neither does native. So both hand off to the web screen
+// that holds the breakdown, rather than either surface rebuilding a subset of it.
+it('issues the risk profile handoff neither mobile surface has a screen for', function (): void {
+    $user = User::factory()->create(['is_admin' => false]);
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/v1/mobile/web-handoffs', [
+        'destination' => 'risk_profile',
+    ])->assertCreated()->assertJsonPath('success', true);
+
+    expect(WebHandoff::query()->sole()->destination)
+        ->toBe(WebHandoffDestination::RISK_PROFILE);
+});
+
+// The path is the whole point of the destination: an allowlisted name that lands
+// somewhere else is a handoff to the wrong screen, and nothing above would catch it.
+it('lands the risk profile handoff on the web screen that holds the factor breakdown', function (): void {
+    expect(WebHandoffDestination::RISK_PROFILE->path())->toBe('/risk-profile');
 });
