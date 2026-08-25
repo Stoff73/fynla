@@ -12,9 +12,21 @@ use Carbon\Carbon;
  * MortgageNormaliser — translates upstream ingest shapes into a canonical
  * payload accepted by MortgageStore::create / ::update.
  *
- * Mortgages do NOT support ownership_type=tenants_in_common. The normaliser
- * coerces TIC → joint at the boundary. The store's validateCanonical
- * enforces the enum strictly (rejects TIC at the store layer).
+ * A mortgage row carries only `individual` or `joint`. The normaliser coerces
+ * `tenants_in_common` → `joint` at the boundary and anything else → `individual`;
+ * `MortgageStore::validateCanonical` rejects the rest at the store layer.
+ *
+ * **This is a modelling decision, not a missing feature (W-0162).** Tenants in
+ * common describes how a title is held, not how a debt is held — co-owners of a
+ * tenants-in-common property still borrow jointly. And since W-0228 a mortgage's
+ * share follows the property securing it, so ownership is expressed on the
+ * property and the type here is a borrower label. Storing TIC would make it a
+ * label nothing reads: `SharedOwnership::isShared()` calls it shared while the
+ * seven consumers that test `ownership_type === 'joint'` exactly would read it as
+ * individual and charge 100% of the debt.
+ *
+ * The column still ACCEPTS TIC and `trust` — the enum was widened on 2026-01-17
+ * and is deliberately not narrowed back; see the column's own COMMENT.
  */
 final class MortgageNormaliser
 {
@@ -76,7 +88,8 @@ final class MortgageNormaliser
     {
         $data['user_id'] = $user->id;
 
-        // tenants_in_common → joint coercion (mortgages don't support TIC)
+        // tenants_in_common → joint: a mortgage row is a borrower label, and
+        // co-owners of a tenants-in-common property borrow jointly (W-0162).
         $ownership = $data['ownership_type'] ?? 'individual';
         if ($ownership === 'tenants_in_common') {
             $ownership = 'joint';
