@@ -1,5 +1,5 @@
 ---
-id: W-0487
+id: W-0495
 title: A household with no recorded expenditure is told it has zero months of runway, however much cash it holds
 mission: persona-run-peak_earners-2026-08-20
 owner: build-lead

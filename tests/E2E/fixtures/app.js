@@ -16,7 +16,7 @@ import { register } from '../helpers/auth.js';
  *
  * Written through an init script rather than `context.addCookies()` so it works
  * for contexts built with `browser.newContext()`, which have no `baseURL` to
- * anchor a cookie to. One definition, used by every surface (Rule 20). W-0484.
+ * anchor a cookie to. One definition, used by every surface (Rule 20). W-0492.
  */
 export async function seedCookieConsent(context) {
   await context.addInitScript(() => {

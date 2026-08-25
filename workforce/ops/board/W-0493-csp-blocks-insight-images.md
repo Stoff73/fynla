@@ -1,5 +1,5 @@
 ---
-id: W-0485
+id: W-0493
 title: Content Security Policy blocks every bespoke insight image
 mission: M-0002-persona-fidelity
 owner: build-lead
@@ -74,5 +74,5 @@ If you run E2E against a reused dev server, set `PLAYWRIGHT_BASE_URL` to match
 localhost. That is a note for whoever next takes the shortcut, not a defect.
 
 The real lesson is upstream: this is the third item in one session raised from
-symptoms without first reading the mechanism — with W-0484 and W-0486. See the
+symptoms without first reading the mechanism — with W-0492 and W-0494. See the
 gap noted on those two.

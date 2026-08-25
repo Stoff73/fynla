@@ -26,7 +26,7 @@ it('keeps and registers the complete July Updates corpus on the dev line', funct
         ->filter(fn ($file) => in_array(strtolower($file->getExtension()), ['md', 'patch', 'jpeg', 'png'], true))
         // Emit forward-slash paths to match the register, which is authored that
         // way. getRealPath() returns native separators, so on Windows every path
-        // came back with backslashes and none matched. W-0486.
+        // came back with backslashes and none matched. W-0494.
         ->map(function ($file) use ($root) {
             $real = str_replace(DIRECTORY_SEPARATOR, '/', (string) $file->getRealPath());
             $prefix = str_replace(DIRECTORY_SEPARATOR, '/', $root).'/';

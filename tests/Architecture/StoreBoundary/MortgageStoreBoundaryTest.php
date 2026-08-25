@@ -66,7 +66,7 @@ it('enforces MortgageStore as the only write path for Mortgage', function () {
             // native separators while $dir is built with forward slashes, so on
             // Windows the str_replace matched nothing and $relativePath came out as
             // the prefix glued onto the full absolute path — every file then missed
-            // the allowlist. W-0486.
+            // the allowlist. W-0494.
             $realPath = str_replace(DIRECTORY_SEPARATOR, '/', (string) $file->getRealPath());
             $scanDir = str_replace(DIRECTORY_SEPARATOR, '/', $dir);
             $relativePath = $prefix.ltrim(str_replace($scanDir, '', $realPath), '/');

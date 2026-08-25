@@ -20,7 +20,7 @@ MARKER="${TMPDIR:-/tmp}/fynla-m-parity-${SESSION_ID}"
 
 # Tracked edits, staged edits, and NEW files. Untracked files were previously
 # skipped entirely, which is exactly where new violations land. Deduped because a
-# staged edit otherwise appears twice and every finding was reported twice. W-0483.
+# staged edit otherwise appears twice and every finding was reported twice. W-0491.
 CHANGED_FILES=$( { git diff --name-only HEAD 2>/dev/null
   git diff --cached --name-only 2>/dev/null
   git ls-files --others --exclude-standard 2>/dev/null

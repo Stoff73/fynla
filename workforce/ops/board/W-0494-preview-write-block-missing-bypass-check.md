@@ -1,5 +1,5 @@
 ---
-id: W-0486
+id: W-0494
 title: Four Architecture tests compare native filesystem paths and fail only on Windows
 mission: M-0001-state-truth
 owner: build-lead
@@ -59,7 +59,7 @@ condition under which a real failure goes unnoticed. That is the actual risk, an
 it is why this stays at medium rather than low.
 
 This is the second Windows-portability defect found in the same session, after
-W-0483. The pattern is that tooling written on macOS is not exercised on Windows.
+W-0491. The pattern is that tooling written on macOS is not exercised on Windows.
 
 ## Fix
 

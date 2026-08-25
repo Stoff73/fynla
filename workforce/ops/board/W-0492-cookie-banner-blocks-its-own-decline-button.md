@@ -1,5 +1,5 @@
 ---
-id: W-0484
+id: W-0492
 title: The E2E consent fixture seeds a key nothing reads, so the banner blocks every landing-page test
 mission: M-0002-persona-fidelity
 owner: build-lead
@@ -89,7 +89,7 @@ ESLint clean on both changed files.
   database not named `*_e2e` or `fynla_e2e_*`, and the MySQL account here can only
   create databases matching the `fynla?main` grant wildcard. Runs used
   `PLAYWRIGHT_REUSE_SERVER=1` against the dev server instead, which is why the
-  origin had to be aligned by hand — see W-0485.
+  origin had to be aligned by hand — see W-0493.
 - **The six journey call sites were not executed.** They need registration,
   verification codes and an E2E database, none available here. The substitution is
   mechanical and the key they replaced is read by nothing, so it cannot regress

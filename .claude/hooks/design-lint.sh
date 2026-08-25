@@ -27,7 +27,7 @@ MARKER="${TMPDIR:-/tmp}/fynla-design-lint-${SESSION_ID}"
 
 # Tracked edits, staged edits, and NEW files. Untracked files were previously
 # skipped entirely, which is exactly where new violations land. Deduped because a
-# staged edit otherwise appears twice and every finding was reported twice. W-0483.
+# staged edit otherwise appears twice and every finding was reported twice. W-0491.
 CHANGED_FILES=$( { git diff --name-only HEAD 2>/dev/null
   git diff --cached --name-only 2>/dev/null
   git ls-files --others --exclude-standard 2>/dev/null
@@ -45,7 +45,7 @@ for file in $CHANGED_FILES; do
   case "$file" in
     tests/*|public/*|docs/*|database/*) continue ;;
     # Generated test artefacts. Only reachable since untracked files started being
-    # scanned (W-0483); Playwright's bundled trace viewer contains emoji and would
+    # scanned (W-0491); Playwright's bundled trace viewer contains emoji and would
     # block every stop after an E2E run. Not authored code. W-0201.
     playwright-report/*|test-results/*|coverage/*|storage/*) continue ;;
     tailwind.config.js|resources/css/app.css) continue ;;
@@ -71,7 +71,7 @@ for file in $CHANGED_FILES; do
   # Rule 15 — emoji in source (arrows/checkmarks skipped: too noisy in comments)
   # PHP, not python3: python3 is not a dependency of this repo and resolves to the
   # Microsoft Store stub on Windows, which made this check a silent pass everywhere
-  # it ran without a real python3 on PATH. See W-0483.
+  # it ran without a real python3 on PATH. See W-0491.
   EMOJI=$(php -r '
 $path = $argv[1];
 if (! is_file($path)) { exit(0); }

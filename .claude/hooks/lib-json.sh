@@ -6,7 +6,7 @@
 # emitting their decision. `jq` is not a dependency of this repository and is
 # absent on at least one active development machine, where every emit was
 # discarded and the hooks looked like a clean pass. PHP is a hard dependency, so
-# use that. See W-0483.
+# use that. See W-0491.
 
 # json_field <json> <key> <default>
 json_field() {
