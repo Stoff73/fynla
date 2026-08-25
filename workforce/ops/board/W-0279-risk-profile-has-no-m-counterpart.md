@@ -37,5 +37,4 @@ Flagged, not skipped.
 
 ## Acceptance
 
-A decision: either `/m` gets the factor breakdown, or showing a bare risk level there
-with no explanation is deliberate and recorded as such.
+`/m` gets an explanation that the detailed view is available on the web app, with a log in redirect button for the user, that when clicked takes them to the log in for the web app. This also needs to be the same for the iOS mobile app.
