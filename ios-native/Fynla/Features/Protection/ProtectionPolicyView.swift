@@ -1,11 +1,15 @@
 import SwiftUI
 
 // Transcribes /m's protection policy sub-page (resources/mobile/views/
-// modules/ProtectionPolicy.vue): gradient page hero, Back + Edit details
-// pills, provider identity card, dark cover hero with the premium sub-line,
-// and the Policy details / Coverage / Premium / Important dates /
-// Beneficiaries / Covered conditions cards. Whole-pound amounts; the ×12
-// default annual-premium fallback is /m-parity (ledger P0-5).
+// modules/ProtectionPolicy.vue): gradient page hero, Back pill, provider
+// identity card, dark cover hero with the premium sub-line, and the Policy
+// details / Coverage / Premium / Important dates / Beneficiaries / Covered
+// conditions cards. Whole-pound amounts; the ×12 default annual-premium
+// fallback is /m-parity (ledger P0-5).
+//
+// The Edit details pill sits beside Back, but only for a policy this account
+// owns. A joint-life policy recorded by the spouse reaches here read-only, so
+// the affordance is withheld rather than offered and refused (W-0186/W-0201).
 struct ProtectionPolicyView: View {
     let policyTypeKey: String
     let policyID: Int
@@ -57,7 +61,24 @@ struct ProtectionPolicyView: View {
         policy: ProtectionPolicy,
         offline: Bool = false
     ) -> some View {
-        ScrollView {
+        // A joint-life policy reaching this account through the spouse who recorded
+        // it is read-only here — the write path is scoped to that account, so an
+        // edit request would be refused. Do not offer one (W-0186). `/m` suppresses
+        // it the same way, by returning nil from its contextual-action builder, and
+        // `MobilePageActions` drops the button entirely when this is nil. W-0201.
+        //
+        // Explicitly typed rather than inlined as a ternary: the branches are nil
+        // and a closure, which Swift will not infer a type for on its own.
+        let editAction: (() -> Void)? = policy.isOwnPolicy == false ? nil : {
+            onOpenContextualFyn(
+                FynContextualActions.protectionPolicy(
+                    type: policyTypeKey,
+                    id: policyID
+                )
+            )
+        }
+
+        return ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 MobilePageHero(
                     title: "Protection",
@@ -66,14 +87,7 @@ struct ProtectionPolicyView: View {
 
                 MobilePageActions(
                     onBack: { dismiss() },
-                    editDetails: {
-                        onOpenContextualFyn(
-                            FynContextualActions.protectionPolicy(
-                                type: policyTypeKey,
-                                id: policyID
-                            )
-                        )
-                    }
+                    editDetails: editAction
                 )
 
                 Group {
@@ -176,7 +190,24 @@ struct ProtectionPolicyView: View {
         if policy.inTrust == true {
             rows.append(("Held in trust", "Yes"))
         }
+        // Same rows, same order and same wording as /m's ProtectionPolicy.vue,
+        // including its fallbacks when the spouse's name is absent (Rule 20).
+        // `/m` tests JS truthiness, so an empty string reads as no name there —
+        // `spouseName` reproduces that rather than printing "Yes, with ".
+        if policy.jointLife == true {
+            let name = spouseName(policy)
+            rows.append(("Joint life", name.map { "Yes, with \($0)" } ?? "Yes"))
+        }
+        if policy.isOwnPolicy == false {
+            rows.append(("Recorded by", spouseName(policy) ?? "Your spouse"))
+        }
         return rows
+    }
+
+    /// The other life assured's name, or nil when the API sent none.
+    private func spouseName(_ policy: ProtectionPolicy) -> String? {
+        guard let name = policy.jointLifeWith, !name.isEmpty else { return nil }
+        return name
     }
 
     private func premiumRows(_ policy: ProtectionPolicy) -> [(key: String, value: String)] {

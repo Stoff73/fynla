@@ -44,6 +44,10 @@ for file in $CHANGED_FILES; do
   # Grandfathered / by-design exclusions (Rule 15 forward-only; palette sources define hex)
   case "$file" in
     tests/*|public/*|docs/*|database/*) continue ;;
+    # Generated test artefacts. Only reachable since untracked files started being
+    # scanned (W-0483); Playwright's bundled trace viewer contains emoji and would
+    # block every stop after an E2E run. Not authored code. W-0201.
+    playwright-report/*|test-results/*|coverage/*|storage/*) continue ;;
     tailwind.config.js|resources/css/app.css) continue ;;
     resources/js/constants/designSystem.js|resources/js/constants/goalIcons.js) continue ;;
     resources/js/constants/eventIcons.js|resources/js/constants/eventIconSvgs.js) continue ;;

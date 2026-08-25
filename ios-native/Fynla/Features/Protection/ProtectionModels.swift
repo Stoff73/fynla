@@ -214,6 +214,14 @@ struct ProtectionPolicy: Decodable, Sendable, Equatable, Identifiable {
     let coverageType: String?
     let isMortgageProtection: Bool?
     let inTrust: Bool?
+    // A joint-life policy covers both spouses but is recorded once, on the account
+    // that entered it. `LifeInsurancePolicyResource` sends it to the other life
+    // assured too, with `is_own_policy` false and `joint_life_with` naming the
+    // spouse who holds the contract. Native decoded none of the three, so the
+    // policy arrived looking like an ordinary one of the viewer's own (W-0201).
+    let jointLife: Bool?
+    let isOwnPolicy: Bool?
+    let jointLifeWith: String?
     let policyStartDate: String?
     let policyEndDate: String?
     let policyTermYears: Int?
@@ -236,6 +244,9 @@ struct ProtectionPolicy: Decodable, Sendable, Equatable, Identifiable {
         case coverageType = "coverage_type"
         case isMortgageProtection = "is_mortgage_protection"
         case inTrust = "in_trust"
+        case jointLife = "joint_life"
+        case isOwnPolicy = "is_own_policy"
+        case jointLifeWith = "joint_life_with"
         case policyStartDate = "policy_start_date"
         case policyEndDate = "policy_end_date"
         case policyTermYears = "policy_term_years"
