@@ -17,13 +17,26 @@
         <p class="m-hero-sub">{{ accountCountLabel }}</p>
       </div>
 
-      <!-- Risk profile -->
+      <!--
+        Risk profile.
+
+        W-0279. This card printed the risk engine's CONCLUSION and stopped there.
+        `/m` has no risk route — no equivalent of /risk-profile, /risk-profile/levels
+        or /risk-profile/factor/:factor — so a mobile user was shown an attitude to
+        risk with no way to see which of the nine factors produced it, and no way to
+        correct one that was wrong. The breakdown lives on the web app, so this hands
+        off to it rather than rendering a subset of it — the same shape as the estate
+        screen's Inheritance Tax handoff (W-0469).
+      -->
       <div v-if="riskLabel" class="m-card">
         <p class="m-section-label" style="margin-top:0">Risk profile</p>
         <div class="mi-row">
           <span class="mi-row__label">Attitude to risk</span>
           <span class="mi-row__value">{{ riskLabel }}</span>
         </div>
+        <p class="m-sub" style="margin-top:12px">The nine factors behind this — and how to change any that are wrong — are on the web app.</p>
+        <button type="button" class="m-btn" style="margin-top:16px" @click="openRiskProfileOnWeb">See how this was worked out</button>
+        <p v-if="handoffError" class="m-err" style="margin-top:12px">{{ handoffError }}</p>
       </div>
 
       <!-- Accounts list -->
@@ -75,6 +88,7 @@ import { formatCurrency, accountTypeLabel, isIsaAccount } from './investmentForm
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { upgradeMixin } from '../../mixins/upgrade.js';
+import { issueWebHandoff } from '../../navigation/webHandoff.js';
 // The ONE ownership home, shared with the desktop SPA (Rule 19 + Rule 20).
 // /m has its own bundle but not its own ownership arithmetic.
 import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
@@ -83,7 +97,7 @@ export default {
   name: 'MobileInvestment',
   components: { MobileChrome },
   mixins: [upgradeMixin],
-  data: () => ({ loading: true, error: '', payload: null }),
+  data: () => ({ loading: true, error: '', payload: null, handoffError: '' }),
   computed: {
     accounts() { return this.payload?.accounts || []; },
     // Free-tier cap nudge (5.1). account_limit null = unlimited tier → hide nudge.
@@ -136,6 +150,14 @@ export default {
     holdingCount(a) { return Array.isArray(a.holdings) ? a.holdings.length : 0; },
     openAccount(id) { this.$router.push(`/investment/account/${id}`); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
+    async openRiskProfileOnWeb() {
+      this.handoffError = '';
+      try {
+        await issueWebHandoff('risk_profile');
+      } catch {
+        this.handoffError = 'We could not open the web app just now. Please try again.';
+      }
+    },
     async load() {
       this.loading = true;
       this.error = '';

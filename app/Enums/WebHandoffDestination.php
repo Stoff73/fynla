@@ -16,6 +16,12 @@ enum WebHandoffDestination: string
     // (CSJ decision, 2026-08-23): rather than render a subset of the allowance
     // table it hands off to the web screen that has all of it.
     case ESTATE_IHT = 'estate_iht';
+    // W-0279. `/m` printed the risk engine's CONCLUSION — "Attitude to risk:
+    // Balanced" — with no route to the nine factors behind it, no way to see which
+    // figure produced it, and no way to correct one that is wrong. There is no `/m`
+    // risk route to send anyone to, so it hands off to the web screen that holds the
+    // breakdown, the same shape as ESTATE_IHT directly above.
+    case RISK_PROFILE = 'risk_profile';
 
     public function path(): string
     {
@@ -27,6 +33,7 @@ enum WebHandoffDestination: string
             self::NOTIFICATIONS => '/settings/notifications',
             self::ESTATE_WILL => '/estate/will-builder',
             self::ESTATE_IHT => '/estate/inheritance-tax',
+            self::RISK_PROFILE => '/risk-profile',
         };
     }
 }
