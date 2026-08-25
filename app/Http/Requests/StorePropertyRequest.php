@@ -95,7 +95,7 @@ class StorePropertyRequest extends FormRequest
             'mortgage_interest_only_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_monthly_payment' => ['nullable', 'numeric', 'min:0'],
             'mortgage_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'mortgage_rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
+            'mortgage_rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed', 'capped', 'offset'])],
             'mortgage_fixed_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_variable_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_fixed_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
