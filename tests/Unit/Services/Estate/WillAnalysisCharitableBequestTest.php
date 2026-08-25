@@ -431,7 +431,7 @@ describe('the cached Inheritance Tax calculation notices a new bequest', functio
  */
 describe('charitableBequestSummary — the will answers, not the toggle', function () {
     it('reports a recorded legacy on an account whose toggle was never answered', function () {
-        $user = User::factory()->create(['charitable_bequest' => null]);
+        $user = User::factory()->create();
         charitableBequest($user, 'specific_amount', ['specific_amount' => 10000]);
 
         expect($this->service->charitableBequestSummary($user->fresh()))->toBe([
@@ -443,14 +443,14 @@ describe('charitableBequestSummary — the will answers, not the toggle', functi
     });
 
     it('reports a recorded legacy even where the user answered the toggle No', function () {
-        $user = User::factory()->create(['charitable_bequest' => false]);
+        $user = User::factory()->create();
         charitableBequest($user, 'specific_amount', ['specific_amount' => 10000]);
 
         expect($this->service->charitableBequestSummary($user->fresh())['has_bequests'])->toBeTrue();
     });
 
     it('reports nothing recorded where the user answered the toggle Yes but left no legacy', function () {
-        $user = User::factory()->create(['charitable_bequest' => true]);
+        $user = User::factory()->create();
         Will::create(['user_id' => $user->id, 'has_will' => true]);
 
         expect($this->service->charitableBequestSummary($user->fresh()))->toBe([
@@ -462,7 +462,7 @@ describe('charitableBequestSummary — the will answers, not the toggle', functi
     });
 
     it('reports nothing recorded for a user with no will at all', function () {
-        $user = User::factory()->create(['charitable_bequest' => true]);
+        $user = User::factory()->create();
 
         expect($this->service->charitableBequestSummary($user)['has_bequests'])->toBeFalse();
     });
@@ -518,7 +518,7 @@ describe('charitableBequestSummary — the will answers, not the toggle', functi
      * disagree about the same will — both read `Bequest::isCharitable()`.
      */
     it('agrees with the total the estate calculation deducts', function () {
-        $user = User::factory()->create(['charitable_bequest' => null]);
+        $user = User::factory()->create();
         charitableBequest($user, 'specific_amount', ['specific_amount' => 10000]);
 
         $user = $user->fresh();

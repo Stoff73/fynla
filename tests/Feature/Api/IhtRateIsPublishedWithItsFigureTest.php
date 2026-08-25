@@ -42,7 +42,6 @@ function estateOwnerWithLegacy(?float $legacy): User
         'date_of_birth' => '1968-03-04',
         // Set to the value that would give the WRONG answer if anything still read
         // it: a user who has "said no" but whose will leaves a qualifying legacy.
-        'charitable_bequest' => false,
     ]);
 
     Property::factory()->create([
