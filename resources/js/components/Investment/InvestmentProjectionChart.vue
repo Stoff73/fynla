@@ -28,7 +28,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
 import { EVENT_ICON_SVGS } from '@/constants/eventIconSvgs';
 
