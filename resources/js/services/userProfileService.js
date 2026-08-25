@@ -208,15 +208,9 @@ const userProfileService = {
     return response.data;
   },
 
-  /**
-   * Update charitable bequest preference
-   * @param {boolean} value - Whether user wishes to leave anything to charity
-   * @returns {Promise}
-   */
-  async updateCharitableBequest(value) {
-    const response = await api.put('/user/profile/personal', { charitable_bequest: value });
-    return response.data;
-  },
+  // W-0221: `updateCharitableBequest()` was here. It had no callers, and the
+  // endpoint it posted to wrote a column nothing read. Whether a user leaves
+  // anything to charity is answered from the recorded bequests on their will.
 };
 
 export default userProfileService;

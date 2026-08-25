@@ -9,7 +9,6 @@ use App\Http\Traits\GatesEstateAccess;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
-use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
@@ -256,28 +255,26 @@ class IHTController extends Controller
         }
     }
 
-    /**
-     * Get existing life cover for both spouses
+    /*
+     * W-0343. A private `getExistingLifeCover(User, ?User)` sat here, summing each
+     * side's in-trust policies with a raw `where('user_id')` query. **Nothing called
+     * it** — the name appeared once in this file, at its own declaration.
+     *
+     * Deleted rather than wired up, because the question already has an owner and a
+     * live answer. `LifeCoverReach::householdCoverInTrust()` owns it (W-0186);
+     * `EstateAgent:140` calls it and publishes `life_cover.user_cover_in_trust`,
+     * `spouse_cover_in_trust` and `total_cover_in_trust`, which
+     * `EstatePlanService:636,871` read. Checked before deleting: this was a leftover,
+     * not an omission — no figure the estate response was supposed to carry went
+     * missing with it.
+     *
+     * **If you need a household in-trust cover figure in this controller, call
+     * `LifeCoverReach`. Do not re-derive it here.** The deleted copy was already
+     * wrong in two ways the owner handles: a raw `user_id` query misses a joint-life
+     * policy the spouse is also assured under (W-0186), and it bypassed the
+     * live/reciprocal spouse gate (W-0278), so it would have disclosed a deleted
+     * partner's in-trust cover.
      */
-    private function getExistingLifeCover(User $user, ?User $spouse): array
-    {
-        $userLifeCover = LifeInsurancePolicy::where('user_id', $user->id)
-            ->where('in_trust', true)
-            ->sum('sum_assured');
-
-        $spouseLifeCover = 0;
-        if ($spouse) {
-            $spouseLifeCover = LifeInsurancePolicy::where('user_id', $spouse->id)
-                ->where('in_trust', true)
-                ->sum('sum_assured');
-        }
-
-        return [
-            'user' => $userLifeCover,
-            'spouse' => $spouseLifeCover,
-            'total' => $userLifeCover + $spouseLifeCover,
-        ];
-    }
 
     /**
      * Store or update IHT profile for the authenticated user

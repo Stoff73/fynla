@@ -76,7 +76,12 @@ class UpdatePersonalInfoRequest extends FormRequest
             // Not nullable: `users.smoking_status` is NOT NULL DEFAULT 'never'.
             'smoking_status' => ['sometimes', Rule::in(ProfileEnums::SMOKING_STATUSES)],
             'education_level' => ['sometimes', 'nullable', Rule::in(ProfileEnums::EDUCATION_LEVELS)],
-            'charitable_bequest' => ['sometimes', 'nullable', 'boolean'],
+            // W-0221: `charitable_bequest` was accepted here and written to a column
+            // nothing read — the endpoint returned success and discarded the answer.
+            // The column is dropped; whether a user leaves anything to charity is
+            // answered from the recorded bequests on their will, which is the
+            // instrument. Do not re-add this rule: it is the shape that lets a
+            // fourth mechanism grow back.
             'is_registered_blind' => ['nullable', 'boolean'],
             'life_expectancy_override' => ['sometimes', 'nullable', 'integer', 'min:60', 'max:110'],
             'monthly_expenditure' => ['sometimes', 'nullable', 'numeric', 'min:0'],

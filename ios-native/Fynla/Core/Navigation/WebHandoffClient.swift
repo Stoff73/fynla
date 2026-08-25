@@ -25,6 +25,10 @@ enum WebHandoffDestination: String, Codable, CaseIterable, Sendable {
     /// rather than rendering a subset of it; native mirrors that destination so
     /// the two mobile surfaces do not diverge on where the detail lives.
     case estateIht = "estate_iht"
+    /// W-0279. Both mobile surfaces show the risk engine's conclusion and neither
+    /// has a screen for the nine factors behind it, so the breakdown lives on the
+    /// web app and both hand off to it.
+    case riskProfile = "risk_profile"
 }
 
 private struct WebHandoffResponse: Decodable, Sendable {

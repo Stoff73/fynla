@@ -28,7 +28,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
 import { EVENT_ICON_SVGS } from '@/constants/eventIconSvgs';
 
@@ -58,6 +58,12 @@ export default {
       default: null,
     },
     expectedReturn: {
+      type: Number,
+      default: null,
+    },
+    // W-0008: the annual charge deducted from expectedReturn to produce the projection.
+    // Stated separately so the caption cannot appear to blame the risk profile for it.
+    feeDragPercent: {
       type: Number,
       default: null,
     },
@@ -125,6 +131,12 @@ export default {
 
       const levelDisplay = this.formatRiskLevel(this.riskLevel);
       const formattedReturn = Number(this.expectedReturn).toFixed(2);
+      const fees = Number(this.feeDragPercent) || 0;
+
+      if (fees > 0) {
+        return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return, less ${fees.toFixed(2)}% in charges)`;
+      }
+
       return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return)`;
     },
 

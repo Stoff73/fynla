@@ -517,6 +517,15 @@
                   <option value="tracker">Tracker</option>
                   <option value="discount">Discount</option>
                   <option value="mixed">Mixed</option>
+                  <!--
+                    W-0328. Both are real UK products the column could not hold until
+                    2026-08-25. Recorded as the type only: the payment, balance and
+                    rate a user enters already reflect their actual arrangement, so
+                    deriving an offset benefit here would put a second mechanism
+                    against a figure they have already stated.
+                  -->
+                  <option value="capped">Capped</option>
+                  <option value="offset">Offset</option>
                 </select>
               </div>
             </div>
