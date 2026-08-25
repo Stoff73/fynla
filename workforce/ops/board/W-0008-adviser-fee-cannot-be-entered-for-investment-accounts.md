@@ -4,7 +4,7 @@ title: Adviser fee cannot be entered for investment accounts — displayed and c
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: queued
+status: handoff
 surfaces: [web, m, ios]
 created: 2026-08-20T22:26:00Z
 claimed: 2026-08-21T10:30:00Z
@@ -104,16 +104,19 @@ Report: `reports/R-01-pass-a-entry.md`.
 
 ## Acceptance
 
-- [ ] The investment account form (add and edit) accepts an adviser fee, matching the
+- [x] The investment account form (add and edit) accepts an adviser fee, matching the
       pattern already used in `DCPensionForm.vue:275`.
-- [ ] `StoreInvestmentAccountRequest` and `UpdateInvestmentAccountRequest` validate
+- [x] `StoreInvestmentAccountRequest` and `UpdateInvestmentAccountRequest` validate
       `advisor_fee_percent` (same rule shape as `StoreDCPensionRequest.php:68`).
-- [ ] Entering 0.75 persists `advisor_fee_percent = 0.7500` and the value appears in
+- [x] Entering 0.75 persists `advisor_fee_percent = 0.7500` and the value appears in
       `FeeBreakdown.vue` and `InvestmentProjections.vue`.
-- [ ] Fee-drag and net-of-fee projections change accordingly (verify the projected
+- [x] Fee-drag and net-of-fee projections change accordingly (verify the projected
       value moves down, by roughly the right magnitude).
-- [ ] `/m` and iOS equivalents accept and display it (Rule 19).
-- [ ] Re-verified live in the browser by the persona run.
+- [ ] `/m` and iOS equivalents accept and display it (Rule 19). **`/m` has no investment
+      account form and no investment projection surface — nothing to display it on. iOS
+      NOT checked.** See working note 2026-08-25.
+- [ ] Re-verified live in the browser by the persona run. **Verified live in the browser
+      by this session on both surfaces; the persona run itself has not re-run.**
 
 ## Working notes
 
@@ -159,3 +162,99 @@ Report: `reports/R-01-pass-a-entry.md`.
     there. iOS outside this dispatch.
 
 - 2026-08-21 build-lead: batch handover (CLAUDE.md Rule 22) — `workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md`. Carries the dispatch verbatim, the joint-share consolidation reasoning, decisions taken, dead ends ruled out, and environment state.
+
+- 2026-08-25 (Brett, working alone per CSJ's 2026-08-24 standing instruction):
+  **the rejected criterion is now met — the fee reaches the projection, and it is
+  worth £8,329 on David's ISA at ten years.**
+
+  **Root cause — it was never only the adviser fee.** `InvestmentProjectionService`
+  contained no reference to a fee of any kind in 522 lines. All four of its Monte
+  Carlo call sites drove the simulation with `$riskParams['expected_return_typical']
+  / 100`, the gross risk-derived return:
+
+  - `:190` `calculatePortfolioProjection`
+  - `:258` `calculateAccountProjection`
+  - `:403` `getAccountProjectedValue80`
+  - `:462` `buildAccountProjection`
+
+  So the platform fee and the fund OCF were equally uncharged. The frontend's
+  `totalFeePercent` (`InvestmentProjections.vue:658`) is display-only — the chart's
+  numbers come from the backend — which is how the account screen could print
+  "Total Fees 1.72%" directly above a chart compounding the full 8%.
+
+  **Proved before fixing, on account 125 (Sarah's HL ISA, the persona case):**
+  setting `advisor_fee_percent` to 0.75 or to 0 produced projections identical to
+  the penny — `p20 = 209,917.60` and `p50 = 259,191.05` both ways, delta £0.00.
+
+  **CSJ decision needed? No — asked and answered by Brett 2026-08-25:** deduct
+  **total fees** (platform + adviser + weighted OCF), not the adviser fee alone.
+  Deducting only the adviser fee would have left the projection contradicting the
+  fee card on the same screen.
+
+  **Fix — one home, four consumers.** `InvestmentProjectionService::annualFeePercent()`
+  is the single deduction; all four call sites read it, so a fifth cannot be added
+  that forgets a fee. Helpers `platformFeePercent()` (converts a fixed charge against
+  the account it is charged on, mirroring the Vue computed of the same name) and
+  `weightedOcfPercent()`. `weightedPortfolioFeePercent()` weights each account's fee
+  by that account's share, weighted exactly as the portfolio's risk parameters are
+  directly below it — so the existing "single-account portfolio equals that account"
+  test still holds. Pattern taken from `PensionProjector.php:53-67`, which has charged
+  its fees this way all along.
+
+  **`ocf_percent`, not `ocf`.** The `CalculatesOCF` trait reads `ocf` and *estimates*
+  from the asset type when it is null — right for the fee analysis it serves, wrong
+  here. On account 125 `ocf` is NULL while `ocf_percent` is 0.2200, so the trait would
+  have charged an estimate the user never saw. The trait is untouched.
+
+  **The caption.** `expected_return` now carries the return the projection was
+  actually run at, with `gross_expected_return` and `fee_drag_percent` beside it.
+  D-21 was a caption that moved while the figure did not; a caption stating the gross
+  return over a chart compounding the net one is that fault inverted. The chart
+  caption now reads "Using High risk profile (7.59% expected return, less 1.40% in
+  charges)" — `InvestmentProjectionChart.vue` gained a `feeDragPercent` prop so the
+  deduction cannot appear to be blamed on the risk profile.
+
+  **Measured — live browser, preview persona `peak_earners`, David's view:**
+
+  | Surface | Before (fees ignored) | After (fees charged) | Movement |
+  |---|---|---|---|
+  | Portfolio, 10y p20 | £404,771 @ 7.59% | **£382,833** @ 6.19% | −£21,938 (−5.42%) |
+  | David's HL ISA, 10y p20 | £202,339 @ 8.00% | **£182,938** @ 6.28% | −£19,400 |
+
+  Both "after" figures are the ones **rendered on screen**, not computed alongside it.
+  The account screen's fee card reconciles with the deduction: 0.45 platform + 0.75
+  adviser + 0.52 OCF = **1.72%**, and the portfolio's value-weighted drag is 1.3981%,
+  displayed as 1.40%. The "before" figures were measured inside a rolled-back
+  transaction; persona data verified restored afterwards.
+
+  **Isolating this item's own figure:** removing just the 0.75% adviser fee from
+  David's ISA moves 10y p20 from £182,938 to £191,267 — **the adviser fee is worth
+  £8,329.**
+
+  **Blast radius, deliberate and stated.** `getAccountProjectedValue80` feeds
+  `RetirementIncomeService` at 8 sites and `getPortfolioProjections` feeds
+  `IHTCalculationService:1412`. Both are now net of fees, which is correct and matches
+  what the pension side already did — but every user's investment projection drops.
+  This is a visible change to a financial figure across the product.
+
+  **Tests.** New `tests/Feature/Investment/ProjectionIsNetOfFeesTest.php` — 10 tests,
+  movement/ordering/magnitude assertions only, no literals, per the convention in
+  `PortfolioProjectionRespondsToInputsTest`. Confirmed RED before the fix (the
+  portfolio case failed "159019.86 is less than 159019.86"). Green after, together
+  with Investment (322), Retirement (176), Estate (495) and every other suite
+  referencing `expected_return` (77) — **1,080 tests, 3,634 assertions.** Pint clean.
+
+  **GAPS — carried forward honestly:**
+  - **iOS NOT checked.** Not built, not launched, not looked at.
+  - **`/m`: nothing to verify.** It has no investment account form and no investment
+    projection consumer (`grep` over `resources/mobile/` returns zero). The backend is
+    shared, so if a projection surface is ever built there it inherits the fix.
+  - **The full suite was not run** — targeted suites only, per Rule 17.
+  - **Adjacent, NOT fixed (reported, not touched):** "total fee percent" is now defined
+    twice — `InvestmentProjections.vue:658` for display and `annualFeePercent()` for the
+    projection. They agree today and are pinned by tests on the backend side only.
+    Rule 20 would want one home with the backend sending the figure; that is a
+    frontend refactor beyond this item.
+  - **Environment, unrelated:** `php artisan route:list` throws
+    `AppleVerificationException: invalid_configuration` on this machine (missing
+    `.venv/apple-store`). Does not affect the running app.

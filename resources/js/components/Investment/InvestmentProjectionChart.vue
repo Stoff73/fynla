@@ -61,6 +61,12 @@ export default {
       type: Number,
       default: null,
     },
+    // W-0008: the annual charge deducted from expectedReturn to produce the projection.
+    // Stated separately so the caption cannot appear to blame the risk profile for it.
+    feeDragPercent: {
+      type: Number,
+      default: null,
+    },
     riskLevel: {
       type: String,
       default: null,
@@ -125,6 +131,12 @@ export default {
 
       const levelDisplay = this.formatRiskLevel(this.riskLevel);
       const formattedReturn = Number(this.expectedReturn).toFixed(2);
+      const fees = Number(this.feeDragPercent) || 0;
+
+      if (fees > 0) {
+        return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return, less ${fees.toFixed(2)}% in charges)`;
+      }
+
       return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return)`;
     },
 

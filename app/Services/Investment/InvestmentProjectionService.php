@@ -76,6 +76,105 @@ class InvestmentProjectionService
     }
 
     /**
+     * The annual charge on an account, in percentage points of the return it earns.
+     *
+     * W-0008: every projection this class produces was driven by the gross risk-derived
+     * return, so an entered adviser fee — and equally the platform fee and the fund OCF —
+     * changed nothing about the figure it was entered against. The fee card could read
+     * "total 1.42%" directly above a chart compounding the full gross return.
+     *
+     * This is the one home for that deduction; all four simulation call sites read it,
+     * so a fifth cannot be added that forgets a fee. The three components are the same
+     * ones InvestmentProjections.vue already sums for its "Total Fees" figure, so the
+     * chart and the card above it now describe the same account. The pension side has
+     * charged its fees this way since PensionProjector::projectDCPension().
+     */
+    private function annualFeePercent(InvestmentAccount $account): float
+    {
+        return $this->platformFeePercent($account)
+            + (float) ($account->advisor_fee_percent ?? 0)
+            + $this->weightedOcfPercent($account);
+    }
+
+    /**
+     * The platform fee as a percentage, converting a fixed charge against the account
+     * it is charged on. Mirrors InvestmentProjections.vue's platformFeePercent().
+     */
+    private function platformFeePercent(InvestmentAccount $account): float
+    {
+        $value = (float) ($account->current_value ?? 0);
+
+        if (($account->platform_fee_type ?? 'percentage') !== 'fixed') {
+            return (float) ($account->platform_fee_percent ?? 0);
+        }
+
+        if ($value <= 0) {
+            return 0.0;
+        }
+
+        $amount = (float) ($account->platform_fee_amount ?? 0);
+        $annualAmount = match ($account->platform_fee_frequency ?? 'annually') {
+            'monthly' => $amount * 12,
+            'quarterly' => $amount * 4,
+            default => $amount,
+        };
+
+        return ($annualAmount / $value) * 100;
+    }
+
+    /**
+     * Value-weighted OCF across an account's holdings, as a percentage.
+     *
+     * Reads `ocf_percent`, the column the form writes and the fee card displays. The
+     * CalculatesOCF trait reads `ocf` and estimates from the asset type when it is null,
+     * which is the right behaviour for the fee ANALYSIS it serves and the wrong one
+     * here: a projection must charge the fee the user actually recorded, not an
+     * estimate they never saw.
+     */
+    private function weightedOcfPercent(InvestmentAccount $account): float
+    {
+        $holdings = $account->holdings;
+
+        if ($holdings === null || $holdings->isEmpty()) {
+            return 0.0;
+        }
+
+        $totalValue = (float) $holdings->sum(fn ($holding) => (float) ($holding->current_value ?? 0));
+
+        if ($totalValue <= 0) {
+            return 0.0;
+        }
+
+        $weighted = 0.0;
+        foreach ($holdings as $holding) {
+            $weighted += (float) ($holding->current_value ?? 0) * (float) ($holding->ocf_percent ?? 0);
+        }
+
+        return $weighted / $totalValue;
+    }
+
+    /**
+     * The portfolio's annual charge: each account's fee weighted by that account's
+     * share of the portfolio. Weighted the same way as the portfolio's risk parameters
+     * directly below, so a single-account portfolio still answers exactly as that
+     * account does.
+     */
+    private function weightedPortfolioFeePercent(Collection $accounts, int $userId, float $totalValue): float
+    {
+        if ($totalValue <= 0) {
+            return 0.0;
+        }
+
+        $weightedFee = 0.0;
+        foreach ($accounts as $account) {
+            $weight = $this->getUserShareValue($account, $userId) / $totalValue;
+            $weightedFee += $weight * $this->annualFeePercent($account);
+        }
+
+        return $weightedFee;
+    }
+
+    /**
      * Get complete portfolio projections with account breakdowns.
      * Results are cached for 24 hours via MonteCarloSimulator.
      */
@@ -170,6 +269,11 @@ class InvestmentProjectionService
         $riskLevel = $this->determineRiskLevel($riskParams['expected_return_typical']);
         $riskSource = $riskResult['source'];
 
+        // W-0008: the portfolio earns its return net of what its accounts are charged.
+        $grossReturn = $riskParams['expected_return_typical'];
+        $feeDragPercent = $this->weightedPortfolioFeePercent($accounts, $user->id, $totalValue);
+        $netReturn = $grossReturn - $feeDragPercent;
+
         // Build life event cash flow maps and event hash for cache differentiation
         $eventHash = $this->lifeEventCashFlowService->getEventHash($user->id, 'investment');
 
@@ -190,7 +294,7 @@ class InvestmentProjectionService
             $simulation = $this->simulator->simulate(
                 $totalValue,
                 $monthlyContribution,
-                $riskParams['expected_return_typical'] / 100,
+                $netReturn / 100,
                 $riskParams['volatility'] / 100,
                 $years,
                 self::MONTE_CARLO_ITERATIONS,
@@ -223,7 +327,13 @@ class InvestmentProjectionService
             'estimated_monthly_contribution' => round($monthlyContribution, 2),
             'risk_level' => $riskLevel,
             'risk_source' => $riskSource,
-            'expected_return' => $riskParams['expected_return_typical'],
+            // `expected_return` is the return the projection above was actually run at.
+            // D-21 was a caption that moved while the figure did not; a caption stating
+            // the gross return over a chart compounding the net one is the same fault
+            // inverted. The components are reported beside it rather than in place of it.
+            'expected_return' => $netReturn,
+            'gross_expected_return' => $grossReturn,
+            'fee_drag_percent' => $feeDragPercent,
             'volatility' => $riskParams['volatility'],
             'projections' => $projections,
             'account_count' => $accounts->count(),
@@ -248,6 +358,11 @@ class InvestmentProjectionService
 
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
+        // W-0008: charge the account's own fees against the return it earns.
+        $grossReturn = $riskParams['expected_return_typical'];
+        $feeDragPercent = $this->annualFeePercent($account);
+        $netReturn = $grossReturn - $feeDragPercent;
+
         $projections = [];
         foreach ($periods as $years) {
             // Build cache key for account projection (only if no override)
@@ -258,7 +373,7 @@ class InvestmentProjectionService
             $simulation = $this->simulator->simulate(
                 $value,
                 $monthlyContribution,
-                $riskParams['expected_return_typical'] / 100,
+                $netReturn / 100,
                 $riskParams['volatility'] / 100,
                 $years,
                 self::MONTE_CARLO_ITERATIONS,
@@ -294,7 +409,9 @@ class InvestmentProjectionService
             'estimated_monthly_contribution' => round($monthlyContribution, 2),
             'risk_level' => $riskLevel,
             'risk_source' => $riskSource,
-            'expected_return' => $riskParams['expected_return_typical'],
+            'expected_return' => $netReturn,
+            'gross_expected_return' => $grossReturn,
+            'fee_drag_percent' => $feeDragPercent,
             'volatility' => $riskParams['volatility'],
             'projections' => $projections,
         ];
@@ -400,10 +517,15 @@ class InvestmentProjectionService
         // Cache key for this projection
         $cacheKey = "user_{$user->id}_account_{$account->id}_{$years}y_p20";
 
+        // W-0008: net of fees, like every other projection this class produces. This
+        // one feeds RetirementIncomeService, so a fee left uncharged here inflated the
+        // retirement income the account was said to support.
+        $netReturn = $riskParams['expected_return_typical'] - $this->annualFeePercent($account);
+
         $simulation = $this->simulator->simulate(
             $value,
             $monthlyContribution,
-            $riskParams['expected_return_typical'] / 100,
+            $netReturn / 100,
             $riskParams['volatility'] / 100,
             $years,
             self::MONTE_CARLO_ITERATIONS,
@@ -452,6 +574,11 @@ class InvestmentProjectionService
 
         $riskParams = $this->riskService->getReturnParameters($riskLevel);
 
+        // W-0008: charge the account's own fees against the return it earns.
+        $grossReturn = $riskParams['expected_return_typical'];
+        $feeDragPercent = $this->annualFeePercent($account);
+        $netReturn = $grossReturn - $feeDragPercent;
+
         $projections = [];
         foreach ($periods as $years) {
             // Cache key - null if there's an override (what-if scenario)
@@ -462,7 +589,7 @@ class InvestmentProjectionService
             $simulation = $this->simulator->simulate(
                 $value,
                 $monthlyContribution,
-                $riskParams['expected_return_typical'] / 100,
+                $netReturn / 100,
                 $riskParams['volatility'] / 100,
                 $years,
                 self::MONTE_CARLO_ITERATIONS,
@@ -498,7 +625,9 @@ class InvestmentProjectionService
             'estimated_monthly_contribution' => round($monthlyContribution, 2),
             'risk_level' => $riskLevel,
             'risk_source' => $riskSource,
-            'expected_return' => $riskParams['expected_return_typical'],
+            'expected_return' => $netReturn,
+            'gross_expected_return' => $grossReturn,
+            'fee_drag_percent' => $feeDragPercent,
             'volatility' => $riskParams['volatility'],
             'projections' => $projections,
         ];
