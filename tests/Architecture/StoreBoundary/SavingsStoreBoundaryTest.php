@@ -143,7 +143,11 @@ arch('SavingsAccount mutations and reads only happen inside the savings canonica
         'App\Services\Documents\FieldMappers\SavingsAccountMapper',
         'App\Services\Eval\EvalHttpDriver',
         'App\Services\NetWorth\NetWorthService',
-        'App\Services\Risk\AutoRiskCalculator',
+        // App\Services\Risk\AutoRiskCalculator was removed 2026-08-25 (W-0277).
+        // W-0271 took its last SavingsAccount reference away — it reads cash
+        // through CrossModuleAssetAggregator, which reads through this store, so
+        // it is an ordinary consumer and needs no bypass. Verified: zero
+        // SavingsAccount references remain in that class.
     ]);
 
 arch('App\Services\Stores classes use strict types')

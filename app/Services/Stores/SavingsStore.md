@@ -52,7 +52,11 @@ Read-only or framework-infra usages kept allowlisted; a future sub-project may r
 - `App\Services\Documents\DocumentTypeDetector`, `FieldMappers\SavingsAccountMapper`
 - `App\Services\Eval\EvalHttpDriver`
 - `App\Services\NetWorth\NetWorthService`
-- `App\Services\Risk\AutoRiskCalculator`
+
+`App\Services\Risk\AutoRiskCalculator` was removed from this list on 2026-08-25
+(W-0277). W-0271 took its last `SavingsAccount` reference away — it reads cash
+through `CrossModuleAssetAggregator`, which reads through this store, so it is an
+ordinary consumer and needs no exemption.
 
 Adding a new direct-model consumer requires either routing through the store (preferred) or adding to this allowlist with written justification.
 
