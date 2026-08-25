@@ -4,7 +4,8 @@ title: The risk profile has no /m counterpart, while the risk level it produces 
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: product-lead
-status: handoff
+status: done
+certification: CERTIFIED 2026-08-25 quality-lead — see ops/handoffs/quality-lead/pr716-certification-2026-08-25.md; merged to dev in 88e9d08ce (PR #716)
 severity: low
 surfaces: [m]
 created: 2026-08-22T22:10:00Z

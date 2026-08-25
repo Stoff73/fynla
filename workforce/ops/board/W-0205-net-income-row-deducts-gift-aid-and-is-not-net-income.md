@@ -4,7 +4,8 @@ title: The row labelled "Net Income" deducts the Gift Aid gross-up, which net in
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0020-cycle2-auditability-figures-the-user-cannot-check.md
 owner: brett-2026-08-25
-status: handoff
+status: done
+certification: CERTIFIED 2026-08-25 quality-lead — see ops/handoffs/quality-lead/pr716-certification-2026-08-25.md; merged to dev in 88e9d08ce (PR #716)
 severity: low
 surfaces: [web]
 created: 2026-08-22T07:26:00Z
