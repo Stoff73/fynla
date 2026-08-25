@@ -4,7 +4,8 @@ title: The mortgages enum accepts tenants_in_common but nothing downstream under
 mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: brett-2026-08-25
-status: handoff
+status: done
+certification: CERTIFIED 2026-08-25 quality-lead — see ops/handoffs/quality-lead/pr716-certification-2026-08-25.md; merged to dev in 88e9d08ce (PR #716)
 severity: low
 surfaces: [web, m, ios]
 source: found by fix-batch-F while fixing W-0172, 2026-08-21

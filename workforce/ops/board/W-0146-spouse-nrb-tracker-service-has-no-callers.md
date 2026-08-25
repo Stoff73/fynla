@@ -4,7 +4,8 @@ title: SpouseNRBTrackerService has never had a caller, and a comment pointing at
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [tax-compliance-reviewer]
-status: handoff
+status: done
+certification: CERTIFIED 2026-08-25 quality-lead — see ops/handoffs/quality-lead/pr716-certification-2026-08-25.md; merged to dev in 88e9d08ce (PR #716)
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-21T20:30:00Z

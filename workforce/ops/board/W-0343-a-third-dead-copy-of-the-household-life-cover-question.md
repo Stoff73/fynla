@@ -4,7 +4,8 @@ title: IHTController carries a third, dead copy of the household life-cover ques
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0027-cycle4-life-cover-reach.md
 owner: build-lead
-status: handoff
+status: done
+certification: CERTIFIED 2026-08-25 quality-lead — see ops/handoffs/quality-lead/pr716-certification-2026-08-25.md; merged to dev in 88e9d08ce (PR #716)
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-22T23:35:00Z
