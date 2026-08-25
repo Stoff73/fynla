@@ -77,7 +77,10 @@ describe('Net Income', function () {
         expect($result['net_income'])->toBe(57000.00);
     });
 
-    it('deducts Gift Aid gross-up when is_gift_aid is true', function () {
+    // W-0205. Gift Aid is not one of the reliefs ITA 2007 s24 lists, so it does not
+    // reduce net income — it comes off at s58, with the Blind Person's Allowance.
+    // This asserted 58,750 as net income, which is the s58 figure under the s23 name.
+    it('leaves net income alone for a Gift Aid donor and deducts the gross-up at adjusted net income', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 60000,
             'annual_charitable_donations' => 1000,
@@ -85,8 +88,10 @@ describe('Net Income', function () {
         ]);
 
         $result = $this->service->calculate($user->id);
-        expect($result['deductions']['gift_aid_gross'])->toBe(1250.00);
-        expect($result['net_income'])->toBe(58750.00);
+
+        expect($result['deductions']['gift_aid_gross'])->toBe(1250.00)
+            ->and($result['net_income'])->toBe(60000.00)
+            ->and($result['adjusted_net_income'])->toBe(58750.00);
     });
 
     it('does not deduct Gift Aid when is_gift_aid is false', function () {
@@ -288,11 +293,17 @@ describe('W-0189 — which base each definition is built from', function () {
         $employee = $result['deductions']['employee_pension_contributions'];
         $employer = $result['deductions']['employer_pension_contributions'];
 
-        // Gift Aid reduces net income and does NOT reduce threshold income, so with
-        // a donation in play the two are provably different numbers — which is what
-        // makes this a test of the base rather than a restatement of the fixture.
+        // Gift Aid reduces ADJUSTED net income and does NOT reduce threshold income,
+        // so with a donation in play those two are provably different numbers — which
+        // is what makes this a test of the base rather than a restatement of the
+        // fixture.
+        //
+        // W-0205 moved the differentiator. This used to compare net income against
+        // threshold income, which worked only because net income was wrongly carrying
+        // the Gift Aid deduction. Those two now coincide for a net-pay contributor,
+        // correctly — the deduction that separates the definitions is the one at s58.
         expect($result['deductions']['gift_aid_gross'])->toBeGreaterThan(0.0)
-            ->and($result['net_income'])->not->toBe($result['threshold_income']);
+            ->and($result['adjusted_net_income'])->not->toBe($result['threshold_income']);
 
         expect($result['threshold_income'])->toBe(round($result['total_income'] - $employee, 2))
             ->and($result['adjusted_income'])->toBe(round($result['total_income'] + $employer, 2));
@@ -369,5 +380,122 @@ describe('W-0189 — which base each definition is built from', function () {
         expect($result['pension_arrangement'])->toBe('none')
             ->and($result['threshold_income'])->toBe($result['total_income'])
             ->and($result['adjusted_income'])->toBe($result['total_income']);
+    });
+});
+
+/**
+ * W-0205 — a row labelled with one statute carrying another statute's number.
+ *
+ * "Net income" is defined: ITA 2007 s23 Step 2, total income less the reliefs s24
+ * lists. **Gift Aid is not one of them.** A Gift Aid donation extends the basic rate
+ * band; it does not reduce net income. The grossed-up donation is deducted one
+ * definition further down, at adjusted net income (s58), with the Blind Person's
+ * Allowance.
+ *
+ * The service deducted it at net income, so for a donor the figure under that label
+ * was net income less the grossed-up donation — part of the way to adjusted net
+ * income, and not a figure with a name. No outcome was wrong: the donation was
+ * deducted exactly once on the way to s58 either way, and threshold income never read
+ * the intermediate. The panel exists to be checked, and was checked by the one reader
+ * who would notice — someone reconciling against HMRC's own definitions.
+ *
+ * These assert the three figures against the statutory definitions rather than
+ * against what the service used to print.
+ */
+describe('W-0205 — Gift Aid is deducted at adjusted net income, not at net income', function () {
+    it('gives a Gift Aid donor the same net income as an identical non-donor', function () {
+        $attributes = ['annual_employment_income' => 80000, 'annual_charitable_donations' => 2000];
+
+        $donor = User::factory()->create($attributes + ['is_gift_aid' => true]);
+        $nonDonor = User::factory()->create($attributes + ['is_gift_aid' => false]);
+
+        $donorResult = $this->service->calculate($donor->id);
+        $nonDonorResult = $this->service->calculate($nonDonor->id);
+
+        // s24 lists no relief a donation qualifies for, so the two are identical at
+        // s23 Step 2 and diverge only at s58.
+        expect($donorResult['net_income'])->toBe($nonDonorResult['net_income'])
+            ->and($donorResult['adjusted_net_income'])->not->toBe($nonDonorResult['adjusted_net_income']);
+    });
+
+    it('deducts the grossed-up donation once, between net income and adjusted net income', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 80000,
+            'annual_charitable_donations' => 2000,
+            'is_gift_aid' => true,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+        $grossUp = $result['deductions']['gift_aid_gross'];
+
+        // £2,000 net is £2,500 gross at the basic rate.
+        expect($grossUp)->toBe(2500.00)
+            ->and($result['net_income'])->toBe(80000.00)
+            ->and($result['adjusted_net_income'])->toBe(round($result['net_income'] - $grossUp, 2));
+    });
+
+    it('deducts Gift Aid and the Blind Person\'s Allowance at the same step', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 80000,
+            'annual_charitable_donations' => 2000,
+            'is_gift_aid' => true,
+            'is_registered_blind' => true,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+        $grossUp = $result['deductions']['gift_aid_gross'];
+        $bpa = $result['deductions']['blind_persons_allowance'];
+
+        // Both are s58 deductions and neither touches s23 Step 2.
+        expect($bpa)->toBeGreaterThan(0.0)
+            ->and($result['net_income'])->toBe(80000.00)
+            ->and($result['adjusted_net_income'])->toBe(round(80000.00 - $grossUp - $bpa, 2));
+    });
+
+    it('leaves threshold income and adjusted income untouched by a donation', function () {
+        $attributes = [
+            'annual_employment_income' => 145000,
+            'annual_dividend_income' => 14290,
+            'annual_charitable_donations' => 4000,
+        ];
+
+        $donor = User::factory()->create($attributes + ['is_gift_aid' => true]);
+        $nonDonor = User::factory()->create($attributes + ['is_gift_aid' => false]);
+
+        foreach ([$donor, $nonDonor] as $person) {
+            DCPension::factory()->create([
+                'user_id' => $person->id,
+                'annual_salary' => 145000,
+                'employee_contribution_percent' => 8.00,
+                'employer_contribution_percent' => 8.00,
+            ]);
+        }
+
+        $donorResult = $this->service->calculate($donor->id);
+        $nonDonorResult = $this->service->calculate($nonDonor->id);
+
+        // Acceptance 3: if either of these moves, the fix is wrong. Gift Aid belongs
+        // to the Personal Allowance taper, not to the Annual Allowance taper.
+        expect($donorResult['threshold_income'])->toBe($nonDonorResult['threshold_income'])
+            ->and($donorResult['adjusted_income'])->toBe($nonDonorResult['adjusted_income'])
+            ->and($donorResult['threshold_income'])->toBe(round($donorResult['total_income'] - $donorResult['deductions']['employee_pension_contributions'], 2));
+    });
+
+    it('tapers the Personal Allowance on the figure that includes the donation', function () {
+        // £110,000 is over the £100,000 taper threshold; a £8,000 net donation grosses
+        // to £10,000 and pulls adjusted net income to £100,000, restoring the full
+        // allowance. The taper must read s58, not s23 — this is the one place the
+        // distinction reaches a number the user is charged on.
+        $user = User::factory()->create([
+            'annual_employment_income' => 110000,
+            'annual_charitable_donations' => 8000,
+            'is_gift_aid' => true,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+
+        expect($result['net_income'])->toBe(110000.00)
+            ->and($result['adjusted_net_income'])->toBe(100000.00)
+            ->and($result['adjusted_allowances']['personal_allowance_tapered'])->toBeFalse();
     });
 });

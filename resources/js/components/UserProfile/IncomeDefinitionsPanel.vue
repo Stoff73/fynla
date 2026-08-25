@@ -26,11 +26,6 @@
       <span>Less employee pension contributions</span>
       <span>-{{ formatCurrency(definitions.deductions.pension_relief) }}</span>
     </div>
-    <div v-if="definitions.deductions.gift_aid_gross > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
-      <span>Less Gift Aid (grossed up)</span>
-      <span>-{{ formatCurrency(definitions.deductions.gift_aid_gross) }}</span>
-    </div>
-
     <!-- Net Income -->
     <div class="border-t border-light-gray pt-2 mt-2 mb-4">
       <div class="flex justify-between items-baseline">
@@ -39,7 +34,20 @@
       </div>
     </div>
 
-    <!-- Deduction to ANI -->
+    <!--
+      Deductions to ANI.
+
+      W-0205. The Gift Aid row used to sit above Net Income. Gift Aid is not one
+      of the reliefs ITA 2007 s24 lists, so it does not reduce net income — a
+      donation extends the basic rate band instead. It belongs here, at s58, with
+      the Blind Person's Allowance. The donation is deducted exactly once either
+      way; what changed is which line it is deducted at, and therefore what the
+      Net Income figure above is.
+    -->
+    <div v-if="definitions.deductions.gift_aid_gross > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
+      <span>Less Gift Aid (grossed up)</span>
+      <span>-{{ formatCurrency(definitions.deductions.gift_aid_gross) }}</span>
+    </div>
     <div v-if="definitions.deductions.blind_persons_allowance > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
       <span>Less Blind Person's Allowance</span>
       <span>-{{ formatCurrency(definitions.deductions.blind_persons_allowance) }}</span>
