@@ -311,3 +311,38 @@ Report: `reports/R-01-pass-a-entry.md`.
 
   **Certification: CANNOT CERTIFY**, pending the `tax-compliance-reviewer` gate that
   quality-lead is barred from running. Not blocked on any code defect.
+
+- 2026-08-25 tax-compliance-reviewer gate — **CLEARED WITH CONDITIONS. None block.**
+
+  **Rule 2 clean** — zero tax values in `InvestmentProjectionService`.
+
+  **The methodology is sound.** Deducting an ad-valorem charge from the expected return
+  *is* the correct model for it, and including the fund OCF alongside platform and
+  adviser fees is right. Two non-blocking caveats: a fixed platform fee is modelled as
+  a constant rate, and the five expected-return assumptions carry **no stated
+  gross/net provenance** — which this change makes load-bearing for the first time,
+  since a return that was already net of fund charges would now be double-deducted.
+
+  **Consumer Duty: the "before" state is the indefensible one, and not close.** A fee
+  card reading "Total Fees 1.72%" above a chart compounding the full gross return is
+  worse than the corrected state. A short disclosure to users whose projections fall is
+  worth considering, but that is product's call, and the FCA perimeter question belongs
+  to `compliance-lead`.
+
+  **The most important finding is not about this item's arithmetic.** The reviewer
+  measured `MonteCarloEngine`'s sampling behaviour directly:
+
+  - **10 of 20** £10 increases in monthly contribution **LOWERED** the projected 20th percentile
+  - **11 of 20** fee **increases RAISED** it
+  - cutting an adviser fee 0.75% → 0.70% shows **£3,640 less**
+  - sampling range on p20 is **7.49%** against a full 1.00pp fee worth **6.88%** — **signal ≈ noise**
+
+  The level is fine (p50 within ±2.6% of closed form) and there is **no run-to-run
+  flicker** — identical inputs give identical output. But **every comparison drawn
+  across two projections is unreliable, including the exact comparison this item exists
+  to make.** Cause is `MonteCarloEngine::seedFromInputs()`; fix is common random
+  numbers — seed from identity, not economics. Pre-existing, but this item makes it
+  product-facing. Raised as **W-0486**, on the reviewer's raise-today instruction.
+
+  That also explains the £8,329 retraction above: it was not a slip in the arithmetic,
+  **the quantity is not well defined in this engine.**

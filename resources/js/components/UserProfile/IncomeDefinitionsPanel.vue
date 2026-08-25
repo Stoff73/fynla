@@ -39,8 +39,15 @@
 
       W-0205. The Gift Aid row used to sit above Net Income. Gift Aid is not one
       of the reliefs ITA 2007 s24 lists, so it does not reduce net income — a
-      donation extends the basic rate band instead. It belongs here, at s58, with
-      the Blind Person's Allowance. The donation is deducted exactly once either
+      donation extends the basic rate band instead. It belongs here, at s58.
+
+      The Blind Person's Allowance is rendered in the same block but is NOT a s58
+      deduction (corrected 2026-08-25): it is an s38 allowance deducted at s23
+      Step 3, downstream of net income. The service subtracts it from adjusted net
+      income anyway, which is a live defect tracked as W-0485 — this panel prints
+      what the service computes, and the row moves when that is fixed.
+
+      The donation is deducted exactly once either
       way; what changed is which line it is deducted at, and therefore what the
       Net Income figure above is.
     -->

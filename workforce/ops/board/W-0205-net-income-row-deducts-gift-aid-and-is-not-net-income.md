@@ -214,3 +214,43 @@ the row is not rendered.
 
   **Certification: CANNOT CERTIFY**, pending the `tax-compliance-reviewer` gate.
   Not blocked on any code defect.
+
+- 2026-08-25 tax-compliance-reviewer gate — **CLEARED WITH CONDITIONS. One blocked; it
+  is now discharged.**
+
+  **The blocking condition was mine and it was a statutory error.** I asserted the
+  Blind Person's Allowance is a s58 deduction. **It is not.** s58 has four steps and
+  none is the BPA — it is an **s38 allowance deducted at s23 Step 3**, downstream of
+  net income, so it cannot reduce adjusted net income by construction. The claim
+  appears five times in the codebase and **this item added three**, including a test
+  comment reading "Both are s58 deductions."
+
+  **All three are corrected** — the service comment, the panel comment, and the test
+  name plus its assertion comment. **No arithmetic changed**, deliberately: correcting
+  it would move adjusted net income and break this item's own acceptance 3. The
+  arithmetic defect is raised as **W-0485**, and it is a live money error — a
+  registered-blind user on £110,000 is shown a Personal Allowance of £9,195 against
+  £7,570 correct, and one on £63,000 is told no High Income Child Benefit Charge is due.
+  `UKTaxCalculator:720` already computes it correctly, so the app holds two
+  contradictory answers.
+
+  **The Gift Aid reading itself is confirmed exactly** — s23/s24 for net income, s415
+  band extension for the relief, s58 for adjusted net income. `UKTaxCalculator:731`
+  independently corroborates.
+
+  **Acceptance 3 verified more rigorously than I managed.** The two expressions have
+  identical operator association, so adjusted net income is the *same IEEE-754
+  computation* before and after — not merely the same value — fuzzed over negatives and
+  1e9. The reviewer then reverted both lines on disk and re-ran the personas anyway:
+  the four figures reproduce exactly.
+
+  **The net-income-equals-threshold-income coincidence is confirmed correct** under
+  s228ZA(5). Worth recording: the reviewer nearly filed a false defect here, reasoning
+  from policy that net-pay contributions must be added back to threshold income. They
+  are added back to **adjusted** income under s228ZA(4), not threshold — legislation.gov.uk
+  and PTM057100 agree against that reading.
+
+  **The salary-sacrifice suspicion I reported was real.** Measured through
+  `AnnualAllowanceChecker`: £60,000 shown where s228ZA gives £56,750, with runs
+  byte-identical whether the flag is on or off. Severity high. Raised as **W-0487**.
+  Pre-existing and honestly disclosed, so it does not block.

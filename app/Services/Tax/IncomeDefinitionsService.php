@@ -35,9 +35,20 @@ class IncomeDefinitionsService
         // grossed-up donation — part of the way to adjusted net income, and not a
         // figure with a name. **Gift Aid is not a s24 relief.** A Gift Aid
         // donation extends the basic rate band; it does not reduce net income.
-        // It comes off one definition further down, at s58, with the Blind
-        // Person's Allowance. The end figures were already right; only this
-        // intermediate carried a statute's name for another statute's number.
+        // It comes off one definition further down, at s58. The end figures were
+        // already right; only this intermediate carried a statute's name for
+        // another statute's number.
+        //
+        // **The Blind Person's Allowance is NOT a s58 deduction** — corrected by
+        // tax-compliance-reviewer, 2026-08-25. s58 has four steps and none of them
+        // is the BPA: it is an s38 allowance deducted at s23 **Step 3**, downstream
+        // of net income, so it cannot reduce adjusted net income by construction.
+        // This service nonetheless subtracts it below, which is a live money defect
+        // (see W-0485) — `UKTaxCalculator:720` computes ANI without it and gets the
+        // right answer, so the application currently holds two contradictory
+        // answers. It is deliberately NOT corrected here: W-0205's acceptance 3
+        // requires adjusted net income to be unchanged by that item, so the
+        // arithmetic fix belongs to its own item with its own figures.
         $pensionRelief = $pensionContributions['employee'];
         $giftAidGross = $this->calculateGiftAidGrossUp($user);
         $netIncome = $totalIncome - $pensionRelief;
