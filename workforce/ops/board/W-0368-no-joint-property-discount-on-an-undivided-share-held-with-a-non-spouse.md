@@ -4,12 +4,12 @@ title: No joint-property discount is applied to an undivided share held with a n
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: handoff
+status: blocked
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
 claimed: 2026-08-25T18:00:00Z
-blocked_by: []
+blocked_by: [tax-compliance-reviewer-c2]
 gate: tax-compliance-reviewer
 handoff_to: quality-lead
 prior_art_checked: 2026-08-23
@@ -195,3 +195,71 @@ refinement rather than a blocker.
   W-0368's stated benefit largely does not materialise until the data exists.
 
   **Re-gated:** back to `tax-compliance-reviewer` for the three conditions.
+
+- 2026-08-25 — **RE-GATE: C1 and C3 DISCHARGED, C2 STILL BLOCKING. Does not merge.**
+  Verdict: `workforce/ops/handoffs/W-0368/tax-compliance-reviewer-recheck-2026-08-25.md`.
+  **PR #719 is open and must not be merged in this state.**
+
+  **C1 discharged, measured.** £360,000 residence, 50% with an unlinked co-owner,
+  £500,000 cash, one child: liability 72,000 at NULL against **70,000** at `false`,
+  with the residence band correctly reduced 175,000 → 162,000. The £5,200 is gone.
+  The projected cap was forced to bite and both columns agree — 131,072.17 /
+  145,635.75 = 0.9 exactly.
+
+  **A FIFTH site, and the reviewer found it after I had twice said I had them all.**
+  `EstateActionDefinitionService::estimateEstateValue():340` (property sum at
+  `:348-350`) feeds `evaluateIhtExceedsNrb():156`, which publishes a **pound
+  Inheritance Tax liability to the user**. It returns **295,000** for a share whose
+  Inheritance Tax value is **106,200** — it reads `->sum('current_value')` and applies
+  **no ownership share at all**. Non-blocking because it overstates, but **the missing
+  ownership share pre-dates W-0368 and is the larger error.** Worth its own item.
+
+  **C2 still blocking — my fix was dead code.** `populateForm()` never copies
+  `joint_owner_is_spouse` onto the form (`PropertyForm.vue:1513` — fourteen top-level
+  assignments, no spread, and the field is not among them). So the read I added at
+  `:1542` can never be satisfied: a spouse-by-name still reconstructs as "Other", and
+  because `handleSubmit` spreads the whole form at `:1864`, **every property edit
+  writes NULL over the stored answer.** Touch the select and land on "Other" and it
+  writes `false` onto a spouse's property. I wrote a reader for a field I never
+  populated.
+
+  Two further routes, both measured by the reviewer:
+  - **A stale `false` survives a change of co-owner** — £180,000 → £162,000 on a
+    spouse's share, and reachable **via Fyn on every surface**, since
+    `fromToolParams` does not whitelist the column.
+  - **A soft-deleted spouse account** makes `liveSpouseId()` null, so `applies()`
+    returns true — £180,000 → £162,000. The reviewer names this as its own miss from
+    round one.
+
+  **C3 discharged for the right reason** — the parity fixture sets nothing and
+  `PropertyFactory` has no default, so the row is genuinely NULL. It remains a live
+  sentinel: if NULL ever takes a discount the ratio moves and it reddens.
+
+  **Citations: I UNDER-corrected, not over.** `EstateAssetAggregatorService.php:87`
+  still says s161 "denies" and omits s160 — in the one place that applies the
+  discount. `UndividedShareDiscountTest.php:142` says "denies" three lines below its
+  own docblock saying "substitutes". One genuine overreach of mine: "turns entirely on
+  whether the co-owner is a spouse" ignores **s161(2)(b)**.
+
+  **On the dormancy question the reviewer sided with shipping it, but reframed the
+  problem.** Withholding a negotiable practice discount pending a fact is a far smaller
+  misstatement than asserting one against a spouse — and where the co-owner is unknown
+  you *cannot* answer s160's question, because whether s161 substitutes a basis turns
+  on it. But the rule currently fires only for users who happen to edit a property, so
+  **two identical households get different figures based on nothing.** The fix is to
+  ASK, on all three surfaces — and **Fyn cannot record it, so `/m` and native can never
+  apply this feature.** That is a Rule 19 gap this work introduced.
+
+  **No data-integrity consequence for existing rows** — the column did not exist
+  before, so the old `populateForm()` defect corrupted only unpersisted component
+  state. Every pre-branch row is NULL and always would have been. **The damage is
+  entirely prospective, which is why it must be fixed before merge: shipping as-is
+  creates the corrupted rows.**
+
+  **Four fixes required before merge**, per the reviewer:
+  1. One line in `populateForm()` — `??`, not `||`
+  2. Null the answer in `PropertyStore::update()` when the co-owner changes
+  3. Close the deleted-account branch in `applies()`
+  4. Re-run Estate + Stores + Architecture
+
+  C1 and C3 will not be re-opened.
