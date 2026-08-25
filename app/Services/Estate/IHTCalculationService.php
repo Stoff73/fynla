@@ -380,11 +380,13 @@ class IHTCalculationService
         // 6b. Deduct each pooled member's gifts, capped at their OWN band.
         //
         // The comment that used to sit here said spouse nil rate band was "handled
-        // separately by SpouseNRBTrackerService". **That service has never had a
-        // caller** — verified repo-wide; the only hits were this comment, its twin
-        // above the deduction method, and the class declaration. It described work
-        // nothing did, and it is why the gap went unexamined. The service is left in
-        // place, unwired, for a separate decision (W-0146); the claim is removed.
+        // separately by SpouseNRBTrackerService". **That service never had a caller**
+        // — verified repo-wide; the only hits were this comment, its twin above the
+        // deduction method, and the class declaration. It described work nothing did,
+        // and it is why the gap went unexamined. **W-0146 deleted the class**, so the
+        // deduction below is the only answer to this question and cannot acquire a
+        // second one. Every pooled member's gifts are deducted here, capped at their
+        // own band; nothing is handled elsewhere.
         $nrbDeduction = $this->calculateNRBDeductionForGifts($pooledMembers, $nrbSingle);
         $nrbAvailable = max(0, $nrbGross - $nrbDeduction['total_nrb_used']);
 
@@ -2500,10 +2502,16 @@ class IHTCalculationService
      *
      * **W-0154.** This read the primary user only, and its docblock said spouse nil
      * rate band was "tracked separately by SpouseNRBTrackerService". **That service
-     * has no callers** — verified repo-wide, twice. So one spouse's gifts reduced the
+     * had no callers** — verified repo-wide, twice. So one spouse's gifts reduced the
      * household band when they logged in and did nothing when the other did, and the
-     * comment is why nobody looked. The claim is removed rather than reworded; see
-     * W-0146 for whether the service is wired up or deleted.
+     * comment is why nobody looked.
+     *
+     * **W-0146 deleted that class.** It modelled a transferable band from a LIVING
+     * spouse's gift history as though they had died today, which is the model this
+     * service rejects on the law: IHTA 1984 s8A creates the claim on the survivor's
+     * death and not before. Wiring it up would have produced a second, contradictory
+     * answer to a question this method already answers (Rule 20). This is now the
+     * only place household gifts are deducted from the band.
      *
      * @param  list<User>  $members  The people whose records this calculation covers
      * @param  float  $nrbSingle  The individual NRB amount
