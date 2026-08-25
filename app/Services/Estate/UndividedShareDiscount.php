@@ -16,13 +16,25 @@ use App\Traits\CalculatesOwnershipShare;
  *
  * A half share of a house is not half a house. The buyer of a part share cannot sell,
  * occupy or mortgage it freely, so for Inheritance Tax the share is valued with a
- * discount for that restricted marketability — **IHTM15071, SVM113040**, HMRC's
+ * discount for that restricted marketability. **IHTA 1984 s160** is the authority —
+ * value is the price the property would fetch on the open market — and IHTM15071 /
+ * SVM113040 are HMRC guidance on applying it, not the source of it. HMRC's
  * typical figure being 10%.
  *
- * **NOT between spouses.** IHTA 1984 **s161** related property rules value a couple's
- * shares together, which removes the very restriction the discount pays for. So the
+ * **NOT between spouses.** IHTA 1984 **s161** does not "deny" the discount — it
+ * SUBSTITUTES a valuation basis, valuing related property as a proportion of the
+ * combined whole. That basis leaves no restriction for a discount to price, so the
  * discount turns entirely on whether the co-owner is a spouse, and that is the only
  * question this class asks beyond "is it shared at all".
+ *
+ * **Nothing here is inferred from a name or a marital status, and that is measured
+ * rather than stylistic.** Both heuristics fail on the live data: the one property
+ * whose co-owner is named "wife" belongs to a user marked `single`, and a co-owner
+ * recorded as "GLW" matches no spousal vocabulary while quite possibly being one.
+ * The user is asked directly on the property form and the answer is stored; where
+ * they have not been asked, `joint_owner_is_spouse` is NULL and no discount is
+ * taken. That overstates tax rather than understating it — the safe direction, and
+ * the direction the application already erred in before this class existed.
  *
  * **The ~15% case is unreachable and that is deliberate.** The higher discount applies
  * where the co-owner is in OCCUPATION and not a spouse. Nothing on `properties`
@@ -71,14 +83,21 @@ class UndividedShareDiscount
 
         $coOwnerId = $this->coOwnerId($property, $user->id);
 
-        if ($coOwnerId === null) {
-            // Shared by type but with nobody identified — a `joint_owner_name` with no
-            // account, typically. The share is still restricted, and the co-owner is by
-            // definition not a linked spouse, so the discount applies.
-            return true;
+        // A linked spouse is related property whatever else is recorded.
+        if ($coOwnerId !== null) {
+            return $coOwnerId !== $user->liveSpouseId();
         }
 
-        return $coOwnerId !== $user->liveSpouseId();
+        // No linked account. The user was asked on the property form whether this
+        // co-owner is their spouse — "<name> (Spouse)" and "Other (Enter Name)" are
+        // separate choices — so read the answer rather than guessing from the name.
+        //
+        // NULL is "we never asked", NOT "no". Treating it as "no" would discount a
+        // spouse's property and understate Inheritance Tax, which is the direction
+        // that matters; treating it as "yes" overstates, which is the direction the
+        // application already erred in. Unknown therefore takes no discount, and the
+        // fix is to ask, not to assume.
+        return $property->joint_owner_is_spouse === false;
     }
 
     /**

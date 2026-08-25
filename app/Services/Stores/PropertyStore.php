@@ -314,6 +314,9 @@ class PropertyStore
             'joint_ownership_type' => 'sometimes|nullable|in:joint_tenancy,tenants_in_common',
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
             'joint_owner_name' => 'sometimes|nullable|string|max:255',
+            // W-0368. Fyn is /m's only write path, so this rule decides whether /m
+            // and native can record the answer at all.
+            'joint_owner_is_spouse' => 'sometimes|nullable|boolean',
             'household_id' => 'sometimes|nullable|integer|exists:households,id',
             'trust_id' => 'sometimes|nullable|integer|exists:trusts,id',
             'trust_name' => 'sometimes|nullable|string|max:255',

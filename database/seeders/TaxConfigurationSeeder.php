@@ -337,7 +337,9 @@ class TaxConfigurationSeeder extends Seeder
                 // =================================================================
                 // An undivided share in land co-owned with a NON-spouse is valued
                 // for Inheritance Tax with a discount for the restricted
-                // marketability of a part share — IHTM15071, SVM113040.
+                // marketability of a part share. IHTA 1984 s160 is the authority
+                // (open-market value); IHTM15071 and SVM113040 are HMRC guidance on
+                // applying it.
                 //
                 // 10% is HMRC's typical figure. The higher ~15% case applies where
                 // the co-owner is in OCCUPATION and not a spouse, and Fynla cannot
@@ -348,9 +350,12 @@ class TaxConfigurationSeeder extends Seeder
                 // conservative choice — it discounts less, so it overstates tax
                 // rather than understating it.
                 //
-                // NOT applied between spouses: IHTA 1984 s161 related property
-                // rules deny the discount where the co-owner is a spouse or civil
-                // partner, because the two shares are valued together.
+                // NOT applied between spouses. IHTA 1984 s161 does not "deny" the
+                // discount — it SUBSTITUTES a valuation basis, valuing related
+                // property as a proportion of the combined whole, which leaves no
+                // restriction for a discount to price. s161 covers a spouse or civil
+                // partner plus charities and qualifying bodies; it has NO connected-
+                // company limb.
                 'undivided_share_discount_percent' => 0.10,
 
                 // =================================================================

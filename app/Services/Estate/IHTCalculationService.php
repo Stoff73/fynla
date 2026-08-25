@@ -1256,8 +1256,14 @@ class IHTCalculationService
             return (float) $this->propertyStore
                 ->forUserByType($member, 'main_residence')
                 ->sum(function ($property) use ($member, $growthRate, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
+                    // W-0368 — the PROJECTED residence band cap, the twin of
+                    // `sumMainResidenceNetShare()`. Grow the value the estate is
+                    // actually taxed on, not the undiscounted fraction, or the
+                    // projected column repeats the current column's mismatch:
+                    // estate taxed at the discounted share, allowance capped
+                    // against the undiscounted one.
                     $valueShare = $this->futureValueCalculator->calculateFutureValue(
-                        $this->calculateUserShare($property, $member->id),
+                        $this->undividedShareDiscount->shareValue($property, $member),
                         $growthRate,
                         $yearsToProject
                     );
@@ -2234,16 +2240,29 @@ class IHTCalculationService
 
     /**
      * Sum a single user's net share of their main residence(s): their ownership
-     * share of the value less their share of any mortgage secured on it. Uses the
-     * shared CalculatesOwnershipShare logic so the figure matches the property and
+     * share of the value less their share of any mortgage secured on it, valued the
+     * way the estate itself is valued so the figure matches the property and
      * mortgage values that feed total_net_estate.
+     *
+     * **W-0368 — this is the residence band cap, and it is the THIRD valuation site.**
+     * It read raw `calculateUserShare()` while the estate had begun taxing the share
+     * at its undivided-share value, so the estate was taxed on the discounted figure
+     * while the s8E(2) cap was measured against the undiscounted one. Measured on a
+     * £360,000 residence held 50% with an unlinked co-owner plus £500,000 cash, that
+     * reported an Inheritance Tax liability of £64,800 against £70,000 —
+     * **£5,200 understated, and it scales.**
+     *
+     * One property, two valuations, in one calculation is exactly what W-0368's
+     * acceptance 3 forbids, and finding only two of the three sites is how it
+     * happened. `UndividedShareDiscount` is the one home; every site that values a
+     * share for Inheritance Tax reads it.
      */
     private function sumMainResidenceNetShare(User $user): float
     {
         return (float) $this->propertyStore
             ->forUserByType($user, 'main_residence')
             ->sum(function ($property) use ($user) {
-                $valueShare = $this->calculateUserShare($property, $user->id);
+                $valueShare = $this->undividedShareDiscount->shareValue($property, $user);
                 $mortgageShare = (float) $property->mortgages->sum(
                     fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id)
                 );

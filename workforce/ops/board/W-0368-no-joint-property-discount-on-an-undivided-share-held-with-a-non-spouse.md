@@ -114,3 +114,84 @@ refinement rather than a blocker.
 
   **Gate outstanding:** `tax-compliance-reviewer`. This changes an Inheritance Tax
   figure and carries `05-perimeter`, so it should not merge uncertified.
+
+- 2026-08-25 — **tax-compliance-reviewer: CLEARED WITH CONDITIONS, three blocking.
+  All three now addressed.** Verdict:
+  `workforce/ops/handoffs/W-0368/tax-compliance-reviewer-2026-08-25.md`.
+
+  **C1 — I found two valuation sites and there were four.** The residence band cap
+  read raw `calculateUserShare()` at `:2246` (current) and `:1260` (projected), with
+  the s8E(2) cap measured against it. So the estate was taxed on the discounted share
+  while the allowance was capped against the undiscounted one. Measured by the
+  reviewer on a £360,000 residence held 50% with an unlinked co-owner plus £500,000
+  cash: **£64,800 reported against £70,000 correct — £5,200 understated, and it
+  scales.** Both sites now read `UndividedShareDiscount`. The `:2236` docblock, which
+  claimed the figure "matches the property and mortgage values that feed
+  total_net_estate", was false and is corrected. **This is the acceptance-3 failure
+  the acceptance was written to prevent, and I wrote a section claiming to have
+  prevented it while two sites were still wrong.**
+
+  **C2 — the row I cited as proof it worked was proof of the defect.** Property 70,
+  "19 Worth Court" — the £90,000 → £81,000 example in the commit message — has
+  `joint_owner_name` = **"wife"**. `applies()` never read it. Not an edge case:
+  `SpouseLinkingService` writes no `spouse_id` on either side until an invitation is
+  accepted, so "married, unlinked" is the app's designed state for every married user
+  mid-invitation.
+
+  **Fixed at the root rather than by heuristic, because both heuristics fail on the
+  live data — measured before choosing:**
+
+  - `marital_status` — the "wife" property belongs to a user marked **`single`**, so
+    the status misses it entirely; and it would wrongly refuse the discount to a
+    `married` user co-owning with "Mike Jones".
+  - name matching — "wife" matches spousal vocabulary, **"GLW" does not**, and
+    initials could perfectly well be a spouse.
+
+  Three rows ruled out both. **The user already tells us.** `PropertyForm.vue` offers
+  "<name> (Spouse)" and "Other (Enter Name)" as distinct choices, and offers the
+  spouse option even when the spouse has no account — but `handleJointOwnerSelection()`
+  wrote only the name, discarding the distinction one line after it was made. So:
+
+  - `properties.joint_owner_is_spouse`, **nullable** — `database/CLAUDE.md`'s
+    `expenditure_sharing_mode` lesson: a NOT NULL DEFAULT makes "never asked"
+    indistinguishable from "chose this". NULL means we have not asked.
+  - The form stores the choice; `PropertyResource` publishes it; the request and store
+    layers carry it.
+  - **A second, quieter defect fixed on the way:** `populateForm()` reconstructed any
+    named co-owner as "Other", so reopening a property and saving it silently
+    converted a spouse into a third party and changed an Inheritance Tax valuation.
+    The form did not round-trip its own input.
+  - **Unknown takes no discount.** Overstates tax rather than understating it — the
+    safe direction, and the one the application already erred in before this work.
+
+  **C3 — `PropertyReadConsumerParityTest:193` passes**, and now for the right reason:
+  its fixture states no answer, so no discount is taken.
+
+  **Statutory corrections from the reviewer, applied throughout:** **IHTA 1984 s160**
+  is the authority for the discount (open-market value) — IHTM15071 and SVM113040 are
+  guidance on it, and every citation of mine omitted the section. And **s161 does not
+  "deny" the discount, it SUBSTITUTES a valuation basis** — related property is valued
+  as a proportion of the combined whole, leaving no restriction to price. s161 also has
+  **no connected-company limb**, so half my question 2 premise was wrong.
+
+  **Cleared by the reviewer:** 10% throughout is defensible; my ban on inferring
+  occupation from `property_type` is right **for a better reason than I gave** — that
+  column records where *the user* lives, not the co-owner. Rule 2 clean. The net-worth
+  separation is correct and has not leaked.
+
+  **One slip caught by an existing test rather than by me:** the new field leaked into
+  the wizard's `mortgageForm` (a `replace` without a count limit), and
+  `PropertyWizardMortgageFieldParityTest` failed on `mortgage_joint_owner_is_spouse`.
+  A mortgage has no such column and needs none — W-0228 makes liability follow the
+  property share. Removed.
+
+  **Verification.** Estate + Stores 702 tests / 2,269 assertions; Property + Mortgage
+  + NetWorth 485 / 2,209; Architecture 177 / 4,296. Pint and ESLint clean. A
+  `LazyLoadingViolation` appeared once in a combined run and did not reproduce after
+  the mortgage-form leak was removed.
+
+  **Consequence worth stating plainly: the discount now applies to almost nothing
+  until users answer the new question.** That is correct — we do not guess — but
+  W-0368's stated benefit largely does not materialise until the data exists.
+
+  **Re-gated:** back to `tax-compliance-reviewer` for the three conditions.

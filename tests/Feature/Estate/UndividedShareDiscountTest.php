@@ -14,9 +14,10 @@ use Database\Seeders\TaxConfigurationSeeder;
  *
  * The buyer of an undivided share cannot sell, occupy or mortgage it freely, so for
  * Inheritance Tax the share is valued with a discount for that restricted
- * marketability (IHTM15071, SVM113040). **IHTA 1984 s161 denies it between spouses**,
- * because related property rules value the couple's shares together and remove the
- * very restriction the discount pays for.
+ * marketability under IHTA 1984 s160. **s161 substitutes a valuation
+ * basis between spouses** — related property is valued as a proportion of the
+ * combined whole, which leaves no restriction for a discount to price. It is a
+ * different basis, not a refusal.
  *
  * The spouse case is the one that must never regress: applying a discount there would
  * UNDERSTATE tax, which is the direction that matters.
@@ -27,12 +28,21 @@ beforeEach(function () {
     $this->rate = app(TaxConfigService::class)->getInheritanceTax()['undivided_share_discount_percent'];
 });
 
-function coOwnedProperty(User $owner, ?User $coOwner, float $value = 295000, float $sharePct = 40): Property
-{
+function coOwnedProperty(
+    User $owner,
+    ?User $coOwner,
+    float $value = 295000,
+    float $sharePct = 40,
+    ?bool $isSpouse = false
+): Property {
     return Property::factory()->create([
         'user_id' => $owner->id,
         'joint_owner_id' => $coOwner?->id,
         'joint_owner_name' => $coOwner === null ? 'Ruth Alderton' : null,
+        // The user is asked this on the property form and the answer is stored.
+        // Defaulting the fixture to `false` states "not my spouse" deliberately —
+        // leaving it null would mean "never asked", which takes no discount.
+        'joint_owner_is_spouse' => $isSpouse,
         'ownership_type' => 'tenants_in_common',
         'ownership_percentage' => $sharePct,
         'current_value' => $value,
@@ -81,11 +91,12 @@ describe('the discount applies to a share held with a non-spouse', function () {
         expect($atQuarter)->toBeLessThan($atConfigured);
     });
 
-    it('discounts a share co-owned with someone who has no account', function () {
-        // `joint_owner_name` with no linked account. Still an undivided share, and the
-        // co-owner is by definition not a linked spouse.
+    it('discounts a share co-owned with a named third party the user identified as such', function () {
+        // `joint_owner_name` with no linked account, and the user picked "Other
+        // (Enter Name)" rather than the spouse option. That stated answer is what
+        // makes the discount safe — the absence of a linked account never did.
         $user = User::factory()->create();
-        $property = coOwnedProperty($user, null);
+        $property = coOwnedProperty($user, null, isSpouse: false);
 
         expect($this->discount->applies($property, $user))->toBeTrue();
     });
@@ -98,6 +109,33 @@ describe('the discount applies to a share held with a non-spouse', function () {
         expect($this->discount->applies($property, $friend))->toBeTrue()
             ->and($this->discount->shareValue($property, $friend))
             ->toEqualWithDelta(295000 * 0.60 * (1 - $this->rate), 0.01);
+    });
+});
+
+describe('an unanswered question is not a "no"', function () {
+    // The heart of W-0368's C2. `SpouseLinkingService` writes no `spouse_id` on
+    // either side until an invitation is ACCEPTED, so "married, unlinked" is the
+    // app's designed state for every married user mid-invitation — not an edge.
+    // Treating unknown as "not a spouse" would discount their home and UNDERSTATE
+    // Inheritance Tax, which is the direction that gets a user into trouble.
+    it('takes no discount where the user was never asked', function () {
+        $user = User::factory()->create();
+        $property = coOwnedProperty($user, null, isSpouse: null);
+
+        expect($property->joint_owner_is_spouse)->toBeNull()
+            ->and($this->discount->applies($property, $user))->toBeFalse()
+            ->and($this->discount->shareValue($property, $user))
+            ->toEqualWithDelta(295000 * 0.40, 0.01);
+    });
+
+    it('takes no discount for a spouse recorded only by name', function () {
+        // The measured case: property 70 on live data, `joint_owner_name` = "wife",
+        // no linked account, owner marked `single`. Neither marital status nor the
+        // name distinguishes it — the stored answer does.
+        $user = User::factory()->create(['marital_status' => 'single']);
+        $property = coOwnedProperty($user, null, isSpouse: true);
+
+        expect($this->discount->applies($property, $user))->toBeFalse();
     });
 });
 

@@ -298,6 +298,10 @@ describe('property held with someone outside the household', function () {
         Property::factory()->create([
             'user_id' => $david->id,
             'joint_owner_id' => null,
+            // W-0368 — stated, not inferred: David identified this co-owner as a
+            // third party on the form. Without the answer the valuation takes no
+            // discount, which is the conservative default and a different test.
+            'joint_owner_is_spouse' => false,
             'property_type' => 'buy_to_let',
             'ownership_type' => 'tenants_in_common',
             'ownership_percentage' => 40,

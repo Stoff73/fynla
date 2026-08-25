@@ -57,6 +57,9 @@ class StorePropertyRequest extends FormRequest
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'joint_owner_id' => ['nullable', 'exists:users,id'],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
+            // W-0368 — nullable with NO default: absent means "never asked", which the
+            // Inheritance Tax valuation treats differently from an explicit false.
+            'joint_owner_is_spouse' => ['nullable', 'boolean'],
             'household_id' => ['nullable', 'exists:households,id'],
             'trust_name' => ['nullable', 'string', 'max:255'],
 
