@@ -3,7 +3,7 @@ id: W-0487
 title: A salary-sacrificing high earner keeps a full Annual Allowance they are not entitled to — the sacrifice is never added back to threshold income
 mission: M-0002-persona-fidelity
 owner: null
-status: queued
+status: closed_duplicate
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-25T16:10:00Z
@@ -12,7 +12,7 @@ blocked_by: []
 gate: tax-compliance-reviewer
 handoff_to: null
 prior_art_checked: 2026-08-25
-prior_art_found: [W-0189, W-0205 (raised as an unverified suspicion there; measured here)]
+prior_art_found: [W-0204 (THE ORIGINAL — this item duplicates it), W-0189, W-0205]
 prior_art_outcome: none
 source: reported as a suspicion by Brett under W-0205, ruled a real defect by tax-compliance-reviewer, 2026-08-25
 ---
@@ -72,3 +72,24 @@ currently being applied generally.
   are added back to **adjusted** income under s228ZA(4), not threshold. Checked against
   legislation.gov.uk and PTM057100, which agree against that reading. **Recorded so
   nobody re-derives the wrong version.**
+
+---
+
+## CLOSED AS DUPLICATE — 2026-08-25
+
+**This duplicates W-0204**, which was raised on 2026-08-22 and states the same defect
+against the same statute (FA 2004 s228ZA) in the same method
+(`IncomeDefinitionsService::getPensionContributions()`), and covers more ground: it also
+records that nothing captures whether the entered employment income is the pre- or
+post-sacrifice figure.
+
+**My prior-art check failed.** I created this straight from the
+`tax-compliance-reviewer` finding without sweeping the board first — the one step
+`FORMATS.md` requires before claiming. A board of 280 items makes that check the whole
+defence against exactly this, and I skipped it.
+
+**The measured evidence has been moved to W-0204**, where it belongs. Nothing is lost by
+closing this: the figures, the byte-identical-runs proof, and the narrowing of the
+ambiguity defence are all now on the original.
+
+**Go to W-0204.**

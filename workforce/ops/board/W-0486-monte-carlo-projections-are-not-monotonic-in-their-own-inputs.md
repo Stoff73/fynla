@@ -12,7 +12,7 @@ blocked_by: []
 gate: null
 handoff_to: null
 prior_art_checked: 2026-08-25
-prior_art_found: [W-0008 (makes it product-facing), W-0252, W-0253, W-0217]
+prior_art_found: [W-0008 (makes it product-facing), W-0217 (gated, high — likely a SYMPTOM of this), W-0252, W-0253, W-0258, W-0259]
 prior_art_outcome: none
 source: found by tax-compliance-reviewer discharging the W-0008 gate, 2026-08-25; raise-today instruction from that reviewer
 ---
@@ -53,7 +53,13 @@ It also explains a retraction on W-0008: a "the adviser fee is worth £8,329" fi
 not reproduce (£3,847 on re-measurement) and was withdrawn. That was not a slip in the
 arithmetic — **the quantity is not well defined in this engine.**
 
-It is very likely the unexplained residue behind **W-0258 / W-0259** (the p20 inversion
+**W-0217 is gated and high, and is very likely a symptom of this** — "a lower-risk
+portfolio projects higher than a higher-risk one at the conservative percentile" is
+precisely what a comparison drawn across two independently-seeded samples produces.
+It should be re-examined against the fixed engine before being closed on any other
+explanation.
+
+It is also very likely the unexplained residue behind **W-0258 / W-0259** (the p20 inversion
 across risk levels) and the D-21 family (W-0252, W-0253), which were closed as
 "hump-shaped p20 is a property of the model". Some of that is real; some of it is this.
 

@@ -4,7 +4,8 @@ title: users.charitable_bequest is now read by nothing and can still be written 
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0020-cycle2-auditability-figures-the-user-cannot-check.md
 owner: build-lead
-status: handoff
+status: done
+certification: CERTIFIED 2026-08-25 quality-lead — see ops/handoffs/quality-lead/pr716-certification-2026-08-25.md; merged to dev in 88e9d08ce (PR #716)
 claimed_by: brett-2026-08-25
 severity: low
 surfaces: [web]

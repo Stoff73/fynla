@@ -175,16 +175,33 @@ it('does not put a one-sided partner\'s cover into the household total', functio
 });
 
 it('still covers both lives when a spouse permission row is refused', function () {
-    // Decided, not incidental (W-0345). `hasAcceptedSpousePermission()` returns true
-    // for any married reciprocal pair whatever this row says, so it cannot express a
-    // refusal; and its `married` requirement would hide a linked unmarried couple's
-    // joint-life policy from the person it insures. The disclosure marker is
-    // `joint_life` itself. If that product call is ever reversed, this test is where
-    // it lands.
+    // **Decided by Brett, 2026-08-25, on CSJ's delegated authority (W-0345).** A refused
+    // permission does NOT suppress a joint-life policy from the life it insures.
     //
-    // `revoked` is asserted as `rejected` because the enum has no `revoked` member:
-    // `spouse_permissions.status` is `enum('pending','accepted','rejected')`, so a
-    // granted permission cannot presently be withdrawn at all (W-0346).
+    // **Two reasons originally given here were true when written and are not now.**
+    // W-0347 changed `hasAcceptedSpousePermission()`: it reads the row and returns
+    // `$permission->status === 'accepted'`, so a `rejected` row **does** return false —
+    // it can express a refusal. And there is no `married` requirement anywhere in that
+    // chain, so gating would not hide an unmarried couple's policy either. Both
+    // objections are dead; do not re-derive them from this comment's history.
+    //
+    // **The one reason that stands, and the whole basis of the decision:** the
+    // permission gate governs disclosure of a partner's FINANCIAL position, and a
+    // joint-life policy is a fact about the READER'S OWN LIFE that the owner
+    // affirmatively declared by setting `joint_life`. You should not be able to hide
+    // from someone that their life is insured. The failure mode of the opposite call is
+    // worse: a person insured and never told, by an application that holds the fact.
+    //
+    // **Considered and not taken:** withholding `premium_amount` / `annual_premium`
+    // from the other life assured, extending the W-0383 line that already withholds
+    // `policy_number` and `beneficiaries`. A premium is money leaving the owner's
+    // account rather than a fact about the reader's life. Declined as part of decision
+    // A; recorded because W-0383 drew that line without considering the premium, and a
+    // compliance sweep should find the question rather than re-discover it.
+    //
+    // A `rejected` row is used because the enum has no `revoked` member —
+    // `spouse_permissions.status` is `enum('pending','accepted','rejected')`, so
+    // "refused a request" and "withdrew consent" share one value (W-0346, not taken).
     SpousePermission::create([
         'user_id' => $this->owner->id,
         'spouse_id' => $this->spouse->id,
