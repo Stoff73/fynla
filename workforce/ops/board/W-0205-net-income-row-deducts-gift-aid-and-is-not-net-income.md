@@ -182,3 +182,35 @@ the row is not rendered.
   **Not done:** no `tax-compliance-reviewer` gate was run — CSJ's standing instruction
   bans agents this session. The change is a definitional relabel with no figure moving
   except the one the item asked to move, but a statutory reviewer may still want it.
+
+- 2026-08-25 quality-lead certification — **CORRECTION to the note above.**
+
+  **"Reverting the fix turns five red" is wrong. Four go red.**
+
+  quality-lead reverted both lines and named the survivor:
+  `it('leaves threshold income and adjusted income untouched by a donation')` is
+  **green against the pre-fix code**. That is correct and expected — it is an
+  invariant pin, asserting that two figures do NOT move, and they do not move under
+  either version. The test is sound and should stay.
+
+  **The error was in what I claimed it proved.** I offered "5 red" as evidence that
+  no Collision-variant test had slipped through — a test that passes either way. One
+  had. It is a benign one, deliberately written as an invariant, but the count was
+  the proof and the proof was overstated by exactly the case it should have excluded.
+
+  The four that do redden are the real guards, and they are the ones that matter:
+  donor and non-donor share a net income, the gross-up is deducted once between the
+  two definitions, both s58 deductions land at the same step, and the Personal
+  Allowance taper reads s58.
+
+  **Lesson worth keeping:** when counting mutation-verified guards, an invariant pin
+  is not a guard against the change — it is a guard against collateral damage. Count
+  them separately, or the total overstates the coverage.
+
+  **A defect quality-lead found in the adjacent W-0221 work:** four test names in
+  `WillAnalysisCharitableBequestTest` describe a toggle their bodies no longer set,
+  and two of the four are now identical tests. That is the **Decoy** variant, in the
+  PR that was hunting for Decoys. Raised for follow-up.
+
+  **Certification: CANNOT CERTIFY**, pending the `tax-compliance-reviewer` gate.
+  Not blocked on any code defect.

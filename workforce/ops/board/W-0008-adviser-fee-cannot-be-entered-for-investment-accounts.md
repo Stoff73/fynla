@@ -258,3 +258,56 @@ Report: `reports/R-01-pass-a-entry.md`.
   - **Environment, unrelated:** `php artisan route:list` throws
     `AppleVerificationException: invalid_configuration` on this machine (missing
     `.venv/apple-store`). Does not affect the running app.
+
+- 2026-08-25 quality-lead certification — **CORRECTION to the note above. Read this
+  before citing any figure in it.**
+
+  **The £8,329 "the adviser fee is worth" figure does not reproduce, and the reason
+  invalidates the method rather than just the number.**
+
+  quality-lead measured **£3,847** through two independent call sites. Root cause:
+  **`MonteCarloEngine` seeds from its inputs.** Changing a fee changes the expected
+  return, which changes the seed, which **re-rolls the sample**. Measured sampling
+  noise on p20 is **3.9% peak-to-peak — comparable in size to the effect being
+  attributed to the fee.**
+
+  So **"the adviser fee is worth £X" is not a well-defined quantity in this engine.**
+  Subtracting one simulated percentile from another is differencing two draws, not
+  measuring a difference. I reported that subtraction as a measurement.
+
+  **What does still hold:**
+  - The **"after" figures reproduce to the penny** — portfolio 10y p20 **£382,833**,
+    David's HL ISA **£182,938**. Those are the figures on screen and they are right.
+  - `expected_return` moving 4.33% → 3.58% is **exact arithmetic, not a sample** —
+    the fee is subtracted from the rate deterministically. That is the sound way to
+    state this fix's effect.
+  - The defect and the fix are unaffected. The projection was gross of all fees and
+    now is not.
+
+  **What to say instead of a pound figure:** the drag is stated as a rate
+  (0.45 platform + 0.75 adviser + 0.52 OCF = 1.72% on that account), and the
+  projection is run at gross minus that. Any before/after pound comparison on this
+  engine needs a fixed seed or many draws, and this session used neither.
+
+  The larger movements reported above (−£21,938 and −£19,400) rest on drags of 1.40%
+  and 1.72% — far enough above the noise floor to show direction and rough magnitude,
+  but they carry the same caveat and should not be quoted to the pound.
+
+  **The commit message `67c96e73b` also carries the £8,329 figure and cannot be
+  amended — it is pushed history. This note is the correction of record.**
+
+  **Two undeclared defects quality-lead found in this work:**
+
+  1. **`getAccountProjectedValue80()` has zero test coverage** — 8 production call
+     sites in `RetirementIncomeService`. The entire Retirement suite stayed green
+     through a change that moves retirement income for every user. Nothing in the
+     repo pins it.
+  2. **The fee is now an unbounded, unclamped input to a compounding simulation.**
+     `platform_fee_amount` has no `max:` rule. Validation-legal maxima give a
+     ten-year projection of **39 pence**; a plausible typo gives **negative zero**;
+     both travel into retirement income and the projected estate. **This is new — before
+     this change no fee reached the simulation**, so it was introduced here. Not
+     present in live data (max observed drag 1.95%), so latent rather than live.
+
+  **Certification: CANNOT CERTIFY**, pending the `tax-compliance-reviewer` gate that
+  quality-lead is barred from running. Not blocked on any code defect.
