@@ -158,6 +158,13 @@ $propertyConsumers = [
     'App\Services\Property\PropertyCalculationService',
     'App\Services\Property\PropertyTaxService',
     'App\Services\Property\PropertyService',
+    //  - UndividedShareDiscount (W-0368): the Inheritance Tax valuation of an
+    //    undivided share co-owned with a non-spouse. Takes Property instances as
+    //    parameters and issues NO queries — `propertyTotal()` is handed a
+    //    collection the caller fetched through PropertyStore, deliberately, so
+    //    this stays a pure valuation helper on the same footing as the three
+    //    above.
+    'App\Services\Estate\UndividedShareDiscount',
 
     // ---- Out-of-sub-project-1-scope read / infra references ----
     // These were never in the Pass 4 read-consumer migration scope: sibling

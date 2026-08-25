@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Investment\InvestmentProjectionService;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -303,8 +304,10 @@ describe('property held with someone outside the household', function () {
             'current_value' => 295_000,
         ]);
 
-        // 40% of £295,000 is £118,000, and £118,000 owned outright is the same
-        // estate. The projections must agree.
+        // 40% of £295,000 is £118,000. £118,000 owned OUTRIGHT is a different
+        // estate from a 40% undivided share, and W-0368 is why: a part share
+        // cannot be sold, occupied or mortgaged freely, so Inheritance Tax values
+        // it at a discount for that restricted marketability (IHTM15071).
         Property::factory()->create([
             'user_id' => $control->id,
             'joint_owner_id' => null,
@@ -316,12 +319,23 @@ describe('property held with someone outside the household', function () {
 
         $withThirdParty = projectedProperties($david, $sarah, true);
         $ownedOutright = projectedProperties($control, $controlPartner, true);
+        $discount = (float) app(TaxConfigService::class)
+            ->getInheritanceTax()['undivided_share_discount_percent'];
 
         expect($ownedOutright)->toBeGreaterThan(0.0);
-        // Under the defect the first household projects the whole £295,000 —
-        // £177,000 of a stranger's money grown for 36 years and taxed at 40% on
-        // this household's death.
-        expect($withThirdParty)->toEqualWithDelta($ownedOutright, 0.01);
+
+        // **W-0333's protection, stated explicitly rather than left implicit.** Under
+        // that defect the household projected the whole £295,000 — £177,000 of a
+        // stranger's money grown for 36 years and taxed at 40% on this household's
+        // death. The share must stay near its own 40%, nowhere near the whole.
+        expect($withThirdParty)->toBeLessThan($ownedOutright * 1.5);
+
+        // **W-0368's refinement.** The two were asserted equal until the undivided
+        // share discount existed; they are now separated by exactly that discount,
+        // and this is the assertion that would catch it being applied to the wrong
+        // side or at the wrong rate.
+        expect($withThirdParty)->toEqualWithDelta($ownedOutright * (1 - $discount), 0.01)
+            ->and($withThirdParty)->toBeLessThan($ownedOutright);
     });
 
     it('still counts a property the two spouses share exactly once', function () {

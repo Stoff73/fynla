@@ -108,6 +108,7 @@ class IHTCalculationService
         private readonly WillAnalysisService $willAnalysis,
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
         private readonly CrossModuleAssetAggregator $crossModuleAggregator,
+        private readonly UndividedShareDiscount $undividedShareDiscount,
         private readonly FailedGiftTaxCalculator $failedGiftTax,
     ) {}
 
@@ -1474,13 +1475,27 @@ class IHTCalculationService
     ): float {
         $propertyGrowthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
 
-        $currentPropertyValue = $this->crossModuleAggregator->calculatePropertyTotal($user->id);
+        // W-0368 — the projected column values undivided shares the same way the
+        // current one does. It used to read `calculatePropertyTotal()`, which is
+        // shared with net worth and the Letter to Spouse and is therefore
+        // UNDISCOUNTED by design; reading it here would have left the two Inheritance
+        // Tax columns valuing one property two ways. **F-0026 §1 records those columns
+        // diverging once already**, which is why acceptance 3 of W-0368 asks for them
+        // explicitly. `UndividedShareDiscount` is the one home for the rule and both
+        // columns now read it.
+        $currentPropertyValue = $this->undividedShareDiscount->propertyTotal(
+            $user,
+            $this->propertyStore->forUserWithJointOwner($user)
+        );
 
         // Include spouse properties if data sharing enabled. Each member's figure
         // is already at that member's own share, so a property they hold together
         // contributes its whole value exactly once.
         if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
-            $currentPropertyValue += $this->crossModuleAggregator->calculatePropertyTotal($spouse->id);
+            $currentPropertyValue += $this->undividedShareDiscount->propertyTotal(
+                $spouse,
+                $this->propertyStore->forUserWithJointOwner($spouse)
+            );
         }
 
         if ($yearsToProject <= 0) {

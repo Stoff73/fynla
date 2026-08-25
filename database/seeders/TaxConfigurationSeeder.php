@@ -333,6 +333,27 @@ class TaxConfigurationSeeder extends Seeder
                 'transferable_rnrb' => true,                     // Unused RNRB can also transfer to surviving spouse
 
                 // =================================================================
+                // Undivided share discount (W-0368)
+                // =================================================================
+                // An undivided share in land co-owned with a NON-spouse is valued
+                // for Inheritance Tax with a discount for the restricted
+                // marketability of a part share — IHTM15071, SVM113040.
+                //
+                // 10% is HMRC's typical figure. The higher ~15% case applies where
+                // the co-owner is in OCCUPATION and not a spouse, and Fynla cannot
+                // reach it: nothing on `properties` records who lives there
+                // (the columns are user_id, joint_owner_id, joint_owner_name,
+                // household_id, ownership_type, joint_ownership_type,
+                // ownership_percentage). Applying 10% throughout is the
+                // conservative choice — it discounts less, so it overstates tax
+                // rather than understating it.
+                //
+                // NOT applied between spouses: IHTA 1984 s161 related property
+                // rules deny the discount where the co-owner is a spouse or civil
+                // partner, because the two shares are valued together.
+                'undivided_share_discount_percent' => 0.10,
+
+                // =================================================================
                 // Potentially Exempt Transfers (PETs)
                 // Gifts to individuals that become exempt if donor survives 7 years
                 // =================================================================
