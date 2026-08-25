@@ -1531,6 +1531,14 @@ export default {
       this.form.current_value = this.property.current_value || null;
       this.form.purchase_price = this.property.purchase_price || null;
 
+      // W-0368 — `??` and never `||`. A stored `false` is the answer that turns
+      // the Inheritance Tax discount ON (IHTA 1984 s160); `||` would map it to
+      // `null` and silently disable the feature. Without this line the read below
+      // could never be satisfied, and because handleSubmit() spreads the whole
+      // form, every edit-and-save wrote the untouched `null` default over the
+      // user's answer.
+      this.form.joint_owner_is_spouse = this.property.joint_owner_is_spouse ?? null;
+
       // Set joint owner selection state.
       //
       // W-0368 — a named spouse used to come back as "Other", so reopening a

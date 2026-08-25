@@ -84,8 +84,19 @@ class UndividedShareDiscount
         $coOwnerId = $this->coOwnerId($property, $user->id);
 
         // A linked spouse is related property whatever else is recorded.
+        //
+        // Against `spouse_id` and deliberately NOT `liveSpouseId()`. The two answer
+        // different questions: `liveSpouseId()` answers "may I show this person's
+        // data", which goes null the moment they delete their account, because
+        // `spouse_id` is retained for regulatory purposes while the soft-delete
+        // filter hides the row. The question here is whether these two are married,
+        // and deleting an account is not a divorce. Reading the visibility answer
+        // made a deleted account switch the discount ON over a spouse's share —
+        // measured, and the understatement s161 exists to prevent. The link is
+        // nulled on both sides when it is genuinely broken
+        // (`FamilyMembersController`), and that is the event that ends it.
         if ($coOwnerId !== null) {
-            return $coOwnerId !== $user->liveSpouseId();
+            return $coOwnerId !== ($user->spouse_id === null ? null : (int) $user->spouse_id);
         }
 
         // No linked account. The user was asked on the property form whether this
