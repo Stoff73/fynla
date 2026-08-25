@@ -3,7 +3,7 @@ id: W-0483
 title: All three Stop hooks are hard-wired to a macOS path and never run on Windows
 mission: M-0001-state-truth
 owner: build-lead
-status: queued
+status: review
 severity: high
 surfaces: [web, m]
 source: found while running CSJ's specified gates for W-0001, 2026-08-25
@@ -67,3 +67,62 @@ immediately found four banned glyphs that the shipped hook passed.
 5. `jq` dependency reviewed — the hooks emit their decision through `jq`, which is
    absent on this machine. Detection matters most, but a hook that cannot emit a
    block decision cannot block.
+
+## Fixed 2026-08-25 — commit aa16e9ae1
+
+Done in the same commit that raised it, because W-0001 could not be evidenced
+while the gates that should have caught it were inert.
+
+| Acceptance | State |
+|---|---|
+| 1. Root resolved at runtime | Done — `${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}` in all three |
+| 2. Internal `cd` uses it; `tax-hardcode-check` guarded | Done — all three now `cd "$ROOT" \|\| exit 0` |
+| 3. Rule 15 check off `python3` | Done — PHP, which is already a hard dependency |
+| 4. Seeded violation caught on Windows **and macOS** | **Windows only. See gap.** |
+| 5. `jq` dependency reviewed | Done — replaced, see below |
+
+### What was done beyond the stated acceptance
+
+**`jq` removed entirely.** Criterion 5 asked for a review; the review found it
+fatal rather than cosmetic. On the first Windows run every rule was detected and
+then discarded, because the verdict was emitted through `jq -n` and `jq` is not
+installed — the hook printed nothing and exited 0, indistinguishable from a pass.
+A new `.claude/hooks/lib-json.sh` provides `json_field`, `json_emit` and
+`json_emit_block` in PHP, and both hooks source it.
+
+**Untracked files are no longer skipped.** All three hooks read only
+`git diff --name-only HEAD` plus `--cached`, so a brand-new file was invisible —
+precisely where new violations arrive. Now unions in
+`git ls-files --others --exclude-standard`. Found while testing: the seeded probe
+was not detected at all until it was staged.
+
+**Findings deduped.** A staged edit appeared in both diff lists, so every finding
+was reported twice. `sort -u`.
+
+### Proven, not assumed
+
+A probe was seeded carrying one violation of each rule and each hook was run
+against it:
+
+- `bg-amber-500` caught (Rule 8/11)
+- `#ff8800` in a `<style>` block caught (Rule 11)
+- an emoji caught (Rule 15) — by the new PHP check; the old `python3` one passed it
+- `ISA_ALLOWANCE: 20000` and a hardcoded tax year caught (tax-hardcode-check)
+- `m-parity-check` emitted its Rule 19 notice correctly
+
+Probes then removed and all three re-run against the real tree: clean.
+
+**The repaired Rule 15 check immediately found four banned glyphs in W-0001's own
+write-up** — a person silhouette, a rightwards arrow, a target and a graduation
+cap — which the shipped hook had passed. Fixed in the same commit. That is the
+clearest evidence the check was previously inert.
+
+### Gap
+
+**Acceptance 4 is half met. Verified on Windows only — I COULD NOT TEST ON macOS.**
+The runtime-root change is the platform-sensitive part and it is the one still
+unproven on the platform the hooks used to work on. `git rev-parse --show-toplevel`
+and `$CLAUDE_PROJECT_DIR` are both portable, and PHP replaces the dependency that
+was least portable, so the expectation is that macOS is unaffected or improved —
+but that is reasoning, not evidence. **Someone on the Mac should seed one
+violation and confirm a block before this moves past `review`.**
