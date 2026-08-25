@@ -192,11 +192,19 @@ For contrasting or complementary elements like CTAs, secondary priorities, and b
 | Name | Hex | Tailwind | Usage |
 |------|-----|----------|-------|
 | Neutral Gray | #717171 | `neutral-500` | Secondary text, borders |
+| Neutral Gray Dark | #4B5563 | `neutral-600` | Emphasised secondary text where AAA contrast is wanted |
 | Light Gray | #EEEEEE | `light-gray` | Dividers, backgrounds |
 | Light Blue | #6C83BC | `light-blue-500` | Subtle accents |
 | Lighter Blue | #DDE2EF | `light-blue-100` | Highlights |
 | Light Pink | #EF7598 | `light-pink-400` | Hover raspberry |
 | Lighter Pink | #FAD6E0 | `light-pink-100` | Subtle backgrounds |
+
+**The neutral ramp is these two shades only.** `neutral-500` (4.88:1 on white) and
+`neutral-600` (7.56:1) both clear WCAG 2.1 AA for body text. There is deliberately
+no `neutral-400`: the Tailwind value that previously squatted that name in the `/m`
+stylesheet was #9CA3AF, which is **2.54:1 on white and fails AA for any text**.
+Removed 2026-08-25 (W-0081). Do not reintroduce a lighter neutral for text — if a
+lighter grey is genuinely needed for a non-text element, use `horizon-300`.
 
 ### Semantic Colors
 
