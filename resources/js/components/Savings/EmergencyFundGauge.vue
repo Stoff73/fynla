@@ -97,7 +97,9 @@ export default {
         stroke: {
           lineCap: 'round',
         },
-        labels: ['Months Runway'],
+        // Names the basis rather than implying the money is to hand: runway counts
+        // ALL cash, including notice and fixed-term accounts (W-0276, Rule 20).
+        labels: ['Months from cash savings'],
       };
     },
   },
