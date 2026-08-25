@@ -142,7 +142,7 @@ describe('an unanswered question is not a "no"', function () {
     });
 });
 
-describe('s161 denies the discount between spouses', function () {
+describe('s161 substitutes a different basis between spouses', function () {
     it('does not discount a share held with a live spouse', function () {
         $user = User::factory()->create();
         $spouse = User::factory()->create();

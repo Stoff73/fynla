@@ -23,9 +23,18 @@ use App\Traits\CalculatesOwnershipShare;
  *
  * **NOT between spouses.** IHTA 1984 **s161** does not "deny" the discount — it
  * SUBSTITUTES a valuation basis, valuing related property as a proportion of the
- * combined whole. That basis leaves no restriction for a discount to price, so the
- * discount turns entirely on whether the co-owner is a spouse, and that is the only
- * question this class asks beyond "is it shared at all".
+ * combined whole. That basis leaves no restriction for a discount to price.
+ *
+ * **Spousehood is the only question this class asks beyond "is it shared at all",
+ * and that is narrower than s161 itself.** s161(2)(b) also relates property held by
+ * a charity or one of the qualifying bodies, and s161(1) substitutes only where the
+ * related-property basis produces the HIGHER figure — a floor, not an unconditional
+ * rule. This class tests neither: nothing on `properties` records a charitable
+ * co-owner, and a spouse co-owner simply takes no discount rather than comparing the
+ * two bases. Both simplifications withhold a discount rather than grant one, so both
+ * overstate tax — the safe direction, and the same one the rest of this class errs
+ * in. Said plainly so a later reader does not read "not a spouse" as the whole of
+ * s161.
  *
  * **Nothing here is inferred from a name or a marital status, and that is measured
  * rather than stylistic.** Both heuristics fail on the live data: the one property
