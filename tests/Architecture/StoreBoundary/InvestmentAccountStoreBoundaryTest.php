@@ -52,8 +52,14 @@ it('enforces InvestmentAccountStore as the only write path for InvestmentAccount
             if ($file->getExtension() !== 'php') {
                 continue;
             }
-            $relativePath = $prefix.ltrim(str_replace($dir, '', $file->getRealPath()), DIRECTORY_SEPARATOR);
-            $relativePath = str_replace(DIRECTORY_SEPARATOR, '/', $relativePath);
+            // Normalise BEFORE stripping the scan directory. getRealPath() returns
+            // native separators while $dir is built with forward slashes, so on
+            // Windows the str_replace matched nothing and $relativePath came out as
+            // the prefix glued onto the full absolute path — every file then missed
+            // the allowlist. W-0486.
+            $realPath = str_replace(DIRECTORY_SEPARATOR, '/', (string) $file->getRealPath());
+            $scanDir = str_replace(DIRECTORY_SEPARATOR, '/', $dir);
+            $relativePath = $prefix.ltrim(str_replace($scanDir, '', $realPath), '/');
 
             // Store implementations are exempt.
             if (str_starts_with($relativePath, 'app/Services/Stores/')) {
