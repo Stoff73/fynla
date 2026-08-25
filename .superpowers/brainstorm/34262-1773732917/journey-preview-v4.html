@@ -1,0 +1,153 @@
+<h2>Section 3: Journey Map — Refined Spacing</h2>
+<p class="subtitle">Labels clear of nodes, vertical section labels positioned to the right</p>
+
+<div class="mockup">
+  <div class="mockup-header">Journey Map — "Starting Out" (Student Stage)</div>
+  <div class="mockup-body" style="background: #F7F6F4; padding: 0; text-align: left; overflow-x: auto;">
+
+    <!-- Hero header -->
+    <div style="background: linear-gradient(135deg, #5854E6, #7c79ff); padding: 28px 32px; color: white; text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 6px;">🎓</div>
+      <div style="font-size: 22px; font-weight: 900; margin-bottom: 4px;">Starting Out</div>
+      <div style="font-size: 14px; opacity: 0.9;">Build smart money habits from day one</div>
+      <div style="font-size: 12px; opacity: 0.7; margin-top: 6px;">6 steps · About 10 minutes</div>
+    </div>
+
+    <!-- Journey Map -->
+    <div style="padding: 32px 24px 16px;">
+      <div style="font-size: 15px; font-weight: 700; color: #1F2A44; margin-bottom: 20px; text-align: center;">Your Journey Map</div>
+
+      <div style="position: relative; width: 100%; min-height: 520px;">
+
+        <svg viewBox="0 0 900 500" style="width: 100%; height: 500px;" preserveAspectRatio="xMidYMid meet">
+
+          <defs>
+            <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#5854E6"/>
+              <stop offset="70%" stop-color="#5854E680"/>
+              <stop offset="100%" stop-color="#20B486"/>
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Dashed trail shadow -->
+          <path d="M 80,100 C 190,100 190,250 320,250 C 450,250 450,100 580,100 C 710,100 740,250 790,280 C 840,310 840,370 790,400 C 740,430 640,420 580,400"
+                fill="none" stroke="#5854E615" stroke-width="8" stroke-linecap="round"/>
+
+          <!-- Main winding path -->
+          <path d="M 80,100 C 190,100 190,250 320,250 C 450,250 450,100 580,100 C 710,100 740,250 790,280 C 840,310 840,370 790,400 C 740,430 640,420 580,400"
+                fill="none" stroke="url(#pathGrad)" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round"/>
+
+          <!-- ============ STEP 1 — top row, label BELOW ============ -->
+          <circle cx="80" cy="100" r="22" fill="#5854E6" filter="url(#glow)"/>
+          <text x="80" y="106" text-anchor="middle" fill="white" font-weight="800" font-size="14">1</text>
+          <!-- Label below node with generous spacing -->
+          <text x="80" y="148" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">About You</text>
+          <text x="80" y="163" text-anchor="middle" fill="#717171" font-size="10">Age, situation &amp;</text>
+          <text x="80" y="177" text-anchor="middle" fill="#717171" font-size="10">circumstances</text>
+
+          <!-- ============ STEP 2 — bottom row, label ABOVE ============ -->
+          <circle cx="320" cy="250" r="22" fill="#5854E6" opacity="0.9"/>
+          <text x="320" y="256" text-anchor="middle" fill="white" font-weight="800" font-size="14">2</text>
+          <!-- Label above node with generous spacing -->
+          <text x="320" y="200" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Student Loan</text>
+          <text x="320" y="215" text-anchor="middle" fill="#717171" font-size="10">Plan type, balance</text>
+
+          <!-- ============ STEP 3 — top row, label BELOW ============ -->
+          <circle cx="580" cy="100" r="22" fill="#5854E6" opacity="0.8"/>
+          <text x="580" y="106" text-anchor="middle" fill="white" font-weight="800" font-size="14">3</text>
+          <!-- Label below node -->
+          <text x="580" y="148" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Your Income</text>
+          <text x="580" y="163" text-anchor="middle" fill="#717171" font-size="10">Part-time, placement</text>
+          <text x="580" y="177" text-anchor="middle" fill="#717171" font-size="10">&amp; support</text>
+
+          <!-- ============ STEP 4 — path goes vertical, label RIGHT ============ -->
+          <circle cx="790" cy="280" r="22" fill="#5854E6" opacity="0.7"/>
+          <text x="790" y="286" text-anchor="middle" fill="white" font-weight="800" font-size="14">4</text>
+          <!-- Label to the LEFT (path curves right edge, so label goes left) -->
+          <text x="748" y="275" text-anchor="end" fill="#1F2A44" font-weight="700" font-size="12">Your Spending</text>
+          <text x="748" y="290" text-anchor="end" fill="#717171" font-size="10">Track where your</text>
+          <text x="748" y="304" text-anchor="end" fill="#717171" font-size="10">money goes</text>
+
+          <!-- ============ STEP 5 — vertical section, label RIGHT ============ -->
+          <circle cx="790" cy="400" r="22" fill="#5854E6" opacity="0.6"/>
+          <text x="790" y="406" text-anchor="middle" fill="white" font-weight="800" font-size="14">5</text>
+          <!-- Label to the LEFT -->
+          <text x="748" y="395" text-anchor="end" fill="#1F2A44" font-weight="700" font-size="12">Your Savings</text>
+          <text x="748" y="410" text-anchor="end" fill="#717171" font-size="10">ISA, LISA &amp;</text>
+          <text x="748" y="424" text-anchor="end" fill="#717171" font-size="10">safety net</text>
+
+          <!-- ============ STEP 6 — path curves back, label RIGHT ============ -->
+          <circle cx="580" cy="400" r="22" fill="#5854E6" opacity="0.5"/>
+          <text x="580" y="406" text-anchor="middle" fill="white" font-weight="800" font-size="14">6</text>
+          <!-- Label to the LEFT -->
+          <text x="538" y="395" text-anchor="end" fill="#1F2A44" font-weight="700" font-size="12">Your Goals</text>
+          <text x="538" y="410" text-anchor="end" fill="#717171" font-size="10">Targets that give</text>
+          <text x="538" y="424" text-anchor="end" fill="#717171" font-size="10">money purpose</text>
+
+          <!-- ============ DESTINATION — continues the path ============ -->
+          <path d="M 580,400 C 500,380 420,410 380,450"
+                fill="none" stroke="#20B48640" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round"/>
+          <circle cx="380" cy="450" r="24" fill="#20B486" filter="url(#glow)"/>
+          <text x="380" y="445" text-anchor="middle" fill="white" font-size="16">🏁</text>
+          <!-- Label to the right -->
+          <text x="420" y="446" text-anchor="start" fill="#20B486" font-weight="700" font-size="12">Your Dashboard</text>
+          <text x="420" y="461" text-anchor="start" fill="#717171" font-size="10">Personalised to your stage</text>
+
+        </svg>
+
+      </div>
+    </div>
+
+    <!-- Expanded detail card -->
+    <div style="margin: 0 24px; padding: 20px; background: white; border-radius: 12px; border: 2px solid #5854E620; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: #5854E6; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px;">2</div>
+        <div style="font-size: 14px; font-weight: 700; color: #1F2A44;">Your Student Loan</div>
+        <div style="font-size: 11px; color: #717171; margin-left: auto;">Tap any step to learn more</div>
+      </div>
+      <div style="font-size: 13px; color: #717171; line-height: 1.6;">UK student loans aren't like normal debt — repayments are income-based and written off after 30-40 years. Understanding your plan type helps us show you the real cost and when it makes sense to overpay (spoiler: usually it doesn't).</div>
+    </div>
+
+    <!-- CTA -->
+    <div style="padding: 0 32px 28px; text-align: center;">
+      <div style="display: flex; gap: 12px; justify-content: center; padding-top: 20px; border-top: 1px solid #EEEEEE;">
+        <div style="background: #E83E6D; color: white; padding: 12px 32px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;">Start My Journey</div>
+        <div style="background: white; color: #1F2A44; padding: 12px 32px; border-radius: 8px; font-weight: 700; font-size: 14px; border: 1px solid #EEEEEE; cursor: pointer;">See It in Action</div>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: #717171;">You can skip steps and come back to them later</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>Spacing Fixes</h3>
+  <ul style="text-align:left; max-width:600px; margin:0 auto; line-height:1.8;">
+    <li><strong>Top-row labels (Steps 1, 3)</strong> — now sit well below the node with 26px clear gap</li>
+    <li><strong>Bottom-row labels (Step 2)</strong> — positioned above the node with clear space</li>
+    <li><strong>Vertical section labels (Steps 4, 5, 6)</strong> — positioned to the left of nodes, right-aligned text anchoring towards the node</li>
+    <li><strong>Destination label</strong> — to the right of the finish flag</li>
+    <li><strong>The path</strong> — meanders right across the top, drops vertically on the right edge, then curves back left to the destination</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Spacing and layout works</h3>
+      <p>Move on to the onboarding flow with learning sidebar</p>
+    </div>
+  </div>
+  <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Needs more tweaks</h3>
+      <p>I'll explain in the terminal</p>
+    </div>
+  </div>
+</div>

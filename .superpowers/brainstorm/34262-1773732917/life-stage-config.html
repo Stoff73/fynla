@@ -1,0 +1,89 @@
+<h2>Section 1: Life Stage Configuration Architecture</h2>
+<p class="subtitle">The central config that drives the entire stage-adaptive experience</p>
+
+<div class="section">
+  <h3>How It Works</h3>
+  <p>A single configuration object defines every aspect of each life stage. All components read from this config — no scattered if/else logic.</p>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">lifeStageConfig.js — Config Shape Per Stage</div>
+  <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; background: #1a1a2e; color: #e0e0e0; padding: 24px; text-align: left; white-space: pre; overflow-x: auto;">
+<span style="color:#7c7cff;">// resources/js/constants/lifeStageConfig.js</span>
+
+<span style="color:#ff79c6;">export const</span> LIFE_STAGES = {
+  <span style="color:#50fa7b;">university</span>: {
+    id: <span style="color:#f1fa8c;">'university'</span>,
+    label: <span style="color:#f1fa8c;">'University & Student'</span>,
+    ageRange: <span style="color:#f1fa8c;">'18–25'</span>,
+    persona: <span style="color:#f1fa8c;">'student'</span>,
+    tagline: <span style="color:#f1fa8c;">'Build habits that set you up for life'</span>,
+    icon: <span style="color:#f1fa8c;">'graduation-cap'</span>,
+    colour: <span style="color:#f1fa8c;">'violet'</span>,
+
+    <span style="color:#7c7cff;">// Sidebar: primary items shown, rest in "Explore more"</span>
+    sidebar: {
+      primary: [<span style="color:#f1fa8c;">'dashboard'</span>, <span style="color:#f1fa8c;">'bank-accounts'</span>, <span style="color:#f1fa8c;">'income'</span>, <span style="color:#f1fa8c;">'expenditure'</span>, <span style="color:#f1fa8c;">'goals'</span>],
+      promoted: [<span style="color:#f1fa8c;">'risk-profile'</span>, <span style="color:#f1fa8c;">'savings'</span>],
+    },
+
+    <span style="color:#7c7cff;">// Dashboard: cards shown and their order</span>
+    dashboard: {
+      hero: <span style="color:#f1fa8c;">'journey-progress'</span>,
+      cards: [<span style="color:#f1fa8c;">'budget-tracker'</span>, <span style="color:#f1fa8c;">'savings-goal'</span>, <span style="color:#f1fa8c;">'student-loan'</span>, <span style="color:#f1fa8c;">'actions'</span>],
+    },
+
+    <span style="color:#7c7cff;">// Onboarding: steps for this journey</span>
+    onboarding: {
+      steps: [<span style="color:#f1fa8c;">'personal-info'</span>, <span style="color:#f1fa8c;">'student-loan'</span>, <span style="color:#f1fa8c;">'income'</span>,
+              <span style="color:#f1fa8c;">'expenditure'</span>, <span style="color:#f1fa8c;">'savings'</span>, <span style="color:#f1fa8c;">'goals'</span>],
+      learningMilestones: { <span style="color:#7c7cff;">/* per-step content */</span> },
+    },
+
+    <span style="color:#7c7cff;">// Learning: stage-contextualised content keys</span>
+    learning: {
+      pensionContext: <span style="color:#f1fa8c;">'auto-enrolment-from-22'</span>,
+      savingsContext: <span style="color:#f1fa8c;">'emergency-fund-basics'</span>,
+      debtContext: <span style="color:#f1fa8c;">'student-loan-not-like-debt'</span>,
+    },
+  },
+
+  <span style="color:#50fa7b;">early_career</span>: { <span style="color:#7c7cff;">/* John Morgan config... */</span> },
+  <span style="color:#50fa7b;">mid_career</span>:   { <span style="color:#7c7cff;">/* Carters + Alex Chen... */</span> },
+  <span style="color:#50fa7b;">peak</span>:         { <span style="color:#7c7cff;">/* Mitchells config... */</span> },
+  <span style="color:#50fa7b;">retirement</span>:    { <span style="color:#7c7cff;">/* Bennetts config... */</span> },
+};
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>Backend Mirror</h3>
+  <p><code>LifeStageService</code> in PHP holds the same config for API responses, determining which dashboard data to aggregate and which learning content to return. Stage is stored on the user model as <code>life_stage</code> (string enum).</p>
+</div>
+
+<div class="section">
+  <h3>Stage Detection</h3>
+  <p>Three ways a stage is set:</p>
+  <ol style="text-align: left; max-width: 600px; margin: 0 auto; line-height: 1.8;">
+    <li><strong>Onboarding selection</strong> — user picks their stage on the welcome screen</li>
+    <li><strong>Preview mode</strong> — auto-set from persona's <code>preview_persona_id</code></li>
+    <li><strong>Profile update</strong> — inferred when DOB/marital status changes (with confirmation)</li>
+  </ol>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>This config shape works</h3>
+      <p>Move on to the next section</p>
+    </div>
+  </div>
+  <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Needs changes</h3>
+      <p>I'll explain what to adjust in the terminal</p>
+    </div>
+  </div>
+</div>

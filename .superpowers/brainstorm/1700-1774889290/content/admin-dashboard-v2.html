@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin User Metrics Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+  :root {
+    /* Fynla Design System v1.2.0 */
+    --raspberry-50: #FDF2F8;
+    --raspberry-100: #FCE7F3;
+    --raspberry-200: #F9A8D4;
+    --raspberry-500: #E83E6D;
+    --raspberry-600: #DB2777;
+    --raspberry-700: #BE185D;
+
+    --horizon-50: #F8FAFC;
+    --horizon-100: #F1F5F9;
+    --horizon-200: #E2E8F0;
+    --horizon-300: #CBD5E1;
+    --horizon-400: #94A3B8;
+    --horizon-500: #1F2A44;
+    --horizon-600: #0F172A;
+
+    --spring-50: #F0FDF9;
+    --spring-100: #D1FAE5;
+    --spring-500: #20B486;
+    --spring-600: #059669;
+
+    --violet-50: #F5F3FF;
+    --violet-100: #EDE9FE;
+    --violet-500: #5854E6;
+    --violet-600: #7C3AED;
+
+    --savannah-100: #FDFAF7;
+    --savannah-200: #FAF5F0;
+    --savannah-500: #E6C9A8;
+
+    --eggshell-500: #F7F6F4;
+    --neutral-500: #717171;
+    --light-gray: #EEEEEE;
+
+    /* Chart colors */
+    --chart-1: #1F2A44;
+    --chart-2: #20B486;
+    --chart-3: #5854E6;
+    --chart-4: #E83E6D;
+    --chart-5: #E6C9A8;
+    --chart-6: #6C83BC;
+    --chart-7: #717171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, sans-serif;
+    background: var(--eggshell-500);
+    color: var(--horizon-500);
+    padding: 32px;
+    line-height: 1.6;
+  }
+
+  h1 {
+    font-size: 2.25rem;
+    font-weight: 900;
+    color: var(--horizon-500);
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--horizon-500);
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--horizon-500);
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 0.875rem;
+    color: var(--neutral-500);
+    margin-bottom: 24px;
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    background: white;
+    padding: 4px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--neutral-500);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 150ms;
+  }
+
+  .tab:hover { background: var(--savannah-100); }
+
+  .tab.active {
+    background: var(--horizon-500);
+    color: white;
+  }
+
+  /* Snapshot cards */
+  .snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .snapshot-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    text-align: center;
+    transition: box-shadow 150ms;
+  }
+
+  .snapshot-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  }
+
+  .snapshot-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--neutral-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  .snapshot-value {
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .snapshot-sub {
+    font-size: 0.75rem;
+    color: var(--neutral-500);
+    margin-top: 4px;
+  }
+
+  .accent-bar {
+    width: 40px;
+    height: 3px;
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+
+  /* Trial breakdown */
+  .trial-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .trial-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    border-top: 3px solid transparent;
+    transition: all 150ms;
+  }
+
+  .trial-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  }
+
+  .trial-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--neutral-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .trial-value {
+    font-size: 1.5rem;
+    font-weight: 900;
+  }
+
+  /* Plan breakdown */
+  .plan-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .plan-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    border-left: 4px solid transparent;
+    transition: all 150ms;
+  }
+
+  .plan-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  }
+
+  .plan-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .plan-count {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: var(--horizon-500);
+  }
+
+  .plan-breakdown {
+    font-size: 0.75rem;
+    color: var(--neutral-500);
+    margin-top: 6px;
+  }
+
+  .plan-revenue {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--light-gray);
+  }
+
+  /* Period selector */
+  .period-selector {
+    display: flex;
+    gap: 4px;
+    background: white;
+    padding: 4px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    display: inline-flex;
+    margin-bottom: 20px;
+  }
+
+  .period-btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--neutral-500);
+    cursor: pointer;
+    transition: all 150ms;
+  }
+
+  .period-btn:hover { background: var(--savannah-100); }
+
+  .period-btn.active {
+    background: var(--raspberry-500);
+    color: white;
+  }
+
+  /* Charts section */
+  .section-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .chart-container {
+    background: var(--eggshell-500);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .chart-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--horizon-500);
+    margin-bottom: 16px;
+  }
+
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 100px;
+  }
+
+  .chart-bar-group {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 100%;
+  }
+
+  .chart-bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    min-height: 4px;
+    transition: opacity 150ms;
+  }
+
+  .chart-bar:hover { opacity: 0.8; }
+
+  .chart-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.6875rem;
+    color: var(--neutral-500);
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: var(--neutral-500);
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* Engagement metrics */
+  .engagement-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .engagement-stat {
+    text-align: center;
+    padding: 16px;
+    background: var(--eggshell-500);
+    border-radius: 8px;
+  }
+
+  .engagement-value {
+    font-size: 1.5rem;
+    font-weight: 900;
+  }
+
+  .engagement-label {
+    font-size: 0.75rem;
+    color: var(--neutral-500);
+    margin-top: 4px;
+  }
+
+  /* Data table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .data-table thead {
+    background: var(--eggshell-500);
+  }
+
+  .data-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--neutral-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--light-gray);
+  }
+
+  .data-table th:not(:first-child) { text-align: right; }
+
+  .data-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--light-gray);
+    color: var(--horizon-500);
+  }
+
+  .data-table td:not(:first-child) { text-align: right; }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .data-table tr:hover { background: var(--savannah-100); }
+
+  .text-spring { color: var(--spring-500); }
+  .text-raspberry { color: var(--raspberry-500); }
+  .text-violet { color: var(--violet-500); }
+  .text-horizon { color: var(--horizon-500); }
+  .text-neutral { color: var(--neutral-500); }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--light-gray);
+    margin: 24px 0;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Page header -->
+<h1>User Metrics</h1>
+<p class="subtitle">Real-time overview of registrations, trials, subscriptions, and engagement</p>
+
+<!-- Admin tab bar context -->
+<div class="tab-bar">
+  <div class="tab">Dashboard</div>
+  <div class="tab active">User Metrics</div>
+  <div class="tab">User Management</div>
+  <div class="tab">Decision Matrix</div>
+  <div class="tab">Tax Settings</div>
+  <div class="tab">AI Provider</div>
+  <div class="tab">Database</div>
+</div>
+
+<!-- SNAPSHOT CARDS -->
+<div class="snapshot-grid">
+  <div class="snapshot-card">
+    <div class="accent-bar" style="background: var(--horizon-500);"></div>
+    <div class="snapshot-label">Total Registered</div>
+    <div class="snapshot-value" style="color: var(--horizon-500);">247</div>
+    <div class="snapshot-sub">+12 this week</div>
+  </div>
+  <div class="snapshot-card">
+    <div class="accent-bar" style="background: var(--spring-500);"></div>
+    <div class="snapshot-label">Active Subscribers</div>
+    <div class="snapshot-value" style="color: var(--spring-500);">89</div>
+    <div class="snapshot-sub">36% conversion rate</div>
+  </div>
+  <div class="snapshot-card">
+    <div class="accent-bar" style="background: var(--violet-500);"></div>
+    <div class="snapshot-label">On Trial</div>
+    <div class="snapshot-value" style="color: var(--violet-500);">34</div>
+    <div class="snapshot-sub">7-day free trial</div>
+  </div>
+  <div class="snapshot-card">
+    <div class="accent-bar" style="background: var(--raspberry-500);"></div>
+    <div class="snapshot-label">Never Paid</div>
+    <div class="snapshot-value" style="color: var(--raspberry-500);">124</div>
+    <div class="snapshot-sub">50% of total</div>
+  </div>
+</div>
+
+<!-- TRIAL BREAKDOWN -->
+<h3>Trial Status Breakdown</h3>
+<div class="trial-grid">
+  <div class="trial-card" style="border-top-color: var(--spring-500);">
+    <div class="trial-label">4+ Days</div>
+    <div class="trial-value" style="color: var(--spring-500);">12</div>
+  </div>
+  <div class="trial-card" style="border-top-color: var(--spring-400, #34D399);">
+    <div class="trial-label">3 Days</div>
+    <div class="trial-value" style="color: var(--spring-500);">8</div>
+  </div>
+  <div class="trial-card" style="border-top-color: var(--violet-500);">
+    <div class="trial-label">2 Days</div>
+    <div class="trial-value" style="color: var(--violet-500);">5</div>
+  </div>
+  <div class="trial-card" style="border-top-color: var(--raspberry-200);">
+    <div class="trial-label">1 Day</div>
+    <div class="trial-value" style="color: var(--raspberry-500);">4</div>
+  </div>
+  <div class="trial-card" style="border-top-color: var(--raspberry-500);">
+    <div class="trial-label">Expiring Today</div>
+    <div class="trial-value" style="color: var(--raspberry-600);">2</div>
+  </div>
+  <div class="trial-card" style="border-top-color: var(--neutral-500);">
+    <div class="trial-label">Expired</div>
+    <div class="trial-value" style="color: var(--neutral-500);">3</div>
+  </div>
+</div>
+
+<!-- SUBSCRIBERS BY PLAN -->
+<h3>Active Subscribers by Plan</h3>
+<div class="plan-grid">
+  <div class="plan-card" style="border-left-color: var(--violet-500);">
+    <div class="plan-name" style="color: var(--violet-500);">Student</div>
+    <div class="plan-count">22</div>
+    <div class="plan-breakdown">14 monthly &middot; 8 yearly</div>
+    <div class="plan-revenue" style="color: var(--spring-500);">£295.72/mo</div>
+  </div>
+  <div class="plan-card" style="border-left-color: var(--spring-500);">
+    <div class="plan-name" style="color: var(--spring-500);">Standard</div>
+    <div class="plan-count">31</div>
+    <div class="plan-breakdown">19 monthly &middot; 12 yearly</div>
+    <div class="plan-revenue" style="color: var(--spring-500);">£508.81/mo</div>
+  </div>
+  <div class="plan-card" style="border-left-color: var(--raspberry-500);">
+    <div class="plan-name" style="color: var(--raspberry-500);">Family</div>
+    <div class="plan-count">19</div>
+    <div class="plan-breakdown">11 monthly &middot; 8 yearly</div>
+    <div class="plan-revenue" style="color: var(--spring-500);">£464.89/mo</div>
+  </div>
+  <div class="plan-card" style="border-left-color: var(--horizon-500);">
+    <div class="plan-name" style="color: var(--horizon-500);">Pro</div>
+    <div class="plan-count">17</div>
+    <div class="plan-breakdown">9 monthly &middot; 8 yearly</div>
+    <div class="plan-revenue" style="color: var(--spring-500);">£513.24/mo</div>
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- TIME-FILTERED ACTIVITY -->
+<div class="section-header">
+  <h2 style="margin-bottom: 0;">Activity Over Time</h2>
+  <div class="period-selector">
+    <div class="period-btn active">Day</div>
+    <div class="period-btn">Week</div>
+    <div class="period-btn">Month</div>
+    <div class="period-btn">Quarter</div>
+    <div class="period-btn">Year</div>
+  </div>
+</div>
+
+<!-- Charts row 1 -->
+<div class="charts-grid">
+  <div class="chart-container">
+    <div class="chart-title">Registrations &amp; Conversions</div>
+    <div class="chart-bars">
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--chart-6); height: 40%;"></div>
+        <div class="chart-bar" style="background: var(--chart-2); height: 15%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--chart-6); height: 65%;"></div>
+        <div class="chart-bar" style="background: var(--chart-2); height: 30%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--chart-6); height: 35%;"></div>
+        <div class="chart-bar" style="background: var(--chart-2); height: 10%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--chart-6); height: 80%;"></div>
+        <div class="chart-bar" style="background: var(--chart-2); height: 45%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--chart-6); height: 55%;"></div>
+        <div class="chart-bar" style="background: var(--chart-2); height: 25%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--chart-6); height: 70%;"></div>
+        <div class="chart-bar" style="background: var(--chart-2); height: 35%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--chart-6); height: 90%;"></div>
+        <div class="chart-bar" style="background: var(--chart-2); height: 50%;"></div>
+      </div>
+    </div>
+    <div class="chart-labels">
+      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+    </div>
+    <div class="chart-legend">
+      <span><span class="legend-dot" style="background: var(--chart-6);"></span>Registrations</span>
+      <span><span class="legend-dot" style="background: var(--chart-2);"></span>Conversions</span>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">Revenue</div>
+    <div class="chart-bars">
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--spring-500); height: 30%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--spring-500); height: 55%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--spring-500); height: 70%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--spring-500); height: 45%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--spring-500); height: 85%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--spring-500); height: 60%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--spring-500); height: 100%;"></div>
+      </div>
+    </div>
+    <div class="chart-labels">
+      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+    </div>
+    <div class="chart-legend">
+      <span><span class="legend-dot" style="background: var(--spring-500);"></span>Revenue (GBP)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 2 -->
+<div class="charts-grid">
+  <div class="chart-container">
+    <div class="chart-title">Churn (Cancellations &amp; Expirations)</div>
+    <div class="chart-bars">
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--raspberry-200); height: 20%;"></div>
+        <div class="chart-bar" style="background: var(--raspberry-500); height: 10%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--raspberry-200); height: 10%;"></div>
+        <div class="chart-bar" style="background: var(--raspberry-500); height: 5%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--raspberry-200); height: 35%;"></div>
+        <div class="chart-bar" style="background: var(--raspberry-500); height: 15%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--raspberry-200); height: 15%;"></div>
+        <div class="chart-bar" style="background: var(--raspberry-500); height: 25%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--raspberry-200); height: 25%;"></div>
+        <div class="chart-bar" style="background: var(--raspberry-500); height: 10%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--raspberry-200); height: 5%;"></div>
+        <div class="chart-bar" style="background: var(--raspberry-500); height: 5%;"></div>
+      </div>
+      <div class="chart-bar-group">
+        <div class="chart-bar" style="background: var(--raspberry-200); height: 30%;"></div>
+        <div class="chart-bar" style="background: var(--raspberry-500); height: 20%;"></div>
+      </div>
+    </div>
+    <div class="chart-labels">
+      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+    </div>
+    <div class="chart-legend">
+      <span><span class="legend-dot" style="background: var(--raspberry-200);"></span>Trial Expired</span>
+      <span><span class="legend-dot" style="background: var(--raspberry-500);"></span>Cancelled</span>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">Non-Converters — Engagement Breakdown</div>
+    <div class="engagement-grid">
+      <div class="engagement-stat">
+        <div class="engagement-value" style="color: var(--raspberry-500);">67%</div>
+        <div class="engagement-label">Completed Onboarding</div>
+      </div>
+      <div class="engagement-stat">
+        <div class="engagement-value" style="color: var(--violet-500);">42%</div>
+        <div class="engagement-label">Used 1+ Module</div>
+      </div>
+      <div class="engagement-stat">
+        <div class="engagement-value" style="color: var(--spring-500);">18%</div>
+        <div class="engagement-label">Used 3+ Modules</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Table -->
+<div class="section-card">
+  <h3>Activity Data</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Period</th>
+        <th>Registrations</th>
+        <th>Conversions</th>
+        <th>Cancellations</th>
+        <th>Trial Expired</th>
+        <th>Revenue</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Mon 24 Mar</td>
+        <td>5</td>
+        <td class="text-spring">2</td>
+        <td class="text-raspberry">1</td>
+        <td class="text-neutral">0</td>
+        <td style="font-weight: 600;">£21.98</td>
+      </tr>
+      <tr>
+        <td>Tue 25 Mar</td>
+        <td>8</td>
+        <td class="text-spring">3</td>
+        <td class="text-raspberry">0</td>
+        <td class="text-neutral">1</td>
+        <td style="font-weight: 600;">£43.97</td>
+      </tr>
+      <tr>
+        <td>Wed 26 Mar</td>
+        <td>3</td>
+        <td class="text-spring">1</td>
+        <td class="text-raspberry">2</td>
+        <td class="text-neutral">0</td>
+        <td style="font-weight: 600;">£10.99</td>
+      </tr>
+      <tr>
+        <td>Thu 27 Mar</td>
+        <td>11</td>
+        <td class="text-spring">5</td>
+        <td class="text-raspberry">0</td>
+        <td class="text-neutral">2</td>
+        <td style="font-weight: 600;">£89.95</td>
+      </tr>
+      <tr>
+        <td>Fri 28 Mar</td>
+        <td>6</td>
+        <td class="text-spring">2</td>
+        <td class="text-raspberry">1</td>
+        <td class="text-neutral">1</td>
+        <td style="font-weight: 600;">£34.98</td>
+      </tr>
+      <tr>
+        <td>Sat 29 Mar</td>
+        <td>9</td>
+        <td class="text-spring">4</td>
+        <td class="text-raspberry">0</td>
+        <td class="text-neutral">0</td>
+        <td style="font-weight: 600;">£61.96</td>
+      </tr>
+      <tr>
+        <td>Sun 30 Mar</td>
+        <td>12</td>
+        <td class="text-spring">6</td>
+        <td class="text-raspberry">1</td>
+        <td class="text-neutral">1</td>
+        <td style="font-weight: 600;">£109.94</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

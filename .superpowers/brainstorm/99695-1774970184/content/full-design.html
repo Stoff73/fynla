@@ -1,0 +1,242 @@
+<h2>Feature Gating — Full Design</h2>
+<p class="subtitle">Frontend sidebar gating + backend middleware enforcement. Review each section.</p>
+
+<!-- SECTION 1: Tier Mapping -->
+<div class="section">
+  <h3>1. Confirmed Tier-to-Feature Mapping</h3>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+
+    <!-- Student -->
+    <div style="background: #f0fdf4; border: 2px solid #20B486; border-radius: 10px; padding: 16px;">
+      <div style="font-weight: 700; color: #20B486; margin-bottom: 8px;">Student</div>
+      <div style="font-size: 12px; line-height: 1.8; color: #1F2A44;">
+        Dashboard<br>Net Worth<br>Bank Accounts<br>Income<br>Expenditure<br>
+        Investments<br>Retirement<br>Risk Profile<br>Protection<br>
+        Goals<br>Life Events<br>Plans<br>Journeys<br>Actions
+      </div>
+    </div>
+
+    <!-- Standard -->
+    <div style="background: #f5f3ff; border: 2px solid #5854E6; border-radius: 10px; padding: 16px;">
+      <div style="font-weight: 700; color: #5854E6; margin-bottom: 8px;">Standard <span style="font-weight: 400; font-size: 11px;">(adds)</span></div>
+      <div style="font-size: 12px; line-height: 1.8; color: #1F2A44;">
+        Property<br>Liabilities<br>Personal Valuables<br>Business<br>
+        Letter to Spouse<br>What If Scenarios<br>Coordination
+      </div>
+    </div>
+
+    <!-- Family -->
+    <div style="background: #fffbeb; border: 2px solid #F59E0B; border-radius: 10px; padding: 16px;">
+      <div style="font-weight: 700; color: #D97706; margin-bottom: 8px;">Family <span style="font-weight: 400; font-size: 11px;">(adds)</span></div>
+      <div style="font-size: 12px; line-height: 1.8; color: #1F2A44;">
+        Family members<br>(spouse linking)
+      </div>
+      <div style="margin-top: 8px; font-size: 11px; color: #717171;">
+        Note: No separate sidebar item. Gates the ability to add family members in onboarding/profile.
+      </div>
+    </div>
+
+    <!-- Pro -->
+    <div style="background: #FFF3F6; border: 2px solid #E83E6D; border-radius: 10px; padding: 16px;">
+      <div style="font-weight: 700; color: #E83E6D; margin-bottom: 8px;">Pro <span style="font-weight: 400; font-size: 11px;">(adds)</span></div>
+      <div style="font-size: 12px; line-height: 1.8; color: #1F2A44;">
+        Estate Planning<br>Will<br>Trusts<br>Power of Attorney<br>Holistic Plan
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: Sidebar Mockup -->
+<div class="section">
+  <h3>2. Sidebar — Student User View (Greyed Items)</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+    <div style="background: white; border: 1px solid #eee; border-radius: 12px; padding: 0; overflow: hidden; max-width: 240px;">
+      <!-- Simulated sidebar -->
+      <div style="background: white; font-family: 'Segoe UI', sans-serif; font-size: 13px;">
+        <!-- Header -->
+        <div style="padding: 12px 16px; border-bottom: 1px solid #eee;">
+          <span style="font-weight: 900; color: #E83E6D; font-size: 16px;">Fynla</span>
+        </div>
+
+        <!-- Dashboard -->
+        <div style="padding: 8px 16px;">
+          <div style="padding: 6px 8px; color: #1F2A44; display: flex; align-items: center; gap: 8px; border-radius: 6px; background: #1F2A44; color: white; font-weight: 600;">
+            <span style="font-size: 14px;">&#x1F3E0;</span> Dashboard
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F4CA;</span> Net Worth
+          </div>
+        </div>
+
+        <!-- Cash Management -->
+        <div style="padding: 4px 16px;">
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; padding: 4px 8px;">Cash Management</div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F3E6;</span> Bank Accounts
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x00A3;</span> Income
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x2B06;</span> Expenditure
+          </div>
+        </div>
+
+        <!-- Finances -->
+        <div style="padding: 4px 16px;">
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; padding: 4px 8px;">Finances</div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F4C8;</span> Investments
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x23F0;</span> Retirement
+          </div>
+          <!-- LOCKED: Standard+ -->
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed; position: relative;">
+            <span style="font-size: 14px;">&#x1F3E0;</span> Property
+            <span style="margin-left: auto; font-size: 10px; background: #5854E6; color: white; padding: 1px 6px; border-radius: 10px;">Standard</span>
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F4B3;</span> Liabilities
+            <span style="margin-left: auto; font-size: 10px; background: #5854E6; color: white; padding: 1px 6px; border-radius: 10px;">Standard</span>
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F4E6;</span> Valuables
+            <span style="margin-left: auto; font-size: 10px; background: #5854E6; color: white; padding: 1px 6px; border-radius: 10px;">Standard</span>
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F4CA;</span> Risk Profile
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F4BC;</span> Business
+            <span style="margin-left: auto; font-size: 10px; background: #5854E6; color: white; padding: 1px 6px; border-radius: 10px;">Standard</span>
+          </div>
+        </div>
+
+        <!-- Personal Affairs -->
+        <div style="padding: 4px 16px;">
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; padding: 4px 8px;">Personal Affairs</div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F6E1;</span> Protection
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F4DD;</span> Will
+            <span style="margin-left: auto; font-size: 10px; background: #E83E6D; color: white; padding: 1px 6px; border-radius: 10px;">Pro</span>
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x2709;</span> Letter to Spouse
+            <span style="margin-left: auto; font-size: 10px; background: #5854E6; color: white; padding: 1px 6px; border-radius: 10px;">Standard</span>
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F3DB;</span> Trusts
+            <span style="margin-left: auto; font-size: 10px; background: #E83E6D; color: white; padding: 1px 6px; border-radius: 10px;">Pro</span>
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F4C4;</span> Estate Planning
+            <span style="margin-left: auto; font-size: 10px; background: #E83E6D; color: white; padding: 1px 6px; border-radius: 10px;">Pro</span>
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F511;</span> Power of Attorney
+            <span style="margin-left: auto; font-size: 10px; background: #E83E6D; color: white; padding: 1px 6px; border-radius: 10px;">Pro</span>
+          </div>
+        </div>
+
+        <!-- Planning -->
+        <div style="padding: 4px 16px 12px;">
+          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; padding: 4px 8px;">Planning</div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F9E9;</span> Holistic Plan
+            <span style="margin-left: auto; font-size: 10px; background: #E83E6D; color: white; padding: 1px 6px; border-radius: 10px;">Pro</span>
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F4CB;</span> Plans
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F5FA;</span> Journeys
+          </div>
+          <div style="padding: 6px 8px; color: #bbb; display: flex; align-items: center; gap: 8px; opacity: 0.5; cursor: not-allowed;">
+            <span style="font-size: 14px;">&#x1F9EA;</span> What If Scenarios
+            <span style="margin-left: auto; font-size: 10px; background: #5854E6; color: white; padding: 1px 6px; border-radius: 10px;">Standard</span>
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F3F4;</span> Goals
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x1F4C5;</span> Life Events
+          </div>
+          <div style="padding: 6px 8px; color: #717171; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 14px;">&#x26A1;</span> Actions
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Tooltip mockup + notes -->
+    <div>
+      <div style="background: #f8f8f6; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+        <h3 style="margin-top: 0;">Hover Tooltip</h3>
+        <div style="background: white; border-radius: 8px; padding: 12px; display: inline-flex; align-items: center; gap: 8px; color: #bbb; opacity: 0.5; position: relative;">
+          <span>&#x1F3E0;</span> Property
+          <span style="font-size: 10px; background: #5854E6; color: white; padding: 1px 6px; border-radius: 10px;">Standard</span>
+        </div>
+        <div style="background: #1F2A44; color: #ddd; border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-top: 8px; display: inline-block;">
+          Available on <strong style="color: #5854E6;">Standard</strong> plan<br>
+          <a href="#" style="color: #E83E6D; text-decoration: underline; font-size: 11px;">Upgrade now &rarr;</a>
+        </div>
+        <p style="color: #717171; font-size: 12px; margin-top: 8px;">Tooltip appears on hover. "Upgrade now" links to /settings?tab=subscription</p>
+      </div>
+
+      <div style="background: #f8f8f6; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+        <h3 style="margin-top: 0;">Design Decisions</h3>
+        <ul style="padding-left: 20px; line-height: 2; font-size: 13px;">
+          <li><strong>Greyed items stay visible</strong> — users see what they're missing</li>
+          <li><strong>Small tier badge</strong> on each locked item (Standard or Pro)</li>
+          <li><strong>Tooltip on hover</strong> with tier name + upgrade link</li>
+          <li><strong>No click action</strong> — item is not a link, cursor is not-allowed</li>
+          <li><strong>Trial users see everything</strong> unlocked (full access for 7 days)</li>
+          <li><strong>Preview users</strong> see everything unlocked (demo mode)</li>
+          <li><strong>Collapsed sidebar</strong> — locked items show lock icon, tooltip on hover</li>
+        </ul>
+      </div>
+
+      <div style="background: #f8f8f6; border-radius: 12px; padding: 20px;">
+        <h3 style="margin-top: 0;">Backend Middleware</h3>
+        <ul style="padding-left: 20px; line-height: 2; font-size: 13px;">
+          <li>New <code>CheckFeatureAccess</code> middleware</li>
+          <li>Applied per-route group: <code>->middleware('feature:standard')</code></li>
+          <li>Checks user plan tier against required tier</li>
+          <li>Returns 403 <code>{ error: 'upgrade_required', required_plan: 'standard' }</code></li>
+          <li>Trial + preview users bypass (same as CheckSubscription)</li>
+          <li>Tier hierarchy: student &lt; standard &lt; family &lt; pro</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: Architecture -->
+<div class="section">
+  <h3>3. Architecture Summary</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+
+    <div style="background: #f8f8f6; border-radius: 12px; padding: 20px;">
+      <h3 style="margin-top: 0;">Frontend Changes</h3>
+      <div style="font-size: 13px; line-height: 2;">
+        <strong>SideMenuItem.vue</strong> — new <code>locked</code> + <code>requiredPlan</code> props. When locked: renders as <code>&lt;div&gt;</code> (not router-link), applies opacity + cursor-not-allowed, shows tier badge, tooltip on hover.<br><br>
+        <strong>SideMenu.vue</strong> — adds <code>userPlan</code> computed from <code>subscriptionData</code> prop. Each gated item gets <code>:locked="!hasAccess('standard')"</code> and <code>requiredPlan="standard"</code>.<br><br>
+        <strong>Feature map constant</strong> — single source of truth in <code>constants/featureGating.js</code>, mapping route paths to minimum tier. Shared by sidebar and router guard.
+      </div>
+    </div>
+
+    <div style="background: #f8f8f6; border-radius: 12px; padding: 20px;">
+      <h3 style="margin-top: 0;">Backend Changes</h3>
+      <div style="font-size: 13px; line-height: 2;">
+        <strong>CheckFeatureAccess middleware</strong> — new file. Takes tier param. Checks <code>user->plan</code> against tier hierarchy.<br><br>
+        <strong>routes/api.php</strong> — wrap gated route groups: <code>->middleware('feature:standard')</code> for property, liabilities, business, etc. <code>'feature:pro'</code> for estate, trusts, will, holistic plan.<br><br>
+        <strong>Kernel.php</strong> — register <code>'feature' => CheckFeatureAccess::class</code> in route middleware.<br><br>
+        <strong>No DB changes</strong> — uses existing <code>subscription.plan</code> field.
+      </div>
+    </div>
+  </div>
+</div>
