@@ -182,7 +182,7 @@
     },
     {
         "name": "get_subscription_status",
-        "description": "Get the user's current subscription status — plan, billing cycle, current period end, trial end, next charge, and whether they have cancelled. Use when the user asks about their subscription, billing, when they will be charged next, whether their trial has ended, or whether their subscription is still active.",
+        "description": "Get the user's current Free or Premium subscription state — tier display name, billing cycle, paid period end, renewal date, and whether payment is pending, active, past due, cancelled, or expired. Use when the user asks about their subscription, billing, next renewal, cancellation, or access state.",
         "parameters": {
             "type": "object",
             "properties": {},
@@ -212,7 +212,7 @@
     },
     {
         "name": "create_what_if_scenario",
-        "description": "Create a persistent what-if scenario showing how changes would affect the user's financial plan. The scenario is saved and the user is navigated to the What If dashboard to see the comparison. Use this when the user asks \"what if\" questions about their finances.",
+        "description": "Create a persistent what-if scenario showing how changes would affect the user's financial plan. The scenario is saved and the user is navigated to the What If dashboard to see the comparison. Use this when the user asks \"what if\" questions about their finances. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -251,7 +251,7 @@
     },
     {
         "name": "create_goal",
-        "description": "Create a new financial goal for the user. Use this when the user says they want to save for something specific. You MAY call this tool multiple times in the same turn when the user mentions multiple goals.",
+        "description": "Create a new financial goal for the user. Use this when the user says they want to save for something specific. You MAY call this tool multiple times in the same turn when the user mentions multiple goals. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -309,7 +309,7 @@
     },
     {
         "name": "create_life_event",
-        "description": "Create a future life event that may impact the user's financial plan. You MAY call this tool multiple times in the same turn when the user mentions multiple events.",
+        "description": "Create a future life event that may impact the user's financial plan. You MAY call this tool multiple times in the same turn when the user mentions multiple events. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -341,7 +341,7 @@
     },
     {
         "name": "create_savings_account",
-        "description": "Create a savings account for the user. Use this when the user mentions a savings account, Cash Individual Savings Account, or cash deposit. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts.",
+        "description": "Create a savings account only after the user explicitly states its type and whether it is owned individually or jointly. Never infer Cash ISA from a bare ISA. Joint records also require the joint owner and the primary owner's percentage share. You MAY call this tool multiple times in the same turn when every record has those facts.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -355,9 +355,14 @@
                         "easy_access",
                         "notice",
                         "fixed_term",
-                        "regular_saver"
+                        "regular_saver",
+                        "current_account",
+                        "cash_isa",
+                        "junior_isa",
+                        "premium_bonds",
+                        "nsi"
                     ],
-                    "description": "Type of savings account. Default to \"easy_access\" if not specified."
+                    "description": "Type explicitly stated by the user. Cash ISA and Junior ISA are distinct; never default a bare ISA to either subtype."
                 },
                 "institution": {
                     "type": "string",
@@ -373,7 +378,7 @@
                 },
                 "is_isa": {
                     "type": "boolean",
-                    "description": "Whether this is a Cash Individual Savings Account. Default false."
+                    "description": "Whether this is an explicitly confirmed ISA wrapper, including a distinct Cash ISA or Junior ISA. Never infer this from a bare or negated ISA reference."
                 },
                 "is_emergency_fund": {
                     "type": "boolean",
@@ -386,30 +391,54 @@
                 "isa_subscription_amount": {
                     "type": "number",
                     "description": "For ISAs only: amount the user has already put into this ISA in the CURRENT tax year, when they state it (e.g. \"about £100 this year\" → 100). Leave null if not mentioned."
+                },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint",
+                        "tenants_in_common",
+                        "trust"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual. ISAs must be individual."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+                },
+                "trust_id": {
+                    "type": "integer",
+                    "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
                 }
             },
             "required": [
                 "account_name",
-                "current_balance"
+                "current_balance",
+                "ownership_type"
             ],
             "additionalProperties": false
         }
     },
     {
         "name": "create_investment_account",
-        "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other investments. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts.",
+        "description": "Create an investment account only after the user explicitly states its type and whether it is owned individually or jointly. A bare ISA must be clarified as Stocks & Shares, Lifetime, Innovative Finance, or Cash before choosing this tool. Joint records also require the joint owner and primary owner's percentage share.",
         "parameters": {
             "type": "object",
             "properties": {
                 "account_name": {
                     "type": "string",
-                    "description": "Name of the account (e.g., \"Vanguard Stocks & Shares ISA\", \"Hargreaves Lansdown GIA\", \"Octopus VCT\")"
+                    "description": "Name of the account (e.g., \"Vanguard Stocks & Shares ISA\", \"Hargreaves Lansdown General Investment Account\", \"Octopus VCT\")"
                 },
                 "account_type": {
                     "type": "string",
                     "enum": [
                         "stocks_shares_isa",
                         "lifetime_isa",
+                        "innovative_finance_isa",
                         "personal_investment_account",
                         "onshore_bond",
                         "offshore_bond",
@@ -424,7 +453,7 @@
                         "rsu",
                         "other"
                     ],
-                    "description": "Type of investment account. Use \"stocks_shares_isa\" for Stocks & Shares ISA, \"lifetime_isa\" for Lifetime ISA, \"personal_investment_account\" for GIA, \"vct\" for Venture Capital Trust, \"eis\" for Enterprise Investment Scheme, \"private_company\" for private company shares, \"crowdfunding\" for crowdfunding investments, \"saye\" for Save As You Earn/Sharesave, \"csop\" for Company Share Option Plan, \"emi\" for Enterprise Management Incentives, \"unapproved_options\" for unapproved share options, \"rsu\" for Restricted Stock Units, \"other\" for anything else. Default to \"personal_investment_account\" if not specified."
+                    "description": "Investment type explicitly stated by the user. Use innovative_finance_isa for an Innovative Finance ISA. Never default a missing type."
                 },
                 "provider": {
                     "type": "string",
@@ -433,6 +462,22 @@
                 "current_value": {
                     "type": "number",
                     "description": "Current value in pounds"
+                },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user. Investment accounts support individual or joint ownership; ISAs must be individual."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint ownership."
                 },
                 "monthly_contribution_amount": {
                     "type": "number",
@@ -444,11 +489,11 @@
                 },
                 "annual_dividend_income": {
                     "type": "number",
-                    "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (GIA, shares); omit for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
+                    "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (General Investment Account, shares); omit for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
                 },
                 "isa_subscription_current_year": {
                     "type": "number",
-                    "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; omit for GIA and other taxable accounts."
+                    "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; omit for General Investment Account and other taxable accounts."
                 },
                 "bond_purchase_date": {
                     "type": "string",
@@ -617,14 +662,15 @@
             },
             "required": [
                 "account_name",
-                "current_value"
+                "current_value",
+                "ownership_type"
             ],
             "additionalProperties": false
         }
     },
     {
         "name": "create_holding",
-        "description": "Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings.",
+        "description": "Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -678,7 +724,7 @@
     },
     {
         "name": "create_pension",
-        "description": "Create a pension for the user. Handles both Defined Contribution (workplace, Self-Invested Personal Pension, personal) and Defined Benefit (final salary, career average) pensions. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions.",
+        "description": "Create a pension for the user. Call this ONLY ONCE PER PENSION — if you have already recorded a pension in this conversation, do not record it again under a slightly different name. When the user then supplies a detail you were missing (the scheme type, the value, the retirement age), CORRECT the record you already created by calling `update_record` with entity_type \"dc_pension\" and that pension's id — never call this tool again, and never claim you have recorded something without a tool call actually succeeding. When speaking to the user, always write pension names in full — \"workplace pension\", \"final salary pension\", \"career average pension\", \"Self-Invested Personal Pension\", \"personal pension\" — and never abbreviate any of them. Omit every field the user did not state — never fill unknown fields with 0 or placeholder values, and never invent a scheme name. If the user has asked to add a pension without giving any details, ask for the provider and the current value first. INFER the scheme type rather than interrogating the user: a Self-Invested Personal Pension, a stakeholder or a plan the user pays into themselves is a personal arrangement; a scheme an employer contributes to is a workplace one; only a pension paying a guaranteed income based on salary and years of service (final salary or career average, typically NHS, Teachers, Civil Service or similar) is a defined-benefit scheme. If you genuinely cannot tell, DEFAULT to a personal pension — do not ask the user to classify it. Ask only one plain-language question, and only when the answer changes the outcome: \"Does this pension pay you a guaranteed income based on your salary and years of service, or is it a pot of money you've built up?\"",
         "parameters": {
             "type": "object",
             "properties": {
@@ -688,43 +734,70 @@
                         "dc",
                         "db"
                     ],
-                    "description": "Whether this is a Defined Contribution (dc) or Defined Benefit (db) pension. Default \"dc\" for workplace/SIPP/personal pensions. Use \"db\" for final salary or career average schemes."
+                    "description": "Internal wire value — never shown to the user. \"dc\" for a pot-of-money pension (workplace, Self-Invested Personal Pension, personal, stakeholder). \"db\" ONLY for a pension paying a guaranteed income based on salary and service (final salary, career average). Infer this; do not ask the user for it in these words. Default \"dc\"."
                 },
                 "scheme_name": {
                     "type": "string",
-                    "description": "Name of the pension scheme (e.g., \"Aviva Workplace Pension\", \"NHS Pension Scheme\")"
+                    "description": "Name of the pension scheme as the user described it (e.g. \"Aviva Pension\", \"NHS Pension Scheme\"). Use the user's own words. Do not add or remove qualifiers between turns in the same conversation — a renamed scheme creates a duplicate record."
                 },
                 "scheme_type": {
                     "type": "string",
-                    "description": "For DC: \"workplace\", \"sipp\", or \"personal_pension\". For DB: \"final_salary\", \"career_average\", or \"public_sector\"."
+                    "enum": [
+                        "workplace",
+                        "sipp",
+                        "personal_pension",
+                        "stakeholder",
+                        "final_salary",
+                        "career_average",
+                        "public_sector"
+                    ],
+                    "description": "Internal wire value — never shown to the user. Pot-of-money pensions: \"workplace\" (employer contributes), \"sipp\" (Self-Invested Personal Pension), \"personal_pension\", \"stakeholder\". Guaranteed-income pensions: \"final_salary\", \"career_average\" (benefits build up on each year's own salary — the NHS 2015, Teachers and Civil Service Alpha schemes are career average), \"public_sector\". Must be one of these exact lowercase values. When the user has not made the type clear, send \"personal_pension\"."
                 },
                 "provider": {
                     "type": "string",
-                    "description": "Pension provider (e.g., \"Aviva\", \"Scottish Widows\"). DC pensions only."
+                    "description": "Pension provider (e.g. \"Aviva\", \"Scottish Widows\"). Pot-of-money pensions only."
                 },
                 "current_fund_value": {
                     "type": "number",
-                    "description": "Current fund value in pounds. DC pensions only."
+                    "description": "Current fund value in pounds. Pot-of-money pensions only."
                 },
                 "employee_contribution_percent": {
                     "type": "number",
-                    "description": "Employee contribution as percentage of salary (e.g., 5 for 5%). DC pensions only."
+                    "description": "Employee contribution as percentage of salary (e.g. 5 for 5%). Workplace pensions only."
                 },
                 "employer_contribution_percent": {
                     "type": "number",
-                    "description": "Employer contribution as percentage of salary (e.g., 3 for 3%). DC pensions only."
+                    "description": "Employer contribution as percentage of salary (e.g. 3 for 3%). Workplace pensions only."
                 },
                 "accrued_annual_pension": {
                     "type": "number",
-                    "description": "Accrued annual pension in pounds. DB pensions only."
+                    "description": "Accrued annual pension in pounds. Guaranteed-income pensions only."
                 },
                 "normal_retirement_age": {
                     "type": "integer",
-                    "description": "Normal retirement age for the scheme. DB pensions only."
+                    "description": "Normal retirement age for the scheme. Guaranteed-income pensions only."
                 },
                 "pensionable_service_years": {
                     "type": "number",
-                    "description": "Years of pensionable service. DB pensions only."
+                    "description": "Years of pensionable service. Guaranteed-income pensions only."
+                },
+                "spouse_pension_percent": {
+                    "type": "number",
+                    "description": "Percentage of the pension that continues to the user's spouse or partner after their death, in percentage points (send 50 for 50%, not 0.5). Guaranteed-income pensions only. Send only when the user states it — the household death projection assumes 50% when it is unknown."
+                },
+                "inflation_protection": {
+                    "type": "string",
+                    "enum": [
+                        "cpi",
+                        "rpi",
+                        "fixed",
+                        "none"
+                    ],
+                    "description": "Internal wire value — never shown to the user. How the scheme increases the pension before it comes into payment: \"cpi\" for Consumer Prices Index, \"rpi\" for Retail Prices Index, \"fixed\" for a fixed percentage each year, \"none\" for no increases. Guaranteed-income pensions only. Send only when the user states it — do not guess, because \"none\" materially understates the pension."
+                },
+                "lump_sum_entitlement": {
+                    "type": "number",
+                    "description": "Tax-free lump sum available at retirement, in pounds (the Pension Commencement Lump Sum). Guaranteed-income pensions only."
                 }
             },
             "required": [
@@ -736,7 +809,7 @@
     },
     {
         "name": "create_property",
-        "description": "Create a property for the user. If they also mention a mortgage, include the outstanding mortgage amount and it will be created automatically. You MAY call this tool multiple times in the same turn when the user mentions multiple properties — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill.",
+        "description": "Create a property only after the user explicitly confirms whether it is owned individually, jointly, as tenants in common, or in trust. Joint and tenants-in-common records also require the joint owner and primary owner's percentage share. Never infer ownership from my or our.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -752,6 +825,28 @@
                 "current_value": {
                     "type": "number",
                     "description": "Current estimated value in pounds"
+                },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint",
+                        "tenants_in_common",
+                        "trust"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+                },
+                "trust_id": {
+                    "type": "integer",
+                    "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
                 },
                 "purchase_price": {
                     "type": "number",
@@ -789,14 +884,15 @@
             },
             "required": [
                 "property_type",
-                "current_value"
+                "current_value",
+                "ownership_type"
             ],
             "additionalProperties": false
         }
     },
     {
         "name": "create_mortgage",
-        "description": "Create a standalone mortgage linked to an existing property. Use this when the user mentions a mortgage separately from a property, or wants to add a mortgage to an existing property. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages.",
+        "description": "Create a standalone mortgage linked to an existing property. Use this when the user mentions a mortgage separately from a property, or wants to add a mortgage to an existing property. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -851,7 +947,7 @@
     },
     {
         "name": "create_protection_policy",
-        "description": "Create a protection insurance policy for the user. Handles life insurance, critical illness cover, and income protection policies. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. life insurance AND critical illness).",
+        "description": "Create a protection insurance policy for the user. Handles life insurance, critical illness cover, and income protection policies. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. life insurance AND critical illness). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -914,7 +1010,7 @@
     },
     {
         "name": "create_asset",
-        "description": "Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track. You MAY call this tool multiple times in the same turn when the user mentions multiple assets.",
+        "description": "Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track. You MAY call this tool multiple times in the same turn when the user mentions multiple assets. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -956,7 +1052,7 @@
     },
     {
         "name": "create_liability",
-        "description": "Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities.",
+        "description": "Create a liability only after the user explicitly confirms whether it is owned individually or jointly. Joint records also require the joint owner and primary owner's percentage share. Never infer ownership.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -980,6 +1076,28 @@
                     "type": "number",
                     "description": "Outstanding balance in pounds"
                 },
+                "ownership_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "joint",
+                        "tenants_in_common",
+                        "trust"
+                    ],
+                    "description": "Ownership explicitly confirmed by the user."
+                },
+                "joint_owner_id": {
+                    "type": "integer",
+                    "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."
+                },
+                "trust_id": {
+                    "type": "integer",
+                    "description": "ID of the trust already linked to the authenticated user's household. Required for trust ownership."
+                },
+                "ownership_percentage": {
+                    "type": "number",
+                    "description": "Primary owner's confirmed percentage share. Required for joint or tenants_in_common ownership."
+                },
                 "monthly_payment": {
                     "type": "number",
                     "description": "Monthly payment amount in pounds"
@@ -992,14 +1110,15 @@
             "required": [
                 "liability_name",
                 "liability_type",
-                "current_balance"
+                "current_balance",
+                "ownership_type"
             ],
             "additionalProperties": false
         }
     },
     {
         "name": "create_estate_gift",
-        "description": "Record a gift for Inheritance Tax planning. Use this when the user mentions gifts they have made or plan to make, as these affect their Inheritance Tax position under the 7-year rule. You MAY call this tool multiple times in the same turn when the user mentions multiple gifts.",
+        "description": "Record a gift for Inheritance Tax planning. Use this when the user mentions gifts they have made or plan to make, as these affect their Inheritance Tax position under the 7-year rule. You MAY call this tool multiple times in the same turn when the user mentions multiple gifts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1043,7 +1162,7 @@
     },
     {
         "name": "create_will",
-        "description": "Record the user's will details. Use when the user tells you they have a will and shares executor, beneficiaries, guardians, or specific gifts information. For existing wills only — the Will Builder UI remains the tool for drafting a new will from scratch.",
+        "description": "Record the user's will details. Use when the user tells you they have a will and shares executor, beneficiaries, guardians, or specific gifts information. For existing wills only — the Will Builder UI remains the tool for drafting a new will from scratch. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1107,7 +1226,7 @@
     },
     {
         "name": "create_power_of_attorney",
-        "description": "Record a Lasting Power of Attorney (LPA) the user already has in place. UK has two types: Property & Financial Affairs (lpa_type=property_financial) and Health & Welfare (lpa_type=health_welfare). For each, capture the primary attorney name. Replacement attorneys are optional. You MAY call this tool multiple times in the same turn — for example if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.\n\nSTATUS IS MANDATORY — extract it from the user's wording:\n  • \"registered\", \"in force\", \"active with OPG\", \"already registered with the Office of the Public Guardian\" → status = \"registered\"\n  • \"draft\", \"signed but not registered\", \"not yet registered\", \"in the pipeline\", \"sent off for registration\", \"being registered\", \"pending registration\" → status = \"draft\"\n  • If the user gives no signal at all, default to \"draft\".\n\nNEVER drop status=registered when the user said so. Worked example:\n  User: \"I have a registered property and financial LPA with my brother Tom\"\n  Required: create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered').",
+        "description": "Record a Lasting Power of Attorney (Lasting Power of Attorney) the user already has in place. UK has two types: Property & Financial Affairs (lpa_type=property_financial) and Health & Welfare (lpa_type=health_welfare). For each, capture the primary attorney name. Replacement attorneys are optional. You MAY call this tool multiple times in the same turn — for example if the user has BOTH a property_financial AND a health_welfare Lasting Power of Attorney, call create_power_of_attorney TWICE in your first response.\n\nSTATUS IS MANDATORY — extract it from the user's wording:\n  • \"registered\", \"in force\", \"active with OPG\", \"already registered with the Office of the Public Guardian\" → status = \"registered\"\n  • \"draft\", \"signed but not registered\", \"not yet registered\", \"in the pipeline\", \"sent off for registration\", \"being registered\", \"pending registration\" → status = \"draft\"\n  • If the user gives no signal at all, default to \"draft\".\n\nNEVER drop status=registered when the user said so. Worked example:\n  User: \"I have a registered property and financial Lasting Power of Attorney with my brother Tom\"\n  Required: create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered'). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1117,7 +1236,7 @@
                         "property_financial",
                         "health_welfare"
                     ],
-                    "description": "Which LPA type. property_financial covers money/property decisions. health_welfare covers medical/care decisions."
+                    "description": "Which Lasting Power of Attorney type. property_financial covers money/property decisions. health_welfare covers medical/care decisions."
                 },
                 "primary_attorney_name": {
                     "type": "string",
@@ -1133,11 +1252,11 @@
                         "draft",
                         "registered"
                     ],
-                    "description": "LPA status. If user says \"registered\" / \"in force\" / \"active with OPG\" → \"registered\". If user says \"draft\" / \"not registered\" / \"pending\" / \"being registered\" → \"draft\". Default \"draft\" if not stated."
+                    "description": "Lasting Power of Attorney status. If user says \"registered\" / \"in force\" / \"active with OPG\" → \"registered\". If user says \"draft\" / \"not registered\" / \"pending\" / \"being registered\" → \"draft\". Default \"draft\" if not stated."
                 },
                 "opg_reference": {
                     "type": "string",
-                    "description": "Office of the Public Guardian registration reference, if the LPA is registered."
+                    "description": "Office of the Public Guardian registration reference, if the Lasting Power of Attorney is registered."
                 }
             },
             "required": [
@@ -1149,13 +1268,13 @@
     },
     {
         "name": "update_power_of_attorney",
-        "description": "Update an existing LPA record (e.g. status change from draft to registered, OPG reference added, replacement attorney added).",
+        "description": "Update an existing Lasting Power of Attorney record (e.g. status change from draft to registered, OPG reference added, replacement attorney added).",
         "parameters": {
             "type": "object",
             "properties": {
                 "lpa_id": {
                     "type": "integer",
-                    "description": "ID of the LPA to update."
+                    "description": "ID of the Lasting Power of Attorney to update."
                 },
                 "status": {
                     "type": "string",
@@ -1182,7 +1301,7 @@
     },
     {
         "name": "create_family_member",
-        "description": "Add a family member (spouse, child, dependent). Use when the user mentions family members who affect their financial planning. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response.",
+        "description": "Add a family member (spouse, child, dependent). Use when the user mentions family members who affect their financial planning. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values. SPOUSE: adding a spouse creates or links a real Fynla account for them, which is what connects the household's finances, so \"email\" is REQUIRED when relationship is \"spouse\". If the user asks to add their spouse and has not given an email address, ask for it before calling this tool — never invent one. Adding the same spouse again updates the existing record rather than creating a second one.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1204,6 +1323,10 @@
                         "other"
                     ],
                     "description": "Relationship to the user"
+                },
+                "email": {
+                    "type": "string",
+                    "description": "The spouse's own email address. Required when relationship is \"spouse\" — their account is created or linked with it, and without it the household is not linked. Omit for every other relationship."
                 },
                 "date_of_birth": {
                     "type": "string",
@@ -1231,7 +1354,7 @@
     },
     {
         "name": "create_trust",
-        "description": "Record a trust for estate planning. Use when the user mentions trusts they have set up or want to document. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts.",
+        "description": "Record a trust for estate planning. Use when the user mentions trusts they have set up or want to document. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1274,7 +1397,7 @@
     },
     {
         "name": "create_business_interest",
-        "description": "Record a business interest or ownership. Use when the user mentions business ownership, partnerships, or self-employment assets. You MAY call this tool multiple times in the same turn when the user mentions multiple businesses.",
+        "description": "Record a business interest or ownership. Use when the user mentions business ownership, partnerships, or self-employment assets. You MAY call this tool multiple times in the same turn when the user mentions multiple businesses. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1303,6 +1426,10 @@
                 "annual_profit": {
                     "type": "number",
                     "description": "Annual profit/drawings (£)"
+                },
+                "company_number": {
+                    "type": "string",
+                    "description": "Companies House registration number for a UK-registered company or LLP — eight characters, either eight digits (e.g. \"12248522\") or two letters and six digits (e.g. \"SC123456\"). Supply it only if the user states it; never guess or derive it from the business name. Omit for a sole trader, a partnership, or a business registered outside the United Kingdom."
                 }
             },
             "required": [
@@ -1314,7 +1441,7 @@
     },
     {
         "name": "create_chattel",
-        "description": "Record a personal valuable item (jewellery, art, collectibles, vehicles). Use when the user mentions valuable personal possessions. You MAY call this tool multiple times in the same turn when the user mentions multiple items.",
+        "description": "Record a personal valuable item (jewellery, art, collectibles, vehicles). Use when the user mentions valuable personal possessions. You MAY call this tool multiple times in the same turn when the user mentions multiple items. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1590,6 +1717,30 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "isa_subscription_amount": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "regular_contribution_amount": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "contribution_frequency": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -1649,6 +1800,14 @@
                                     ]
                                 },
                                 "monthly_contribution_amount": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "contributions_ytd": {
                                     "type": [
                                         "string",
                                         "number",
@@ -1736,6 +1895,38 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "pension_type": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "annual_salary": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "salary_sacrifice": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "has_flexibly_accessed": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -1795,6 +1986,54 @@
                                     ]
                                 },
                                 "pensionable_service_years": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "scheme_type": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "spouse_pension_percent": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "inflation_protection": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "revaluation_method": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "lump_sum_entitlement": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "scheme_status": {
                                     "type": [
                                         "string",
                                         "number",
@@ -2045,6 +2284,14 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "policy_end_date": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -2104,6 +2351,14 @@
                                     ]
                                 },
                                 "deferred_period_weeks": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
+                                },
+                                "policy_end_date": {
                                     "type": [
                                         "string",
                                         "number",
@@ -2484,6 +2739,14 @@
                                         "boolean",
                                         "null"
                                     ]
+                                },
+                                "company_number": {
+                                    "type": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -2732,13 +2995,13 @@
     },
     {
         "name": "capture_salary_sacrifice",
-        "description": "Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
+        "description": "Set salary_sacrifice flag on a specific pot-of-money pension owned by the user, with an optional employer National Insurance rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
         "parameters": {
             "type": "object",
             "properties": {
                 "pension_id": {
                     "type": "integer",
-                    "description": "ID of the dc_pension row to update."
+                    "description": "ID of the dc_pension row to update. Omit when you do not have a real id from this conversation — the system then resolves the user's pension. NEVER send 0 or an invented id."
                 },
                 "salary_sacrifice": {
                     "type": "boolean",
@@ -2750,7 +3013,6 @@
                 }
             },
             "required": [
-                "pension_id",
                 "salary_sacrifice"
             ],
             "additionalProperties": false
@@ -2825,7 +3087,7 @@
     },
     {
         "name": "capture_spouse_non_working_assets",
-        "description": "Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, CGT, Dividend allowance) and to size a non-earner spouse pension contribution.",
+        "description": "Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, Capital Gains Tax, Dividend allowance) and to size a non-earner spouse pension contribution.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -2839,7 +3101,7 @@
                 },
                 "spouse_existing_investment_balance": {
                     "type": "number",
-                    "description": "Spouse's existing standalone investment account (GIA) balance."
+                    "description": "Spouse's existing standalone investment account (General Investment Account) balance."
                 },
                 "spouse_existing_dividend_holdings_value": {
                     "type": "number",
@@ -2856,7 +3118,7 @@
     },
     {
         "name": "capture_pension_history",
-        "description": "Capture the user's gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused AA the user could still pension-up. Pass each year individually using the canonical \"YYYY/YY\" tax-year format (e.g. \"2024/25\").",
+        "description": "Capture the user's gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused Annual Allowance the user could still pension-up. Pass each year individually using the canonical \"YYYY/YY\" tax-year format (e.g. \"2024/25\").",
         "parameters": {
             "type": "object",
             "properties": {
@@ -2903,6 +3165,48 @@
             "required": [
                 "annual_donations"
             ],
+            "additionalProperties": false
+        }
+    },
+    {
+        "name": "capture_retirement_goals",
+        "description": "Record the user's retirement goals. Call when the user states a target retirement age and/or a desired yearly retirement income. Ages are whole years between 55 and 75; income is a gross yearly figure in pounds. Never guess a value the user did not state — omit the parameter instead.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "target_retirement_age": {
+                    "type": "integer",
+                    "description": "The age at which the user wants to retire. Whole years only, 55 to 75 inclusive."
+                },
+                "target_retirement_income": {
+                    "type": "number",
+                    "description": "The gross annual income the user wants in retirement, in pounds."
+                }
+            },
+            "required": [],
+            "additionalProperties": false
+        }
+    },
+    {
+        "name": "capture_state_pension",
+        "description": "Record the user's State Pension forecast. Call when the user gives a forecast amount and/or National Insurance qualifying years. The forecast is a yearly figure in pounds (convert a weekly figure by multiplying by 52 and say so in your reply). Omit anything the user did not state. If the user does not know their forecast or is unsure, do NOT call this tool at all — never pass 0 for a figure the user did not give. Never infer the State Pension age from another pension (a workplace or NHS scheme's normal retirement age is NOT the State Pension age). If the user only knows their State Pension age and not the forecast or qualifying years, do NOT call this tool.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "forecast_annual": {
+                    "type": "number",
+                    "description": "The user's annual State Pension forecast in pounds. If the user gives a weekly figure, multiply by 52 and confirm the conversion in your reply."
+                },
+                "ni_years_completed": {
+                    "type": "integer",
+                    "description": "The number of full National Insurance qualifying years the user has completed. 0 to 60."
+                },
+                "state_pension_age": {
+                    "type": "integer",
+                    "description": "The age at which the user expects to receive their State Pension."
+                }
+            },
+            "required": [],
             "additionalProperties": false
         }
     }

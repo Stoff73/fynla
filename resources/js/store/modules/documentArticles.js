@@ -61,10 +61,18 @@ const actions = {
         commit('REMOVE_ITEM', id);
     },
 
-    async publish({ commit }, id) {
-        const { data } = await documentArticleService.publish(id);
+    // payload: an id, or { id, publishedAt } to schedule the release.
+    async publish({ commit }, payload) {
+        const id = typeof payload === 'object' && payload !== null ? payload.id : payload;
+        const publishedAt = typeof payload === 'object' && payload !== null ? payload.publishedAt : null;
+        const { data } = await documentArticleService.publish(id, publishedAt);
         commit('UPSERT_ITEM', data.data);
         commit('SET_CURRENT', data.data);
+        return data.data;
+    },
+
+    async publishRecommendation(_, id) {
+        const { data } = await documentArticleService.publishRecommendation(id);
         return data.data;
     },
 

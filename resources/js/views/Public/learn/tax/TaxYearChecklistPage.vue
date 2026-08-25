@@ -88,7 +88,7 @@
                 <div>
                   <p class="text-sm font-semibold text-horizon-500">Check marriage allowance eligibility</p>
                   <p class="text-xs text-neutral-500 mt-1">
-                    If one partner earns below the personal allowance (&pound;12,570), they can transfer &pound;1,260 to the other &mdash; saving up to &pound;252 per year.
+                    If one spouse earns below the personal allowance (&pound;12,570), they can transfer &pound;1,260 to the other &mdash; saving up to &pound;252 per year.
                   </p>
                 </div>
               </div>

@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "error": "registration_unavailable",
+  "message": "Verification code has expired. Please register again."
+}

@@ -1,5 +1,175 @@
 # CSJTODO — Fynla
 
+*Last updated: 2026-08-24 session 1 — five rejections fixed, three review gates run,
+board NOT cleared (215 open). Branch `estate-copy-and-m-handoff`, 20 commits, nothing
+deployed. Handover: handover/August/24/handover-2026-08-24-session-1.md*
+
+## 2026-08-24 — CLEAR THE BOARD. ALONE. NO AGENTS.
+
+**CSJ standing instruction, 2026-08-24: no agents are to be spawned for these fixes.
+One item at a time, quickly, without shortcuts, until the board is clear.** Three fix
+agents were dispatched and killed the same hour; all agents were terminated at 11:53 BST.
+The hard reason: agents share one `laravel_testing` database, and two Pest processes
+produce deadlocks and 0-assertion failures indistinguishable from real breakage.
+
+**215 board items open** — 3 critical, 80 high, 109 medium, 23 low.
+(105 `queued`, 104 `gated`, 4 `blocked`, 3 `handoff`.)
+
+### Next, in order
+
+- [ ] **W-0473** — the whole `/m` Insights feature is dead; all six readers look one level
+      above the agent's payload. Unwrap ONCE at the call site. Keep the caveat line.
+- [ ] **W-0474** — a civil partnership pools two estates against one person's allowances.
+      HIGH, overstates tax, fully specified.
+- [ ] **W-0475** — projected gross estate omits `asset_type = other` entirely; understates.
+- [ ] **W-0476** — the enumeration oracle moved to `GET /api/spouse-permission/status`.
+      Closes with **W-0472**.
+- [ ] **W-0477** — a deleted spouse leaves expenditure stored as halves nothing halves.
+- [ ] Then the remaining queued critical/high: `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
+      W-0155 W-0171 W-0216 W-0222 W-0226 W-0227 W-0361 W-0363 W-0364 W-0365 W-0462`,
+      then medium, then low.
+- [ ] **The full suite has not completed since `19bd1c83f`.** Run it once, alone, as a
+      consolidation point.
+
+### Waiting on CSJ
+
+- [ ] **W-0347 (CRITICAL) — FLAGGED by `compliance-lead` on five findings**, acceptances 3
+      and 4 unmet. **What happens to the 10 historically forged `spouse_permissions` rows
+      on dev?** A migration backfilled them as `accepted`; is that acceptable, or must
+      those households be re-asked?
+- [ ] **Rule 9 amendment** — the caveat spells out "the Alternative Investment Market" and
+      a test pins the acronym's absence. "(AIM)" for recognisability is CSJ's call alone.
+
+### Known gaps, carried
+
+- [ ] **W-0008** — the adviser fee is enterable and has never been shown to reach the
+      projection it is entered for. Untouched.
+- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on BOTH accounts of a linked household.
+      Only a web profile-form save was ever verified.
+- [ ] **W-0470 second half** — per-liability detail rows still come from the non-projecting
+      breakdown, so the panel can show −£3,500 above a £0 total.
+- [ ] **W-0012 Rule 19** — `/m` and native have no property form; Fyn's create accepts five
+      mortgage fields, not nine.
+- [ ] iOS not built, launched or looked at. `/m` verified only on localhost, never csjones.
+
+## 2026-08-17 — catch-up and clean-up
+
+- [x] **Merge `origin/dev` + all unmerged codex branches** into `fix/widow-persona-cleanup` — DONE. `codex/ios-m-testflight-hotfix`, `codex/ios-package7-platform-release`, `codex/repository-context-tooling`. All four now report 0 unmerged commits.
+- [x] **Root PNG sweep** — 173 loose `.png` filed into `screenshots/YYYY-MM/` (May 7, June 112, July 54). Root 297 → 127 entries. `/screenshots/` gitignored.
+- [x] **Month-folder convention** normalised to `AugustNNUpdates` in repo AND vault (`Aug12/13/14/15/17` → `August12/13/14/15/17`).
+- [x] **`docs/` pointer** — `docs/INDEX.md` indexes all 176 dated docs; regenerate with `August/August17Updates/regen-docs-index.sh`. `August12Updates/` 16 byte-identical duplicates replaced with a pointer README (checksum-verified before removal, repo + vault).
+- [x] **Apple StoreKit bridge venv** created (`.venv/apple-store`, Python 3.12 + `requirements.lock`). Merged code fataled `php artisan route:list` without it; 804 routes resolve now. `.venv/` gitignored.
+- [ ] **GATE-0003 raised** — screenshot-filing convention for root `CLAUDE.md` (gated path). Awaiting CSJ.
+- [ ] **32 pending migrations** not run (9 July iOS/Apple + 23 from `dev`). Awaiting CSJ.
+- [ ] **Commit + push** the clean-up (merges are committed; doc/gitignore changes are not).
+- [ ] `main` is **719 behind `dev`** and 28 ahead (doc commits that skipped `dev`). A release needs those reconciled.
+- [ ] README stat counts are stale (`Vue Components 675` etc.) — untouched during conflict resolution.
+
+## 2026-08-14 — docs, guards, worktrees
+
+- [ ] **Install the guard consolidation** — `workforce/ops/proposed-guard.sh` replaces all five PreToolUse guards; 59/59 regression suite passes. Founder-gated, so CSJ applies: `mv` into `.claude/hooks/guard.sh`, `chmod +x`, delete the five originals, collapse the `PreToolUse` block to one entry (matcher `Write|Edit|Bash|mcp__ssh-fynla__ssh_exec`). Re-run the suite against the installed path after.
+- [x] **Guard test cases rescued** into `.claude/hooks/tests/` (59 cases). Note: the proposed guard widens `PROTECTED` to the `.claude/hooks` prefix, which would gate this tests dir too — an agent could no longer add a regression case unaided. Probably right (guard changes are gated anyway), but decide deliberately.
+- [ ] **Revisit GATE-0001.** Its premise is falsified: `main` and `dev` both have `required_approving_review_count: 0`, `require_code_owner_reviews: false`, no required status checks, `enforce_admins: false`. Nothing mechanically stops `claude.yml` self-merging to dev.
+- [x] **Root sweep** — DONE 2026-08-21. PNGs filed 2026-08-17 (173 into `screenshots/`). Root now 23 loose files (config, tooling, agent context, launchers) and 20 dirs. Deleted: `create_trial.php`, the stray `Users/Chris/Desktop/fpsApp/` stub migration, duplicate root `personas/` (identical to `resources/js/data/personas/`), and four empty shadow dirs (`agents/ hooks/ skills/ workflows/`). Filed: 33 loose docs + 14 content dirs into `docs/archive/`, `docs/reference/`, `docs/assets/`, `docs/dashboards/` — all live references rewritten. Left at root deliberately: `screenshots/`+`test-screenshots/` (GATE-0003 convention), month folders (hardcoded in vault-sync/session-end/precompact-handover), `fyn-memory/ services/ scripts/` (`base_path()`).
+- [ ] **`.worktrees/` holds 14 clones of OTHER repos** (FynlaMCP ×9, fynla-agents, fynla-control, fynlaBrain) — ~250 MB, all clean. Relocate?
+- [ ] **`fynla-marketing-review` worktree** has 10 modified tracked files + 2 new tests uncommitted (pipeline controllers, `ClipApprovalService`, `routes/web.php`). Commit or discard.
+- [ ] **Upgrade git** — currently 2.10.1 (2016). No `worktree remove`, `branch --show-current`, or `stash push -- <path>`.
+- [ ] Hook commands use absolute paths in tracked `settings.json` — `$CLAUDE_PROJECT_DIR` fixes it. Gated.
+- [ ] 19 agent definitions with overlapping remits and no routing rule (`product-manager` vs `product-lead`; `design-lead` vs `premium-ui-designer` vs `ux-writing-expert`).
+- [ ] `enabledPlugins.github` contradicts between `settings.json` (true) and `settings.local.json` (false).
+- [x] ~~Rebase `fix/widow-persona-cleanup` on `origin/dev`~~ — done 2026-08-17 as a **merge** (branch already pushed, so no history rewrite). 0 behind.
+- [x] CLAUDE.md audit + repair across all 6 files — DONE (`705bf9b`). Report: August/Aug14Updates/claude-context-audit-2026-08-14.md.
+- [x] New `ios-native/CLAUDE.md` — DONE. 240 Swift files previously undocumented.
+- [x] iOS TestFlight login failure — DIAGNOSED, user error. TestFlight build is `Fynla-Staging` → csjones DB; testers must register on csjones.co/fynla, not fynla.org. Now in root CLAUDE.md + memory.
+- [x] Worktrees 13→4, ~2.2 GB reclaimed, 7 stale CLAUDE.md copies gone — DONE.
+- [x] Production SSH passphrase found in plaintext in `settings.local.json` — removed; key rotated by CSJ.
+- [x] Allow-list carried standing permission to `rmdir .claude/hooks/` — removed.
+
+*Last updated: 2026-07-24 — end-of-day wrap (evening). Merge train complete:
+#670 (E2E loop fixes) + #671 (journey verify loop — every data entry) + #672
+(PSA joint-interest share) all admin-merged to dev per CSJ; csjones on dev
+`c1025ab`; round-3 clean campaign pass GREEN (zero blockers) with the PSA fix
+verified live on both grids. Handover:
+July/July25Updates/handover-2026-07-25-session-1.md.*
+
+## 2026-07-24 — evening wrap (merge train + verify loop)
+
+- [ ] **Reboot the Mac**, then the iOS leg: staged LiveJourneyTests (user priya-e2e-0723b, run-report §iOS re-run) AND `FynEventReducerTests` for the pkg7 navigation-allowlist commit `37cd69e` (untested — sim wedged).
+- [ ] **PSA follow-up ledger** (15 findings from the tax-compliance review; list in the 07-25 handover). Priority trio: spouse band/taper excludes joint interest; spouse `known`-flag semantics (CSJ call); IsaTopUp joint shelter ~2× optimistic. Then the user-grid PA→SR→PSA stacking (pre-existing, now inconsistent with the fixed spouse grids).
+- [ ] `/m` savings rows show "Unknown" instead of account_name (Savings.vue:41,67,155) — needs /m rebuild.
+- [ ] CSJ decisions: 2026-07-13 joint-hardening relaxation (merged in #670 — confirm/revert); total-cash share convention (seen again round 3); ISA-ownership question copy; fabricated "Yes, that's right" bubble; stale-token registration edge; spouse known-flag semantics.
+- [ ] Adjacent from today's loop: "owned by me alone" missing from ownership vocabulary; gap-fill still creates degraded rows on TRUE model refusals (suppression covers failed attempts only); free-tier savings cap fires mid-campaign walk (designed — exemption?).
+- [ ] Debt (tech-debt-report.md): CaptureAccuracyGate 854 lines / EvidenceWalk extraction NOW OVERDUE; rate-normalisation 4 inline copies; verify-edit section→model map duplication; estimateAnnualInterest memoisation; pre-LLM completion short-circuit; ENTITY_NOUNS constant.
+- [x] Merge #670 + csjones back onto dev — DONE (evening, CSJ-directed).
+- [x] Round-3 clean /m pass — DONE, GREEN, zero blockers (user 295).
+- [x] PSA joint-interest share fix + tax-compliance review — DONE, merged (#672).
+- [x] Journey verify loop (CSJ directive: every data entry) — DONE, merged (#671), verified live on /m incl. the Edit arm.
+
+## 2026-07-21 — session 2 (all delivered)
+
+- [x] Better-in-the-app Fyn bubble at the campaign terminal (Pest-pinned, deployed to csjones, seen live).
+- [x] SaveTax campaign E2E: /m funnel → register → onboarding → synthesis → tax strategy; native login pull-through with real amounts; fireworks fired live.
+- [x] Fixed: tolerant native API decoding (string decimals + {}-null — Savings/Retirement were undecodable live); pension rows whole-pound.
+- [x] TestFlight: bundle org.fynla.app.dev registered (+Push/Assoc Domains), distribution cert G4DATT2CZB + App Store profile via API, build uploaded, internal group + CSJ invite. Guide: ios-native/TESTFLIGHT.md.
+- [ ] **CSJ: install the TestFlight build** (invite emailed to c.jones@csjones.co) and report.
+- [ ] **NOTE: csjones now runs `codex/savetax-allowance-ctas`** (dev merged in at eec2a1a), not `dev`.
+- [ ] Debt noted: keychain password in TESTFLIGHT.md (rotate before prod flow); code-relay script scratchpad-only; framed{} duplicated 18×; TolerantDecoding non-optional string-token gap.
+
+## 2026-07-21 — /m-parity sweep (session 2: COMPLETE)
+
+- [x] **"Left in the Sweep" — ALL DONE, pushed to pkg7:** Tax Strategy, Holistic Plan, all six sub-pages (savings account, investment account, pension detail, protection policy, net-worth category, balance history), Achievements tab content, hero persistence across loading/error states (all 18 screens), Income/Expenditure fixture stubs, user chat-bubble corrected to /m (no user-bubble CSS — verified live), `.module` dev stub removed. Bug found+fixed while looping: Settings Sign out sat under the Fyn dock on small phones.
+- [x] **CSJ directives 2026-07-21 executed:** Rule 15 amended — the Fyn character is ALWAYS allowed everywhere (committed on both branches; never re-raise). Level-up fireworks transcribed from /m's GamificationCelebration (shell + in-chat surfaces; ack matches /m's instant non-fatal contract). Onboarding "Finish your personalised tax plan with Fyn" nudge + KYC unlock bubble transcribed from /m Dashboard.vue. All screenshot-verified; journeys + parity + unit suites green.
+- [x] Shell chrome + dashboard + drawer + Fyn transcribed from /m; milestone banners moved below the level card (BOTH surfaces — CSJ direction); dark m-hero correction across all converted screens.
+- [x] Module screens transcribed: Income, Expenditure, Net Worth, Savings, Investments, Protection, Goals, Estate, Retirement (+ Achievements header).
+- [x] Audit P0s/P1s: consent no-toggle fix; six client-side-calc items = /m-parity KEEPs (evidenced); tolerant enum decodes; export timeout; write-401 refresh; verify-project.sh fixed + in CI; webhook limiter Pest test green.
+- [ ] **/m milestone-banner fix awaits CSJ build + deploy to csjones** (main repo commit 2772831 on codex/savetax-allowance-ctas).
+- [ ] Remaining deferred (engineering-internal): diagnostics wiring (P1-9 design call); legacy SubscriptionPlanSeeder note (backend). csjones-only bug-report FAB deliberately not ported.
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (green in CI) — don't chase.
+
+
+## 2026-07-20 — iOS audit + /m parity remediation (session dissolved, see handover)
+
+- [ ] **Blocking question for CSJ:** CSJ said the iOS parity work went "on the wrong path" — next session must ask what was wrong BEFORE resuming. Local pkg7 commits are unpushed pending that answer (undo = `git reset --hard origin/codex/ios-package7-platform-release` in `/Users/CSJ/Desktop/fynla-ios-package7`).
+- [x] Full iOS audit report → `July/July20Updates/ios-audit-report-2026-07-20.md` (delta + remediation list).
+- [x] Local commits on pkg7 branch (UNPUSHED): pkg4-tip merge; login rebuilt to /m; dashboard/menu/Fyn-dock rebuilt to /m; Lock/Sign-out restored; placeholder tint; Apple webhook named rate limiter. Parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md` (on the branch).
+- [ ] P0 remaining: 5 client-side financial calcs; 35 National Insurance years fallback; consent toggles (delete ai_chat toggle, required consents display-only).
+- [ ] P1 remaining: verify-project.sh into CI; enum decode tolerance; Retirement silent failures; export poll timeout; write-path 401 refresh; diagnostics wiring; balance-history magic values; minor copy fixes.
+- [ ] Module-by-module /m parity sweep (detail/functionality/states/intent/design) for all remaining screens.
+- [ ] Webhook limiter Pest test (code committed; test deleted — blocked by worktree .env/bridge venv gap).
+- [ ] Ledger decisions for CSJ: Fyn dock avatar (mascot ban vs /m match); level-up fireworks + Fyn nudges (ledger D8).
+- [ ] Known: 6 StoreKit hosted-config tests red LOCALLY only (pre-existing; green in CI). Nothing deployed anywhere.
+
+*Last updated: 2026-07-18 — Native Swift Package 3 automated gate is green in draft PR #633; the next inference continues Packages 4–7 while preserving the open actual-Chrome and physical-iPhone evidence gates.*
+
+## 2026-07-18 — Native Swift Packages 3–7
+
+- [x] Package 3 Tasks 1–8 — native registration/authentication, rotating device sessions, Keychain and opt-in Face ID.
+- [x] Package 3 automated Task 9 — backend 345 tests/1,261 assertions; Swift host 176 tests/21 suites; clean Xcode 26.5 current-head 183 tests/23 suites and 28 UI tests/0 failures; Production build green.
+- [ ] Package 3 manual evidence — actual Google Chrome `/m`; physical iPhone Face ID, registration, relock, Lock/Sign out, Keychain inspection and exported diagnostic bundle.
+- [ ] Package 3 approval/merge — draft PR #633 is mergeable; implementation/evidence head `d5d34d3` is fully green and is followed by the session-end documentation commit. Keep draft while manual evidence is open.
+- [ ] Package 4 — StoreKit and provider-neutral entitlements; begin with the Apple verifier dependency/security audit, not purchase UI.
+- [ ] Package 5 — native dashboard, navigation, achievements/gamification and complete Fyn conversation vertical slice.
+- [ ] Package 6 — port every financial screen in five independently closed waves.
+- [ ] Package 7 — settings/privacy/account deletion/push/universal links/archive and release readiness; no production/App Store action without later explicit authority.
+- [ ] PR boundary — create exactly one separate PR for each of Packages 4, 5, 6 and 7; do not mix packages. Package 6's five waves are commits/review checkpoints within its one package PR.
+- [ ] Deferred tech debt from the prior report — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
+- Boundary — primary `/Users/CSJ/Desktop/fynla` remains Save Tax; native work stays in isolated `/private/tmp` worktrees and incorporates `origin/dev` before every package/wave.
+- Browser rule — actual installed Google Chrome through the connector only; never Chromium, bundled/headless Chromium or the in-app browser.
+
+## 2026-07-15 — Native Swift programme Package 1
+
+- [x] Restore all ten approved programme and iOS implementation plans under `codex/plans/` (`15689c8`).
+- [x] Tasks 1–7 — consolidated readiness branch and PR #622; Task 7 preserves only canonical Premium checkout intent and keeps verified accounts Free until payment. Final GitHub run `29463239284` is fully green across lint, PHP, frontend, build, browser, logic and security checks.
+- [x] Task 8 — upgrade and limit guidance, PR #623.
+- [x] Task 9 — canonical subscription UI, PR #624.
+- [x] Task 10 — pure-freemium lifecycle semantics, corrected audit contract and converted-history normalisation, PR #625.
+- [x] Task 11 — obsolete trial-copy removal, PR #626.
+- [x] Task 12 — guarded trial-schema removal is migrated, fully reseeded and verified locally in draft PR #627. Exact saved local audit is `{"provisional_shape":0,"historical_trial_shape":0,"paid_shape":0,"safe_to_remove":true}`.
+- [ ] Task 12 external gate — merge/deploy the audit command through PR #625, then save exact exit-0 evidence from csjones and production before merging or remotely deploying PR #627.
+- [ ] Task 13 — canonical repository contract, implemented signup state and design-system subscription presentation are ready in draft PR #628; publish the matching vault updates only after the Task 12 external gate.
+- [ ] Package 2 SwiftUI — blocked until Package 1 is fully green.
+- [ ] Deferred tech debt — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
+- Worktree boundary — programme tasks use isolated `/private/tmp/fynla-freemium-*` worktrees; `/Users/CSJ/Desktop/fynla` remains on the Save Tax branch.
 *Last updated: 2026-07-07 — session 2. **#613 + #614 + #615 ALL MERGED to dev (`e16ea5f`) + DEPLOYED to csjones + live-browser-verified** (dashboard £26k Retirement card, allocation tab + regenerate, /m advice Fyn parity). #10 decision made (yes — wizard completion flags onboarding complete; gates own the data gaps → PR #615, memory `project_onboarding_completion_scoped_per_flow.md`). Prod UNTOUCHED. One NEW bug found live (Fyn advice repetition — see open items).*
 
 ## 2026-07-07 — session 2b: Fyn/AI blindspot pass → spec + plan for Opus (NOT implemented)

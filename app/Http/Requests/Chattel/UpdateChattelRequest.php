@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Chattel;
 
+use App\Http\Traits\ValidatesSharedOwnership;
+use App\Models\Chattel;
+use App\Support\SharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateChattelRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     public function authorize(): bool
     {
         return true;
@@ -58,6 +64,55 @@ class UpdateChattelRequest extends FormRequest
             // Notes
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
+    }
+
+    /**
+     * A shared asset must name the other party.
+     *
+     * Selecting "Joint" and leaving the Joint Owner select untouched used to
+     * save with 200/201 and no error, producing a chattel 50% owned by the
+     * saver and 50% owned by nobody — invisible to the spouse, and missing from
+     * every household total (W-0025). The predicate lives in
+     * App\Support\SharedOwnership so chattels, property and mortgages all ask
+     * the same question.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            // A partial update may name only one half of the pair, so resolve
+            // both against the stored record — otherwise sending just
+            // `joint_owner_id: null` would orphan an already-joint chattel.
+            $stored = Chattel::query()
+                ->whereKey($this->route('id') ?? $this->route('chattel'))
+                ->first();
+
+            $ownershipType = $this->input('ownership_type', $stored?->ownership_type);
+
+            // A stated share that is not a shared split is refused, never
+            // rewritten (W-0040). Checked before the counterparty guard returns
+            // so it applies to every shared update, not only the joint ones.
+            $this->validateSharedOwnershipSplit($v, $ownershipType, $this->input('ownership_percentage'));
+
+            if (! SharedOwnership::isShared($ownershipType)) {
+                return;
+            }
+
+            $merged = [
+                'joint_owner_id' => $this->has('joint_owner_id')
+                    ? $this->input('joint_owner_id')
+                    : $stored?->joint_owner_id,
+                'joint_owner_name' => $this->has('joint_owner_name')
+                    ? $this->input('joint_owner_name')
+                    : $stored?->joint_owner_name,
+            ];
+
+            if (! SharedOwnership::namesCounterparty($merged)) {
+                $v->errors()->add(
+                    'joint_owner_id',
+                    'Choose who this is owned with, or enter their name.',
+                );
+            }
+        });
     }
 
     public function messages(): array

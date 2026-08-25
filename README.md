@@ -1,13 +1,13 @@
 # Fynla - UK Financial Planning System
 
-A comprehensive financial planning web application designed for UK individuals and families, covering seven integrated modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination. Features an AI-powered chat assistant, unified financial plans with PDF export, and a complete design system.
+A comprehensive financial planning web application designed for UK individuals and families, covering seven integrated modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination. Features an AI-powered chat assistant (Fyn), unified financial plans with PDF export, a complete design system, a mobile web pathway (`/m`), and a native SwiftUI iOS client on TestFlight.
 
 ![Laravel](https://img.shields.io/badge/Laravel-10.x-red?logo=laravel)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green?logo=vue.js)
 ![PHP](https://img.shields.io/badge/PHP-8.2+-blue?logo=php)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue?logo=mysql)
-![Tests](https://img.shields.io/badge/tests-4500%2B%20passing-brightgreen)
 
+> **GOLDEN RULE #20 (CSJ, NEVER IGNORE):** every Fyn change — prompt, vocabulary, behaviour, rendering — is made ONCE, in ONE place, for ALL surfaces and paths. If more than one mechanism implements the behaviour, consolidating to one source is PART of the fix. Full text: `CLAUDE.md` Rule 20.
 ---
 
 ## Quick Stats
@@ -51,6 +51,16 @@ A comprehensive financial planning web application designed for UK individuals a
 - **Track** progress towards financial goals
 - **Generate** professional reports and recommendations
 
+### Clients
+
+Three clients, one Laravel backend. Backend changes reach all three; each front end is built and verified separately.
+
+| Client | Source | Notes |
+|--------|--------|-------|
+| Desktop web SPA | `resources/js/` | Vue 3 + Vuex, the primary surface |
+| Mobile web (`/m`) | `resources/mobile/` | Phones are routed here; isolated Vite bundle with its own router, store and API layer |
+| Native iOS | `ios-native/` | SwiftUI, on TestFlight against the staging backend |
+
 ### Production URLs
 
 | Environment | URL |
@@ -64,24 +74,62 @@ A comprehensive financial planning web application designed for UK individuals a
 
 **Version**: v1.0
 **Status**: Production (https://fynla.org)
-**Last Updated**: 12 June 2026
-**Test Suite**: 4,500+ tests passing
+**Last Updated**: 20 August 2026
 
-### Completion Status
+`main` is what runs on fynla.org and `dev` is what runs on csjones.co/fynla. `dev`
+currently carries substantial work not yet released to production.
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Foundation | 100% | Authentication, routing, testing framework |
-| Core Modules | 100% | All seven modules fully functional |
-| Advanced Features | 100% | Portfolio optimization, Monte Carlo, IHT planning |
-| User Management | 100% | Spouse accounts, joint ownership, data sharing |
-| Admin Panel | 100% | User management, backups, tax configuration |
-| Document Upload | 100% | AI-powered extraction (Claude Sonnet) |
-| Security Compliance | 100% | TOTP MFA, GDPR, audit logging, RBAC |
-| Preview Mode | 100% | 7 database-backed personas |
-| Goals & Life Events | 100% | Goal tracking, projections, life events |
-| Email Verification | 100% | 6-digit code verification for registration/login |
-| Mobile Responsive | 90% | Dashboard and key views optimized |
+| Foundation | Shipped | Authentication, routing, testing framework |
+| Core modules | Shipped | All seven modules functional end to end |
+| Advanced features | Shipped | Portfolio optimisation, Monte Carlo, IHT planning |
+| User management | Shipped | Spouse accounts, joint ownership, data sharing |
+| Admin panel | Shipped | User management, backups, tax configuration |
+| Document upload | Shipped | AI-powered extraction |
+| Security and compliance | Shipped | TOTP MFA, GDPR, audit logging, RBAC |
+| Email verification | Shipped | 6-digit code for registration and login |
+| Goals and life events | Shipped | Goal tracking, projections, life events |
+| Preview mode | Shipped | Six database-backed personas |
+| Fyn AI | Shipped | Unified prompt across both write states; CoALA memory in production |
+| Mobile web (`/m`) | Shipped | Dedicated mobile SPA at `/m/app` with its own dashboard |
+| Native iOS app | TestFlight | Builds against the staging backend; production native endpoints not yet released |
+| Native iOS subscriptions | Blocked | No in-app purchase products exist in App Store Connect — see below |
+
+### Known blocker — native iOS in-app purchases
+
+The iOS paywall shows **"Premium subscriptions are unavailable. Please try again
+later."** because **no in-app purchase products exist in App Store Connect**.
+Verified 2026-08-17 against the ASC API — both app records return zero:
+
+| App record | ASC id | subscriptionGroups | inAppPurchasesV2 |
+|---|---|---|---|
+| Fynla Dev (`org.fynla.app.dev`) | 6793193337 | 0 | 0 |
+| Fynla (`org.fynla.app`) | 6760545667 | 0 | 0 |
+
+This is configuration, not code. StoreKit returns nothing, and the guard at
+`ios-native/.../SubscriptionModel.swift:291` requires the returned set to equal
+`StoreProductIdentifier.all` exactly, so the paywall reports unavailable.
+
+To resolve, create in App Store Connect (product IDs must match
+`ios-native/StoreKit/Fynla.storekit` and `StoreKitModels.swift:4-5`):
+
+```text
+org.fynla.premium.monthly   £6.99    P1M
+org.fynla.premium.annual    £59.99   P1Y
+```
+
+**No second Apple Developer account is needed** — the existing membership covers
+this. In-app purchases do require the **Paid Applications Agreement** to be
+Active (App Store Connect → Business): accept the agreement, add banking details
+and complete tax forms. Until it is Active, App Store Connect will not allow
+in-app purchases to be created.
+
+Web and `/m` are unaffected: `/m` hands off to the web app for payment
+(`issueWebHandoff('subscription')`), which is the agreed architecture. Native
+cannot use that route because Apple requires in-app purchase for digital goods.
+
+Full analysis: `August/August17Updates/iOSBugs/BUG-01-subscription-upgrade.md`.
 
 ---
 
@@ -94,7 +142,7 @@ A comprehensive financial planning web application designed for UK individuals a
 - **Failed Login Tracking**: Progressive lockout (1min - 5min - 30min - 24hr)
 - **Session Management**: View active sessions, revoke from Security Settings
 - **GDPR Compliance**: Data export (JSON/CSV), data erasure, consent tracking
-- **Audit Logging**: Auditable trait on 15 financial models
+- **Audit Logging**: Auditable trait applied across the financial models
 - **RBAC**: Role-based access (User, Support, Admin) with granular permissions
 - **Secure Authentication**: Laravel Sanctum token-based API authentication
 - **Rate Limiting**: 300 requests/minute for API, 5/minute for auth endpoints
@@ -118,6 +166,16 @@ The main dashboard provides a unified view of your financial planning:
 - **Estate Planning Summary**: IHT liability and probate readiness
 - **Protection Overview**: Coverage status and policy summary
 - **Plans Card**: Quick access to all planning modules
+
+### Fyn — the AI assistant
+
+Fyn is one chat surface with two write states behind it. The user never sees or feels the switch.
+
+- **Onboarding Fyn** runs the bubble-driven onboarding flow and is the only state that enters or edits data
+- **Advice Fyn** is read-only — it answers questions using the recommendation engine, the risk module and every other engine, and exposes no record-creating tools at all
+- **Write intents raised mid-conversation** are delegated to the capture path internally, so "add my pension" is captured without the user leaving the conversation or seeing a mode change
+- **One prompt, one endpoint** — both states send the same system prompt plus per-turn context, and all three clients post to the same chat endpoint, so read/write dispatch is decided server-side rather than by any front end
+- **CoALA memory** — semantic, episodic and procedural memory, with write-safety enforced at the dispatch boundary and audited
 
 ### Tax Configuration System
 
@@ -151,7 +209,6 @@ Try the full application with realistic financial data:
 |---------|-------------|-----------|
 | Emily & James Carter | Young family with mortgage, workplace pensions | ~£100k |
 | David & Sarah Mitchell | Peak earners, BTL property, complex pensions | ~£2.3m |
-| Margaret Thompson | Retired widow with estate planning needs | ~£2.2m |
 | Alex Chen | Single tech entrepreneur with SIPP | ~£550k |
 | John Morgan | Young adult saver, LISA, Cash ISA, student loan | ~£25k |
 | Patricia & Harold Bennett | Retired couple, DB pensions, IHT planning | ~£1.8m |
@@ -289,23 +346,22 @@ Try the full application with realistic financial data:
 ```
 ┌─────────────────────────────────────┐
 │ Presentation Layer                  │
-│ Vue.js 3 + ApexCharts + Tailwind   │
-│ 670 Components + 35 Store Modules   │
+│ Web SPA · Mobile /m · Native iOS    │
+│ Vue 3 + Vuex · SwiftUI              │
 └─────────────────┬───────────────────┘
-                  │ REST API (600+ endpoints)
+                  │ REST API (shared by all clients)
                   ↓
 ┌─────────────────────────────────────┐
 │ Application Layer                   │
-│ 120 Controllers + 9 Agents          │
-│ 358 Services + Business Logic       │
+│ Controllers → Agents → Services     │
 │ Fyn AI Chat + Document Extraction   │
 └─────────────────┬───────────────────┘
                   │ Eloquent ORM
                   ↓
 ┌─────────────────────────────────────┐
 │ Data Layer                          │
-│ MySQL 8.0+ (127 Models)            │
-│ Memcached (calculation caching)    │
+│ MySQL 8.0+                          │
+│ Memcached (calculation caching)     │
 └─────────────────────────────────────┘
 ```
 
@@ -432,14 +488,24 @@ php -d memory_limit=512M ./vendor/bin/pest
 ./vendor/bin/pest tests/Feature/Protection/ProtectionApiTest.php
 ```
 
-### Test Coverage
+### Test Suites
 
-| Suite | Tests | Description |
-|-------|-------|-------------|
-| Unit | 2,500+ | Service classes, calculations |
-| Feature | 1,700+ | API endpoints, integrations |
-| Architecture | 90+ | Coding standards enforcement |
-| **Total** | **4,500+** | All passing |
+Six suites are declared in `phpunit.xml`:
+
+| Suite | Covers |
+|-------|--------|
+| Unit | Services, agents and models in isolation |
+| Feature | API endpoints and integrations |
+| Integration | Multi-step workflows |
+| Architecture | Coding-standard enforcement (Pest arch tests) |
+| Browser | Playwright end-to-end scenarios |
+| Eval | Fyn evaluation runs (not part of `./vendor/bin/pest`) |
+
+`tests/Browser/scenarios/BS-NN-*.php` carries the acceptance contract for end-to-end
+work — the docblock at the top of each scenario is what "done" means for it. A green
+unit suite does not satisfy a browser scenario.
+
+Conventions live in `tests/CLAUDE.md`.
 
 ### After Running Tests
 
@@ -488,25 +554,36 @@ php artisan route:clear
 
 | Document | Purpose |
 |----------|---------|
-| `CLAUDE.md` | Development guidelines for Claude Code |
-| `fynlaDesignGuide.md` | Design system v1.3.0 (single source of truth) |
-| `deploy/DEPLOY.md` | Build & deploy procedures (both environments) |
+| `CLAUDE.md` | Development guidelines and project rules |
+| `fynlaDesignGuide.md` | Design system v1.3.1 (single source of truth for visual decisions) |
+| `tests/CLAUDE.md` | Testing conventions |
+| `deploy/DEPLOY.md` | Build and deploy procedures (both environments) |
 | `deploy/README.md` | Deployment configuration |
+| `ios-native/CLAUDE.md` | Native iOS conventions |
+| `ios-native/TESTFLIGHT.md` | TestFlight release pipeline |
 
 ---
 
 ## Recent Updates
 
+### July–August 2026
+
+- **Native SwiftUI iOS client** — all seven build packages merged (PRs #630–#637), bringing dashboard, financial data, projections and achievements to parity with `/m`; shipped to TestFlight (build 6, 12 August) against the staging backend. Testers must register on csjones.co/fynla, not fynla.org — the TestFlight build reads the staging database
+- **Golden Rule #20 — one Fyn, one place** — parallel mechanisms doing the same job (two ownership vocabularies, two answer paths, per-surface markdown renderers) consolidated into single shared sources, so a Fyn fix lands once and reaches web, `/m` and native together
+- **Fyn capture and advice routing** — advice-to-capture handoff, charitable giving, expenditure gating, household facts and in-answer view links reworked across PRs #695–#706
+- **Marketing pipeline** — Google Drive service-account ingest, AI-assisted copy, video processing and scheduled social posting (PRs #690–#694)
+- **Estate bequests** — bequest management on the web, with a mobile `/m` screen that hands off to the web app for edits (PR #711)
+- **Spouse-link integrity** — deleted-spouse cleanup, a duplicate spouse-email guard, and the widow persona retired from the preview set (PRs #695, #697, #708–#710)
+
 ### April–June 2026 — v1.0 (Production)
 
 - **Production Launch** — Fynla v1.0 live at https://fynla.org, with csjones.co/fynla as the dev/staging environment and a formalised feature → dev → main release workflow
 - **Freemium Tiers & Payments** — Tier-based freemium model with Revolut subscription payments, tier-driven upgrade flows, and the public pricing page rebuilt around tiers
-- **Fyn AI Unified Architecture** — One unified system prompt across both Fyn states (onboarding capture and read-only advice), with write intents routed through an unseen capture handoff; CoALA memory programme (semantic, episodic, and procedural memory) landed on `dev` via PR #550 (2026-06-13), with the shared FynLoop + GroundGate substrate underneath both Fyn states — pre-CoALA on production until deployed
+- **Fyn AI Unified Architecture** — One unified system prompt across both Fyn states (onboarding capture and read-only advice), with write intents routed through an unseen capture handoff; CoALA memory programme (semantic, episodic, and procedural memory) landed via PR #550 (2026-06-13), with the shared FynLoop + GroundGate substrate underneath both Fyn states, since released to production
 - **Save-Tax Campaign & Tax Strategy** — Public save-tax funnel feeding a Fyn-led onboarding journey; tax strategy catalogue joins the recommendation aggregator as a seventh module with a TaxOptimisationAgent, composed household tax plans, and dedicated Tax Strategy pages on web and mobile
 - **Mobile `/m` Pathway** — Phones route to `/m`, which serves the mobile web build (iframed funnel plus a dedicated mobile SPA at `/m/app` with its own dashboard), alongside the Capacitor iOS packaging
 - **Gamification Engine** — Append-only points ledger with named levels, level wheel and progress on the mobile dashboard, and a gamified web dashboard
 - **Lifecycle Email Engine** — Transactional and lifecycle email campaigns built on a master layout with reusable modules, including account-deletion lifecycle emails
-- **Test Suite Growth** — Suite expanded to 4,500+ passing tests across Unit, Feature, Architecture, Integration, and Browser suites
 
 ### 1 April 2026 - v0.9.4
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Stores\Normalisers;
 
 use App\Models\User;
+use App\Support\SharedOwnership;
+use Carbon\Carbon;
 
 /**
  * MortgageNormaliser — translates upstream ingest shapes into a canonical
@@ -43,7 +45,7 @@ final class MortgageNormaliser
             'monthly_payment' => $data['monthly_payment'] ?? 0,
             'start_date' => $data['start_date'] ?? null,
             'maturity_date' => $data['maturity_date'] ?? null,
-            'remaining_term_months' => $data['remaining_term_months'] ?? 300,
+            'remaining_term_months' => $data['remaining_term_months'] ?? null,
             'ownership_type' => $data['ownership_type'] ?? 'individual',
             'ownership_percentage' => $data['ownership_percentage'] ?? null,
             'joint_owner_id' => $data['joint_owner_id'] ?? null,
@@ -84,10 +86,8 @@ final class MortgageNormaliser
         }
         $data['ownership_type'] = $ownership;
 
-        // ownership_percentage default
-        if (! isset($data['ownership_percentage']) || $data['ownership_percentage'] === null) {
-            $data['ownership_percentage'] = $ownership === 'joint' ? 50.00 : 100.00;
-        }
+        // ownership_percentage — one rule, one home (App\Support\SharedOwnership).
+        $data = SharedOwnership::applyTo($data, $ownership);
 
         // Cast numeric fields
         foreach (['outstanding_balance', 'original_loan_amount', 'monthly_payment', 'monthly_interest_portion', 'fixed_rate_percentage', 'variable_rate_percentage', 'repayment_percentage', 'interest_only_percentage'] as $field) {
@@ -105,6 +105,66 @@ final class MortgageNormaliser
             $data['remaining_term_months'] = (int) $data['remaining_term_months'];
         }
 
+        return self::reconcileTerm($data);
+    }
+
+    /**
+     * Keep `remaining_term_months` and `maturity_date` telling the same story.
+     *
+     * A row carrying both a 2039 maturity date and a 300-month term claims two
+     * different end dates, and the amortisation schedule and payoff projections
+     * run on the term — so a wizard-created mortgage modelled 25 years of debt
+     * against a 13-year loan (W-0012). The maturity date is the fact the user
+     * entered, so the term is derived from it; where only a term is known the
+     * maturity date is derived from the term instead.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function reconcileTerm(array $data): array
+    {
+        $months = self::monthsUntil($data['maturity_date'] ?? null);
+
+        if ($months !== null) {
+            $data['remaining_term_months'] = $months;
+
+            return $data;
+        }
+
+        // A partial update that mentions neither field leaves both alone.
+        if (! array_key_exists('remaining_term_months', $data) && ! array_key_exists('maturity_date', $data)) {
+            return $data;
+        }
+
+        // No usable maturity date. Express whatever term we have as a date so the
+        // two never diverge. mortgages.remaining_term_months is NOT NULL, so an
+        // ingest that supplies neither (Fyn, which maps optional fields to nulls)
+        // falls back to the configured default rather than a literal.
+        $term = $data['remaining_term_months'] ?? (int) config('mortgage.default_term_months', 300);
+
+        $data['remaining_term_months'] = (int) $term;
+        $data['maturity_date'] = $data['maturity_date']
+            ?? Carbon::now()->startOfDay()->addMonths((int) $term)->toDateString();
+
         return $data;
+    }
+
+    /**
+     * Whole months from today to the given maturity date, floored at zero.
+     * Returns null when there is no parseable date to work from.
+     */
+    private static function monthsUntil(mixed $maturityDate): ?int
+    {
+        if ($maturityDate === null || $maturityDate === '') {
+            return null;
+        }
+
+        try {
+            $maturity = Carbon::parse($maturityDate)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return max(0, (int) Carbon::now()->startOfDay()->diffInMonths($maturity, false));
     }
 }

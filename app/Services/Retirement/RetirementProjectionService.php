@@ -9,6 +9,7 @@ use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Shared\MonteCarloEngine;
 use App\Services\TaxConfigService;
 
 /**
@@ -36,7 +37,7 @@ class RetirementProjectionService
      */
     public function getProjections(int $userId): array
     {
-        $user = User::with(['dcPensions', 'dbPensions', 'statePension'])
+        $user = User::with(['dcPensions', 'dbPensions', 'statePension', 'retirementProfile'])
             ->findOrFail($userId);
 
         $potProjection = $this->projectPensionPot($user);
@@ -68,9 +69,11 @@ class RetirementProjectionService
     {
         // Get user's current age
         $currentAge = $user->date_of_birth?->age ?? 40;
+        $currentAgeSource = $user->date_of_birth ? 'date_of_birth' : 'assumed';
 
         // Get retirement age from user profile or DC pensions or default
-        $retirementAge = $this->getRetirementAge($user);
+        $retirementAgeResult = $this->getRetirementAgeWithSource($user);
+        $retirementAge = $retirementAgeResult['age'];
 
         // Calculate years to retirement
         $yearsToRetirement = max(1, $retirementAge - $currentAge);
@@ -101,11 +104,9 @@ class RetirementProjectionService
         );
         $eventHash = $this->lifeEventCashFlowService->getEventHash($user->id, 'retirement');
 
-        // Cache key includes event hash AND simulation inputs so cache is self-invalidating:
-        // any change to pension value, contribution, or risk-derived return/volatility produces
-        // a new key. Prevents stale zero-results being served after a user adds their first pension.
-        $inputHash = md5("{$totalCurrentValue}:{$totalMonthlyContribution}:{$expectedReturn}:{$volatility}");
-        $cacheKey = "user_{$user->id}_pension_pot_{$yearsToRetirement}y_e{$eventHash}_i{$inputHash}";
+        // Name whose projection this is; MonteCarloSimulator::simulate() appends the
+        // fingerprint of the simulation's inputs, so the key is self-invalidating.
+        $cacheKey = "user_{$user->id}_pension_pot_{$yearsToRetirement}y_e{$eventHash}";
 
         // Run Monte Carlo simulation (cached) with life event injections
         $simulation = $this->simulator->simulate(
@@ -116,11 +117,12 @@ class RetirementProjectionService
             $yearsToRetirement,
             (int) $this->taxConfig->get('retirement.monte_carlo_iterations', 1000),
             $cacheKey,
-            $scheduledInjections
+            $scheduledInjections,
+            MonteCarloEngine::BAND_PERCENTILES
         );
 
         // Extract year-by-year data with custom percentiles for probability bands
-        $yearByYear = $this->extractProbabilityBands($simulation, $yearsToRetirement);
+        $yearByYear = $this->extractProbabilityBands($simulation);
 
         // Get values at retirement (last year's percentiles)
         // Using 80% probability (20th percentile) for conservative projections
@@ -137,7 +139,9 @@ class RetirementProjectionService
             'volatility' => $riskParams['volatility'],
             'years_to_retirement' => $yearsToRetirement,
             'retirement_age' => $retirementAge,
+            'retirement_age_source' => $retirementAgeResult['source'],
             'current_age' => $currentAge,
+            'current_age_source' => $currentAgeSource,
             'percentile_20_at_retirement' => round($percentile20AtRetirement, 2),
             'median_at_retirement' => round($medianAtRetirement, 2),
             'year_by_year' => $yearByYear,
@@ -155,7 +159,7 @@ class RetirementProjectionService
         $pension = $user->dcPensions()->findOrFail($pensionId);
 
         $currentAge = $user->date_of_birth?->age ?? 40;
-        $retirementAge = $pension->retirement_age ?? $this->getRetirementAge($user);
+        $retirementAge = $this->getRetirementAge($user);
         $yearsToRetirement = max(1, $retirementAge - $currentAge);
 
         $currentValue = (float) ($pension->current_fund_value ?? 0);
@@ -176,9 +180,8 @@ class RetirementProjectionService
         $expectedReturn = $riskParams['expected_return_typical'] / 100;
         $volatility = $riskParams['volatility'] / 100;
 
-        // Cache key includes simulation inputs so edits to this pension produce a new key.
-        $inputHash = md5("{$currentValue}:{$monthlyContribution}:{$expectedReturn}:{$volatility}");
-        $cacheKey = "user_{$userId}_pension_{$pensionId}_{$yearsToRetirement}y_i{$inputHash}";
+        // Input fingerprinting is applied by MonteCarloSimulator::simulate().
+        $cacheKey = "user_{$userId}_pension_{$pensionId}_{$yearsToRetirement}y";
 
         // Run Monte Carlo simulation (cached)
         $simulation = $this->simulator->simulate(
@@ -188,10 +191,12 @@ class RetirementProjectionService
             $volatility,
             $yearsToRetirement,
             (int) $this->taxConfig->get('retirement.monte_carlo_iterations', 1000),
-            $cacheKey
+            $cacheKey,
+            [],
+            MonteCarloEngine::BAND_PERCENTILES
         );
 
-        $yearByYear = $this->extractProbabilityBands($simulation, $yearsToRetirement);
+        $yearByYear = $this->extractProbabilityBands($simulation);
         $lastYear = $yearByYear[count($yearByYear) - 1] ?? [];
 
         return [
@@ -463,102 +468,39 @@ class RetirementProjectionService
 
     /**
      * Extract probability bands from Monte Carlo results.
+     *
+     * Delegates to MonteCarloEngine::extractProbabilityBands(), the one home for this
+     * reshape, shared with the investment projection. Every band it returns is a
+     * percentile the simulation measured.
      */
-    private function extractProbabilityBands(array $simulation, int $years): array
+    private function extractProbabilityBands(array $simulation): array
     {
-        $result = [];
-        $currentYear = (int) date('Y');
-        $startValue = $simulation['summary']['start_value'] ?? 0;
-
-        // Add year 0 (current year) with current value
-        $result[] = [
-            'year' => $currentYear,
-            'year_number' => 0,
-            'percentile_10' => round($startValue, 2),
-            'percentile_15' => round($startValue, 2),
-            'percentile_20' => round($startValue, 2),
-            'percentile_25' => round($startValue, 2),
-            'percentile_50' => round($startValue, 2),
-            'percentile_75' => round($startValue, 2),
-            'percentile_90' => round($startValue, 2),
-        ];
-
-        foreach ($simulation['year_by_year'] as $yearData) {
-            $yearIndex = $yearData['year'];
-            $percentiles = $yearData['percentiles'];
-
-            $p10 = $this->getPercentileValue($percentiles, '10th');
-            $p25 = $this->getPercentileValue($percentiles, '25th');
-            $p50 = $this->getPercentileValue($percentiles, '50th');
-            $p75 = $this->getPercentileValue($percentiles, '75th');
-            $p90 = $this->getPercentileValue($percentiles, '90th');
-
-            // Interpolate 15th and 20th percentiles between 10th and 25th
-            $spread = $p25 - $p10;
-            $p15 = $p10 + ($spread * 0.33);
-            $p20 = $p10 + ($spread * 0.67);
-
-            // Smooth transition for early years
-            $blendFactor = 1.0;
-            if ($yearIndex === 1) {
-                $blendFactor = 0.7;
-            } elseif ($yearIndex === 2) {
-                $blendFactor = 0.9;
-            }
-
-            $p10 = $this->blendValue($p10, $startValue, $blendFactor);
-            $p15 = $this->blendValue($p15, $startValue, $blendFactor);
-            $p20 = $this->blendValue($p20, $startValue, $blendFactor);
-            $p25 = $this->blendValue($p25, $startValue, $blendFactor);
-            $p50 = $this->blendValue($p50, $startValue, $blendFactor);
-            $p75 = $this->blendValue($p75, $startValue, $blendFactor);
-            $p90 = $this->blendValue($p90, $startValue, $blendFactor);
-
-            $result[] = [
-                'year' => $currentYear + $yearIndex,
-                'year_number' => $yearIndex,
-                'percentile_10' => round($p10, 2),
-                'percentile_15' => round($p15, 2),
-                'percentile_20' => round($p20, 2),
-                'percentile_25' => round($p25, 2),
-                'percentile_50' => round($p50, 2),
-                'percentile_75' => round($p75, 2),
-                'percentile_90' => round($p90, 2),
-            ];
-        }
-
-        return $result;
-    }
-
-    private function blendValue(float $monteCarloValue, float $startValue, float $blendFactor): float
-    {
-        return ($monteCarloValue * $blendFactor) + ($startValue * (1 - $blendFactor));
-    }
-
-    private function getPercentileValue(array $percentiles, string $key): float
-    {
-        foreach ($percentiles as $p) {
-            if ($p['percentile'] === $key) {
-                return (float) $p['value'];
-            }
-        }
-
-        return 0.0;
+        return $this->simulator->extractProbabilityBands($simulation);
     }
 
     private function getRetirementAge(User $user): int
     {
+        return $this->getRetirementAgeWithSource($user)['age'];
+    }
+
+    /** @return array{age:int,source:string} */
+    private function getRetirementAgeWithSource(User $user): array
+    {
         if ($user->target_retirement_age) {
-            return $user->target_retirement_age;
+            return ['age' => (int) $user->target_retirement_age, 'source' => 'user_profile'];
+        }
+
+        if ($user->retirementProfile?->target_retirement_age) {
+            return ['age' => (int) $user->retirementProfile->target_retirement_age, 'source' => 'retirement_profile'];
         }
 
         foreach ($user->dcPensions as $pension) {
             if ($pension->retirement_age) {
-                return $pension->retirement_age;
+                return ['age' => (int) $pension->retirement_age, 'source' => 'pension'];
             }
         }
 
-        return self::DEFAULT_RETIREMENT_AGE;
+        return ['age' => self::DEFAULT_RETIREMENT_AGE, 'source' => 'assumed'];
     }
 
     private function getUserRiskLevel(User $user): string
@@ -593,6 +535,10 @@ class RetirementProjectionService
 
     private function calculateMonthlyContribution($pension): float
     {
+        if ((float) $pension->monthly_contribution_amount > 0) {
+            return (float) $pension->monthly_contribution_amount;
+        }
+
         if ($pension->employee_contribution_percent && $pension->annual_salary) {
             $employeeMonthly = ($pension->annual_salary * $pension->employee_contribution_percent / 100) / 12;
             $employerMonthly = $pension->employer_contribution_percent
@@ -602,7 +548,7 @@ class RetirementProjectionService
             return $employeeMonthly + $employerMonthly;
         }
 
-        return (float) ($pension->monthly_contribution_amount ?? 0);
+        return 0.0;
     }
 
     private function getTotalDBIncome(User $user): float

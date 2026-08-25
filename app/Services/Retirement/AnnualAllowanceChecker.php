@@ -131,8 +131,26 @@ class AnnualAllowanceChecker
             ];
         }
 
-        // Calculate carry forward from previous 3 years
-        $carryForward = $this->getCarryForward($userId, $taxYear);
+        // Carry-forward from the previous 3 years. For a currently-tapered user
+        // we cap each prior year's assumed unused allowance at the current
+        // tapered allowance instead of the full standard AA — per-year income
+        // history isn't captured, so this is a conservative simplification
+        // (assumes a similar taper applied then) that avoids over-crediting.
+        $carryForward = $this->getCarryForward(
+            $userId,
+            $taxYear,
+            $isTapered ? $availableAllowance : null
+        );
+
+        // Money Purchase Annual Allowance (FA 2004 s227ZA): once the user has
+        // flexibly accessed a DC pension, money-purchase contributions are
+        // capped at the MPAA and NO carry-forward is available against it.
+        $mpaaApplies = app(PensionStore::class)
+            ->hasFlexiblyAccessedDcPension(User::findOrFail($userId));
+        if ($mpaaApplies) {
+            $availableAllowance = min($availableAllowance, $this->getMPAA());
+            $carryForward = 0.0;
+        }
 
         // Calculate remaining allowance
         $allowanceUsed = min($totalContributions, $availableAllowance + $carryForward);
@@ -151,6 +169,8 @@ class AnnualAllowanceChecker
             'remaining_allowance' => round($remainingAllowance, 2),
             'excess_contributions' => round($excessContributions, 2),
             'has_excess' => $excessContributions > 0,
+            'mpaa_applies' => $mpaaApplies,
+            'mpaa_amount' => $mpaaApplies ? $this->getMPAA() : null,
         ];
     }
 
@@ -197,9 +217,14 @@ class AnnualAllowanceChecker
      * Only rows inside the exact HMRC 3-prior-years window count — stale
      * rows from older captures are ignored, never summed as eligible.
      *
+     * @param  float|null  $perYearAllowanceCap  When the caller knows the user is
+     *                                           currently tapered, the tapered allowance to value each prior year at
+     *                                           instead of the full standard AA (conservative — see checkAnnualAllowance).
+     *                                           Null keeps the standard-AA valuation. Applies to the history path only;
+     *                                           the manual fallback is the user's own entered unused figure.
      * @return float Total carry forward available
      */
-    public function getCarryForward(int $userId, string $taxYear): float
+    public function getCarryForward(int $userId, string $taxYear, ?float $perYearAllowanceCap = null): float
     {
         $priorYears = $this->getPrevious3TaxYears($taxYear);
 
@@ -214,9 +239,10 @@ class AnnualAllowanceChecker
 
         if ($history->isNotEmpty()) {
             $standard = (float) ($this->taxConfig->getPensionAllowances()['annual_allowance'] ?? 60000);
+            $perYearAllowance = $perYearAllowanceCap ?? $standard;
 
             return (float) $history->sum(
-                fn ($row) => max(0.0, $standard - (float) $row->pension_input_amount)
+                fn ($row) => max(0.0, $perYearAllowance - (float) $row->pension_input_amount)
             );
         }
 

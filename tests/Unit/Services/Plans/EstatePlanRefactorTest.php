@@ -34,6 +34,13 @@ beforeEach(function () {
         'standard_rate' => 0.40,
         'reduced_rate_charity' => 0.36,
     ]);
+    // W-0451: the applied-rate sentence now reads the Schedule 1A threshold from
+    // configuration instead of hardcoding "10%", so the mock has to supply it.
+    // byDefault() so an individual case can move the threshold and prove the
+    // sentence follows it. Without it Mockery's first matching expectation wins
+    // and a per-test override is silently ignored — which is how the assertion
+    // below came to pass against a hardcoded literal (C3).
+    $this->taxConfig->shouldReceive('getCharitableThresholdPercent')->andReturn(0.10)->byDefault();
     $this->taxConfig->shouldReceive('getGiftingExemptions')->andReturn([
         'annual_exemption' => 3000,
     ]);
@@ -44,6 +51,13 @@ beforeEach(function () {
         'monthly' => 2000.0,
         'net_income' => 50000.0,
         'annual_expenditure' => 26000.0,
+        // W-0140: the accessor's contract now carries what the figure is made of.
+        'expenditure_composition' => [
+            'recorded_annual' => 18000.0,
+            'commitments_annual' => 8000.0,
+            'has_recorded_expenditure' => true,
+            'basis' => 'Category entries plus financial commitments',
+        ],
     ]);
 
     // Mock IHTFormattingService
@@ -434,6 +448,56 @@ describe('Structured Executive Summary', function () {
 });
 
 describe('Current Situation Expansion', function () {
+    /**
+     * W-0451. The applied-rate sentence said *"10% or more of the NET ESTATE"*.
+     * Schedule 1A compares the donated amount against the BASELINE — the estate
+     * less the available nil rate band — so it was a wrong statement of law, on
+     * the surface that renders `/plans/estate` and in printed plans.
+     *
+     * This is the only assertion on that sentence's CONTENT. `[5.1.T4]` below
+     * asserts the key exists; nothing asserted what it said, which is how a
+     * misstatement of law survived in a string a test was already touching.
+     */
+    it('states the Schedule 1A test against the baseline, not the net estate [W-0451]', function () {
+        $user = User::factory()->create(['date_of_birth' => now()->subYears(50)]);
+
+        $analysisData = buildMockAnalysis(100000);
+        $analysisData['data']['charitable_analysis']['status'] = 'above';
+
+        $this->estateAgent->shouldReceive('analyze')->once()->andReturn($analysisData);
+        $this->estateAgent->shouldReceive('generateRecommendations')->once()->andReturn([
+            'success' => true,
+            'data' => ['recommendations' => []],
+        ]);
+        $this->disposableIncome->shouldReceive('getMonthlyForUser')->andReturn(2000.0);
+
+        // C3 of the 2026-08-23 verdict. This asserted `toContain('10%')`, which
+        // is TRUE whether the threshold is interpolated from a 10% configuration
+        // or hardcoded as a literal — so re-hardcoding "10%" left the whole
+        // suite green, and this is the top-priority fix of the batch, live on
+        // /plans/estate and in printed plans.
+        //
+        // It is the batch's own headline lesson recurring inside the batch that
+        // documented it: **an assertion whose expected value coincides with the
+        // defect's output proves nothing.** The moved-configuration guard in
+        // RateLiteralsComeFromConfigurationTest never touches EstatePlanService,
+        // so nothing else covered it either.
+        //
+        // The threshold is moved to 12% — a value nothing in the codebase uses —
+        // so a literal cannot satisfy the assertion.
+        $this->taxConfig->shouldReceive('getCharitableThresholdPercent')->andReturn(0.12);
+
+        $message = $this->service->generatePlan($user->id)['current_situation']['iht_rate_message'];
+
+        expect($message)->toContain('the estate above the nil rate band')
+            // The wrong statement of law, asserted absent.
+            ->and($message)->not->toContain('net estate')
+            // The threshold follows configuration, and the literal it used to
+            // assert is gone.
+            ->and($message)->toContain('12%')
+            ->and($message)->not->toContain('10%');
+    });
+
     it('includes full IHT table data with calculation and breakdowns [5.1.T4]', function () {
         $user = User::factory()->create([
             'date_of_birth' => now()->subYears(50),

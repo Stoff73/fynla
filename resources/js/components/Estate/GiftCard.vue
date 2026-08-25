@@ -55,7 +55,8 @@
           <span>{{ taperReliefPercentage }}% Taper Relief</span>
         </div>
         <p class="relief-description">
-          Effective Inheritance Tax rate: {{ effectiveIhtRate }}% (instead of 40%)
+          Charged at {{ effectiveIhtRate }}% on the {{ formatCurrency(taper.chargeable_amount) }}
+          of this gift above your available allowance — a saving of {{ formatCurrency(taper.taper_saving) }}.
         </p>
       </div>
 
@@ -115,23 +116,36 @@ export default {
       return Math.min(100, (this.yearsElapsed / 7) * 100).toFixed(0);
     },
 
+    /**
+     * C4 (tax-compliance-reviewer F4) — taper relief only exists where there is TAX
+     * to reduce, and the server is the only thing that knows whether there is.
+     *
+     * This showed relief on an age test alone: `yearsElapsed >= 3`, with the
+     * schedule hardcoded as 20/40/60/80/100 and the rate as `const baseRate = 40`.
+     * IHTM14611 says the opposite in terms — relief applies only where "tax is due
+     * on the transfer in its own right", and "if no tax is payable on the transfer
+     * because it does not exceed the nil-rate band (after cumulation), there can be
+     * no relief". A gift inside the band is the COMMON case: every gift in the
+     * seeded personas is one, so this badge was wrong nearly everywhere it appeared.
+     *
+     * `taper` comes from the server's `failed_gifts[]` entry for this gift, which is
+     * computed once in `FailedGiftTaxCalculator` against the whole estate's
+     * cumulation. Absent means the gift bears no tax — so no badge.
+     */
+    taper() {
+      return this.gift.taper || null;
+    },
+
     showTaperRelief() {
-      return this.yearsElapsed >= 3 && this.yearsElapsed < 7;
+      return !!this.taper && (this.taper.taper_saving || 0) > 0;
     },
 
     taperReliefPercentage() {
-      if (this.yearsElapsed < 3) return 0;
-      if (this.yearsElapsed < 4) return 20;
-      if (this.yearsElapsed < 5) return 40;
-      if (this.yearsElapsed < 6) return 60;
-      if (this.yearsElapsed < 7) return 80;
-      return 100;
+      return this.taper?.taper_relief_percent ?? 0;
     },
 
     effectiveIhtRate() {
-      const baseRate = 40;
-      const relief = this.taperReliefPercentage;
-      return (baseRate * (100 - relief) / 100).toFixed(0);
+      return this.taper?.tax_rate_percent ?? 0;
     },
 
     giftTypeDisplay() {
@@ -195,10 +209,12 @@ export default {
     statusText() {
       if (this.yearsElapsed >= 7) {
         return 'Inheritance Tax-Exempt (Survived 7 Years)';
-      } else if (this.yearsElapsed >= 3) {
+      } else if (this.showTaperRelief) {
         return `Taper Relief Applies (${this.taperReliefPercentage}%)`;
+      } else if (this.taper) {
+        return 'Taxable — Above Your Allowance';
       } else {
-        return 'Potentially Taxable (Within 3 Years)';
+        return 'Within Your Allowance — No Tax';
       }
     },
 

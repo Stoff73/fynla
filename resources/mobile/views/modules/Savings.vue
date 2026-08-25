@@ -1,7 +1,7 @@
 <template>
-  <MobileChrome title="Savings and emergency fund" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your savings">
+  <MobileChrome title="Bank Accounts" subtitle="Your cash, emergency-fund runway and ISA allowance" :loading="loading" loading-label="your bank accounts" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
-      <p class="m-sub">Loading your savings…</p>
+      <p class="m-sub">Loading your bank accounts…</p>
     </div>
 
     <div v-else-if="error" class="m-card m-state">
@@ -12,9 +12,72 @@
     <template v-else>
       <!-- Total cash hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Total cash savings</p>
+        <p class="m-sub m-label">Total cash</p>
         <p class="m-metric">{{ fmt(totalCash) }}</p>
         <p class="m-hero-sub">{{ accountCountLabel }}</p>
+      </div>
+
+      <!-- Bank accounts (excludes ISAs — a Cash ISA is cash, not a bank account) -->
+      <div class="m-card">
+        <div class="m-cap-head" style="margin-top:0">
+          <p class="m-section-label">Bank accounts</p>
+          <div v-if="accountLimit" class="m-cap">
+            <span class="m-cap__count" :class="{ 'm-cap__count--full': atCap }">{{ accountCount }} of {{ accountLimit }} accounts used</span>
+            <button v-if="paidUpgradeAvailable" type="button" class="m-cap__upgrade" @click="goUpgrade">Upgrade</button>
+          </div>
+        </div>
+        <p v-if="!bankAccounts.length" class="m-sub" style="margin-bottom:0">
+          You haven't added any bank accounts yet.
+        </p>
+        <div v-else>
+          <button
+            v-for="acct in bankAccounts"
+            :key="acct.id"
+            type="button"
+            class="ms-acct"
+            @click="openAccount(acct.id)"
+          >
+            <div class="ms-acct__main">
+              <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Bank account' }}</span>
+              <span class="ms-acct__meta">
+                <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
+                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+              </span>
+            </div>
+            <div class="ms-acct__right">
+              <span class="ms-acct__balance">{{ fmt(userShareOf(acct)) }}</span>
+              <span v-if="isShared(acct)" class="ms-acct__share">Your {{ sharePercent(acct) }} of {{ fmt(balanceOf(acct)) }}</span>
+              <span class="ms-acct__view">View</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cash ISAs (a Cash ISA is cash held in an ISA wrapper — shown here, never as a bank account) -->
+      <div v-if="cashIsas.length" class="m-card">
+        <p class="m-section-label" style="margin-top:0">Cash ISA Accounts</p>
+        <div>
+          <button
+            v-for="acct in cashIsas"
+            :key="acct.id"
+            type="button"
+            class="ms-acct"
+            @click="openAccount(acct.id)"
+          >
+            <div class="ms-acct__main">
+              <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Cash ISA' }}</span>
+              <span class="ms-acct__meta">
+                <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
+                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
+              </span>
+            </div>
+            <div class="ms-acct__right">
+              <span class="ms-acct__balance">{{ fmt(userShareOf(acct)) }}</span>
+              <span v-if="isShared(acct)" class="ms-acct__share">Your {{ sharePercent(acct) }} of {{ fmt(balanceOf(acct)) }}</span>
+              <span class="ms-acct__view">View</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       <!-- Emergency fund runway -->
@@ -42,8 +105,14 @@
 
       <!-- ISA allowance -->
       <div v-if="isaAllowance" class="m-card">
-        <p class="m-section-label" style="margin-top:0">ISA allowance this year</p>
-        <div class="mts-allow" style="border-bottom:0;padding-bottom:0">
+        <button
+          type="button"
+          class="mts-allow"
+          data-test="isa-allowance-card"
+          :aria-expanded="isaExpanded"
+          @click="isaExpanded = !isaExpanded"
+        >
+          <p class="m-section-label" style="margin-top:0">ISA allowance this year</p>
           <div class="mts-allow__head">
             <span class="mts-allow__label">ISA allowance used</span>
             <span class="mts-allow__cap">of {{ fmt(isaTotal) }}</span>
@@ -55,37 +124,9 @@
             <span class="mts-allow__remain" :class="`mts-allow__remain--${isaStatus}`">{{ isaRemainingLabel }}</span>
             <span class="mts-allow__used">{{ fmt(isaUsed) }} used</span>
           </div>
-        </div>
-      </div>
-
-      <!-- Accounts list -->
-      <div class="m-card">
-        <p class="m-section-label" style="margin-top:0">Savings accounts</p>
-        <p v-if="!accounts.length" class="m-sub" style="margin-bottom:0">
-          You haven't added any savings accounts yet.
-        </p>
-        <div v-else>
-          <button
-            v-for="acct in accounts"
-            :key="acct.id"
-            type="button"
-            class="ms-acct"
-            @click="openAccount(acct.id)"
-          >
-            <div class="ms-acct__main">
-              <span class="ms-acct__provider">{{ acct.provider || acct.institution || 'Savings account' }}</span>
-              <span class="ms-acct__meta">
-                <span v-if="acct.is_isa" class="ms-acct__tag">ISA</span>
-                <span v-if="acct.is_emergency_fund" class="ms-acct__tag ms-acct__tag--ef">Emergency fund</span>
-                <span class="ms-acct__rate">{{ rate(acct.interest_rate) }}</span>
-              </span>
-            </div>
-            <div class="ms-acct__right">
-              <span class="ms-acct__balance">{{ fmt(balanceOf(acct)) }}</span>
-              <span class="ms-acct__view">View</span>
-            </div>
-          </button>
-        </div>
+          <span class="mts-allow__view">{{ isaExpanded ? 'Hide contributions' : 'View contributions' }}</span>
+        </button>
+        <ISAContributionHistory v-if="isaExpanded" :status="isaAllowance" />
       </div>
     </template>
   </MobileChrome>
@@ -94,7 +135,15 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
+import { upgradeMixin } from '../../mixins/upgrade.js';
+// The one home for the ownership-share rule, shared with the desktop bundle
+// (Rule 20). `/m` reaches it by relative path, as the investment, property and
+// savings-account screens already do.
+import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -103,16 +152,41 @@ function formatCurrency(value) {
 
 export default {
   name: 'MobileSavings',
-  components: { MobileChrome },
-  data: () => ({ loading: true, error: '', payload: null }),
+  components: { ISAContributionHistory, MobileChrome },
+  mixins: [upgradeMixin],
+  data: () => ({ loading: true, error: '', payload: null, isaExpanded: false }),
   computed: {
     accounts() { return this.payload?.accounts || []; },
+    // CSJ: a Cash ISA is cash held in an ISA wrapper — it is NOT a bank account,
+    // so group it separately on the cash page.
+    bankAccounts() { return this.accounts.filter((a) => !a.is_isa); },
+    cashIsas() { return this.accounts.filter((a) => a.is_isa); },
+    // Free-tier cap nudge (5.1). account_limit null = unlimited tier → hide nudge.
+    accountCount() { return this.payload?.account_count ?? this.accounts.length; },
+    accountLimit() { return this.payload?.account_limit ?? null; },
+    atCap() { return this.accountLimit != null && this.accountCount >= this.accountLimit; },
+    contextualRequest() {
+      if (this.atCap) return null;
+      return buildContextualConversationRequest({
+        action: 'add',
+        resourceType: 'savings',
+        currentDestination: { screen: 'savings', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
+    },
     isaAllowance() { return this.payload?.isa_allowance || null; },
     emergencyTargetData() { return this.payload?.emergency_fund_target || null; },
     expenditure() { return this.payload?.expenditure_profile || null; },
 
+    // The cash this viewer owns, not the cash on the records they can see.
+    //
+    // This summed `full_balance`, so a joint account was counted whole against
+    // BOTH spouses — and every figure below it (runway, the bar, "% of target")
+    // inherited that. The account detail screen has always shown the share, so
+    // `/m` contradicted itself one tap apart. Mirrors the `/m` investment list,
+    // which already reads this helper.
     totalCash() {
-      return this.accounts.reduce((sum, a) => sum + (Number(this.balanceOf(a)) || 0), 0);
+      return calculateTotalUserShare(this.accounts, { valueField: 'current_balance' });
     },
     accountCountLabel() {
       const n = this.accounts.length;
@@ -178,16 +252,28 @@ export default {
       return `${this.fmt(this.isaRemaining)} remaining`;
     },
   },
-  async created() { await this.load(); },
+  async created() {
+    await this.load();
+    // Same-route verify refresh: the onboarding chat bumps this after
+    // applying an edit on this very screen — refetch so the page shows the
+    // just-edited figures (no remount happens without a route change).
+    this.$watch(() => store.screenRefreshTick, () => { this.load(); });
+  },
   methods: {
     fmt(v) { return formatCurrency(v); },
     rate(r) {
       if (r == null || isNaN(Number(r))) return '—';
       return `${Number(r).toFixed(2)}%`;
     },
+    // The FULL balance on the record — the context line only, never a total.
     balanceOf(a) {
       return a.full_balance ?? a.current_balance ?? 0;
     },
+    // What this viewer owns of it. Prefers the API's `user_share`; the helper
+    // falls back to the share arithmetic only for payloads without it.
+    userShareOf(a) { return calculateUserShare(a, { valueField: 'current_balance' }); },
+    isShared(a) { return isSharedRecord(a); },
+    sharePercent(a) { return `${userSharePercent(a).toFixed(2)}%`; },
     openAccount(id) { this.$router.push(`/savings/account/${id}`); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     async load() {
@@ -195,10 +281,11 @@ export default {
       this.error = '';
       this.payload = null;
       try {
-        const { ok, data } = await apiGet('/api/savings', store.token);
+        const { ok, status, data } = await apiGet('/api/savings', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.payload = data?.data || data || {};
-        else this.error = data?.message || 'We could not load your savings.';
-      } catch (e) {
+        else this.error = data?.message || 'We could not load your bank accounts.';
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
@@ -232,6 +319,8 @@ export default {
 .mts-allow__remain--violet { color: var(--violet-500); }
 .mts-allow__remain--raspberry { color: var(--raspberry-500); }
 .mts-allow__used { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
+.mts-allow { display: block; width: 100%; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.mts-allow__view { display: block; margin-top: 10px; color: var(--raspberry-500); font-size: 12px; font-weight: 700; }
 
 .ms-acct { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--light-gray); padding: 14px 0; cursor: pointer; }
 .ms-acct:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -245,5 +334,6 @@ export default {
 .ms-acct__rate { font-size: 12px; color: var(--neutral-500); }
 .ms-acct__right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
 .ms-acct__balance { font-size: 15px; font-weight: 700; color: var(--horizon-500); white-space: nowrap; }
+.ms-acct__share { display: block; font-size: 12px; color: var(--neutral-500); }
 .ms-acct__view { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--raspberry-500); }
 </style>

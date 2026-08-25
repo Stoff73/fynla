@@ -289,8 +289,8 @@
                         <dt class="text-sm text-neutral-500">Outstanding Balance:</dt>
                         <dd class="text-sm font-medium text-violet-600 font-semibold">{{ formatCurrency(mortgage.outstanding_balance) }}</dd>
                       </div>
-                      <div v-if="isSharedOwnership && property.ownership_percentage && property.ownership_percentage < 100" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                        <dt class="text-sm text-neutral-500">Your Share ({{ property.ownership_percentage }}%):</dt>
+                      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                        <dt class="text-sm text-neutral-500">Your mortgage liability:</dt>
                         <dd class="text-sm font-medium text-violet-600">{{ formatCurrency(calculateUserMortgageShare(mortgage)) }}</dd>
                       </div>
                       <div v-if="mortgage.original_loan_amount" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
@@ -373,20 +373,20 @@
                     </dl>
                   </div>
 
-                  <!-- Ownership Section -->
+                  <!-- Mortgage liability section -->
                   <div>
-                    <h5 class="text-sm font-semibold text-horizon-500 mb-3">Ownership</h5>
+                    <h5 class="text-sm font-semibold text-horizon-500 mb-3">Mortgage liability</h5>
                     <dl class="space-y-2">
                       <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                        <dt class="text-sm text-neutral-500">Ownership Type:</dt>
-                        <dd class="text-sm font-medium text-horizon-500 capitalize">{{ isSharedOwnership ? formatOwnershipType(property.ownership_type) : 'Individual' }}</dd>
+                        <dt class="text-sm text-neutral-500">Borrower(s):</dt>
+                        <dd class="text-sm font-medium text-horizon-500">{{ mortgage.ownership_type === 'joint' ? 'Joint borrowers' : 'Me only' }}</dd>
                       </div>
-                      <div v-if="!isSharedOwnership" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                        <dt class="text-sm text-neutral-500">Owner:</dt>
+                      <div v-if="mortgage.ownership_type !== 'joint'" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                        <dt class="text-sm text-neutral-500">Borrower:</dt>
                         <dd class="text-sm font-medium text-horizon-500">{{ currentUserName }}</dd>
                       </div>
-                      <div v-if="isSharedOwnership && (mortgage.joint_owner_name || jointOwnerDisplayName)" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                        <dt class="text-sm text-neutral-500">Joint Owner:</dt>
+                      <div v-if="mortgage.ownership_type === 'joint' && (mortgage.joint_owner_name || jointOwnerDisplayName)" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                        <dt class="text-sm text-neutral-500">Joint borrower:</dt>
                         <dd class="text-sm font-medium text-horizon-500">
                           {{ mortgage.joint_owner_name || jointOwnerDisplayName }}<span v-if="jointOwnerDeactivated" class="ml-1 text-xs text-neutral-400">(Deactivated)</span>
                         </dd>
@@ -802,12 +802,19 @@ export default {
     },
 
     calculateUserMortgageShare(mortgage) {
-      const fullBalance = mortgage.outstanding_balance || 0;
-      // For shared ownership properties, calculate user's share based on property ownership %
-      if (this.isSharedOwnership && this.property?.ownership_percentage) {
-        return fullBalance * (this.property.ownership_percentage / 100);
+      if (mortgage.user_share !== undefined) {
+        return mortgage.user_share;
       }
-      // Individual mortgage = 100% belongs to this user
+
+      if (this.property?.mortgage_user_share !== undefined && this.mortgages.length === 1) {
+        return this.property.mortgage_user_share;
+      }
+
+      const fullBalance = mortgage.outstanding_balance || 0;
+      if (mortgage.ownership_type === 'joint') {
+        return fullBalance * ((mortgage.ownership_percentage || 50) / 100);
+      }
+
       return fullBalance;
     },
 

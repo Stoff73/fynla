@@ -19,15 +19,19 @@
 
       <!-- Action row under the header: Back (left) + Edit details. Back shows on
            sub-pages (the parent passes :back and handles @back). -->
-      <div v-if="!loading && (back || editDetails)" class="md-page-actions">
+      <div v-if="!loading && (back || (editDetails && !showOnboardingNudge))" class="md-page-actions">
         <button v-if="back" type="button" class="md-back-btn" @click="$emit('back')">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
-        <button v-if="editDetails" type="button" class="md-edit-details" @click="openFynWith('What would you like to update?')">
-          Edit details
+        <!-- Hidden during the onboarding verify step: the on-page Continue/Edit
+             bubbles below replace it (Edit there opens Fyn to change details). -->
+        <button v-if="editDetails && !showOnboardingNudge" type="button" class="md-edit-details" :disabled="contextualCreating" @click="contextualRequest ? openContextualFyn(contextualRequest) : openFyn()">
+          {{ contextualActionLabel }}
         </button>
       </div>
+
+      <p v-if="contextualLaunchError" class="md-contextual-error" role="alert">{{ contextualLaunchError }}</p>
 
       <!-- Centred ring + coin loader while the page's data loads. -->
       <div v-if="loading" class="md-loader" role="status" aria-live="polite">
@@ -43,16 +47,17 @@
       <div class="md-bottom-pad" aria-hidden="true"></div>
     </main>
 
-    <!-- Onboarding continue nudge — when the verify flow has navigated a
-         mid-onboarding user here and minimised the dock, this points them back to
-         the chat so they know they can carry on. Tapping opens Fyn; hidden once
-         Fyn is open or onboarding is complete. Plain text only — Rule #15. -->
-    <div v-if="showOnboardingNudge" class="md-fyn-nudge">
-      <button type="button" class="md-fyn-nudge__cta" @click="openFyn">Tap the chat below to continue with Fyn</button>
+    <!-- Onboarding verify actions — when the verify flow has navigated a
+         mid-onboarding user here to check a section, these replace the old nudge
+         banner. Continue confirms and carries the onboarding on; Edit opens Fyn
+         to change the details. Styled as the chat quick-reply pills. -->
+    <div v-if="showOnboardingNudge" class="md-verify-actions">
+      <button type="button" class="md-fyn__bubble" :disabled="sending" @click="verifyContinue">Continue</button>
+      <button type="button" class="md-fyn__bubble" :disabled="sending" @click="verifyEdit">Edit</button>
     </div>
 
     <!-- Docked Fyn bar -->
-    <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
+    <button ref="fynDock" type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
@@ -76,16 +81,10 @@
         </button>
       </div>
       <nav class="md-drawer__nav" aria-label="Primary navigation">
-        <div class="md-drawer__section">
-          <a href="#" class="md-drawer__link" :class="{ 'is-active': activePath === '/dashboard' }" @click.prevent="goto('/dashboard')">
-            <span class="md-drawer__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg></span>
-            <span class="md-drawer__label">Dashboard</span>
-          </a>
-        </div>
         <div v-for="section in navSections" :key="section.group" class="md-drawer__section">
           <p class="md-drawer__group">{{ section.group }}</p>
           <a v-for="link in section.links" :key="link.slug" href="#" class="md-drawer__link" :class="{ 'is-active': activePath === link.route }" @click.prevent="goto(link.route)">
-            <span class="md-drawer__icon" aria-hidden="true" v-html="link.icon"></span>
+            <span class="md-drawer__icon" aria-hidden="true" v-html="NAV_ICON[link.icon]"></span>
             <span class="md-drawer__label">{{ link.label }}</span>
           </a>
         </div>
@@ -128,8 +127,19 @@
       </header>
 
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
+        <div v-if="transcriptLoadError" class="md-fyn__transcript-error" role="alert">
+          <p>{{ transcriptLoadError }}</p>
+          <button
+            v-if="!transcriptFallbackDestination"
+            type="button"
+            class="md-fyn__bubble"
+            :disabled="contextualCreating"
+            data-testid="fyn-transcript-retry"
+            @click="retryLoadedTranscript"
+          >Try again</button>
+        </div>
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
-          <p>{{ m.text || (sending && i === messages.length - 1 ? '…' : '') }}</p>
+          <p v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
           <!-- Onboarding bubble choices (quick_replies). Tapping sends the label,
                which the director matches back to the bubble. -->
           <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
@@ -147,7 +157,7 @@
 
       <form class="md-fyn__compose" @submit.prevent="send()">
         <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
-        <input id="mc-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
+        <input id="mc-fyn-input" ref="fynInput" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
         <button type="submit" class="md-fyn-dock__send md-fyn__send" aria-label="Send to Fyn" :disabled="sending">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7" /></svg>
         </button>
@@ -160,12 +170,22 @@
 <script>
 import { apiGet, apiPost } from '../api.js';
 import { store } from '../store.js';
+import { primaryNavigationSections } from '../navigation/navigationModel.js';
+import { issueWebHandoff } from '../navigation/webHandoff.js';
 // Shared Fyn onboarding-chat client. The campaign verify flow navigates the user
 // to a section's screen mid-onboarding; when they reopen the docked Fyn bar here,
 // the mixin resumes the persisted onboarding conversation and re-shows the waiting
 // Gate-2 turn (resumeOnboardingInDock). Provides send / scrollFyn / ensureConversation
 // / handleFynEvent / chooseBubble / handleOnboardingNavigation too.
 import onboardingChat from '../mixins/onboardingChat.js';
+
+const CONTEXTUAL_ADD_LABELS = Object.freeze({
+  savings: 'Add bank account',
+  investment: 'Add investment account',
+  retirement: 'Add pension',
+  protection: 'Add policy',
+  goals: 'Add goal',
+});
 
 const NAV_ICON = {
   net_worth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
@@ -193,8 +213,11 @@ export default {
     // Show the centred ring+coin loader (and hide the slot) while true.
     loading: { type: Boolean, default: false },
     loadingLabel: { type: String, default: '' },
-    // Show the "Edit details" button under the header (opens Fyn pre-asked).
+    // Show the "Edit details" button under the header.
     editDetails: { type: Boolean, default: true },
+    // Identifier-only server contract for contextual Add/Edit actions. Existing
+    // balances, values, labels, and names are deliberately never accepted here.
+    contextualRequest: { type: Object, default: null },
     // Show a Back button to the left of Edit details (sub-pages). The parent
     // owns the destination via @back.
     back: { type: Boolean, default: false },
@@ -207,11 +230,17 @@ export default {
       drawerMounted: false,
       fynOpen: false,
       fynMounted: false,
+      contextualCreating: false,
+      contextualLaunchError: '',
       // conversationId / resumeId / messages / draft / sending / fynStarted come
       // from the onboardingChat mixin (the shared chat client owns that state).
     };
   },
   computed: {
+    contextualActionLabel() {
+      if (this.contextualRequest?.action !== 'add') return 'Edit details';
+      return CONTEXTUAL_ADD_LABELS[this.contextualRequest.resource_type] || 'Add details';
+    },
     activePath() {
       return this.$route ? this.$route.path : '';
     },
@@ -244,27 +273,7 @@ export default {
       return store.user?.is_admin === true;
     },
     navSections() {
-      return [
-        { group: 'Cash Management', links: [
-          { slug: 'income', label: 'Income', icon: NAV_ICON.income, route: '/income' },
-          { slug: 'expenditure', label: 'Expenditure', icon: NAV_ICON.expenditure, route: '/expenditure' },
-        ] },
-        { group: 'Finances', links: [
-          { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
-          { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
-          { slug: 'investment', label: 'Investments', icon: NAV_ICON.investment, route: '/investment' },
-          { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
-        ] },
-        { group: 'Family', links: [
-          { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
-          { slug: 'estate', label: 'Estate Planning', icon: NAV_ICON.estate, route: '/estate' },
-        ] },
-        { group: 'Planning', links: [
-          { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
-          { slug: 'tax', label: 'Tax Strategy', icon: NAV_ICON.tax, route: '/tax-strategy' },
-          { slug: 'holistic', label: 'Holistic Plan', icon: NAV_ICON.holistic, route: '/holistic-plan' },
-        ] },
-      ];
+      return primaryNavigationSections;
     },
   },
   methods: {
@@ -280,16 +289,11 @@ export default {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
     },
-    gotoAdmin() {
+    async gotoAdmin() {
       this.closeDrawer();
-      const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
       try {
-        const token = store.token || localStorage.getItem('m_scaffold_token');
-        if (token && window.top && window.top !== window) {
-          window.top.sessionStorage.setItem('auth_token', token);
-        }
-      } catch (e) { /* iOS partitioned storage — desktop boot bridge covers it */ }
-      (window.top || window).location.href = url;
+        await issueWebHandoff('admin');
+      } catch { /* keep the current authenticated surface available */ }
     },
     async doShare(shareType) {
       try {
@@ -299,34 +303,95 @@ export default {
         const payload = { title: c.title || 'Fynla', text: c.text || '', url: c.url || 'https://fynla.org' };
         if (navigator.share) await navigator.share(payload);
         else if (navigator.clipboard) await navigator.clipboard.writeText(`${payload.text} ${payload.url}`.trim());
-      } catch (e) { /* cancelled / unsupported — no-op */ }
+      } catch { /* cancelled / unsupported — no-op */ }
     },
     shareReferral() {
       this.closeDrawer();
       this.doShare('app_referral');
     },
     async signOut() {
-      try { if (store.token) await apiPost('/api/auth/logout', {}, store.token); } catch (e) { /* best-effort */ }
+      try { if (store.token) await apiPost('/api/auth/logout', {}, store.token); } catch { /* best-effort */ }
       store.logout();
       this.closeDrawer();
       this.$router.push('/login');
     },
-    openFyn() {
+    // Returns the open+init promise chain (mirrors Dashboard.vue's openFyn) so
+    // callers that need to send a message right after opening (verifyAnswer)
+    // can await it — initFyn may fire the async, unawaited
+    // resumeOnboardingInDock() stream, and sending while that's still in flight
+    // silently no-ops (this.sending stays true). Callers that just open the dock
+    // (the bare @click="openFyn" bindings) can ignore the return value.
+    async openFyn() {
       this.fynMounted = true;
-      this.$nextTick(() => {
-        this.fynOpen = true;
-        this.scrollFyn();
-        this.initFyn();
-      });
+      await this.$nextTick();
+      this.fynOpen = true;
+      this.scrollFyn();
+      await this.initFyn();
+      this.$nextTick(() => { this.$refs.fynInput?.focus(); });
     },
     closeFyn() {
       this.fynOpen = false;
+      this.$nextTick(() => this.$refs.fynDock?.focus());
       window.setTimeout(() => { this.fynMounted = false; }, 320);
     },
-    // Open Fyn and immediately ask a preset question (e.g. from "Edit details").
-    openFynWith(message) {
-      this.openFyn();
-      this.$nextTick(() => { if (message) this.send(message); });
+    async revealLoadedConversation() {
+      this.fynMounted = true;
+      await this.$nextTick();
+      this.fynOpen = true;
+      this.scrollFyn();
+      this.$nextTick(() => { this.$refs.fynInput?.focus(); });
+    },
+    async openContextualFyn(request) {
+      if (this.contextualCreating) return;
+      this.contextualCreating = true;
+      this.contextualLaunchError = '';
+      try {
+        const conversationId = await this.createContextualConversation(request);
+        if (!conversationId) {
+          this.contextualLaunchError = 'Fyn could not start that conversation. Please try again.';
+          return;
+        }
+        await this.revealLoadedConversation();
+      } catch {
+        this.contextualLaunchError = 'Fyn could not start that conversation. Please try again.';
+      } finally {
+        this.contextualCreating = false;
+      }
+    },
+    async retryLoadedTranscript() {
+      if (this.contextualCreating) return;
+      this.contextualCreating = true;
+      try {
+        await this.retryTranscript();
+      } finally {
+        this.contextualCreating = false;
+      }
+    },
+    // Onboarding verify actions (on-page, in place of the nudge banner). Both
+    // send the verify-confirm answer the chat bubbles would, so the director's
+    // nextFromVerifyNavigate routes the same way: Continue → confirm + advance;
+    // Edit → "No, change something" → the edit flow.
+    verifyContinue() {
+      this.verifyAnswer("Yes, that's right");
+    },
+    verifyEdit() {
+      this.verifyAnswer("No, change something");
+    },
+    // Open Fyn and FULLY resume the EXISTING onboarding conversation (sets
+    // conversationId + loads the transcript) BEFORE sending the answer, so it
+    // continues the same session. Without awaiting the resume, send()'s
+    // ensureConversation() runs while conversationId is still null and starts a
+    // brand-new conversation — the prior transcript would look lost. fynStarted
+    // is set first so initFyn's own resume (now awaited by openFyn) doesn't
+    // double-run; openFyn() is awaited too (same open-race fix as elsewhere)
+    // so the dock is fully open before we resume + send.
+    async verifyAnswer(answer) {
+      this.fynStarted = true;
+      await this.openFyn();
+      if (this.onboardingActive && !this.conversationId) {
+        await this.resumeOnboardingInDock();
+      }
+      this.send(answer);
     },
     reportFynProblem() {
       store.openBugReport(this.conversationId);
@@ -348,7 +413,13 @@ export default {
       // client-side-nav case), so this adds no delay in the common path.
       await this.loadUser();
       if (this.onboardingActive) {
-        this.resumeOnboardingInDock();
+        // Returned (not fire-and-forget) so openFyn()'s caller can await the
+        // full resume stream settling — resumeOnboardingInDock sets
+        // this.sending = true synchronously and only clears it in its own
+        // finally block, so a caller that sends a follow-up right after
+        // opening (verifyAnswer) must wait for this to actually
+        // finish, not just start.
+        return this.resumeOnboardingInDock();
       } else if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }
@@ -358,7 +429,7 @@ export default {
       try {
         const res = await apiGet('/api/auth/user', store.token);
         if (res.ok) store.user = res.data?.data?.user || res.data?.user || res.data?.data || null;
-      } catch (e) { /* non-fatal */ }
+      } catch { /* non-fatal */ }
     },
   },
   mounted() {
@@ -372,7 +443,7 @@ export default {
 /* Page-title gradient hero band (module pages). The chrome reuses dashboard.css
    for all md-* classes; this only adds the page-title treatment. */
 .md-page-hero { text-align: left; }
-.md-page-hero__title { font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0; line-height: 1.15; }
+.md-page-hero__title { @apply text-white; font-size: 1.6rem; font-weight: 900; margin: 0; line-height: 1.15; }
 .md-page-hero__sub { font-size: 0.875rem; color: rgba(255, 255, 255, 0.82); margin: 0.375rem 0 0; line-height: 1.4; }
 
 /* Action row under the header — Back (left) + Edit details. */
@@ -419,4 +490,12 @@ export default {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .md-edit-details:hover { background: var(--light-pink-50); border-color: var(--raspberry-500); }
+.md-edit-details:disabled { cursor: wait; opacity: 0.6; }
+.md-contextual-error {
+  align-self: stretch;
+  margin: 0.5rem 0 0;
+  color: var(--raspberry-600);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
 </style>

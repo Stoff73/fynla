@@ -2,7 +2,7 @@
 procedure_id: 'campaign.tool.capture_salary_sacrifice'
 kind: tool_schema
 module: campaign
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -10,13 +10,13 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "capture_salary_sacrifice",
-    "description": "Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
+    "description": "Set salary_sacrifice flag on a specific pot-of-money pension owned by the user, with an optional employer National Insurance rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
     "parameters": {
         "type": "object",
         "properties": {
             "pension_id": {
                 "type": "integer",
-                "description": "ID of the dc_pension row to update."
+                "description": "ID of the dc_pension row to update. Omit when you do not have a real id from this conversation — the system then resolves the user's pension. NEVER send 0 or an invented id."
             },
             "salary_sacrifice": {
                 "type": "boolean",
@@ -28,7 +28,6 @@ effective_from: 2026-06-02
             }
         },
         "required": [
-            "pension_id",
             "salary_sacrifice"
         ],
         "additionalProperties": false

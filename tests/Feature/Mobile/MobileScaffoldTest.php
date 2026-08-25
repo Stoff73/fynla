@@ -107,9 +107,19 @@ it('preserves a campaign deep-link path through /m for phones', function () {
     get('/biggerpension', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fbiggerpension');
 });
 
+it('preserves the pensioncheck deep-link path through /m for phones', function () {
+    get('/pensioncheck', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fpensioncheck');
+    get('/pensioncheck/plan', ['User-Agent' => PHONE_UA])->assertRedirect('/m?to=%2Fpensioncheck%2Fplan');
+    expect(RedirectPhoneToMobile::isFramableTo('/pensioncheck'))->toBeTrue()
+        ->and(RedirectPhoneToMobile::isFramableTo('/pensioncheck/plan'))->toBeTrue()
+        ->and(RedirectPhoneToMobile::isFramableTo('/pensioncheckevil'))->toBeFalse();
+});
+
 it('preserves a campaign query string in the ?to= param', function () {
     get('/savetax?utm_source=ad', ['User-Agent' => PHONE_UA])
         ->assertRedirect('/m?to=%2Fsavetax%3Futm_source%3Dad');
+    get('/pensioncheck?utm_source=ad', ['User-Agent' => PHONE_UA])
+        ->assertRedirect('/m?to=%2Fpensioncheck%3Futm_source%3Dad');
 });
 
 it('does not preserve non-campaign paths (plain /m)', function () {

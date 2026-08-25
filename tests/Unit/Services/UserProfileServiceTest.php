@@ -8,6 +8,8 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
+use App\Services\Estate\WillAnalysisService;
+use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
@@ -71,8 +73,8 @@ beforeEach(function () {
         ]);
 
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
-    $childBenefitService = new ChildBenefitService($mockTaxConfig, new IncomeDefinitionsService($mockTaxConfig, app(PropertyStore::class)));
-    $this->service = new UserProfileService($aggregator, $taxCalculator, $childBenefitService, app(PropertyStore::class), app(MortgageStore::class));
+    $childBenefitService = new ChildBenefitService($mockTaxConfig, new IncomeDefinitionsService($mockTaxConfig, app(PropertyService::class)));
+    $this->service = new UserProfileService($aggregator, $taxCalculator, $childBenefitService, app(PropertyStore::class), app(MortgageStore::class), app(IncomeDefinitionsService::class), app(WillAnalysisService::class));
 
     // Create a household
     $this->household = Household::factory()->create();

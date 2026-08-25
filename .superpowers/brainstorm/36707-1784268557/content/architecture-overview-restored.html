@@ -1,0 +1,190 @@
+<style>
+  .architecture {
+    display: grid;
+    gap: 1rem;
+  }
+  .front-door {
+    border: 2px solid var(--accent);
+    background: var(--selected-bg);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+  }
+  .front-door h3,
+  .system h3,
+  .flow h3 {
+    margin-bottom: 0.3rem;
+  }
+  .front-door p,
+  .system p,
+  .flow p {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.84rem;
+  }
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+  .system,
+  .flow {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+  .system .owner,
+  .flow .owner {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    margin-top: 0.7rem;
+  }
+  .connection-label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    padding-top: 0.65rem;
+  }
+  .flow-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+  .migration {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 0.8rem;
+  }
+  .migration-paths {
+    display: grid;
+    gap: 0.45rem;
+  }
+  .migration-path {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  .boundary {
+    border: 1px solid var(--error);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+  }
+  .boundary strong {
+    color: var(--text-primary);
+  }
+  .decision-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 760px) {
+    .source-grid,
+    .flow-grid,
+    .migration,
+    .decision-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<h2>Fynla's integrated knowledge architecture</h2>
+<p class="subtitle">One front door, with each system retaining a clearly defined authoritative role.</p>
+
+<div class="architecture">
+  <div class="front-door">
+    <div class="label">One searchable front door</div>
+    <h3>Notion Business</h3>
+    <p>Company home, product wiki, decision register, roadmap, meeting summaries and permission-aware search across connected systems.</p>
+  </div>
+
+  <div class="connection-label">Notion indexes and cites these authoritative sources. It does not replace their originals.</div>
+
+  <div class="source-grid">
+    <section class="system">
+      <div class="label">Code and technical truth</div>
+      <h3>GitHub organisation</h3>
+      <p>Application code, pull requests, issues, architecture decisions, agent instructions, deployment runbooks and a sanitised knowledge repository.</p>
+      <span class="owner">Primary steward: Chris</span>
+    </section>
+    <section class="system">
+      <div class="label">Business records</div>
+      <h3>Google Shared Drive</h3>
+      <p>Finance, marketing assets, contracts, policies, spreadsheets, presentations, meeting recordings and approved source documents.</p>
+      <span class="owner">Primary stewards: Brett and Azlan</span>
+    </section>
+    <section class="system">
+      <div class="label">Conversation and coordination</div>
+      <h3>Slack Pro</h3>
+      <p>Daily communication, alerts and working discussion. Slack is never the final home of an approved decision.</p>
+      <span class="owner">Stewards: all three founders</span>
+    </section>
+  </div>
+
+  <div class="flow-grid">
+    <section class="flow">
+      <div class="label">Decision flow</div>
+      <h3>Slack discussion to Notion decision</h3>
+      <p>Every material decision records the decision, owner, date, rationale, affected systems and source conversation.</p>
+    </section>
+    <section class="flow">
+      <div class="label">Delivery flow</div>
+      <h3>GitHub merge to current documentation</h3>
+      <p>Pull requests update code-adjacent documentation. The approved summary is surfaced in Notion with links to the exact change.</p>
+    </section>
+    <section class="flow">
+      <div class="label">Meeting flow</div>
+      <h3>Google Meet to Drive to Notion</h3>
+      <p>The recording and transcript remain in Drive; decisions and actions are promoted into the shared Notion workspace.</p>
+    </section>
+  </div>
+
+  <div class="migration">
+    <section class="system">
+      <div class="label">Existing knowledge</div>
+      <h3>Obsidian vault migration</h3>
+      <p>Audit, classify, remove personal or sensitive material, deduplicate and mark authoritative notes before any team-wide import.</p>
+    </section>
+    <section class="system migration-paths">
+      <div class="migration-path"><strong>GitHub:</strong> technical specifications, handovers, architecture and deployment knowledge.</div>
+      <div class="migration-path"><strong>Google Drive:</strong> business files, source documents, presentations and financial material.</div>
+      <div class="migration-path"><strong>Notion:</strong> evergreen wiki pages, current decisions, ownership, roadmaps and navigation.</div>
+      <div class="migration-path"><strong>Archive:</strong> superseded session notes retained read-only with clear archive status.</div>
+    </section>
+  </div>
+
+  <section class="system">
+    <div class="label">Research and agent context</div>
+    <h3>NotebookLM and connected AI agents</h3>
+    <p>NotebookLM analyses selected trusted sources. Agents start from the current GitHub checkout and approved Notion pages, then use Drive and Slack connectors when needed. Answers should cite their source and freshness date.</p>
+  </section>
+
+  <div class="boundary">
+    <strong>Sensitive-data boundary:</strong> client records, personal financial exports, credentials, production secrets and regulated customer information do not enter the shared AI knowledge layer. They remain in approved operational systems or a managed secrets vault.
+  </div>
+</div>
+
+<div class="decision-row options">
+  <div class="option" data-choice="architecture-approved" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Architecture approved</h3>
+      <p>Continue to workspace structure, naming and ownership.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="architecture-change" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Changes needed</h3>
+      <p>Tell me what should move, merge or be removed.</p>
+    </div>
+  </div>
+</div>
+

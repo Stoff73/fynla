@@ -40,7 +40,9 @@ class SecurityHeaders
         // The framing decision varies by Sec-Fetch-Dest, so cacheable public
         // pages (homepage/savetax are public, max-age=300) must not serve a
         // cached DENY into the frame, nor a cached SAMEORIGIN top-level.
-        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        if (! $response->headers->has('Referrer-Policy')) {
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        }
         $existingVary = (string) $response->headers->get('Vary');
         $response->headers->set(
             'Vary',
@@ -74,8 +76,8 @@ class SecurityHeaders
         // Capacitor mobile app origins
         $capacitor = 'capacitor://localhost http://localhost';
 
-        // In local dev, Vite serves assets from localhost:5173 and uses WebSocket for HMR
-        if (app()->environment('local')) {
+        // In local and E2E, Vite serves assets from localhost:5173 and uses WebSocket for HMR.
+        if (app()->environment(['local', 'e2e'])) {
             $vite = 'http://localhost:5173 ws://localhost:5173 http://127.0.0.1:5173 ws://127.0.0.1:5173 http://localhost:5174 ws://localhost:5174 http://127.0.0.1:5174 ws://127.0.0.1:5174';
             $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite} {$revolut} {$plausible} {$ga} {$awin} {$metaPixel}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite} {$revolut} {$ga} {$awin} {$metaPixel}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite} {$revolut} {$plausible} {$capacitor} {$ga} {$awin} {$metaPixel}; frame-src 'self' {$revolut}";
         } else {

@@ -39,6 +39,19 @@ describe('SavingsAccountNormaliser::fromForm', function () {
         expect($canonical['country'])->toBe('United Kingdom'); // default for non-ISA
     });
 
+    it('normalises legacy hyphenated ISA tax years before persistence', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromForm([
+            'account_name' => 'Legacy client Cash ISA',
+            'account_type' => 'cash_isa',
+            'current_balance' => 8000,
+            'is_isa' => true,
+            'isa_subscription_year' => '2024-25',
+            'isa_subscription_amount' => 8000,
+        ]);
+
+        expect($canonical['isa_subscription_year'])->toBe('2024/25');
+    });
+
     it('resets ownership_percentage and clears joint_owner_id when switching to individual ownership', function () {
         // Re-submit pattern: edit form flips joint → individual but still carries the
         // joint_owner_id and a 50% ownership_percentage from the previous state.
@@ -87,6 +100,23 @@ describe('SavingsAccountNormaliser::fromFyn', function () {
 
         expect($normaliser->fromFyn(['account_name' => 'X', 'account_type' => 'regular_saver', 'current_balance' => 100])['account_type'])
             ->toBe('easy_access');
+    });
+
+    it('defaults an untyped account to current_account, not a savings type', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromFyn([
+            'account_name' => 'Barclays', 'current_balance' => 5000,
+        ]);
+
+        expect($canonical['account_type'])->toBe('current_account')
+            ->and($canonical['access_type'])->toBe('immediate');
+    });
+
+    it('keeps an explicit savings type when the user stipulates one', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromFyn([
+            'account_name' => 'Marcus', 'account_type' => 'easy_access', 'current_balance' => 5000,
+        ]);
+
+        expect($canonical['account_type'])->toBe('easy_access');
     });
 
     it('infers cash_isa when is_isa is true and account_type is not an ISA variant', function () {

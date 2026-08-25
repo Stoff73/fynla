@@ -280,7 +280,7 @@ it('OnboardingChatDirector records nothing when the corpus has no active workflo
     $conv = AiConversation::factory()->create(['user_id' => $user->id]);
 
     $director = app(OnboardingChatDirector::class);
-    iterator_to_array($director->handleUserMessage($user, $conv, 'Start from scratch'));
+    iterator_to_array($director->handleUserMessage($user, $conv, 'Follow a journey'));
 
     expect(app(ProceduralVersionHolder::class)->all())->toBe([]);
 
@@ -315,7 +315,7 @@ it('OnboardingChatDirector records the active workflow procedure when the corpus
     $conv = AiConversation::factory()->create(['user_id' => $user->id]);
 
     $director = app(OnboardingChatDirector::class);
-    iterator_to_array($director->handleUserMessage($user, $conv, 'Start from scratch'));
+    iterator_to_array($director->handleUserMessage($user, $conv, 'Follow a journey'));
 
     expect(app(ProceduralVersionHolder::class)->all())
         ->toContain('onboarding.workflow.fyn-onboarding@7');

@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_mortgage",
-    "description": "Create a standalone mortgage linked to an existing property. Use this when the user mentions a mortgage separately from a property, or wants to add a mortgage to an existing property. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages.",
+    "description": "Create a standalone mortgage linked to an existing property. Use this when the user mentions a mortgage separately from a property, or wants to add a mortgage to an existing property. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

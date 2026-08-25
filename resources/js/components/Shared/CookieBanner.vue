@@ -82,13 +82,16 @@ export default {
       visible.value = getConsentStatus() === null;
     });
 
-    const handleAccept = () => {
-      acceptCookies();
+    // Both record the decision server-side before the banner closes, so the
+    // consent cookie the tracking middleware reads is in place by the time the
+    // visitor carries on.
+    const handleAccept = async () => {
+      await acceptCookies();
       visible.value = false;
     };
 
-    const handleDecline = () => {
-      declineCookies();
+    const handleDecline = async () => {
+      await declineCookies();
       visible.value = false;
     };
 

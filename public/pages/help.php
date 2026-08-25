@@ -562,7 +562,7 @@
       'heading' => 'Ready to get started?',
       'subtext' => 'Create your free account and see your complete financial picture.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Contact support',       'href' => '/contact',  'primary' => false],
       ],
     ];

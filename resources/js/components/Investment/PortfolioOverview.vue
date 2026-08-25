@@ -42,15 +42,20 @@
             <p class="account-type">{{ account.account_name }}</p>
 
             <div class="account-details">
-              <!-- Joint account: DB stores FULL value, calculate user's share -->
-              <div v-if="account.ownership_type === 'joint'">
+              <!-- Joint account: DB stores the FULL value; the viewer's share
+                   comes from the ONE ownership helper (W-0015). -->
+              <div v-if="isSharedRecord(account)">
                 <div class="detail-row">
                   <span class="detail-label">Full Value</span>
                   <span class="detail-value">{{ formatCurrency(account.current_value) }}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                  <span class="detail-value text-violet-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
+                  <span class="detail-label">Your Share ({{ formatSharePercent(account) }})</span>
+                  <span class="detail-value text-violet-600">{{ formatCurrency(userShareOf(account)) }}</span>
+                </div>
+                <div v-if="coOwnerOf(account)" class="detail-row">
+                  <span class="detail-label">Held with</span>
+                  <span class="detail-value">{{ coOwnerOf(account) }}</span>
                 </div>
               </div>
 
@@ -180,6 +185,7 @@ import AssetAllocationChart from './AssetAllocationChart.vue';
 import GeographicAllocationMap from './GeographicAllocationMap.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
 
 export default {
   name: 'PortfolioOverview',
@@ -274,6 +280,21 @@ export default {
   },
 
   methods: {
+    // Ownership display via resources/js/utils/ownership.js — the ONE home (W-0015).
+    isSharedRecord,
+
+    userShareOf(account) {
+      return calculateUserShare(account, { valueField: 'current_value' });
+    },
+
+    formatSharePercent(account) {
+      return `${userSharePercent(account).toFixed(2)}%`;
+    },
+
+    coOwnerOf(account) {
+      return coOwnerName(account);
+    },
+
     formatReturn(value) {
       if (!value && value !== 0) return 'N/A';
       const sign = value >= 0 ? '+' : '';

@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection">
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="your protection" :contextual-request="contextualRequest">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your protection position…</p>
     </div>
@@ -27,16 +27,48 @@
           No shortfalls identified against your debts and income. Your cover looks well-matched to your needs.
         </p>
         <div v-else>
-          <div v-for="gap in openGaps" :key="gap.key" class="mp-gap">
+          <button
+            v-for="gap in openGaps"
+            :key="gap.key"
+            type="button"
+            class="mp-gap"
+            :data-test="`protection-gap-${gap.key}`"
+            :aria-expanded="expandedGap === gap.key"
+            @click="toggleGap(gap.key)"
+          >
             <div class="mp-gap__head">
               <span class="mp-gap__label">{{ gap.label }}</span>
               <span class="mp-gap__tag" :class="`mp-gap__tag--${gap.severity}`">{{ gap.severityLabel }}</span>
             </div>
             <div class="mp-gap__foot">
               <span class="mp-gap__shortfall">{{ fmt(gap.shortfall) }}{{ gap.perYear ? ' a year' : '' }} short</span>
-              <span class="mp-gap__detail">{{ fmt(gap.have) }} of {{ fmt(gap.need) }}{{ gap.perYear ? ' p.a.' : '' }}</span>
+              <span class="mp-gap__detail">{{ fmt(gap.cover) }} of {{ fmt(gap.need) }}{{ gap.perYear ? ' p.a.' : '' }}</span>
             </div>
-          </div>
+            <div v-if="expandedGap === gap.key" class="mp-gap__explanation">
+              <p>{{ gap.explanation }}</p>
+              <p v-if="coverageGaps?.calculated_at" class="mp-gap__calculated">
+                Calculated {{ displayDate(coverageGaps.calculated_at) }} from your recorded information
+              </p>
+              <dl v-if="Object.keys(gap.inputs || {}).length" class="mp-gap__list">
+                <template v-for="(value, key) in gap.inputs" :key="key">
+                  <dt>{{ fieldLabel(key) }}</dt>
+                  <dd>{{ displayInput(value, key) }}</dd>
+                </template>
+              </dl>
+              <div v-if="gap.assumptions?.length" class="mp-gap__assumptions">
+                <p class="mp-gap__subhead">Assumptions</p>
+                <p v-for="assumption in gap.assumptions" :key="assumption.key">
+                  {{ fieldLabel(assumption.key) }}: {{ displayAssumption(assumption) }}
+                </p>
+              </div>
+              <div v-if="gap.relevant_policies?.length" class="mp-gap__policies">
+                <p class="mp-gap__subhead">Cover used in this calculation</p>
+                <p v-for="policy in gap.relevant_policies" :key="`${policy.type}-${policy.id}`">
+                  {{ policy.provider || policy.name || 'Recorded policy' }} · {{ fmt(policy.cover) }}
+                </p>
+              </div>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -57,6 +89,7 @@
             <div class="mp-policy__main">
               <span class="mp-policy__provider">{{ p.provider || 'Unknown provider' }}</span>
               <span class="mp-policy__type">{{ p.typeLabel }}</span>
+              <span v-if="p.sharedNote" class="mp-policy__type">{{ p.sharedNote }}</span>
             </div>
             <div class="mp-policy__right">
               <span class="mp-policy__cover">{{ p.coverDisplay }}</span>
@@ -72,7 +105,9 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -87,21 +122,22 @@ const TYPE_LABELS = {
   sicknessIllness: 'Sickness/Illness',
 };
 
-// Annualise a benefit given its frequency.
-function annualise(amount, frequency) {
-  const v = parseFloat(amount || 0);
-  if (frequency === 'weekly') return v * 52;
-  if (frequency === 'annually' || frequency === 'annual' || frequency === 'yearly') return v;
-  // monthly is the default for benefit amounts
-  return v * 12;
-}
-
 export default {
   name: 'MobileProtection',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', payload: null }),
+  data: () => ({ loading: true, error: '', payload: null, expandedGap: null }),
   computed: {
     profile() { return this.payload?.profile || {}; },
+    coverageGaps() { return this.payload?.coverage_gaps || null; },
+
+    contextualRequest() {
+      return buildContextualConversationRequest({
+        action: 'add',
+        resourceType: 'protection',
+        currentDestination: { screen: 'protection', params: {}, fallback: 'dashboard' },
+        origin: { kind: 'surface_action' },
+      });
+    },
 
     // Flatten the index payload's grouped policies into a single tappable list.
     policies() {
@@ -124,6 +160,14 @@ export default {
             premiumDisplay: raw.premium_amount
               ? `${formatCurrency(raw.premium_amount)} / ${this.shortFrequency(raw.premium_frequency)}`
               : 'No premium recorded',
+            // A joint-life policy covers both spouses and is recorded once, on the
+            // account that entered it. Name the other life assured, and say whose
+            // record it is when it is not this one's (W-0186).
+            sharedNote: raw.joint_life
+              ? (raw.is_own_policy === false
+                ? `Joint life with ${raw.joint_life_with || 'your spouse'} — recorded on their account`
+                : `Joint life with ${raw.joint_life_with || 'your spouse'}`)
+              : null,
           });
         });
       };
@@ -133,84 +177,31 @@ export default {
       push(groups.income_protection, 'incomeProtection');
       push(groups.disability, 'disability');
       push(groups.sickness_illness, 'sicknessIllness');
-      // Highest cover first.
-      return out.sort((a, b) => {
-        const av = a.isLumpSum ? parseFloat(a.sum_assured || 0) : annualise(a.benefit_amount, a.benefit_frequency);
-        const bv = b.isLumpSum ? parseFloat(b.sum_assured || 0) : annualise(b.benefit_amount, b.benefit_frequency);
-        return bv - av;
-      });
+      return out;
     },
 
     totalPolicyCount() { return this.policies.length; },
 
-    // Lump-sum cover = life + critical illness sum assured.
     totalLumpSumCover() {
-      return this.policies
-        .filter((p) => p.isLumpSum)
-        .reduce((sum, p) => sum + parseFloat(p.sum_assured || 0), 0);
+      return Number(this.coverageGaps?.totals?.cover || 0);
     },
 
-    // Annualised income-replacement style cover (income protection + sickness + disability).
     annualIncomeCover() {
-      return this.policies
-        .filter((p) => !p.isLumpSum)
-        .reduce((sum, p) => sum + annualise(p.benefit_amount, p.benefit_frequency), 0);
+      const category = (this.coverageGaps?.categories || []).find((gap) => gap.key === 'income_protection');
+      return Number(category?.cover || 0);
     },
 
-    annualIncome() { return parseFloat(this.profile.annual_income || 0); },
-    totalDebt() {
-      return parseFloat(this.profile.mortgage_balance || 0) + parseFloat(this.profile.other_debts || 0);
-    },
-
-    lifeCover() {
-      return this.policies
-        .filter((p) => p.policyType === 'life')
-        .reduce((sum, p) => sum + parseFloat(p.sum_assured || 0), 0);
-    },
-    criticalIllnessCover() {
-      return this.policies
-        .filter((p) => p.policyType === 'criticalIllness')
-        .reduce((sum, p) => sum + parseFloat(p.sum_assured || 0), 0);
-    },
-    incomeProtectionCover() {
-      return this.policies
-        .filter((p) => p.policyType === 'incomeProtection')
-        .reduce((sum, p) => sum + annualise(p.benefit_amount, p.benefit_frequency), 0);
-    },
-
-    // Mirrors the web overview's gap targets: debt fully covered, income 75%,
-    // critical illness 2x income, income-protection target 50% of income.
     gaps() {
-      const list = [
-        {
-          key: 'debt',
-          label: 'Debt protection',
-          have: this.lifeCover,
-          need: this.totalDebt,
-          shortfall: Math.max(0, this.totalDebt - this.lifeCover),
-          perYear: false,
-        },
-        {
-          key: 'income',
-          label: 'Income replacement',
-          have: this.incomeProtectionCover,
-          need: this.annualIncome * 0.75,
-          shortfall: Math.max(0, this.annualIncome * 0.75 - this.incomeProtectionCover),
-          perYear: true,
-        },
-        {
-          key: 'ci',
-          label: 'Critical illness',
-          have: this.criticalIllnessCover,
-          need: this.annualIncome * 2,
-          shortfall: Math.max(0, this.annualIncome * 2 - this.criticalIllnessCover),
-          perYear: false,
-        },
-      ];
-      return list.map((g) => ({ ...g, ...this.severity(g.shortfall) }));
+      return (this.coverageGaps?.categories || []).map((gap) => ({
+        ...gap,
+        perYear: gap.key === 'income_protection',
+        severityLabel: gap.status === 'covered'
+          ? 'Covered'
+          : String(gap.severity || 'gap').replace(/\b\w/g, (char) => char.toUpperCase()),
+      }));
     },
 
-    openGaps() { return this.gaps.filter((g) => g.shortfall > 0 && g.need > 0); },
+    openGaps() { return this.gaps.filter((gap) => gap.status === 'gap' && Number(gap.shortfall) > 0); },
   },
   async created() { await this.load(); },
   methods: {
@@ -219,11 +210,32 @@ export default {
       const map = { monthly: 'mo', weekly: 'wk', quarterly: 'qtr', annually: 'yr', annual: 'yr', yearly: 'yr' };
       return map[freq] || (freq || 'mo');
     },
-    severity(shortfall) {
-      if (shortfall <= 0) return { severity: 'none', severityLabel: 'Covered' };
-      if (shortfall < 50000) return { severity: 'violet', severityLabel: 'Low' };
-      if (shortfall < 150000) return { severity: 'violet', severityLabel: 'Medium' };
-      return { severity: 'raspberry', severityLabel: 'High' };
+    toggleGap(key) { this.expandedGap = this.expandedGap === key ? null : key; },
+    fieldLabel(value) {
+      return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    },
+    displayInput(value, key) {
+      if (Array.isArray(value)) return value.length ? value.join(', ') : 'None recorded';
+      if (key === 'number_of_dependants') return String(value);
+      if (typeof value === 'number') return this.fmt(value);
+      if (value && typeof value === 'object') {
+        return Object.entries(value)
+          .map(([itemKey, item]) => `${this.fieldLabel(itemKey)}: ${typeof item === 'number' ? this.fmt(item) : item}`)
+          .join(', ');
+      }
+      return value ?? 'Not recorded';
+    },
+    displayDate(value) {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime())
+        ? value
+        : parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    },
+    displayAssumption(assumption) {
+      if (assumption.unit === 'GBP') return this.fmt(assumption.value);
+      if (assumption.unit === 'percent') return `${assumption.value}%`;
+      if (assumption.unit === 'years') return `${assumption.value} years`;
+      return assumption.value;
     },
     openPolicy(p) {
       this.$router.push(`/protection/policy/${p.policyType}/${p.id}`);
@@ -234,10 +246,11 @@ export default {
       this.error = '';
       this.payload = null;
       try {
-        const { ok, data } = await apiGet('/api/protection', store.token);
+        const { ok, status, data } = await apiGet('/api/protection', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load your protection cover.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
@@ -248,7 +261,7 @@ export default {
 </script>
 
 <style scoped>
-.mp-gap { padding: 12px 0; border-bottom: 1px solid var(--horizon-100); }
+.mp-gap { display: block; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--horizon-100); background: transparent; text-align: left; cursor: pointer; }
 .mp-gap:first-of-type { padding-top: 4px; }
 .mp-gap:last-of-type { border-bottom: 0; padding-bottom: 0; }
 .mp-gap__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
@@ -256,9 +269,20 @@ export default {
 .mp-gap__tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: var(--radius-sm); }
 .mp-gap__tag--violet { color: var(--violet-500); background: var(--light-blue-100); }
 .mp-gap__tag--raspberry { color: var(--white); background: var(--raspberry-500); }
+.mp-gap__tag--low { color: var(--spring-600); background: color-mix(in srgb, var(--spring-500) 12%, var(--white)); }
+.mp-gap__tag--medium { color: var(--violet-500); background: var(--light-blue-100); }
+.mp-gap__tag--high { color: var(--white); background: var(--raspberry-500); }
 .mp-gap__foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .mp-gap__shortfall { font-size: 13px; font-weight: 700; color: var(--raspberry-500); }
 .mp-gap__detail { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
+.mp-gap__explanation { margin-top: 12px; padding: 10px; border-radius: var(--radius-sm); background: var(--horizon-50); color: var(--horizon-500); font-size: 12px; line-height: 1.5; }
+.mp-gap__explanation p { margin: 0 0 7px; }
+.mp-gap__explanation p:last-child { margin-bottom: 0; }
+.mp-gap__calculated { color: var(--neutral-500); font-size: 11px; }
+.mp-gap__list { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; margin: 8px 0; }
+.mp-gap__list dt { color: var(--neutral-500); }
+.mp-gap__list dd { margin: 0; font-weight: 700; text-align: right; }
+.mp-gap__subhead { font-weight: 700; color: var(--horizon-500); }
 
 .mp-policy { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--horizon-100); padding: 14px 0; cursor: pointer; }
 .mp-policy:first-of-type { padding-top: 4px; }

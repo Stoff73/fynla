@@ -3,7 +3,7 @@ procedure_id: 'estate.tool.update_power_of_attorney'
 kind: tool_schema
 module: estate
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -11,13 +11,13 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "update_power_of_attorney",
-    "description": "Update an existing LPA record — status change, OPG reference, attorney amendments.",
+    "description": "Update an existing Lasting Power of Attorney record — status change, OPG reference, attorney amendments.",
     "parameters": {
         "type": "object",
         "properties": {
             "lpa_id": {
                 "type": "integer",
-                "description": "ID of the LPA."
+                "description": "ID of the Lasting Power of Attorney."
             },
             "status": {
                 "type": [

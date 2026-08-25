@@ -9,6 +9,28 @@ import aiChatService from '@/services/aiChatService';
 import { stripTags } from '@/utils/stripTags';
 
 import logger from '@/utils/logger';
+/**
+ * One message shape for every entity write event, used by both stream paths.
+ *
+ * The two paths (fresh stream and resumed stream) each carried their own copy
+ * of this, which is how a fix reaches one and not the other. The `route` comes
+ * from the server (GateRoutes) so no client keeps its own route table.
+ */
+function entityWriteMessage(event) {
+    return {
+        id: 'entity_' + Date.now(),
+        role: event.type,
+        content: event.name || '',
+        metadata: {
+            entity_type: event.entity_type,
+            entity_id: event.entity_id,
+            route: event.route || null,
+            label: event.label || null,
+        },
+        created_at: new Date().toISOString(),
+    };
+}
+
 const state = {
     isOpen: false,
     conversations: [],
@@ -227,6 +249,35 @@ const mutations = {
     },
 };
 
+function addPresentationAction(commit, state, event) {
+    if (event.action !== 'subscription_options') return;
+
+    if (state.streamingText) {
+        commit('ADD_MESSAGE', {
+            id: 'action_text_' + Date.now(),
+            role: 'assistant',
+            content: state.streamingText,
+            created_at: new Date().toISOString(),
+        });
+        commit('SET_STREAMING_TEXT', '');
+    }
+
+    commit('ADD_MESSAGE', {
+        id: 'action_' + Date.now(),
+        role: 'action',
+        content: '',
+        metadata: {
+            action: event.action,
+            reason: event.reason,
+            entity_key: event.entity_key,
+            current_count: event.current_count,
+            limit: event.limit,
+            tier: event.tier,
+        },
+        created_at: new Date().toISOString(),
+    });
+}
+
 const actions = {
     /**
      * Toggle the chat panel open/closed.
@@ -338,6 +389,7 @@ const actions = {
                 const bubbles = m?.metadata?.bubbles;
                 const skipLink = m?.metadata?.skip_link || null;
                 const actionBubbles = Boolean(m?.metadata?.action_bubbles);
+                const presentationActions = Array.isArray(m?.metadata?.actions) ? m.metadata.actions : [];
                 const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
 
                 if (m.role === 'assistant' && hasBubbles) {
@@ -355,6 +407,16 @@ const actions = {
                 } else {
                     normalised.push(m);
                 }
+
+                presentationActions
+                    .filter(action => action?.action === 'subscription_options')
+                    .forEach((action, index) => normalised.push({
+                        id: `action_${m.id}_${index}`,
+                        role: 'action',
+                        content: '',
+                        metadata: action,
+                        created_at: m.created_at,
+                    }));
             }
             commit('SET_MESSAGES', normalised);
         } catch (error) {
@@ -400,6 +462,10 @@ const actions = {
         // FR-M7 — tracks whether this turn streamed to completion (vs was queued
         // or errored) so the finally only pops the next queued turn on success.
         let streamedToCompletion = false;
+        // A 401/419 mid-stream means aiChatService already redirected to login
+        // (see api.js handleAuthExpiry) — skip the error banner and the
+        // empty-response fallback below so they don't flash behind the redirect.
+        let authExpired = false;
 
         commit('SET_STREAMING', true);
         commit('SET_STREAMING_TEXT', '');
@@ -483,16 +549,24 @@ const actions = {
                                 break;
 
                             case 'navigation':
-                                commit('ADD_MESSAGE', {
-                                    id: 'nav_' + Date.now(),
-                                    role: 'navigation',
-                                    content: event.description || '',
-                                    metadata: {
-                                        route_path: event.route_path,
-                                        description: event.description,
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
+                                // Only render a visible navigation bubble when the
+                                // event carries a human description (advice-mode
+                                // "taking you to X"). Onboarding navigation sends an
+                                // empty description — it's an action, not a message —
+                                // so it must not render a bubble; rendering it
+                                // previously leaked the internal state id as chat text.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: {
+                                            route_path: event.route_path,
+                                            description: event.description,
+                                        },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
 
@@ -511,16 +585,13 @@ const actions = {
                                 break;
 
                             case 'entity_created':
-                                commit('ADD_MESSAGE', {
-                                    id: 'entity_' + Date.now(),
-                                    role: 'entity_created',
-                                    content: event.name || '',
-                                    metadata: {
-                                        entity_type: event.entity_type,
-                                        entity_id: event.entity_id,
-                                    },
-                                    created_at: new Date().toISOString(),
-                                });
+                            case 'entity_updated':
+                            case 'entity_deleted':
+                                commit('ADD_MESSAGE', entityWriteMessage(event));
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'quick_replies':
@@ -554,8 +625,21 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
-                                // Informational — the director transitioned from one
-                                // state to another. No UI change yet; logged for debug.
+                                // The director split a multi-part prompt (e.g. the
+                                // funnel recap → the income question) with this marker.
+                                // Flush the current streaming text into its own bubble
+                                // so the next part starts fresh — matching the /m dock
+                                // and the resume render, where the DB rows are separate
+                                // messages. Without this the parts merge into one bubble.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
@@ -582,6 +666,15 @@ const actions = {
                                 // Phase 13 — orchestrator fires this after data-capture
                                 // Fyn emits capture_complete. Records are added to the
                                 // message stream as a record-card bubble for the UI.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'capture_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 commit('ADD_MESSAGE', {
                                     id: 'capture_' + Date.now(),
                                     role: 'capture_complete',
@@ -677,7 +770,15 @@ const actions = {
                                 // privacy policy. If consent has been withdrawn
                                 // (e.g. by support action or a GDPR request),
                                 // the user has to contact support to restore it.
-                                commit('SET_ERROR', 'AI chat consent has been withdrawn. Contact Fynla support to restore your AI features.');
+                                commit('SET_ERROR', 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.');
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
                                 break;
 
                             case 'error':
@@ -717,6 +818,12 @@ const actions = {
             if (error.name === 'AbortError') {
                 return;
             }
+            // aiChatService already redirected to login (handleAuthExpiry) —
+            // don't overwrite that with an error banner.
+            if (error.authExpired) {
+                authExpired = true;
+                return;
+            }
             logger.error('Chat streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
@@ -734,7 +841,8 @@ const actions = {
             // (BS-13 RED until session 89).
             const producedNewMessages = state.messages.length > preStreamMessageCount;
             if (
-                state.streaming
+                !authExpired
+                && state.streaming
                 && !state.streamingText
                 && !producedNewMessages
                 && !state.error
@@ -826,21 +934,46 @@ const actions = {
                                 });
                                 break;
                             case 'navigation':
-                                commit('ADD_MESSAGE', {
-                                    id: 'nav_' + Date.now(),
-                                    role: 'navigation',
-                                    content: event.description || '',
-                                    metadata: { route_path: event.route_path, description: event.description },
-                                    created_at: new Date().toISOString(),
-                                });
+                                // See the streaming handler above — only advice-mode
+                                // navigation (non-empty description) renders a bubble;
+                                // onboarding navigation is action-only and must not
+                                // leak its state id as chat text.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: { route_path: event.route_path, description: event.description },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
                             case 'entity_created':
+                            case 'entity_updated':
+                            case 'entity_deleted':
+                                commit('ADD_MESSAGE', entityWriteMessage(event));
+                                break;
+                            case 'action':
+                                addPresentationAction(commit, state, event);
+                                break;
+                            case 'capture_complete':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'capture_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 commit('ADD_MESSAGE', {
-                                    id: 'entity_' + Date.now(),
-                                    role: 'entity_created',
-                                    content: event.name || '',
-                                    metadata: { entity_type: event.entity_type, entity_id: event.entity_id },
+                                    id: 'capture_' + Date.now(),
+                                    role: 'capture_complete',
+                                    content: event.summary || '',
+                                    metadata: {
+                                        records_created: event.records_created || [],
+                                    },
                                     created_at: new Date().toISOString(),
                                 });
                                 break;
@@ -863,6 +996,14 @@ const actions = {
                                 commit('SET_CONSENT_REQUIRED', true);
                                 commit('SET_STREAMING', false);
                                 break;
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
+                                break;
+
                             case 'error':
                                 commit('SET_ERROR', event.message);
                                 break;
@@ -892,6 +1033,9 @@ const actions = {
             streamedToCompletion = true;
         } catch (error) {
             if (error.name === 'AbortError') return;
+            // aiChatService already redirected to login (handleAuthExpiry) —
+            // don't overwrite that with an error banner.
+            if (error.authExpired) return;
             logger.error('Queued-turn streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
@@ -988,10 +1132,13 @@ const actions = {
                 { signal: abortController.signal },
             );
         } catch (error) {
-            logger.error('[chat] postAction failed', error);
-            commit('SET_ERROR', 'Could not complete that action. Please try again.');
             commit('SET_STREAMING', false);
             commit('SET_ABORT_CONTROLLER', null);
+            // aiChatService already redirected to login (handleAuthExpiry) —
+            // don't overwrite that with an error banner.
+            if (error.authExpired) return;
+            logger.error('[chat] postAction failed', error);
+            commit('SET_ERROR', 'Could not complete that action. Please try again.');
             return;
         }
 
@@ -1051,6 +1198,17 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
+                                // See sendMessage handler — flush the streaming text so
+                                // a split multi-part prompt renders as separate bubbles.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
@@ -1067,6 +1225,41 @@ const actions = {
 
                             case 'skip_link':
                                 commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'navigation':
+                                // Mirrors the sendMessage handler: a resumed
+                                // Continue re-emits campaign_verify_navigate,
+                                // whose navigation event was silently dropped
+                                // here — the chat said "Here's your income
+                                // page" while the route never changed (live
+                                // 2026-07-23). Onboarding navigation carries an
+                                // empty description, so no bubble is rendered.
+                                if (event.description) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'nav_' + Date.now(),
+                                        role: 'navigation',
+                                        content: event.description,
+                                        metadata: {
+                                            route_path: event.route_path,
+                                            description: event.description,
+                                        },
+                                        created_at: new Date().toISOString(),
+                                    });
+                                }
+                                commit('SET_PENDING_NAVIGATION', event.route_path);
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'done':
@@ -1152,7 +1345,7 @@ const actions = {
      * conversation. If onboarding is already complete or the feature flag
      * is off, falls back to a normal startNewConversation.
      */
-    async startOnboardingConversation({ commit, dispatch, state, rootState }, payload = {}) {
+    async startOnboardingConversation({ commit, dispatch, state }, payload = {}) {
         // Forward the optional `from` entry-source identifier so the
         // onboarding director can pre-select the campaign / journey via
         // config('onboarding.campaign_map') / journey_map.
@@ -1206,11 +1399,16 @@ const actions = {
                 from: fromParam,
             });
         } catch (error) {
+            commit('SET_STREAMING', false);
+            commit('SET_LOADING', false);
+            // aiChatService already redirected to login (handleAuthExpiry) — a
+            // fallback to startNewConversation here would silently abandon
+            // onboarding behind the redirect instead of letting the user
+            // re-authenticate and resume where they left off.
+            if (error.authExpired) return;
             // 503 disabled / 409 already_completed / 403 preview_mode — fall back
             // to a normal empty chat so the user can still talk to Fyn.
             logger.warn('[onboarding] /start failed, falling back to normal chat', error);
-            commit('SET_STREAMING', false);
-            commit('SET_LOADING', false);
             await dispatch('startNewConversation');
             return;
         }
@@ -1286,7 +1484,30 @@ const actions = {
                                 break;
 
                             case 'onboarding_advance':
+                                // See sendMessage handler — flush the streaming text so
+                                // a split multi-part prompt renders as separate bubbles.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'adv_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'level_up':
+                                dispatch('gamification/queueCelebration', {
+                                    level: event.level,
+                                    level_name: event.level_name,
+                                    next_actions: event.next_actions || [],
+                                }, { root: true });
+                                break;
+
+                            case 'action':
+                                addPresentationAction(commit, state, event);
                                 break;
 
                             case 'done':

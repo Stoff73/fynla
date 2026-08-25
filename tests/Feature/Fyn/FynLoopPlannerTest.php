@@ -22,7 +22,7 @@ use Tests\Support\Fyn\FynStreamHarness;
  * the live dispatch path without a network call.
  */
 beforeEach(function () {
-    TierConfiguration::create(tierConfigFixture('free'));
+    TierConfiguration::updateOrCreate(['tier' => 'free'], tierConfigFixture('free'));
     TaxConfiguration::factory()->create(['is_active' => true]);
     app()->forgetInstance(TaxConfigService::class);
 });

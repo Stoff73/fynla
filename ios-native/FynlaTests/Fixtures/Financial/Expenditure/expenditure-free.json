@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "expenditure": {
+      "monthly_expenditure": 1800,
+      "annual_expenditure": 21600,
+      "presentation": {"entry_mode":"summary","entry_mode_label":"Monthly summary","active_monthly_total":1800,"active_annual_total":21600,"manual_monthly_total":1800,"commitments_monthly_total":0,"total_basis":"Monthly summary plus financial commitments","detail_available":false,"reconciles":true,"summary_only_reason":"Only a monthly summary has been entered. Add category details to improve your insights."}
+    }
+  }
+}

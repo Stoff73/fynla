@@ -51,6 +51,55 @@ export async function apiGet(path, token) {
   return { ok: res.ok, status: res.status, data };
 }
 
+export async function apiPut(path, body, token = null) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PUT',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+export async function apiDelete(path, token = null) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'DELETE',
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+export async function apiDownload(path, token) {
+  const res = await fetch(`${BASE}${path}`, {
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/pdf',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, status: res.status, data };
+  }
+
+  return {
+    ok: true,
+    status: res.status,
+    blob: await res.blob(),
+    disposition: res.headers.get('content-disposition') || '',
+  };
+}
+
 /**
  * POST and consume a Server-Sent-Events (SSE) response. The Fyn chat backend
  * (/api/ai-chat/conversations/{id}/messages) always streams `data: {json}\n\n`
@@ -75,12 +124,24 @@ export async function apiStream(path, body, token, onDelta, onEvent) {
     return { ok: false, status: res.status, text: '' };
   }
 
+  // 202 = the conversation already has a turn in flight; the message was
+  // QUEUED server-side (JSON body, not SSE). Without this branch the JSON
+  // parses as zero SSE lines and the caller shows a failure bubble while the
+  // message silently waits in the queue. Surface it so the caller can stream
+  // the queued reply once the in-flight turn finishes.
+  if (res.status === 202) {
+    const data = await res.json().catch(() => ({}));
+    return { ok: true, status: 202, queued: true, data, text: '' };
+  }
+
   const consumeLine = (line, state) => {
     if (!line.startsWith('data: ')) return false;
     let data;
-    try { data = JSON.parse(line.slice(6)); } catch (e) { return false; }
-    // Surface the full parsed event so callers can handle non-text turns
-    // (onboarding quick_replies + bubbles, conversation_created, level_up, etc.).
+    try { data = JSON.parse(line.slice(6)); } catch { return false; }
+    // Surface the full parsed event so callers can handle non-text turns,
+    // including user-visible failures and capture confirmations. The mixin is
+    // the presentation boundary; this transport never collapses typed events
+    // into generic errors.
     // ALL typed frames pass through to onEvent — including the gamification
     // `level_up` frame the backend emits strictly AFTER `done`.
     if (onEvent) onEvent(data);

@@ -63,7 +63,15 @@ class GDPRController extends Controller
             'consents.*' => 'boolean',
         ]);
 
-        $validTypes = array_keys(UserConsent::CURRENT_VERSIONS);
+        // Cookie consent is deliberately not writable here. It has a single
+        // write path — POST /api/cookie-consent — because the record and the
+        // browser cookie the tracking middleware enforces must always be
+        // written together; a record updated here alone would be a preference
+        // the middleware ignores, which is the defect W-0049 fixed.
+        $validTypes = array_diff(
+            array_keys(UserConsent::CURRENT_VERSIONS),
+            UserConsent::COOKIE_BANNER_TYPES
+        );
         $consents = array_intersect_key($request->consents, array_flip($validTypes));
 
         $this->consentService->recordConsents($request->user(), $consents);

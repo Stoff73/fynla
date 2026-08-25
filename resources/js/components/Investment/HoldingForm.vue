@@ -26,8 +26,29 @@
         <!-- Form -->
         <form @submit.prevent="submitForm">
           <div class="bg-white px-6 py-4 space-y-4">
+            <!-- Save failure. The parent owns the API call (see CLAUDE.md Rule 3)
+                 and feeds the message back here; the modal stays open (W-0009). -->
+            <div v-if="saveError" class="bg-eggshell-500 rounded-lg p-4">
+              <p class="text-sm text-raspberry-800">{{ saveError }}</p>
+            </div>
+            <!-- W-0466 placeholder — see the component for why it exists and when it goes. -->
+            <UnmodelledAimNotice />
+
+            <!--
+              Where this holding lives. A holding is polymorphic — `holdable_type`
+              has always accepted `App\Models\DCPension` as well as an investment
+              account — so when the owner is a pension there is nothing to choose
+              between and the select is replaced by a statement of fact. Reusing
+              this form rather than writing a pension-shaped copy of it is Rule 20:
+              units, prices, purchase date and ongoing charge have ONE input each.
+            -->
+            <div v-if="owner">
+              <span class="block text-sm font-medium text-neutral-500 mb-1">{{ owner.label }}</span>
+              <p class="text-sm font-medium text-horizon-500">{{ owner.name }}</p>
+            </div>
+
             <!-- Account Selection -->
-            <div>
+            <div v-else>
               <label for="account_id" class="block text-sm font-medium text-neutral-500 mb-1">
                 Account
               </label>
@@ -127,6 +148,7 @@
                 id="sub_type"
                 v-model="formData.sub_type"
                 class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                :class="{ 'border-raspberry-500': errors.sub_type }"
               >
                 <option :value="null">Select fund type</option>
                 <option value="equity_fund">Equity Fund</option>
@@ -137,9 +159,61 @@
                 <option value="money_market_fund">Money Market Fund</option>
                 <option value="property_fund">Property Fund</option>
               </select>
+              <p v-if="errors.sub_type" class="mt-1 text-sm text-raspberry-600">{{ errors.sub_type }}</p>
             </div>
 
             <!-- Allocation Percentage and Purchase Price (Optional) -->
+            <!-- Units held and dividend yield. Both are columns the model has
+                 always carried and no form could write: every one of the
+                 persona's ten holdings has a unit count with nowhere to go
+                 (W-0039), and dividend_yield was validated by both requests
+                 while no input existed anywhere in the SPA. -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="quantity" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Units Held <span class="text-horizon-400 text-xs">(Optional)</span>
+                </label>
+                <input
+                  id="quantity"
+                  v-model.number="formData.quantity"
+                  type="number"
+                  step="0.000001"
+                  min="0"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  :class="{ 'border-raspberry-500': errors.quantity }"
+                  placeholder="e.g., 351"
+                />
+                <p v-if="errors.quantity" class="mt-1 text-sm text-raspberry-600">{{ errors.quantity }}</p>
+                <p class="mt-1 text-xs text-neutral-500">{{ unitsHelpText }}</p>
+              </div>
+              <!--
+                Not offered when the owner is a pension. `DCPensionHoldingsController`
+                validates no `dividend_yield` rule, and `validated()` drops every key
+                without one — so the field would be typed, accepted and discarded.
+                W-0324 is the open decision about whether the nested and pension
+                paths should carry the rule at all, and it says in terms that the
+                gap "becomes live the moment anything adds a yield input". This
+                does not make it live.
+              -->
+              <div v-if="!owner">
+                <label for="dividend_yield" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Dividend Yield % <span class="text-horizon-400 text-xs">(Optional)</span>
+                </label>
+                <input
+                  id="dividend_yield"
+                  v-model.number="formData.dividend_yield"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  :class="{ 'border-raspberry-500': errors.dividend_yield }"
+                  placeholder="e.g., 2.10"
+                />
+                <p v-if="errors.dividend_yield" class="mt-1 text-sm text-raspberry-600">{{ errors.dividend_yield }}</p>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="allocation_percent" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -233,12 +307,12 @@
             </div>
 
             <!-- Calculated Fields Display -->
-            <div v-if="selectedAccount && formData.allocation_percent" class="bg-eggshell-500 rounded-md p-4">
+            <div v-if="ownerValue !== null && formData.allocation_percent" class="bg-eggshell-500 rounded-md p-4">
               <h4 class="text-sm font-semibold text-violet-900 mb-2">Calculated Values</h4>
               <div class="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span class="text-violet-700">Account Value:</span>
-                  <span class="ml-2 font-medium text-violet-900">{{ formatCurrency(selectedAccount.current_value) }}</span>
+                  <span class="text-violet-700">{{ owner ? owner.valueLabel : 'Account Value:' }}</span>
+                  <span class="ml-2 font-medium text-violet-900">{{ formatCurrency(ownerValue) }}</span>
                 </div>
                 <div>
                   <span class="text-violet-700">Holding Value:</span>
@@ -276,11 +350,13 @@
 </template>
 
 <script>
+import UnmodelledAimNotice from './UnmodelledAimNotice.vue';
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
+  components: { UnmodelledAimNotice },
   name: 'HoldingForm',
 
   emits: ['save', 'close'],
@@ -304,6 +380,28 @@ export default {
       type: Number,
       default: null,
     },
+    saveError: {
+      type: String,
+      default: null,
+    },
+    // Per-field messages from a 422, keyed by field name. The banner above the
+    // form only ever carried `data.message`, which for a validation failure is
+    // the generic "The given data was invalid." — and it renders at the top of a
+    // modal the user has scrolled to the bottom of to reach the submit button.
+    // A rejected save therefore read as nothing happening at all (W-0261).
+    fieldErrors: {
+      type: Object,
+      default: null,
+    },
+    // A non-investment-account owner for this holding — today, a defined
+    // contribution pension. `{ label, name, valueLabel, value }`. When set the
+    // account select disappears, `investment_account_id` is neither bound nor
+    // required, and `value` is the pot the allocation percentage applies to.
+    // Absent, the form behaves exactly as it always has.
+    owner: {
+      type: Object,
+      default: null,
+    },
   },
 
   data() {
@@ -316,9 +414,11 @@ export default {
         asset_type: '',
         sub_type: null,
         allocation_percent: null,
+        quantity: null,
         purchase_price: null,
         purchase_date: '',
         current_price: null,
+        dividend_yield: null,
         ocf_percent: 0,
       },
       errors: {},
@@ -342,9 +442,33 @@ export default {
       return this.accounts.find(acc => acc.id === this.formData.investment_account_id);
     },
 
+    // The pot the allocation percentage is a percentage OF — an account's value
+    // or a pension's fund value. Null means nothing has been chosen yet, which
+    // is why this is `!== null` at the call site rather than truthy: a genuinely
+    // empty account is £0 and must still render its calculated values.
+    ownerValue() {
+      if (this.owner) {
+        return this.owner.value ?? null;
+      }
+      return this.selectedAccount ? this.selectedAccount.current_value : null;
+    },
+
+    // Mirrors App\Support\HoldingValuation, which is the authority — this is a
+    // preview only, and the server recomputes it on save. Units win over the
+    // allocation fallback, so the two can never disagree (W-0039).
     calculatedHoldingValue() {
-      if (!this.selectedAccount || !this.formData.allocation_percent) return 0;
-      return (this.selectedAccount.current_value * this.formData.allocation_percent) / 100;
+      if (this.formData.quantity > 0 && this.formData.current_price > 0) {
+        return this.formData.quantity * this.formData.current_price;
+      }
+      if (this.ownerValue === null || !this.formData.allocation_percent) return 0;
+      return (this.ownerValue * this.formData.allocation_percent) / 100;
+    },
+
+    unitsHelpText() {
+      if (this.formData.quantity > 0 && this.formData.current_price > 0) {
+        return `Value: ${this.formatCurrency(this.calculatedHoldingValue)} — units x current price`;
+      }
+      return 'With a current price, the value is calculated from units x price';
     },
 
     returnPercent() {
@@ -360,12 +484,34 @@ export default {
   },
 
   watch: {
+    // Land a rejected save's messages on the fields that caused it, so the user
+    // sees "Fund type is required…" beside the Fund Type select rather than a
+    // generic banner off the top of the modal.
+    fieldErrors: {
+      handler(errors) {
+        if (!errors) {
+          return;
+        }
+
+        Object.entries(errors).forEach(([field, message]) => {
+          this.errors[field] = Array.isArray(message) ? message[0] : message;
+        });
+      },
+    },
     holding: {
       immediate: true,
       handler(newHolding) {
         if (newHolding) {
           this.formData = {
             ...newHolding,
+            // A holding record references its account as holdable_id, and the
+            // inline editor passes a trimmed shape carrying neither — so the
+            // Account select came up empty and "Account is required" blocked
+            // every edit before a request was even sent (W-0009).
+            investment_account_id: newHolding.investment_account_id
+              ?? newHolding.holdable_id
+              ?? this.defaultAccountId
+              ?? '',
             sub_type: newHolding.sub_type || null,
             purchase_date: this.formatDateForInput(newHolding.purchase_date),
           };
@@ -444,8 +590,21 @@ export default {
           // cost_basis will be calculated on backend if purchase price is provided
         };
 
+        // A pension holding has no investment account. Sending the key empty
+        // would put an empty string in front of an `exists:` rule and 422 on a
+        // field the user was never shown; the pension endpoints have no such
+        // rule and drop it anyway. Delete rather than null — the same reason
+        // `DCPensionForm` deletes `holdings` rather than sending `[]` (W-0322):
+        // omitting a key says nothing about it, sending an empty one asserts
+        // something the user did not.
+        if (this.owner) {
+          delete holdingData.investment_account_id;
+          delete holdingData.dividend_yield;
+        }
+
+        // NOT closed here. The parent runs the API call and closes on success;
+        // self-closing is what made a discarded edit look saved (W-0009).
         this.$emit('save', holdingData);
-        this.closeModal();
       } catch (error) {
         logger.error('Form submission error:', error);
         if (error.response?.data?.errors) {
@@ -459,7 +618,8 @@ export default {
     validateForm() {
       let isValid = true;
 
-      if (!this.formData.investment_account_id) {
+      // A pension owner is not chosen, it is given, so there is nothing to require.
+      if (!this.owner && !this.formData.investment_account_id) {
         this.errors.investment_account_id = 'Account is required';
         isValid = false;
       }
@@ -471,6 +631,15 @@ export default {
 
       if (!this.formData.asset_type) {
         this.errors.asset_type = 'Asset type is required';
+        isValid = false;
+      }
+
+      // The server has always enforced this (`required_if:asset_type,fund`), but
+      // the select carried no error binding and no client check, so choosing Fund
+      // and leaving the type blank submitted, 422'd, and looked like nothing at
+      // all had happened — the modal simply stayed open (W-0261).
+      if (this.formData.asset_type === 'fund' && !this.formData.sub_type) {
+        this.errors.sub_type = 'Fund type is required when the asset type is Fund';
         isValid = false;
       }
 
@@ -513,9 +682,11 @@ export default {
         asset_type: '',
         sub_type: null,
         allocation_percent: null,
+        quantity: null,
         purchase_price: null,
         purchase_date: '',
         current_price: null,
+        dividend_yield: null,
         ocf_percent: 0,
       };
       this.errors = {};

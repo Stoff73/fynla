@@ -54,9 +54,10 @@ function sendOnboardingMessage(
     User $user,
     int $conversationId,
     string $message
-): void {
+): string {
     Sanctum::actingAs($user->fresh());
-    $testCase->postJson(
+
+    return $testCase->postJson(
         "/api/ai-chat/conversations/{$conversationId}/messages",
         ['message' => $message]
     )->streamedContent();
@@ -145,23 +146,43 @@ describe('state-machine walkthrough — path_choice → done', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        // Step 7b — base_employment_more bubble: "No, that's everything" → base_expenditure
+        // Step 7b — base_employment_more bubble: "No, that's everything".
+        // Earnings were captured, so the journey verifies them (CSJ
+        // 2026-07-24: every data entry runs the announce → navigate →
+        // Continue/Edit loop) before continuing to expenditure.
         sendOnboardingMessage($this, $this->user, $conversation->id, "No, that's everything");
+
+        $this->user->refresh();
+        expect($this->user->onboarding_fyn_step)->toBe('campaign_verify_announce')
+            ->and($this->user->onboarding_fyn_context['verify_section'])->toBe('income');
+
+        // Step 7c — Okay → navigate to /income with the Gate-2 confirm.
+        sendOnboardingMessage($this, $this->user, $conversation->id, 'Okay');
+
+        $this->user->refresh();
+        expect($this->user->onboarding_fyn_step)->toBe('campaign_verify_navigate');
+
+        // Step 7d — "Yes, that's right" → the journey base flow continues.
+        sendOnboardingMessage($this, $this->user, $conversation->id, "Yes, that's right");
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
             ->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
 
-        // Step 8 — base_expenditure free_text: "4000" → profile_review_expenditure (Phase 10)
-        sendOnboardingMessage($this, $this->user, $conversation->id, '4000');
+        // Step 8 — base_expenditure free_text: "10000" → expenditure verify
+        // (replaces the old in-chat profile-review pause).
+        $expenditureStream = sendOnboardingMessage($this, $this->user, $conversation->id, '10000');
 
         $this->user->refresh();
-        expect($this->user->onboarding_fyn_step)
-            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE)
-            ->and((float) $this->user->monthly_expenditure)->toBe(4000.0);
+        expect($this->user->onboarding_fyn_step)->toBe('campaign_verify_announce')
+            ->and($this->user->onboarding_fyn_context['verify_section'])->toBe('expenditure')
+            ->and((float) $this->user->monthly_expenditure)->toBe(10000.0)
+            ->and($this->user->expenditure_entry_mode)->toBe('simple')
+            ->and($expenditureStream)->toContain('"type":"capture_complete"');
 
-        // Step 8a — profile_review_expenditure bubble: "Looks correct" → asset_capture
-        sendOnboardingMessage($this, $this->user, $conversation->id, 'Looks correct');
+        // Step 8a — Okay → navigate; "Yes, that's right" → asset_capture.
+        sendOnboardingMessage($this, $this->user, $conversation->id, 'Okay');
+        sendOnboardingMessage($this, $this->user, $conversation->id, "Yes, that's right");
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
@@ -170,7 +191,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
         // Step 8b — ExpenditureProfile sync (covers bug §4 from 88018a5)
         $profile = ExpenditureProfile::where('user_id', $this->user->id)->first();
         expect($profile)->not->toBeNull()
-            ->and((float) $profile->total_monthly_expenditure)->toBe(4000.0);
+            ->and((float) $profile->total_monthly_expenditure)->toBe(10000.0);
 
         // Step 9 — simulate asset_capture delegation advancing to add_more
         jumpTo($this->user->id, OnboardingStateMachine::STATE_ADD_MORE, [

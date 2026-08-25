@@ -1,0 +1,6 @@
+{"type":"server-started","port":50362,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:50362","screen_dir":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/1700-1774889290/content","state_dir":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/1700-1774889290/state"}
+{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/1700-1774889290/content/admin-dashboard-layout.html"}
+{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/1700-1774889290/content/admin-dashboard-v2.html"}
+{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/1700-1774889290/content/admin-dashboard-v3.html"}
+{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/1700-1774889290/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

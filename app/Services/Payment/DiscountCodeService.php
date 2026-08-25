@@ -6,6 +6,8 @@ namespace App\Services\Payment;
 
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeUsage;
+use App\Models\Payment;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class DiscountCodeService
@@ -26,6 +28,38 @@ class DiscountCodeService
 
         $discount = DiscountCode::where('code', $code)->first();
 
+        return $this->validateDiscount($discount, $userId, $planSlug, $billingCycle, $amountPence);
+    }
+
+    /**
+     * Validate while holding the discount row lock and count pending Payments
+     * as reservations. Call inside the transaction that creates the Payment.
+     *
+     * @return array{valid: bool, message: string, discount: ?DiscountCode, discount_amount: int, final_amount: int}
+     */
+    public function validateForReservation(
+        string $code,
+        int $userId,
+        string $planSlug,
+        string $billingCycle,
+        int $amountPence
+    ): array {
+        $discount = DiscountCode::where('code', strtoupper(trim($code)))
+            ->lockForUpdate()
+            ->first();
+
+        return $this->validateDiscount($discount, $userId, $planSlug, $billingCycle, $amountPence, true);
+    }
+
+    private function validateDiscount(
+        ?DiscountCode $discount,
+        int $userId,
+        string $planSlug,
+        string $billingCycle,
+        int $amountPence,
+        bool $includePendingReservations = false,
+    ): array {
+
         if (! $discount) {
             return $this->invalid('Discount code not found.');
         }
@@ -38,6 +72,10 @@ class DiscountCodeService
             return $this->invalid('This discount code is no longer active.');
         }
 
+        if (! in_array($discount->type, ['percentage', 'fixed_amount', 'lifecycle_welcome'], true)) {
+            return $this->invalid('This discount code type is no longer supported.');
+        }
+
         if ($discount->expires_at && $discount->expires_at->isPast()) {
             return $this->invalid('This discount code has expired.');
         }
@@ -46,11 +84,23 @@ class DiscountCodeService
             return $this->invalid('This discount code is not yet active.');
         }
 
-        if (! $discount->hasUsesRemaining()) {
+        $pendingReservations = $includePendingReservations
+            ? Payment::where('discount_code_id', $discount->id)->where('status', 'pending')->count()
+            : 0;
+
+        if ($discount->max_uses !== null
+            && ($discount->times_used + $pendingReservations) >= $discount->max_uses) {
             return $this->invalid('This discount code has reached its maximum number of uses.');
         }
 
-        if ($discount->userUsageCount($userId) >= $discount->max_uses_per_user) {
+        $userPendingReservations = $includePendingReservations
+            ? Payment::where('discount_code_id', $discount->id)
+                ->where('user_id', $userId)
+                ->where('status', 'pending')
+                ->count()
+            : 0;
+
+        if (($discount->userUsageCount($userId) + $userPendingReservations) >= $discount->max_uses_per_user) {
             return $this->invalid('You have already used this discount code.');
         }
 
@@ -65,10 +115,13 @@ class DiscountCodeService
         $discountAmount = $this->calculateDiscount($discount, $amountPence, $planSlug, $billingCycle);
         $finalAmount = max(0, $amountPence - $discountAmount);
 
+        if ($finalAmount < 1) {
+            return $this->invalid('This discount would reduce the paid order below the minimum charge.');
+        }
+
         $description = match ($discount->type) {
             'percentage' => "{$discount->value}% off",
             'fixed_amount' => '£'.number_format($discount->value / 100, 2).' off',
-            'trial_extension' => "{$discount->value} extra trial days",
             default => 'Discount applied',
         };
 
@@ -91,26 +144,35 @@ class DiscountCodeService
     public function apply(
         DiscountCode $discount,
         int $userId,
-        int $paymentId,
+        ?int $paymentId,
         int $originalAmountPence
     ): int {
-        DiscountCodeUsage::create([
-            'discount_code_id' => $discount->id,
-            'user_id' => $userId,
-            'payment_id' => $paymentId,
-            'applied_at' => now(),
-        ]);
+        return DB::transaction(function () use ($discount, $userId, $paymentId, $originalAmountPence): int {
+            $lockedDiscount = DiscountCode::query()->lockForUpdate()->findOrFail($discount->id);
+            $discountAmount = $this->calculateDiscount($lockedDiscount, $originalAmountPence);
 
-        $discount->increment('times_used');
+            if ($paymentId !== null && DiscountCodeUsage::where('payment_id', $paymentId)->exists()) {
+                return $discountAmount;
+            }
 
-        Log::info('Discount code applied', [
-            'code' => $discount->code,
-            'user_id' => $userId,
-            'payment_id' => $paymentId,
-            'discount_amount' => $this->calculateDiscount($discount, $originalAmountPence),
-        ]);
+            DiscountCodeUsage::create([
+                'discount_code_id' => $lockedDiscount->id,
+                'user_id' => $userId,
+                'payment_id' => $paymentId,
+                'applied_at' => now(),
+            ]);
 
-        return $this->calculateDiscount($discount, $originalAmountPence);
+            $lockedDiscount->increment('times_used');
+
+            Log::info('Discount code applied', [
+                'code' => $lockedDiscount->code,
+                'user_id' => $userId,
+                'payment_id' => $paymentId,
+                'discount_amount' => $discountAmount,
+            ]);
+
+            return $discountAmount;
+        });
     }
 
     /**
@@ -129,7 +191,6 @@ class DiscountCodeService
             'percentage' => (int) round($amountPence * $discount->value / 100),
             'fixed_amount' => min($discount->value, $amountPence),
             'lifecycle_welcome' => $this->calculateLifecycleWelcomeDiscount($discount, $amountPence, $planSlug, $billingCycle),
-            'trial_extension' => 0,
             default => 0,
         };
     }

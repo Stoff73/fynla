@@ -86,7 +86,7 @@
           Markets don&rsquo;t move in straight lines. Fynla runs thousands of simulated scenarios &mdash; booms, crashes, and everything between &mdash; to show you the real probability of your financial plan succeeding.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -230,7 +230,7 @@
       'heading' => 'How Confident Is Your Plan? Find Out in Minutes.',
       'subtext' => 'The demo runs Monte Carlo simulations on sample data so you can see exactly how it works — no maths degree required.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
     ];

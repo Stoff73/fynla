@@ -8,11 +8,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\Billing\PremiumEntitlementResolver;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Mobile\MobileDashboardAggregator;
 use App\Services\Mobile\MobileLevelService;
 use App\Services\Mobile\NextActionsService;
 use App\Services\Mobile\PlanningProgressService;
+use App\Services\Stores\TierConfigurationStore;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +31,8 @@ class MobileDashboardController extends Controller
         private readonly NextActionsService $nextActions,
         private readonly PlanningProgressService $planningProgress,
         private readonly MilestoneDetectionService $milestones,
+        private readonly PremiumEntitlementResolver $entitlementResolver,
+        private readonly TierConfigurationStore $tierConfigurations,
     ) {}
 
     /**
@@ -39,10 +45,23 @@ class MobileDashboardController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            $userId = $request->user()->id;
+        $requestId = trim((string) $request->header('X-Request-ID'));
+        $userId = (int) $request->user()->id;
 
+        Log::info('Native dashboard request started', [
+            'request_id' => $requestId !== '' ? $requestId : null,
+            'user_id' => $userId,
+            'client' => $request->header('X-Fynla-Client'),
+            'version' => $request->header('X-Fynla-Version'),
+            'build' => $request->header('X-Fynla-Build'),
+        ]);
+
+        try {
             $data = $this->aggregator->getAggregatedDashboard($userId);
+
+            // Billing state is request-current and must never be trapped inside
+            // the dashboard's 24-hour financial aggregation cache.
+            $data['entitlement'] = $this->entitlementFor($request->user());
 
             // Per-area focus cards for the carousel: a "Top actions" card (the
             // unified <=4) plus one card per module (real recs when the KYC gate
@@ -67,13 +86,80 @@ class MobileDashboardController extends Controller
             // a milestone before the mobile user sees its share prompt.
             $data['new_milestones'] = $this->detectMilestones($request->user(), $data);
 
-            return response()->json([
+            // WP-5c-iii — one persistent hero nudge: the nearest upcoming
+            // milestone with its step (computed after detection so the earned
+            // state is fresh). Never breaks the read.
+            try {
+                $upcoming = $this->milestones->upcoming(
+                    $request->user(),
+                    (float) ($data['net_worth']['total'] ?? 0),
+                    (float) ($data['net_worth']['breakdown']['assets']['pensions'] ?? 0),
+                );
+                $data['next_milestone'] = $upcoming[0] ?? null;
+            } catch (\Throwable $e) {
+                $data['next_milestone'] = null;
+            }
+
+            $response = response()->json([
                 'success' => true,
                 'data' => $data,
             ]);
+
+            if ($requestId !== '') {
+                $response->headers->set('X-Request-ID', $requestId);
+            }
+
+            $body = (string) $response->getContent();
+            Log::info('Native dashboard request completed', [
+                'request_id' => $requestId !== '' ? $requestId : null,
+                'user_id' => $userId,
+                'status' => $response->getStatusCode(),
+                'response_bytes' => strlen($body),
+                'response_sha256' => hash('sha256', $body),
+            ]);
+
+            return $response;
         } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Fetching mobile dashboard data');
+            $response = $this->errorResponse(
+                $e,
+                'Fetching mobile dashboard data',
+                500,
+                [
+                    'request_id' => $requestId !== '' ? $requestId : null,
+                    'user_id' => $userId,
+                ],
+            );
+
+            if ($requestId !== '') {
+                $response->headers->set('X-Request-ID', $requestId);
+            }
+
+            return $response;
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function entitlementFor(User $user): array
+    {
+        $resolved = $this->entitlementResolver->resolve($user);
+        try {
+            $tier = $this->tierConfigurations->forTier($resolved->tier);
+            $capabilities = $tier->capability_matrix ?? [];
+            $limits = $tier->count_caps ?? [];
+        } catch (ModelNotFoundException) {
+            $capabilities = [];
+            $limits = [];
+        }
+
+        return [
+            'tier' => $resolved->tier,
+            'provider' => $resolved->provider,
+            'status' => $resolved->status,
+            'renews' => $resolved->renews,
+            'current_period_end' => $resolved->periodEndsAt?->toISOString(),
+            'capabilities' => $capabilities,
+            'limits' => $limits,
+        ];
     }
 
     /**
@@ -96,7 +182,55 @@ class MobileDashboardController extends Controller
                 'progress_percentage' => (float) $g->progress_percentage,
             ])->all();
 
-            return array_merge($milestones, $this->milestones->detectGoals($user, $goals));
+            // WP-5c — module profiles are complete where the focus-area card
+            // is unlocked (gate open + advice flowing); derived from the
+            // payload, zero extra queries.
+            $completeModules = [];
+            foreach (($data['focus_areas'] ?? []) as $area) {
+                if (($area['key'] ?? '') !== 'top' && ($area['locked'] ?? true) === false) {
+                    $completeModules[] = (string) $area['key'];
+                }
+            }
+
+            $modules = $data['modules'] ?? [];
+            $savings = $modules['savings'] ?? [];
+            $retirement = $modules['retirement'] ?? [];
+            $protection = $modules['protection'] ?? [];
+            $assets = $data['net_worth']['breakdown']['assets'] ?? [];
+
+            return array_merge(
+                $milestones,
+                $this->milestones->detectGoals($user, $goals),
+                // WP-5 — journey milestones (profile complete, first action;
+                // WP-5c adds anniversaries + household).
+                $this->milestones->detectJourney($user),
+                // WP-5c — figures already computed in the aggregated payload.
+                $this->milestones->detectPensionPot($user, (float) ($assets['pensions'] ?? 0)),
+                $this->milestones->detectEmergencyFund($user, (float) ($savings['emergency_fund_months'] ?? 0)),
+                $this->milestones->detectRetirementOnTrack(
+                    $user,
+                    (float) ($retirement['projected_income'] ?? 0),
+                    (float) ($retirement['target_income'] ?? 0),
+                ),
+                ($protection['status'] ?? '') === 'active'
+                    ? $this->milestones->detectProtectionAdequate(
+                        $user,
+                        (int) ($protection['policy_count'] ?? 0),
+                        (int) ($protection['critical_gaps'] ?? 1),
+                    )
+                    : [],
+                $this->milestones->detectModuleProfiles($user, $completeModules),
+                // WP-5c — cheap indexed lookups.
+                $this->milestones->detectMortgagesPaid($user),
+                $this->milestones->detectEstateBasics($user),
+                $this->milestones->detectIsaFirst($user),
+                // WP-5c-iii — the tax-savings milestone no longer waits for a
+                // /tax-strategy visit: the focus-areas build already composed
+                // the plan for strategy unlocks (when the tax gate is open),
+                // and the scoped memo hands it over for free. Declines (null)
+                // when the plan was never composed this request.
+                $this->detectTaxSavingsFromMemo($user),
+            );
         } catch (\Throwable $e) {
             Log::warning('Milestone detection failed', [
                 'user_id' => $user->id,
@@ -106,5 +240,24 @@ class MobileDashboardController extends Controller
 
             return [];
         }
+    }
+
+    /**
+     * WP-5c-iii — first-quantified-saving detection from the request-scoped
+     * composed-plan memo. Never composes the plan itself.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function detectTaxSavingsFromMemo(User $user): array
+    {
+        $plan = app(ComposedTaxPlanService::class)->forUserIfComputed($user);
+        if ($plan === null) {
+            return [];
+        }
+
+        return $this->milestones->detectTaxSavingsIdentified(
+            $user,
+            (float) ($plan['combined_annual_saving'] ?? 0),
+        );
     }
 }

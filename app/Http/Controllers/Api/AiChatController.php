@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Agents\CoordinatingAgent;
+use App\Constants\GateRoutes;
 use App\Enums\AiMessageStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AI\CreateContextualConversationRequest;
 use App\Http\Requests\AI\SendAiChatMessageRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\ContextualConversation\ContextualConversationService;
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
+use App\Services\AI\ContextualConversation\ConversationHistoryService;
+use App\Services\AI\ContextualConversation\ConversationModeResolver;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\AI\Loop\ResumptionService;
 use App\Services\Eval\EvalTraceCollector;
@@ -21,6 +27,7 @@ use App\Services\Gamification\LevelUpCollector;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -38,6 +45,8 @@ class AiChatController extends Controller
         private readonly ConsentService $consentService,
         private readonly ConcurrentTurnQueue $queue,
         private readonly ResumptionService $resumption,
+        private readonly ConversationModeResolver $conversationModes,
+        private readonly ContextualResourceResolver $contextualResources,
     ) {}
 
     /**
@@ -45,20 +54,11 @@ class AiChatController extends Controller
      *
      * GET /api/ai-chat/conversations
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, ConversationHistoryService $history): JsonResponse
     {
-        // FR-M10 — paused (idle) conversations stay in history so the user can
-        // return to them; sending reopens them. Only soft-deleted / archived
-        // conversations drop out.
-        $conversations = AiConversation::forUser($request->user()->id)
-            ->whereIn('status', ['active', 'paused'])
-            ->orderByDesc('last_message_at')
-            ->limit(50)
-            ->get(['id', 'title', 'message_count', 'last_message_at', 'created_at']);
-
         return response()->json([
             'success' => true,
-            'data' => $conversations,
+            'data' => $history->forUser($request->user()),
         ]);
     }
 
@@ -87,6 +87,23 @@ class AiChatController extends Controller
     }
 
     /**
+     * Start a fresh, server-authorised conversation for a surface Add/Edit action.
+     *
+     * POST /api/ai-chat/contextual-conversations
+     */
+    public function createContextual(
+        CreateContextualConversationRequest $request,
+        ContextualConversationService $contextualConversations,
+    ): JsonResponse {
+        $created = $contextualConversations->create($request->user(), $request->validated());
+
+        return response()->json([
+            'success' => true,
+            'data' => $created,
+        ], 201);
+    }
+
+    /**
      * Load a conversation with its messages.
      *
      * GET /api/ai-chat/conversations/{id}
@@ -95,6 +112,10 @@ class AiChatController extends Controller
     {
         $conversation = AiConversation::forUser($request->user()->id)
             ->findOrFail($id);
+
+        if ($unavailable = $this->contextualUnavailableResponse($request->user(), $conversation)) {
+            return $unavailable;
+        }
 
         $messages = $conversation->messages()
             ->whereIn('role', ['user', 'assistant'])
@@ -189,6 +210,10 @@ class AiChatController extends Controller
 
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
 
+        if ($unavailable = $this->contextualUnavailableResponse($user, $conversation)) {
+            return $unavailable;
+        }
+
         // FR-M10 — sending reopens a paused (idle) conversation.
         if ($conversation->status === 'paused') {
             $conversation->update(['status' => 'active']);
@@ -230,12 +255,17 @@ class AiChatController extends Controller
         //   2. Otherwise (post-onboarding OR paused via the welcome-back
         //      "Something else" handoff which nulls onboarding_fyn_step) →
         //      AdviceFyn — read-only tools only. Write intents surface from
-        //      onboarding, not from chat. Matches the /action endpoint check
-        //      at AiChatController::postAction so a paused user does not
-        //      silently no-op when they ask a free-text question.
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        //      onboarding, not from chat.
+        //   Campaign re-entry (map §4, canonical contract amendment): a completed
+        //   user with an active_campaign set is also routed to OnboardingChatDirector
+        //   — the one write state — so they walk the campaign funnel. The
+        //   onboarding_completed flag is never modified by re-entry; re-entry is
+        //   signalled purely by active_campaign being non-null. A null
+        //   onboarding_fyn_step (paused mid-campaign) falls back to advice so a
+        //   paused user can still get answers without their step being lost.
+        //   ConversationModeResolver keeps typed conversation modes immutable
+        //   and is shared by streamQueuedMessage and action.
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock) {
             try {
@@ -382,6 +412,10 @@ class AiChatController extends Controller
 
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
 
+        if ($unavailable = $this->contextualUnavailableResponse($user, $conversation)) {
+            return $unavailable;
+        }
+
         $queued = $conversation->messages()
             ->where('id', $messageId)
             ->where('status', AiMessageStatus::Queued->value)
@@ -408,9 +442,7 @@ class AiChatController extends Controller
 
         $message = $queued->content;
         $currentRoute = $request->input('current_route');
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued) {
             try {
@@ -446,6 +478,19 @@ class AiChatController extends Controller
 
                     echo 'data: '.json_encode($event)."\n\n";
 
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+
+                $frame = self::levelUpFrame(
+                    app(LevelUpCollector::class),
+                    app(LevelService::class),
+                    $user,
+                );
+                if ($frame !== null) {
+                    echo 'data: '.json_encode($frame)."\n\n";
                     if (ob_get_level() > 0) {
                         ob_flush();
                     }
@@ -584,7 +629,55 @@ class AiChatController extends Controller
             ], 403);
         }
 
-        if ($user->onboarding_completed === true) {
+        // Resolve the re-entry campaign before the completed check so a completed
+        // user arriving via a reentry-enabled campaign can bypass the 409 gate
+        // and start a fresh campaign session (or resume a mid-campaign one).
+        $from = $request->input('from');
+        $campaignMap = (array) config('onboarding.campaign_map', []);
+        $reentryCampaign = is_string($from)
+            && isset($campaignMap[$from])
+            && ($campaignMap[$from]['reentry'] ?? false)
+            ? $campaignMap[$from] : null;
+
+        // Pause-resume (audit flags S2/P4): "Something else" parks the walk in
+        // onboarding_fyn_context.paused_at_step and nulls the step, preserving
+        // path + selection. A later /start resumes that campaign at the parked
+        // step — with or without a from= param — instead of restarting at the
+        // entry state, or 409ing a completed re-entrant whose pause cleared
+        // active_campaign.
+        $pausedContext = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $pausedStep = $pausedContext['paused_at_step'] ?? null;
+        $pausedSelection = $user->onboarding_fyn_selection;
+        $pausedCampaign = null;
+        if (is_string($pausedStep)
+            && $user->onboarding_fyn_path === 'campaign'
+            && is_string($pausedSelection)
+            && isset($campaignMap[$pausedSelection])
+            && OnboardingStateMachine::getState($pausedStep) !== null) {
+            $pausedCampaign = $campaignMap[$pausedSelection];
+        }
+
+        // A completed user resuming their own paused re-entry campaign bypasses
+        // the 409 exactly like an explicit from=<campaign> re-entry.
+        if ($reentryCampaign === null && $pausedCampaign !== null && ($pausedCampaign['reentry'] ?? false)) {
+            $reentryCampaign = $pausedCampaign;
+        }
+
+        // A completed user already MID-campaign (active_campaign + step set —
+        // e.g. the /m dashboard re-probing /start on a reload) must reach the
+        // resume branch below, not the 409: without this the surface falls to
+        // a generic greeting while the walk silently waits.
+        if ($reentryCampaign === null
+            && $user->active_campaign !== null
+            && $user->onboarding_fyn_step !== null
+            && isset($campaignMap[$user->active_campaign])) {
+            $reentryCampaign = $campaignMap[$user->active_campaign];
+        }
+
+        // 409 only when the user is completed AND no reentry-enabled campaign matched.
+        // Completed users with a valid reentry campaign fall through to the resume
+        // branch (mid-campaign, step non-null) or the fresh re-entry path below.
+        if ($user->onboarding_completed === true && $reentryCampaign === null) {
             return response()->json([
                 'success' => false,
                 'reason' => 'already_completed',
@@ -635,17 +728,6 @@ class AiChatController extends Controller
             ]);
         }
 
-        // Fresh start — create the conversation and stream turn 1.
-        $conversation = AiConversation::create([
-            'user_id' => $user->id,
-            'status' => 'active',
-            'model_used' => 'director',
-            'title' => 'Onboarding',
-            'metadata' => [
-                'source' => 'fyn_onboarding',
-            ],
-        ]);
-
         // INV-2.2.5 — entry-source dispatch. When the request carries a
         // `from` value (landing-page CTA, lifecycle email, deep link) it is
         // looked up in two config maps in priority order:
@@ -662,33 +744,63 @@ class AiChatController extends Controller
         // misclassified as a life-stage journey. Unknown / missing `from`
         // falls through to STATE_PATH_CHOICE. Adding a new entry source
         // requires only a config change — no controller change.
-        $from = $request->input('from');
-        $campaignMap = (array) config('onboarding.campaign_map', []);
+        //
+        // $from and $campaignMap are already resolved above the completed-user
+        // gate (re-entry gate reads them to derive $reentryCampaign).
         $journeyMap = (array) config('onboarding.journey_map', []);
-        $matchedCampaign = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
+        $campaignEntry = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
+        $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
 
-        // Funnel fallback: a user who arrived via the /savetax funnel carries
-        // durable funnel_answers. The transient `from=savetax` query is lost
+        // Paused-campaign fallback: resolves BEFORE the funnel fallback so a
+        // paused pensioncheck re-entrant is not misrouted to their original
+        // (savetax) funnel campaign on a bare /start.
+        if ($matchedCampaign === null && $matchedJourney === null && $pausedCampaign !== null) {
+            $campaignEntry = $pausedCampaign;
+            $matchedCampaign = $pausedCampaign['selection'] ?? null;
+        }
+
+        // Funnel fallback: a user who arrived via an acquisition funnel carries
+        // durable funnel_answers. The transient `from=<campaign>` query is lost
         // across the mobile handoff (the iframe is replaced with /m/app), so
-        // key the savetax campaign off funnel_answers too — both mobile and
-        // desktop funnel users then get the campaign onboarding (greet + recap).
-        if ($matchedCampaign === null && $matchedJourney === null
-            && ! empty($user->funnel_answers)
-            && isset($campaignMap['savetax'])) {
-            $matchedCampaign = $campaignMap['savetax'];
+        // key the campaign off funnel_answers['campaign'] instead — both mobile
+        // and desktop funnel users then get the right campaign onboarding.
+        // Legacy rows that predate the stamp default to 'savetax'.
+        if ($matchedCampaign === null && $matchedJourney === null && ! empty($user->funnel_answers)) {
+            $rawCampaign = $user->funnel_answers['campaign'] ?? null;
+            $funnelCampaign = is_string($rawCampaign) ? $rawCampaign : 'savetax';
+            $campaignEntry = $campaignMap[$funnelCampaign] ?? null;
+            $matchedCampaign = is_array($campaignEntry) ? ($campaignEntry['selection'] ?? null) : null;
         }
 
         if ($matchedCampaign !== null) {
             $user->onboarding_fyn_path = 'campaign';
             $user->onboarding_fyn_selection = $matchedCampaign;
-            // SaveTax campaign is section-led: lead with income (most relevant to
-            // the tax goal). Employment is already known from the funnel, so we
-            // open at base_work (income details) with the recap greeting; DOB is
-            // deferred to the pensions section. Sequence is driven by
-            // OnboardingStateMachine::CAMPAIGN_SECTION_ORDER.
-            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_WORK;
-            $startStateId = OnboardingStateMachine::STATE_BASE_WORK;
+            // Campaign entry state: completed users re-entering a campaign land at
+            // reentry_entry (if the map carries one) rather than the plain entry —
+            // e.g. pensioncheck re-entrants open at campaign2_existing_recap so Fyn
+            // recaps their known data first. Fresh (incomplete) users always use entry
+            // even when the campaign is reentry-enabled.
+            $stepId = ($reentryCampaign !== null && $user->onboarding_completed === true)
+                ? ($reentryCampaign['reentry_entry'] ?? $campaignEntry['entry'])
+                : $campaignEntry['entry'];
+            // Pause-resume: same campaign as the parked one → resume at the
+            // parked step (and consume the pointer) instead of the entry state.
+            if ($pausedCampaign !== null
+                && $matchedCampaign === ($pausedCampaign['selection'] ?? null)
+                && is_string($pausedStep)) {
+                $stepId = $pausedStep;
+                unset($pausedContext['paused_at_step']);
+                $user->onboarding_fyn_context = $pausedContext === [] ? null : $pausedContext;
+            }
+            $user->onboarding_fyn_step = $stepId;
+            $startStateId = $stepId;
+            // Re-entry: stamp active_campaign so legacy untyped conversations
+            // from this completed user still route to the director while the
+            // campaign session is in progress.
+            if ($reentryCampaign !== null) {
+                $user->active_campaign = $matchedCampaign;
+            }
         } elseif ($matchedJourney !== null) {
             $user->onboarding_fyn_path = 'journey';
             $user->onboarding_fyn_selection = $matchedJourney;
@@ -701,6 +813,29 @@ class AiChatController extends Controller
 
         $user->onboarding_started_at = $user->onboarding_started_at ?? now();
         $user->save();
+
+        // Conversation: a paused-campaign resume continues in the existing
+        // onboarding conversation so the transcript carries on (never a fresh
+        // box); everything else creates a new one. Re-entry sessions carry an
+        // additional metadata.campaign key so the onboarding scope query and
+        // post-session tooling can distinguish them from first-time flows.
+        $conversation = null;
+        if ($pausedCampaign !== null && $matchedCampaign === ($pausedCampaign['selection'] ?? null)) {
+            $conversation = AiConversation::forUser($user->id)->onboarding()->latest('id')->first();
+        }
+        if ($conversation === null) {
+            $conversationMetadata = ['source' => 'fyn_onboarding'];
+            if ($reentryCampaign !== null) {
+                $conversationMetadata['campaign'] = $reentryCampaign['selection'];
+            }
+            $conversation = AiConversation::create([
+                'user_id' => $user->id,
+                'status' => 'active',
+                'model_used' => 'director',
+                'title' => 'Onboarding',
+                'metadata' => $conversationMetadata,
+            ]);
+        }
 
         return new StreamedResponse(function () use ($user, $conversation, $startStateId) {
             // Emit the conversation id first so the frontend can route
@@ -787,9 +922,7 @@ class AiChatController extends Controller
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
         $action = $request->input('action');
 
-        $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
-            && (bool) config('onboarding.fyn_flow_enabled', true);
+        $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
             try {
@@ -851,5 +984,42 @@ class AiChatController extends Controller
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    private function contextualUnavailableResponse(
+        User $user,
+        AiConversation $conversation,
+    ): ?JsonResponse {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        if (($metadata['source'] ?? null) !== 'surface_action') {
+            return null;
+        }
+
+        $resourceType = $metadata['resource_type'] ?? null;
+        $rawResourceId = $metadata['resource_id'] ?? null;
+        $resourceId = is_int($rawResourceId)
+            ? $rawResourceId
+            : (is_string($rawResourceId) && ctype_digit($rawResourceId) ? (int) $rawResourceId : null);
+        $fallbackScreen = is_string($resourceType)
+            ? $this->contextualResources->overviewScreenFor($resourceType)
+            : GateRoutes::DASHBOARD;
+
+        try {
+            if (! is_string($resourceType) || $resourceType === '') {
+                throw (new ModelNotFoundException)->setModel('contextual_resource');
+            }
+            $this->contextualResources->resolve($user, $resourceType, $resourceId);
+
+            return null;
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'error' => 'contextual_resource_unavailable',
+                'message' => 'This related item is no longer available. Return to its overview to continue.',
+                'data' => [
+                    'fallback_destination' => GateRoutes::destination($fallbackScreen),
+                ],
+            ], 410);
+        }
     }
 }

@@ -159,7 +159,7 @@
       'subtext' => 'See how Fynla handles your finances with sample data. No sign-up, no credit card.',
       'actions' => [
         ['text' => 'Try the free demo', 'href' => '/?demo=true', 'primary' => true],
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => false],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => false],
       ],
     ];
     include __DIR__ . '/../partials/modules/cta-band.php';

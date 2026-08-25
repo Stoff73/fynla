@@ -7,7 +7,7 @@
             "properties": {
                 "date_of_birth": {
                     "type": "string",
-                    "description": "Date of birth in YYYY-MM-DD format, parsed from natural language like \"12 January 1985\". Only include this field if the user explicitly stated a date of birth."
+                    "description": "Date of birth in YYYY-MM-DD format, parsed from natural language like \"12 January 1985\". Short formats are fine: read numeric dates as UK day-first (\"19/02/1982\" is 19 February), and expand a two-digit year to the century that gives a plausible adult age (\"19/02/82\" or \"19 Feb 82\" is 1982-02-19, not 2082). Only include this field if the user explicitly stated a date of birth."
                 },
                 "marital_status": {
                     "type": "string",
@@ -76,9 +76,10 @@
                                 "type": "string",
                                 "description": "The dependant's first name if mentioned, otherwise null."
                             },
-                            "age": {
-                                "type": "integer",
-                                "description": "The dependant's age in whole years. Required."
+                            "date_of_birth": {
+                                "type": "string",
+                                "format": "date",
+                                "description": "The exact date of birth explicitly supplied by the user, in YYYY-MM-DD format. Never infer this from an age."
                             },
                             "relationship": {
                                 "type": "string",
@@ -91,7 +92,7 @@
                             }
                         },
                         "required": [
-                            "age",
+                            "date_of_birth",
                             "relationship"
                         ],
                         "additionalProperties": false
@@ -133,13 +134,13 @@
     },
     {
         "name": "capture_salary_sacrifice",
-        "description": "Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
+        "description": "Set salary_sacrifice flag on a specific pot-of-money pension owned by the user, with an optional employer National Insurance rebate share. Use during the SaveTax campaign occupational-scheme capture state.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "pension_id": {
                     "type": "integer",
-                    "description": "ID of the dc_pension row to update."
+                    "description": "ID of the dc_pension row to update. Omit when you do not have a real id from this conversation — the system then resolves the user's pension. NEVER send 0 or an invented id."
                 },
                 "salary_sacrifice": {
                     "type": "boolean",
@@ -151,7 +152,6 @@
                 }
             },
             "required": [
-                "pension_id",
                 "salary_sacrifice"
             ],
             "additionalProperties": false
@@ -226,7 +226,7 @@
     },
     {
         "name": "capture_spouse_non_working_assets",
-        "description": "Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, CGT, Dividend allowance) and to size a non-earner spouse pension contribution.",
+        "description": "Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, Capital Gains Tax, Dividend allowance) and to size a non-earner spouse pension contribution.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -240,7 +240,7 @@
                 },
                 "spouse_existing_investment_balance": {
                     "type": "number",
-                    "description": "Spouse's existing standalone investment account (GIA) balance."
+                    "description": "Spouse's existing standalone investment account (General Investment Account) balance."
                 },
                 "spouse_existing_dividend_holdings_value": {
                     "type": "number",
@@ -257,7 +257,7 @@
     },
     {
         "name": "capture_pension_history",
-        "description": "Capture the user's gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused AA the user could still pension-up. Pass each year individually using the canonical \"YYYY/YY\" tax-year format (e.g. \"2024/25\").",
+        "description": "Capture the user's gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused Annual Allowance the user could still pension-up. Pass each year individually using the canonical \"YYYY/YY\" tax-year format (e.g. \"2024/25\").",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -304,6 +304,48 @@
             "required": [
                 "annual_donations"
             ],
+            "additionalProperties": false
+        }
+    },
+    {
+        "name": "capture_retirement_goals",
+        "description": "Record the user's retirement goals. Call when the user states a target retirement age and/or a desired yearly retirement income. Ages are whole years between 55 and 75; income is a gross yearly figure in pounds. Never guess a value the user did not state — omit the parameter instead.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "target_retirement_age": {
+                    "type": "integer",
+                    "description": "The age at which the user wants to retire. Whole years only, 55 to 75 inclusive."
+                },
+                "target_retirement_income": {
+                    "type": "number",
+                    "description": "The gross annual income the user wants in retirement, in pounds."
+                }
+            },
+            "required": [],
+            "additionalProperties": false
+        }
+    },
+    {
+        "name": "capture_state_pension",
+        "description": "Record the user's State Pension forecast. Call when the user gives a forecast amount and/or National Insurance qualifying years. The forecast is a yearly figure in pounds (convert a weekly figure by multiplying by 52 and say so in your reply). Omit anything the user did not state. If the user does not know their forecast or is unsure, do NOT call this tool at all — never pass 0 for a figure the user did not give. Never infer the State Pension age from another pension (a workplace or NHS scheme's normal retirement age is NOT the State Pension age). If the user only knows their State Pension age and not the forecast or qualifying years, do NOT call this tool.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "forecast_annual": {
+                    "type": "number",
+                    "description": "The user's annual State Pension forecast in pounds. If the user gives a weekly figure, multiply by 52 and confirm the conversion in your reply."
+                },
+                "ni_years_completed": {
+                    "type": "integer",
+                    "description": "The number of full National Insurance qualifying years the user has completed. 0 to 60."
+                },
+                "state_pension_age": {
+                    "type": "integer",
+                    "description": "The age at which the user expects to receive their State Pension."
+                }
+            },
+            "required": [],
             "additionalProperties": false
         }
     }

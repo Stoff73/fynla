@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
+use App\Support\SharedOwnership;
 use Carbon\Carbon;
 
 class MortgageService
@@ -22,8 +23,8 @@ class MortgageService
      * Create a mortgage record from property form data
      *
      * Extracts mortgage-related fields from validated property data and creates
-     * a new Mortgage record linked to the property. Handles ownership inheritance
-     * from property if not explicitly specified.
+     * a new Mortgage record linked to the property. Mortgage borrower liability
+     * is configured independently from property ownership.
      *
      * @param  Property  $property  The property to attach the mortgage to
      * @param  array  $validated  Validated form data containing mortgage fields
@@ -37,9 +38,16 @@ class MortgageService
             return null;
         }
 
+        $mortgageOwnershipType = $this->normalizeMortgageOwnershipType(
+            $validated['mortgage_ownership_type'] ?? 'individual'
+        );
+
         $mortgageData = [
             'property_id' => $property->id,
             'lender_name' => $validated['mortgage_lender_name'] ?? 'To be completed',
+            // W-0012 — accepted by the request as of 2026-08-24; without this line
+            // it would validate and then still not be written.
+            'mortgage_account_number' => $validated['mortgage_account_number'] ?? null,
             'mortgage_type' => $validated['mortgage_type'] ?? 'repayment',
             'repayment_percentage' => $validated['mortgage_repayment_percentage'] ?? null,
             'interest_only_percentage' => $validated['mortgage_interest_only_percentage'] ?? null,
@@ -52,33 +60,48 @@ class MortgageService
             'fixed_interest_rate' => $validated['mortgage_fixed_interest_rate'] ?? null,
             'variable_interest_rate' => $validated['mortgage_variable_interest_rate'] ?? null,
             'monthly_payment' => $validated['mortgage_monthly_payment'] ?? 0.00,  // FULL payment
+            'monthly_interest_portion' => $validated['mortgage_monthly_interest_portion'] ?? null,
             'start_date' => $validated['mortgage_start_date'] ?? now(),
-            'maturity_date' => $validated['mortgage_maturity_date'] ?? now()->addYears(25),
-            'remaining_term_months' => 300,
-            // Use mortgage's own ownership_type if provided, otherwise inherit from property
-            // Convert tenants_in_common to joint (mortgages only support individual/joint)
-            'ownership_type' => $this->normalizeMortgageOwnershipType(
-                $validated['mortgage_ownership_type'] ?? $validated['ownership_type'] ?? 'individual'
-            ),
-            // Use mortgage-specific ownership_percentage if provided, otherwise inherit from property
-            'ownership_percentage' => $validated['mortgage_ownership_percentage']
-                ?? $validated['ownership_percentage']
-                ?? 100.00,
+            'maturity_date' => $validated['mortgage_maturity_date'] ?? now()->addYears(config('mortgage.default_term_years', 25)),
+            // rate_fix_end_date used to have no key here at all, so the wizard's
+            // Rate Fix End Date input was silently discarded and the remortgage
+            // and rate-shock alerts had nothing to key off (W-0012).
+            'rate_fix_end_date' => $validated['mortgage_rate_fix_end_date'] ?? null,
+            // remaining_term_months is deliberately NOT set: MortgageNormaliser
+            // derives it from maturity_date so the two cannot disagree. It used
+            // to be the literal 300 regardless of what the user entered (W-0012).
+            'ownership_type' => $mortgageOwnershipType,
         ];
 
-        // Add joint ownership fields if applicable
-        $mortgageJointOwnerId = $validated['mortgage_joint_owner_id']
-            ?? $validated['joint_owner_id']
-            ?? null;
+        // The share (W-0172). The wizard's mortgage step has no share input, so a
+        // shared mortgage arrives stating none — and defaulting it to 50 invented
+        // a split the property flatly contradicts. A tenants-in-common property
+        // at 40% got a mortgage at 50%, so its owner was charged 50% of a debt
+        // they hold 40% of and the other 50% belonged to nobody: not the owner,
+        // not a spouse, not the named third party.
+        //
+        // ONE source for the share. Where the caller states one it stands, exactly
+        // as everywhere else; where they state none, the parent property is what
+        // the arrangement actually is, so the mortgage takes its share rather
+        // than a default invented next to it (Rule 20, and the same
+        // supplied-beats-inherited rule as W-0040).
+        $mortgageData = SharedOwnership::applyTo(
+            $mortgageData + ['ownership_percentage' => $validated['mortgage_ownership_percentage'] ?? null],
+            $mortgageOwnershipType,
+            $property,
+        );
 
-        if ($mortgageData['ownership_type'] === 'joint' && $mortgageJointOwnerId) {
-            $jointOwner = User::find($mortgageJointOwnerId);
-            $mortgageData['joint_owner_id'] = $mortgageJointOwnerId;
-            $mortgageData['joint_owner_name'] = $jointOwner?->name;
+        // Add joint borrower fields if applicable.
+        $mortgageJointOwnerId = $validated['mortgage_joint_owner_id'] ?? null;
+        $mortgageJointOwnerName = $validated['mortgage_joint_owner_name'] ?? null;
 
-            // Apply same 50% default for joint mortgages (match property behavior)
-            if ($mortgageData['ownership_percentage'] == 100.00) {
-                $mortgageData['ownership_percentage'] = 50.00;
+        if ($mortgageData['ownership_type'] === 'joint') {
+            if ($mortgageJointOwnerId) {
+                $jointOwner = User::find($mortgageJointOwnerId);
+                $mortgageData['joint_owner_id'] = $mortgageJointOwnerId;
+                $mortgageData['joint_owner_name'] = $jointOwner?->name;
+            } elseif ($mortgageJointOwnerName) {
+                $mortgageData['joint_owner_name'] = $mortgageJointOwnerName;
             }
         }
 
@@ -89,11 +112,31 @@ class MortgageService
 
     /**
      * Normalize ownership type for mortgages.
-     * Mortgages only support 'individual' and 'joint', not 'tenants_in_common'.
+     *
+     * A shared mortgage is stored as `joint`, `tenants_in_common` included.
+     *
+     * The DATABASE would accept `tenants_in_common` — the enum was widened on
+     * 2026-01-17 by `add_tenants_in_common_to_mortgages_ownership_type`. The
+     * APPLICATION would not. `MortgageStore::validateCanonical:304` rejects
+     * anything but `individual|joint`, and at least seven consumers decide
+     * whether a mortgage is shared by testing `ownership_type === 'joint'`
+     * exactly (`UserProfileService:931`, `PropertyCard:153`,
+     * `PropertyDetailInline:382,388,814`, `PropertyFinancials:443`,
+     * `LetterToSpouse:482`). Storing TIC would make every one of them read the
+     * mortgage as individual and charge the user 100% of the debt — a worse
+     * defect than the one W-0172 fixes, on more surfaces.
+     *
+     * So the coercion stays and only its justification changes: it is not that
+     * the column cannot hold TIC, it is that nothing downstream understands it.
+     * Making mortgages genuinely TIC-capable is a change across those consumers
+     * and the store's validator — raised as W-0162, deliberately not done here.
+     *
+     * The share is NOT flattened with the type: a tenants-in-common property's
+     * 40% is carried onto its mortgage by the caller above.
      */
     private function normalizeMortgageOwnershipType(?string $ownershipType): string
     {
-        if ($ownershipType === 'joint' || $ownershipType === 'tenants_in_common') {
+        if (SharedOwnership::isShared($ownershipType)) {
             return 'joint';
         }
 

@@ -16,7 +16,7 @@ stores live here:
 
 ## The pointer model (v0.5, 2026-06-01 — canonical)
 
-**Memory holds pointers, not copies.** Fyn never freezes data that has a live authoritative source. The £20,000 ISA allowance lives in `TaxConfigService`; a user's balance lives in their account records; a recommendation is generated live by the engine. Memory holds a **pointer** — a typed fetch-skill saying *which source owns it and how to fetch it at the moment of need* — and the agent fetches live. This keeps the context clean, the figures current, and drift near-zero. The pointer registry is the heart of procedural memory; semantic memory is only for knowledge with **no** live owner. See `fynla-coala-implementation-plan.md` → "v0.5 amendment".
+**Memory holds pointers, not copies.** Fyn never freezes data that has a live authoritative source. The £20,000 ISA allowance lives in `TaxConfigService`; a user's balance lives in their account records; a recommendation is generated live by the engine. Memory holds a **pointer** — a typed fetch-skill saying *which source owns it and how to fetch it at the moment of need* — and the agent fetches live. This keeps the context clean, the figures current, and drift near-zero. The pointer registry is the heart of procedural memory; semantic memory is only for knowledge with **no** live owner. See `docs/archive/fynla-coala-implementation-plan.md` → "v0.5 amendment".
 
 ## Layout
 

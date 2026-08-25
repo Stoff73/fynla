@@ -835,14 +835,18 @@ class TransferRecommendationService
         $trace = [];
 
         $trace[] = [
-            'question' => 'Is the portfolio large enough for AIM share Inheritance Tax planning?',
+            // Rule 9 and the corrected treatment reach the decision trace too — it is
+            // rendered to the user by `ActionDetailView.vue`, so "AIM" and
+            // "Inheritance Tax-free" were live in front of them here as well as in
+            // the recommendation body.
+            'question' => 'Is the portfolio large enough for Alternative Investment Market planning?',
             'data_field' => 'portfolio.total_value',
             'data_value' => '£'.number_format($portfolioValue, 0),
             'threshold' => 'At least £100,000',
             'passed' => $portfolioValue >= 100000,
             'explanation' => $portfolioValue >= 100000
-                ? $userName.'\'s portfolio of £'.number_format($portfolioValue, 0).' is significant enough for AIM share planning. AIM-listed shares can qualify for Business Relief after 2 years of ownership, potentially making them Inheritance Tax-free.'
-                : $userName.'\'s portfolio of £'.number_format($portfolioValue, 0).' is below £100,000 — AIM share planning not appropriate at this stage.',
+                ? $userName.'\'s portfolio of £'.number_format($portfolioValue, 0).' is significant enough to consider this. Shares listed on the Alternative Investment Market can qualify for Business Relief once held for two years — from 6 April 2026 that is 50% relief rather than a full exemption.'
+                : $userName.'\'s portfolio of £'.number_format($portfolioValue, 0).' is below £100,000 — this is not appropriate at this stage.',
         ];
 
         $trace[] = [
@@ -861,15 +865,32 @@ class TransferRecommendationService
             return null;
         }
 
+        // Rewritten 2026-08-24 on two counts (quality-lead re-certification, finding 3).
+        //
+        // **Rule 9** — "AIM" appeared three times, once as "(AIM)", which is exactly the
+        // parenthesised form recorded elsewhere as needing a Rule 9 AMENDMENT from CSJ.
+        // Spelled out throughout; ISA is the only permitted abbreviation.
+        //
+        // **And the tax statement was WRONG, which matters more.** It said these shares
+        // are "exempt from Inheritance Tax" after two years. That was the position until
+        // 5 April 2026. From **6 April 2026** they attract **50% relief, outside the
+        // allowance** (IHTM25570; Finance Act 2026 Sch 12 inserting IHTA 1984 s124D) —
+        // so a holding is relieved by half, not removed from the estate. Telling a user
+        // their shares would be exempt overstates the benefit of an action the same
+        // sentence recommends, on a higher-risk asset class.
+        //
+        // Note the app does not model this treatment at all — see the placeholder
+        // notice on the holdings entry forms (`UnmodelledAimNotice`, W-0466). This text
+        // must not imply otherwise.
         $rec = $this->buildRecommendation(
             'aim_share_iht',
-            'Consider AIM shares for Inheritance Tax planning',
+            'Shares listed on the Alternative Investment Market and Inheritance Tax',
             sprintf(
-                '%s has a portfolio of £%s. Shares listed on the Alternative Investment Market (AIM) can qualify for Business Relief after 2 years, making them exempt from Inheritance Tax. This can be an effective planning tool for investors with larger portfolios.',
+                '%s has a portfolio of £%s. Shares listed on the Alternative Investment Market can qualify for Business Relief once held for two years. From 6 April 2026 that relief is 50%% of their value rather than a full exemption, so they are relieved by half rather than removed from your estate. Fynla does not yet model this treatment in your figures.',
                 $userName,
                 number_format($portfolioValue, 0, '.', ',')
             ),
-            'AIM shares carry higher risk than main market equities. Seek specialist advice.',
+            'These shares carry higher risk than main market equities, and the relief depends on the individual company continuing to qualify. Seek specialist advice.',
             'low'
         );
         $rec['decision_trace'] = $trace;

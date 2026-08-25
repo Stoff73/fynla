@@ -1,393 +1,304 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import HoldingsTable from '@/components/Investment/HoldingsTable.vue';
+import { CHART_COLORS } from '@/constants/designSystem';
 
 describe('HoldingsTable', () => {
-  const mockHoldings = [
+  const holdings = [
     {
       id: 1,
+      investment_account_id: 1,
       security_name: 'Vanguard FTSE All-World',
       ticker: 'VWRL',
       asset_type: 'international_equity',
       quantity: 100,
-      purchase_price: 80.50,
+      purchase_price: 80.5,
       current_price: 95.25,
-      current_value: 9525.00, // 100 * 95.25
-      return_percent: 18.32, // ((95.25 - 80.50) / 80.50) * 100
+      current_value: 9525,
+      return_percent: 18.32,
       ocf_percent: 0.22,
     },
     {
       id: 2,
+      investment_account_id: 1,
       security_name: 'Vanguard UK Gilt',
       ticker: 'VGOV',
       asset_type: 'bond',
       quantity: 200,
-      purchase_price: 50.00,
+      purchase_price: 50,
       current_price: 48.75,
-      current_value: 9750.00, // 200 * 48.75
-      return_percent: -2.50, // ((48.75 - 50.00) / 50.00) * 100
+      current_value: 9750,
+      return_percent: -2.5,
       ocf_percent: 0.15,
     },
     {
       id: 3,
+      investment_account_id: 2,
       security_name: 'Vanguard FTSE 100',
       ticker: 'VUKE',
       asset_type: 'uk_equity',
       quantity: 150,
-      purchase_price: 60.00,
-      current_price: 72.00,
-      current_value: 10800.00, // 150 * 72.00
-      return_percent: 20.00, // ((72.00 - 60.00) / 60.00) * 100
+      purchase_price: 60,
+      current_price: 72,
+      current_value: 10800,
+      return_percent: 20,
       ocf_percent: 0.09,
     },
   ];
 
-  it('renders table with holdings', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
+  const accounts = [
+    { id: 1, provider: 'Provider One' },
+    { id: 2, provider: 'Provider Two' },
+  ];
 
-    expect(wrapper.exists()).toBe(true);
+  const mountTable = (props = {}) => mount(HoldingsTable, {
+    props: { holdings, loading: false, accounts, ...props },
+  });
+
+  it('renders the allocation and breakdown views for current holdings', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.text()).toContain('Holdings Allocation');
+    expect(wrapper.text()).toContain('Holdings Breakdown');
     expect(wrapper.text()).toContain('Vanguard FTSE All-World');
     expect(wrapper.text()).toContain('Vanguard UK Gilt');
     expect(wrapper.text()).toContain('Vanguard FTSE 100');
   });
 
-  it('displays all required columns', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
+  it('calculates the total portfolio value', () => {
+    const wrapper = mountTable();
 
-    const text = wrapper.text();
-    expect(text).toContain('Security');
-    expect(text).toContain('Type');
-    expect(text).toContain('Quantity');
-    expect(text).toContain('Purchase Price');
-    expect(text).toContain('Current Price');
-    expect(text).toContain('Current Value');
-    expect(text).toContain('Return');
-    expect(text).toContain('OCF');
+    expect(wrapper.vm.totalValue).toBe(30075);
+    expect(wrapper.text()).toContain('£30,075');
   });
 
-  it('calculates current value correctly', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: [mockHoldings[0]], // 100 * 95.25 = 9525
-        loading: false,
-      },
-    });
+  it('sorts the visual breakdown from highest to lowest value', () => {
+    const wrapper = mountTable();
 
-    const text = wrapper.text();
-    expect(text).toMatch(/9,525|9525/);
+    expect(wrapper.vm.sortedByValue.map(holding => holding.id)).toEqual([3, 2, 1]);
   });
 
-  it('calculates return percentage correctly - positive', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: [mockHoldings[0]], // (95.25 - 80.50) / 80.50 * 100 = 18.32%
-        loading: false,
-      },
-    });
+  it('calculates each holding share from specific monetary values', () => {
+    const wrapper = mountTable();
 
-    const html = wrapper.html();
-    expect(wrapper.text()).toMatch(/18\./); // Approximately 18%
-    // Should be green for positive returns
-    expect(html).toMatch(/text-green/);
+    expect(wrapper.vm.getHoldingPercentage(holdings[2])).toBe('35.9');
+    expect(wrapper.vm.getHoldingPercentage(holdings[0])).toBe('31.7');
   });
 
-  it('calculates return percentage correctly - negative', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: [mockHoldings[1]], // (48.75 - 50.00) / 50.00 * 100 = -2.5%
-        loading: false,
-      },
-    });
+  it('uses the canonical chart palette for allocation segments', () => {
+    const wrapper = mountTable();
 
-    const html = wrapper.html();
-    expect(wrapper.text()).toMatch(/-2\.5/);
-    // Should be red for negative returns
-    expect(html).toMatch(/text-red/);
-  });
-
-  it('displays OCF percentage', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    expect(wrapper.text()).toContain('0.22');
-    expect(wrapper.text()).toContain('0.15');
-    expect(wrapper.text()).toContain('0.09');
-  });
-
-  it('displays ticker symbols', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    expect(wrapper.text()).toContain('VWRL');
-    expect(wrapper.text()).toContain('VGOV');
-    expect(wrapper.text()).toContain('VUKE');
-  });
-
-  it('sorts by column when header is clicked', async () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    // Find and click the Security column header
-    const headers = wrapper.findAll('th');
-    const securityHeader = headers.find(h => h.text().includes('Security'));
-
-    if (securityHeader) {
-      await securityHeader.trigger('click');
-      // Table should now be sorted
-      expect(wrapper.vm.sortedHoldings).toBeTruthy();
-    }
-  });
-
-  it('filters by asset type', async () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    // Simulate filtering by UK Equity
-    if (wrapper.vm.filterByType) {
-      await wrapper.vm.filterByType('uk_equity');
-      await wrapper.vm.$nextTick();
-
-      const text = wrapper.text();
-      expect(text).toContain('VUKE');
-      expect(text).not.toContain('VWRL');
-    }
-  });
-
-  it('displays total row at bottom', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toMatch(/total|sum/i);
-  });
-
-  it('calculates total portfolio value correctly', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    // (100 * 95.25) + (200 * 48.75) + (150 * 72.00) = 9525 + 9750 + 10800 = 30075
-    const text = wrapper.text();
-    expect(text).toMatch(/30,075|30075/);
-  });
-
-  it('displays Add Holding button', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    expect(wrapper.text()).toMatch(/add.*holding/i);
-  });
-
-  it('emits add-holding event when Add button clicked', async () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    const addButton = wrapper.find('button');
-    if (addButton.text().match(/add/i)) {
-      await addButton.trigger('click');
-      expect(wrapper.emitted('add-holding')).toBeTruthy();
-    }
-  });
-
-  it('emits edit-holding event with holding data', async () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    // Find edit button (assuming it's in the actions column)
-    const editButtons = wrapper.findAll('button').filter(btn =>
-      btn.html().includes('M11 5H6a2 2 0') // Edit icon SVG path
+    expect(wrapper.vm.chartColours).toEqual(CHART_COLORS);
+    expect(wrapper.vm.holdingsDonutSegments.map(segment => segment.color)).toEqual(
+      CHART_COLORS.slice(0, 3),
     );
+  });
 
-    if (editButtons.length > 0) {
-      await editButtons[0].trigger('click');
+  it('creates a donut segment for every holding', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.vm.holdingsDonutSegments).toHaveLength(3);
+    expect(wrapper.vm.holdingsDonutSegments.every(segment => segment.arcLength > 0)).toBe(true);
+  });
+
+  it('returns no donut segments when every holding has zero value', () => {
+    const wrapper = mountTable({
+      holdings: holdings.map(holding => ({ ...holding, current_value: 0 })),
+    });
+
+    expect(wrapper.vm.holdingsDonutSegments).toEqual([]);
+    expect(wrapper.vm.totalFilteredValue).toBe(0);
+  });
+
+  it('filters holdings by asset type', async () => {
+    const wrapper = mountTable();
+
+    await wrapper.setData({ selectedAssetType: 'uk_equity' });
+
+    expect(wrapper.vm.filteredHoldings).toEqual([holdings[2]]);
+    expect(wrapper.text()).toContain('Vanguard FTSE 100');
+    expect(wrapper.text()).not.toContain('Vanguard UK Gilt');
+    expect(wrapper.text()).toContain('Filtered View');
+  });
+
+  it('filters holdings by account identifier', async () => {
+    const wrapper = mountTable();
+
+    await wrapper.setData({ selectedAccountId: '1' });
+
+    expect(wrapper.vm.filteredHoldings.map(holding => holding.id)).toEqual([1, 2]);
+    expect(wrapper.text()).not.toContain('Vanguard FTSE 100');
+  });
+
+  it('combines account and asset-type filters', async () => {
+    const wrapper = mountTable();
+
+    await wrapper.setData({ selectedAccountId: '1', selectedAssetType: 'bond' });
+
+    expect(wrapper.vm.filteredHoldings).toEqual([holdings[1]]);
+  });
+
+  it('renders account filter choices supplied by the parent', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.find('#account-filter').text()).toContain('Provider One');
+    expect(wrapper.find('#account-filter').text()).toContain('Provider Two');
+  });
+
+  it('formats asset types as readable labels', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.vm.formatAssetType('international_equity')).toBe('International Equity');
+    expect(wrapper.vm.formatAssetType(null)).toBe('N/A');
+  });
+
+  it('uses semantic palette classes for positive, negative, and neutral returns', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.vm.getReturnClass(18.32)).toBe('text-spring-600');
+    expect(wrapper.vm.getReturnClass(-2.5)).toBe('text-raspberry-600');
+    expect(wrapper.vm.getReturnClass(0)).toBe('text-neutral-500');
+  });
+
+  it('formats return percentages consistently', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.vm.formatReturn(18.32)).toBe('+18.32%');
+    expect(wrapper.vm.formatReturn(-2.5)).toBe('-2.50%');
+    expect(wrapper.vm.formatReturn(0)).toBe('+0.00%');
+  });
+
+  it('calculates the simple average return of filtered holdings', async () => {
+    const wrapper = mountTable();
+    expect(wrapper.vm.averageReturn).toBeCloseTo(11.94, 2);
+
+    await wrapper.setData({ selectedAccountId: '1' });
+
+    expect(wrapper.vm.averageReturn).toBeCloseTo(7.91, 2);
+  });
+
+  it('calculates unrealised gain or loss from quantity and purchase price', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.vm.getUnrealisedGainLoss(holdings[0])).toBe(1475);
+    expect(wrapper.vm.getUnrealisedGainLoss(holdings[1])).toBe(-250);
+  });
+
+  it('provides a stable chart key based on the current values', async () => {
+    const wrapper = mountTable();
+    expect(wrapper.vm.chartKey).toBe('holdings-donut-3-30075');
+
+    await wrapper.setData({ selectedAssetType: 'bond' });
+
+    expect(wrapper.vm.chartKey).toBe('holdings-donut-1-9750');
+  });
+
+  it('emits add-holding from the primary action', async () => {
+    const wrapper = mountTable();
+    const addButton = wrapper.findAll('button').find(button => button.text().includes('Add Holding'));
+
+    await addButton.trigger('click');
+
+    expect(wrapper.emitted('add-holding')).toEqual([[]]);
+  });
+
+  it('displays the loading state without showing portfolio data', () => {
+    const wrapper = mountTable({ holdings: [], loading: true });
+
+    expect(wrapper.find('.animate-spin').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('Holdings Allocation');
+  });
+
+  it('displays the empty state and provides an add action', async () => {
+    const wrapper = mountTable({ holdings: [] });
+
+    expect(wrapper.text()).toContain('No holdings found');
+    expect(wrapper.text()).toContain('Get started by adding your first holding.');
+
+    await wrapper.findAll('button').find(button => button.text().includes('Add Holding')).trigger('click');
+    expect(wrapper.emitted('add-holding')).toEqual([[]]);
+  });
+
+  it('uses a filter-specific empty message when no holdings match', async () => {
+    const wrapper = mountTable();
+
+    await wrapper.setData({ selectedAssetType: 'cash' });
+
+    expect(wrapper.text()).toContain('No holdings match the selected filters.');
+  });
+
+  /**
+   * W-0442 — the table itself.
+   *
+   * Every case above this point asserts a computed or a method through `vm`.
+   * Not one of them asserted a rendered row, which is how the table sat
+   * unreachable behind a duplicated `v-else-if` for five months while a
+   * twenty-one case suite named after it stayed green.
+   */
+  describe('the rendered table (W-0442)', () => {
+    it('renders the table itself, not only the chart, when holdings exist', () => {
+      const wrapper = mountTable();
+
+      // The discriminating assertion: with the duplicated `v-else-if` this was
+      // false, because the chart branch above consumed the same condition.
+      expect(wrapper.find('table').exists()).toBe(true);
+      expect(wrapper.findAll('tbody tr').length).toBeGreaterThan(0);
+    });
+
+    it('shows the purchase price, current price and units the table stores', () => {
+      const wrapper = mountTable();
+      // Located by content, not by index: the table sorts by security name by
+      // default, so row 0 is not the first fixture entry.
+      const row = wrapper.findAll('tbody tr')
+        .find(tr => tr.text().includes('Vanguard FTSE All-World'))
+        .text();
+
+      // Every figure below is mutually distinct within the fixture — 100 units,
+      // £80.50 in, £95.25 now, £9,525 held — so no two can stand in for each
+      // other and a column reading the wrong field cannot pass.
+      expect(row).toContain('100');
+      expect(row).toContain('£80.50');
+      expect(row).toContain('£95.25');
+      expect(row).toContain('£9,525');
+      // £80.50 and £95.25 in full: `formatCurrency` rounds to whole pounds, which
+      // for a UNIT price destroys the figure — the persona's L&G UK Property is
+      // £1.35 in and £1.28 now, and both rendered as "£1".
+    });
+
+    it('renders the unit count from quantity rather than a placeholder', () => {
+      const wrapper = mountTable();
+      const units = wrapper.findAll('[data-testid="holding-units"]').map(cell => cell.text());
+
+      // 100 / 200 / 150 — the fixture's three unit counts, all distinct from each
+      // other and from every price and value in the same rows. Sorted, because
+      // the assertion is about which values reach the column, not their order.
+      expect([...units].sort()).toEqual(['100', '150', '200']);
+    });
+
+    it('offers per-row edit and delete, which only the table carries', async () => {
+      const wrapper = mountTable();
+      const buttons = wrapper.findAll('tbody tr button');
+
+      expect(buttons.length).toBeGreaterThan(0);
+
+      await buttons[0].trigger('click');
       expect(wrapper.emitted('edit-holding')).toBeTruthy();
-      // Should emit the first holding in the sorted list (sorted by security_name by default)
-      const emittedHolding = wrapper.emitted('edit-holding')[0][0];
-      expect(emittedHolding).toBeTruthy();
-      expect(emittedHolding.id).toBeTruthy();
-    }
-  });
-
-  it('emits delete-holding event with holding data', async () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
     });
 
-    // Find delete button (assuming it's in the actions column)
-    const deleteButtons = wrapper.findAll('button').filter(btn =>
-      btn.html().includes('M19 7l-.867') // Delete icon SVG path
-    );
+    it('still shows the chart and legend alongside the table', () => {
+      // The fix must not have swapped one unreachable branch for another.
+      const wrapper = mountTable();
 
-    if (deleteButtons.length > 0) {
-      await deleteButtons[0].trigger('click');
-      expect(wrapper.emitted('delete-holding')).toBeTruthy();
-      // Should emit the first holding in the sorted list
-      const emittedHolding = wrapper.emitted('delete-holding')[0][0];
-      expect(emittedHolding).toBeTruthy();
-      expect(emittedHolding.id).toBeTruthy();
-    }
-  });
-
-  it('displays loading state', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: [],
-        loading: true,
-      },
+      expect(wrapper.text()).toContain('Holdings Allocation');
+      expect(wrapper.text()).toContain('Holdings Breakdown');
+      expect(wrapper.find('table').exists()).toBe(true);
     });
 
-    const html = wrapper.html();
-    expect(html).toMatch(/loading|spinner|animate-spin/i);
-  });
+    it('shows no table at all when there are no holdings', () => {
+      const wrapper = mountTable({ holdings: [] });
 
-  it('displays empty state when no holdings', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: [],
-        loading: false,
-      },
+      expect(wrapper.find('table').exists()).toBe(false);
+      expect(wrapper.text()).toContain('No holdings found');
     });
-
-    const text = wrapper.text();
-    expect(text).toMatch(/no holdings|add your first|empty/i);
-  });
-
-  it('expands row for detailed info', async () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    // Click on a row to expand (implementation may vary)
-    const rows = wrapper.findAll('tr');
-    if (rows.length > 1) {
-      await rows[1].trigger('click');
-      // Should show expanded content with additional details
-      await wrapper.vm.$nextTick();
-      // Check if expanded state is active
-      if (wrapper.vm.expandedRows) {
-        expect(wrapper.vm.expandedRows.length).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it('displays asset type labels correctly', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    const text = wrapper.text();
-    // Should display human-readable asset type labels
-    expect(text).toMatch(/equity|bond/i);
-  });
-
-  it('handles holdings without ticker', () => {
-    const holdingWithoutTicker = {
-      ...mockHoldings[0],
-      ticker: null,
-    };
-
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: [holdingWithoutTicker],
-        loading: false,
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
-  });
-
-  it('handles holdings without OCF', () => {
-    const holdingWithoutOCF = {
-      ...mockHoldings[0],
-      ocf_percent: null,
-    };
-
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: [holdingWithoutOCF],
-        loading: false,
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
-  });
-
-  it('formats currency values with GBP symbol', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    const text = wrapper.text();
-    expect(text).toContain('£');
-  });
-
-  it('applies responsive classes for mobile', () => {
-    const wrapper = mount(HoldingsTable, {
-      props: {
-        holdings: mockHoldings,
-        loading: false,
-      },
-    });
-
-    const html = wrapper.html();
-    // Should have responsive overflow for mobile
-    expect(html).toMatch(/overflow-x-auto|overflow-scroll/);
   });
 });

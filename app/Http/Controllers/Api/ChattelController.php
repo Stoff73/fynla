@@ -12,6 +12,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Chattel;
 use App\Services\Chattel\ChattelCGTService;
 use App\Services\NetWorth\NetWorthService;
+use App\Support\SharedOwnership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -73,14 +74,13 @@ class ChattelController extends Controller
         $validated['user_id'] = $user->id;
         $validated['household_id'] = $validated['household_id'] ?? $user->household_id;
         $validated['ownership_type'] = $validated['ownership_type'] ?? 'individual';
-        $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 100.00;
         $validated['valuation_date'] = $validated['valuation_date'] ?? now();
         $validated['country'] = $validated['country'] ?? 'United Kingdom';
 
-        // For joint ownership, default to 50/50 split if not specified
-        if (in_array($validated['ownership_type'], ['joint']) && $validated['ownership_percentage'] == 100.00) {
-            $validated['ownership_percentage'] = 50.00;
-        }
+        // The share comes from the ONE shared rule (App\Support\SharedOwnership),
+        // like property, investment, savings and mortgages. The copy that used to
+        // live here handled 'joint' but not 'tenants_in_common'.
+        $validated = SharedOwnership::applyTo($validated);
 
         $chattel = Chattel::create($validated);
         $chattel->load(['jointOwner', 'trust']);
@@ -149,14 +149,14 @@ class ChattelController extends Controller
         $ownershipType = $validated['ownership_type'] ?? $chattel->ownership_type;
         $jointOwnerId = $validated['joint_owner_id'] ?? $chattel->joint_owner_id;
 
-        if ($ownershipType === 'joint' && $jointOwnerId) {
-            // Switching to joint or already joint - default to 50% if not specified
-            if (! isset($validated['ownership_percentage'])) {
-                $validated['ownership_percentage'] = 50.00;
-            }
+        if (SharedOwnership::isShared($ownershipType) && $jointOwnerId) {
+            $validated['ownership_type'] = $ownershipType;
+            // The stored record, so an update that says nothing about the split
+            // keeps the share already on it (W-0040).
+            $validated = SharedOwnership::applyTo($validated, $ownershipType, $chattel);
         } elseif ($ownershipType === 'individual') {
             // Switching to individual - reset to 100%
-            $validated['ownership_percentage'] = 100.00;
+            $validated['ownership_percentage'] = SharedOwnership::INDIVIDUAL_PERCENTAGE;
             $validated['joint_owner_id'] = null;
         }
 
@@ -205,7 +205,16 @@ class ChattelController extends Controller
             $this->netWorthService->invalidateCache($jointOwnerId);
         }
 
-        return response()->noContent();
+        // The house convention for a delete is 200 with a success body (see
+        // SavingsController::destroyAccount, PropertyController::destroy and
+        // app/Http/CLAUDE.md). This returned noContent() against the declared
+        // : JsonResponse type, so every delete removed the row and THEN threw a
+        // TypeError — the user was shown an error for an action that had already
+        // succeeded, and would reasonably retry (W-0041).
+        return response()->json([
+            'success' => true,
+            'message' => 'Chattel deleted successfully',
+        ]);
     }
 
     /**

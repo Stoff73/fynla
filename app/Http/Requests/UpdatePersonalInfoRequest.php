@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Constants\ProfileEnums;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,19 @@ class UpdatePersonalInfoRequest extends FormRequest
                 'phone' => preg_replace('/[\s\-]/', '', $this->phone),
             ]);
         }
+
+        // The Health & Lifestyle selects submit '' for "Select...", which the
+        // global ConvertEmptyStringsToNull middleware turns into null before we
+        // see it. Drop the key rather than validating it: an unanswered select
+        // means "leave it alone", and null cannot be written to smoking_status,
+        // which is NOT NULL.
+        $input = $this->all();
+        foreach (ProfileEnums::OPTIONAL_SELECT_FIELDS as $field) {
+            if (array_key_exists($field, $input) && ($input[$field] === null || $input[$field] === '')) {
+                unset($input[$field]);
+            }
+        }
+        $this->replace($input);
     }
 
     /**
@@ -54,9 +68,14 @@ class UpdatePersonalInfoRequest extends FormRequest
             'county' => ['sometimes', 'nullable', 'string', 'max:255'],
             'postcode' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i'],
             'phone' => ['sometimes', 'nullable', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'],
-            'good_health' => ['sometimes', 'nullable', 'boolean'],
-            'smoker' => ['sometimes', 'nullable', 'boolean'],
-            'education_level' => ['sometimes', 'nullable', Rule::in(['secondary', 'a_level', 'undergraduate', 'postgraduate', 'doctorate', 'foundation', 'hnd', 'professional', 'other'])],
+            // All three compose from ProfileEnums, which a test pins to the live
+            // column definitions. Hand-written copies here drifted twice: once
+            // naming columns that do not exist (W-0006) and once allowing three
+            // education levels the column cannot hold, which 500d (W-0031).
+            'health_status' => ['sometimes', 'nullable', Rule::in(ProfileEnums::HEALTH_STATUSES)],
+            // Not nullable: `users.smoking_status` is NOT NULL DEFAULT 'never'.
+            'smoking_status' => ['sometimes', Rule::in(ProfileEnums::SMOKING_STATUSES)],
+            'education_level' => ['sometimes', 'nullable', Rule::in(ProfileEnums::EDUCATION_LEVELS)],
             'charitable_bequest' => ['sometimes', 'nullable', 'boolean'],
             'is_registered_blind' => ['nullable', 'boolean'],
             'life_expectancy_override' => ['sometimes', 'nullable', 'integer', 'min:60', 'max:110'],

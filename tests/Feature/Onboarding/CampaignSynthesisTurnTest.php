@@ -36,10 +36,21 @@ it('routes the campaign to a synthesis advice state before the terminal state', 
     expect($states)->toHaveKey(OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS)
         ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['turn_type'])->toBe('advice')
         ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['advice_section'])->toBe('synthesis')
-        ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['next'])->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL);
+        // C3 fix: synthesis next is now campaign-aware; a callable ref routes savetax →
+        // campaign_terminal and pensioncheck → campaign2_terminal via nextFromCampaignSynthesis.
+        ->and($states[OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS]['next'])
+        ->toContain('nextFromCampaignSynthesis');
+
+    // Verify the routing for both campaigns.
+    $savetaxUser = User::factory()->create(['onboarding_fyn_selection' => 'savetax']);
+    $pensioncheckUser = User::factory()->create(['onboarding_fyn_selection' => 'pensioncheck']);
+    expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $savetaxUser))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL)
+        ->and(OnboardingStateMachine::nextFromCampaignSynthesis('', $pensioncheckUser))
+        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_TERMINAL);
 });
 
-it('voices a numbered plan with a combined total, conflict notes, and one locked tease', function () {
+it('voices a bulleted plan that mirrors the /tax-strategy dashboard (no numbering, no locked tease)', function () {
     $user = User::factory()->create([
         'date_of_birth' => '1982-02-19', 'marital_status' => 'married',
         'employment_status' => 'full_time', 'annual_employment_income' => 110000,
@@ -52,13 +63,14 @@ it('voices a numbered plan with a combined total, conflict notes, and one locked
     $text = synthesisInvokeSectionAdvice($user->fresh(), 'synthesis');
 
     expect($text)->not->toBeNull()
-        ->and($text)->toContain('1.')                        // numbered plan
-        ->and($text)->toMatch('/Together these .*£[\d,]+/') // combined total line
+        ->and($text)->toContain('- ')                        // markdown bullets, like every other recap screen
+        ->and($text)->toMatch('/Together these .*£[\d,]+/')  // combined total line
         ->and($text)->toContain('qualified financial adviser'); // FCA signposting
 
-    // Locked tease: this user has no pension records → at least one locked
-    // strategy exists → exactly ONE tease line (array_slice($locked, 0, 1)).
-    expect(substr_count((string) $text, 'One more strategy is waiting — tell me about your'))->toBe(1);
+    // The /tax-strategy dashboard renders ONLY composed_plan.items — never the
+    // locked strategies. The chat summary must match the page the user taps
+    // straight through to, so the "one more strategy is waiting" tease is gone.
+    expect($text)->not->toContain('One more strategy is waiting');
 });
 
 it('persists the voiced synthesis to ai_messages so /tax-strategy shows exactly what was said (A4)', function () {
@@ -101,8 +113,18 @@ it('persists the voiced synthesis to ai_messages so /tax-strategy shows exactly 
         ->and($row->metadata['onboarding_step'])->toBe($stateId);
 });
 
-it('returns null synthesis for a user with no strategies so the turn stays silent', function () {
-    $user = User::factory()->create(['annual_employment_income' => 0, 'monthly_expenditure' => 0]);
+it('degrades to a sensible closing line for a user with no strategies', function () {
+    // D1 Fix 6 — the final recap turn previously fell silent (null) when the plan
+    // had no items; it must instead voice an honest forward-looking line.
+    $user = User::factory()->create([
+        'annual_employment_income' => 0,
+        'monthly_expenditure' => 0,
+        'first_name' => 'Alex',
+    ]);
 
-    expect(synthesisInvokeSectionAdvice($user->fresh(), 'synthesis'))->toBeNull();
+    $text = synthesisInvokeSectionAdvice($user->fresh(), 'synthesis');
+
+    expect($text)->not->toBeNull()
+        ->and($text)->toContain('Alex')
+        ->and($text)->toContain('tax strategy'); // savetax default campaign
 });

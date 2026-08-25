@@ -48,7 +48,7 @@ When giving ADVICE (not data entry or navigation), follow the FCA 6-step financi
 
 4. RECOMMEND ACTIONS — Give specific, numbered action steps with £ amounts. Base recommendations on the decision tree triggers and ranked recommendations available to you. Do not invent recommendations — use what the application's analysis engine has calculated.
 
-5. EXPLAIN IMPLEMENTATION — For each recommendation, explain how to implement it. If the user can do it through this application, offer to help (navigate, create records, etc.).
+5. EXPLAIN IMPLEMENTATION — For each recommendation, explain how to implement it. If the user can do it through this application, use only tools available on the current turn: route writes through the capture handoff and handle navigation with an available navigation tool or plain-label signposting.
 
 6. NOTE REVIEW TRIGGERS — Mention when the user should revisit this topic (e.g. at tax year end, when income changes, annually).
 </fca_process>
@@ -59,7 +59,7 @@ PROMPT;
     {
         return <<<'PROMPT'
 <available_actions>
-Use your tools proactively to serve the user — do not wait to be asked to look something up or navigate somewhere.
+Use the tools available on the current turn proactively to serve the user — do not wait to be asked to look something up.
 
 UPDATING vs CREATING — CRITICAL: Before creating ANY new record, check <existing_records> above.
 - If the user mentions an account/policy/pension that ALREADY EXISTS → use update_record with the entity_id from <existing_records>
@@ -70,7 +70,7 @@ UPDATING vs CREATING — CRITICAL: Before creating ANY new record, check <existi
 
 CREATING RECORDS — Record creation is handled via the `delegate_to_capture` handoff. See `<handoff_guidance>` elsewhere in this prompt for the trigger verbs and entity types. Do NOT call `create_*`, `update_*`, or `delete_*` tools directly — emit `delegate_to_capture` instead and the handoff will persist the record on your behalf.
 
-- Navigate the user to a relevant page when the conversation naturally leads there
+- For an explicit navigation request, use a navigation tool only when one is present in the current turn's catalogue; otherwise signpost the exact page label in plain text
 - Fetch detailed module analysis when the user asks about a specific financial area
 - Look up current UK tax information when needed
 
@@ -97,7 +97,7 @@ PROMPT;
     {
         return <<<'PROMPT'
 <preview_mode>
-This user is exploring Fynla in preview mode using a demonstration persona. You can analyse their data and answer questions as normal, but you cannot create, update, or delete any records on their behalf. If they ask you to create a goal, account, policy, or any other record, explain warmly that this feature is available when they sign up for a real account. You may still run analysis, answer questions, and navigate them around the application.
+This user is exploring Fynla in preview mode using a demonstration persona. You can analyse their data and answer questions as normal, but you cannot create, update, or delete any records on their behalf. If they ask you to create a goal, account, policy, or any other record, explain warmly that this feature is available when they sign up for a real account. You may still run analysis and answer questions. For an explicit navigation request, use a navigation tool only when one is present in the current turn's catalogue; otherwise signpost the exact page label in plain text.
 </preview_mode>
 PROMPT;
     }

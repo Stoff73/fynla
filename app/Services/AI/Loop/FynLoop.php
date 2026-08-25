@@ -19,6 +19,7 @@ use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Shared per-turn chat loop (CoALA Phase 5 items 4 + 5, Option B).
@@ -74,9 +75,11 @@ final class FynLoop
      * template, so for a normal question the planner chooses `reason`.
      */
     private const PLANNER_SYSTEM_PROMPT = <<<'PROMPT'
-        You are Fyn's turn planner. Read the user's latest message and choose the single next action for this turn by calling the `plan` tool exactly once.
+        You are Fyn's turn planner. Read the conversation so far, then choose the single next action for the user's latest message by calling the `plan` tool exactly once.
 
         - For a normal question, request, or anything you can answer or act on now, choose `reason`.
+        - A short or fragmentary message is usually the user ANSWERING the question in the previous assistant turn (for example "yes", "workplace", "45000", "the second one"). Read it in that context and choose `reason` — never discard an answer as unactionable.
+        - When the user states a fact about their own finances or household, or asks you to record, save, add, update or correct one ("record that I donate £2,400 a year", "my wife is Meg, born 1975", "I spend £5,000 a month"), choose `reason`. That is a database write and the reasoner performs the handoff that makes it. NEVER choose `learn` for it: `learn` stages a note about how to help this user, it does not record their data, and choosing it here loses the user's answer.
         - Choose `no_action` only when you genuinely cannot proceed this turn.
 
         Do not write any prose. Emit exactly one `plan` tool call.
@@ -104,6 +107,7 @@ final class FynLoop
      *
      * @param  ?array<int, array<string, mixed>>  $allowedTools
      * @param  ?array<int, array<string, mixed>>  $toolsListOverride
+     * @param  ?array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}  $verifyEditScope
      * @return \Generator<array<string, mixed>>
      */
     public function stream(
@@ -117,9 +121,29 @@ final class FynLoop
         bool $persistUserMessage = true,
         ?array $toolsListOverride = null,
         ?string $unifiedFocus = null,
+        ?array $verifyEditScope = null,
+        ?string $providerOverride = null,
+        ?array $confirmedFacts = null,
+        ?string $explicitEditEntityType = null,
+        ?int $explicitEditRecordId = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
+        if ($verifyEditScope !== null) {
+            $this->coordinatingAgent->setVerifyEditScope($verifyEditScope);
+        }
+        if ($explicitEditEntityType !== null) {
+            // Same instance-pairing discipline as the focus above. Marks this turn as
+            // the user ANSWERING Fyn's own outstanding question about that entity, so
+            // amending the record is explicit rather than assumed (CSJ 2026-08-17).
+            $this->coordinatingAgent->setExplicitEditEntityType($explicitEditEntityType, $explicitEditRecordId);
+        }
+        if ($confirmedFacts !== null && $confirmedFacts !== []) {
+            // Same instance-pairing discipline as the focus above:
+            // CoordinatingAgent is container-transient, so facts set on a
+            // caller's own instance never reach the streamed tool dispatch.
+            $this->coordinatingAgent->setConfirmedCaptureFacts($confirmedFacts);
         }
 
         try {
@@ -133,10 +157,20 @@ final class FynLoop
                 persistUserMessage: $persistUserMessage,
                 toolsListOverride: $toolsListOverride,
                 personaOverride: $persona,
+                providerOverride: $providerOverride,
             );
         } finally {
             if ($unifiedFocus !== null) {
                 $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+            }
+            if ($verifyEditScope !== null) {
+                $this->coordinatingAgent->setVerifyEditScope(null);
+            }
+            if ($confirmedFacts !== null && $confirmedFacts !== []) {
+                $this->coordinatingAgent->setConfirmedCaptureFacts(null);
+            }
+            if ($explicitEditEntityType !== null) {
+                $this->coordinatingAgent->setExplicitEditEntityType(null);
             }
         }
     }
@@ -162,6 +196,7 @@ final class FynLoop
         ?string $currentRoute,
         ?array $allowedTools,
         bool $persistUserMessage = true,
+        ?string $systemPromptOverride = null,
     ): \Generator {
         $retrieveCount = 0;
         $cap = $this->cycleCap($mode);
@@ -178,7 +213,7 @@ final class FynLoop
         for ($cycle = 1; $cycle <= $cap; $cycle++) {
             $action = $this->planner->plan(
                 $plannerSystem,
-                [['role' => 'user', 'content' => $message]],
+                $this->plannerMessages($conversation, $message),
             );
 
             // FR-M11 — attribute the planner's own LLM call (stage=planner).
@@ -211,7 +246,7 @@ final class FynLoop
                         continue 2;
                     }
 
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -223,7 +258,7 @@ final class FynLoop
                     // emits and GroundGate-gates the tool itself. v1 ships one
                     // reasoning template = today's default prompt (no override),
                     // so the reason path is byte-identical to the pre-planner turn.
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -382,6 +417,7 @@ final class FynLoop
         ?string $currentRoute,
         ?array $allowedTools,
         bool $persistUserMessage = true,
+        ?string $systemPromptOverride = null,
     ): \Generator {
         $upstream = $this->stream(
             $user,
@@ -389,11 +425,57 @@ final class FynLoop
             $message,
             $currentRoute,
             $mode->persona(),
+            systemPromptOverride: $systemPromptOverride,
             allowedTools: $allowedTools,
             persistUserMessage: $persistUserMessage,
         );
 
         yield from $this->interceptHandoff($upstream, $user, $conversation, $message, $currentRoute);
+    }
+
+    /** How many prior turns the planner sees. Enough for a question-and-answer pair. */
+    private const PLANNER_HISTORY_TURNS = 6;
+
+    /** Per-message cap so history cannot inflate the planner's input cost. */
+    private const PLANNER_HISTORY_CHARS = 600;
+
+    /**
+     * Build the planner's message list: recent conversation history, then the
+     * user's current message last.
+     *
+     * BUG-02 (2026-08-17): this used to be `[['role' => 'user', 'content' => $message]]`
+     * — the latest message and nothing else. A terse answer to a question Fyn had
+     * just asked ("Sip", "yes", "workplace", "45000") therefore reached the planner
+     * with no context, so it decided it could not proceed, returned `no_action`, and
+     * the answer was discarded behind the canonical defer line. Reproduced live: the
+     * user answered "Sip" to Fyn's own scheme-type question and nothing was
+     * persisted, not even the user message.
+     *
+     * @return list<array<string, string>>
+     */
+    private function plannerMessages(AiConversation $conversation, string $message): array
+    {
+        $history = $conversation->messages()
+            ->whereIn('role', ['user', 'assistant'])
+            ->latest('id')
+            ->limit(self::PLANNER_HISTORY_TURNS)
+            ->get()
+            ->reverse()
+            ->map(fn ($row): array => [
+                'role' => (string) $row->role,
+                'content' => Str::limit((string) $row->content, self::PLANNER_HISTORY_CHARS),
+            ])
+            ->values()
+            ->all();
+
+        // The turn being planned. `run()` may or may not have persisted it yet
+        // (see $persistUserMessage), so append it unless it is already the tail.
+        $last = end($history);
+        if ($last === false || $last['role'] !== 'user' || $last['content'] !== $message) {
+            $history[] = ['role' => 'user', 'content' => $message];
+        }
+
+        return $history;
     }
 
     /**

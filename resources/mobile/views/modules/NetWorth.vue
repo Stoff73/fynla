@@ -17,9 +17,20 @@
         <p class="m-hero-sub">{{ fmt(totalAssets) }} in assets, less {{ fmt(totalLiabilities) }} of liabilities.</p>
       </div>
 
-      <p v-if="hasDbPensions" class="m-sub mnw-note">
-        Defined Benefit pensions are excluded from net worth — they provide a guaranteed income rather than accessible capital.
-      </p>
+      <!-- The wording comes from the backend (`App\Constants\PensionDisclosure`),
+           not from here. Three surfaces each held their own copy of this sentence,
+           which is how they drift (Rule 20, W-0241). -->
+      <p v-if="dbPensionDisclosure" class="m-sub mnw-note">{{ dbPensionDisclosure }}</p>
+
+      <div class="m-card mnw-history">
+        <div>
+          <p class="mnw-history__title">Recorded balance history</p>
+          <p class="mnw-history__meta">Track how your recorded balances change over time.</p>
+        </div>
+        <button type="button" class="mnw-history__button" data-testid="recorded-history-link" @click="openHistory">View balance history</button>
+      </div>
+
+      <NetWorthForecast />
 
       <!-- Assets -->
       <div class="m-card">
@@ -66,7 +77,9 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import NetWorthForecast from '../../components/NetWorthForecast.vue';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -79,19 +92,20 @@ const ASSET_LABELS = {
   pensions: 'Pensions',
   cash: 'Cash & savings',
   business: 'Business interests',
-  chattels: 'Possessions',
+  chattels: 'Valuables',
 };
 const ASSET_ORDER = ['property', 'investments', 'pensions', 'cash', 'business', 'chattels'];
 
 export default {
   name: 'MobileNetWorth',
-  components: { MobileChrome },
+  components: { MobileChrome, NetWorthForecast },
   data: () => ({ loading: true, error: '', overview: null, detailed: null }),
   computed: {
     netWorth() { return this.overview?.net_worth ?? 0; },
     totalAssets() { return this.overview?.total_assets ?? 0; },
     totalLiabilities() { return this.overview?.total_liabilities ?? 0; },
     hasDbPensions() { return !!this.overview?.has_db_pensions; },
+    dbPensionDisclosure() { return this.overview?.db_pension_disclosure || ''; },
     assetCategories() {
       const detailed = this.detailed || {};
       const cats = [];
@@ -111,6 +125,7 @@ export default {
     fmt(v) { return formatCurrency(v); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     openCategory(key) { this.$router.push(`/net-worth/${key}`); },
+    openHistory() { this.$router.push('/net-worth/history'); },
     async load() {
       this.loading = true;
       this.error = '';
@@ -121,10 +136,12 @@ export default {
           apiGet('/api/net-worth/overview', store.token),
           apiGet('/api/net-worth/assets-summary-detailed', store.token),
         ]);
+        if (handleAuthExpiry(ov, this.$router)) return;
+        if (handleAuthExpiry(det, this.$router)) return;
         if (ov.ok) this.overview = ov.data?.data || ov.data || {};
         else this.error = ov.data?.message || 'We could not load your net worth.';
         if (det.ok) this.detailed = det.data?.data || det.data || {};
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
@@ -136,6 +153,10 @@ export default {
 
 <style scoped>
 .mnw-note { margin: -4px 4px 14px; font-size: 13px; line-height: 1.5; color: var(--neutral-600); }
+.mnw-history { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mnw-history__title { color: var(--horizon-500); font-size: 15px; font-weight: 700; }
+.mnw-history__meta { color: var(--neutral-500); font-size: 12px; margin-top: 2px; }
+.mnw-history__button { background: transparent; border: 0; color: var(--raspberry-500); cursor: pointer; flex-shrink: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .mnw-cat {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; text-align: left; background: transparent; border: 0; cursor: pointer;

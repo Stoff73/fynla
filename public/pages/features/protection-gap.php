@@ -86,7 +86,7 @@
           Most people have some life insurance through work but don&rsquo;t know if it&rsquo;s enough. Fynla calculates the gap between what your family would need and what they&rsquo;d actually get.
         </p>
         <div class="feat-hero__actions">
-          <a href="/register" class="feat-btn-primary">Start your free trial</a>
+          <a href="/register" class="feat-btn-primary">Create your free account</a>
           <a href="/how-it-works" class="feat-btn-secondary">See how it works</a>
         </div>
       </div>
@@ -296,7 +296,7 @@
       'heading' => 'The Number You Don\'t Want to Need — But Need to Know',
       'subtext' => 'It takes 10 minutes to see your family\'s protection gap. The demo uses sample data so you can explore without entering personal details.',
       'actions' => [
-        ['text' => 'Start your free trial', 'href' => '/register', 'primary' => true],
+        ['text' => 'Create your free account', 'href' => '/register', 'primary' => true],
         ['text' => 'Try the demo',          'href' => '/register', 'primary' => false],
       ],
     ];

@@ -454,6 +454,8 @@
       :holding="editingHolding"
       :accounts="[account]"
       :default-account-id="account.id"
+      :save-error="holdingSaveError"
+      :field-errors="holdingFieldErrors"
       @close="closeHoldingModal"
       @save="handleHoldingSave"
     />
@@ -534,6 +536,12 @@ export default {
       showEditModal: false,
       showDeleteConfirm: false,
       showHoldingModal: false,
+      holdingSaveError: null,
+      // A 422 carries the useful part in `errors`, keyed by field. HoldingForm
+      // renders each one beside the field that caused it; `save-error` alone is
+      // the generic "The given data was invalid." at the top of a modal the user
+      // has scrolled past to reach the submit button (W-0261).
+      holdingFieldErrors: null,
       editingHolding: null,
 
       // Projection data
@@ -596,24 +604,11 @@ export default {
       return this.holdingsCount > 0;
     },
 
+    // The contribution the projection actually used, read from the projection itself.
+    // ContributionEstimatorService is the one home for this rule; recomputing it here
+    // let the card and the chart beside it disagree about the same money.
     estimatedMonthlyContribution() {
-      if (this.account.monthly_contribution_amount > 0) {
-        const amount = this.account.monthly_contribution_amount;
-        const frequency = this.account.contribution_frequency || 'monthly';
-        switch (frequency) {
-          case 'quarterly': return amount / 3;
-          case 'annually': return amount / 12;
-          default: return amount;
-        }
-      }
-      const ytd = this.account.contributions_ytd || 0;
-      if (ytd <= 0) return 0;
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const taxYearStart = new Date(currentYear, 3, 6);
-      if (now < taxYearStart) taxYearStart.setFullYear(currentYear - 1);
-      const monthsElapsed = Math.max(1, Math.ceil((now - taxYearStart) / (1000 * 60 * 60 * 24 * 30)));
-      return ytd / monthsElapsed;
+      return this.allProjections?.estimated_monthly_contribution ?? 0;
     },
 
     isaRemaining() {
@@ -1149,12 +1144,16 @@ export default {
 
     openHoldingModal(holding = null) {
       this.editingHolding = holding;
+      this.holdingSaveError = null;
+      this.holdingFieldErrors = null;
       this.showHoldingModal = true;
     },
 
     closeHoldingModal() {
       this.showHoldingModal = false;
       this.editingHolding = null;
+      this.holdingSaveError = null;
+      this.holdingFieldErrors = null;
     },
 
     async handleHoldingSave(holdingData) {
@@ -1171,7 +1170,12 @@ export default {
         await this.fetchInvestmentData();
         this.$emit('updated');
       } catch (error) {
+        // The modal stays open and says so, rather than closing on a discarded
+        // edit (W-0009).
         logger.error('Error saving holding:', error);
+        this.holdingSaveError = error.response?.data?.message
+          || 'Failed to save the holding. Please try again.';
+        this.holdingFieldErrors = error.response?.data?.errors || null;
       }
     },
   },

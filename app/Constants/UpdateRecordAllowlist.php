@@ -45,20 +45,45 @@ final class UpdateRecordAllowlist
         ],
         'savings_account' => [
             'account_name', 'account_type', 'institution', 'current_balance',
-            'interest_rate', 'access_type',
+            'interest_rate', 'access_type', 'isa_subscription_amount',
+            'regular_contribution_amount', 'contribution_frequency',
         ],
         'investment_account' => [
             'account_name', 'account_type', 'provider', 'current_value',
-            'monthly_contribution_amount',
+            'monthly_contribution_amount', 'contributions_ytd',
         ],
         'dc_pension' => [
             'scheme_name', 'provider', 'current_fund_value',
             'monthly_contribution_amount', 'employee_contribution_percent',
             'employer_contribution_percent', 'retirement_age',
+            // BUG-02 (2026-08-17): pension_type was absent, so a scheme type
+            // supplied AFTER the record was created had nowhere to land —
+            // update_record dropped it as disallowed. The user answered "Sip" to
+            // Fyn's own question and the pension stayed a workplace pension while
+            // Fyn reported "Recorded — Self-Invested Personal Pension". A
+            // classification, not an identity or ownership field, so it is safe
+            // to correct.
+            'pension_type',
+            // Campaign-captured contribution fields: salary basis + salary
+            // sacrifice (occupational scheme) and the flexible-access flag
+            // (campaign2_flexible_access — closes the round-1 latent item where
+            // the "yes" branch could not persist has_flexibly_accessed).
+            'annual_salary', 'salary_sacrifice', 'has_flexibly_accessed',
         ],
         'db_pension' => [
             'scheme_name', 'accrued_annual_pension', 'normal_retirement_age',
             'pensionable_salary', 'pensionable_service_years',
+            // W-0017: the scheme type, the spouse's continuing pension, the
+            // inflation protection and the tax-free lump sum were all
+            // uncorrectable through Fyn — the only entry route /m and native
+            // have — even though PensionStore validates and writes every one.
+            'scheme_type', 'spouse_pension_percent', 'inflation_protection',
+            'revaluation_method', 'lump_sum_entitlement',
+            // W-0032: the scheme status decides whether the pension counts as
+            // income today. Leaving it off here would mean /m and native users —
+            // whose only entry route is Fyn — could state it once and never
+            // correct it, which is the gap W-0017 closed for the four above.
+            'scheme_status',
         ],
         'property' => [
             'current_value', 'property_type', 'address_line_1',
@@ -74,10 +99,16 @@ final class UpdateRecordAllowlist
         ],
         'critical_illness' => [
             'provider', 'sum_assured', 'premium_amount', 'premium_frequency',
+            // W-0026: life_insurance already allowed the end date; these two did
+            // not, and the create tool schema has never carried one. Fyn is the
+            // only entry route /m and native have, so the expiry date of a
+            // critical illness or income protection policy could not be recorded
+            // there at all. The end date drives coverage-expiry modelling.
+            'policy_end_date',
         ],
         'income_protection' => [
             'provider', 'benefit_amount', 'premium_amount', 'premium_frequency',
-            'deferred_period_weeks',
+            'deferred_period_weeks', 'policy_end_date',
         ],
         'estate_asset' => [
             'asset_name', 'asset_type', 'current_value',
@@ -98,7 +129,7 @@ final class UpdateRecordAllowlist
         ],
         'business_interest' => [
             'business_name', 'ownership_percentage', 'current_valuation',
-            'annual_revenue', 'annual_profit',
+            'annual_revenue', 'annual_profit', 'company_number',
         ],
         'chattel' => [
             'name', 'description', 'current_value', 'chattel_type',

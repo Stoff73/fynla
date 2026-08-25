@@ -88,7 +88,7 @@
                 </div>
                 <div class="tax-rate-item">
                   <p class="rate-label">Income Tax (Interest in Possession)</p>
-                  <p class="rate-value">20% other income, 8.75% dividends</p>
+                  <p class="rate-value">20% other income, 10.75% dividends</p>
                 </div>
                 <div class="tax-rate-item">
                   <p class="rate-label">Capital Gains Tax</p>
@@ -159,7 +159,7 @@
                       <span class="text-xs text-neutral-500">({{ charge.months_until_charge }} months)</span>
                     </td>
                     <td>{{ formatCurrency(charge.trust_value) }}</td>
-                    <td class="font-semibold text-red-600">{{ formatCurrency(charge.estimated_charge) }}</td>
+                    <td class="font-semibold text-raspberry-600">{{ formatCurrency(charge.estimated_charge) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -180,7 +180,7 @@
                   <p class="return-type">{{ taxReturn.trust_type }}</p>
                 </div>
                 <div class="return-due">
-                  <p :class="{ 'text-red-600': taxReturn.is_overdue }">
+                  <p :class="{ 'text-raspberry-600': taxReturn.is_overdue }">
                     {{ formatDate(taxReturn.return_due_date) }}
                   </p>
                   <p class="return-days">
@@ -261,7 +261,7 @@ export default {
           type: 'interest_in_possession',
           name: 'Interest in Possession',
           description: 'Life tenant receives all income, capital passes to remaindermen.',
-          incomeTax: '20% / 8.75% (dividends)',
+          incomeTax: '20% / 10.75% (dividends)',
           iht: 'May be in life tenant\'s estate',
           isRPT: false,
         },
@@ -560,10 +560,10 @@ export default {
 
 /* Error State */
 .error-state {
-  @apply bg-red-50 border border-red-200;
+  @apply bg-raspberry-50 border border-raspberry-200;
   border-radius: 8px;
   padding: 16px;
-  @apply text-red-800;
+  @apply text-raspberry-700;
   margin-bottom: 24px;
 }
 
@@ -760,19 +760,19 @@ export default {
   padding: 4px 8px;
   font-size: 11px;
   font-weight: 500;
-  @apply bg-blue-50 text-blue-700;
+  @apply bg-light-blue-100 text-horizon-500;
   border-radius: 9999px;
 }
 
 /* IHT Charges Info */
 .iht-charges-info {
-  @apply bg-blue-50;
+  @apply bg-light-blue-100;
   border-radius: 8px;
   padding: 16px;
 }
 
 .iht-charges-info .section-title {
-  @apply text-blue-700;
+  @apply text-horizon-500;
 }
 
 .charges-grid {

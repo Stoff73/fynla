@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Decision Tree Visualiser</title>
+<style>
+  /* === FYNLA DESIGN SYSTEM v1.2.0 TOKENS === */
+  :root {
+    /* Primary */
+    --raspberry-50: #FDF2F8; --raspberry-100: #FCE7F3; --raspberry-200: #F9A8D4;
+    --raspberry-300: #F472B6; --raspberry-400: #EC4899; --raspberry-500: #E83E6D;
+    --raspberry-600: #DB2777; --raspberry-700: #BE185D;
+    --horizon-50: #F8FAFC; --horizon-100: #F1F5F9; --horizon-200: #E2E8F0;
+    --horizon-300: #CBD5E1; --horizon-400: #94A3B8; --horizon-500: #1F2A44;
+    --horizon-600: #0F172A; --horizon-700: #020617;
+    --spring-50: #F0FDF9; --spring-100: #D1FAE5; --spring-200: #A7F3D0;
+    --spring-500: #20B486; --spring-600: #059669; --spring-700: #047857;
+    --violet-50: #F5F3FF; --violet-100: #EDE9FE; --violet-200: #DDD6FE;
+    --violet-500: #5854E6; --violet-600: #7C3AED; --violet-700: #6D28D9;
+    --savannah-50: #FEFCFB; --savannah-100: #FDFAF7; --savannah-200: #FAF5F0;
+    --savannah-500: #E6C9A8;
+    --eggshell-500: #F7F6F4;
+    /* Secondary */
+    --neutral-500: #717171; --light-gray: #EEEEEE;
+    --light-blue-100: #DDE2EF; --light-blue-500: #6C83BC;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background: var(--eggshell-500); color: var(--horizon-500); }
+
+  /* Top Nav — bg-horizon-500 text-white */
+  .topbar { background: var(--horizon-500); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .topbar-logo { font-weight: 900; font-size: 20px; color: var(--raspberry-500); }
+  .topbar-breadcrumb { font-size: 14px; color: var(--horizon-300); }
+  .topbar-breadcrumb span { color: white; }
+  .topbar-user { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .topbar-avatar { width: 32px; height: 32px; border-radius: 9999px; background: var(--raspberry-500); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+
+  /* Tabs — border-b border-light-gray, active: border-raspberry-500 text-horizon-500 */
+  .admin-tabs { background: white; border-bottom: 1px solid var(--light-gray); padding: 0 24px; display: flex; gap: 0; }
+  .admin-tab { padding: 16px 16px; font-size: 14px; font-weight: 600; color: var(--neutral-500); cursor: pointer; border-bottom: 2px solid transparent; transition: all 150ms ease-in-out; }
+  .admin-tab:hover { color: var(--horizon-500); border-bottom-color: var(--raspberry-500); }
+  .admin-tab.active { color: var(--horizon-500); border-bottom-color: var(--raspberry-500); }
+
+  /* Module sub-tabs — rounded-button top */
+  .module-tabs { background: white; padding: 12px 24px 0; display: flex; gap: 8px; }
+  .module-tab { padding: 8px 16px; font-size: 12px; font-weight: 600; border-radius: 8px 8px 0 0; cursor: pointer; transition: all 150ms ease-in-out; border: 1px solid var(--light-gray); border-bottom: none; }
+  .module-tab.active { background: var(--eggshell-500); color: var(--raspberry-500); }
+  .module-tab:not(.active) { background: white; color: var(--neutral-500); }
+  .module-tab:hover:not(.active) { color: var(--horizon-500); background: var(--savannah-100); }
+  .module-count { background: var(--raspberry-500); color: white; font-size: 10px; padding: 1px 6px; border-radius: 9999px; margin-left: 6px; }
+  .module-tab:not(.active) .module-count { background: var(--neutral-500); }
+
+  /* Content area */
+  .tree-container { padding: 24px; }
+
+  /* Stat cards — bg-white p-6 rounded-card shadow-card border border-light-gray */
+  .stats-bar { display: flex; gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: white; border: 1px solid var(--light-gray); border-radius: 12px; padding: 18px 20px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06); }
+  .stat-value { font-size: 28px; font-weight: 900; color: var(--horizon-500); letter-spacing: -0.01em; }
+  .stat-label { font-size: 12px; color: var(--neutral-500); margin-top: 4px; }
+
+  /* Section header */
+  .tree-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .tree-title { font-size: 24px; font-weight: 700; color: var(--horizon-500); }
+  .tree-subtitle { font-size: 14px; color: var(--neutral-500); margin-top: 2px; }
+  .tree-controls { display: flex; gap: 12px; }
+
+  /* Buttons — design system patterns */
+  .btn-secondary { padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 8px; border: 1px solid var(--light-gray); background: white; color: var(--horizon-500); cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: all 150ms ease-in-out; }
+  .btn-secondary:hover { background: var(--savannah-100); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+  .btn-primary { padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; background: var(--raspberry-500); color: white; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: all 150ms ease-in-out; }
+  .btn-primary:hover { background: var(--raspberry-600); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+
+  /* Legend — bg-savannah-100 */
+  .tree-legend { display: flex; gap: 20px; margin-bottom: 20px; padding: 12px 16px; background: var(--savannah-100); border-radius: 8px; border: 1px solid var(--light-gray); align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--neutral-500); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 4px; }
+
+  /* Tree canvas — card pattern */
+  .tree-canvas { background: white; border: 1px solid var(--light-gray); border-radius: 12px; padding: 32px; min-height: 520px; box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06); overflow-x: auto; }
+
+  /* Column headers */
+  .column-headers { display: flex; gap: 0; margin-bottom: 16px; }
+  .column-header { min-width: 210px; padding: 0 12px; text-align: center; }
+  .column-header-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--neutral-500); padding: 6px 12px; background: var(--eggshell-500); border-radius: 4px; display: inline-block; }
+  .arrow-spacer { min-width: 60px; }
+
+  /* Tree nodes — using design system palette */
+  .node { border-radius: 12px; padding: 16px; margin: 6px 0; cursor: pointer; transition: all 150ms ease-in-out; position: relative; min-width: 180px; max-width: 220px; border: 1px solid; }
+  .node:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); transform: translateY(-1px); }
+
+  /* Node types using Fynla palette */
+  .node-data { background: var(--light-blue-100); border-color: var(--light-blue-500); }
+  .node-trigger { background: var(--violet-50); border-color: var(--violet-200); }
+  .node-logic { background: var(--spring-50); border-color: var(--spring-200); }
+  .node-outcome { background: var(--raspberry-50); border-color: var(--raspberry-200); }
+  .node-disabled { opacity: 0.45; }
+
+  .node-label { font-size: 14px; font-weight: 700; color: var(--horizon-500); margin-bottom: 4px; }
+  .node-desc { font-size: 12px; color: var(--neutral-500); line-height: 1.5; }
+
+  /* Priority badges — using design system badge pattern */
+  .node-badge { position: absolute; top: -8px; right: -8px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; color: white; }
+  .badge-high { background: var(--raspberry-500); }
+  .badge-medium { background: var(--violet-500); }
+  .badge-low { background: var(--spring-500); }
+  .badge-critical { background: var(--raspberry-700); }
+  .badge-disabled { background: var(--neutral-500); }
+
+  /* Flow row */
+  .flow-row { display: flex; align-items: center; margin-bottom: 16px; }
+  .flow-col { min-width: 210px; padding: 0 12px; }
+  .flow-arrow { min-width: 60px; display: flex; align-items: center; justify-content: center; }
+
+  /* Side Drawer — shadow-lg pattern */
+  .drawer-overlay { position: fixed; top: 0; right: 0; width: 420px; height: 100%; background: white; box-shadow: -10px 0 15px -3px rgba(0,0,0,0.1), -4px 0 6px -2px rgba(0,0,0,0.05); z-index: 100; display: flex; flex-direction: column; }
+  .drawer-header { padding: 24px; border-bottom: 1px solid var(--light-gray); display: flex; align-items: center; justify-content: space-between; }
+  .drawer-title { font-size: 20px; font-weight: 700; color: var(--horizon-500); }
+  .drawer-key { font-size: 12px; color: var(--neutral-500); margin-top: 2px; font-family: 'JetBrains Mono', 'Courier New', monospace; }
+  .drawer-close { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--light-gray); background: white; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; color: var(--neutral-500); transition: all 150ms; }
+  .drawer-close:hover { color: var(--horizon-500); background: var(--savannah-100); }
+  .drawer-body { padding: 24px; flex: 1; overflow-y: auto; }
+  .drawer-field { margin-bottom: 16px; }
+  .drawer-label { font-size: 14px; font-weight: 600; color: var(--neutral-500); margin-bottom: 6px; display: block; }
+  /* Inputs — px-4 py-2 border border-light-gray rounded-md text-horizon-500 focus:border-violet-500 */
+  .drawer-input { width: 100%; padding: 8px 16px; border: 1px solid var(--light-gray); border-radius: 6px; font-size: 14px; font-family: inherit; color: var(--horizon-500); transition: all 150ms; }
+  .drawer-input:focus { outline: none; border-color: var(--violet-500); box-shadow: 0 0 0 3px rgba(88, 84, 230, 0.2); }
+  .drawer-select { width: 100%; padding: 8px 16px; border: 1px solid var(--light-gray); border-radius: 6px; font-size: 14px; background: white; font-family: inherit; color: var(--horizon-500); }
+  .drawer-select:focus { outline: none; border-color: var(--violet-500); box-shadow: 0 0 0 3px rgba(88, 84, 230, 0.2); }
+  .drawer-textarea { width: 100%; padding: 8px 16px; border: 1px solid var(--light-gray); border-radius: 6px; font-size: 14px; font-family: 'JetBrains Mono', 'Courier New', monospace; min-height: 80px; resize: vertical; color: var(--horizon-500); }
+  .drawer-textarea:focus { outline: none; border-color: var(--violet-500); box-shadow: 0 0 0 3px rgba(88, 84, 230, 0.2); }
+
+  /* Toggle — per design guide section 30 */
+  .drawer-toggle { display: flex; align-items: center; gap: 8px; }
+  .toggle-switch { width: 44px; height: 24px; border-radius: 9999px; background: var(--light-gray); position: relative; cursor: pointer; transition: background 200ms; }
+  .toggle-switch.on { background: var(--spring-500); }
+  .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: white; transition: transform 200ms; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle-switch.on::after { transform: translateX(20px); }
+
+  .drawer-footer { padding: 16px 24px; border-top: 1px solid var(--light-gray); display: flex; gap: 12px; justify-content: flex-end; }
+
+  /* Trigger config */
+  .trigger-config { background: var(--eggshell-500); border-radius: 8px; padding: 12px; margin-top: 8px; }
+  .trigger-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; }
+  .trigger-field { padding: 6px 10px; border: 1px solid var(--light-gray); border-radius: 6px; background: white; font-size: 13px; color: var(--horizon-500); }
+  .trigger-op { color: var(--violet-500); font-weight: 700; font-size: 12px; min-width: 24px; text-align: center; }
+
+  /* Template variable tags */
+  .var-tag { background: var(--violet-50); color: var(--violet-700); font-size: 12px; padding: 3px 8px; border-radius: 4px; font-family: 'JetBrains Mono', 'Courier New', monospace; display: inline-block; }
+
+  .mockup-badge { position: fixed; bottom: 16px; left: 16px; background: var(--raspberry-500); color: white; padding: 6px 14px; border-radius: 9999px; font-size: 11px; font-weight: 700; z-index: 200; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">fynla</div>
+    <div class="topbar-breadcrumb">Admin Panel / <span>Decision Matrix</span></div>
+  </div>
+  <div class="topbar-user">
+    <span>Chris Jones</span>
+    <div class="topbar-avatar">CJ</div>
+  </div>
+</div>
+
+<!-- Admin Tabs -->
+<div class="admin-tabs">
+  <div class="admin-tab">Dashboard</div>
+  <div class="admin-tab">User Management</div>
+  <div class="admin-tab active">Decision Matrix</div>
+  <div class="admin-tab">Tax Settings</div>
+  <div class="admin-tab">Database</div>
+</div>
+
+<!-- Module Sub-tabs -->
+<div class="module-tabs">
+  <div class="module-tab active">Protection<span class="module-count">12</span></div>
+  <div class="module-tab">Cash & Savings<span class="module-count">9</span></div>
+  <div class="module-tab">Investments<span class="module-count">14</span></div>
+  <div class="module-tab">Retirement<span class="module-count">11</span></div>
+  <div class="module-tab">Estate Planning<span class="module-count">8</span></div>
+  <div class="module-tab">Tax<span class="module-count">6</span></div>
+</div>
+
+<div class="tree-container">
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-value">12</div><div class="stat-label">Total Actions</div></div>
+    <div class="stat-card"><div class="stat-value" style="color: var(--spring-500);">10</div><div class="stat-label">Enabled</div></div>
+    <div class="stat-card"><div class="stat-value" style="color: var(--neutral-500);">2</div><div class="stat-label">Disabled</div></div>
+    <div class="stat-card"><div class="stat-value" style="color: var(--raspberry-500);">3</div><div class="stat-label">Critical / High Priority</div></div>
+    <div class="stat-card"><div class="stat-value" style="color: var(--violet-500);">5</div><div class="stat-label">Medium Priority</div></div>
+  </div>
+
+  <!-- Header -->
+  <div class="tree-header">
+    <div>
+      <div class="tree-title">Protection Module — Decision Tree</div>
+      <div class="tree-subtitle">Click any node to view and edit its configuration</div>
+    </div>
+    <div class="tree-controls">
+      <button class="btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search
+      </button>
+      <button class="btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
+        Filter
+      </button>
+      <button class="btn-secondary">Collapse All</button>
+      <button class="btn-primary">+ Add Action</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="tree-legend">
+    <div class="legend-item"><div class="legend-dot" style="background: var(--light-blue-500);"></div> User Data Input</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--violet-500);"></div> Trigger Condition</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--spring-500);"></div> Decision Logic</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--raspberry-500);"></div> Outcome / Action</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--neutral-500);"></div> Disabled</div>
+    <div style="margin-left: auto; display: flex; gap: 6px; align-items: center;">
+      <span style="font-size: 10px; background: var(--raspberry-700); color: white; padding: 2px 6px; border-radius: 9999px; font-weight: 700;">CRIT</span>
+      <span style="font-size: 10px; background: var(--raspberry-500); color: white; padding: 2px 6px; border-radius: 9999px; font-weight: 700;">HIGH</span>
+      <span style="font-size: 10px; background: var(--violet-500); color: white; padding: 2px 6px; border-radius: 9999px; font-weight: 700;">MED</span>
+      <span style="font-size: 10px; background: var(--spring-500); color: white; padding: 2px 6px; border-radius: 9999px; font-weight: 700;">LOW</span>
+    </div>
+  </div>
+
+  <!-- Tree Canvas -->
+  <div class="tree-canvas">
+    <div class="column-headers">
+      <div class="column-header"><div class="column-header-label">User Data</div></div>
+      <div class="arrow-spacer"></div>
+      <div class="column-header"><div class="column-header-label">Trigger</div></div>
+      <div class="arrow-spacer"></div>
+      <div class="column-header"><div class="column-header-label">Logic</div></div>
+      <div class="arrow-spacer"></div>
+      <div class="column-header"><div class="column-header-label">Outcome</div></div>
+    </div>
+
+    <!-- Row 1: Life Cover Shortfall -->
+    <div class="flow-row">
+      <div class="flow-col"><div class="node node-data"><div class="node-label">Life Cover</div><div class="node-desc">Sum assured, policy term, premium, beneficiaries</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-trigger" onclick="document.getElementById('drawer').style.display='flex'"><span class="node-badge badge-high">HIGH</span><div class="node-label">Cover &lt; 10x Salary</div><div class="node-desc">Total life cover below income replacement threshold</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-logic"><div class="node-label">Calculate Shortfall</div><div class="node-desc">Shortfall = (salary x 10) - total_cover</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-outcome"><div class="node-label">Increase Life Cover</div><div class="node-desc">"Consider increasing cover by {shortfall} to protect your family"</div></div></div>
+    </div>
+
+    <!-- Row 2: Policy Expiry -->
+    <div class="flow-row">
+      <div class="flow-col"><div class="node node-data"><div class="node-label">Policy Term</div><div class="node-desc">Expiry date, retirement date, dependants' ages</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-trigger"><span class="node-badge badge-medium">MED</span><div class="node-label">Expires Before Retirement</div><div class="node-desc">Policy ends {gap_years} years before planned retirement</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-logic"><div class="node-label">Gap Assessment</div><div class="node-desc">Years between expiry and retirement or youngest dependant age 18</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-outcome"><div class="node-label">Extend Policy Term</div><div class="node-desc">"Extend cover by {gap_years} years to maintain protection until retirement"</div></div></div>
+    </div>
+
+    <!-- Row 3: No Critical Illness -->
+    <div class="flow-row">
+      <div class="flow-col"><div class="node node-data"><div class="node-label">Critical Illness</div><div class="node-desc">Existing policies, mortgage balance, dependants</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-trigger"><span class="node-badge badge-critical">CRIT</span><div class="node-label">No Cover + Mortgage</div><div class="node-desc">No critical illness policy and outstanding mortgage &gt; £0</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-logic"><div class="node-label">Mortgage Exposure</div><div class="node-desc">Total outstanding mortgage = unprotected liability</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-outcome"><div class="node-label">Add Critical Illness Cover</div><div class="node-desc">"Critical illness cover of {mortgage_balance} would protect your mortgage"</div></div></div>
+    </div>
+
+    <!-- Row 4: Income Protection (disabled) -->
+    <div class="flow-row">
+      <div class="flow-col"><div class="node node-data node-disabled"><div class="node-label">Income Protection</div><div class="node-desc">Employment income, sick pay, existing cover</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--light-gray)" stroke-width="2" stroke-dasharray="4,3"/></svg></div>
+      <div class="flow-col"><div class="node node-trigger node-disabled"><span class="node-badge badge-disabled">OFF</span><div class="node-label">No Income Cover</div><div class="node-desc">No income protection and employer sick pay &lt; 6 months</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--light-gray)" stroke-width="2" stroke-dasharray="4,3"/></svg></div>
+      <div class="flow-col"><div class="node node-logic node-disabled"><div class="node-label">Income Gap</div><div class="node-desc">Monthly income - state benefits = unprotected amount</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--light-gray)" stroke-width="2" stroke-dasharray="4,3"/></svg></div>
+      <div class="flow-col"><div class="node node-outcome node-disabled"><div class="node-label">Add Income Protection</div><div class="node-desc">"Income protection of {monthly_gap}/month would cover your expenses"</div></div></div>
+    </div>
+
+    <!-- Row 5: Trust Placement -->
+    <div class="flow-row">
+      <div class="flow-col"><div class="node node-data"><div class="node-label">Trust Status</div><div class="node-desc">Policies in/out of trust, inheritance tax exposure</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-trigger"><span class="node-badge badge-medium">MED</span><div class="node-label">Policy Not in Trust</div><div class="node-desc">Life policy &gt; nil-rate band and not placed in trust</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-logic"><div class="node-label">Inheritance Tax Impact</div><div class="node-desc">Policy payout added to estate exceeds nil-rate band</div></div></div>
+      <div class="flow-arrow"><svg width="40" height="2"><line x1="0" y1="1" x2="30" y2="1" stroke="var(--horizon-300)" stroke-width="2"/><polygon points="30,0 38,1 30,2" fill="var(--horizon-300)"/></svg></div>
+      <div class="flow-col"><div class="node node-outcome"><div class="node-label">Place Policy in Trust</div><div class="node-desc">"Placing this policy in trust could save {iht_saving} in inheritance tax"</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Side Drawer -->
+<div class="drawer-overlay" id="drawer" style="display: flex;">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title">Cover &lt; 10x Salary</div>
+      <div class="drawer-key">protection_cover_shortfall</div>
+    </div>
+    <button class="drawer-close" onclick="document.getElementById('drawer').style.display='none'">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-field">
+      <div class="drawer-label">Status</div>
+      <div class="drawer-toggle">
+        <div class="toggle-switch on"></div>
+        <span style="font-size: 14px; color: var(--spring-500); font-weight: 600;">Enabled</span>
+      </div>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Priority</div>
+      <select class="drawer-select"><option>Critical</option><option selected>High</option><option>Medium</option><option>Low</option></select>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Category</div>
+      <input class="drawer-input" value="life_cover" />
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Title Template</div>
+      <input class="drawer-input" value="Increase your life cover by {shortfall}" />
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Description Template</div>
+      <textarea class="drawer-textarea">Your current life cover of {current_cover} is below the recommended level of {recommended_cover} (10x your salary of {salary}). Consider increasing cover by {shortfall} to fully protect your family.</textarea>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Action Template</div>
+      <textarea class="drawer-textarea">Review life insurance options to increase cover by {shortfall}. Consider level term assurance to age {retirement_age}.</textarea>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Trigger Configuration</div>
+      <div class="trigger-config">
+        <div class="trigger-row">
+          <select class="trigger-field" style="width: 140px;"><option selected>total_life_cover</option></select>
+          <span class="trigger-op">&lt;</span>
+          <select class="trigger-field" style="width: 80px;"><option selected>multiply</option></select>
+          <input class="trigger-field" style="width: 50px;" value="10" />
+          <span class="trigger-op">&times;</span>
+          <select class="trigger-field" style="width: 140px;"><option selected>annual_salary</option></select>
+        </div>
+        <div class="trigger-row">
+          <span class="trigger-op">AND</span>
+          <select class="trigger-field" style="width: 140px;"><option selected>has_dependants</option></select>
+          <span class="trigger-op">=</span>
+          <select class="trigger-field" style="width: 80px;"><option selected>true</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Source</div>
+      <select class="drawer-select"><option selected>Agent (automatic)</option><option>Goal (user-linked)</option></select>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Sort Order</div>
+      <input class="drawer-input" type="number" value="1" />
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-label">Template Variables</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+        <span class="var-tag">{shortfall}</span>
+        <span class="var-tag">{current_cover}</span>
+        <span class="var-tag">{recommended_cover}</span>
+        <span class="var-tag">{salary}</span>
+        <span class="var-tag">{retirement_age}</span>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-secondary" onclick="document.getElementById('drawer').style.display='none'">Cancel</button>
+    <button class="btn-primary">Save Changes</button>
+  </div>
+</div>
+
+<div class="mockup-badge">MOCKUP — Admin Decision Tree Visualiser</div>
+</body>
+</html>

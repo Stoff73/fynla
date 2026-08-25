@@ -10,14 +10,35 @@
     $year      string|int  Default current year.
     $addressLine string|null  Dark variant only. Default "Fynla Ltd, London, England".
     $helpUrl   string  Light variant only. Default 'https://fynla.org/help'.
+    $showUnsubscribe bool  Default true. Set false ONLY where no suppression record
+                           can exist for the recipient — see below.
+
+  **`$showUnsubscribe`** (W-0349, compliance-lead finding G, 2026-08-24). The
+  unsubscribe control is on by default and must stay on for anything sent to a
+  user. It exists to be turned OFF for the one case where offering it would be a
+  lie: the spouse invitation goes to an address with no account and no stored
+  record, so there is nothing to suppress and nowhere to record a refusal.
+  **An inoperative refusal mechanism is worse than none, because it looks like a
+  control and is not.**
+
+  Note the URL it points at in the LIGHT variant is `$links[last]['url']`, not the
+  unsubscribe entry by name — so a caller passing a custom `$links` array silently
+  re-points "Unsubscribe" at whatever ends up last. Unchanged here; worth knowing.
 --}}
 @php
     $variant     = $variant ?? 'dark';
+    $showUnsubscribe = $showUnsubscribe ?? true;
     $links       = $links   ?? [
         ['label' => 'Privacy Policy',   'url' => 'https://fynla.org/privacy'],
         ['label' => 'Terms of Service', 'url' => 'https://fynla.org/terms'],
         ['label' => 'Unsubscribe',      'url' => 'https://fynla.org/unsubscribe'],
     ];
+    if (! $showUnsubscribe) {
+        $links = array_values(array_filter(
+            $links,
+            fn (array $link): bool => ($link['label'] ?? '') !== 'Unsubscribe'
+        ));
+    }
     $year        = $year        ?? date('Y');
     $addressLine = $addressLine ?? 'Registered in England &amp; Wales.';
     $helpUrl     = $helpUrl     ?? 'https://fynla.org/help';
@@ -26,7 +47,7 @@
     <tr>
         <td style="background: #F7F6F4; border-top: 1px solid #e8e2db; padding: 20px 30px; text-align: center; font-family: 'Segoe UI', Inter, Arial, sans-serif;">
             <p style="margin: 0; font-size: 12px; color: #888; font-family: 'Segoe UI', Inter, Arial, sans-serif;">This email was sent by Fynla. If you have questions, reply to this email or visit <a href="{{ $helpUrl }}" style="color: #e74c6f; text-decoration: none;">fynla.org/help</a>.</p>
-            <p style="margin: 8px 0 0 0; font-size: 11px; color: #bbb; font-family: 'Segoe UI', Inter, Arial, sans-serif;">&copy; Fynla {{ $year }} &bull; <a href="{{ $links[count($links) - 1]['url'] ?? '#' }}" style="color: #bbb; text-decoration: none;">Unsubscribe</a></p>
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: #bbb; font-family: 'Segoe UI', Inter, Arial, sans-serif;">&copy; Fynla {{ $year }}@if($showUnsubscribe) &bull; <a href="{{ $links[count($links) - 1]['url'] ?? '#' }}" style="color: #bbb; text-decoration: none;">Unsubscribe</a>@endif</p>
         </td>
     </tr>
 @else

@@ -15,6 +15,7 @@ describe('OnboardingStateMachine::states', function () {
 
         $expected = [
             OnboardingStateMachine::STATE_PATH_CHOICE,
+            OnboardingStateMachine::STATE_FREE_CHAT,
             OnboardingStateMachine::STATE_JOURNEY_SELECTION,
             OnboardingStateMachine::STATE_FOCUS_SELECTION,
             OnboardingStateMachine::STATE_BASE_PERSONAL,
@@ -39,8 +40,16 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
+            // PensionCheck-specific states (Task C3)
+            OnboardingStateMachine::STATE_CAMPAIGN2_EXISTING_RECAP,
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB,
             OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY,
-            OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING,
+            OnboardingStateMachine::STATE_CAMPAIGN2_FLEXIBLE_ACCESS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_STATE_PENSION,
+            OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_SPOUSE_PENSIONS,
+            OnboardingStateMachine::STATE_CAMPAIGN2_TERMINAL,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
@@ -51,7 +60,11 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
             OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS,
+            // Pensioncheck per-section advice turns (Task C5)
+            OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_STATE_PENSION,
+            OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS,
             // SaveTax verify sub-flow (generic; section carried in onboarding_fyn_context)
+            'campaign_verify_announce',
             'campaign_verify_more',
             'campaign_verify_navigate',
             'campaign_verify_edit',
@@ -107,7 +120,9 @@ describe('OnboardingStateMachine::getState', function () {
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PATH_CHOICE);
         expect($state)->not->toBeNull()
             ->and($state['turn_type'])->toBe('bubbles')
-            ->and(count($state['bubbles']))->toBe(2);
+            // Three: the two onboarding paths, plus the way out for a user who
+            // wants neither (CSJ 2026-08-18 — the state was a dead end).
+            ->and(count($state['bubbles']))->toBe(3);
     });
 
     it('declares the standard layout on profile review states', function () {
@@ -397,18 +412,20 @@ describe('OnboardingStateMachine::interpolate + resolvePromptText', function () 
         expect($text)->toContain('spouse');
     });
 
-    it('uses trade-name phrasing in base_work for self-employed users', function () {
+    it('asks self-employed users for income only', function () {
         $user = User::factory()->create(['employment_status' => 'self_employed']);
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
         $text = OnboardingStateMachine::resolvePromptText($state, $user);
-        expect($text)->toContain('trade or business name');
+        expect($text)->toContain('gross annual self-employment income')
+            ->and($text)->not->toContain('trade or business name');
     });
 
-    it('uses company phrasing in base_work for employed users', function () {
+    it('asks employed users for income only', function () {
         $user = User::factory()->create(['employment_status' => 'employed']);
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
         $text = OnboardingStateMachine::resolvePromptText($state, $user);
-        expect($text)->toContain('company you work for');
+        expect($text)->toContain('gross annual income')
+            ->and($text)->not->toContain('company you work for');
     });
 });
 

@@ -30,7 +30,7 @@ use Tests\Support\Fyn\FynStreamHarness;
  * needed — the closing consult is skipped entirely.
  */
 beforeEach(function () {
-    TierConfiguration::create(tierConfigFixture('free'));
+    TierConfiguration::updateOrCreate(['tier' => 'free'], tierConfigFixture('free'));
     TaxConfiguration::factory()->create(['is_active' => true]);
 });
 

@@ -75,7 +75,6 @@ class SanitizeInput
     public function handle(Request $request, Closure $next): Response
     {
         $input = $request->all();
-
         $sanitized = $this->sanitizeArray($input);
 
         $request->merge($sanitized);

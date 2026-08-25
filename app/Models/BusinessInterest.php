@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Estate\Trust;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,8 +51,16 @@ class BusinessInterest extends Model
         'industry_sector',
     ];
 
+    /**
+     * Companies House filing dates are deliberately absent from $fillable —
+     * they are read from the register via CompaniesHouseService::sync(), never
+     * accepted from a request, so a crafted payload cannot fake a deadline.
+     */
     protected $casts = [
         'valuation_date' => 'date',
+        'accounts_due_on' => 'date',
+        'confirmation_statement_due_on' => 'date',
+        'companies_house_synced_at' => 'datetime',
         'current_valuation' => 'decimal:2',
         'ownership_percentage' => 'decimal:2',
         'annual_revenue' => 'decimal:2',
@@ -65,6 +74,36 @@ class BusinessInterest extends Model
         'acquisition_cost' => 'decimal:2',
         'bpr_eligible' => 'boolean',
     ];
+
+    /**
+     * The soonest Companies House filing deadline, or null when this company
+     * has never been synced against the register.
+     *
+     * One home for the "which filing is next, and how close is it" question so
+     * that the web card, the /m list and the API resource all answer it
+     * identically instead of each doing its own date arithmetic.
+     *
+     * days_until is negative once the deadline has passed.
+     *
+     * @return array{type: string, due_on: string, days_until: int}|null
+     */
+    public function nextFiling(): ?array
+    {
+        $due = collect([
+            'accounts' => $this->accounts_due_on,
+            'confirmation' => $this->confirmation_statement_due_on,
+        ])->filter()->sort();
+
+        if ($due->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'type' => (string) $due->keys()->first(),
+            'due_on' => $due->first()->toDateString(),
+            'days_until' => (int) Carbon::today()->diffInDays($due->first()->copy()->startOfDay(), false),
+        ];
+    }
 
     /**
      * Get the user that owns this business interest.

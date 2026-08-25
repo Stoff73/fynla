@@ -101,7 +101,7 @@
         </div>
 
         <div v-if="userMonthlyMortgagePayments > 0" class="flex justify-between py-2">
-          <dt class="text-sm text-neutral-500">Less: Mortgage Payment{{ isSharedOwnership ? ' (' + property.ownership_percentage + '%)' : '' }}:</dt>
+          <dt class="text-sm text-neutral-500">Less: Mortgage Payment:</dt>
           <dd class="text-sm font-medium text-raspberry-600">-{{ formatCurrency(userMonthlyMortgagePayments) }}</dd>
         </div>
 
@@ -431,15 +431,21 @@ export default {
     },
 
     userMonthlyMortgagePayments() {
-      // User's share of mortgage payments, based on property ownership type
-      const total = this.mortgageList.reduce((sum, mortgage) => {
-        return sum + (parseFloat(mortgage.monthly_payment) || 0);
-      }, 0);
-      // Apply ownership split for shared ownership (joint or tenants in common)
-      if (this.isSharedOwnership && this.property?.ownership_percentage) {
-        return total * (this.property.ownership_percentage / 100);
+      // Prefer the borrower-based liability calculated by the API. Property
+      // ownership and mortgage liability can have different percentages.
+      if (this.property?.mortgage_user_monthly_payment !== undefined) {
+        return parseFloat(this.property.mortgage_user_monthly_payment) || 0;
       }
-      return total;
+
+      return this.mortgageList.reduce((sum, mortgage) => {
+        const payment = parseFloat(mortgage.monthly_payment) || 0;
+
+        if (mortgage.ownership_type === 'joint') {
+          return sum + (payment * ((parseFloat(mortgage.ownership_percentage) || 50) / 100));
+        }
+
+        return sum + payment;
+      }, 0);
     },
 
     isSharedOwnership() {

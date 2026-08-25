@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 101,
+      "first_name": "Example",
+      "surname": "User",
+      "name": "Example User",
+      "email": "example@example.test"
+    },
+    "access_token": "bootstrap-example-immediate",
+    "token_type": "Bearer",
+    "must_change_password": true,
+    "mfa_enabled": false
+  }
+}

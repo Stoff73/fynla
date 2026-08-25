@@ -2,6 +2,8 @@
 
 This file supplements the root `CLAUDE.md` with HTTP-specific patterns.
 
+> **GOLDEN RULE #20 (CSJ, NEVER IGNORE):** every Fyn change — prompt, vocabulary, behaviour, rendering — is made ONCE, in ONE place, for ALL surfaces and paths. If more than one mechanism implements the behaviour, consolidating to one source is PART of the fix. Full text: root `CLAUDE.md` Rule 20.
+
 ## API Response Format
 
 All controllers return a consistent JSON structure:
@@ -92,6 +94,149 @@ public function messages(): array { return [...]; }  // Custom error messages
 
 Use `ValidationLimits::currencyRules()` and `ValidationLimits::percentageRules()` for consistent rules.
 
+### A rule and its column must agree — but the two directions are NOT symmetric
+
+**Added 2026-08-23**, from the cycle-4 validation sweep. Six separate axes of
+rule-vs-schema disagreement were found in one batch, each invisible to a sweep for the
+others.
+
+| Direction | Verdict |
+|---|---|
+| **Rule wider than the column** | **Always a defect.** The value passes validation and dies at the write — `SQLSTATE[22003] Out of range` or `1048 cannot be null`. Nothing legitimises it. |
+| **Column wider than the rule** | **Depends entirely on whether anything offers the excluded value.** Refusing what no path can produce is a *decision*. Refusing what the form puts in front of the user is a *defect*. |
+
+Both appeared in **one line** of `MortgageStore`: `capped`/`offset` accepted but unstorable
+(direction 1), and `mixed` refused while the form offers it and three request classes allow
+it (direction 2). In the **same file**, `ownership_type` refusing `tenants_in_common` is
+**correct** — `MortgageNormaliser` coerces it to `joint` and documents that mortgages do not
+support it.
+
+**So a test asserting rule and column MATCH would have enforced a regression.** A guard
+written to the wrong principle does not merely miss defects — it manufactures them and then
+defends them, with all the authority of a green suite. Guards here carry an **exception
+list**, and **every exception must name the mechanism that guarantees the excluded value
+never arrives**, or the list stops recording decisions and becomes a place to hide drift.
+
+**The six axes, each blind to the others:**
+1. `nullable` rule on a **NOT NULL** column — 192 occurrences.
+2. Field **fillable and offered by a form but absent from `rules()`** — silently stripped by
+   `validated()`; 95 occurrences.
+3. Rule **range exceeds column precision** — e.g. `max:100` on `decimal(5,4)`, which stops at
+   9.9999.
+4. **No `max:` rule at all**, leaving the column as the only guard.
+5. The same column written under a **different, prefixed name** in another request — invisible
+   to a name-matching sweep.
+6. **`app/Services/Stores/` validate separately from `app/Http/Requests/`.**
+
+**A FOURTH structural blind spot: no guard moves a configured rate and asserts on a Vue
+template.** Added 2026-08-23. The Rule 2 charitable family was swept **twice and declared
+closed twice**; both sweeps covered `app/` and exactly **one** Vue file — and that one only
+because it happened to be open for another reason. `RateLiteralsComeFromConfigurationTest`
+and `CharitableExemptionVersusRateTestTest` both drive PHP services and assert on **service
+output**, so **the entire frontend sits outside the family.** Nine instances across seven
+files survived two "complete" sweeps.
+
+**The sharpest instance was authored BY one of those sweeps.** `IHTPlanning.vue:246` — *"The
+10% test that decides the reduced rate…"* — was written to explain the statutory
+distinction the tax reviewer had just ruled on, **and hardcoded the threshold in the same
+breath.** The batch that made three server messages configuration-driven authored a fourth
+message with a literal in it, one file over.
+
+**Two further shapes it exposed:**
+- **A rate in ARITHMETIC in the frontend** (`futureTaxableEstate * 0.40`) computing a
+  *displayed liability* — the class a prose sweep is blind to, on the surface no sweep
+  reached.
+- **A `v-if` gating on a key NO payload carries.** That is the read-boundary axis one degree
+  worse than a Resource dropping a field: **there the field existed and was not sent; here it
+  never existed at all.** `grep` finds the key in one template and nowhere else.
+
+**And check reachability before filing.** Four of the nine were in components mounted by
+nothing. **A sweep that greps `resources/` and files everything over-reports by a third.**
+
+**Axis 6 is swept for enum lists ONLY.** `StoreEnumRulesMatchColumnsTest` covers `in:`
+rules — 17 rules, 1 fixed, 2 classified. **Store numeric bounds have NEVER been swept** —
+that is axis 3 repeated one layer over, in the layer `/m` writes through — and they are
+**already known to diverge**: `MortgageStore:306` bounds `interest_rate` but says nothing
+about `fixed_interest_rate` or `variable_interest_rate`, and `InvestmentAccountStore` sets
+no bound on `platform_fee_percent`, **so Fyn accepts a 12% platform fee that the web form
+rejects with a 422.** Open as **W-0329**.
+
+**Axis 6 is the one that hides.** `resources/mobile/api.js` has no post/put/patch helper
+anywhere, so **Fyn is not one of `/m`'s write paths — it is the only one**, and it writes
+through the Stores. The backend looks shared, and it is *at the endpoint*; it diverges one
+layer down where the Stores carry their own rules. **Sweeping `app/Http/Requests/` says
+nothing about how `/m` writes.**
+
+7. **The Resource omits a field the template gates on** — the same disease at the **read**
+   boundary rather than the write.
+
+**Axis 7 is the mirror of the other six.** They all ask *"can what the user typed reach the
+column?"* This one asks *"can what the column holds reach the user?"*
+
+`MortgageResource` serialises `fixed_interest_rate` but **not** `fixed_rate_percentage`.
+`PropertyDetailInline.vue:319` renders the fixed portion only
+`v-if="mortgage.rate_type === 'mixed' && mortgage.fixed_rate_percentage"` — a field the
+Resource never sends. The gate reads `undefined`, so **the row is structurally unreachable:
+no data can satisfy it.** A user enters a 60% portion at 12%, it saves correctly, and the
+detail view shows `Rate Type: Mixed` and no numbers at all. (Verified against both files.)
+
+**Why no sweep finds it:** the rule is right, the column is right, the Store is right, the
+write is right. Only the journey home is broken.
+
+**The trap is sibling coupling.** `fixed_interest_rate` *is* serialised, so anyone checking
+*"is the rate exposed?"* answers **yes** and stops. The row is hidden by a **different**
+field, and nothing warns that a display depends on a sibling the Resource drops.
+**When checking whether a value reaches the user, check every field its `v-if` names — not
+the value itself.** Open as **W-0351**.
+
+**The same axis, one degree worse: a value computed and READ BY NOTHING.** Second instance
+2026-08-23 — `IHTCalculationService` computed `charitable_rate_test_amount`, applying a
+**statutory distinction a tax reviewer had to rule on**, and never put it in the result
+array. Zero consumers across `app`, `resources` and `tests`. So the card had one charitable
+figure to render and two to explain, and the one that survived went out under *"Your will
+leaves £20,000 to charity"* — false for both spouses, who each leave £10,000.
+
+**The check:** `grep` for a key a service sets and **count its consumers. Zero means either
+dead code or a distinction that never reaches the user — and the two look identical from
+inside the service.**
+
+**Why it is harder to see than the `MortgageResource` case:** there, a field simply was not
+serialised. Here the engine does the *difficult* part correctly and drops the result before
+any consumer can see it. **Service right, controller right, component right about what it
+was given. Only the journey home is broken.** Both present as a *presentation* bug while the
+cause is a *publication* one, and both are invisible to every sweep aimed at the write path.
+
+**Third instance, same night, and the boundary is not always a Resource.** `IHTPlanning.vue`
+built its view-model with a **hand-written mapping** that **enumerates fields rather than
+spreading them** — so a newly published field was dropped one layer *below* the controller
+and one layer *above* the template. Service right, controller right, component right.
+**An allowlist nobody thought of as a boundary.**
+
+**A value can be correct at every layer and still never arrive. Testing the ends does not
+test the join.** Three instances in one night — a service computing a value nothing read, a
+Resource omitting a field a `v-if` names, and a component mapping that enumerates fields
+instead of spreading them. **The third was found inside the fix for the first two.**
+
+**A field absent from a hand-written mapping is invisible in exactly the way a field absent
+from a Resource is.** When you publish a value, follow it to the template — the join is a
+layer, and it is usually the one with no tests.
+
+**Use `?? null`, not `|| 0`, when the consumer distinguishes "nothing to show" from "zero".**
+A zero-default collapses those two into one and the card cannot tell them apart.
+
+**The tell:** a key present in the view-model that does **not** exist in the API response
+means a mapping is being hand-built somewhere between them.
+
+**Why the tests missed it — worth knowing before you trust a component suite.** The Vitest
+cases injected the view-model **directly** via `setData`, supplying the object the mapping
+was supposed to produce. **They proved the template and skipped the mapping entirely** —
+seven green cases over a card that rendered wrong on the live page. The Feature test
+asserted the endpoint publishes the field, which it did. **Neither test covered the join.**
+That is the Fixture variant (`tests/CLAUDE.md` §4) sitting exactly on an integration seam.
+
+Guards: `tests/Unit/Database/ValidationMaxFitsColumnPrecisionTest.php` and
+`StoreEnumRulesMatchColumnsTest.php`.
+
 ## API Resources
 
 Resources extend `JsonResource` and transform models for API output:
@@ -110,7 +255,13 @@ Use `$this->whenLoaded()` for relationships and `$this->when()` for conditional 
 
 ## Route Structure
 
-All routes in `routes/api.php`, prefixed with `/api/`:
+Three route files:
+
+- `routes/api.php` — the web + `/m` API, prefixed `/api/`
+- `routes/api_v1.php` — the **native iOS** surface, prefixed `/api/v1/`. Native auth/session lives here (`/native/auth/session/exchange|refresh`), behind `native.client` (`IdentifyNativeClient`), `native.version` (`EnforceNativeVersion`) and `native.session` (`EnsureActiveNativeSession`). **These routes do not exist on production** — see root `CLAUDE.md` → Mobile Clients.
+- `routes/e2e.php` — browser-scenario support, non-production only
+
+Pattern in `routes/api.php`:
 
 ```php
 // Public: auth/register, auth/login, preview/personas

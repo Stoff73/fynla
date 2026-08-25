@@ -39,6 +39,7 @@ class PreviewWriteInterceptor
         'mfa_secret',
         'mfa_recovery_codes',
         'token',
+        'refresh_token',
         'api_key',
     ];
 
@@ -50,10 +51,14 @@ class PreviewWriteInterceptor
         'api/preview/switch',
         'api/contact',            // Contact form works regardless of preview mode
         'api/news/subscribe',     // Public newsletter subscribe — no auth, IP-rate-limited
+        'api/cookie-consent',     // Cookie consent — a refusal must take effect for every visitor, preview or not
         'api/auth/login',         // Allow real login even with stale preview token
+        'api/auth/mfa/verify',    // Login-flow MFA continuation (real login with stale preview token)
+        'api/auth/mfa/recovery',  // Login-flow MFA recovery-code continuation
         'api/auth/logout',
         'api/auth/logout-beacon', // Beacon logout for browser/tab close
         'api/auth/register',      // Allow preview users to create real accounts
+        'api/auth/registration-handoff/resolve', // Allow campaign registration continuation
         'api/auth/verify-code',   // Required for registration verification
         'api/auth/resend-code',   // Required for registration verification
         'api/auth/password-reset/request',       // Allow password reset
@@ -69,9 +74,11 @@ class PreviewWriteInterceptor
         'api/documents/upload',   // Allow document upload & AI extraction
         'api/documents/upload-only', // Allow document upload without extraction
         'api/ai-chat/conversations', // Allow AI chat in preview — tool executor handles write blocking
+        'api/ai-chat/contextual-conversations', // Allow trusted Add/Edit conversation creation in preview
         'api/ai-chat/onboarding',    // Allow onboarding start/status — controller enforces preview block with 403 (FR-M9)
         'api/v1/auth/refresh-token', // Allow mobile token refresh in preview mode
         'api/v1/mobile/devices',     // Allow device registration in preview mode
+        'api/v1/native/storekit',    // StoreKit routes enforce their own fail-closed preview boundary
         'api/advisor/clients/*/enter',    // Allow advisor impersonation start
         'api/advisor/exit',                // Allow advisor impersonation end
         'api/bug-report',                  // Allow preview users to file bug reports
@@ -204,6 +211,13 @@ class PreviewWriteInterceptor
             'preview_mode' => true,
             'preview_notice' => 'Changes are session-only and will be lost on refresh.',
         ];
+
+        // Native authentication requests may contain credentials under any
+        // submitted key, including nested JSON, form, or query parameters.
+        // Return only the conventional preview envelope for these paths.
+        if ($request->is('api/v1/native/auth/*')) {
+            return response()->json($responseData);
+        }
 
         // For POST/PUT/PATCH, include the submitted data with a fake ID if needed
         if (in_array($method, ['POST', 'PUT', 'PATCH'])) {

@@ -1,0 +1,96 @@
+{
+  "success": true,
+  "data": {
+    "pension_pot_projection": {
+      "current_value": 180000,
+      "monthly_contribution": 500,
+      "percentile_20_at_retirement": 410000,
+      "median_at_retirement": 520000,
+      "retirement_age": 65,
+      "years_to_retirement": 20,
+      "expected_return": 5,
+      "retirement_age_source": "user_profile",
+      "current_age": 45,
+      "current_age_source": "profile"
+    },
+    "income_drawdown": {
+      "yearly_income": [
+        { "total_income": 37500 }
+      ]
+    },
+    "planning_projection": {
+      "contract_version": "retirement_projection_v1",
+      "as_of": "2026-08-10",
+      "target_retirement_age": 65,
+      "projection_end_age": 100,
+      "planning_total_at_target_age": 24457.70,
+      "products": [
+        {
+          "resource_type": "dc_pension",
+          "resource_id": 31,
+          "name": "Workplace Pension",
+          "commencement_age": 65,
+          "current_value": 180000,
+          "monthly_contribution": 500,
+          "projected_value": 265057.45,
+          "annual_income": 12457.70,
+          "income_method": "sustainable_withdrawal_rate"
+        },
+        {
+          "resource_type": "db_pension",
+          "resource_id": 32,
+          "name": "Public Service Pension",
+          "commencement_age": 67,
+          "current_value": null,
+          "projected_value": null,
+          "annual_income": 12000,
+          "income_method": "guaranteed_scheme_income"
+        },
+        {
+          "resource_type": "state_pension",
+          "resource_id": 33,
+          "name": "State Pension",
+          "commencement_age": 67,
+          "current_value": null,
+          "projected_value": null,
+          "annual_income": 11502,
+          "income_method": "recorded_state_pension_forecast"
+        }
+      ],
+      "age_bands": [
+        {
+          "start_age": 65,
+          "end_age": 66,
+          "annual_income": 12457.70,
+          "source_ids": ["dc_pension:31"]
+        },
+        {
+          "start_age": 67,
+          "end_age": 100,
+          "annual_income": 35959.70,
+          "source_ids": ["dc_pension:31", "db_pension:32", "state_pension:33"]
+        }
+      ],
+      "assumptions": {
+        "sustainable_withdrawal_rate": {
+          "decimal": 0.047,
+          "percent": 4.7,
+          "source": "tax_configuration"
+        },
+        "growth_rate_percent": 5.5,
+        "net_growth_rate_percent": 4.7,
+        "inflation_rate_percent": 2.5,
+        "fee_rate_percent": 0.8,
+        "compound_periods": 12,
+        "basis": "nominal",
+        "has_user_overrides": true
+      },
+      "uncertainty": {
+        "method": "monte_carlo_percentile_bands",
+        "primary_projection": false,
+        "products": []
+      },
+      "warnings": []
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "data": {
+    "total_assets": 650000,
+    "total_liabilities": 210000,
+    "net_worth": 440000,
+    "as_of_date": "2026-07-18",
+    "breakdown": {
+      "pensions": 150000,
+      "property": 400000,
+      "investments": 75000,
+      "cash": 25000,
+      "business": 0,
+      "chattels": 0
+    },
+    "has_db_pensions": true,
+    "liabilities_breakdown": {
+      "mortgages": 200000,
+      "loans": 7000,
+      "credit_cards": 3000,
+      "other": 0
+    }
+  }
+}

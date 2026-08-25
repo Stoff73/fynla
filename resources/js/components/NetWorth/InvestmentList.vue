@@ -52,9 +52,10 @@
             @click="selectAccount(account)"
             class="compact-account-card module-gradient"
           >
-              <!-- Joint Badge - Top Right Corner (only if share < 100%) -->
+              <!-- Joint Badge - Top Right Corner. Shown for ANY shared record:
+                   gating it on `< 100` hid exactly the accounts stored wrong. -->
               <span
-                v-if="account.ownership_type === 'joint' && (!account.ownership_percentage || account.ownership_percentage < 100)"
+                v-if="isSharedRecord(account)"
                 class="joint-badge-corner"
               >
                 Joint
@@ -63,7 +64,7 @@
               <span
                 v-if="account.include_in_retirement"
                 class="retirement-badge-corner"
-                :class="{ 'has-joint': account.ownership_type === 'joint' }"
+                :class="{ 'has-joint': isSharedRecord(account) }"
               >
                 Retirement
               </span>
@@ -77,14 +78,18 @@
                 <p class="account-name-text">{{ account.account_name }}</p>
                 <div class="account-details">
                   <!-- Joint account display -->
-                  <template v-if="account.ownership_type === 'joint'">
+                  <template v-if="isSharedRecord(account)">
                     <div class="detail-row">
                       <span class="detail-label">Full Value</span>
                       <span class="detail-value">{{ formatCurrency(getDisplayValue(account)) }}</span>
                     </div>
                     <div class="detail-row">
-                      <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                      <span class="detail-value text-violet-600">{{ formatCurrency(getDisplayValue(account) * ((account.ownership_percentage || 50) / 100)) }}</span>
+                      <span class="detail-label">Your Share ({{ formatSharePercent(account) }})</span>
+                      <span class="detail-value text-violet-600">{{ formatCurrency(userShareOf(account)) }}</span>
+                    </div>
+                    <div v-if="coOwnerOf(account)" class="detail-row">
+                      <span class="detail-label">Held with</span>
+                      <span class="detail-value">{{ coOwnerOf(account) }}</span>
                     </div>
                   </template>
                   <!-- Individual account -->
@@ -242,7 +247,7 @@
         document-type="investment_statement"
         @close="showUploadModal = false"
         @saved="handleDocumentSaved"
-        @manual-entry="showUploadModal = false; showAccountForm = true;"
+        @manual-entry="openManualAccountEntry"
       />
     </Teleport>
 
@@ -254,7 +259,7 @@
       {{ errorMessage }}
     </div>
 
-    <!-- Open Banking Affordance — SP2 PR8 §14: shown only when open_api_affordance flag is true (Tier 2/3) -->
+    <!-- Open Banking Affordance — shown only when the Premium affordance flag is true. -->
     <div v-if="openApiAffordance && !selectedAccount" class="mt-6 bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
       <div class="flex items-center justify-between">
         <div>
@@ -274,13 +279,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjections from './InvestmentProjections.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import InvestmentHoldings from '@/components/Investment/InvestmentHoldings.vue';
 import InvestmentPerformance from '@/components/Investment/InvestmentPerformance.vue';
-import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
-import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimizer.vue';
-import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
-import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
-import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
@@ -289,6 +288,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 
 import logger from '@/utils/logger';
+import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
 export default {
   name: 'InvestmentList',
 
@@ -298,13 +298,7 @@ export default {
     InvestmentProjections,
     AccountForm,
     DocumentUploadModal,
-    InvestmentHoldings,
     InvestmentPerformance,
-    PortfolioOptimization,
-    AssetLocationOptimizer,
-    WrapperOptimizer,
-    FeeBreakdown,
-    TaxEfficiencyPanel,
     RiskMismatchWarning,
     ModuleStatusBar,
     LimitReachedModal,
@@ -422,7 +416,7 @@ export default {
   watch: {
     actionCounter() {
       if (this.pendingAction === 'addAccount') {
-        this.showAccountForm = true;
+        this.openAddAccountModal();
         this.$store.dispatch('subNav/consumeCta');
       } else if (this.pendingAction === 'uploadStatement') {
         this.showUploadModal = true;
@@ -439,8 +433,7 @@ export default {
             this.showAccountForm = true;
           }
         } else {
-          this.editingAccount = null;
-          this.showAccountForm = true;
+          this.openAddAccountModal();
         }
       } else if (fill.entityType === 'investment_holding') {
         // Navigate into the account detail view so the holding form can open
@@ -512,6 +505,11 @@ export default {
       }
       this.editingAccount = null;
       this.showAccountForm = true;
+    },
+
+    openManualAccountEntry() {
+      this.showUploadModal = false;
+      this.openAddAccountModal();
     },
 
     closeAccountForm() {
@@ -666,6 +664,25 @@ export default {
         return 'Valuation';
       }
       return 'Current Value';
+    },
+
+    // Ownership display goes through resources/js/utils/ownership.js — the ONE
+    // home shared with the property, savings and chattel cards and /m. This
+    // component used to multiply the raw ownership_percentage itself, with no
+    // regard for which side of a joint pair was looking, so BOTH spouses were
+    // told they owned 100% of the same £95,000 account (W-0015).
+    isSharedRecord,
+
+    userShareOf(account) {
+      return calculateUserShare(account, { valueField: 'current_value' });
+    },
+
+    formatSharePercent(account) {
+      return `${userSharePercent(account).toFixed(2)}%`;
+    },
+
+    coOwnerOf(account) {
+      return coOwnerName(account);
     },
 
     getDisplayValue(account) {
@@ -845,11 +862,13 @@ export default {
   },
 
   async mounted() {
+    this.setDetailView(false);
+    await this.loadData();
+
     // Check for pendingFill that was set before this component mounted
     const fill = this.$store.state.aiFormFill?.pendingFill;
     if (fill && fill.entityType === 'investment_account' && fill.mode !== 'edit') {
-      this.editingAccount = null;
-      this.showAccountForm = true;
+      this.openAddAccountModal();
     } else if (fill && fill.entityType === 'investment_holding') {
       const accountId = fill.fields?.investment_account_id;
       if (accountId) {
@@ -860,8 +879,6 @@ export default {
       }
     }
 
-    this.setDetailView(false);
-    await this.loadData();
   },
 };
 </script>

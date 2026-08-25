@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
  * Main Database Seeder
  *
  * This seeder orchestrates all other seeders in the correct order.
- * See /seedMigration.md for full documentation on seeding procedures.
+ * See docs/archive/seedMigration.md for full documentation on seeding procedures.
  *
  * Seeder Categories:
  * 1. Required Data (MUST RUN) - Tax config, life tables, product info, admin, preview users
@@ -81,7 +81,7 @@ class DatabaseSeeder extends Seeder
             // Estate action definitions - configurable estate planning action triggers
             EstateActionDefinitionSeeder::class,
 
-            // Subscription plans (pricing, trial config)
+            // Subscription plans (pricing configuration)
             SubscriptionPlanSeeder::class,
 
             // Invoice sequence counter — schema:dump captures DDL only, so the
@@ -103,7 +103,7 @@ class DatabaseSeeder extends Seeder
         // PHASE 2: Optional Data (for development/testing only)
         // These create additional test accounts beyond the required ones
         // ============================================================
-        if (app()->environment(['local', 'development', 'staging'])) {
+        if (app()->environment(['local', 'development'])) {
             $this->call([
                 // Households for multi-user testing
                 HouseholdSeeder::class,

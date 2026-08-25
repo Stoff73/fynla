@@ -4,116 +4,143 @@ declare(strict_types=1);
 
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\ContributionEstimatorService;
-use App\Services\TaxConfigService;
 
 beforeEach(function () {
-    $this->taxConfig = Mockery::mock(TaxConfigService::class);
-
-    $this->taxConfig->shouldReceive('getISAAllowances')->andReturn([
-        'annual_allowance' => 20000,
-    ]);
-
-    $this->service = new ContributionEstimatorService($this->taxConfig);
-});
-
-afterEach(function () {
-    Mockery::close();
+    $this->service = new ContributionEstimatorService;
 });
 
 describe('ContributionEstimatorService', function () {
     it('returns user override when provided', function () {
         $account = new InvestmentAccount(['account_type' => 'isa']);
 
-        $result = $this->service->estimateMonthlyContribution($account, 500.0);
-        expect($result)->toBe(500.0);
+        expect($this->service->estimateMonthlyContribution($account, 500.0))->toBe(500.0);
     });
 
-    it('returns zero for negative user override on SIPP', function () {
+    it('ignores a negative override and falls through to the recorded chain', function () {
         $account = new InvestmentAccount(['account_type' => 'sipp']);
 
-        // Negative override is ignored, falls through to SIPP default (0.0)
-        $result = $this->service->estimateMonthlyContribution($account, -100.0);
-        expect($result)->toBe(0.0);
+        expect($this->service->estimateMonthlyContribution($account, -100.0))->toBe(0.0);
     });
 
-    it('estimates ISA contribution from allowance when no subscription data', function () {
+    // The defect this suite exists to prevent: a projection is only auditable if every
+    // pound compounding in it is a pound the user told us about.
+    it('contributes nothing when the user has recorded no contribution', function ($type) {
         $account = new InvestmentAccount([
-            'account_type' => 'isa',
-            'isa_subscription_current_year' => 0,
-        ]);
-
-        $result = $this->service->estimateMonthlyContribution($account);
-        // Default: 20000 / 12 = 1666.67
-        expect($result)->toBeGreaterThan(1600);
-        expect($result)->toBeLessThan(1700);
-    });
-
-    it('estimates GIA contribution from account value', function () {
-        $account = new InvestmentAccount([
-            'account_type' => 'gia',
+            'account_type' => $type,
             'current_value' => 100000,
+            'monthly_contribution_amount' => null,
+            'contributions_ytd' => null,
+            'isa_subscription_current_year' => null,
         ]);
 
-        $result = $this->service->estimateMonthlyContribution($account);
-        // GIA: 100000 * 0.05 / 12 = 416.67
-        expect($result)->toBeGreaterThan(416);
-        expect($result)->toBeLessThan(417);
+        expect($this->service->estimateMonthlyContribution($account))->toBe(0.0);
+    })->with(['isa', 'gia', 'sipp', 'vct']);
+
+    it('never invents a contribution from the account value alone', function () {
+        $small = new InvestmentAccount(['account_type' => 'gia', 'current_value' => 1000]);
+        $large = new InvestmentAccount(['account_type' => 'gia', 'current_value' => 5000000]);
+
+        // A value-derived estimate would move with the balance. A recorded one does not.
+        expect($this->service->estimateMonthlyContribution($large))
+            ->toBe($this->service->estimateMonthlyContribution($small));
     });
 
-    it('returns zero for SIPP account type', function () {
-        $account = new InvestmentAccount(['account_type' => 'sipp']);
-
-        $result = $this->service->estimateMonthlyContribution($account);
-        expect($result)->toBe(0.0);
-    });
-
-    it('calculates portfolio contribution across multiple accounts', function () {
-        $isaAccount = new InvestmentAccount([
+    it('reads the recorded contribution, and moves with it', function () {
+        $make = fn (float $amount) => new InvestmentAccount([
             'account_type' => 'isa',
-            'isa_subscription_current_year' => 0,
+            'monthly_contribution_amount' => $amount,
+            'contribution_frequency' => 'monthly',
         ]);
-        $isaAccount->id = 1;
 
-        $giaAccount = new InvestmentAccount([
-            'account_type' => 'gia',
-            'current_value' => 50000,
-        ]);
-        $giaAccount->id = 2;
+        $low = $this->service->estimateMonthlyContribution($make(100.0));
+        $high = $this->service->estimateMonthlyContribution($make(400.0));
 
-        $accounts = collect([$isaAccount, $giaAccount]);
-
-        $result = $this->service->estimatePortfolioContribution($accounts);
-        // ISA: ~1666.67 + GIA: 50000 * 0.05 / 12 = ~208.33 = ~1875
-        expect($result)->toBeGreaterThan(1800);
-        expect($result)->toBeLessThan(1900);
+        expect($low)->toBe(100.0)
+            ->and($high)->toBe(400.0)
+            ->and($high)->toBeGreaterThan($low);
     });
 
-    it('applies per-account overrides in portfolio calculation', function () {
-        $account1 = new InvestmentAccount(['account_type' => 'isa']);
-        $account1->id = 1;
-        $account2 = new InvestmentAccount([
-            'account_type' => 'gia',
-            'current_value' => 100000,
+    it('converts the recorded contribution at its stated frequency', function () {
+        $make = fn (string $frequency) => new InvestmentAccount([
+            'account_type' => 'isa',
+            'monthly_contribution_amount' => 1200.0,
+            'contribution_frequency' => $frequency,
         ]);
-        $account2->id = 2;
 
-        $accounts = collect([$account1, $account2]);
-        $overrides = [1 => 300.0]; // Override account 1 only
-
-        $result = $this->service->estimatePortfolioContribution($accounts, $overrides);
-        // Account 1: 300 (override) + Account 2: 100000 * 0.05 / 12 = ~416.67
-        expect($result)->toBeGreaterThan(716);
-        expect($result)->toBeLessThan(717);
+        expect($this->service->estimateMonthlyContribution($make('monthly')))->toBe(1200.0)
+            ->and($this->service->estimateMonthlyContribution($make('quarterly')))->toBe(400.0)
+            ->and($this->service->estimateMonthlyContribution($make('annually')))->toBe(100.0);
     });
 
-    it('handles ISA subscription data when available', function () {
+    it('prefers the recorded regular contribution over this year subscriptions', function () {
         $account = new InvestmentAccount([
             'account_type' => 'isa',
+            'monthly_contribution_amount' => 250.0,
+            'contribution_frequency' => 'monthly',
+            'contributions_ytd' => 9000,
+            'isa_subscription_current_year' => 9000,
+        ]);
+
+        expect($this->service->estimateMonthlyContribution($account))->toBe(250.0);
+    });
+
+    it('annualises contributions already made this tax year, and moves with them', function () {
+        $make = fn (float $ytd) => new InvestmentAccount([
+            'account_type' => 'gia',
+            'contributions_ytd' => $ytd,
+        ]);
+
+        $low = $this->service->estimateMonthlyContribution($make(1200.0));
+        $high = $this->service->estimateMonthlyContribution($make(6000.0));
+
+        expect($low)->toBeGreaterThan(0.0)
+            ->and($high)->toBe($low * 5.0);
+    });
+
+    it('reads the ISA subscription only when the generic column is empty', function () {
+        $isa = new InvestmentAccount([
+            'account_type' => 'isa',
+            'contributions_ytd' => 0,
+            'isa_subscription_current_year' => 6000,
+        ]);
+        $gia = new InvestmentAccount([
+            'account_type' => 'gia',
+            'contributions_ytd' => 0,
             'isa_subscription_current_year' => 6000,
         ]);
 
-        $result = $this->service->estimateMonthlyContribution($account);
-        // 6000 / months elapsed in tax year (varies), should be positive
-        expect($result)->toBeGreaterThan(0);
+        expect($this->service->estimateMonthlyContribution($isa))->toBeGreaterThan(0.0)
+            ->and($this->service->estimateMonthlyContribution($gia))->toBe(0.0);
+    });
+
+    it('sums the accounts it is given', function () {
+        $one = new InvestmentAccount([
+            'account_type' => 'isa',
+            'monthly_contribution_amount' => 300.0,
+            'contribution_frequency' => 'monthly',
+        ]);
+        $one->id = 1;
+        $two = new InvestmentAccount([
+            'account_type' => 'gia',
+            'monthly_contribution_amount' => 1200.0,
+            'contribution_frequency' => 'annually',
+        ]);
+        $two->id = 2;
+
+        expect($this->service->estimatePortfolioContribution(collect([$one, $two])))->toBe(400.0);
+    });
+
+    it('applies per-account overrides in the portfolio total', function () {
+        $one = new InvestmentAccount([
+            'account_type' => 'isa',
+            'monthly_contribution_amount' => 300.0,
+            'contribution_frequency' => 'monthly',
+        ]);
+        $one->id = 1;
+        $two = new InvestmentAccount(['account_type' => 'gia', 'current_value' => 100000]);
+        $two->id = 2;
+
+        expect($this->service->estimatePortfolioContribution(collect([$one, $two]), [1 => 50.0]))
+            ->toBe(50.0);
     });
 });

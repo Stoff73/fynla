@@ -139,7 +139,7 @@
                   <dl class="space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Retirement Age:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ userRetirementAge }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500" data-testid="pension-retirement-age">{{ pensionRetirementAge }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Growth Rate Assumption:</dt>
@@ -164,17 +164,33 @@
                       <dd class="text-sm font-medium text-horizon-500">{{ advisorFeePercent.toFixed(2) }}% p.a.</dd>
                     </div>
                     <div v-if="hasHoldings" class="flex justify-between">
-                      <dt class="text-sm text-neutral-500">Avg Fund Fee (OCF):</dt>
+                      <dt class="text-sm text-neutral-500">Average Fund Charge:</dt>
                       <dd class="text-sm font-medium text-horizon-500">{{ weightedAverageOCF.toFixed(2) }}%</dd>
                     </div>
-                    <div class="flex justify-between border-t border-light-gray pt-2 mt-2">
-                      <dt class="text-sm text-neutral-500 font-medium">Total Annual Cost:</dt>
-                      <dd class="text-sm font-semibold text-horizon-500">{{ totalFeePercent.toFixed(2) }}%</dd>
-                    </div>
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-neutral-500">Annual Fee Impact:</dt>
-                      <dd class="text-sm font-medium text-raspberry-600">{{ formatCurrency(annualFeeCost) }}/year</dd>
-                    </div>
+                    <!--
+                      Totals only once SOMETHING is recorded. A pension with no
+                      platform fee on record and no holdings reported "Total
+                      Annual Cost 0.00%" and "Annual Fee Impact £0/year" — which
+                      reads as a pension that costs nothing to run, when what is
+                      true is that nobody has said what it costs. The `?? null`
+                      versus `|| 0` distinction in `app/Http/CLAUDE.md`: a
+                      zero-default collapses "not recorded" and "zero" into one
+                      figure and the reader cannot tell them apart.
+                    -->
+                    <template v-if="hasRecordedFees">
+                      <div class="flex justify-between border-t border-light-gray pt-2 mt-2">
+                        <dt class="text-sm text-neutral-500 font-medium">Total Annual Cost:</dt>
+                        <dd class="text-sm font-semibold text-horizon-500">{{ totalFeePercent.toFixed(2) }}%</dd>
+                      </div>
+                      <div class="flex justify-between">
+                        <dt class="text-sm text-neutral-500">Annual Fee Impact:</dt>
+                        <dd class="text-sm font-medium text-raspberry-600">{{ formatCurrency(annualFeeCost) }}/year</dd>
+                      </div>
+                    </template>
+                    <p v-else class="text-sm text-neutral-500 border-t border-light-gray pt-2 mt-2">
+                      No charges recorded for this pension yet. Add its platform fee, or the
+                      funds it holds, to see what it costs to run.
+                    </p>
                   </dl>
                 </div>
               </template>
@@ -293,44 +309,100 @@
             </div>
           </div>
 
-          <!-- Holdings Tab (DC pensions with holdings) -->
+          <!-- Holdings Tab (DC pensions) -->
           <div v-show="activeTab === 'holdings'" class="space-y-4">
-            <div class="overflow-x-auto">
+            <div class="flex justify-between items-center">
+              <p class="text-sm text-neutral-500">
+                The funds held inside this pension.
+              </p>
+              <button
+                v-preview-disabled="'edit'"
+                data-testid="pension-add-holding"
+                @click="openAddHolding"
+                class="px-4 py-2 bg-raspberry-500 text-white rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors"
+              >
+                Add Holding
+              </button>
+            </div>
+
+            <p v-if="holdingsError" class="text-sm text-raspberry-600" role="alert">{{ holdingsError }}</p>
+
+            <div v-if="holdings.length === 0" class="text-center py-10 border border-light-gray rounded-lg">
+              <p class="text-base font-medium text-horizon-500 mb-1">No holdings recorded</p>
+              <p class="text-sm text-neutral-500">
+                Add the funds this pension is invested in to see its fund charges and their effect over time.
+              </p>
+            </div>
+
+            <!--
+              Units Held, Purchase Price, Current Price and Purchase Date are
+              captured, validated and stored, and this table displayed none of
+              them (W-0442). W-0039 made them enterable; nothing made them
+              visible, so a user could type a unit count and never see it again.
+            -->
+            <div v-else class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-light-gray">
                     <th class="text-left py-2 text-neutral-500 font-medium">Fund Name</th>
                     <th class="text-left py-2 text-neutral-500 font-medium">Type</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium whitespace-nowrap">Units Held</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium whitespace-nowrap">Purchase Price</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium whitespace-nowrap">Current Price</th>
+                    <th class="text-left py-2 text-neutral-500 font-medium whitespace-nowrap">Purchase Date</th>
                     <th class="text-right py-2 text-neutral-500 font-medium">Allocation</th>
                     <th class="text-right py-2 text-neutral-500 font-medium">Value</th>
-                    <th class="text-right py-2 text-neutral-500 font-medium">OCF</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium whitespace-nowrap">Ongoing Charge Figure</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="holding in pension.holdings" :key="holding.id" class="border-b border-light-gray last:border-0">
+                  <tr v-for="holding in holdings" :key="holding.id" class="border-b border-light-gray last:border-0" :data-testid="`pension-holding-${holding.id}`">
                     <td class="py-2 text-horizon-500 font-medium">{{ holding.security_name || 'Unnamed' }}</td>
                     <td class="py-2 text-neutral-500 capitalize">{{ formatAssetType(holding.asset_type) }}</td>
+                    <td class="py-2 text-right text-horizon-500" data-testid="holding-units">{{ formatUnits(holding.quantity) }}</td>
+                    <td class="py-2 text-right text-horizon-500">{{ holding.purchase_price ? formatCurrencyWithPence(holding.purchase_price) : '—' }}</td>
+                    <td class="py-2 text-right text-horizon-500">{{ holding.current_price ? formatCurrencyWithPence(holding.current_price) : '—' }}</td>
+                    <td class="py-2 text-neutral-500 whitespace-nowrap">{{ formatDate(holding.purchase_date) || '—' }}</td>
                     <td class="py-2 text-right text-horizon-500">{{ holding.allocation_percent || 0 }}%</td>
                     <td class="py-2 text-right text-horizon-500">{{ formatCurrency(holdingValue(holding)) }}</td>
                     <td class="py-2 text-right text-neutral-500">{{ holding.ocf_percent ? parseFloat(holding.ocf_percent).toFixed(2) + '%' : '—' }}</td>
+                    <td class="py-2 text-right whitespace-nowrap">
+                      <button
+                        v-preview-disabled="'edit'"
+                        @click="openEditHolding(holding)"
+                        class="text-violet-600 hover:text-violet-800 font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        v-preview-disabled="'delete'"
+                        @click="confirmDeleteHolding(holding)"
+                        class="ml-3 text-raspberry-600 hover:text-raspberry-800 font-medium"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 </tbody>
                 <tfoot v-if="holdingsCashPercent > 0">
                   <tr class="border-t border-light-gray">
                     <td class="py-2 text-neutral-500 italic">Cash (unallocated)</td>
-                    <td></td>
+                    <td colspan="5"></td>
                     <td class="py-2 text-right text-neutral-500">{{ holdingsCashPercent.toFixed(1) }}%</td>
                     <td class="py-2 text-right text-neutral-500">{{ formatCurrency(holdingsCashValue) }}</td>
-                    <td></td>
+                    <td colspan="2"></td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
-            <!-- Fee summary tied to holdings -->
-            <div class="bg-savannah-100 rounded-lg p-4">
+            <!-- Fee summary tied to holdings. Hidden with no holdings, because
+                 with none the only figures it can show are zeros, and a fund
+                 charge of "0.00%" is a claim rather than an absence. -->
+            <div v-if="holdings.length > 0" class="bg-savannah-100 rounded-lg p-4">
               <div class="flex justify-between text-sm">
-                <span class="text-neutral-500">Weighted Avg Fund Fee (OCF)</span>
+                <span class="text-neutral-500">Weighted Average Fund Charge</span>
                 <span class="font-medium text-horizon-500">{{ weightedAverageOCF.toFixed(2) }}%</span>
               </div>
               <div class="flex justify-between text-sm mt-1">
@@ -430,6 +502,31 @@
       @confirm="handleDelete"
       @cancel="showDeleteConfirm = false"
     />
+
+    <!--
+      The SAME holding form the investment accounts use, given a pension as its
+      owner instead of an account (Rule 20). A pension-shaped copy of it would be
+      a second place to add a units input to, and W-0039 has already shown what
+      happens when a holding field has more than one home — or none.
+    -->
+    <HoldingForm
+      v-if="showHoldingModal"
+      :show="showHoldingModal"
+      :holding="editingHolding"
+      :accounts="[]"
+      :save-error="holdingSaveError"
+      :owner="holdingOwner"
+      @close="closeHoldingModal"
+      @save="handleHoldingSave"
+    />
+
+    <ConfirmDialog
+      :show="!!holdingToDelete"
+      title="Delete Holding"
+      :message="`Are you sure you want to delete ${holdingToDelete ? holdingToDelete.security_name : 'this holding'}? This action cannot be undone.`"
+      @confirm="handleHoldingDelete"
+      @cancel="holdingToDelete = null"
+    />
   </div>
 </template>
 
@@ -438,8 +535,11 @@ import { mapActions, mapState } from 'vuex';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
+import HoldingForm from '@/components/Investment/HoldingForm.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import retirementService from '@/services/retirementService';
+import dcPensionHoldingsService from '@/services/dcPensionHoldingsService';
+import { formatUnits } from '@/utils/holdingUnits';
 
 import logger from '@/utils/logger';
 export default {
@@ -450,6 +550,7 @@ export default {
     UnifiedPensionForm,
     ConfirmDialog,
     PensionPotProjectionChart,
+    HoldingForm,
   },
 
   props: {
@@ -474,14 +575,41 @@ export default {
       showDeleteConfirm: false,
       projectionData: null,
       projectionLoading: false,
+      // Holdings written through this panel go straight to the pension holdings
+      // endpoints, so the `pension` prop the parent handed down goes stale the
+      // moment one lands. Null means "nothing written yet, the prop is still
+      // the truth"; an array means this panel now owns the list.
+      localHoldings: null,
+      showHoldingModal: false,
+      editingHolding: null,
+      holdingToDelete: null,
+      holdingSaveError: null,
+      holdingsError: null,
     };
   },
 
   computed: {
     ...mapState('auth', ['user']),
 
-    userRetirementAge() {
-      return this.user?.target_retirement_age || 67;
+    /**
+     * THIS pension's retirement age, which is what the label beside it claims.
+     *
+     * It read `this.user?.target_retirement_age || 67` — two faults in one line.
+     * It rendered the USER's household target under a label a reader takes as the
+     * pension's, and where the store carried no target it fell back to a hardcoded
+     * 67. `dc_pensions.retirement_age` is captured by the pension's own form
+     * (`DCPensionForm.vue:291-314`), validated 55-75, and was never read here.
+     *
+     * `/m` already reads the pension's own value (`RetirementPensionDetail.vue`,
+     * "Retirement age" row) and shows an em dash when it has none. Web now says
+     * the same thing from the same field rather than inventing a number.
+     *
+     * **The live data cannot tell these apart** — David's `users.target_retirement_age`
+     * and his SIPP's `retirement_age` are both 60. Three mutually distinct values
+     * are needed to discriminate; see `PensionDetailRetirementAge.test.js`.
+     */
+    pensionRetirementAge() {
+      return this.pension.retirement_age || '—';
     },
 
     tabs() {
@@ -490,10 +618,13 @@ export default {
         { id: 'documents', label: 'Documents' },
       ];
       if (this.pensionType === 'dc') {
-        if (this.hasHoldings) {
-          baseTabs.splice(1, 0, { id: 'holdings', label: 'Holdings' });
-        }
-        baseTabs.splice(this.hasHoldings ? 2 : 1, 0, { id: 'projections', label: 'Projections' });
+        // Holdings is NOT gated on already having holdings. It was, and that was
+        // the whole of "a pension's holdings cannot be entered" (W-0441): no
+        // holdings meant no tab, no tab meant no way to add one, and no way to
+        // add one meant no holdings. The endpoints, the service and the form all
+        // existed the entire time — only the way in was missing.
+        baseTabs.splice(1, 0, { id: 'holdings', label: 'Holdings' });
+        baseTabs.splice(2, 0, { id: 'projections', label: 'Projections' });
       }
       return baseTabs;
     },
@@ -573,8 +704,34 @@ export default {
       return parseFloat(this.pension.platform_fee_percent) || 0;
     },
 
+    /**
+     * Has this pension been told what it charges?
+     *
+     * `platform_fee_percent` is NULL on David's SIPP, and every reader of it
+     * coerces with `|| 0` — so an unanswered question rendered as "0.00% p.a.",
+     * which is not an absence but a claim that the platform charges nothing.
+     */
+    hasPlatformFee() {
+      if (this.pension.platform_fee_type === 'fixed') {
+        return this.pension.platform_fee_amount !== null
+          && this.pension.platform_fee_amount !== undefined
+          && this.pension.platform_fee_amount !== '';
+      }
+      return this.pension.platform_fee_percent !== null
+        && this.pension.platform_fee_percent !== undefined
+        && this.pension.platform_fee_percent !== '';
+    },
+
+    // Anything at all on record that a total could be built from.
+    hasRecordedFees() {
+      return this.hasPlatformFee || this.advisorFeePercent > 0 || this.hasHoldings;
+    },
+
     // Platform fee display string matching the form inputs
     platformFeeDisplay() {
+      if (! this.hasPlatformFee) {
+        return 'Not recorded';
+      }
       if (this.pension.platform_fee_type === 'fixed') {
         const amount = parseFloat(this.pension.platform_fee_amount) || 0;
         const freqLabel = { monthly: '/month', quarterly: '/quarter', annually: '/year' };
@@ -589,15 +746,37 @@ export default {
       return parseFloat(this.pension.advisor_fee_percent) || 0;
     },
 
+    /**
+     * The holdings on this pension — the ones this panel has written if it has
+     * written any, otherwise the ones the parent handed down.
+     *
+     * Every consumer below reads THIS, never `pension.holdings` directly, so a
+     * holding added on the Holdings tab moves the fee figures on the Overview
+     * tab in the same breath. That is the whole point of the tab existing.
+     */
+    holdings() {
+      return this.localHoldings ?? this.pension.holdings ?? [];
+    },
+
+    // What `HoldingForm` needs to stand in for its account select.
+    holdingOwner() {
+      return {
+        label: 'Pension',
+        name: this.pensionName,
+        valueLabel: 'Fund Value:',
+        value: parseFloat(this.pension.current_fund_value) || 0,
+      };
+    },
+
     // Check if pension has holdings
     hasHoldings() {
-      return this.pension.holdings?.length > 0;
+      return this.holdings.length > 0;
     },
 
     // Total allocation percentage across holdings
     totalHoldingsAllocation() {
       if (!this.hasHoldings) return 0;
-      return this.pension.holdings.reduce((sum, h) => sum + (parseFloat(h.allocation_percent) || 0), 0);
+      return this.holdings.reduce((sum, h) => sum + (parseFloat(h.allocation_percent) || 0), 0);
     },
 
     // Cash percentage (unallocated)
@@ -613,8 +792,8 @@ export default {
 
     // Total holdings value (by current_value if available, otherwise by allocation)
     totalHoldingsValue() {
-      if (!this.pension.holdings?.length) return 0;
-      return this.pension.holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
+      if (!this.hasHoldings) return 0;
+      return this.holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
     },
 
     // Weighted average OCF across holdings
@@ -622,7 +801,7 @@ export default {
       if (!this.hasHoldings) return 0;
       const fundValue = parseFloat(this.pension.current_fund_value) || 0;
       if (fundValue === 0) return 0;
-      const totalWeightedOCF = this.pension.holdings.reduce((sum, h) => {
+      const totalWeightedOCF = this.holdings.reduce((sum, h) => {
         const value = this.holdingValue(h);
         return sum + (value * (parseFloat(h.ocf_percent) || 0));
       }, 0);
@@ -696,10 +875,28 @@ export default {
       });
     },
 
+    /**
+     * What this holding is worth.
+     *
+     * The stored value first. This recomputed it from the allocation percentage
+     * unconditionally, so a row storing £160,018 — 4,211 units at £38.00, which
+     * the server derived through `HoldingValuation` — displayed £160,000, being
+     * 50% of the pot. The table was showing a figure the database does not hold
+     * while the column it holds sat unread (W-0442).
+     *
+     * The allocation fallback stays for rows with no value of their own, and for
+     * the unallocated-cash footer, which is a percentage by construction.
+     */
     holdingValue(holding) {
+      const stored = parseFloat(holding.current_value);
+      if (!Number.isNaN(stored) && stored > 0) {
+        return stored;
+      }
       const fundValue = parseFloat(this.pension.current_fund_value) || 0;
       return fundValue * (parseFloat(holding.allocation_percent) || 0) / 100;
     },
+
+    formatUnits,
 
     formatAssetType(type) {
       const labels = {
@@ -785,6 +982,96 @@ export default {
       } catch (error) {
         logger.error('Failed to delete pension:', error);
       }
+    },
+
+    openAddHolding() {
+      this.editingHolding = null;
+      this.holdingSaveError = null;
+      this.showHoldingModal = true;
+    },
+
+    openEditHolding(holding) {
+      this.editingHolding = holding;
+      this.holdingSaveError = null;
+      this.showHoldingModal = true;
+    },
+
+    closeHoldingModal() {
+      this.showHoldingModal = false;
+      this.editingHolding = null;
+      this.holdingSaveError = null;
+    },
+
+    confirmDeleteHolding(holding) {
+      this.holdingToDelete = holding;
+    },
+
+    /**
+     * The parent owns the API call and closes the modal on success only —
+     * CLAUDE.md Rule 3, and W-0009's lesson that a modal which closes itself
+     * makes a discarded save look like a successful one.
+     */
+    async handleHoldingSave(holdingData) {
+      this.holdingSaveError = null;
+      this.holdingsError = null;
+
+      try {
+        if (holdingData.id) {
+          await dcPensionHoldingsService.updateHolding(this.pension.id, holdingData.id, holdingData);
+        } else {
+          await dcPensionHoldingsService.createHolding(this.pension.id, holdingData);
+        }
+      } catch (error) {
+        logger.error('Failed to save pension holding:', error);
+        this.holdingSaveError = error.response?.data?.message
+          || 'Failed to save the holding. Please try again.';
+        return;
+      }
+
+      this.closeHoldingModal();
+      await this.refreshHoldings();
+    },
+
+    async handleHoldingDelete() {
+      const holding = this.holdingToDelete;
+      this.holdingToDelete = null;
+      if (!holding) return;
+
+      this.holdingsError = null;
+      try {
+        await dcPensionHoldingsService.deleteHolding(this.pension.id, holding.id);
+      } catch (error) {
+        logger.error('Failed to delete pension holding:', error);
+        this.holdingsError = error.response?.data?.message
+          || 'Failed to delete the holding. Please try again.';
+        return;
+      }
+
+      await this.refreshHoldings();
+    },
+
+    /**
+     * Re-read the holdings from the server rather than patching them locally.
+     *
+     * The server reconciles units, price, value and cost basis on every write
+     * (`App\Support\HoldingValuation`), so the row that comes back is not the
+     * row that was sent. Patching local state would show the user their own
+     * input back and hide the one figure worth seeing — what was actually stored.
+     */
+    async refreshHoldings() {
+      try {
+        const response = await dcPensionHoldingsService.listHoldings(this.pension.id);
+        this.localHoldings = response.data ?? [];
+      } catch (error) {
+        logger.error('Failed to reload pension holdings:', error);
+        this.holdingsError = 'The holding was saved, but the list could not be reloaded. Reopen this pension to see it.';
+        return;
+      }
+
+      // Keep the rest of the app in step — net worth, fee analysis and the
+      // pension list all read holdings through the retirement module.
+      this.$emit('pension-updated', { ...this.pension, holdings: this.localHoldings });
+      await this.fetchRetirementData();
     },
 
     async loadProjections() {

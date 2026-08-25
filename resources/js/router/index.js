@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { isAuthenticatedPublicUtilityPath } from './publicRoutePolicy.js';
+import { isTransferableMobileBearer } from '../mScaffoldBridge.js';
 import store from '@/store';
 import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
@@ -116,6 +118,7 @@ const BusinessInterestsList = () => import('@/components/NetWorth/BusinessIntere
 const ChattelsList = () => import('@/components/NetWorth/ChattelsList.vue');
 const LiabilitiesList = () => import('@/components/NetWorth/LiabilitiesList.vue');
 const JointAccountHistory = () => import('@/components/NetWorth/JointAccountHistory.vue');
+const BalanceHistory = () => import('@/views/NetWorth/BalanceHistory.vue');
 const ProtectionDashboard = () => import('@/views/Protection/ProtectionDashboard.vue');
 const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
@@ -140,6 +143,11 @@ const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleList
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
 const NewsSubscribersPage = () => import('@/views/Admin/NewsSubscribersPage.vue');
+const PostApprovalQueue = () => import('@/views/Admin/Pipeline/PostApprovalQueue.vue');
+const PipelineArticleManager = () => import('@/views/Admin/Pipeline/ArticleManager.vue');
+const PipelineArticleEditor = () => import('@/views/Admin/Pipeline/ArticleEditor.vue');
+const PipelinePublisherManager = () => import('@/views/Admin/Pipeline/PublisherManager.vue');
+const PipelineClipApprovalQueue = () => import('@/views/Admin/Pipeline/ClipApprovalQueue.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -150,7 +158,7 @@ const ValuableInfo = () => import('@/views/ValuableInfo.vue');
  *
  * Will Builder and Power of Attorney are Estate-module routes — there is no
  * separate will/POA capability key in the SP2 matrix, so they fall under
- * "Estate planning" (teaser for Free/Tier1). Teaser-tier users are redirected
+ * "Estate planning" (teaser for Free). Teaser-mode users are redirected
  * to the canonical Estate teaser (upgrade CTA) rather than the creation
  * wizard. The estate store `mode` is sourced from /api/estate via the same
  * canonical TeaserGate the backend enforces — NOT the legacy plan map, which
@@ -163,7 +171,7 @@ async function requireFullEstateAccess(to, from, next) {
     try {
       await store.dispatch('estate/fetchEstateData');
       mode = store.getters['estate/mode'];
-    } catch (e) {
+    } catch {
       // Transient fetch failure — let the view/backend handle it (backend
       // remains the authoritative 403 gate).
     }
@@ -614,6 +622,16 @@ const routes = [
     },
   },
   {
+    // The spouse-permission notification email has always linked here
+    // (SpousePermissionRequest::toMail), and the route did not exist — the
+    // invitee followed it to a 404, which is part of why consent was never
+    // obtainable and the backend forged it instead (W-0347). Redirect rather
+    // than a second view: the sharing panel lives on the family screen, and two
+    // pages rendering one control is exactly the duplication Rule 20 forbids.
+    path: '/settings/spouse-permission',
+    redirect: '/settings/family',
+  },
+  {
     path: '/settings/family',
     name: 'FamilySettings',
     component: FamilySettings,
@@ -653,6 +671,12 @@ const routes = [
       ],
     },
   },
+  // Canonical section routes the onboarding director navigates to (the /m
+  // router serves them natively). Without these the campaign verify flow's
+  // navigation event silently no-ops on web — Fyn says "Here's your income
+  // page" while the dashboard stays put (live 2026-07-23).
+  { path: '/income', redirect: { path: '/valuable-info', query: { section: 'income' } } },
+  { path: '/expenditure', redirect: { path: '/valuable-info', query: { section: 'expenditure' } } },
   {
     path: '/profile',
     name: 'UserProfile',
@@ -783,6 +807,11 @@ const routes = [
         name: 'JointAccountHistory',
         component: JointAccountHistory,
       },
+      {
+        path: 'history',
+        name: 'BalanceHistory',
+        component: BalanceHistory,
+      },
     ],
   },
   {
@@ -863,6 +892,16 @@ const routes = [
   {
     path: '/investment',
     redirect: '/net-worth/investments',
+  },
+  {
+    // The pensioncheck onboarding terminal (and any Fyn navigation) targets the
+    // surface-agnostic '/retirement' route the /m app defines natively. The web
+    // SPA houses the retirement module under /net-worth/retirement, so without
+    // this redirect $router.push('/retirement') fell through to the NotFound
+    // catch-all and the terminal "Take me to my retirement plan" button went
+    // nowhere. Mirrors the '/investment' → '/net-worth/investments' redirect.
+    path: '/retirement',
+    redirect: '/net-worth/retirement',
   },
   {
     path: '/risk-profile',
@@ -1304,9 +1343,57 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/admin/cms/pages',
+    name: 'admin.cms.pages',
+    component: () => import('@/views/Admin/Cms/PagesManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/cms/emails',
+    name: 'admin.cms.emails',
+    component: () => import('@/views/Admin/Cms/EmailsComingSoon.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/campaigns',
+    name: 'admin.campaigns',
+    component: () => import('@/views/Admin/Campaigns/CampaignManager.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/admin/news-subscribers',
     name: 'AdminNewsSubscribers',
     component: NewsSubscribersPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/posts',
+    name: 'AdminPipelinePosts',
+    component: PostApprovalQueue,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles',
+    name: 'AdminPipelineArticles',
+    component: PipelineArticleManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/articles/:id',
+    name: 'AdminPipelineArticleEditor',
+    component: PipelineArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/publishers',
+    name: 'AdminPipelinePublishers',
+    component: PipelinePublisherManager,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/pipeline/clips',
+    name: 'AdminPipelineClipApprovals',
+    component: PipelineClipApprovalQueue,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
@@ -1451,6 +1538,11 @@ const routes = [
         name: 'PreviewNetWorthLiabilities',
         component: LiabilitiesList,
       },
+      {
+        path: 'history',
+        name: 'PreviewBalanceHistory',
+        component: BalanceHistory,
+      },
     ],
   },
   {
@@ -1536,7 +1628,7 @@ router.beforeEach(async (to, from, next) => {
   // is the cross-origin-safe "am I framed?" check (window.frameElement throws
   // on a cross-origin parent; this never does).
   let inMobileFrame = false;
-  try { inMobileFrame = window.self !== window.top; } catch (e) { inMobileFrame = true; }
+  try { inMobileFrame = window.self !== window.top; } catch { inMobileFrame = true; }
   if (inMobileFrame
       && store.getters['auth/isAuthenticated']
       && to.matched.some(r => r.meta.requiresAuth)) {
@@ -1546,10 +1638,23 @@ router.beforeEach(async (to, from, next) => {
     // authenticated instead of bouncing to the mobile login. localStorage is
     // shared same-origin; both are the same Sanctum bearer token.
     const token = getTokenSync();
-    if (token) {
-      try { localStorage.setItem('m_scaffold_token', token); } catch (e) { /* private mode */ }
+    if (isTransferableMobileBearer(token)) {
+      try {
+        // Preserve an existing rotated /m token. Copy only on the initial
+        // desktop-to-mobile handoff; mobile never copies its bearer back into
+        // desktop storage.
+        if (!localStorage.getItem('m_scaffold_token')) {
+          localStorage.setItem('m_scaffold_token', token);
+        }
+      } catch { /* private mode */ }
     }
-    window.location.replace(routerBase + 'm/app');
+    const mobileQuery = new URLSearchParams();
+    if (typeof to.query.from === 'string' && to.query.from) {
+      mobileQuery.set('from', to.query.from);
+    }
+    const mobileUrl = routerBase + 'm/app' + (mobileQuery.size ? `?${mobileQuery.toString()}` : '');
+    window.__fynlaMobileHandoffPending = true;
+    window.location.replace(mobileUrl);
     return next(false); // cancel the in-frame SPA nav; the frame is reloading into /m/app
   }
 
@@ -1633,18 +1738,25 @@ router.beforeEach(async (to, from, next) => {
       && to.matched.some(r => r.meta.requiresAdmin || r.meta.requiresAdvisor)) {
     try {
       await store.dispatch('auth/fetchUser');
-    } catch (e) {
+    } catch {
       // Token invalid/expired — leave state as-is; the requiresAuth / requiresAdmin
       // branches below still apply (and API 401s force a re-login).
     }
   }
 
-  // Authenticated users never see the public marketing / landing pages — those
+  // Authenticated users do not see public marketing / landing pages — those
   // exist only to convert guests; the user lives behind the auth wall in the
-  // app. Bounce them to the dashboard. Preview personas are exempt so they can
-  // still reach the landing-page persona selector. Mirrors the server-side
-  // `redirect.authed` middleware on the equivalent server-rendered PHP routes.
-  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode) {
+  // app. Account-support and legal utilities remain reachable from Settings.
+  // Preview personas are exempt so they can still reach the landing-page
+  // persona selector. Mirrors `redirect.authed` on server-rendered pages.
+  //
+  // Exception: `?preview=true` is the admin draft-preview link (from the CMS
+  // editor). Admins must be able to view the live article page while logged in,
+  // so don't bounce them — draft visibility is still gated server-side (the
+  // insights API only returns drafts to is_admin).
+  if (to.matched.some(r => r.meta.public) && isAuthenticated && !isPreviewMode
+      && !isAuthenticatedPublicUtilityPath(to.path)
+      && to.query.preview !== 'true') {
     next({ name: 'Dashboard' });
     return;
   }
@@ -1674,15 +1786,15 @@ router.beforeEach(async (to, from, next) => {
     // the primary enforcement; if the matrix isn't loaded yet, allow through.
     if (requiresAuth && isAuthenticated && !isPreviewMode && to.path !== '/teaser' && capabilityForRoute(to.path, to.query)) {
       let matrix = store.state.auth?.subscriptionData?.capability_matrix;
-      // On a fresh full-page load the trial-status hasn't been fetched yet, so
+      // On a fresh full-page load the subscription status hasn't been fetched yet, so
       // the matrix is missing — fetch it once before deciding, otherwise a
       // gated URL opened directly (or refreshed) would skip the teaser.
       if (!matrix) {
         try {
-          const resp = await api.get('/payment/trial-status');
+          const resp = await api.get('/payment/subscription-status');
           store.commit('auth/setSubscriptionData', resp.data);
           matrix = resp.data?.capability_matrix;
-        } catch (e) {
+        } catch {
           // Allow through — the backend is the primary enforcement.
         }
       }

@@ -33,6 +33,12 @@ export VITE_APP_NAME="Fynla"
 export VITE_APP_VERSION="1.0-staging-$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
 export VITE_API_BASE_URL=https://csjones.co/fynla
 
+# Google Analytics — deliberately NOT set. Staging has no measurement property
+# of its own, and the application code has no fallback (W-0047), so this build
+# loads no analytics. Do NOT add the production ID here: staging traffic in the
+# live property is what W-0047 was raised for. If staging ever needs its own
+# analytics, create a separate property and put ITS id here.
+
 # Awin affiliate tracking — staging defaults to disabled. Flip to true here
 # (and set AWIN_ENABLED=true on the server .env) only for an attribution
 # test window, then flip both back to false and rebuild.

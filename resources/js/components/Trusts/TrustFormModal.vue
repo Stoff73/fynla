@@ -20,8 +20,8 @@
         </div>
 
         <!-- Error Message -->
-        <div v-if="error" class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p class="text-red-800 text-sm">{{ error }}</p>
+        <div v-if="error" class="mb-4 bg-raspberry-50 border border-raspberry-200 rounded-lg p-4">
+          <p class="text-raspberry-700 text-sm">{{ error }}</p>
         </div>
 
         <!-- Form -->

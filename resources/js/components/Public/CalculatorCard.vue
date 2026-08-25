@@ -32,7 +32,7 @@
       <p class="text-xs text-neutral-500 mt-0.5">{{ description }}</p>
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-light-blue-100 text-light-blue-600 text-xs font-medium">Start free trial</span>
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-light-blue-100 text-light-blue-600 text-xs font-medium">Free account</span>
       <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
       </svg>
@@ -53,7 +53,7 @@
       <p class="text-xs text-neutral-400 mt-0.5">{{ description }}</p>
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 text-xs font-medium">Start free trial</span>
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 text-xs font-medium">Premium</span>
       <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
       </svg>

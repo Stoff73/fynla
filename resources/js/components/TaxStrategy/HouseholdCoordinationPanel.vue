@@ -10,7 +10,7 @@
   >
     <h2 class="text-h4 font-bold text-horizon-500 mb-3">Coordinate as a household</h2>
     <p class="text-body-sm text-neutral-500 mb-4">
-      These actions only work because both partners contribute. Spousal transfers between UK-domiciled spouses are exempt from Capital Gains Tax and Inheritance Tax.
+      These actions only work because both spouses contribute. Spousal transfers between UK-domiciled spouses are exempt from Capital Gains Tax and Inheritance Tax.
     </p>
     <ul class="space-y-3">
       <li

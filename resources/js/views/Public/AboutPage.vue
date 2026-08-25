@@ -112,7 +112,7 @@
                 class="w-32 h-32 rounded-full object-cover border-4 border-violet-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Chris Slater-Jones</h3>
-              <p class="text-violet-400 font-medium">Co-Founder, Financial Planning Lead</p>
+              <p class="text-violet-400 font-medium">Co-Founder, Financial Planning and Technology Lead</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
@@ -145,7 +145,7 @@
                 class="w-32 h-32 rounded-full object-cover border-4 border-emerald-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Brett Isenberg, FCA</h3>
-              <p class="text-emerald-400 font-medium">Co-Founder, Technology &amp; Strategy Lead</p>
+              <p class="text-emerald-400 font-medium">Co-Founder, Operations and Strategy Lead</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
@@ -168,6 +168,39 @@
               </p>
             </div>
           </div>
+
+          <!-- Azlan Raj -->
+          <div id="azlan-raj" class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 scroll-mt-24">
+            <div class="flex flex-col items-center mb-6">
+              <img
+                :src="azlanImageUrl"
+                alt="Azlan Raj"
+                class="w-32 h-32 rounded-full object-cover border-4 border-raspberry-500/30 mb-4"
+              />
+              <h3 class="text-2xl font-bold text-white">Azlan Raj</h3>
+              <p class="text-raspberry-400 font-medium">Co-Founder, Product and Marketing Lead</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
+              <div>
+                <p class="text-slate-500 font-medium">Qualifications</p>
+                <p class="text-slate-300">BA Fine Art with Business &amp; IT; MA Computer Arts</p>
+              </div>
+              <div>
+                <p class="text-slate-500 font-medium">Experience</p>
+                <p class="text-slate-300">20+ years in marketing (Performance Marketing World Powerlist, PerformanceIN, CXM Today, CXM Hall of Fame)</p>
+              </div>
+            </div>
+
+            <div class="space-y-4 text-slate-300 leading-relaxed">
+              <p>
+                Azlan is an award-winning Chief Marketing Officer and best-selling author with over 20 years' experience leading global marketing transformations. He drives hyper-growth through a blend of business outcomes, data, AI-driven technology and creativity, working with some of the world's largest financial services brands — Barclays, Barclaycard, WisdomTree, Aviva and AXA — as well as early-stage startups, helping them define their brand, accelerate growth and transform their marketing organisations.
+              </p>
+              <p>
+                He co-authored the Amazon best-seller "Shift: Transform motion into progress in business", holds a joint world record for the world's smallest advert, and sits on industry boards including the Forbes Communications Council, Performance Marketing World, ClickZ and the DMA Customer Engagement Committee. His style is approachable but honest — focused on innovation grounded in reality, and what it actually means for businesses today.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -186,7 +219,7 @@
             Built by financial professionals with decades of experience, Fynla combines professional-grade planning tools with an intuitive interface that makes complex financial decisions accessible to everyone. Whether you're planning for retirement, protecting your family, or coordinating finances with your spouse, Fynla provides the insights and projections you need to make informed decisions about your financial life.
           </p>
           <p>
-            Getting started takes just a few minutes. Our guided onboarding walks you through setting up your financial profile step by step — no jargon, no complexity. You can begin with a <router-link to="/register" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">free trial</router-link> and see your complete financial picture straight away. If you'd like to understand <router-link to="/how-it-works" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">how it works</router-link> before signing up, we've made that simple too.
+            Getting started takes just a few minutes. Our guided onboarding walks you through setting up your financial profile step by step — no jargon, no complexity. You can <router-link to="/register" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">create a free account</router-link> and build your financial picture at your own pace. If you'd like to understand <router-link to="/how-it-works" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">how it works</router-link> before signing up, we've made that simple too.
           </p>
           <p>
             We also offer a growing library of <router-link to="/learn" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">learning resources</router-link> covering everything from ISAs and pensions to inheritance tax and salary sacrifice, along with free <router-link to="/calculators" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">financial calculators</router-link> and a comprehensive <router-link to="/learn/glossary" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">glossary</router-link> to help you understand the terms that matter. View our <router-link to="/pricing" class="text-raspberry-500 hover:text-raspberry-600 font-medium hover:underline">pricing plans</router-link> to find the right option for your needs.
@@ -211,6 +244,7 @@ export default {
     return {
       csjImageUrl: '/images/portraits/csj.png',
       brettImageUrl: '/images/portraits/brett.png',
+      azlanImageUrl: '/images/portraits/azlan.png',
     };
   },
 

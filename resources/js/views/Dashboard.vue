@@ -128,23 +128,13 @@
 <script>
 import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
-import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
-import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
-import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
-import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
-// CrossModuleInsights removed from dashboard
-import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
-import DashboardSparkline from '@/components/Dashboard/DashboardSparkline.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { ASSET_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
+import { LIFETIME_ISA_ALLOWANCE } from '@/constants/taxConfig';
 
-// Life stage journey components
-import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
-import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
-import LevelCard from '@/components/Gamification/LevelCard.vue';
 import GamificationCelebration from '@/components/Gamification/GamificationCelebration.vue';
 import GamifiedDashboard from '@/views/GamifiedDashboard.vue';
 
@@ -154,15 +144,6 @@ export default {
 
   components: {
     AppLayout,
-    DashboardCard,
-    GoalsProjectionChartDashboard,
-    AreasToCompleteCard,
-    ProfileCompletionCards,
-    EmptyDashboard,
-    JourneyProgressHero,
-    LifeTimelineCard,
-    DashboardSparkline,
-    LevelCard,
     GamificationCelebration,
     GamifiedDashboard,
   },
@@ -202,7 +183,7 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['isAdmin', 'currentUser']),
+    ...mapGetters('auth', ['isAdmin', 'currentUser', 'tierFlags']),
     ...mapGetters('preview', ['effectivePersonaData']),
     ...mapGetters('plans', { getPlan: 'getPlan' }),
     ...mapGetters('lifeStage', {
@@ -771,7 +752,6 @@ export default {
     // Estate data
     ...mapGetters('estate', ['ihtLiability', 'taxableEstate', 'grossEstate']),
     ...mapState('estate', { willInfo: 'willInfo' }),
-    ...mapState('trusts', { trusts: 'trusts' }),
 
     // Gamification celebration overlay
     ...mapState('gamification', { celebration: 'pendingCelebration' }),
@@ -781,10 +761,6 @@ export default {
         taxableEstate: this.taxableEstate || 0,
         ihtLiability: this.ihtLiability || 0,
       };
-    },
-
-    trustsList() {
-      return this.trusts || [];
     },
 
     hasEstateData() {
@@ -831,8 +807,8 @@ export default {
     lisaAllowanceData() {
       if (!this.lisaEligible) return null;
 
-      const lisaLimit = 4000;
-      const maxBonus = 1000; // 25% of £4,000
+      const lisaLimit = LIFETIME_ISA_ALLOWANCE;
+      const maxBonus = lisaLimit * 0.25; // 25% government LISA bonus
 
       // Find LISA contributions from investment accounts
       const lisaAccounts = (this.investmentAccounts || []).filter(a => {
@@ -855,7 +831,7 @@ export default {
     isaAllowanceData() {
       if (!this.isaAllowance) return null;
       const fullAllowance = this.isaAllowance.total_allowance || 20000;
-      const totalAllowance = this.lisaAllowanceData ? fullAllowance - 4000 : fullAllowance;
+      const totalAllowance = this.lisaAllowanceData ? fullAllowance - LIFETIME_ISA_ALLOWANCE : fullAllowance;
       const cashUsed = parseFloat(this.isaAllowance.cash_isa_used || 0);
       const ssUsed = parseFloat(this.isaAllowance.stocks_shares_isa_used || 0);
       const totalUsed = parseFloat(this.isaAllowance.total_used || 0) || (cashUsed + ssUsed);
@@ -1274,6 +1250,7 @@ export default {
       const estateCalculationAction = isMarried
         ? 'estate/calculateIHTPlanning'
         : 'estate/calculateIHT';
+      const hasFullEstateAccess = this.tierFlags?.resolved_tier === 'premium';
 
       // Student persona: only load modules they actually use
       const moduleLoaders = this.isStudentPersona ? [
@@ -1289,8 +1266,9 @@ export default {
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
         { name: 'protection', action: 'protection/fetchProtectionData' },
         { name: 'estate', action: 'estate/fetchEstateData' },
-        { name: 'estate', action: estateCalculationAction, payload: {} },
-        { name: 'retirement', action: 'trusts/fetchTrusts' },
+        ...(hasFullEstateAccess
+          ? [{ name: 'estate', action: estateCalculationAction, payload: {} }]
+          : []),
         { name: 'investment', action: 'userProfile/fetchProfile' },
         { name: 'retirement', action: 'retirement/fetchRetirementData' },
         { name: 'retirement', action: 'retirement/fetchRequiredCapital' },
@@ -1345,11 +1323,11 @@ export default {
           const { module, success, error } = result.value;
           moduleCompletedCounts[module] = (moduleCompletedCounts[module] || 0) + 1;
 
-          if (!success && this.loading.hasOwnProperty(module)) {
+          if (!success && Object.hasOwn(this.loading, module)) {
             this.errors[module] = error;
           }
 
-          if (this.loading.hasOwnProperty(module) &&
+          if (Object.hasOwn(this.loading, module) &&
               moduleCompletedCounts[module] >= moduleActionCounts[module]) {
             this.loading[module] = false;
           }
@@ -1361,7 +1339,7 @@ export default {
       // Also try to fetch projection data for goals chart
       try {
         await this.fetchProjection();
-      } catch (e) {
+      } catch {
         // Projection is optional, don't block
       }
     },

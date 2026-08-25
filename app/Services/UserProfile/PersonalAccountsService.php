@@ -14,11 +14,13 @@ use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 class PersonalAccountsService
 {
     use CalculatesOwnershipShare;
+    use ResolvesIncome;
 
     public function __construct(
         private readonly UKTaxCalculator $taxCalculator,
@@ -473,22 +475,12 @@ class PersonalAccountsService
 
     /**
      * Calculate annual pension income from DB pensions in payment and state pension.
+     *
+     * Shares one implementation with UserProfileService and Tax\IncomeDefinitionsService
+     * (W-0036).
      */
     private function calculateAnnualPensionIncome(User $user): float
     {
-        $pensionIncome = 0.0;
-
-        foreach ($user->dbPensions as $dbPension) {
-            if ($dbPension->accrued_annual_pension > 0) {
-                $pensionIncome += (float) $dbPension->accrued_annual_pension;
-            }
-        }
-
-        $statePension = $user->statePension;
-        if ($statePension && $statePension->already_receiving) {
-            $pensionIncome += (float) ($statePension->state_pension_forecast_annual ?? 0);
-        }
-
-        return $pensionIncome;
+        return $this->resolvePensionIncomeInPayment($user);
     }
 }

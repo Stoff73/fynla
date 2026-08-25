@@ -1,0 +1,120 @@
+---
+id: W-0178
+title: Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
+mission: persona-run-peak_earners-2026-08-20
+branch: null
+owner: compliance-lead
+status: queued
+severity: medium
+surfaces: [web, m, ios]
+created: 2026-08-22T21:05:00Z
+claimed: null
+blocked_by: []
+gate: null
+handoff_to: null
+prior_art_checked: 2026-08-22T21:05:00Z
+prior_art_found: ["app/Services/Property/PropertyService::calculateTaxPosition():85-97 — the one allowable-expense list, eight fields", "app/Services/Property/PropertyService::annualRentalTaxPosition() — the one aggregate every consumer now reads (W-0175)", "app/Models/Property — monthly_maintenance_reserve and the other cost columns", "app/Services/Property/PropertyService::calculateTotalMonthlyCosts() — a SEPARATE, wider list for cash-flow, deliberately not the tax list"]
+prior_art_outcome: null
+constitution_refs: [07-quality-bar, 05-perimeter]
+---
+
+## Intent
+
+Raised by: build-lead (`cycle1-tax`) while fixing **W-0175**, at team-lead's direction —
+separated out so it is decided rather than settled quietly inside a fix.
+
+**This is a tax-accuracy question, not an engineering one.** No code change is proposed
+here. The answer decides a number every buy-to-let user sees.
+
+### The question
+
+`PropertyService::calculateTaxPosition()` deducts eight monthly cost fields from rent to
+produce the taxable rental profit:
+
+| Deducted | Not deducted |
+|---|---|
+| gas · electricity · water · buildings insurance · contents insurance · service charge · ground rent · managing agent fee | **`monthly_maintenance_reserve`** · **`other_monthly_costs`** · `monthly_council_tax` · mortgage payments |
+
+Mortgage interest is correctly outside the list — it is relieved as the Section 24 basic
+rate tax credit, not as an expense — and council tax on a let property is normally the
+tenant's. **The open items are `monthly_maintenance_reserve` and `other_monthly_costs`.**
+
+### Why it is genuinely arguable
+
+**For excluding them (the current behaviour):**
+
+- A *reserve* is money set aside, not money spent. HMRC allows expenses **incurred**; a
+  sinking fund contribution is not an incurred repair.
+- Capital improvements are never allowable, and "maintenance" as captured by the form
+  cannot distinguish a repair from an improvement.
+- `other_monthly_costs` is uncategorised by definition, so nothing can establish it is
+  wholly and exclusively for the property business.
+
+**For including them, or part of them:**
+
+- Most users entering a "maintenance" figure mean actual repairs, which **are**
+  allowable. Excluding them overstates taxable profit, and this figure now feeds total
+  income, adjusted net income and threshold income (W-0175) — so it can move a Personal
+  Allowance or a pension annual allowance taper.
+- The error runs against the user: they are shown more taxable income than they have.
+  That is the opposite direction from W-0174 but it is still wrong.
+- A leaseholder's service charge is already deducted, and a sinking-fund element inside
+  it is not separated either — so the reserve is being treated inconsistently depending
+  on which field the user happened to put it in.
+
+### What is NOT in question
+
+The other six fields, the Section 24 treatment, and the ownership-share arithmetic. All
+verified correct during W-0175 and W-0174.
+
+## Acceptance
+
+1. A decision, attributed to a named founder or to `compliance-lead` within competence,
+   on whether `monthly_maintenance_reserve` and `other_monthly_costs` are deductible in
+   the rental tax computation — including "part of them", if the right answer is to split
+   the capture rather than the list.
+2. If the answer is "it depends on what the user meant", the decision covers **how the
+   form should ask**, not just what the calculator should do — an uncategorised field
+   cannot be made deductible after the fact.
+3. Whatever is decided is reflected in **one place**, `PropertyService::calculateTaxPosition()`
+   (Rule 20), and the user-facing note naming the deducted expenses is updated with it
+   (`resources/js/components/UserProfile/IncomeOccupation.vue`).
+4. If the list changes, W-0175's regression tests move with it —
+   `tests/Unit/Services/Tax/RentalIncomeOneDefinitionTest.php` asserts explicitly that the
+   maintenance reserve is **not** deducted, and that assertion encodes today's answer, not
+   a law.
+
+## Working notes
+
+**2026-08-22 — build-lead (`cycle1-tax`). Raised, not claimed.**
+
+Left deliberately undecided while fixing W-0175. The distinction I applied: *which figure
+enters total income* is a question the statute answers, so I settled it; *which expenses
+are allowable* is a judgement about incurred cost and intent, so it is not mine to settle
+unilaterally.
+
+**Impact if the current behaviour is wrong.** Measured on the `peak_earners` rows,
+read-only:
+
+| Property | reserve | other | annual | share | user's share |
+|---|---|---|---|---|---|
+| Flat 42, Riverside Apartments | £100 | £150 | £3,000 | 50% each | £1,500 David, £1,500 Sarah |
+| Unit 12, Victoria Mill | £85 | £120 | £2,460 | 40% David | £984 David |
+
+Both are additional-rate taxpayers once W-0174 is fixed, so at 45% the **upper bound** is
+roughly **£1,118 a year for David and £675 for Sarah** — about £1,793 for the household,
+in the direction of tax they may not owe. Upper bound because it assumes both fields are
+wholly allowable, which is exactly what is in question; the honest answer is likely
+somewhere between that and zero.
+
+Every buy-to-let holder with those fields populated is affected, and since W-0175 the
+figure also propagates into adjusted net income and threshold income, so at the margin it
+can move an allowance as well as a tax bill.
+
+**Deliberately not fixed pending this decision**, so nobody reads the current list as
+settled: `app/Services/Property/PropertyService.php:85-97`.
+
+**Note for whoever claims it.** `calculateTotalMonthlyCosts()` in the same class uses a
+**wider** list including council tax and mortgage payments. That is correct — it answers a
+cash-flow question, not a tax one. The two lists differing is by design; do not "align"
+them.

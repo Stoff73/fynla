@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Settings\AssumptionsService;
 use App\Services\TaxConfigService;
+use App\Services\Trust\IHTPeriodicChargeCalculator;
 use Illuminate\Support\Collection;
 
 /**
@@ -30,7 +31,8 @@ class PersonalizedTrustStrategyService
         private readonly TaxConfigService $taxConfig,
         private readonly AssumptionsService $assumptionsService,
         private readonly RiskPreferenceService $riskPreferenceService,
-        private readonly AvailableNrbCalculator $availableNrbCalculator
+        private readonly AvailableNrbCalculator $availableNrbCalculator,
+        private readonly IHTPeriodicChargeCalculator $periodicChargeCalculator
     ) {}
 
     /**
@@ -747,7 +749,7 @@ class PersonalizedTrustStrategyService
         // Calculate estimated periodic charge if value exceeds NRB at 10-year anniversary
         $estimatedPeriodicCharge = 0;
         if ($willExceedNRB) {
-            $estimatedPeriodicCharge = $this->calculatePeriodicCharge($projectedAt10Years, $nrb);
+            $estimatedPeriodicCharge = $this->periodicChargeCalculator->estimateChargeOnValue($projectedAt10Years, $nrb);
         }
 
         return [
@@ -764,23 +766,5 @@ class PersonalizedTrustStrategyService
                 ? 'The planned settlement of £'.number_format($plannedAmount).' is projected to exceed the Nil Rate Band (£'.number_format($nrb).') by the 10-year anniversary. Consider settling no more than £'.number_format($maxInitialSettlement).' to avoid the periodic charge.'
                 : 'The planned settlement of £'.number_format($plannedAmount).' is projected to remain within the Nil Rate Band (£'.number_format($nrb).') at the 10-year anniversary. No periodic charge is expected.',
         ];
-    }
-
-    /**
-     * Calculate the estimated periodic charge on a trust value exceeding the Nil Rate Band.
-     *
-     * The periodic charge is approximately 6% of the value above the Nil Rate Band,
-     * calculated on each 10-year anniversary of the trust.
-     *
-     * @param  float  $trustValue  The projected trust value
-     * @param  float  $nrb  The Nil Rate Band threshold
-     * @return float Estimated periodic charge
-     */
-    private function calculatePeriodicCharge(float $trustValue, float $nrb): float
-    {
-        $excessOverNRB = max(0, $trustValue - $nrb);
-
-        // Maximum periodic charge rate is 6% (30% of lifetime rate of 20%)
-        return $excessOverNRB * 0.06;
     }
 }

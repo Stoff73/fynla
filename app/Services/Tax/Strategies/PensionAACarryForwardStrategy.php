@@ -50,6 +50,13 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
     {
         $user = $context->user;
 
+        // MPAA gate (FA 2004 s227ZA): once the user has flexibly accessed a DC
+        // pension, no carry-forward is available against the Money Purchase
+        // Annual Allowance — a top-up recommendation would create an AA charge.
+        if (app(PensionStore::class)->hasFlexiblyAccessedDcPension($user)) {
+            return [];
+        }
+
         $band = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
         if (! in_array($band, ['higher', 'additional'], true)) {
             return [];

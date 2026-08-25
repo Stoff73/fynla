@@ -41,10 +41,10 @@
               <div class="flex items-center gap-2 mb-2">
                 <h5 class="text-body font-medium text-horizon-500">{{ member.name }}</h5>
                 <span class="text-body-sm px-2 py-0.5 bg-violet-100 text-violet-700 rounded capitalize">
-                  {{ formatRelationship(member.relationship) }}
+                  {{ familyMemberRelationshipLabel(member) }}
                 </span>
-                <!-- Linked Account Indicator for Spouse -->
-                <span v-if="member.relationship === 'spouse' && member.email" class="inline-flex items-center gap-1 text-body-sm px-2 py-0.5 bg-spring-100 text-spring-700 rounded" title="Account Linked">
+                <!-- Linked Account Indicator — reads the link, never the relationship (W-0051) -->
+                <span v-if="isLinkedAccount(member)" class="inline-flex items-center gap-1 text-body-sm px-2 py-0.5 bg-spring-100 text-spring-700 rounded" title="Account Linked">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
@@ -57,8 +57,11 @@
               <p v-if="member.is_dependent" class="text-body-sm text-neutral-500">
                 <span class="text-violet-600">● Financially dependent</span>
               </p>
+              <p v-if="familyMemberManagementNotice(member)" class="mt-2 text-body-xs text-neutral-500 italic">
+                {{ familyMemberManagementNotice(member) }}
+              </p>
             </div>
-            <div v-if="member.relationship !== 'spouse'" class="flex gap-2 ml-4">
+            <div v-if="canManageFamilyMember(member)" class="flex gap-2 ml-4">
               <button
                 type="button"
                 class="text-raspberry-500 hover:text-raspberry-700 text-body-sm"
@@ -73,11 +76,6 @@
               >
                 Delete
               </button>
-            </div>
-            <div v-else class="ml-4">
-              <p class="text-body-xs text-neutral-500 italic max-w-[180px] text-right">
-                Linked account — edit or delete by logging into the spouse's account
-              </p>
             </div>
           </div>
         </div>
@@ -98,8 +96,10 @@
         <FamilyMemberFormModal
           :member="selectedMember"
           context="onboarding"
+          :api-error="error"
           @save="handleSave"
           @close="closeModal"
+          @dismiss-error="clearError"
         />
       </div>
 
@@ -118,14 +118,19 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '../UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import FamilyMemberFormModal from '@/components/UserProfile/FamilyMemberFormModal.vue';
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
 import familyMembersService from '@/services/familyMembersService';
+import {
+  canManageFamilyMember,
+  familyMemberManagementNotice,
+  familyMemberRelationshipLabel,
+  isLinkedAccount,
+} from '@/utils/familyMember';
 
 import logger from '@/utils/logger';
 export default {
@@ -133,7 +138,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     FamilyMemberFormModal,
     SpouseSuccessModal,
   },
@@ -155,7 +159,6 @@ export default {
     const loading = ref(false);
     const error = ref(null);
     let successTimeout = null;
-    let errorTimeout = null;
 
     const calculateAge = (dateOfBirth) => {
       if (!dateOfBirth) return 0;
@@ -167,17 +170,6 @@ export default {
         age--;
       }
       return age;
-    };
-
-    const formatRelationship = (relationship) => {
-      const map = {
-        'spouse': 'Spouse',
-        'child': 'Child',
-        'step_child': 'Step Child',
-        'parent': 'Parent',
-        'other_dependent': 'Other Dependent',
-      };
-      return map[relationship] || relationship;
     };
 
     const loadFamilyMembers = async () => {
@@ -244,6 +236,7 @@ export default {
           }
         }
 
+        error.value = null;
         closeModal();
         await loadFamilyMembers();
 
@@ -257,15 +250,12 @@ export default {
       } catch (err) {
         logger.error('Failed to save family member:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
-        error.value = `Failed to save family member: ${errorMsg}`;
-        closeModal();
-
-        // Clear error after 8 seconds
-        if (errorTimeout) clearTimeout(errorTimeout);
-        errorTimeout = setTimeout(() => {
-          error.value = null;
-        }, 8000);
+        error.value = errorMsg;
       }
+    };
+
+    const clearError = () => {
+      error.value = null;
     };
 
     const closeSpouseSuccess = () => {
@@ -306,7 +296,6 @@ export default {
 
     onBeforeUnmount(() => {
       if (successTimeout) clearTimeout(successTimeout);
-      if (errorTimeout) clearTimeout(errorTimeout);
     });
 
     onMounted(async () => {
@@ -332,10 +321,14 @@ export default {
       loading,
       error,
       calculateAge,
-      formatRelationship,
+      canManageFamilyMember,
+      familyMemberRelationshipLabel,
+      familyMemberManagementNotice,
+      isLinkedAccount,
       showAddModal,
       editMember,
       closeModal,
+      clearError,
       handleSave,
       closeSpouseSuccess,
       deleteMember,

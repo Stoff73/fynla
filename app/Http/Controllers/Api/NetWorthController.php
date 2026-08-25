@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Services\NetWorth\NetWorthForecastAssumptionService;
+use App\Services\NetWorth\NetWorthForecastService;
 use App\Services\NetWorth\NetWorthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +17,44 @@ class NetWorthController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly NetWorthService $netWorthService
+        private readonly NetWorthService $netWorthService,
+        private readonly NetWorthForecastService $forecastService,
+        private readonly NetWorthForecastAssumptionService $forecastAssumptionService,
     ) {}
+
+    public function getForecast(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'years' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->forecastService->forecast(
+                $request->user(),
+                (int) ($validated['years'] ?? 30),
+            ),
+        ]);
+    }
+
+    public function updateForecastAssumptions(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->forecastAssumptionService->update(
+                $request->user(),
+                $request->all(),
+            ),
+        ]);
+    }
+
+    public function resetForecastAssumptions(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->forecastAssumptionService->reset($request->user()),
+        ]);
+    }
 
     /**
      * Get net worth overview

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynTurnContext;
@@ -93,6 +94,49 @@ it('feeds the orchestrateAnalysis callable through to financial_context', functi
         ->and($out)->not->toContain('analysis service not provided');
 });
 
+it('emits the declared required tools for a saved pension contribution question', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Using my saved salary and pension percentages, what are my employee, employer and total pension contributions per month and per year?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'retirement_contribution', 'related' => []],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<required_tools>')
+        ->toContain('list_records(dc_pension)')
+        ->toContain('get_tax_information(pension_allowances)');
+});
+
+it('grounds spouse financial questions in the saved campaign household row', function (): void {
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $this->user->id,
+        'spouse_annual_income' => 36000,
+        'spouse_isa_balance' => 8000,
+        'spouse_pension_input_annual' => 2400,
+    ]);
+
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Using only my saved records, what spouse income, ISA balance and annual pension contribution do you have recorded?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'retirement_contribution', 'related' => []],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<saved_household_finances>')
+        ->toContain('Spouse annual income: £36,000.00')
+        ->toContain('Spouse ISA balance: £8,000.00')
+        ->toContain('Spouse annual pension contribution: £2,400.00')
+        ->toContain('Do not say that a listed field is not recorded');
+});
+
 it('emits CAPTURE block and NOT position on an onboarding turn', function (): void {
     $ctx = FynTurnContext::make(
         user: $this->user, message: 'Halifax ISA £10k', currentRoute: null,
@@ -104,6 +148,26 @@ it('emits CAPTURE block and NOT position on an onboarding turn', function (): vo
     expect($out)->toContain('<asset_capture_turn>')
         ->and($out)->toContain('Situation: onboarding — focus:')
         ->and($out)->not->toContain('<financial_context>');
+});
+
+it('emits an update-only instruction block for a verify edit turn', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Change my Marcus balance to £13,250',
+        currentRoute: '/savings',
+        mode: 'onboarding',
+        onboardingFocus: 'verify_edit_savings',
+        isPreview: false,
+        classification: null,
+    );
+
+    $out = app(FynContextAssembler::class)->build($ctx);
+
+    expect($out)->toContain('<verify_edit_turn>')
+        ->and($out)->toContain('update_record')
+        ->and($out)->toContain('Never create a new record')
+        ->and($out)->not->toContain('<asset_capture_turn>')
+        ->and($out)->not->toContain('YOUR SINGLE JOB: call the appropriate create_ tool');
 });
 
 it('emits a preview notice when isPreview is true', function (): void {
@@ -206,6 +270,39 @@ it('suppresses billing_guidance in preview mode even on a billing turn', functio
 
     expect(app(FynContextAssembler::class)->build($ctx))
         ->not->toContain('<billing_guidance>');
+});
+
+it('requires the live composed plan when explaining a saved tax-plan figure', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Can you explain in plain English why moving £2,612 of my Marcus savings into my ISA could save about £49 a year, using the figures in my plan?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'tax_optimisation'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('<tax_plan_grounding>')
+        ->toContain('MUST call get_recommendations')
+        ->toContain('composed_tax_plan')
+        ->not->toContain('<billing_guidance>');
+});
+
+it('does not require the composed plan for a general ISA allowance question', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'What is the ISA allowance?',
+        currentRoute: '/m/app/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'tax_optimisation'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->not->toContain('<tax_plan_grounding>');
 });
 
 // "How do I start saving properly?" rightly stays GENERAL (the QueryClassifier

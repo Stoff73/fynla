@@ -23,7 +23,7 @@ declare(strict_types=1);
  *   1. browser_navigate('http://localhost:8000/savetax?utm_source=linkedin')
  *      → page loads; sessionStorage('fynla.signup_source') === 'linkedin'.
  *
- *   2. browser_click on the "Start your free 7-day trial" CTA.
+ *   2. Complete the questionnaire and continue to registration.
  *      → URL becomes /register?from=savetax.
  *
  *   3. browser_fill_form: first_name=Verify, last_name=Single, email
@@ -54,9 +54,10 @@ declare(strict_types=1);
  *        - STATE_CAMPAIGN_INVESTMENT_ACCOUNTS: any/none.
  *        - STATE_CAMPAIGN_PENSION_CONTRIBS: any SIPP.
  *        - STATE_CAMPAIGN_SPOUSE_WORK: SKIPPED (single user — skipIfNotMarried).
- *        - STATE_CAMPAIGN_TERMINAL: navigate event → /tax-strategy.
+ *        - STATE_CAMPAIGN_TERMINAL: "We've created your personal tax strategy"
+ *          + a "Take me to my tax strategy" button (tap → /tax-strategy).
  *
- *   7. Land on /tax-strategy.
+ *   7. Tap "Take me to my tax strategy" → land on /tax-strategy.
  *      browser_snapshot → docs/savetax-verification/BS-26/01-terminal.png
  *
  *      Assertions on the rendered page:

@@ -526,6 +526,15 @@ export default {
         if (!formData.description) delete formData.description;
         if (!formData.notes) delete formData.notes;
 
+        // State a share only where this form lets the user set one (W-0040).
+        // The share input appears for joint ownership and nowhere else, so on
+        // any other type the 100 in form data is an uncleared default rather
+        // than a figure anyone chose. Sending it made a stated share and an
+        // inherited one indistinguishable server-side.
+        if (formData.ownership_type !== 'joint') {
+          delete formData.ownership_percentage;
+        }
+
         this.$emit('save', formData);
       } catch (err) {
         this.error = err.message || 'Failed to save chattel';

@@ -28,6 +28,9 @@ class SavingsAccountResource extends JsonResource
             'account_type' => $this->account_type,
             'current_balance' => $this->current_balance,
             'interest_rate' => $this->interest_rate,
+            // Computed on the model so every surface shows the same figure.
+            'annual_interest' => $this->annual_interest,
+            'monthly_interest' => $this->monthly_interest,
             'access_type' => $this->access_type,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
@@ -72,8 +75,8 @@ class SavingsAccountResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'beneficiary' => $this->whenLoaded('beneficiary'),
 
             // Links

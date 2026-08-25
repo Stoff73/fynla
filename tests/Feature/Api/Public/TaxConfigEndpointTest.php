@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
@@ -45,7 +47,7 @@ it('serves the snapshot without authentication', function () {
 it('returns the same payload as the authenticated endpoint', function () {
     $publicData = $this->getJson('/api/public/tax-config')->json('data');
 
-    \Laravel\Sanctum\Sanctum::actingAs(\App\Models\User::factory()->create());
+    Sanctum::actingAs(User::factory()->create());
     $authData = $this->getJson('/api/tax/config')->json('data');
 
     expect($publicData)->toEqual($authData);

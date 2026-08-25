@@ -2,10 +2,19 @@
   <div class="events-tab">
     <!-- Header (hidden when detail view is active) -->
     <template v-if="!selectedEvent">
-      <div class="mb-6">
+      <div class="mb-6 flex items-start justify-between gap-4">
         <p class="text-sm text-neutral-500">
           Future occurrences that will impact your financial position
         </p>
+        <button
+          v-preview-disabled="'add'"
+          type="button"
+          :disabled="loading"
+          class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600 transition-colors"
+          @click="openCreateModal"
+        >
+          Add Life Event
+        </button>
       </div>
 
       <!-- Summary Cards -->
@@ -110,6 +119,14 @@
       @save="handleSaveEvent"
     />
 
+    <LimitReachedModal
+      :show="showLimitModal"
+      entity-label="life events"
+      :cap="tierCountCap('life_event') || 0"
+      :tier-label="tierLabel"
+      @close="showLimitModal = false"
+    />
+
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 z-50 overflow-y-auto">
       <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -161,16 +178,20 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import LifeEventCard from './LifeEventCard.vue';
 import LifeEventForm from './LifeEventForm.vue';
 import LifeEventDetailInline from './LifeEventDetailInline.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import { summariseUpcoming } from '../../../mobile/utils/lifeEvents.js';
 
 import logger from '@/utils/logger';
 export default {
   name: 'EventsTab',
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, tierLimitMixin],
 
   components: {
     LifeEventCard,
     LifeEventForm,
     LifeEventDetailInline,
+    LimitReachedModal,
   },
 
   data() {
@@ -179,6 +200,7 @@ export default {
       sortBy: 'date',
       selectedEvent: null,
       showFormModal: false,
+      showLimitModal: false,
       editingEvent: null,
       showDeleteModal: false,
       deletingEvent: null,
@@ -224,32 +246,33 @@ export default {
       return events;
     },
 
-    incomeEvents() {
-      return (this.lifeEvents || []).filter(e => e.impact_type === 'income');
-    },
-
-    expenseEvents() {
-      return (this.lifeEvents || []).filter(e => e.impact_type === 'expense');
+    // W-0207: these three cards head a list introduced as "Future occurrences",
+    // so they count what is still to come. They used to sum every event on file,
+    // which put a confirmed inheritance from 2020 inside "Expected Income".
+    // The totals come from the one shared helper rather than being summed here,
+    // so the /m goals screen cannot disagree with this page.
+    eventTotals() {
+      return summariseUpcoming(this.lifeEvents);
     },
 
     totalIncome() {
-      return this.incomeEvents.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+      return this.eventTotals.expected_income;
     },
 
     totalExpense() {
-      return this.expenseEvents.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+      return this.eventTotals.expected_expense;
     },
 
     netImpact() {
-      return this.totalIncome - this.totalExpense;
+      return this.eventTotals.net_impact;
     },
 
     incomeCount() {
-      return this.incomeEvents.length;
+      return this.eventTotals.income_count;
     },
 
     expenseCount() {
-      return this.expenseEvents.length;
+      return this.eventTotals.expense_count;
     },
   },
 
@@ -273,8 +296,8 @@ export default {
     },
   },
 
-  mounted() {
-    this.fetchLifeEvents();
+  async mounted() {
+    await this.fetchLifeEvents();
   },
 
   methods: {
@@ -301,7 +324,14 @@ export default {
       this.confirmDelete(event);
     },
 
-    openCreateModal() {
+    async openCreateModal() {
+      if (this.loading) {
+        await this.fetchLifeEvents();
+      }
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('life_event', this.lifeEvents?.length || 0)) {
+        this.showLimitModal = true;
+        return;
+      }
       this.editingEvent = null;
       this.showFormModal = true;
     },

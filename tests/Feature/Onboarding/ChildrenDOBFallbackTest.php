@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -13,17 +14,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-/**
- * B-4 — "Sam aged 8" → DOB saved as YYYY-01-01.
- *
- * This is intentionally approximate: when the user only provides an age,
- * the director sets date_of_birth to startOfYear in the year the child
- * was age-age. The notes column must explain the approximation so the
- * user can edit the exact DOB via UserProfile.vue if they want. This
- * test pins that contract: age-only messages never save a full-precision
- * DOB, but they also never lose the signal needed for the user to spot
- * and correct it.
- */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
 });
@@ -32,7 +22,7 @@ afterEach(function () {
     Mockery::close();
 });
 
-it('saves age-only dependants with a Jan-1 DOB and an informative notes field', function () {
+it('does not manufacture a date of birth from an age', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
@@ -66,39 +56,143 @@ it('saves age-only dependants with a Jan-1 DOB and an informative notes field', 
     $director = app(OnboardingChatDirector::class);
     $createDependants = new ReflectionMethod($director, 'createDependantFamilyMembers');
     $createDependants->setAccessible(true);
-    $createDependants->invoke($director, $user, 'Sam aged 8 and Emily aged 5');
+    $createDependants->invoke($director, $user, 'Sam aged 8');
 
-    $children = FamilyMember::where('user_id', $user->id)->orderBy('id')->get();
-    expect($children)->toHaveCount(2);
-
-    $currentYear = (int) now()->format('Y');
-
-    // Sam: age 8 → DOB = Jan 1 of (currentYear - 8)
-    expect($children[0]->date_of_birth->format('Y-m-d'))
-        ->toBe(($currentYear - 8).'-01-01');
-    expect($children[0]->relationship)->toBe('child');
-    expect($children[0]->notes)->toContain('Age 8 inferred from');
-
-    // Emily: age 5 → DOB = Jan 1 of (currentYear - 5)
-    expect($children[1]->date_of_birth->format('Y-m-d'))
-        ->toBe(($currentYear - 5).'-01-01');
-    expect($children[1]->relationship)->toBe('child');
-    expect($children[1]->notes)->toContain('Age 5 inferred from');
-
-    // B-2 integration — household_id propagated correctly.
-    expect($children[0]->household_id)->not->toBeNull();
-    expect($children[1]->household_id)->toBe($children[0]->household_id);
+    expect(FamilyMember::where('user_id', $user->id)->count())->toBe(0);
 });
 
-it('computes the right age accessor from the Jan-1 fallback DOB', function () {
+it('stores an explicitly supplied dependant date exactly', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Parent',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL,
+        'household_id' => null,
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('invalidateUserCache')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    $director = app(OnboardingChatDirector::class);
+    $createDependants = new ReflectionMethod($director, 'createDependantFamilyMembers');
+    $createDependants->setAccessible(true);
+    $createDependants->invoke($director, $user, 'Sam, born 14 September 2017');
+
+    $child = FamilyMember::where('user_id', $user->id)->firstOrFail();
+    expect($child->first_name)->toBe('Sam')
+        ->and($child->date_of_birth->format('Y-m-d'))->toBe('2017-09-14')
+        ->and($child->relationship)->toBe('child')
+        ->and($child->household_id)->not->toBeNull();
+});
+
+it('does not normalise an impossible dependant date into a different day', function (string $date) {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL,
+    ]);
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('invalidateUserCache')->zeroOrMoreTimes();
+    $this->instance(CoordinatingAgent::class, $mock);
+
+    $director = app(OnboardingChatDirector::class);
+    $createDependants = new ReflectionMethod($director, 'createDependantFamilyMembers');
+    $createDependants->setAccessible(true);
+    $createDependants->invoke($director, $user, "Sam, born {$date}");
+
+    expect(FamilyMember::where('user_id', $user->id)->count())->toBe(0);
+})->with([
+    'impossible numeric date' => '31/02/2015',
+    'impossible textual date' => '31 February 2015',
+]);
+
+it('rejects an age-only dependant tool call without writing a row', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_dependants', [
+        'dependants' => [[
+            'first_name' => 'Sam',
+            'age' => 8,
+            'relationship' => 'child',
+        ]],
+    ], $user);
+
+    expect($result['clarification_required'] ?? false)->toBeTrue()
+        ->and($result['details']['missing'] ?? [])->toContain('dependants.0.date_of_birth')
+        ->and(FamilyMember::where('user_id', $user->id)->count())->toBe(0);
+});
+
+it('rejects a model-inferred dependant date when the user supplied only an age', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::query()->create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Sam is 8 years old.',
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_dependants', [
+        'dependants' => [[
+            'first_name' => 'Sam',
+            'date_of_birth' => '2018-01-01',
+            'relationship' => 'child',
+        ]],
+    ], $user, $conversation->id);
+
+    expect($result['clarification_required'] ?? false)->toBeTrue()
+        ->and($result['missing'] ?? [])->toContain('dependants.0.date_of_birth')
+        ->and(FamilyMember::where('user_id', $user->id)->count())->toBe(0);
+});
+
+it('preserves an explicitly stated dependant name when the model omits it', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::query()->create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'Sam was born on 14 September 2017.',
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_dependants', [
+        'dependants' => [[
+            'first_name' => null,
+            'date_of_birth' => '2017-09-14',
+            'relationship' => 'child',
+        ]],
+    ], $user, $conversation->id);
+
+    expect($result['onboarding_capture'] ?? false)->toBeTrue()
+        ->and(FamilyMember::where('user_id', $user->id)->sole()->first_name)->toBe('Sam');
+});
+
+it('provisions the household before the grouped dependant tool writes', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'household_id' => null,
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('capture_dependants', [
+        'dependants' => [[
+            'first_name' => 'Sam',
+            'date_of_birth' => '2017-09-14',
+            'relationship' => 'child',
+        ]],
+    ], $user);
+
+    $child = FamilyMember::where('user_id', $user->id)->sole();
+    expect($result['onboarding_capture'] ?? false)->toBeTrue()
+        ->and($user->fresh()->household_id)->not->toBeNull()
+        ->and($child->household_id)->toBe($user->fresh()->household_id);
+});
+
+it('computes age from an exact dependant date of birth', function () {
     $child = new FamilyMember([
         'first_name' => 'Sam',
-        'date_of_birth' => now()->subYears(8)->startOfYear()->toDateString(),
+        'date_of_birth' => now()->subYears(8)->subMonth()->toDateString(),
         'relationship' => 'child',
     ]);
 
-    // The age accessor must return the stable 8 even though the DOB is
-    // Jan-1 rather than the true birthday. This is the contract B-3 pins.
     expect($child->age)->toBe(8);
 });
 
@@ -109,7 +203,7 @@ it('serialises the computed age onto toArray so the UI sees it', function () {
         'household_id' => null,
         'relationship' => 'child',
         'first_name' => 'Sam',
-        'date_of_birth' => now()->subYears(8)->startOfYear()->toDateString(),
+        'date_of_birth' => now()->subYears(8)->subMonth()->toDateString(),
         'is_dependent' => true,
     ]);
 

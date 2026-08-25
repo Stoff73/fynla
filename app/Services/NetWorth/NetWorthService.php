@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\NetWorth;
 
+use App\Constants\PensionDisclosure;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -78,6 +80,11 @@ class NetWorthService
                 'chattels' => round($chattelValue, 2),
             ],
             'has_db_pensions' => $pensionBreakdown['has_db'],
+            // The sentence travels with the figure it qualifies, from its one home,
+            // so no surface has to keep its own copy of the wording (W-0241).
+            'db_pension_disclosure' => $pensionBreakdown['has_db']
+                ? PensionDisclosure::DEFINED_BENEFIT_EXCLUDED
+                : null,
             'liabilities_breakdown' => [
                 'mortgages' => round($liabilitiesBreakdown['mortgages'], 2),
                 'loans' => round($liabilitiesBreakdown['loans'], 2),
@@ -97,15 +104,7 @@ class NetWorthService
      */
     private function calculateBusinessValue(int $userId): float
     {
-        $businesses = BusinessInterest::forUserOrJoint($userId)
-            ->get();
-
-        $total = 0.0;
-        foreach ($businesses as $business) {
-            $total += $this->calculateUserShare($business, $userId);
-        }
-
-        return $total;
+        return $this->assetAggregator->calculateBusinessTotal($userId);
     }
 
     /**
@@ -115,18 +114,13 @@ class NetWorthService
      * - Database stores FULL chattel value in current_value
      * - Query includes records where user is owner OR joint_owner
      * - User's share is calculated from ownership_percentage
+     *
+     * W-0138: the share arithmetic now lives once, in CrossModuleAssetAggregator,
+     * alongside property/investment/cash. Same query, same trait, same result.
      */
     private function calculateChattelValue(int $userId): float
     {
-        $chattels = Chattel::forUserOrJoint($userId)
-            ->get();
-
-        $total = 0.0;
-        foreach ($chattels as $chattel) {
-            $total += $this->calculateUserShare($chattel, $userId);
-        }
-
-        return $total;
+        return $this->assetAggregator->calculateChattelTotal($userId);
     }
 
     /**
@@ -188,14 +182,32 @@ class NetWorthService
     }
 
     /**
-     * Calculate pension values split by DC and DB.
+     * Calculate pension values split by DC and DB — **the one home for what a
+     * pension contributes to net worth, on every surface.**
      *
-     * DC pensions are included as accessible capital (fund value).
-     * DB pensions are excluded from net worth (not accessible as a capital sum,
-     * same rationale as State Pension). A flag is returned so the frontend
-     * can display an appropriate note.
+     * DC pensions are included as accessible capital (fund value). Defined Benefit
+     * schemes are excluded (not accessible as a capital sum, same rationale as the
+     * State Pension), and `has_db` is returned so every surface showing the figure
+     * can say so rather than presenting the total as complete.
+     *
+     * **CSJ ruling, 2026-08-22 (W-0241), settled — do not re-open.** Three options
+     * were considered: add a transfer value column and ask for it; capitalise the
+     * accrued pension at a stated multiple; or exclude and disclose. CSJ chose to
+     * **exclude and disclose**, because it is the only one that neither invents a
+     * valuation nor asks for a Cash Equivalent Transfer Value most users have never
+     * obtained. **Do not add a `transfer_value` column and do not apply a
+     * capitalisation multiple here or in any consumer.**
+     *
+     * The defect this replaced was never the exclusion — it was that the
+     * application performed the exclusion while its code read as if it valued the
+     * schemes. `MobileDashboardAggregator` summed a `db_pensions.transfer_value`
+     * column that has never existed; over a Collection a missing attribute reads as
+     * null, so it silently returned 0.0 for every user, forever. It now calls this
+     * method instead, so the dashboard and `/net-worth` cannot answer differently.
+     *
+     * @return array{dc: float, has_db: bool}
      */
-    private function calculatePensionBreakdown(int $userId): array
+    public function calculatePensionBreakdown(int $userId): array
     {
         $user = User::findOrFail($userId);
         $store = app(PensionStore::class);
@@ -312,36 +324,97 @@ class NetWorthService
         }
 
         foreach ($dbPensions as $pension) {
-            $name = $pension->scheme_name ?: 'DB Pension';
-            // Capital value = (Annual pension × 20) + Lump sum
-            $capitalValue = (($pension->accrued_annual_pension ?? 0) * 20) + ($pension->lump_sum_entitlement ?? 0);
+            $name = $pension->scheme_name ?: 'Defined Benefit Pension';
+
+            // A Defined Benefit scheme contributes NOTHING to the capital figure.
+            //
+            // This line used to read
+            // `(($pension->accrued_annual_pension ?? 0) * 20) + $pension->lump_sum_entitlement`
+            // — a 20× capitalisation, which is **option 2 of W-0241 and the option CSJ
+            // rejected**. It was live on web, `/m` and native, and it put the same
+            // scheme on screen twice over: the page said "Defined Benefit pensions are
+            // excluded from net worth" and then listed one at £805,000, so the asset
+            // list summed to £1,666,780 against a stated £861,780 and the percentages
+            // totalled 193%.
+            //
+            // **Do not restore it, and do not "fix" this zero.** The zero is the
+            // statement. `annual_pension` below is what this scheme is actually worth
+            // to the user, and the disclosure beside the figure is what makes the two
+            // read as coherent rather than contradictory.
             $pensionItems[] = [
                 'id' => $pension->id,
                 'type' => 'db',
                 'name' => $name,
                 'provider' => $pension->employer,
-                'value' => (float) $capitalValue,
+                'value' => 0.0,
+                // The honest fact, and the reason the £0 above is not a lost record.
+                // `NetWorthCategory.vue` renders this as "£35,000 a year". It must
+                // survive any future edit to the line above it.
                 'annual_pension' => (float) ($pension->accrued_annual_pension ?? 0),
             ];
         }
 
         // Get property items
-        $properties = $this->propertyStore->forUser($user)->where('user_id', $userId);
-        $propertyItems = $properties->map(function ($property) {
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
+        $properties->loadMissing('mortgages');
+        $propertyItems = $properties->map(function ($property) use ($userId) {
             $name = $property->address_line_1 ?: $property->property_type;
 
             return [
                 'id' => $property->id,
                 'name' => $name,
                 'type' => $property->property_type,
-                'value' => (float) $property->current_value,
+                'value' => $this->calculateUserShare($property, $userId),
+                'full_value' => (float) $property->current_value,
                 'ownership_type' => $property->ownership_type,
+                'ownership_percentage' => (float) ($property->ownership_percentage ?? 100),
+                'is_primary_owner' => $property->user_id === $userId,
+                'outstanding_mortgage' => (float) $property->mortgages
+                    ->sum(fn (Mortgage $mortgage): float => $this->calculateUserMortgageShare($mortgage, $userId)),
+                'full_outstanding_mortgage' => (float) $property->mortgages->sum('outstanding_balance'),
             ];
         })->toArray();
 
+        // Detail navigation requires record identifiers, not aggregate debt
+        // buckets. Mortgages and other liabilities remain distinct canonical
+        // resources even though the Net Worth overview totals them together.
+        $mortgageItems = $this->assetAggregator
+            ->getMortgages($userId)
+            ->map(fn (Mortgage $mortgage): array => [
+                'id' => $mortgage->id,
+                'kind' => 'mortgage',
+                'name' => $mortgage->lender_name ?: 'Mortgage',
+                'value' => $this->calculateUserMortgageShare($mortgage, $userId),
+                'full_value' => (float) $mortgage->outstanding_balance,
+                'property_id' => $mortgage->property_id,
+                'ownership_type' => $mortgage->ownership_type,
+                'ownership_percentage' => (float) ($mortgage->ownership_percentage ?? 100),
+                'is_primary_owner' => $mortgage->user_id === $userId,
+            ])
+            ->filter(fn (array $mortgage): bool => $mortgage['value'] > 0)
+            ->values()
+            ->all();
+
+        $liabilityItems = Liability::query()
+            ->where('user_id', $userId)
+            ->get()
+            ->map(fn (Liability $liability): array => [
+                'id' => $liability->id,
+                'kind' => 'liability',
+                'name' => $liability->liability_name ?: str($liability->liability_type)->replace('_', ' ')->title()->toString(),
+                'value' => (float) $liability->current_balance,
+                'full_value' => (float) $liability->current_balance,
+                'liability_type' => $liability->liability_type,
+                'ownership_type' => $liability->ownership_type,
+            ])
+            ->values()
+            ->all();
+
+        $debtItems = [...$mortgageItems, ...$liabilityItems];
+
         // Get investment items
-        $investments = InvestmentAccount::where('user_id', $userId)->get();
-        $investmentItems = $investments->map(function ($investment) {
+        $investments = InvestmentAccount::forUserOrJoint($userId)->get();
+        $investmentItems = $investments->map(function ($investment) use ($userId) {
             $name = $investment->provider;
             if ($investment->account_type) {
                 $name .= ' - '.ucwords(str_replace('_', ' ', $investment->account_type));
@@ -352,14 +425,17 @@ class NetWorthService
                 'name' => $name,
                 'account_type' => $investment->account_type,
                 'provider' => $investment->provider,
-                'value' => (float) $investment->current_value,
+                'value' => $this->calculateUserShare($investment, $userId),
+                'full_value' => (float) $investment->current_value,
                 'ownership_type' => $investment->ownership_type,
+                'ownership_percentage' => (float) ($investment->ownership_percentage ?? 100),
+                'is_primary_owner' => $investment->user_id === $userId,
             ];
         })->toArray();
 
         // Get cash/savings items
-        $savingsAccounts = SavingsAccount::where('user_id', $userId)->get();
-        $cashItems = $savingsAccounts->map(function ($account) {
+        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
+        $cashItems = $savingsAccounts->map(function ($account) use ($userId) {
             $name = $account->institution;
             if ($account->account_type) {
                 $name .= ' - '.ucwords(str_replace('_', ' ', $account->account_type));
@@ -370,7 +446,11 @@ class NetWorthService
                 'name' => $name,
                 'account_type' => $account->account_type,
                 'institution' => $account->institution,
-                'value' => (float) $account->current_balance,
+                'value' => $this->calculateUserShare($account, $userId),
+                'full_value' => (float) $account->current_balance,
+                'ownership_type' => $account->ownership_type,
+                'ownership_percentage' => (float) ($account->ownership_percentage ?? 100),
+                'is_primary_owner' => $account->user_id === $userId,
                 'is_isa' => $account->is_isa,
                 'is_emergency_fund' => $account->is_emergency_fund,
             ];
@@ -391,6 +471,8 @@ class NetWorthService
                 'annual_revenue' => (float) ($business->annual_revenue ?? 0),
                 'annual_profit' => (float) ($business->annual_profit ?? 0),
                 'is_primary_owner' => $business->user_id === $userId,
+                // Soonest Companies House filing deadline; null until synced.
+                'next_filing' => $business->nextFiling(),
             ];
         })->toArray();
 
@@ -427,6 +509,16 @@ class NetWorthService
                 'count' => count($pensionItems),
                 'total_value' => round($pensionTotal, 2),
                 'items' => $pensionItems,
+                // The figure above is Defined Contribution only, so it travels with
+                // the flag and the sentence that say so — the disclosure belongs to
+                // the figure, not to whichever page happens to render it (W-0241,
+                // Rule 20). Every surface reads these two keys instead of keeping
+                // its own copy of the wording.
+                'has_db_pensions' => $dbPensions->isNotEmpty(),
+                'disclosure' => $dbPensions->isNotEmpty()
+                    ? PensionDisclosure::DEFINED_BENEFIT_EXCLUDED
+                    : null,
+                'subtitle' => PensionDisclosure::PENSION_CAPITAL_SUBTITLE,
             ],
             'property' => [
                 'count' => count($propertyItems),
@@ -452,6 +544,11 @@ class NetWorthService
                 'count' => count($chattelItems),
                 'total_value' => round($chattelTotal, 2),
                 'items' => $chattelItems,
+            ],
+            'liabilities' => [
+                'count' => count($debtItems),
+                'total_value' => round((float) array_sum(array_column($debtItems, 'value')), 2),
+                'items' => $debtItems,
             ],
         ];
     }

@@ -121,7 +121,7 @@
               <div v-if="isJointAccount" class="flex justify-between">
                 <dt class="text-sm text-neutral-500">Owners:</dt>
                 <dd class="text-sm font-medium text-horizon-500">
-                  {{ account.owner_name || 'Primary' }} &amp; {{ account.joint_owner_name || 'Partner' }}
+                  {{ account.owner_name || 'Primary' }} &amp; {{ account.joint_owner_name || 'Spouse' }}
                 </dd>
               </div>
             </dl>

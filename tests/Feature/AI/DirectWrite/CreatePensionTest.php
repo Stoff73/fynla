@@ -109,3 +109,94 @@ it('create_pension return shape has no fill_form action', function (): void {
     expect($result)->not->toHaveKey('fields');
     expect($result)->not->toHaveKey('route');
 });
+
+/**
+ * W-0017, the /m and native half. Those surfaces have no pension form at all —
+ * every pension is entered through Fyn — and the create_pension schema exposed
+ * neither the spouse benefit, the inflation protection, the lump sum, nor a
+ * public-sector scheme type, while `update_record`'s db_pension allowlist could
+ * not correct any of them afterwards. PensionNormaliser and PensionStore both
+ * already understood every one of these fields; only the catalogue withheld them.
+ */
+it('create_pension records the spouse benefit, inflation protection and lump sum on a Defined Benefit scheme', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_pension', [
+        'pension_category' => 'db',
+        'scheme_name' => 'NHS Pension Scheme',
+        'scheme_type' => 'career_average',
+        'accrued_annual_pension' => 35000,
+        'pensionable_service_years' => 18,
+        'normal_retirement_age' => 60,
+        'spouse_pension_percent' => 50,
+        'inflation_protection' => 'cpi',
+        'lump_sum_entitlement' => 105000,
+    ], $user);
+
+    expect($result['success'])->toBeTrue();
+
+    $pension = DBPension::find($result['entity_id']);
+
+    expect($pension->scheme_type)->toBe('career_average')
+        ->and($pension->normal_retirement_age)->toBe(60)
+        ->and((float) $pension->spouse_pension_percent)->toBe(50.0)
+        ->and($pension->inflation_protection)->toBe('cpi')
+        ->and((float) $pension->lump_sum_entitlement)->toBe(105000.0);
+});
+
+it('create_pension accepts a public sector Defined Benefit scheme type', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_pension', [
+        'pension_category' => 'db',
+        'scheme_name' => 'Civil Service Alpha',
+        'scheme_type' => 'public_sector',
+        'accrued_annual_pension' => 9000,
+    ], $user);
+
+    expect(DBPension::find($result['entity_id'])->scheme_type)->toBe('public_sector');
+});
+
+it('create_pension refuses an inflation protection value outside the enum', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_pension', [
+        'pension_category' => 'db',
+        'scheme_name' => 'NHS Pension Scheme',
+        'accrued_annual_pension' => 35000,
+        'inflation_protection' => 'cpi_plus_1_5',
+    ], $user);
+
+    expect($result['error'] ?? false)->toBeTrue()
+        ->and($result['error_type'])->toBe('validation_failed');
+});
+
+it('update_record can correct the Defined Benefit fields Fyn could not previously touch', function (): void {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $pension = DBPension::factory()->create([
+        'user_id' => $user->id,
+        'scheme_type' => 'final_salary',
+        'spouse_pension_percent' => null,
+        'inflation_protection' => 'none',
+    ]);
+
+    $result = app(CoordinatingAgent::class)->executeTool('update_record', [
+        'entity_type' => 'db_pension',
+        'entity_id' => $pension->id,
+        'fields' => [
+            'scheme_type' => 'career_average',
+            'spouse_pension_percent' => 50,
+            'inflation_protection' => 'cpi',
+            'lump_sum_entitlement' => 105000,
+        ],
+    ], $user);
+
+    expect($result['success'] ?? false)->toBeTrue();
+
+    $pension->refresh();
+
+    expect($pension->scheme_type)->toBe('career_average')
+        ->and((float) $pension->spouse_pension_percent)->toBe(50.0)
+        ->and($pension->inflation_protection)->toBe('cpi')
+        ->and((float) $pension->lump_sum_entitlement)->toBe(105000.0);
+});

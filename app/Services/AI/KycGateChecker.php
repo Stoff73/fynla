@@ -4,285 +4,194 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
 use App\Events\Eval\GateChecked;
 use App\Models\User;
 use App\Services\PrerequisiteGateService;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
+use LogicException;
 
 /**
- * Checks KYC (Know Your Customer) data completeness before the AI gives advice.
- *
- * Pre-computed in PHP, injected into the system prompt as <kyc_status>.
- * If data is missing, Fyn asks the user to provide it instead of giving advice.
- *
- * Bypass types (data_entry, navigation) always pass — no KYC needed.
- * General/factual queries also pass — no advice being given.
+ * Checks only the data required to answer the primary classified question.
+ * Related classifications may enrich context, but never block the turn.
  */
 class KycGateChecker
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
     public function __construct(
         private readonly PrerequisiteGateService $prerequisiteGate,
     ) {}
 
     /**
-     * Check KYC requirements for a classification.
-     *
      * @return array{passed: bool, missing: string[], prompt_text: string}
      */
     public function check(User $user, array $classification): array
     {
         $primary = $classification['primary'];
 
-        // Bypass types skip KYC entirely
-        if (QuerySchemas::isBypassType($primary)) {
+        if (! QuerySchemas::isAdviceType($primary)) {
             return $this->pass();
         }
 
-        // Factual queries (general / billing / etc.) don't need KYC — they
-        // are answered from system data (billing tools, knowledge blocks)
-        // not from the user's onboarded financial profile.
-        if (in_array($primary, QuerySchemas::FACTUAL_TYPES, true)) {
-            return $this->pass();
-        }
+        $requirements = QuerySchemas::REQUIRED_DATA[$primary]
+            ?? throw new LogicException("Missing required-data definition for advice type: {$primary}");
 
-        $allMissing = [];
+        $missing = [];
+        foreach ($requirements as $requirement) {
+            $missingRequirement = $this->checkRequirement($user, $requirement);
 
-        // Check universal requirements
-        $universalMissing = $this->checkUniversalRequirements($user);
-        event(new GateChecked(
-            gate: 'kyc',
-            module: 'global',
-            passed: empty($universalMissing),
-            context: [
-                'missing' => array_map(fn ($m) => is_array($m) ? ($m['label'] ?? $m) : $m, $universalMissing),
-                'user_id' => $user->id,
-            ],
-            atMicrotime: microtime(true),
-        ));
-        $allMissing = array_merge($allMissing, $universalMissing);
-
-        // Check module-specific requirements for ALL classified modules
-        $modules = QuerySchemas::getModulesForClassification($classification);
-        foreach ($modules as $module) {
-            $moduleMissing = $this->checkModuleRequirements($user, $module);
             event(new GateChecked(
                 gate: 'kyc',
-                module: $module,
-                passed: empty($moduleMissing),
+                module: $primary,
+                passed: $missingRequirement === null,
                 context: [
-                    'missing' => array_map(fn ($m) => is_array($m) ? ($m['label'] ?? $m) : $m, $moduleMissing),
+                    'requirement' => $requirement,
+                    'missing' => $missingRequirement['label'] ?? null,
                     'user_id' => $user->id,
                 ],
                 atMicrotime: microtime(true),
             ));
-            $allMissing = array_merge($allMissing, $moduleMissing);
-        }
 
-        // Deduplicate: universal checks take priority (they have correct routes).
-        // Module gates may duplicate universal items with different wording.
-        $seen = [];
-        $deduplicated = [];
-        foreach ($allMissing as $item) {
-            $label = is_array($item) ? $item['label'] : $item;
-            // Normalise for dedup: lowercase, check if any existing label is a substring
-            $labelLower = strtolower($label);
-            $isDuplicate = false;
-            foreach ($seen as $seenLabel) {
-                if (str_contains($labelLower, strtolower($seenLabel))
-                    || str_contains(strtolower($seenLabel), $labelLower)) {
-                    $isDuplicate = true;
-                    break;
-                }
-            }
-            if (! $isDuplicate) {
-                $seen[] = $label;
-                $deduplicated[] = $item;
-            }
-        }
-        $allMissing = $deduplicated;
-
-        if (empty($allMissing)) {
-            return $this->passWithSummary($user, $classification);
-        }
-
-        return $this->blocked($allMissing);
-    }
-
-    /**
-     * Check universal requirements needed for all advice types.
-     * Returns array of ['label' => string, 'route' => string] for each missing item.
-     */
-    private function checkUniversalRequirements(User $user): array
-    {
-        $missing = [];
-
-        if (! $user->date_of_birth) {
-            $missing[] = ['label' => 'Date of birth', 'route' => '/profile'];
-        }
-
-        if (! $user->marital_status) {
-            $missing[] = ['label' => 'Marital status', 'route' => '/profile'];
-        }
-
-        if (! $user->employment_status) {
-            $missing[] = ['label' => 'Employment status', 'route' => '/profile'];
-        }
-
-        $totalIncome = (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
-
-        if ($totalIncome <= 0) {
-            $missing[] = ['label' => 'Annual income (at least one income source)', 'route' => '/valuable-info?section=income'];
-        }
-
-        $hasExpenditure = ($user->monthly_expenditure && $user->monthly_expenditure > 0)
-            || ($user->annual_expenditure && $user->annual_expenditure > 0);
-        if (! $hasExpenditure) {
-            $expenditureProfile = $user->expenditureProfile ?? null;
-            if (! $expenditureProfile || ! ($expenditureProfile->total_monthly_expenditure > 0)) {
-                $missing[] = ['label' => 'Monthly expenditure', 'route' => '/valuable-info?section=expenditure'];
+            if ($missingRequirement !== null) {
+                $missing[] = $missingRequirement;
             }
         }
 
-        return $missing;
+        if ($missing === []) {
+            return $this->passWithSummary();
+        }
+
+        return $this->blocked($missing);
     }
 
     /**
-     * Check module-specific requirements using PrerequisiteGateService.
-     * Returns array of ['label' => string, 'route' => string].
+     * @return array{label: string, destination: string}|null
      */
-    private function checkModuleRequirements(User $user, string $module): array
+    private function checkRequirement(User $user, string $requirement): ?array
     {
-        $actionMap = [
-            'protection' => 'protection',
-            'savings' => 'savings',
-            'retirement' => 'retirement',
-            'investment' => 'investment',
-            'estate' => 'estate',
-            'goals' => 'goals',
-            'tax' => 'tax_optimisation',
-        ];
-
-        $action = $actionMap[$module] ?? null;
-        if (! $action) {
-            return [];
-        }
-
-        $gate = $this->prerequisiteGate->enforce($action, $user);
-
-        if ($gate['can_proceed']) {
-            return [];
-        }
-
-        // Build structured missing items from gate results
-        $missing = [];
-        $gateActions = $gate['required_actions'] ?? [];
-        $gateMissing = $gate['missing'] ?? [];
-
-        // Pair missing labels with routes from required_actions
-        foreach ($gateMissing as $i => $label) {
-            $route = isset($gateActions[$i]) ? ($gateActions[$i]['route'] ?? null) : null;
-            $missing[] = [
-                'label' => $label,
-                'route' => $route ?? $this->getDefaultRouteForModule($module),
-            ];
-        }
-
-        return $missing;
-    }
-
-    /**
-     * Default navigation route for a module when no specific route is available.
-     */
-    private function getDefaultRouteForModule(string $module): string
-    {
-        return match ($module) {
-            'protection' => '/protection',
-            'savings' => '/net-worth/cash',
-            'retirement' => '/net-worth/retirement',
-            'investment' => '/net-worth/investments',
-            'estate' => '/estate',
-            'goals' => '/goals',
-            'tax' => '/valuable-info?section=income',
-            'income' => '/valuable-info?section=income',
-            default => '/dashboard',
+        return match ($requirement) {
+            QuerySchemas::REQUIREMENT_DATE_OF_BIRTH => $user->date_of_birth
+                ? null
+                : ['label' => 'Date of birth', 'destination' => GateRoutes::PERSONAL_DETAILS],
+            QuerySchemas::REQUIREMENT_INCOME => $this->resolveGrossAnnualIncome($user) > 0
+                ? null
+                : ['label' => 'Annual income', 'destination' => GateRoutes::INCOME],
+            QuerySchemas::REQUIREMENT_EXPENDITURE => $this->resolveMonthlyExpenditure($user)['amount'] > 0
+                ? null
+                : ['label' => 'Monthly expenditure', 'destination' => GateRoutes::EXPENDITURE],
+            QuerySchemas::REQUIREMENT_PROTECTION => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Protection details',
+                GateRoutes::PROTECTION,
+            ),
+            QuerySchemas::REQUIREMENT_SAVINGS => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Savings accounts',
+                GateRoutes::SAVINGS,
+            ),
+            QuerySchemas::REQUIREMENT_LIABILITIES => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Debts and liabilities',
+                GateRoutes::LIABILITIES,
+            ),
+            QuerySchemas::REQUIREMENT_RETIREMENT => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Pension details',
+                GateRoutes::RETIREMENT,
+            ),
+            QuerySchemas::REQUIREMENT_INVESTMENT => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Investment accounts',
+                GateRoutes::INVESTMENT,
+            ),
+            QuerySchemas::REQUIREMENT_ESTATE => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Estate information',
+                GateRoutes::ESTATE,
+            ),
+            QuerySchemas::REQUIREMENT_GOALS => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Goals',
+                GateRoutes::GOALS,
+            ),
+            QuerySchemas::REQUIREMENT_PROPERTY => $this->requiredModuleData(
+                $user,
+                $requirement,
+                'Property details',
+                GateRoutes::PROPERTY,
+            ),
+            default => throw new LogicException("Unknown KYC data requirement: {$requirement}"),
         };
     }
 
-    /**
-     * KYC passed — return with a brief data summary for the AI.
-     */
-    private function passWithSummary(User $user, array $classification): array
-    {
-        $modules = $classification['modules'] ?? [];
-        $moduleList = ! empty($modules) ? implode(', ', $modules) : 'general';
+    /** @return array{label: string, destination: string}|null */
+    private function requiredModuleData(
+        User $user,
+        string $requirement,
+        string $label,
+        string $destination,
+    ): ?array {
+        return $this->prerequisiteGate->hasDataForRequirement($requirement, $user)
+            ? null
+            : ['label' => $label, 'destination' => $destination];
+    }
 
+    /** @return array{passed: true, missing: array{}, prompt_text: string} */
+    private function passWithSummary(): array
+    {
         return [
             'passed' => true,
             'missing' => [],
-            'prompt_text' => "<kyc_status>\nKYC CHECK: PASSED. Sufficient data available for {$moduleList} analysis. Proceed with advice using the FCA 6-step process.\n</kyc_status>",
+            'prompt_text' => "<kyc_status>\nKYC CHECK: PASSED. Sufficient data is available for this question. Proceed with the FCA 6-step process.\n</kyc_status>",
         ];
     }
 
     /**
-     * KYC blocked — return with missing data list, routes, and mandatory navigation instructions.
+     * @param  array<int, array{label: string, destination: string}>  $missing
+     * @return array{passed: false, missing: string[], prompt_text: string}
      */
     private function blocked(array $missing): array
     {
-        // Build the missing list with exact routes
-        $missingLines = [];
-        $navigationInstructions = [];
-        $seenRoutes = [];
+        $missingLines = array_map(function (array $item): string {
+            $pageLabel = GateRoutes::resolve($item['destination'])['label'];
 
-        foreach ($missing as $item) {
-            $label = is_array($item) ? $item['label'] : $item;
-            $route = is_array($item) ? ($item['route'] ?? null) : null;
-
-            $missingLines[] = "- {$label}".($route ? " → navigate to {$route}" : '');
-
-            if ($route && ! isset($seenRoutes[$route])) {
-                $seenRoutes[$route] = true;
-                $navigationInstructions[] = "- Use navigate_to_page with route_path \"{$route}\" for: {$label}";
-            }
-        }
+            return "- {$item['label']} - open {$pageLabel}";
+        }, $missing);
 
         $missingList = implode("\n", $missingLines);
-        $navList = ! empty($navigationInstructions) ? implode("\n", $navigationInstructions) : '';
-
         $promptText = <<<PROMPT
 <kyc_status>
 KYC CHECK: BLOCKED. The following data is missing and must be provided before you can give advice:
 
 {$missingList}
 
-MANDATORY INSTRUCTIONS — follow these exactly, do not deviate:
+MANDATORY INSTRUCTIONS - follow these exactly:
 1. Do NOT give advice, estimates, or general guidance on this topic
-2. Explain clearly what data is missing and why it is needed for personalised advice
+2. Explain clearly what data is missing and why it is needed for personalised guidance
 3. Offer to help the user enter the data conversationally
-4. Navigate the user to the EXACT page listed above using navigate_to_page — do NOT navigate anywhere else
-
-MANDATORY NAVIGATION (use these exact routes):
-{$navList}
+4. Signpost the exact page label shown above in plain text. Do not output an internal route and do not call a navigation or write tool on the advice surface
 </kyc_status>
 PROMPT;
 
-        $missingLabels = array_map(fn ($item) => is_array($item) ? $item['label'] : $item, $missing);
-
         return [
             'passed' => false,
-            'missing' => $missingLabels,
+            'missing' => array_column($missing, 'label'),
             'prompt_text' => $promptText,
         ];
     }
 
-    /**
-     * Bypass — KYC not required.
-     */
+    /** @return array{passed: true, missing: array{}, prompt_text: string} */
     private function pass(): array
     {
         return [

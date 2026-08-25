@@ -173,6 +173,7 @@ final class AdviceFyn
         'capture_salary_sacrifice', 'capture_spouse_work_status',
         'capture_spouse_household_data', 'capture_spouse_non_working_assets',
         'capture_pension_history', 'capture_charitable_giving',
+        'capture_retirement_goals', 'capture_state_pension',
         // S0.5.r — every persistent record-creation tool now flows through
         // the delegate_to_capture handoff. No analytics carve-out:
         // create_what_if_scenario persists a WhatIfScenario row and must
@@ -208,6 +209,59 @@ final class AdviceFyn
         ?string $currentRoute = null,
         bool $persistUserMessage = true,
     ): \Generator {
+        // Deferred-question resolution (CSJ raise shape, 2026-07-23). The
+        // completion raise's Yes/No bubbles land HERE as plain text on the
+        // now-completed user; unhandled, a bare "Yes" reached the planner
+        // context-free and punted with the no-action defer (live: "I need a
+        // little more time on this"). Yes → this turn runs as the ORIGINAL
+        // stored question (the "Yes" row still persists, the answer follows
+        // it); No → close out warmly. Only Yes/No CONSUME the flag — a stray
+        // interleaved dispatch cleared it live before the user's tap ever
+        // arrived, so any other message leaves it armed; a 10-minute expiry
+        // bounds the lingering flag instead.
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $pendingDeferred = $metadata['pending_deferred_answer'] ?? [];
+        $pendingQuestions = array_values((array) ($pendingDeferred['questions'] ?? []));
+        $raisedAt = (int) ($pendingDeferred['raised_at'] ?? 0);
+        if ($pendingQuestions !== []) {
+            $reply = mb_strtolower(trim($message));
+            $expired = $raisedAt > 0 && (now()->timestamp - $raisedAt) > 600;
+
+            if ($expired) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+            } elseif (preg_match('/^(?:no|not now|no,? than[kx]s?|no thank you)\b/u', $reply) === 1) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+
+                $ack = "No problem — ask me any time and I'll pick it up from there.";
+                if ($persistUserMessage) {
+                    $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
+                }
+                $conversation->messages()->create(['role' => 'assistant', 'content' => $ack, 'persona' => 'advice']);
+                yield ['type' => 'content', 'text' => $ack];
+                yield ['type' => 'done'];
+
+                return;
+            } elseif (preg_match('/^(?:yes|yes\b.*|okay|ok|sure|go ahead|please do)$/u', $reply) === 1) {
+                unset($metadata['pending_deferred_answer']);
+                $conversation->update(['metadata' => $metadata]);
+
+                $questions = trim(implode(' ', array_filter(array_map(
+                    static fn (array $entry): string => trim((string) ($entry['question'] ?? '')),
+                    $pendingQuestions,
+                ))));
+                if ($questions !== '') {
+                    if ($persistUserMessage) {
+                        $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
+                    }
+                    $message = $questions;
+                    $persistUserMessage = false;
+                }
+            }
+            // Any other reply: the flag stays armed for the user's real tap.
+        }
+
         // S0.14 — short-circuit non-financial topics with the canonical
         // refusal. The classifier only flags out_of_remit when no advice
         // keyword fired, so financial questions that incidentally mention
@@ -277,6 +331,24 @@ final class AdviceFyn
         // to the normal LLM advice flow.
         $intent = $this->writeIntentClassifier->classify($message);
 
+        // WP-1 — capture-continuation. When the previous assistant turn was a
+        // data_capture QUESTION that wrote nothing (the capture asked for the
+        // details), the user's next non-question message IS the answer. That
+        // answer rarely re-matches the verb+entity classifier ("It's a
+        // workplace pension with Aviva, worth £40,000"), so without this rule
+        // it lands in read-only advice and the capture dead-ends
+        // mid-conversation (2026-07-03 walk: the pension details were never
+        // persisted). Reuse the intent that opened the capture.
+        // CSJ 2026-08-17: answering Fyn's own outstanding question about a record IS
+        // an explicit edit, so a continuation may amend that record directly. A fresh
+        // message that merely name-matches is ambiguous and must ask instead. Only
+        // this branch knows which turn is which, so it flags it for the write handler.
+        $isCaptureContinuation = false;
+        if ($intent === null) {
+            $intent = $this->captureContinuationIntent($conversation, $message);
+            $isCaptureContinuation = $intent !== null;
+        }
+
         // Full-duplicate short-circuit: when the user reasserts records
         // that all already exist (RecordDuplicateChecker matches every
         // extracted entity to a recent DB row), we do NOT involve the
@@ -334,6 +406,15 @@ final class AdviceFyn
                 'reason' => $intent['reason'],
                 'entity_types' => [$intent['entity_type']],
                 'fields_needed' => $intent['fields_needed'],
+                // Carried through the context rather than set on this service's
+                // CoordinatingAgent: handleInlineCapture executes tools on the
+                // DIRECTOR's agent instance, and CoordinatingAgent is
+                // container-transient, so a flag set here would silently not apply.
+                'is_continuation' => $isCaptureContinuation,
+                // Only the record Fyn asked about may be amended without asking.
+                'continuation_record_id' => $isCaptureContinuation
+                    ? ($intent['pending_record_id'] ?? null)
+                    : null,
             ]);
 
             Log::info('[AdviceFyn] Deterministic write-intent routed', [
@@ -352,8 +433,6 @@ final class AdviceFyn
                 $currentRoute,
             );
 
-            yield ['type' => 'done'];
-
             return;
         }
 
@@ -370,6 +449,91 @@ final class AdviceFyn
             $this->buildToolList($user),
             $persistUserMessage,
         );
+    }
+
+    /**
+     * WP-1 — capture-continuation intent. When the most recent assistant
+     * message is a data_capture turn that made NO tool calls (a capture
+     * question — "Happy to, what's the scheme, provider, and value?"), the
+     * current non-question user message is the awaited answer: walk the
+     * recent user messages newest-first and reuse the write intent that
+     * opened the capture. Returns null when the last turn was not a pending
+     * capture question, when the user is asking something (route to advice),
+     * or when no earlier message classifies.
+     *
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string, pending_record_id?: int|null}|null
+     */
+    private function captureContinuationIntent(AiConversation $conversation, string $message): ?array
+    {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
+            return null;
+        }
+
+        $lastAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first();
+
+        if ($lastAssistant === null || $lastAssistant->persona !== 'data_capture') {
+            return null;
+        }
+
+        // A capture turn is pending while it is STILL ASKING, whatever it wrote.
+        //
+        // WP-1 scoped this to a capture that wrote nothing, on the assumption that
+        // a turn either asks or writes. A turn can do both — write what the user
+        // gave and ask for what is missing. Live 2026-08-17: "I have an aviva
+        // pension with a balance of 45000" produced ONE assistant turn reading
+        // "Is this a workplace pension or a Self-Invested Personal Pension?
+        // Recorded — Aviva pension of £45,000.", leaving persona=data_capture WITH
+        // tool_calls. The user answered "Sip", the old guard read the tool_calls as
+        // "capture concluded", the answer fell through to read-only advice, and the
+        // model narrated "recorded as a Self-Invested Personal Pension" without any
+        // write — the row stayed pension_type=occupational.
+        //
+        // That is the same dead-end WP-1 exists to close, reached by a turn that
+        // wrote as well as asked. Only a capture that wrote and asked nothing
+        // further has actually concluded.
+        $stillAsking = str_contains((string) $lastAssistant->content, '?');
+
+        // A capture concluded only if something was actually WRITTEN. Reading
+        // "it called a tool" as "it captured" is what broke live conversation
+        // 157: the model called create_savings_account, the accuracy gate
+        // rejected it as unevidenced ownership, and our deterministic failure
+        // line ("I couldn't save that — I need you to confirm whether you own it
+        // individually…") carries no question mark. Both signals said
+        // "concluded", the user's answer routed to read-only advice, and Fyn
+        // told them it was "Recorded" with nothing in the database.
+        //
+        // The write result is recorded on the row (HasAiChat). Older rows
+        // predate the flag, so they keep the previous reading.
+        $metadata = $lastAssistant->metadata ?? [];
+        $landedWrite = array_key_exists('capture_write_landed', $metadata)
+            ? (bool) $metadata['capture_write_landed']
+            : ! empty($lastAssistant->tool_calls);
+
+        if ($landedWrite && ! $stillAsking) {
+            return null;
+        }
+
+        $pendingRecordId = $metadata['capture_record_id'] ?? null;
+
+        $recentUserMessages = $conversation->messages()
+            ->where('role', 'user')
+            ->latest('id')
+            ->limit(6)
+            ->pluck('content');
+
+        foreach ($recentUserMessages as $priorMessage) {
+            $intent = $this->writeIntentClassifier->classify((string) $priorMessage);
+            if ($intent !== null) {
+                $intent['reason'] .= ' (capture continuation — the previous capture turn asked for these details)';
+
+                return $intent;
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\AI\Support\AckSentenceDeduper;
 use App\Services\Onboarding\OnboardingChatDirector;
 
 /**
@@ -88,5 +89,23 @@ describe('dedupeAckSentences (A2)', function () {
         // length, so branch (c) fires unconditionally.
         expect(invokeDedupe('Recorded — three ISA accounts totalling £22,000.Recorded.'))
             ->toBe('Recorded — three ISA accounts totalling £22,000.');
+    });
+
+    it('collapses an identical long ack duplicated with no space (persisted-row case)', function () {
+        // Observed live 2026-07-03: the inner delegated chat persisted the
+        // model's re-narrated ack verbatim while the live stream deduped it —
+        // the reloaded transcript showed the sentence twice in one row.
+        // Branch (a) — identical, any length.
+        expect(invokeDedupe(
+            'Recorded — workplace pension at 5% employee and 5% employer.'
+            .'Recorded — workplace pension at 5% employee and 5% employer.'
+        ))->toBe('Recorded — workplace pension at 5% employee and 5% employer.');
+    });
+
+    it('exposes the same algorithm statically for the persistence seam', function () {
+        // HasAiChat dedupes the persisted data_capture row with the shared
+        // AckSentenceDeduper — stream and transcript must show the same text.
+        expect(AckSentenceDeduper::dedupe('Got it — recording those now.Recorded.'))
+            ->toBe(invokeDedupe('Got it — recording those now.Recorded.'));
     });
 });

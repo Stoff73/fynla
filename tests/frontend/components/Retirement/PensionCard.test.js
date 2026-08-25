@@ -1,206 +1,130 @@
 import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
-import PensionCard from '@/components/Retirement/PensionCard.vue';
+import { shallowMount } from '@vue/test-utils';
+import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 
-describe('PensionCard', () => {
-  const dcPension = {
+describe('UnifiedPensionForm', () => {
+  const definedContributionPension = {
     id: 1,
     scheme_name: 'Workplace Pension',
-    scheme_type: 'workplace',
     provider: 'Aviva',
     current_fund_value: 50000,
-    employee_contribution_percent: 5,
-    employer_contribution_percent: 3,
   };
 
-  const dbPension = {
+  const definedBenefitPension = {
     id: 2,
-    scheme_name: 'NHS Pension',
-    scheme_type: 'public_sector',
+    scheme_name: 'Public Sector Pension',
     accrued_annual_pension: 15000,
-    pensionable_service_years: 20,
-    normal_retirement_age: 67,
   };
 
-  it('renders DC pension card', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
-    });
+  const statePension = {
+    id: 3,
+    forecast_annual_amount: 11502,
+  };
 
-    expect(wrapper.exists()).toBe(true);
+  const mountForm = (props = {}) => shallowMount(UnifiedPensionForm, { props });
+
+  it('uses the defined contribution form for a new pension', () => {
+    const wrapper = mountForm();
+
+    expect(wrapper.findComponent({ name: 'DCPensionForm' }).exists()).toBe(true);
+    expect(wrapper.findComponent({ name: 'DBPensionForm' }).exists()).toBe(false);
+    expect(wrapper.findComponent({ name: 'StatePensionForm' }).exists()).toBe(false);
   });
 
-  it('renders DB pension card', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dbPension,
-        type: 'db',
-      },
+  it('uses the defined contribution form when editing that pension type', () => {
+    const wrapper = mountForm({
+      pension: definedContributionPension,
+      initialPensionType: 'dc',
     });
 
-    expect(wrapper.exists()).toBe(true);
+    const form = wrapper.findComponent({ name: 'DCPensionForm' });
+    expect(form.exists()).toBe(true);
+    expect(form.props('pension')).toEqual(definedContributionPension);
   });
 
-  it('displays scheme name', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
+  it('uses the defined benefit form when editing that pension type', () => {
+    const wrapper = mountForm({
+      pension: definedBenefitPension,
+      initialPensionType: 'db',
     });
 
-    expect(wrapper.text()).toContain('Workplace Pension');
+    const form = wrapper.findComponent({ name: 'DBPensionForm' });
+    expect(form.exists()).toBe(true);
+    expect(form.props('pension')).toEqual(definedBenefitPension);
+    expect(wrapper.findComponent({ name: 'DCPensionForm' }).exists()).toBe(false);
   });
 
-  it('displays provider for DC pension', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
+  it('uses the state pension form when editing state pension data', () => {
+    const wrapper = mountForm({
+      statePension,
+      initialPensionType: 'state',
     });
 
-    expect(wrapper.text()).toContain('Aviva');
+    const form = wrapper.findComponent({ name: 'StatePensionForm' });
+    expect(form.exists()).toBe(true);
+    expect(form.props('statePension')).toEqual(statePension);
   });
 
-  it('displays current fund value for DC pension', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
+  it('forwards saves from the defined contribution form unchanged', async () => {
+    const wrapper = mountForm({
+      pension: definedContributionPension,
+      initialPensionType: 'dc',
     });
+    const payload = { scheme_name: 'Updated Workplace Pension', current_fund_value: 55000 };
 
-    const html = wrapper.html();
-    expect(html).toMatch(/50,?000|£50,?000/);
+    wrapper.findComponent({ name: 'DCPensionForm' }).vm.$emit('save', payload);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('save')).toEqual([[payload]]);
   });
 
-  it('displays accrued annual pension for DB pension', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dbPension,
-        type: 'db',
-      },
+  it('tags a defined benefit save for the parent dispatch boundary', async () => {
+    const wrapper = mountForm({
+      pension: definedBenefitPension,
+      initialPensionType: 'db',
     });
+    const payload = { scheme_name: 'Updated Public Sector Pension', accrued_annual_pension: 16000 };
 
-    const html = wrapper.html();
-    expect(html).toMatch(/15,?000|£15,?000/);
+    wrapper.findComponent({ name: 'DBPensionForm' }).vm.$emit('save', payload);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('save')).toEqual([[
+      { ...payload, _pensionType: 'db' },
+    ]]);
   });
 
-  it('expands on click', async () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
-    });
+  it('tags a state pension save for the parent dispatch boundary', async () => {
+    const wrapper = mountForm({ statePension, initialPensionType: 'state' });
+    const payload = { forecast_annual_amount: 12000 };
 
-    // Initially should be collapsed
-    expect(wrapper.vm.isExpanded).toBe(false);
+    wrapper.findComponent({ name: 'StatePensionForm' }).vm.$emit('save', payload);
+    await wrapper.vm.$nextTick();
 
-    // Click to expand
-    await wrapper.find('.pension-card').trigger('click');
-
-    // Should be expanded
-    expect(wrapper.vm.isExpanded).toBe(true);
+    expect(wrapper.emitted('save')).toEqual([[
+      { ...payload, _pensionType: 'state' },
+    ]]);
   });
 
-  it('collapses on second click', async () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
+  it.each([
+    ['dc', 'DCPensionForm'],
+    ['db', 'DBPensionForm'],
+    ['state', 'StatePensionForm'],
+  ])('forwards close from the %s edit flow', async (initialPensionType, componentName) => {
+    const wrapper = mountForm({
+      pension: definedBenefitPension,
+      statePension,
+      initialPensionType,
     });
 
-    // Expand
-    await wrapper.find('.pension-card').trigger('click');
-    expect(wrapper.vm.isExpanded).toBe(true);
+    wrapper.findComponent({ name: componentName }).vm.$emit('close');
+    await wrapper.vm.$nextTick();
 
-    // Collapse
-    await wrapper.find('.pension-card').trigger('click');
-    expect(wrapper.vm.isExpanded).toBe(false);
+    expect(wrapper.emitted('close')).toEqual([[]]);
   });
 
-  it('shows edit button for DC/DB pensions', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
-    });
+  it('falls back to the unified add form for an unknown initial type', () => {
+    const wrapper = mountForm({ initialPensionType: 'occupational' });
 
-    // Expand to see buttons
-    wrapper.vm.isExpanded = true;
-    wrapper.vm.$nextTick();
-
-    const html = wrapper.html();
-    expect(html).toMatch(/edit/i);
-  });
-
-  it('shows delete button for DC/DB pensions', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
-    });
-
-    // Expand to see buttons
-    wrapper.vm.isExpanded = true;
-    wrapper.vm.$nextTick();
-
-    const html = wrapper.html();
-    expect(html).toMatch(/delete/i);
-  });
-
-  it('displays DC badge for DC pensions', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcPension,
-        type: 'dc',
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/DC|defined contribution/i);
-  });
-
-  it('displays DB badge for DB pensions', () => {
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dbPension,
-        type: 'db',
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/DB|defined benefit/i);
-  });
-
-  it('shows projected value at retirement for DC', () => {
-    const dcWithProjection = {
-      ...dcPension,
-      projected_value_at_retirement: 150000,
-    };
-
-    const wrapper = mount(PensionCard, {
-      props: {
-        pension: dcWithProjection,
-        type: 'dc',
-      },
-    });
-
-    // Expand to see details
-    wrapper.vm.isExpanded = true;
-    wrapper.vm.$nextTick();
-
-    const html = wrapper.html();
-    // Just check if the value is present when expanded
-    // The component may or may not show the label "projected"
-    expect(html).toMatch(/150,?000/);
+    expect(wrapper.findComponent({ name: 'DCPensionForm' }).exists()).toBe(true);
   });
 });

@@ -7,22 +7,61 @@
  * reached the first SPA page (registration). This vanilla banner restores the
  * prompt at the landing/funnel.
  *
- * It writes the SAME localStorage key the SPA reads (`cookie_consent` =
- * 'accepted' | 'declined' — see resources/js/utils/cookieConsent.js), so once a
- * visitor chooses here it persists and the SPA / Register.vue (which already
- * gates on hasConsent()) does not ask again. Mirror the SPA banner's copy and
- * two-step decline flow so the experience is identical across surfaces.
+ * The decision is NOT stored here. It is POSTed to /api/cookie-consent, which
+ * records it against the visitor in user_consents and sets the
+ * `fyn_cookie_consent` cookie — the same cookie the SPA banner and the
+ * server-side affiliate middleware read (W-0049). One decision, one record,
+ * one place that writes it, whichever surface asked. Mirror the SPA banner's
+ * copy and two-step decline flow so the experience is identical across
+ * surfaces.
  * ========================================================================== */
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'cookie_consent';
+  var STATUS_COOKIE = 'fyn_cookie_consent';
 
   function getConsent() {
-    try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
+    try {
+      var match = document.cookie.match(new RegExp('(?:^|; )' + STATUS_COOKIE + '=([^;]*)'));
+      var value = match ? decodeURIComponent(match[1]) : null;
+      return (value === 'accepted' || value === 'declined') ? value : null;
+    } catch (e) { return null; }
   }
+
+  // The Awin click reference the visitor is still carrying, if any. An
+  // affiliate landing is a single request and this banner is answered after
+  // it, so the reference has to travel with the decision or it is lost.
+  function clickReference() {
+    try {
+      return new URLSearchParams(window.location.search).get('awc');
+    } catch (e) { return null; }
+  }
+
   function setConsent(value) {
-    try { localStorage.setItem(STORAGE_KEY, value); } catch (e) { /* storage unavailable */ }
+    // Cookie first so the visitor is never held behind the banner by a slow or
+    // failed request; the server's response re-sets the same host-only cookie
+    // and adds the subject token that ties the record to this browser.
+    writeStatusCookie(value);
+
+    var body = { status: value };
+    var awc = clickReference();
+    if (awc) body.awc = awc;
+
+    try {
+      fetch((window.FYNLA_BASE || '') + '/api/cookie-consent', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(body)
+      })['catch'](function () { /* choice already applied locally */ });
+    } catch (e) { /* choice already applied locally */ }
+  }
+
+  function writeStatusCookie(value) {
+    try {
+      var secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = STATUS_COOKIE + '=' + value + '; path=/; max-age=31536000; SameSite=Lax' + secure;
+    } catch (e) { /* cookies unavailable */ }
   }
 
   // Already chosen (this visit or a prior one) — never re-ask.

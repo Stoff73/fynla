@@ -213,7 +213,8 @@ class BusinessInterestController extends Controller
             $validated['joint_owner_id'] = null;
         }
 
-        // Single-record pattern: Update directly
+        // Single-record pattern: Update directly. BusinessInterestObserver
+        // re-reads the Companies House filing dates if the company number moved.
         $business->update($validated);
         $business->load(['household', 'trust', 'jointOwner']);
 

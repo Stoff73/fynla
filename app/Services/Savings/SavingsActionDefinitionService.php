@@ -2986,7 +2986,7 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $user = User::find($userId);
-        if (! $user || ! $user->spouse_id) {
+        if (! $user || ! $user->liveSpouseId()) {
             return [];
         }
 
@@ -3057,7 +3057,7 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $user = User::find($userId);
-        if (! $user || ! $user->spouse_id) {
+        if (! $user || ! $user->liveSpouseId()) {
             return [];
         }
 

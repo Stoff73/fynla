@@ -15,7 +15,9 @@ use Anthropic\Messages\RawMessageStartEvent;
 use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
+use App\Constants\GateRoutes;
 use App\Constants\QuerySchemas;
+use App\Enums\FynTurnIntent;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use App\Models\AiAbortEvent;
 use App\Models\AiAdviceLog;
@@ -39,6 +41,8 @@ use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
+use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\ToolResults;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\Eval\EvalBypassGate;
@@ -61,6 +65,16 @@ use Illuminate\Support\Facades\Log;
  */
 trait HasAiChat
 {
+    /**
+     * The write flag a handler returns => the event the clients listen for.
+     * SPEC-crud-handler-contract §5.3.
+     */
+    private const ENTITY_EVENTS = [
+        'created' => 'entity_created',
+        'updated' => 'entity_updated',
+        'deleted' => 'entity_deleted',
+    ];
+
     /**
      * Default tool-call cap when no engine-level signal is available.
      * Used by code paths outside AdviceFyn (e.g. onboarding asset_capture
@@ -101,9 +115,176 @@ trait HasAiChat
 
     private ?string $unifiedOnboardingFocus = null;
 
+    /**
+     * Mechanical boundary for campaign verify-edit turns. Prompt instructions
+     * tell the model which reviewed record to update; this scope makes that
+     * restriction enforceable before dispatch so a model mistake cannot write
+     * to another section or record.
+     *
+     * @var array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null
+     */
+    private ?array $verifyEditScope = null;
+
     public function setUnifiedOnboardingFocus(?string $focus): void
     {
         $this->unifiedOnboardingFocus = $focus;
+    }
+
+    /**
+     * Deterministic confirmed facts for the CURRENT capture turn (Task 4) —
+     * consumed by executeTool as the CaptureAccuracyGate's $confirmedFacts
+     * when the streamed tool dispatch cannot pass them per-call. Set by
+     * OnboardingChatDirector::handleInlineCapture around its stream and
+     * always cleared in its finally.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $confirmedCaptureFacts = null;
+
+    /** @param array<string, mixed>|null $facts */
+    public function setConfirmedCaptureFacts(?array $facts): void
+    {
+        $this->confirmedCaptureFacts = $facts;
+    }
+
+    /** @param array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}|null $scope */
+    public function setVerifyEditScope(?array $scope): void
+    {
+        $this->verifyEditScope = $scope;
+    }
+
+    /**
+     * The entity type whose outstanding question the user is ANSWERING this turn.
+     *
+     * CSJ 2026-08-17: "an edit, amendment or change must be explicit. If there is any
+     * ambiguity Fyn must ask 'are we editing {plan}' before making any changes." A
+     * reply to a question Fyn itself just asked about a specific record IS explicit —
+     * Fyn asked "workplace or Self-Invested Personal Pension?" and the user answered
+     * "Sip". Without this signal the write handler cannot tell that apart from a
+     * fresh message that merely name-matches an existing record, which is ambiguous
+     * and must ask.
+     *
+     * Set by AdviceFyn around a capture-continuation turn and always cleared in its
+     * finally, on the SAME agent instance (CoordinatingAgent is container-transient).
+     */
+    private ?string $explicitEditEntityType = null;
+
+    /** The record that question was about. The permission is scoped to it. */
+    private ?int $explicitEditRecordId = null;
+
+    public function setExplicitEditEntityType(?string $entityType, ?int $recordId = null): void
+    {
+        $this->explicitEditEntityType = $entityType;
+        $this->explicitEditRecordId = $recordId;
+    }
+
+    /**
+     * True when the user is answering Fyn's own outstanding question about this
+     * entity type, which makes an amendment to it explicit rather than assumed.
+     */
+    protected function isExplicitEditTurnFor(string $entityType, ?int $recordId = null): bool
+    {
+        if ($this->explicitEditEntityType === null) {
+            return false;
+        }
+
+        // Scoped to the record the question was about, never to the type.
+        //
+        // CSJ's rule licenses amending the record Fyn just asked about — "Sip"
+        // answers "workplace or Self-Invested Personal Pension?" for THAT
+        // pension. Read as a type-wide permission it also licenses editing an
+        // unrelated record of the same type: live 2026-08-17, answering a
+        // priority question about a NEW house-deposit goal overwrote an
+        // existing goal's £25,000 target with £20,000, silently. Without a
+        // known record there is no permission, so the write handler asks.
+        if ($this->explicitEditRecordId === null || $recordId !== $this->explicitEditRecordId) {
+            return false;
+        }
+
+        // The classifier speaks in bare entity names ('pension'); handlers in table
+        // names ('dc_pension', 'db_pension'). Match either way round.
+        return $this->explicitEditEntityType === $entityType
+            || str_contains($entityType, $this->explicitEditEntityType);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function verifyEditScopeError(string $toolName, array $input): ?array
+    {
+        if ($this->verifyEditScope === null) {
+            return null;
+        }
+
+        if (! in_array($toolName, $this->verifyEditScope['tools'], true)) {
+            return [
+                'error' => true,
+                'error_type' => 'verify_edit_scope_violation',
+                'message' => 'That update does not belong to the section currently being reviewed.',
+            ];
+        }
+
+        if ($toolName === 'update_record') {
+            $entityType = (string) ($input['entity_type'] ?? '');
+            $entityId = (int) ($input['entity_id'] ?? 0);
+            $allowedIds = $this->verifyEditScope['records'][$entityType] ?? [];
+            if ($entityId <= 0 || ! in_array($entityId, $allowedIds, true)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'That record is not part of the section currently being reviewed.',
+                ];
+            }
+
+            $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
+            $allowedFields = $this->verifyEditScope['record_fields'][$entityType] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every record field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        if ($toolName === 'update_profile') {
+            $profileSection = (string) ($input['section'] ?? '');
+            if (! in_array($profileSection, $this->verifyEditScope['profile_sections'], true)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'That profile field is not part of the section currently being reviewed.',
+                ];
+            }
+
+            $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
+            $allowedFields = $this->verifyEditScope['profile_fields'][$profileSection] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every profile field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        if (in_array($toolName, ['capture_state_pension', 'capture_retirement_goals', 'capture_charitable_giving'], true)) {
+            $fields = array_keys($input);
+            $allowedFields = $this->verifyEditScope['tool_fields'][$toolName] ?? [];
+            if ($fields === []
+                || array_diff($fields, $allowedFields) !== []
+                || array_diff($allowedFields, $fields) !== []) {
+                return [
+                    'error' => true,
+                    'error_type' => 'verify_edit_scope_violation',
+                    'message' => 'The update must include every field the user asked to correct, and no others.',
+                ];
+            }
+        }
+
+        return null;
     }
 
     /** @var list<string>|null */
@@ -130,6 +311,9 @@ trait HasAiChat
      * `ai_messages.persona` enum (['advice', 'data_capture']).
      */
     private ?string $personaOverride = null;
+
+    /** Provider selected once by a coordinating caller for this exact turn. */
+    private ?string $providerOverride = null;
 
     /**
      * Send a message and yield SSE chunks.
@@ -171,9 +355,14 @@ trait HasAiChat
         $classifier = app(QueryClassifier::class);
         $classification = $classifier->classify($message, $currentRoute);
 
+        // A classification with no primary is treated as general rather than
+        // fatal: the KYC gate has nothing to gate on, and a TypeError here
+        // would take down a turn that only needed answering plainly.
+        $primary = $classification['primary'] ?? QuerySchemas::GENERAL;
+
         $kycResult = null;
-        if (! QuerySchemas::isBypassType($classification['primary'])
-            && $classification['primary'] !== QuerySchemas::GENERAL) {
+        if (! QuerySchemas::isBypassType($primary)
+            && $primary !== QuerySchemas::GENERAL) {
             $kycChecker = app(KycGateChecker::class);
             $kycResult = $kycChecker->check($user, $classification);
         }
@@ -207,7 +396,7 @@ trait HasAiChat
                 ."\n\n".$systemPrompt;
         }
         $maxTokens = $this->getAiMaxTokens($user);
-        $isXai = $this->getAiProvider() === 'xai';
+        $isXai = ($this->providerOverride ?? $this->getAiProvider()) === 'xai';
         $toolDefinitions = $isXai
             ? app(XaiToolDefinitions::class)
             : $this->toolDefinitions;
@@ -227,11 +416,32 @@ trait HasAiChat
 
             if ($this->allowedToolsOverride !== null) {
                 $allowed = array_flip($this->allowedToolsOverride);
-                $tools = array_values(array_filter($tools, function ($tool) use ($allowed): bool {
+
+                // The grouped-extract capture_* schemas are deliberately kept
+                // out of getTools() for the token budget, so a narrowed turn
+                // that names one would filter it straight back out — the tool
+                // is allowed but never offered, and the model has no way to
+                // record what the turn just asked for. Widen the pool to the
+                // extraction catalogue before filtering; the allowlist still
+                // decides what survives, so nothing new leaks into a turn
+                // that did not ask for it.
+                $pool = array_merge(
+                    $tools,
+                    $this->toolDefinitions->onboardingExtractionTools($isXai ? 'xai' : 'anthropic'),
+                );
+
+                $seen = [];
+                $tools = array_values(array_filter($pool, function ($tool) use ($allowed, &$seen): bool {
                     $name = $tool['name']
                         ?? ($tool['function']['name'] ?? null);
 
-                    return $name !== null && isset($allowed[$name]);
+                    if ($name === null || ! isset($allowed[$name]) || isset($seen[$name])) {
+                        return false;
+                    }
+
+                    $seen[$name] = true;
+
+                    return true;
                 }));
             }
         }
@@ -254,6 +464,8 @@ trait HasAiChat
         // API call loop — handles tool calls and text responses
         $fullResponse = '';
         $toolCallCount = 0;
+        $executedCalls = [];
+        $capPassForced = false;
         $totalInputTokens = 0;
         $totalOutputTokens = 0;
         $totalCachedTokens = 0;
@@ -262,6 +474,8 @@ trait HasAiChat
         // reports both; xAI surfaces no cache-creation equivalent (stays 0).
         $totalCacheCreationTokens = 0;
         $toolCallsSummary = [];
+        $presentationActions = [];
+        $presentationActionKeys = [];
         // Full, uncompressed tool round-trips for the admin AI-Audit view.
         // tool_calls = what the model emitted; tool_results = what the tool
         // produced (raw) AND the verbatim payload sent back to the model
@@ -269,6 +483,12 @@ trait HasAiChat
         $fullToolCalls = [];
         $fullToolResults = [];
         $messages = $messageHistory;
+
+        $modelIteration = 0;
+        $verifyEditRetryForced = false;
+
+        /** @var array<string, array{tool: string, model_iteration: int}> $pendingCaptureWriteFailures */
+        $pendingCaptureWriteFailures = [];
 
         // S0.11.2 — track the last tool dispatched + how many wrote so an
         // ai_abort_events row can capture them on a mid-stream disconnect.
@@ -280,6 +500,8 @@ trait HasAiChat
         $xaiTools = $isXai ? $tools : [];
 
         while (true) {
+            $modelIteration++;
+
             // S0.11.2 — bail out cleanly if the SSE client has dropped.
             // Per INV-2.9.2 we DO NOT roll back the partial writes that
             // already landed — every direct-write tool runs in its own
@@ -293,6 +515,7 @@ trait HasAiChat
             $contentBlocks = [];
             $toolUseBlocks = [];
             $stopReason = 'end_turn';
+            $iterationText = '';
 
             try {
                 if ($isXai) {
@@ -320,7 +543,6 @@ trait HasAiChat
 
                     $stream = $xaiClient->chat()->createStreamed($params);
 
-                    $currentText = '';
                     // Tool calls indexed by position (OpenAI streams tool_calls with index)
                     $pendingToolCalls = [];
 
@@ -335,7 +557,7 @@ trait HasAiChat
                                 // Strip dangerous HTML tags from AI output
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
-                                $currentText .= $text;
+                                $iterationText .= $text;
                                 $fullResponse .= $text;
                                 yield ['type' => 'content', 'text' => $text];
                             }
@@ -389,8 +611,8 @@ trait HasAiChat
                     }
 
                     // Build content blocks from accumulated text
-                    if ($currentText !== '') {
-                        $contentBlocks[] = ['type' => 'text', 'text' => $currentText];
+                    if ($iterationText !== '') {
+                        $contentBlocks[] = ['type' => 'text', 'text' => $iterationText];
                     }
 
                     // Build tool use blocks from accumulated tool calls
@@ -473,6 +695,7 @@ trait HasAiChat
                                     $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
                                     $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
                                     $currentTextBlock .= $text;
+                                    $iterationText .= $text;
                                     $fullResponse .= $text;
                                     yield ['type' => 'content', 'text' => $text];
                                 }
@@ -553,8 +776,8 @@ trait HasAiChat
                     ], $toolUseBlocks);
 
                     $assistantMsg = ['role' => 'assistant'];
-                    if ($fullResponse !== '') {
-                        $assistantMsg['content'] = $fullResponse;
+                    if ($iterationText !== '') {
+                        $assistantMsg['content'] = $iterationText;
                     }
                     $assistantMsg['tool_calls'] = $assistantToolCalls;
                     $messages[] = $assistantMsg;
@@ -567,6 +790,40 @@ trait HasAiChat
                 }
 
                 $anthropicToolResultBlocks = [];
+                $captureRetryAssignments = [];
+
+                if ($this->personaOverride === 'data_capture') {
+                    $currentCallsByTool = [];
+                    foreach ($toolUseBlocks as $currentToolUseBlock) {
+                        $currentToolCallId = (string) ($currentToolUseBlock['id'] ?? '');
+                        $currentFingerprint = $this->toolCallFingerprint(
+                            (string) ($currentToolUseBlock['name'] ?? ''),
+                            $currentToolUseBlock['input'] ?? [],
+                        );
+                        $previousCall = $executedCalls[$currentFingerprint] ?? null;
+                        $isPreviouslySuccessfulDuplicate = is_array($previousCall)
+                            && ($previousCall['failed'] ?? false) === false;
+                        if ($currentToolCallId !== '' && ! $isPreviouslySuccessfulDuplicate) {
+                            $currentCallsByTool[$currentToolUseBlock['name']][] = $currentToolCallId;
+                        }
+                    }
+
+                    foreach ($currentCallsByTool as $toolName => $currentToolCallIds) {
+                        $retryCandidates = array_filter(
+                            $pendingCaptureWriteFailures,
+                            static fn (array $failure): bool => $failure['tool'] === $toolName
+                                && $failure['model_iteration'] < $modelIteration,
+                        );
+                        if (count($retryCandidates) === count($currentToolCallIds)) {
+                            foreach (array_combine(
+                                $currentToolCallIds,
+                                array_keys($retryCandidates),
+                            ) as $currentToolCallId => $failedToolCallId) {
+                                $captureRetryAssignments[$currentToolCallId] = $failedToolCallId;
+                            }
+                        }
+                    }
+                }
 
                 foreach ($toolUseBlocks as $toolUseBlock) {
                     $toolCallCount++;
@@ -584,124 +841,234 @@ trait HasAiChat
                         return;
                     }
 
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $functionName,
-                        'status' => 'running',
-                    ];
+                    $callFingerprint = $this->toolCallFingerprint($functionName, $functionArgs);
+                    $previousCall = $executedCalls[$callFingerprint] ?? null;
+                    $isRepeatedToolCall = is_array($previousCall)
+                        && ($previousCall['failed'] ?? false) === false;
 
-                    // CoALA typed-action dispatch (Phase 5 item 3 — supersedes
-                    // the standalone GroundGate check from PR 2). Each emitted
-                    // tool call is wrapped in a typed `ground` Action and checked
-                    // against the unified SurfaceAllowlist before it can execute.
-                    // Same mechanical write-safety boundary as PR 2 (parity-tested
-                    // against GroundGate), now expressed as a typed action so the
-                    // FynLoop/planner work (items 4–5) shares one closed action
-                    // vocabulary. The model still emits raw tool calls here; the
-                    // planner that emits typed actions directly lands later.
-                    // In the read-only 'advice' state a WRITE_TOOLS surface is
-                    // denied BEFORE execution (audited status:stripped); reads and
-                    // the onboarding/legacy write states pass through unchanged.
-                    $dispatcher = app(ActionDispatcher::class);
-                    $action = $dispatcher->classify($functionName, $functionArgs);
-
-                    if (! $dispatcher->isSurfaceAllowed($action->surface(), $this->personaOverride)) {
-                        $toolResult = $this->rejectGroundSurface($action->surface(), $user, $conversation->id);
+                    if ($isRepeatedToolCall) {
+                        $toolResult = [
+                            'already_supplied' => true,
+                            'message' => 'The result for this identical tool call was already supplied above. Do not call it again.',
+                        ];
                     } else {
-                        $toolResult = $this->executeTool($action->surface(), $action->args(), $user, $conversation->id);
-                    }
+                        $executedCalls[$callFingerprint] = [
+                            'tool_call_id' => (string) ($toolUseBlock['id'] ?? ''),
+                            'failed' => false,
+                        ];
 
-                    if (isset($toolResult['created']) && $toolResult['created'] === true) {
-                        $partialWriteCount++;
-                    }
-
-                    // Handle navigation results
-                    if (isset($toolResult['action']) && $toolResult['action'] === 'navigate') {
                         yield [
-                            'type' => 'navigation',
-                            'route_path' => $toolResult['route_path'],
-                            'description' => $toolResult['description'] ?? '',
+                            'type' => 'tool_use',
+                            'tool' => $functionName,
+                            'status' => 'running',
+                        ];
+
+                        // CoALA typed-action dispatch (Phase 5 item 3 — supersedes
+                        // the standalone GroundGate check from PR 2). Each emitted
+                        // tool call is wrapped in a typed `ground` Action and checked
+                        // against the unified SurfaceAllowlist before it can execute.
+                        // Same mechanical write-safety boundary as PR 2 (parity-tested
+                        // against GroundGate), now expressed as a typed action so the
+                        // FynLoop/planner work (items 4–5) shares one closed action
+                        // vocabulary. The model still emits raw tool calls here; the
+                        // planner that emits typed actions directly lands later.
+                        // In the read-only 'advice' state a WRITE_TOOLS surface is
+                        // denied BEFORE execution (audited status:stripped); reads and
+                        // the onboarding/legacy write states pass through unchanged.
+                        $dispatcher = app(ActionDispatcher::class);
+                        $action = $dispatcher->classify($functionName, $functionArgs);
+
+                        if (! $dispatcher->isSurfaceAllowed($action->surface(), $this->personaOverride)) {
+                            $toolResult = $this->rejectGroundSurface($action->surface(), $user, $conversation->id);
+                        } else {
+                            $toolResult = $this->executeTool(
+                                $action->surface(),
+                                $action->args(),
+                                $user,
+                                $conversation->id,
+                                $classification,
+                                $kycResult,
+                            );
+                        }
+
+                        if (isset($toolResult['created']) && $toolResult['created'] === true) {
+                            $partialWriteCount++;
+                        }
+
+                        // Handle navigation results
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'navigate') {
+                            yield [
+                                'type' => 'navigation',
+                                'route_path' => $toolResult['route_path'],
+                                'description' => $toolResult['description'] ?? '',
+                            ];
+                        }
+
+                        // S0.5.t — auto-navigation on blocked results removed.
+                        // BS-14 caught the regression: "Add a Cash ISA" caused
+                        // Advice Fyn to call get_module_analysis(savings), which
+                        // the prerequisite gate blocked on missing expenditure
+                        // and suggested /profile. The frontend obeyed the
+                        // redirect, force-navigating the user to /profile
+                        // despite the inline-capture having already persisted
+                        // the ISA. The blocked reason still reaches the LLM via
+                        // the tool_result so it can surface the gap as text and
+                        // recommend (in words) where to add the missing data;
+                        // we no longer hijack the user's route.
+
+                        // Handle form fill results
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
+                            yield [
+                                'type' => 'fill_form',
+                                'entity_type' => $toolResult['entity_type'],
+                                'route' => $toolResult['route'],
+                                'fields' => $toolResult['fields'],
+                                'mode' => $toolResult['mode'] ?? 'create',
+                                'entity_id' => $toolResult['entity_id'] ?? null,
+                            ];
+                        }
+
+                        // Onboarding inline-capture handoff — consumed by
+                        // OnboardingChatDirector::handleInlineCapture via the
+                        // synthetic `handoff` SSE event. Never forwarded to the
+                        // frontend; invisible to the user per INV-2.4.1.
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'handoff') {
+                            yield [
+                                'type' => 'handoff',
+                                'handoff_type' => $toolResult['handoff_type'] ?? 'unknown',
+                                'payload' => $toolResult['payload'] ?? [],
+                            ];
+                        }
+
+                        if (isset($toolResult['action']) && $toolResult['action'] === 'subscription_options') {
+                            $presentationAction = [
+                                'action' => 'subscription_options',
+                                'reason' => $toolResult['reason'] ?? 'tier_limit_reached',
+                                'entity_key' => $toolResult['entity_key'] ?? null,
+                                'current_count' => $toolResult['current_count'] ?? null,
+                                'limit' => $toolResult['limit'] ?? $toolResult['hard_limit'] ?? null,
+                                'tier' => $toolResult['tier'] ?? null,
+                                'destination' => $toolResult['destination'] ?? [
+                                    'screen' => 'subscription',
+                                    'params' => [],
+                                    'fallback' => 'dashboard',
+                                ],
+                            ];
+                            $presentationActionKey = implode(':', [
+                                $presentationAction['action'],
+                                $presentationAction['reason'],
+                                $presentationAction['entity_key'],
+                            ]);
+                            if (! isset($presentationActionKeys[$presentationActionKey])) {
+                                $presentationActions[] = $presentationAction;
+                                $presentationActionKeys[$presentationActionKey] = true;
+                            }
+                        }
+
+                        // Entity write results. `entity_created` used to be the
+                        // only one of these in the whole application, so an edit
+                        // or a delete had no event to carry a confirmation —
+                        // SPEC-crud-handler-contract §4.2. One loop, so a fourth
+                        // never grows its own copy of this block.
+                        $emittedEntityEvent = false;
+
+                        foreach (self::ENTITY_EVENTS as $flag => $eventType) {
+                            // Some results flag a write with nothing to name —
+                            // update_profile edits the user, not a record. No
+                            // identity, no event. Those are picked up below by
+                            // field group instead, so the write still confirms.
+                            if (($toolResult[$flag] ?? false) !== true
+                                || ! isset($toolResult['entity_type'], $toolResult['entity_id'])) {
+                                continue;
+                            }
+
+                            $emittedEntityEvent = true;
+
+                            // The page showing the record, resolved once on the
+                            // server so all three clients link to the same place
+                            // (§5.4). Null for an entity with no page.
+                            $page = GateRoutes::forEntityType((string) ($toolResult['entity_type'] ?? ''));
+
+                            yield [
+                                'type' => $eventType,
+                                'entity_type' => $toolResult['entity_type'],
+                                'entity_id' => $toolResult['entity_id'],
+                                'name' => $toolResult['name'] ?? '',
+                                'route' => $page['web'] ?? null,
+                                'mobile_route' => $page['mobile'] ?? null,
+                                'label' => $page['label'] ?? null,
+                            ];
+                        }
+
+                        // A write with no record id — a capture_* handler or
+                        // set_expenditure, both of which write columns on `users`
+                        // and its satellites. The loop above skips them, so the
+                        // user got a confirmation with no way to see what had been
+                        // recorded, even though every one of these pages already
+                        // existed. Resolve the page from the field group and emit
+                        // the same write event the clients already render, so no
+                        // surface needs its own idea of where the data lives.
+                        $fieldGroup = $toolResult['field_group'] ?? null;
+                        $isFieldWrite = ($toolResult['onboarding_capture'] ?? false) === true
+                            || ($toolResult['updated'] ?? false) === true;
+
+                        if (! $emittedEntityEvent && $isFieldWrite && $fieldGroup !== null) {
+                            $page = GateRoutes::forFieldGroup((string) $fieldGroup);
+
+                            if ($page !== null) {
+                                yield [
+                                    'type' => 'entity_updated',
+                                    // The field group is an internal name and the
+                                    // clients print it. `campaign_` is a flow the
+                                    // user never saw, so it must not appear in the
+                                    // record card (Rule 9 — no internal jargon in
+                                    // user-facing text).
+                                    'entity_type' => (string) preg_replace('/^campaign_/', '', (string) $fieldGroup),
+                                    'entity_id' => null,
+                                    // The clients render this as "Updated {name}",
+                                    // so it must be a noun phrase — the page label,
+                                    // not the handler's whole sentence.
+                                    'name' => (string) ($page['label'] ?? ''),
+                                    'route' => $page['web'] ?? null,
+                                    'mobile_route' => $page['mobile'] ?? null,
+                                    'label' => $page['label'] ?? null,
+                                ];
+                            }
+                        }
+
+                        // Handle grouped onboarding field captures (used by the
+                        // Fyn onboarding director's grouped_extract turns). The
+                        // handler writes fields to the DB and returns a structured
+                        // receipt; we yield an SSE event so the director can see
+                        // the capture arrived and advance state.
+                        if (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true) {
+                            yield [
+                                'type' => 'onboarding_field_captured',
+                                'field_group' => $toolResult['field_group'] ?? 'unknown',
+                                'summary' => $toolResult['summary'] ?? '',
+                                'details' => $toolResult['details'] ?? [],
+                            ];
+                        }
+
+                        // FR-M13 — structured onboarding capture error (e.g. spouse
+                        // email already bound to another household). The director
+                        // consumes this to render a targeted terminal message and
+                        // stops advancing state.
+                        if (isset($toolResult['onboarding_capture_error']) && $toolResult['onboarding_capture_error'] === true) {
+                            yield [
+                                'type' => 'onboarding_capture_error',
+                                'field_group' => $toolResult['field_group'] ?? 'unknown',
+                                'error_type' => $toolResult['error_type'] ?? 'unknown',
+                                'message' => $toolResult['message'] ?? '',
+                            ];
+                        }
+
+                        $toolCallsSummary[] = [
+                            'tool' => $functionName,
+                            'input' => $this->summariseToolInput($functionArgs),
+                            'result_summary' => $this->summariseToolResult($toolResult),
                         ];
                     }
-
-                    // S0.5.t — auto-navigation on blocked results removed.
-                    // BS-14 caught the regression: "Add a Cash ISA" caused
-                    // Advice Fyn to call get_module_analysis(savings), which
-                    // the prerequisite gate blocked on missing expenditure
-                    // and suggested /profile. The frontend obeyed the
-                    // redirect, force-navigating the user to /profile
-                    // despite the inline-capture having already persisted
-                    // the ISA. The blocked reason still reaches the LLM via
-                    // the tool_result so it can surface the gap as text and
-                    // recommend (in words) where to add the missing data;
-                    // we no longer hijack the user's route.
-
-                    // Handle form fill results
-                    if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
-                        yield [
-                            'type' => 'fill_form',
-                            'entity_type' => $toolResult['entity_type'],
-                            'route' => $toolResult['route'],
-                            'fields' => $toolResult['fields'],
-                            'mode' => $toolResult['mode'] ?? 'create',
-                            'entity_id' => $toolResult['entity_id'] ?? null,
-                        ];
-                    }
-
-                    // Onboarding inline-capture handoff — consumed by
-                    // OnboardingChatDirector::handleInlineCapture via the
-                    // synthetic `handoff` SSE event. Never forwarded to the
-                    // frontend; invisible to the user per INV-2.4.1.
-                    if (isset($toolResult['action']) && $toolResult['action'] === 'handoff') {
-                        yield [
-                            'type' => 'handoff',
-                            'handoff_type' => $toolResult['handoff_type'] ?? 'unknown',
-                            'payload' => $toolResult['payload'] ?? [],
-                        ];
-                    }
-
-                    // Handle entity creation results
-                    if (isset($toolResult['created']) && $toolResult['created'] === true) {
-                        yield [
-                            'type' => 'entity_created',
-                            'entity_type' => $toolResult['entity_type'],
-                            'entity_id' => $toolResult['entity_id'],
-                            'name' => $toolResult['name'] ?? '',
-                        ];
-                    }
-
-                    // Handle grouped onboarding field captures (used by the
-                    // Fyn onboarding director's grouped_extract turns). The
-                    // handler writes fields to the DB and returns a structured
-                    // receipt; we yield an SSE event so the director can see
-                    // the capture arrived and advance state.
-                    if (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true) {
-                        yield [
-                            'type' => 'onboarding_field_captured',
-                            'field_group' => $toolResult['field_group'] ?? 'unknown',
-                            'summary' => $toolResult['summary'] ?? '',
-                            'details' => $toolResult['details'] ?? [],
-                        ];
-                    }
-
-                    // FR-M13 — structured onboarding capture error (e.g. spouse
-                    // email already bound to another household). The director
-                    // consumes this to render a targeted terminal message and
-                    // stops advancing state.
-                    if (isset($toolResult['onboarding_capture_error']) && $toolResult['onboarding_capture_error'] === true) {
-                        yield [
-                            'type' => 'onboarding_capture_error',
-                            'field_group' => $toolResult['field_group'] ?? 'unknown',
-                            'error_type' => $toolResult['error_type'] ?? 'unknown',
-                            'message' => $toolResult['message'] ?? '',
-                        ];
-                    }
-
-                    $toolCallsSummary[] = [
-                        'tool' => $functionName,
-                        'input' => $this->summariseToolInput($functionArgs),
-                        'result_summary' => $this->summariseToolResult($toolResult),
-                    ];
 
                     $toolSeq = count($fullToolCalls);
                     $fullToolCalls[] = [
@@ -711,6 +1078,9 @@ trait HasAiChat
                     ];
 
                     $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
+                    if (! $isRepeatedToolCall) {
+                        $executedCalls[$callFingerprint]['failed'] = $isToolError;
+                    }
 
                     // April30Updates F-3 — compress the tool result before
                     // re-injecting into the LLM context. Some tools (notably
@@ -736,9 +1106,70 @@ trait HasAiChat
                     // model's first response, so the directive only forbids
                     // RE-calling on the next continuation, never the initial
                     // batch.
-                    $captureDirective = $this->captureTurnCompleteDirective($functionName, $toolResult);
+                    $captureDirective = $isRepeatedToolCall
+                        ? null
+                        : $this->captureTurnCompleteDirective($functionName, $toolResult);
                     if ($captureDirective !== null) {
                         $toolResultForModel['capture_turn_complete'] = $captureDirective;
+                    }
+
+                    // WP-1 — mirror of the complete-directive for FAILED writes.
+                    // Without it the model sees the raw error JSON and frequently
+                    // narrates a confident "Recorded…" anyway (the 2026-07-03
+                    // "Beta Ltd Workplace Pension" was lost exactly this way).
+                    if (! $isRepeatedToolCall && $isToolError && $this->personaOverride === 'data_capture') {
+                        $toolResultForModel['capture_write_failed'] = 'CAPTURE_WRITE_FAILED: '
+                            .'this write did NOT save anything. Either retry the tool ONCE with '
+                            .'corrected fields (fix exactly what the error names), or tell the '
+                            .'user plainly what could not be saved and what detail is needed. '
+                            .'NEVER claim the record was saved.';
+                    }
+
+                    // WP-1 — let the onboarding director distinguish landed
+                    // writes from failed attempts (it previously counted raw
+                    // tool_use events, so a failed create still advanced the
+                    // flow as a "capture"). Emitted only on delegated
+                    // data_capture turns; the director consumes it and never
+                    // re-yields, so no frontend sees it.
+                    if (! $isRepeatedToolCall && $this->personaOverride === 'data_capture') {
+                        $writeLanded = ! $isToolError && (
+                            (isset($toolResult['created']) && $toolResult['created'] === true)
+                            || (isset($toolResult['updated']) && $toolResult['updated'] === true)
+                            || (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true)
+                            || (isset($toolResult['success']) && $toolResult['success'] === true)
+                            || ToolResults::isDuplicateSkip($toolResult)
+                        );
+                        $toolCallId = (string) ($toolUseBlock['id'] ?? '');
+                        $retryOfToolCallId = $captureRetryAssignments[$toolCallId] ?? null;
+                        if ($retryOfToolCallId !== null) {
+                            unset($pendingCaptureWriteFailures[$retryOfToolCallId]);
+                        }
+
+                        if ($isToolError && $toolCallId !== '') {
+                            $pendingCaptureWriteFailures[$toolCallId] = [
+                                'tool' => $functionName,
+                                'model_iteration' => $modelIteration,
+                            ];
+                        }
+
+                        yield [
+                            'type' => 'capture_write_result',
+                            'tool' => $functionName,
+                            'tool_call_id' => $toolCallId,
+                            'model_iteration' => $modelIteration,
+                            'retry_of_tool_call_id' => $retryOfToolCallId,
+                            'landed' => $writeLanded,
+                            'message' => $isToolError ? (string) ($toolResult['message'] ?? 'The write failed.') : null,
+                            'result' => $toolResult,
+                            // The raw tool-call arguments the model emitted. Internal-only
+                            // (this event never reaches the frontend — INV-2.4.1) — carried
+                            // so a gate-blocked clarification_required call can be rescued by
+                            // OnboardingChatDirector's deterministic gap-fill, which merges
+                            // these fields with the extractor's own parse (ownership_type,
+                            // chiefly) rather than losing the model's otherwise-correct
+                            // institution/balance/account_type parsing (live conversation 164).
+                            'input' => $functionArgs,
+                        ];
                     }
 
                     $toolResultJson = json_encode($toolResultForModel);
@@ -770,11 +1201,13 @@ trait HasAiChat
                         $anthropicToolResultBlocks[] = $block;
                     }
 
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $functionName,
-                        'status' => 'complete',
-                    ];
+                    if (! $isRepeatedToolCall) {
+                        yield [
+                            'type' => 'tool_use',
+                            'tool' => $functionName,
+                            'status' => 'complete',
+                        ];
+                    }
                 }
 
                 // Anthropic: add all tool results as a single user message
@@ -792,9 +1225,40 @@ trait HasAiChat
 
             // If we hit the tool call limit but still have tool_use stop reason,
             // make one final pass with tools disabled to force a text response
-            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= $toolCallCap && $fullResponse === '') {
+            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= $toolCallCap && ! $capPassForced) {
+                $capPassForced = true;
                 $xaiTools = [];
                 $tools = [];
+                $fullResponse = '';
+                $iterationText = '';
+
+                continue;
+            }
+
+            // A verify-edit write can fail because the provider omitted one of
+            // the fields the user explicitly corrected, then stop in prose
+            // instead of retrying the tool. Keep that recovery inside the same
+            // turn: the original correction is still in context and the
+            // mechanical scope supplies the exact required field names. Force
+            // one retry only; if it still fails, the director's honesty gate
+            // leaves the user on the edit state without claiming success.
+            if (! $hasToolCalls
+                && $pendingCaptureWriteFailures !== []
+                && $this->verifyEditScope !== null
+                && ! $verifyEditRetryForced) {
+                $verifyEditRetryForced = true;
+                if ($iterationText !== '') {
+                    $messages[] = ['role' => 'assistant', 'content' => $iterationText];
+                }
+                $messages[] = [
+                    'role' => 'user',
+                    'content' => 'VERIFY_EDIT_RETRY_REQUIRED: retry the failed update tool now. '
+                        .'Do not answer in prose and do not ask the user to repeat anything. '
+                        .'Read the corrected values from the original current-turn message and include every '
+                        .'required field: '.implode(', ', $this->verifyEditRequiredFieldNames()).'.',
+                ];
+                $fullResponse = '';
+                $iterationText = '';
 
                 continue;
             }
@@ -804,8 +1268,12 @@ trait HasAiChat
 
         // Validate and sanitise AI response
         $validator = app(StructuredResponseValidator::class);
-        $fullResponse = $validator->sanitise($fullResponse);
-        $violations = $validator->validateAndLog($fullResponse, $classification, $user->id, null, $this->personaOverride ?? 'advice');
+        $sanitisation = $validator->sanitiseWithViolations($fullResponse);
+        $fullResponse = $sanitisation['response'];
+        $violations = array_merge(
+            $sanitisation['violations'],
+            $validator->validateAndLog($fullResponse, $classification, $user->id, null, $this->personaOverride ?? 'advice'),
+        );
 
         // Build metadata with tool call summary and any violations
         $messageMetadata = [];
@@ -814,6 +1282,9 @@ trait HasAiChat
         }
         if (! empty($violations)) {
             $messageMetadata['validation_violations'] = $violations;
+        }
+        if ($presentationActions !== []) {
+            $messageMetadata['actions'] = $presentationActions;
         }
 
         // Save assistant message with system prompt for audit trail
@@ -855,6 +1326,46 @@ trait HasAiChat
         // prompt view for every post-F-8 row. The forensic requirement —
         // admin-only data, never user-exposed — overrides the bloat
         // concern. Restored to verbatim.)
+        // Structured turn intent — the shared pipeline emits either a
+        // data-capture acknowledgement or an advice answer, keyed off the
+        // persona it already tracks. The director's after-the-fact helpers
+        // (failure voice, interruption-answer tag) overwrite this when the
+        // row turns out to be something more specific.
+        $messageMetadata['turn_intent'] = ($this->personaOverride === 'data_capture'
+            ? FynTurnIntent::CaptureAck
+            : FynTurnIntent::AdviceAnswer)->value;
+
+        // Did a write actually land on this capture turn?
+        //
+        // AdviceFyn::captureContinuationIntent has to know whether the user
+        // still owes us something, and it used to infer that from the presence
+        // of tool_calls plus a question mark in the text. A capture that CALLED
+        // a write tool and had it rejected (the accuracy gate returning
+        // clarification_required) looks identical to one that succeeded, and the
+        // deterministic failure copy we compose has no question mark in it — so
+        // the user's answer fell through to read-only advice, which then
+        // narrated "Recorded." over a write that never happened (live
+        // conversation 157, 2026-08-17). Recording the fact removes the guess.
+        if ($this->personaOverride === 'data_capture') {
+            // The record this capture turn wrote or asked about — the next
+            // turn's explicit-edit permission is scoped to it.
+            $messageMetadata['capture_record_id'] = collect($fullToolResults)
+                ->map(fn (array $result): mixed => is_array($result['raw'] ?? null)
+                    ? ($result['raw']['entity_id'] ?? null)
+                    : null)
+                ->filter(fn (mixed $id): bool => is_int($id) || (is_string($id) && ctype_digit($id)))
+                ->map(fn (mixed $id): int => (int) $id)
+                ->last();
+
+            $messageMetadata['capture_write_landed'] = collect($fullToolResults)
+                ->contains(function (array $result): bool {
+                    $raw = $result['raw'] ?? null;
+
+                    return is_array($raw) && collect(array_keys(self::ENTITY_EVENTS))
+                        ->contains(fn (string $flag): bool => ($raw[$flag] ?? false) === true);
+                });
+        }
+
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
@@ -863,7 +1374,7 @@ trait HasAiChat
             'assembled_context' => $this->assembledContext,
             'tool_calls' => $fullToolCalls ?: null,
             'tool_results' => $fullToolResults ?: null,
-        ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
+        ], ['metadata' => $messageMetadata]);
 
         if ($this->personaOverride !== null) {
             $assistantExtra['persona'] = $this->personaOverride;
@@ -875,6 +1386,15 @@ trait HasAiChat
         // persisted assistant message (it breaks the chat bubble + the
         // BS-20 visible-text contract).
         $sanitisedResponse = XaiFunctionCallLeakStripper::stripLeakedToolCallMarkup($fullResponse);
+
+        // A2 — delegated data-capture turns dedupe the model's stacked
+        // re-narrated acks on the live stream (OnboardingChatDirector's
+        // buffer); persist the SAME deduped text so the reloaded transcript
+        // matches what streamed — before this, the row kept the doubled
+        // "Recorded — …Recorded — …" verbatim.
+        if ($this->personaOverride === 'data_capture') {
+            $sanitisedResponse = AckSentenceDeduper::dedupe($sanitisedResponse);
+        }
 
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $sanitisedResponse, $assistantExtra);
 
@@ -919,6 +1439,10 @@ trait HasAiChat
             } catch (\Exception $e) {
                 Log::warning('[HasAiChat] Failed to log advice', ['error' => $e->getMessage()]);
             }
+        }
+
+        foreach ($presentationActions as $presentationAction) {
+            yield array_merge(['type' => 'action'], $presentationAction);
         }
 
         yield [
@@ -1033,7 +1557,11 @@ trait HasAiChat
             // {Module}Agent::analyze() calls; for factual queries (INCOME /
             // GENERAL / NAVIGATION / BILLING / OUT_OF_REMIT) it skips module
             // analysis entirely. See CoordinatingAgent::analyzeRelevantModules.
-            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules(
+                $userId,
+                $classification,
+                $kycResult,
+            ),
             conversation: $conversation,
         );
     }
@@ -1072,7 +1600,11 @@ trait HasAiChat
         // financial context instead of the "unavailable" sentinel.
         $block = app(FynContextAssembler::class)->build(
             $ctx,
-            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules(
+                $userId,
+                $classification,
+                $kycResult,
+            ),
         );
 
         // Capture the exact user-turn content sent to the provider this turn
@@ -1277,8 +1809,28 @@ trait HasAiChat
             ];
         }
 
-        // General compression — recursively trim oversized nested data.
-        return $this->trimForModel($result, depth: 0);
+        // General compression — recursively trim oversized nested data. The
+        // composed plan returned by get_recommendations has one meaningful
+        // extra envelope (composed_tax_plan.items[]). Allow that single extra
+        // level so the model receives the strategy's balances, interest,
+        // allowance and saving instead of an opaque "[nested N items]" marker.
+        $maxDepth = $toolName === 'get_recommendations' ? 4 : 3;
+
+        return $this->trimForModel($result, depth: 0, maxDepth: $maxDepth);
+    }
+
+    /** @return list<string> */
+    private function verifyEditRequiredFieldNames(): array
+    {
+        if ($this->verifyEditScope === null) {
+            return [];
+        }
+
+        return collect([
+            ...array_values($this->verifyEditScope['record_fields']),
+            ...array_values($this->verifyEditScope['profile_fields']),
+            ...array_values($this->verifyEditScope['tool_fields']),
+        ])->flatten()->unique()->values()->all();
     }
 
     /**
@@ -1341,9 +1893,9 @@ trait HasAiChat
      * over 10 items are summarised; strings over 200 chars are
      * truncated; depth over 3 collapses to a placeholder.
      */
-    private function trimForModel(mixed $value, int $depth): mixed
+    private function trimForModel(mixed $value, int $depth, int $maxDepth = 3): mixed
     {
-        if ($depth >= 3) {
+        if ($depth >= $maxDepth) {
             if (is_array($value)) {
                 return '[nested '.count($value).' items]';
             }
@@ -1364,13 +1916,13 @@ trait HasAiChat
             $tail = array_slice($value, -2);
 
             return [
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $head),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $head),
                 '__truncated__' => count($value) - 7 .' items omitted',
-                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $tail),
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $tail),
             ];
         }
 
-        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $value);
+        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1, $maxDepth), $value);
     }
 
     /**
@@ -1404,6 +1956,60 @@ trait HasAiChat
         }
 
         return $summary;
+    }
+
+    /**
+     * Build a provider-independent identity for a tool call.
+     */
+    private function toolCallFingerprint(string $toolName, array $input): string
+    {
+        $normalisedInput = $this->normaliseToolCallInput($input);
+        $encodedInput = json_encode(
+            $normalisedInput,
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+
+        return $toolName.':'.hash('sha256', $encodedInput);
+    }
+
+    /**
+     * Match the executor's top-level provider normalization, then recursively
+     * sort object-like arguments while preserving list order.
+     */
+    private function normaliseToolCallInput(array $input): array
+    {
+        $input = array_map(static function (mixed $value): mixed {
+            if ($value === 'null') {
+                return null;
+            }
+
+            if (is_string($value)) {
+                return html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+
+            return $value;
+        }, $input);
+
+        return $this->sortToolCallInput($input);
+    }
+
+    private function sortToolCallInput(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        if (array_is_list($value)) {
+            return array_map(fn (mixed $item): mixed => $this->sortToolCallInput($item), $value);
+        }
+
+        ksort($value, SORT_STRING);
+
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->sortToolCallInput($item);
+        }
+
+        return $value;
     }
 
     /**
@@ -1483,22 +2089,26 @@ trait HasAiChat
         bool $skipUserMessagePersistence = false,
         ?array $toolsListOverride = null,
         ?string $personaOverride = null,
+        ?string $providerOverride = null,
     ): void {
         $this->systemPromptOverride = $systemPrompt;
         $this->allowedToolsOverride = $allowedTools;
         $this->skipUserMessagePersistence = $skipUserMessagePersistence;
         $this->toolsListOverride = $toolsListOverride;
         $this->personaOverride = $personaOverride;
+        $this->providerOverride = $providerOverride;
     }
 
     public function clearChatOverrides(): void
     {
         $this->systemPromptOverride = null;
         $this->unifiedOnboardingFocus = null;
+        $this->verifyEditScope = null;
         $this->allowedToolsOverride = null;
         $this->skipUserMessagePersistence = false;
         $this->toolsListOverride = null;
         $this->personaOverride = null;
+        $this->providerOverride = null;
     }
 
     /**

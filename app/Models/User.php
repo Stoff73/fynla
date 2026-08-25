@@ -14,6 +14,7 @@ use App\Models\Estate\Trust;
 use App\Models\Investment\InvestmentAccount;
 use App\Traits\Auditable;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -41,6 +42,7 @@ class User extends Authenticatable
         'mfa_secret',
         'mfa_recovery_codes',
         'password',
+        'apple_app_account_token',
         'last_active_at',
         'last_seen_at',
     ];
@@ -50,11 +52,36 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
+    /**
+     * Monthly charitable giving, with the annual figure derived from it.
+     *
+     * `annual_charitable_donations` is read by IHT planning, ResolvesIncome and
+     * PersonalAccountsService, so it stays — but it is now derived here rather
+     * than written by each caller. Before this, the monthly figure had no column
+     * at all: the Expenditure form's "Charitable Donations" line was discarded on
+     * save, and the annual field was set by a side-channel call that nothing read
+     * back, so the form showed 0 and the next save committed that 0.
+     */
+    protected function charitableDonations(): Attribute
+    {
+        return Attribute::make(
+            set: static fn ($value): array => [
+                'charitable_donations' => $value,
+                'annual_charitable_donations' => $value === null ? null : round((float) $value * 12, 2),
+            ],
+        );
+    }
+
     protected $guarded = [
         'id',
         'is_admin',
         'is_preview_user',
+        'is_advisor',        // Privilege flag — set only via markAsAdvisor()
+        'email_verified_at', // Verification state — never from request input
+        'mfa_enabled',       // Auth state — set individually by MFAService
+        'mfa_secret',         // Auth secret — set individually by MFAService
         'remember_token',
+        'apple_app_account_token',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -74,6 +101,7 @@ class User extends Authenticatable
         'locked_until',
         'last_failed_login_at',
         'national_insurance_number',
+        'apple_app_account_token',
     ];
 
     /**
@@ -142,6 +170,7 @@ class User extends Authenticatable
         'university_fees' => 'decimal:2',
         'children_activities' => 'decimal:2',
         'gifts_charity' => 'decimal:2',
+        'charitable_donations' => 'decimal:2',
         'regular_savings' => 'decimal:2',
         'other_expenditure' => 'decimal:2',
         'rent' => 'decimal:2',
@@ -168,8 +197,6 @@ class User extends Authenticatable
         'info_guide_enabled' => 'boolean',
         // Dashboard preferences
         'dashboard_widget_order' => 'array',
-        // Subscription fields
-        'trial_ends_at' => 'datetime',
         // Lifecycle email e2e testing
         'is_lifecycle_test_user' => 'boolean',
         // SaveTax campaign — household tax-strategy
@@ -200,7 +227,7 @@ class User extends Authenticatable
      */
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
     public function deletionReminderLog()
@@ -216,6 +243,21 @@ class User extends Authenticatable
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function premiumEntitlements(): HasMany
+    {
+        return $this->hasMany(PremiumEntitlement::class);
+    }
+
+    public function appleTransactions(): HasMany
+    {
+        return $this->hasMany(AppleTransaction::class);
+    }
+
+    public function appleNotificationRecoveries(): HasMany
+    {
+        return $this->hasMany(AppleNotificationRecovery::class);
     }
 
     /**
@@ -387,6 +429,72 @@ class User extends Authenticatable
     public function spouse(): BelongsTo
     {
         return $this->belongsTo(User::class, 'spouse_id');
+    }
+
+    /**
+     * The spouse's id, but only while their account is live.
+     *
+     * `spouse_id` deliberately survives the spouse deleting their account —
+     * everything is retained for regulatory purposes — but from that moment the
+     * surviving partner must stop seeing their data. Reading the raw column
+     * answers "were these two ever linked"; this answers "may I show their
+     * information", which is the question every consumer of shared spouse data
+     * actually has. The soft-delete filter on the relation does the work.
+     */
+    public function liveSpouseId(): ?int
+    {
+        return $this->liveSpouse()?->id;
+    }
+
+    /**
+     * The spouse's account while it is live, or null once it is deleted.
+     *
+     * Resolved WITHOUT lazy loading — `Model::preventLazyLoading()` is on, so
+     * reaching for `$this->spouse` on a model loaded as part of a collection
+     * throws. Uses the eager-loaded relation when there is one, queries
+     * explicitly when there is not, and caches the result so repeated calls in
+     * a request cost one query rather than one each.
+     */
+    public function liveSpouse(): ?self
+    {
+        if ($this->spouse_id === null) {
+            return null;
+        }
+
+        if ($this->relationLoaded('spouse')) {
+            return $this->getRelation('spouse');
+        }
+
+        if (! $this->liveSpouseResolved) {
+            $this->liveSpouseCache = $this->spouse()->first();
+            $this->liveSpouseResolved = true;
+        }
+
+        return $this->liveSpouseCache;
+    }
+
+    /**
+     * Cached deliberately OUTSIDE the relation registry. Calling setRelation()
+     * here would flip relationLoaded('spouse') to true, and UserResource builds
+     * `has_spouse` before its `spouse` block — so merely asking whether the
+     * spouse is live would have started including their id, name and email in
+     * every payload that previously omitted them.
+     */
+    private ?self $liveSpouseCache = null;
+
+    private bool $liveSpouseResolved = false;
+
+    /**
+     * THE single authorization rule for attaching a joint_owner_id (Rule 20):
+     * an attached id grants the linked account visibility of the record, so
+     * only the user's reciprocally linked spouse qualifies. A joint record
+     * with NO id (co-owner not on the platform) is first-class app-wide and
+     * needs no authorization — callers must not require an id.
+     */
+    public function hasReciprocalSpouseLink(int $candidateId): bool
+    {
+        return (int) $this->spouse_id === $candidateId
+            && static::query()->whereKey($candidateId)->where('spouse_id', $this->id)->exists();
     }
 
     /**
@@ -664,39 +772,93 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has accepted permission to share data with spouse
+     * Whether this user may see their spouse's data.
      *
-     * IMPORTANT: If spouse accounts are linked (spouse_id is set) and both users
-     * are married, data sharing is automatically enabled. No separate permission
-     * record required. This fixes the persistent issue where spouse data doesn't
-     * display in the Estate module even though accounts are linked during onboarding.
+     * There used to be a shortcut here: linked, and both `married`, meant
+     * sharing was on with no permission record at all. It was added to fix
+     * "spouse data doesn't display even though accounts are linked during
+     * onboarding" — a real symptom with a different cause. Linking forged the
+     * consent (`SpouseLinkingService`) and the screen that would have collected
+     * it was never mounted, so no permission record could ever exist; the
+     * shortcut made the product work by making consent optional.
+     *
+     * Two things it broke. `marital_status` was writable by the OTHER party
+     * under the old linking flow, so an attacker set both halves of its own
+     * precondition (W-0347). And it made `DELETE /api/spouse-permission/revoke`
+     * a no-op: the row went, the shortcut kept returning true, and a user who
+     * withdrew sharing was still sharing. Revoke is now the invitee's remedy,
+     * so it has to actually work.
+     *
+     * An accepted `spouse_permissions` row is the only thing that grants this.
+     *
+     * **W-0347 G2 — this paragraph asserted the opposite of what ships.** It said
+     * existing links were backfilled with an accepted row "so no household lost
+     * access on deploy", and named a migration that has since been DELETED. CSJ's
+     * decision was to re-ask rather than to grandfather, so
+     * `2026_08_24_130000_reask_spouse_permissions_nobody_granted` turns every row
+     * nobody granted into an unanswered request: **every affected household DOES lose
+     * access at release, until somebody accepts.** That is the intended behaviour, and
+     * a docblock claiming a safeguard the code does not perform is precisely the
+     * defect compliance flagged as F1 — here in the model that is the gate for the
+     * whole application.
      */
     public function hasAcceptedSpousePermission(): bool
     {
-        // No spouse linked
-        if (! $this->spouse_id) {
+        // No LIVE spouse — no sharing. The raw spouse_id survives the partner
+        // deleting their account, deliberately: everything is retained for
+        // regulatory purposes. Their `accepted` permission row is retained with
+        // it, and the legacy fallback below used to find that row and keep
+        // sharing switched on for an account that no longer exists. Measured on
+        // csjones: three survivors, all returning true (CSJ decision D1/D2,
+        // 2026-08-19 — retain the rows, ignore them at read time).
+        $spouse = $this->liveSpouse();
+        if ($spouse === null) {
             return false;
         }
 
-        // If both users are married and linked, enable data sharing automatically
-        // Use existing relationship to avoid N+1 queries when eager-loaded
-        if ($this->marital_status === 'married') {
-            $spouse = $this->relationLoaded('spouse') ? $this->spouse : $this->spouse()->first();
-            if ($spouse && $spouse->marital_status === 'married' && $spouse->spouse_id === $this->id) {
-                return true;
-            }
+        // Reciprocity first. A half-written link is what every gate in the
+        // application mistakes for a real one, and it was forgeable until
+        // W-0347 — the server wrote the other person's half.
+        if ((int) $spouse->spouse_id !== (int) $this->id) {
+            return false;
         }
 
-        // Fallback: Check for explicit permission record (legacy/optional)
-        $permission = SpousePermission::where(function ($query) {
+        $permission = SpousePermission::where(function ($query) use ($spouse) {
             $query->where('user_id', $this->id)
-                ->where('spouse_id', $this->spouse_id);
-        })->orWhere(function ($query) {
-            $query->where('user_id', $this->spouse_id)
+                ->where('spouse_id', $spouse->id);
+        })->orWhere(function ($query) use ($spouse) {
+            $query->where('user_id', $spouse->id)
                 ->where('spouse_id', $this->id);
-        })->where('status', 'accepted')->first();
+        })
+            // W-0347 F5 — a couple could hold a row in each direction, and this
+            // read and `revoke()` both took `first()` with no order. Withdraw on
+            // the row one query happens to find and the other still says yes.
+            // The migration collapses the historic pairs; this makes the read
+            // deterministic whatever arrives later.
+            ->orderBy('id')
+            ->first();
 
-        return $permission !== null;
+        // An explicit row is the answer whenever there is one — including a
+        // withdrawal, which is why `revoke` now marks the row rather than
+        // deleting it. Deleting it left no trace of the decision, and absence
+        // read as "never asked", so revoking put sharing straight back on.
+        if ($permission !== null) {
+            return $permission->status === 'accepted';
+        }
+
+        // No row at all: a reciprocal link that predates the consent flow, or
+        // one built by a seeder or a test. Honoured. Since W-0347 a reciprocal
+        // link cannot be created without someone accepting — `accept()` writes
+        // both halves together, and nothing else does — so a link with no row
+        // is history, not a bypass.
+        //
+        // W-0347 G9 — this default is FAIL-OPEN, and the re-ask migration closes it
+        // for existing data only by giving every reciprocal pair a row. The branch
+        // stays live, so any future path that creates a reciprocal link WITHOUT a row
+        // silently grants consent, in the method whose whole job is to be the gate.
+        // Left as is because inverting it is a behaviour change that would also cut
+        // off seeded and test data; named here so the next person choosing sees it.
+        return true;
     }
 
     /**

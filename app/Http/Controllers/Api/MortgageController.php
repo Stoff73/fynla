@@ -9,6 +9,7 @@ use App\Http\Requests\StoreMortgageRequest;
 use App\Http\Requests\UpdateMortgageRequest;
 use App\Http\Resources\MortgageResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\JointAccountLog;
 use App\Models\Mortgage;
 use App\Models\Property;
@@ -38,6 +39,7 @@ class MortgageController extends Controller
 {
     use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly MortgageService $mortgageService,
@@ -114,16 +116,8 @@ class MortgageController extends Controller
             $validated['maturity_date'] = now()->addYears(config('mortgage.default_term_years', 25))->toDateString();
         }
 
-        if (! isset($validated['remaining_term_months'])) {
-            $validated['remaining_term_months'] = config('mortgage.default_term_months', 300);
-        }
-
-        // Copy joint ownership from property if applicable
-        if (in_array($property->ownership_type, ['joint', 'tenants_in_common']) && $property->joint_owner_id) {
-            $validated['joint_owner_id'] = $property->joint_owner_id;
-            $jointOwner = User::find($property->joint_owner_id);
-            $validated['joint_owner_name'] = $jointOwner ? $jointOwner->name : null;
-        }
+        // remaining_term_months is derived from maturity_date by MortgageNormaliser
+        // so the two can never disagree (W-0012) — no default is applied here.
 
         // Default country
         if (! isset($validated['country']) || $validated['country'] === null) {
@@ -140,15 +134,11 @@ class MortgageController extends Controller
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Mortgage limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Mortgage limit reached for your current plan.',
+                'net_worth',
+            );
         }
 
         $mortgageResource = (new MortgageResource($mortgage->refresh()))->additional([
@@ -373,10 +363,14 @@ class MortgageController extends Controller
             ],
         ];
 
+        // Post-edit share via the same trait as the before-value (W-0015).
+        $afterMortgage = clone $mortgage;
+        $afterMortgage->outstanding_balance = $validated['outstanding_balance'];
+
         $afterValues = [
             'outstanding_balance' => [
                 'full_balance' => $validated['outstanding_balance'],
-                'user_share' => $validated['outstanding_balance'] * (($mortgage->ownership_percentage ?? 100) / 100),
+                'user_share' => $this->calculateUserMortgageShare($afterMortgage, $user->id),
             ],
         ];
 

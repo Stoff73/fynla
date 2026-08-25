@@ -3,7 +3,7 @@ procedure_id: 'estate.tool.create_trust'
 kind: tool_schema
 module: estate
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_trust",
-    "description": "Record a trust for estate planning. Use for discretionary trusts, bare trusts, life insurance trusts, loan trusts, discounted gift trusts, interest in possession trusts, and other UK trust types. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts.",
+    "description": "Record a trust for estate planning. Use for discretionary trusts, bare trusts, life insurance trusts, loan trusts, discounted gift trusts, interest in possession trusts, and other UK trust types. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -74,7 +74,7 @@ effective_from: 2026-06-02
                     "string",
                     "null"
                 ],
-                "description": "Purpose of the trust (e.g. \"Estate planning and IHT mitigation\")"
+                "description": "Purpose of the trust (e.g. \"Estate planning and Inheritance Tax mitigation\")"
             }
         },
         "required": [

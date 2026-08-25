@@ -39,9 +39,7 @@ class ExecuteGraceDeletions extends Command
                 continue;
             }
 
-            $reason = $sub->trial_started_at
-                ? 'trial_expired'
-                : 'subscription_cancelled_grace_ended';
+            $reason = 'subscription_cancelled_grace_ended';
 
             try {
                 $service->deleteAccount($user, $reason, 'auto_expiration_grace');

@@ -23,9 +23,9 @@ class SnapshotPolicies
 
     /**
      * Build the per-tier surfacing window map from the store.
-     * Returns ['free' => int, 'tier1' => int, 'tier2' => int, 'tier3' => int].
+     * Returns the tier window in days; null means all retained history.
      *
-     * @return array<string, int>
+     * @return array<string, int|null>
      */
     private function tierWindowFromStore(): array
     {
@@ -63,6 +63,30 @@ class SnapshotPolicies
     {
         return new SnapshotPolicy(
             triggerPredicate: fn ($old, $new) => $old !== null && abs($new - $old) > 1.0,
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function investmentAccountValue(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 500 || ($old > 0 && abs($new - $old) / $old > 0.02)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function liabilityBalance(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 100 || ($old > 0 && abs($new - $old) / $old > 0.01)),
             retentionDays: self::RETENTION_DAYS,
             surfacingWindowDays: $this->tierWindowFromStore(),
             maxRowsHardCap: 5000,

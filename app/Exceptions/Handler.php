@@ -7,11 +7,14 @@ namespace App\Exceptions;
 use App\Http\Helpers\JsonResponseHelper;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use PDOException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -85,6 +88,35 @@ class Handler extends ExceptionHandler
             return JsonResponseHelper::error(
                 $content !== false && $content !== '' ? $content : 'Request failed',
                 $response->getStatusCode()
+            );
+        }
+
+        // A database exception's message is never fit to send to a client, in ANY
+        // environment. `QueryException::getMessage()` embeds the driver error, the
+        // connection name, the failing statement and its full column list — so a
+        // user who left an "(Optional)" field blank was shown
+        // `SQLSTATE[23000] … Column 'dividend_yield' cannot be null (Connection:
+        // mysql, SQL: insert into \`holdings\` (\`asset_type\`, \`sub_type\`, …)`
+        // (W-0261). That is schema disclosure on top of a broken form.
+        //
+        // The debug check below is not enough on its own: it is keyed on
+        // `app.debug`, which is TRUE on every developer machine and on any server
+        // where it has been left on, and the disclosure is a property of the
+        // exception rather than of the environment. Sanitising it here covers the
+        // web SPA, `/m` and native at once, because all three reach this one
+        // handler. The real message still goes to the log, where it belongs.
+        if ($exception instanceof QueryException || $exception instanceof PDOException) {
+            Log::error('Database exception surfaced to an API request', [
+                'exception' => get_class($exception),
+                'message' => $exception->getMessage(),
+                'path' => $request->path(),
+                'method' => $request->method(),
+                'user_id' => $request->user()?->id,
+            ]);
+
+            return JsonResponseHelper::error(
+                'We could not save that. Please check the form and try again, or contact support if it keeps happening.',
+                500
             );
         }
 

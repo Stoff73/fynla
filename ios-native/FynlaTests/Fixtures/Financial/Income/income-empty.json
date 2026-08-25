@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "data": {
+    "income_summary": {
+      "user": {
+        "employment": 0,
+        "self_employment": 0,
+        "dividend": 0,
+        "interest": 0,
+        "other": 0,
+        "total": 0,
+        "employer": null,
+        "occupation": null,
+        "sources": [],
+        "tax_position": {"total_income":0,"adjusted_net_income":0,"personal_allowance":12570,"personal_allowance_label":"Standard personal allowance","pension_annual_allowance":60000,"pension_annual_allowance_label":"Standard pension annual allowance"}
+      },
+      "spouse": null
+    }
+  }
+}

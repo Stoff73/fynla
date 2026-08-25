@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Mobile;
 
+use App\Constants\GateRoutes;
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
@@ -27,6 +28,16 @@ class NextActionsService
     /** Max strategy-level unlock cards to surface — keeps the 4-slot list from being crowded. */
     private const MAX_STRATEGY_UNLOCKS = 2;
 
+    /**
+     * WP-6 — campaign-to-module affinity map. Campaign arrivals see their
+     * campaign's primary module surfaced ahead of generic cross-module items.
+     * Unknown or absent campaign tokens receive no affinity boost.
+     */
+    private const CAMPAIGN_AFFINITY = [
+        'savetax' => 'tax',
+        'pensioncheck' => 'retirement',
+    ];
+
     public function __construct(
         private readonly RecommendationsAggregatorService $recommendations,
         private readonly PrerequisiteGateService $gate,
@@ -40,11 +51,71 @@ class NextActionsService
     {
         $user = User::findOrFail($userId);
 
-        return $this->rank(array_merge(
+        return array_slice($this->applyCampaignAffinity($user, $this->rankAll($user, $userId)), 0, self::MAX_ITEMS);
+    }
+
+    /**
+     * WP-2 (one actions model) — the FULL ranked open-actions list, uncapped.
+     * Same items, same ranking, same stable ids as build(); the 4-slot cap is
+     * a dashboard presentation concern, not a property of the list. Feeds the
+     * "all my actions" surfaces (desktop /actions, /m Done/all views).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function buildAll(int $userId): array
+    {
+        $user = User::findOrFail($userId);
+
+        return $this->applyCampaignAffinity($user, $this->rankAll($user, $userId));
+    }
+
+    /**
+     * The merged, value-ranked open list shared by build()/buildAll().
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    /**
+     * Mid-walk (CSJ 2026-07-23): while the director owns the next turn,
+     * unlock prompts in the UNIFIED action lists are noise competing with
+     * onboarding — Fyn is about to ask for that data in the walk, and the
+     * dashboard's finish-your-plan nudge is the one call to action. The
+     * per-module tab cards keep their true gate state (they are the level
+     * map, not a competing call to action).
+     */
+    private function midWalk(User $user): bool
+    {
+        if ($user->onboarding_fyn_step !== null) {
+            return true;
+        }
+
+        // A fresh campaign registrant's first dashboard fetch races the chat
+        // turn that stamps the step (live 2026-07-23, user 292): a funnel
+        // registrant who has not begun the walk (onboarding_started_at null)
+        // is walking by construction. A paused walker (started_at set, step
+        // nulled) keeps the unlock prompts — they are the re-engagement hook.
+        return ! $user->onboarding_completed
+            && $user->onboarding_started_at === null
+            && ($user->funnel_answers['campaign'] ?? null) !== null;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private function unlockFamilyItems(User $user): array
+    {
+        return array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
+    }
+
+    private function rankAll(User $user, int $userId): array
+    {
+        $items = array_merge(
             $this->recommendationItems($userId),
-            $this->unlockItems($user),
-            $this->strategyUnlockItems($user),
-        ));
+            $this->midWalk($user) ? [] : $this->unlockFamilyItems($user),
+        );
+
+        usort($items, static function (array $a, array $b): int {
+            return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
+        });
+
+        return $items;
     }
 
     /**
@@ -61,10 +132,17 @@ class NextActionsService
         $user = User::findOrFail($userId);
 
         $recItems = $this->recommendationItems($userId);
-        $unlocks = array_merge($this->unlockItems($user), $this->strategyUnlockItems($user));
+        $unlocks = $this->unlockFamilyItems($user);
 
-        // Top card = the unified <=4 (recs + unlocks), same ranking as build().
-        $top = $this->rank(array_merge($recItems, $unlocks));
+        // Top card = the unified <=4 (recs + unlocks), same ranking as build()
+        // including the WP-6 campaign affinity (tax first for SaveTax users).
+        // Affinity runs BEFORE the 4-slot cut so a lower-value tax item can
+        // still be lifted into the card.
+        $merged = array_merge($recItems, $this->midWalk($user) ? [] : $unlocks);
+        usort($merged, static function (array $a, array $b): int {
+            return [$b['value'], $a['module']] <=> [$a['value'], $b['module']];
+        });
+        $top = array_slice($this->applyCampaignAffinity($user, $merged), 0, self::MAX_ITEMS);
 
         // Group real recommendations by module for the per-area cards.
         $byModule = [];
@@ -175,6 +253,45 @@ class NextActionsService
     }
 
     /**
+     * WP-6 — campaign affinity. Campaign arrivals see their campaign's primary
+     * module sorted ahead of generic cross-module items; within each tier the
+     * normal value ranking holds. The module is keyed off CAMPAIGN_AFFINITY via
+     * the user's onboarding_fyn_selection (set at campaign start) with a
+     * fallback to funnel_answers['campaign'] (raw funnel data). Unknown or
+     * absent tokens receive no affinity boost.
+     *
+     * @param  array<int,array<string,mixed>>  $items
+     * @return array<int,array<string,mixed>>
+     */
+    private function applyCampaignAffinity(User $user, array $items): array
+    {
+        // Resolution order mirrors A6's controller fallback:
+        // 1. onboarding_fyn_selection (set at campaign start — most reliable)
+        // 2. funnel_answers['campaign'] (stamped by A6 for new arrivals)
+        // 3. any non-empty funnel_answers without a campaign key → legacy pre-A6
+        //    rows that arrived via the savetax funnel before the stamp migration
+        $raw = $user->onboarding_fyn_selection
+            ?? ($user->funnel_answers['campaign']
+                ?? (! empty($user->funnel_answers) ? 'savetax' : null));
+
+        $campaign = is_string($raw) ? $raw : null;
+        $affinityModule = self::CAMPAIGN_AFFINITY[$campaign] ?? null;
+
+        if ($affinityModule === null) {
+            return $items;
+        }
+
+        usort($items, static function (array $a, array $b) use ($affinityModule): int {
+            $aMatch = ($a['module'] ?? '') === $affinityModule ? 1 : 0;
+            $bMatch = ($b['module'] ?? '') === $affinityModule ? 1 : 0;
+
+            return [$bMatch, $b['value'], $a['module']] <=> [$aMatch, $a['value'], $b['module']];
+        });
+
+        return $items;
+    }
+
+    /**
      * @return array<int,array<string,mixed>>
      */
     private function recommendationItems(int $userId): array
@@ -186,13 +303,24 @@ class NextActionsService
             ->pluck('recommendation_id')
             ->all();
 
-        // Drop recommendations with no human-readable text — a blank rec renders
-        // as an empty row / "How do I ''?" and is worse than showing nothing.
-        $all = array_filter($all, static fn (array $rec): bool => trim((string) ($rec['recommendation_text'] ?? '')) !== '');
+        // Drop blank recs (a blank renders as an empty row / "How do I ''?")
+        // AND completed recs: a completed action is banked toward the wheel
+        // count and replaced by the next-best, so it leaves the actionable
+        // list rather than sitting there ticked (CSJ 4.4 — replace done with a
+        // new one; the running tally is counted in MobileLevelService).
+        $all = array_filter($all, static function (array $rec) use ($completedIds): bool {
+            if (trim((string) ($rec['recommendation_text'] ?? '')) === '') {
+                return false;
+            }
 
-        return array_map(function (array $rec) use ($completedIds): array {
+            return ! in_array((string) ($rec['recommendation_id'] ?? ''), $completedIds, true);
+        });
+
+        return array_map(function (array $rec): array {
             $benefit = is_numeric($rec['potential_benefit'] ?? null) ? (float) $rec['potential_benefit'] : null;
             $id = (string) ($rec['recommendation_id'] ?? uniqid('rec_'));
+            $screen = $this->moduleDestination((string) ($rec['module'] ?? 'general'));
+            $route = GateRoutes::resolve($screen);
 
             return [
                 'id' => $id,
@@ -203,28 +331,34 @@ class NextActionsService
                     ? 'You could save £'.number_format($benefit)
                     : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
                 'value' => $benefit ?? (float) ($rec['priority_score'] ?? 50),
-                'done' => in_array($id, $completedIds, true),
+                // Open only — completed recs are excluded above and replaced by
+                // the next-best, so every shown recommendation is actionable.
+                'done' => false,
                 // Tapping a recommendation deep-links to the module screen where
                 // the user actions it (NOT a templated Fyn message).
-                'action' => ['kind' => 'navigate', 'payload' => $this->moduleRoute((string) ($rec['module'] ?? 'general'))],
+                'action' => [
+                    'kind' => 'navigate',
+                    'payload' => $route['mobile'] ?? $route['web'],
+                    'destination' => GateRoutes::destination($screen),
+                ],
             ];
         }, $all);
     }
 
     /**
-     * The in-app /m route for a module — where a recommendation is actioned.
+     * The platform-neutral screen where a recommendation is actioned.
      */
-    private function moduleRoute(string $module): string
+    private function moduleDestination(string $module): string
     {
         return match ($module) {
-            'protection' => '/protection',
-            'savings' => '/savings',
-            'investment' => '/investment',
-            'retirement' => '/retirement',
-            'estate' => '/estate',
-            'goals' => '/goals',
-            'tax' => '/tax-strategy',
-            default => '/net-worth',
+            'protection' => GateRoutes::PROTECTION,
+            'savings' => GateRoutes::SAVINGS,
+            'investment' => GateRoutes::INVESTMENT,
+            'retirement' => GateRoutes::RETIREMENT,
+            'estate' => GateRoutes::ESTATE,
+            'goals' => GateRoutes::GOALS,
+            'tax' => GateRoutes::TAX_STRATEGY,
+            default => GateRoutes::NET_WORTH,
         };
     }
 
@@ -294,16 +428,18 @@ class NextActionsService
         $items = [];
 
         foreach (array_slice($plan['locked'], 0, self::MAX_STRATEGY_UNLOCKS) as $locked) {
-            $missingLabel = isset($locked['missing'][0])
-                ? HouseholdFinancialContext::labelFor((string) $locked['missing'][0])
-                : 'a detail';
+            $noun = $this->unlockNounFor((string) ($locked['missing'][0] ?? ''));
 
             $items[] = [
                 'id' => 'strategy_unlock:'.$locked['strategy_type'],
                 'type' => 'unlock',
                 'module' => 'tax',
-                'title' => 'Unlock a tax strategy',
-                'meta' => 'Tell us about your '.$missingLabel,
+                // Per-item label (CSJ 4.2): name the specific missing detail
+                // ("Unlock pension info" / "Enter your pension details") rather
+                // than a generic "Unlock a tax strategy" — the user has already
+                // seen a strategy for what they have; this is about adding more.
+                'title' => 'Unlock '.$noun.' info',
+                'meta' => 'Enter your '.$noun.' details',
                 'value' => $weight,
                 'done' => false,
                 'action' => ['kind' => 'fyn_capture', 'payload' => 'tax'],
@@ -311,6 +447,25 @@ class NextActionsService
         }
 
         return $items;
+    }
+
+    /**
+     * Short noun for an unlock card title, derived from the missing data point
+     * (CSJ 4.2). Keeps the card item-specific ("pension", "ISA") rather than the
+     * verbose data-point label; falls back to the household-context label.
+     */
+    private function unlockNounFor(string $missingKey): string
+    {
+        return match ($missingKey) {
+            'pension_contributions', 'workplace_pension', 'pension_input_history' => 'pension',
+            'isa_subscriptions_ytd' => 'ISA',
+            'gia_holdings' => 'investment',
+            'dividend_income' => 'dividend',
+            'savings_balances' => 'savings',
+            'annual_income' => 'income',
+            'spouse_income' => "spouse's income",
+            default => HouseholdFinancialContext::labelFor($missingKey),
+        };
     }
 
     private function moduleLabel(string $module): string

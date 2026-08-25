@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_asset",
-    "description": "Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track. You MAY call this tool multiple times in the same turn when the user mentions multiple assets.",
+    "description": "Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track. You MAY call this tool multiple times in the same turn when the user mentions multiple assets. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

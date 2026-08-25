@@ -1,0 +1,501 @@
+<h2>Actual Forms in Onboarding — With Education Sidebar</h2>
+<p class="subtitle">Real fields from existing components, shown in the two-column onboarding layout</p>
+
+<!-- Example 1: PersonalInformation.vue in onboarding — Student stage -->
+<div class="mockup">
+  <div class="mockup-header">PersonalInformation.vue — Starting Out (Student) — context="onboarding"</div>
+  <div class="mockup-body" style="background: #F7F6F4; padding: 0; text-align: left; font-family: 'Segoe UI', Inter, system-ui, sans-serif;">
+
+    <!-- Progress bar -->
+    <div style="background: white; border-bottom: 1px solid #EEEEEE; padding: 14px 24px;">
+      <div style="display: flex; align-items: center; gap: 0; max-width: 500px; margin: 0 auto;">
+        <div style="display: flex; align-items: center;">
+          <div style="width: 26px; height: 26px; border-radius: 50%; background: #5854E6; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; box-shadow: 0 0 0 3px #DDD6FE;">1</div>
+          <div style="font-size: 10px; color: #5854E6; font-weight: 700; margin-left: 5px;">About You</div>
+        </div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">2</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">3</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">4</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">5</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-size: 10px;">🏁</div>
+      </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div style="display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: 520px;">
+
+      <!-- LEFT: PersonalInformation.vue edit mode fields — student-filtered -->
+      <div style="padding: 28px 32px; border-right: 1px solid #EEEEEE;">
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 18px; font-weight: 900; color: #1F2A44; margin-bottom: 4px;">About You</div>
+          <div style="font-size: 13px; color: #717171;">Tell us a bit about yourself so we can personalise your journey</div>
+        </div>
+
+        <!-- Actual fields from PersonalInformation.vue edit mode — 2-col grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+
+          <!-- Full Name — class="input-field" -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Full Name</label>
+            <input type="text" value="Janice Taylor" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box; background: #F7F6F4;" readonly />
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Email Address</label>
+            <input type="email" value="janice@email.com" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box; background: #F7F6F4;" readonly />
+          </div>
+
+          <!-- Date of Birth -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Date of Birth</label>
+            <input type="date" value="2005-03-12" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+          </div>
+
+          <!-- Gender -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Gender</label>
+            <select style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;">
+              <option>Female</option>
+              <option>Male</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <!-- Phone -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Phone Number</label>
+            <input type="tel" placeholder="+44 or 0" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+          </div>
+
+          <!-- STUDENT-SPECIFIC: Education Level -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Education Level</label>
+            <select style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;">
+              <option>Undergraduate</option>
+              <option>Postgraduate</option>
+              <option>Doctoral</option>
+            </select>
+          </div>
+
+          <!-- STUDENT-SPECIFIC: University -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">University</label>
+            <input type="text" placeholder="e.g., University of Manchester" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+          </div>
+
+          <!-- STUDENT-SPECIFIC: Student Number -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Student Number</label>
+            <input type="text" placeholder="Your student ID number" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+            <div style="font-size: 11px; color: #717171; margin-top: 3px;">Used to verify your student status for discounts and eligibility</div>
+          </div>
+
+        </div>
+
+        <!-- Hidden in student onboarding: Address, Occupation, Domicile, Marital Status, Health/Smoking -->
+        <div style="margin-top: 20px; padding: 10px 14px; background: #F5F3FF; border: 1px solid #DDD6FE; border-radius: 8px; font-size: 12px; color: #5854E6;">
+          You can add your address, occupation and other details later in your profile settings.
+        </div>
+
+        <!-- Navigation -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid #EEEEEE;">
+          <div style="font-size: 13px; color: #717171; cursor: pointer;">← Back</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="font-size: 13px; color: #717171; cursor: pointer;">Skip this step</div>
+            <div style="background: #E83E6D; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;">Continue</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Learning Milestone Sidebar -->
+      <div style="padding: 28px 20px; background: white;">
+        <div style="background: linear-gradient(135deg, #F5F3FF, #EDE9FE); border: 1px solid #DDD6FE; border-radius: 12px; padding: 18px; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <div style="width: 22px; height: 22px; border-radius: 50%; background: #5854E6; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px;">💡</div>
+            <div style="font-size: 13px; font-weight: 700; color: #5854E6;">Did you know?</div>
+          </div>
+          <div style="font-size: 13px; color: #1F2A44; line-height: 1.6;">
+            Your date of birth determines when you'll start repaying your student loan (after graduation) and when you'll be <strong>automatically enrolled in a workplace pension</strong> (from age 22). These two dates shape your financial life for decades.
+          </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <div style="font-size: 13px; font-weight: 700; color: #1F2A44; margin-bottom: 6px;">Why we ask this</div>
+          <div style="font-size: 12px; color: #717171; line-height: 1.6;">
+            Your age and gender affect life expectancy projections, pension eligibility dates, and ISA/Lifetime ISA access rules. We use these to calculate timelines that are specific to you.
+          </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <div style="font-size: 13px; font-weight: 700; color: #1F2A44; margin-bottom: 6px;">How this fits your journey</div>
+          <div style="font-size: 12px; color: #717171; line-height: 1.6;">
+            As a student, we keep things simple — no need for address or health details yet. We focus on what matters now: your identity, your loan, and your spending habits.
+          </div>
+        </div>
+
+        <div style="background: #F7F6F4; border-radius: 8px; padding: 14px; text-align: center;">
+          <div style="font-size: 22px; font-weight: 900; color: #5854E6;">22</div>
+          <div style="font-size: 11px; color: #717171; margin-top: 2px;">Age you'll be auto-enrolled in a workplace pension</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Example 2: SaveAccountModal.vue in onboarding — Student stage -->
+<div class="mockup" style="margin-top: 24px;">
+  <div class="mockup-header">SaveAccountModal.vue — Starting Out (Student) — context="onboarding"</div>
+  <div class="mockup-body" style="background: #F7F6F4; padding: 0; text-align: left; font-family: 'Segoe UI', Inter, system-ui, sans-serif;">
+
+    <!-- Progress bar -->
+    <div style="background: white; border-bottom: 1px solid #EEEEEE; padding: 14px 24px;">
+      <div style="display: flex; align-items: center; gap: 0; max-width: 500px; margin: 0 auto;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #20B486; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #20B486; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #20B486; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 8px;"></div>
+        <div style="display: flex; align-items: center;">
+          <div style="width: 26px; height: 26px; border-radius: 50%; background: #5854E6; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; box-shadow: 0 0 0 3px #DDD6FE;">5</div>
+          <div style="font-size: 10px; color: #5854E6; font-weight: 700; margin-left: 5px;">Savings</div>
+        </div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 8px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-size: 10px;">🏁</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: 580px;">
+
+      <!-- LEFT: SaveAccountModal fields — rendered inline (not as modal) -->
+      <div style="padding: 28px 32px; border-right: 1px solid #EEEEEE;">
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 18px; font-weight: 900; color: #1F2A44; margin-bottom: 4px;">Your Savings</div>
+          <div style="font-size: 13px; color: #717171;">Add your savings accounts — even a small balance counts</div>
+        </div>
+
+        <!-- Actual SaveAccountModal fields -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+          <!-- Institution -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Institution</label>
+            <input type="text" placeholder="e.g., Halifax, Barclays, Marcus" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+          </div>
+
+          <!-- Product Type — student defaults first -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Product Type</label>
+            <select style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;">
+              <option value="">Select product type...</option>
+              <optgroup label="Most common for students">
+                <option value="current_account">Current Account</option>
+                <option value="easy_access">Easy Access Savings</option>
+                <option value="instant_access">Instant Access Savings</option>
+                <option value="cash_isa">Cash ISA</option>
+              </optgroup>
+              <optgroup label="Other accounts">
+                <option value="savings_account">Savings Account</option>
+                <option value="notice">Notice Account</option>
+                <option value="fixed">Fixed Term</option>
+                <option value="junior_isa">Junior ISA</option>
+                <option value="premium_bonds">Premium Bonds</option>
+                <option value="nsi">NS&I Savings</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Current Balance -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Current Balance</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 12px; top: 9px; color: #717171; font-size: 14px;">£</span>
+              <input type="number" placeholder="0.00" style="width: 100%; padding: 8px 12px 8px 28px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+            </div>
+          </div>
+
+          <!-- Interest Rate -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Interest Rate</label>
+            <div style="position: relative;">
+              <input type="number" placeholder="0.00" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+              <span style="position: absolute; right: 12px; top: 9px; color: #717171; font-size: 14px;">%</span>
+            </div>
+            <div style="font-size: 11px; color: #717171; margin-top: 3px;">Enter as percentage (e.g., 5.0 for 5%). Maximum 20%.</div>
+          </div>
+
+          <!-- Access Type -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Access Type</label>
+            <select style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;">
+              <option value="immediate">Immediate</option>
+              <option value="notice">Notice Required</option>
+              <option value="fixed">Fixed Term</option>
+            </select>
+          </div>
+
+          <!-- Emergency Fund checkbox — prominent for students -->
+          <div style="display: flex; align-items: center; padding: 10px 12px; background: #F0FDF9; border: 1px solid #D1FAE5; border-radius: 8px;">
+            <input type="checkbox" id="emergency" style="width: 16px; height: 16px; margin-right: 8px;" />
+            <label for="emergency" style="font-size: 13px; color: #1F2A44;">This forms part of my emergency fund</label>
+          </div>
+
+          <!-- Ownership section HIDDEN for students -->
+        </div>
+
+        <!-- Navigation -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid #EEEEEE;">
+          <div style="font-size: 13px; color: #717171; cursor: pointer;">← Back</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="font-size: 13px; color: #717171; cursor: pointer;">Skip this step</div>
+            <div style="background: #E83E6D; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;">Continue</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Learning sidebar -->
+      <div style="padding: 28px 20px; background: white;">
+        <div style="background: linear-gradient(135deg, #F5F3FF, #EDE9FE); border: 1px solid #DDD6FE; border-radius: 12px; padding: 18px; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <div style="width: 22px; height: 22px; border-radius: 50%; background: #5854E6; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px;">💡</div>
+            <div style="font-size: 13px; font-weight: 700; color: #5854E6;">Did you know?</div>
+          </div>
+          <div style="font-size: 13px; color: #1F2A44; line-height: 1.6;">
+            Even <strong>£25 a month</strong> adds up. If you start saving now and continue through your career, compound interest means your money grows on itself. Starting at 21 instead of 30 could mean <strong>tens of thousands more</strong> by retirement.
+          </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <div style="font-size: 13px; font-weight: 700; color: #1F2A44; margin-bottom: 6px;">Why we ask this</div>
+          <div style="font-size: 12px; color: #717171; line-height: 1.6;">
+            Knowing your accounts lets us track your emergency fund progress, calculate interest earned, and monitor your ISA allowance usage. We'll show you exactly how your savings are working for you.
+          </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <div style="font-size: 13px; font-weight: 700; color: #1F2A44; margin-bottom: 6px;">How this fits your journey</div>
+          <div style="font-size: 12px; color: #717171; line-height: 1.6;">
+            Your first goal is an <strong>emergency fund</strong> — 3 months of living costs. That's your safety net before thinking about investing. We've highlighted the emergency fund checkbox so you can flag which account is your buffer.
+          </div>
+        </div>
+
+        <div style="background: #F7F6F4; border-radius: 8px; padding: 14px; text-align: center;">
+          <div style="font-size: 22px; font-weight: 900; color: #5854E6;">£20,000</div>
+          <div style="font-size: 11px; color: #717171; margin-top: 2px;">Your annual ISA allowance (2025/26)</div>
+          <div style="font-size: 11px; color: #717171;">Tax-free savings — use it or lose it each April</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Example 3: PolicyFormModal.vue in onboarding — Mid-Career stage -->
+<div class="mockup" style="margin-top: 24px;">
+  <div class="mockup-header">PolicyFormModal.vue — Protecting What Matters (Mid-Career) — context="onboarding"</div>
+  <div class="mockup-body" style="background: #F7F6F4; padding: 0; text-align: left; font-family: 'Segoe UI', Inter, system-ui, sans-serif;">
+
+    <!-- Progress bar -->
+    <div style="background: white; border-bottom: 1px solid #EEEEEE; padding: 14px 24px;">
+      <div style="display: flex; align-items: center; gap: 0; max-width: 580px; margin: 0 auto;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #20B486; margin: 0 6px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #20B486; margin: 0 6px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #20B486; margin: 0 6px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #20B486; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 6px;"></div>
+        <div style="display: flex; align-items: center;">
+          <div style="width: 26px; height: 26px; border-radius: 50%; background: #E83E6D; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; box-shadow: 0 0 0 3px #FCE7F3;">5</div>
+          <div style="font-size: 10px; color: #E83E6D; font-weight: 700; margin-left: 5px;">Protection</div>
+        </div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 6px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">6</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 6px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">7</div>
+        <div style="flex: 1; height: 2px; background: #EEEEEE; margin: 0 6px;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #EEEEEE; color: #717171; display: flex; align-items: center; justify-content: center; font-size: 10px;">🏁</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: 580px;">
+
+      <!-- LEFT: PolicyFormModal fields — rendered inline -->
+      <div style="padding: 28px 32px; border-right: 1px solid #EEEEEE;">
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 18px; font-weight: 900; color: #1F2A44; margin-bottom: 4px;">Protection & Insurance</div>
+          <div style="font-size: 13px; color: #717171;">Add any existing policies — we'll show you where the gaps are</div>
+        </div>
+
+        <!-- Actual PolicyFormModal fields -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+
+          <!-- Policy Type -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Policy Type</label>
+            <select style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;">
+              <option value="">Select policy type...</option>
+              <option value="life" selected>Life Insurance</option>
+              <option value="criticalIllness">Critical Illness</option>
+              <option value="incomeProtection">Income Protection</option>
+              <option value="disability">Disability</option>
+              <option value="sicknessIllness">Sickness/Illness</option>
+            </select>
+          </div>
+
+          <!-- Life Policy Type (conditional — v-if="showLifePolicyType") -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Life Policy Type</label>
+            <select style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;">
+              <option value="">Select life policy type...</option>
+              <option value="decreasing_term">Decreasing Life Policy</option>
+              <option value="level_term">Level Term Life Policy</option>
+              <option value="whole_of_life">Whole of Life Policy</option>
+            </select>
+          </div>
+
+          <!-- Provider + Policy Number — 2 col -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Provider</label>
+              <input type="text" placeholder="e.g., Aviva, Legal & General" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Policy Number</label>
+              <input type="text" placeholder="Policy reference" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+            </div>
+          </div>
+
+          <!-- Coverage Amount -->
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Sum Assured</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 12px; top: 9px; color: #717171; font-size: 14px;">£</span>
+              <input type="number" placeholder="0" style="width: 100%; padding: 8px 12px 8px 28px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+            </div>
+          </div>
+
+          <!-- Premium + Frequency — 2 col -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Premium Amount</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 12px; top: 9px; color: #717171; font-size: 14px;">£</span>
+                <input type="number" placeholder="0.00" style="width: 100%; padding: 8px 12px 8px 28px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+              </div>
+            </div>
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Frequency</label>
+              <select style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;">
+                <option value="monthly">Monthly</option>
+                <option value="annually">Annually</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Start Date + Term — 2 col -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Start Date</label>
+              <input type="date" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #717171; margin-bottom: 4px;">Term (years)</label>
+              <input type="number" placeholder="e.g., 25" style="width: 100%; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; color: #1F2A44; box-sizing: border-box;" />
+            </div>
+          </div>
+
+          <!-- Life-specific: In Trust + Mortgage Protection -->
+          <div style="display: flex; gap: 20px;">
+            <div style="display: flex; align-items: center;">
+              <input type="checkbox" id="trust" style="width: 16px; height: 16px; margin-right: 8px;" />
+              <label for="trust" style="font-size: 13px; color: #717171;">Written in trust</label>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <input type="checkbox" id="mortgage" style="width: 16px; height: 16px; margin-right: 8px;" checked />
+              <label for="mortgage" style="font-size: 13px; color: #717171;">Mortgage protection</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid #EEEEEE;">
+          <div style="font-size: 13px; color: #717171; cursor: pointer;">← Back</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="font-size: 13px; color: #717171; cursor: pointer;">Skip this step</div>
+            <div style="background: #E83E6D; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;">Continue</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Learning sidebar — mid-career context -->
+      <div style="padding: 28px 20px; background: white;">
+        <div style="background: linear-gradient(135deg, #FDF2F8, #FCE7F3); border: 1px solid #F9A8D4; border-radius: 12px; padding: 18px; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <div style="width: 22px; height: 22px; border-radius: 50%; background: #E83E6D; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px;">💡</div>
+            <div style="font-size: 13px; font-weight: 700; color: #E83E6D;">Did you know?</div>
+          </div>
+          <div style="font-size: 13px; color: #1F2A44; line-height: 1.6;">
+            If you died or became seriously ill tomorrow, could your family keep the house? With a <strong>£245,000 mortgage</strong> and <strong>2 dependents</strong>, protection insurance isn't optional — it's the foundation your family's security stands on.
+          </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <div style="font-size: 13px; font-weight: 700; color: #1F2A44; margin-bottom: 6px;">Why we ask this</div>
+          <div style="font-size: 12px; color: #717171; line-height: 1.6;">
+            By entering your existing policies, we can run a gap analysis — comparing what you have against what your family would actually need. We calculate the shortfall using your mortgage, income, and dependents.
+          </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <div style="font-size: 13px; font-weight: 700; color: #1F2A44; margin-bottom: 6px;">How this fits your journey</div>
+          <div style="font-size: 12px; color: #717171; line-height: 1.6;">
+            At your stage, the three critical covers are <strong>life insurance</strong> (clears the mortgage), <strong>critical illness</strong> (lump sum if diagnosed), and <strong>income protection</strong> (replaces salary if you can't work). We'll flag any gaps on your dashboard.
+          </div>
+        </div>
+
+        <div style="background: #F7F6F4; border-radius: 8px; padding: 14px; text-align: center;">
+          <div style="font-size: 22px; font-weight: 900; color: #E83E6D;">£245,000</div>
+          <div style="font-size: 11px; color: #717171; margin-top: 2px;">Your mortgage — the minimum life cover your family needs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>Key Points</h3>
+  <ul style="text-align:left; max-width:640px; margin:0 auto; line-height:1.8;">
+    <li><strong>Same fields, same CSS classes</strong> — every input uses the existing <code>input-field</code> class or the inline Tailwind pattern (<code>border-horizon-300 rounded-lg focus:ring-violet-500</code>)</li>
+    <li><strong>Same validation, same API</strong> — the form's <code>handleSubmit</code> and <code>$emit('save')</code> patterns are unchanged</li>
+    <li><strong>Rendered inline, not as modal</strong> — in onboarding context, the OnboardingStep wrapper renders the form inline (left column) instead of inside a modal overlay. The component doesn't know or care.</li>
+    <li><strong>Stage-filtered fields</strong> — student PersonalInfo hides address/occupation/health. Mid-career PolicyForm shows all fields. The <code>v-if="isFieldVisible('fieldName')"</code> wraps existing field blocks.</li>
+    <li><strong>Stage-coloured education</strong> — student sidebar uses violet gradient, mid-career uses raspberry. Quick stat references the user's actual data (£245k mortgage, age 22).</li>
+    <li><strong>Product type ordering</strong> — SaveAccountModal reorders the <code>&lt;optgroup&gt;</code> to show student-relevant types first. Same options, different default order.</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Forms look correct</h3>
+      <p>Spec is ready for review</p>
+    </div>
+  </div>
+  <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Needs changes</h3>
+      <p>I'll explain in the terminal</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,316 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Billing\Apple;
+
+use App\Data\Billing\Apple\AppleReconciliationStatusEvidence;
+use App\Data\Billing\Apple\VerifiedAppleRenewal;
+use App\Data\Billing\Apple\VerifiedAppleTransaction;
+use App\Exceptions\Billing\AppleVerificationException;
+use App\Models\PremiumEntitlement;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Auth\Access\AuthorizationException;
+
+final class AppleEntitlementProjector
+{
+    private const PURCHASED_OWNERSHIP = 'PURCHASED';
+
+    public function project(
+        User $user,
+        VerifiedAppleTransaction $transaction,
+    ): PremiumEntitlement {
+        $this->validate($user, $transaction);
+
+        $status = match (true) {
+            $transaction->revocationDate !== null => PremiumEntitlement::STATUS_REVOKED,
+            ! $transaction->expiresDate->isFuture() => PremiumEntitlement::STATUS_EXPIRED,
+            default => PremiumEntitlement::STATUS_ACTIVE,
+        };
+        $now = now();
+
+        PremiumEntitlement::query()->insertOrIgnore([
+            'user_id' => $user->getKey(),
+            'provider' => PremiumEntitlement::PROVIDER_APPLE,
+            'provider_reference' => $transaction->originalTransactionId,
+            'product_id' => $transaction->productId,
+            'status' => $status,
+            'will_renew' => $status === PremiumEntitlement::STATUS_ACTIVE,
+            'period_start' => $this->databaseDate($transaction->purchaseDate),
+            'period_end' => $this->databaseDate($transaction->expiresDate),
+            'grace_period_ends_at' => null,
+            'revoked_at' => $this->databaseDate($transaction->revocationDate),
+            'last_verified_at' => $this->databaseDate($transaction->signedDate),
+            'provider_metadata' => json_encode(
+                $this->metadata($transaction),
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES,
+            ),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $entitlement = PremiumEntitlement::query()
+            ->where('provider', PremiumEntitlement::PROVIDER_APPLE)
+            ->where('provider_reference', $transaction->originalTransactionId)
+            ->lockForUpdate()
+            ->first();
+
+        if (
+            ! $entitlement instanceof PremiumEntitlement
+            || (string) $entitlement->user_id !== (string) $user->getKey()
+        ) {
+            throw new AuthorizationException('Apple entitlement ownership mismatch.');
+        }
+
+        if (
+            $entitlement->last_verified_at !== null
+            && $entitlement->last_verified_at->greaterThan($transaction->signedDate)
+        ) {
+            return $entitlement;
+        }
+
+        $entitlement->forceFill([
+            'product_id' => $transaction->productId,
+            'status' => $status,
+            'will_renew' => $status === PremiumEntitlement::STATUS_ACTIVE,
+            'period_start' => $this->databaseDate($transaction->purchaseDate),
+            'period_end' => $this->databaseDate($transaction->expiresDate),
+            'grace_period_ends_at' => null,
+            'revoked_at' => $this->databaseDate($transaction->revocationDate),
+            'last_verified_at' => $this->databaseDate($transaction->signedDate),
+            'provider_metadata' => $this->metadata($transaction),
+        ])->save();
+
+        return $entitlement->fresh();
+    }
+
+    public function projectRenewal(
+        User $user,
+        VerifiedAppleRenewal $renewal,
+        string $notificationType,
+        ?string $subtype,
+    ): PremiumEntitlement {
+        if (
+            $user->is_preview_user
+            || $renewal->environment !== config('apple_store.environment')
+            || $renewal->signedDate === null
+            || ! in_array($renewal->productId, config('apple_store.allowed_product_ids', []), true)
+            || ! in_array($renewal->autoRenewProductId, config('apple_store.allowed_product_ids', []), true)
+        ) {
+            throw new AppleVerificationException('invalid_signed_data');
+        }
+
+        $entitlement = PremiumEntitlement::query()
+            ->where('provider', PremiumEntitlement::PROVIDER_APPLE)
+            ->where('provider_reference', $renewal->originalTransactionId)
+            ->lockForUpdate()
+            ->first();
+
+        if (
+            ! $entitlement instanceof PremiumEntitlement
+            || (string) $entitlement->user_id !== (string) $user->getKey()
+        ) {
+            throw new AuthorizationException('Apple entitlement ownership mismatch.');
+        }
+
+        if (
+            $entitlement->last_verified_at !== null
+            && $entitlement->last_verified_at->greaterThan($renewal->signedDate)
+        ) {
+            return $entitlement;
+        }
+
+        $status = match (true) {
+            in_array($notificationType, ['GRACE_PERIOD_EXPIRED', 'EXPIRED'], true) => PremiumEntitlement::STATUS_EXPIRED,
+            in_array($notificationType, ['REFUND', 'REVOKE'], true) => PremiumEntitlement::STATUS_REVOKED,
+            $notificationType === 'DID_FAIL_TO_RENEW' && $subtype === 'GRACE_PERIOD' => PremiumEntitlement::STATUS_GRACE_PERIOD,
+            $notificationType === 'DID_FAIL_TO_RENEW' => PremiumEntitlement::STATUS_BILLING_RETRY,
+            $notificationType === 'DID_CHANGE_RENEWAL_STATUS'
+                && $subtype === 'AUTO_RENEW_DISABLED' => PremiumEntitlement::STATUS_CANCELLED,
+            $renewal->autoRenewStatus === 0 => PremiumEntitlement::STATUS_CANCELLED,
+            default => PremiumEntitlement::STATUS_ACTIVE,
+        };
+        $terminal = in_array($status, [
+            PremiumEntitlement::STATUS_CANCELLED,
+            PremiumEntitlement::STATUS_EXPIRED,
+            PremiumEntitlement::STATUS_REVOKED,
+        ], true);
+        $metadata = is_array($entitlement->provider_metadata)
+            ? $entitlement->provider_metadata
+            : [];
+        $metadata['auto_renew_product_id'] = $renewal->autoRenewProductId;
+        $metadata['expiration_intent'] = $renewal->expirationIntent;
+        $metadata['notification_type'] = $notificationType;
+        $metadata['notification_subtype'] = $subtype;
+
+        $entitlement->forceFill([
+            'status' => $status,
+            'will_renew' => ! $terminal && $renewal->autoRenewStatus === 1,
+            'grace_period_ends_at' => $status === PremiumEntitlement::STATUS_GRACE_PERIOD
+                ? $this->databaseDate($renewal->gracePeriodExpiresDate)
+                : null,
+            'last_verified_at' => $this->databaseDate($renewal->signedDate),
+            'provider_metadata' => $metadata,
+        ])->save();
+
+        return $entitlement->fresh();
+    }
+
+    public function projectServerStatus(
+        User $user,
+        int $subscriptionStatus,
+        ?VerifiedAppleRenewal $renewal,
+        string $originalTransactionId,
+    ): PremiumEntitlement {
+        if (
+            $user->is_preview_user
+            || ! in_array(
+                $subscriptionStatus,
+                AppleReconciliationStatusEvidence::VALUES,
+                true,
+            )
+            || ($renewal !== null
+                && ($renewal->originalTransactionId !== $originalTransactionId
+                    || $renewal->environment !== config('apple_store.environment')
+                    || $renewal->signedDate === null
+                    || ! in_array(
+                        $renewal->productId,
+                        config('apple_store.allowed_product_ids', []),
+                        true,
+                    )
+                    || ! in_array(
+                        $renewal->autoRenewProductId,
+                        config('apple_store.allowed_product_ids', []),
+                        true,
+                    )))
+        ) {
+            throw new AppleVerificationException('invalid_signed_data');
+        }
+
+        $entitlement = PremiumEntitlement::query()
+            ->where('provider', PremiumEntitlement::PROVIDER_APPLE)
+            ->where('provider_reference', $originalTransactionId)
+            ->lockForUpdate()
+            ->first();
+
+        if (
+            ! $entitlement instanceof PremiumEntitlement
+            || (string) $entitlement->user_id !== (string) $user->getKey()
+        ) {
+            throw new AuthorizationException('Apple entitlement ownership mismatch.');
+        }
+
+        $status = match ($subscriptionStatus) {
+            AppleReconciliationStatusEvidence::ACTIVE => PremiumEntitlement::STATUS_ACTIVE,
+            AppleReconciliationStatusEvidence::EXPIRED => PremiumEntitlement::STATUS_EXPIRED,
+            AppleReconciliationStatusEvidence::BILLING_RETRY => PremiumEntitlement::STATUS_BILLING_RETRY,
+            AppleReconciliationStatusEvidence::BILLING_GRACE_PERIOD => PremiumEntitlement::STATUS_GRACE_PERIOD,
+            AppleReconciliationStatusEvidence::REVOKED => PremiumEntitlement::STATUS_REVOKED,
+        };
+        $terminal = in_array($status, [
+            PremiumEntitlement::STATUS_EXPIRED,
+            PremiumEntitlement::STATUS_REVOKED,
+        ], true);
+        $metadata = is_array($entitlement->provider_metadata)
+            ? $entitlement->provider_metadata
+            : [];
+        $metadata['subscription_status'] = $subscriptionStatus;
+        if ($renewal !== null) {
+            $metadata['auto_renew_product_id'] = $renewal->autoRenewProductId;
+            $metadata['expiration_intent'] = $renewal->expirationIntent;
+        }
+        $lastVerifiedAt = $entitlement->last_verified_at;
+        if (
+            $renewal?->signedDate !== null
+            && ($lastVerifiedAt === null
+                || $renewal->signedDate->greaterThan($lastVerifiedAt))
+        ) {
+            $lastVerifiedAt = $renewal->signedDate;
+        }
+
+        $entitlement->forceFill([
+            'status' => $status,
+            'will_renew' => $terminal
+                ? false
+                : ($renewal?->autoRenewStatus === 1
+                    || ($renewal === null && $entitlement->will_renew)),
+            'grace_period_ends_at' => $status === PremiumEntitlement::STATUS_GRACE_PERIOD
+                ? $this->databaseDate($renewal?->gracePeriodExpiresDate)
+                : null,
+            'last_verified_at' => $this->databaseDate($lastVerifiedAt),
+            'provider_metadata' => $metadata,
+        ])->save();
+
+        return $entitlement->fresh();
+    }
+
+    private function validate(
+        User $user,
+        VerifiedAppleTransaction $transaction,
+    ): void {
+        $products = config('apple_store.allowed_product_ids');
+        $environment = config('apple_store.environment');
+        $bundleId = config('apple_store.bundle_id');
+        $userToken = $user->apple_app_account_token;
+
+        if (
+            $user->is_preview_user
+            || ! is_string($userToken)
+            || $userToken === ''
+            || $transaction->appAccountToken !== $userToken
+        ) {
+            throw new AuthorizationException('Apple transaction ownership mismatch.');
+        }
+
+        if (
+            ! is_array($products)
+            || ! in_array($transaction->productId, $products, true)
+            || $transaction->environment !== $environment
+            || $transaction->bundleId !== $bundleId
+            || $transaction->purchaseDate === null
+            || $transaction->expiresDate === null
+            || $transaction->signedDate === null
+            || $transaction->expiresDate->lessThan($transaction->purchaseDate)
+            || $transaction->signedDate->lessThan($transaction->purchaseDate)
+            || ($transaction->revocationDate !== null
+                && ($transaction->revocationDate->lessThan($transaction->purchaseDate)
+                    || $transaction->revocationDate->greaterThan($transaction->signedDate)))
+            || ! $this->fits($transaction->transactionId, 191)
+            || ! $this->fits($transaction->originalTransactionId, 191)
+            || ! $this->fits($transaction->productId, 100)
+            || $transaction->ownershipType !== self::PURCHASED_OWNERSHIP
+            || ! $this->fitsNullable($transaction->transactionReason, 32)
+        ) {
+            throw new AppleVerificationException('invalid_signed_data');
+        }
+    }
+
+    /** @return array<string, string|null> */
+    private function metadata(VerifiedAppleTransaction $transaction): array
+    {
+        return [
+            'environment' => $transaction->environment,
+            'last_transaction_id' => $transaction->transactionId,
+            'ownership_type' => $transaction->ownershipType,
+            'transaction_reason' => $transaction->transactionReason,
+        ];
+    }
+
+    private function fits(string $value, int $maximumBytes): bool
+    {
+        return $value !== ''
+            && trim($value) === $value
+            && strlen($value) <= $maximumBytes;
+    }
+
+    private function fitsNullable(?string $value, int $maximumBytes): bool
+    {
+        return $value === null || $this->fits($value, $maximumBytes);
+    }
+
+    private function databaseDate(?CarbonImmutable $date): ?CarbonImmutable
+    {
+        return $date?->setTimezone((string) config('app.timezone'));
+    }
+}

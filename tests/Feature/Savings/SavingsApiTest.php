@@ -170,16 +170,16 @@ describe('Savings API', function () {
         });
 
         it('returns 403 with structured payload when a free-tier user exceeds the savings cap', function () {
-            // Default factory creates tier1 (unlimited); recreate as free-tier for this cap test.
+            // Create an explicit Free user for this cap test.
             $freeUser = User::factory()->create(['tier' => 'free']);
             Sanctum::actingAs($freeUser);
 
-            // Free-tier savings_account cap is 3 per TierConfigurationSeeder; create 3 then attempt a 4th.
-            SavingsAccount::factory(3)->create(['user_id' => $freeUser->id]);
+            // Free-tier savings_account cap is 2 per TierConfigurationSeeder; create 2 then attempt a third.
+            SavingsAccount::factory(2)->create(['user_id' => $freeUser->id]);
 
             $response = $this->postJson('/api/savings/accounts', [
                 'account_type' => 'easy_access',
-                'institution' => 'Fourth Bank',
+                'institution' => 'Third Bank',
                 'current_balance' => 1000,
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100,
@@ -189,13 +189,13 @@ describe('Savings API', function () {
             $response->assertStatus(403)
                 ->assertJson([
                     'success' => false,
-                    'error' => [
-                        'entity_key' => 'savings_account',
-                        'hard_limit' => 3,
-                    ],
+                    'error' => 'tier_limit_reached',
+                    'entity_key' => 'savings_account',
+                    'hard_limit' => 2,
+                    'action' => 'subscription_options',
                 ]);
 
-            expect(SavingsAccount::where('user_id', $freeUser->id)->count())->toBe(3);
+            expect(SavingsAccount::where('user_id', $freeUser->id)->count())->toBe(2);
         });
     });
 
@@ -337,6 +337,113 @@ describe('Savings API', function () {
             $account = SavingsAccount::where('user_id', $user->id)->where('account_name', 'Halifax Easy Saver')->firstOrFail();
             expect((float) $account->ownership_percentage)->toBe(100.0);
             expect((float) $account->current_balance)->toBe(12000.0);
+        });
+
+        it('creates a joint savings account without an explicit share — the modal has no share input', function () {
+            // The form sends ownership_type and joint_owner_id and nothing else,
+            // and the validator used to reject that outright with "An explicit
+            // ownership share is required for a shared account", making joint
+            // savings unreachable from the UI (W-0013).
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            $user->update(['spouse_id' => $spouse->id]);
+            $spouse->update(['spouse_id' => $user->id]);
+            Sanctum::actingAs($user);
+
+            $this->postJson('/api/savings/accounts', [
+                'institution' => 'Nationwide',
+                'account_type' => 'current_account',
+                'current_balance' => 4500,
+                'interest_rate' => 0,
+                'access_type' => 'immediate',
+                'is_emergency_fund' => false,
+                'is_isa' => false,
+                'ownership_type' => 'joint',
+                'joint_owner_id' => $spouse->id,
+            ])->assertCreated();
+
+            $account = SavingsAccount::where('user_id', $user->id)
+                ->where('institution', 'Nationwide')
+                ->firstOrFail();
+
+            // Rule 6: ONE row holding the FULL balance, split 50/50.
+            expect($account->ownership_type)->toBe('joint')
+                ->and($account->joint_owner_id)->toBe($spouse->id)
+                ->and((float) $account->ownership_percentage)->toBe(50.0)
+                ->and((float) $account->current_balance)->toBe(4500.0);
+        });
+
+        it('refuses a stated 100 on a joint savings account instead of halving it', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            $user->update(['spouse_id' => $spouse->id]);
+            $spouse->update(['spouse_id' => $user->id]);
+            Sanctum::actingAs($user);
+
+            $this->postJson('/api/savings/accounts', [
+                'institution' => 'Nationwide',
+                'account_type' => 'current_account',
+                'current_balance' => 4500,
+                'ownership_type' => 'joint',
+                'joint_owner_id' => $spouse->id,
+                'ownership_percentage' => 100,
+            ])->assertStatus(422)->assertJsonValidationErrors('ownership_percentage');
+
+            // "I own all of it" is individual ownership, not a joint 50/50
+            // record — refused rather than silently halved (W-0040).
+            expect(SavingsAccount::where('user_id', $user->id)->where('institution', 'Nationwide')->exists())
+                ->toBeFalse();
+        });
+
+        it('gives a joint savings account a 50/50 split when no share is stated', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            $user->update(['spouse_id' => $spouse->id]);
+            $spouse->update(['spouse_id' => $user->id]);
+            Sanctum::actingAs($user);
+
+            // The savings modal has no share input and sends nothing (W-0013).
+            $this->postJson('/api/savings/accounts', [
+                'institution' => 'Nationwide',
+                'account_type' => 'current_account',
+                'current_balance' => 4500,
+                'ownership_type' => 'joint',
+                'joint_owner_id' => $spouse->id,
+            ])->assertCreated();
+
+            $account = SavingsAccount::where('user_id', $user->id)
+                ->where('institution', 'Nationwide')
+                ->firstOrFail();
+
+            expect((float) $account->ownership_percentage)->toBe(50.0);
+        });
+
+        it('converts an existing individual account to joint without an explicit share', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            $user->update(['spouse_id' => $spouse->id]);
+            $spouse->update(['spouse_id' => $user->id]);
+            Sanctum::actingAs($user);
+
+            $account = SavingsAccount::factory()->create([
+                'user_id' => $user->id,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'current_balance' => 4500,
+                'is_isa' => false,
+                'account_type' => 'current_account',
+            ]);
+
+            $this->putJson("/api/savings/accounts/{$account->id}", [
+                'ownership_type' => 'joint',
+                'joint_owner_id' => $spouse->id,
+            ])->assertOk();
+
+            $account->refresh();
+
+            expect($account->ownership_type)->toBe('joint')
+                ->and($account->joint_owner_id)->toBe($spouse->id)
+                ->and((float) $account->ownership_percentage)->toBe(50.0);
         });
 
         it('rejects joint ISA creation with 422 — joint ISAs are illegal under UK law', function () {

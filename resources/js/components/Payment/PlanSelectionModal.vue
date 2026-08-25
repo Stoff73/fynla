@@ -32,6 +32,12 @@
           </button>
         </div>
 
+        <div v-if="isPremiumCurrent" class="text-center py-8">
+          <p class="text-body-base font-semibold text-horizon-500">You are on Premium</p>
+          <p class="mt-2 text-body-sm text-neutral-500">Your current plan already includes all Premium features.</p>
+        </div>
+
+        <template v-else>
         <!-- Limited Time Offer Banner — only when a launch/discount price is live -->
         <div v-if="hasAnyLaunchOffer" class="flex justify-center mb-4">
           <span class="inline-block bg-raspberry-50 text-raspberry-500 text-base font-bold px-5 py-2 rounded-full">
@@ -102,7 +108,7 @@
             </div>
             <!-- Most Popular Badge -->
             <div
-              v-else-if="plan.slug === 'tier2'"
+              v-else-if="plan.slug === 'premium'"
               class="absolute -top-3 left-1/2 -translate-x-1/2"
             >
               <span class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-spring-500 text-white whitespace-nowrap">
@@ -164,24 +170,15 @@
             </button>
           </div>
         </div>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
-
-const PLAN_ORDER = ['free', 'tier1', 'tier2', 'tier3'];
-
-// Student plan is gated to UK university students. Backend (PaymentController +
-// User::isEligibleForStudentPlan) is the authoritative gate; this mirrors that
-// check for the UI so ineligible users never see the Student card.
-function isEligibleForStudentPlan(email) {
-  return typeof email === 'string' && email.toLowerCase().trim().endsWith('.ac.uk');
-}
 
 export default {
   name: 'PlanSelectionModal',
@@ -223,30 +220,13 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['currentUser']),
-
-    isEligibleForStudentPlan() {
-      return isEligibleForStudentPlan(this.currentUser?.email);
+    isPremiumCurrent() {
+      return this.currentPlan === 'premium';
     },
 
-    // Plans filtered by both the upgrade-tier rule AND the Student eligibility rule.
     filteredPlans() {
-      let plans = this.plans;
-
-      // Upgrade flow: hide tiers at or below the user's current plan.
-      if (this.currentPlan && !this.showAllPlans) {
-        const currentIndex = PLAN_ORDER.indexOf(this.currentPlan);
-        if (currentIndex !== -1) {
-          plans = plans.filter(p => PLAN_ORDER.indexOf(p.slug) > currentIndex);
-        }
-      }
-
-      // Student plan: only visible to UK university students (.ac.uk email).
-      if (!this.isEligibleForStudentPlan) {
-        plans = plans.filter(p => p.slug !== 'student');
-      }
-
-      return plans;
+      if (this.isPremiumCurrent) return [];
+      return this.plans.filter(plan => plan.slug === 'premium');
     },
 
     gridClass() {
@@ -270,14 +250,16 @@ export default {
     },
 
     headerTitle() {
-      if (!this.dismissable) return 'Your Trial Has Ended';
+      if (this.isPremiumCurrent) return 'You are on Premium';
+      if (!this.dismissable) return 'Your subscription has ended';
       if (this.showAllPlans) return 'Choose Your Plan';
       if (this.currentPlan) return 'Upgrade Your Plan';
       return 'Choose Your Plan';
     },
 
     headerSubtitle() {
-      if (!this.dismissable) return 'Choose a plan to continue using Fynla';
+      if (this.isPremiumCurrent) return 'There are no further plans to choose.';
+      if (!this.dismissable) return 'Choose Premium to restore full access to Fynla.';
       if (this.showAllPlans && this.currentPlan) return 'Your current plan is highlighted below';
       if (this.currentPlan) return 'Select a plan to upgrade to';
       return 'Select a plan that works for you';
@@ -346,7 +328,7 @@ export default {
       return this.showAllPlans && plan.slug === this.currentPlan;
     },
 
-    // The three paid tiers (Tier 1/2/3) carry self-contained feature lists from
+    // Premium carries a self-contained feature list from
     // tier_configurations, so the card renders the DB list verbatim — no
     // per-slug adjustments (the legacy Student-inline and Family add-on hacks
     // were removed when the plans were relabelled onto the tier model).

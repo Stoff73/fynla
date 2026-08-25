@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Shared;
 
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\User;
@@ -23,6 +26,8 @@ use Illuminate\Support\Collection;
  * - Property values (from Property module)
  * - Investment values (from Investment module)
  * - Cash/Savings values (from Savings module)
+ * - Chattel values (from Estate module)
+ * - Business interest values (from Business module)
  * - Mortgage liabilities (from Property module)
  *
  * Single-Record Architecture:
@@ -69,6 +74,17 @@ class CrossModuleAssetAggregator
         // Get savings/cash accounts from Savings module
         $savings = $this->getSavingsAssets($userId);
         $allAssets = $allAssets->concat($savings);
+
+        // Get chattels from the Estate module. W-0138: these were absent, so every
+        // consumer of this collection — including the estate net worth the /m estate
+        // screen reads — presented an estate with the user's valuables missing.
+        $chattels = $this->getChattelAssets($userId);
+        $allAssets = $allAssets->concat($chattels);
+
+        // Business interests, absent for the same reason and found by the W-0138
+        // census. Invisible to the peak_earners persona, which has none.
+        $business = $this->getBusinessAssets($userId);
+        $allAssets = $allAssets->concat($business);
 
         return $allAssets;
     }
@@ -168,6 +184,36 @@ class CrossModuleAssetAggregator
     }
 
     /**
+     * Get chattel assets for a user.
+     *
+     * Single-record pattern: Query assets where user is owner OR joint_owner.
+     * Calculate user's share based on ownership_percentage.
+     */
+    public function getChattelAssets(int $userId): Collection
+    {
+        return Chattel::forUserOrJoint($userId)
+            ->get()
+            ->map(function ($chattel) use ($userId) {
+                $userShare = $this->calculateUserShare($chattel, $userId);
+                $fullValue = $this->getFullValue($chattel);
+
+                return (object) [
+                    'asset_type' => 'chattel',
+                    'asset_name' => $chattel->name,
+                    'current_value' => $userShare,
+                    'full_value' => $fullValue,
+                    'ownership_type' => $chattel->ownership_type ?? 'individual',
+                    'ownership_percentage' => $chattel->ownership_percentage ?? 100,
+                    'is_primary_owner' => $this->isPrimaryOwner($chattel, $userId),
+                    'is_shared' => $this->isSharedOwnership($chattel),
+                    'is_iht_exempt' => false,
+                    'source_id' => $chattel->id,
+                    'source_model' => 'Chattel',
+                ];
+            });
+    }
+
+    /**
      * Calculate total asset values by type
      */
     public function getAssetTotals(int $userId): array
@@ -176,6 +222,8 @@ class CrossModuleAssetAggregator
             'property' => $this->calculatePropertyTotal($userId),
             'investment' => $this->calculateInvestmentTotal($userId),
             'cash' => $this->calculateCashTotal($userId),
+            'chattel' => $this->calculateChattelTotal($userId),
+            'business' => $this->calculateBusinessTotal($userId),
         ];
     }
 
@@ -218,6 +266,69 @@ class CrossModuleAssetAggregator
 
         return $this->savingsStore->forUser($user)
             ->sum(fn ($account) => $this->calculateUserShare($account, $userId));
+    }
+
+    /**
+     * Get business interest assets for a user.
+     *
+     * Single-record pattern: Query assets where user is owner OR joint_owner.
+     * CalculatesOwnershipShare already knows business interests are different —
+     * ownership_percentage is a SHAREHOLDING and applies even to individually
+     * owned records, where for every other class individual means 100%.
+     *
+     * `is_iht_exempt` is deliberately absent. Business Property Relief depends on
+     * bpr_eligible, trading status and two years' ownership; this collection is
+     * asset VALUE, nothing here reads the flag, and relief belongs to the
+     * Inheritance Tax path (EstateAssetAggregatorService::gatherUserAssets), which
+     * models it already. Asserting a flat `false` would state something untrue of
+     * a qualifying trading business.
+     */
+    public function getBusinessAssets(int $userId): Collection
+    {
+        return BusinessInterest::forUserOrJoint($userId)
+            ->get()
+            ->map(function ($business) use ($userId) {
+                $userShare = $this->calculateUserShare($business, $userId);
+
+                return (object) [
+                    'asset_type' => 'business',
+                    'asset_name' => $business->business_name,
+                    'current_value' => $userShare,
+                    'full_value' => (float) $business->current_valuation,
+                    'ownership_type' => $business->ownership_type ?? 'individual',
+                    'ownership_percentage' => $business->ownership_percentage ?? 100,
+                    'is_primary_owner' => $this->isPrimaryOwner($business, $userId),
+                    'is_shared' => $this->isSharedOwnership($business),
+                    'source_id' => $business->id,
+                    'source_model' => 'BusinessInterest',
+                ];
+            });
+    }
+
+    /**
+     * Calculate total business interest value (user's share).
+     *
+     * Single-record pattern: Sum user's share of all business interests where
+     * user is owner OR joint_owner.
+     */
+    public function calculateBusinessTotal(int $userId): float
+    {
+        return BusinessInterest::forUserOrJoint($userId)
+            ->get()
+            ->sum(fn ($business) => $this->calculateUserShare($business, $userId));
+    }
+
+    /**
+     * Calculate total chattel value (user's share).
+     *
+     * Single-record pattern: Sum user's share of all chattels where user
+     * is owner OR joint_owner.
+     */
+    public function calculateChattelTotal(int $userId): float
+    {
+        return Chattel::forUserOrJoint($userId)
+            ->get()
+            ->sum(fn ($chattel) => $this->calculateUserShare($chattel, $userId));
     }
 
     /**
@@ -267,6 +378,48 @@ class CrossModuleAssetAggregator
     }
 
     /**
+     * What this user owes, split the way every surface presents it, at THEIR share.
+     *
+     * The one home for the liability side (Rule 20). Three mechanisms answered
+     * this question and none of them applied the share: the profile's
+     * `calculateLiabilitiesSummary` and both protection paths read
+     * `forUserPrimaryOnly` / `$user->liabilities()`, which are scoped to `user_id`
+     * alone. So the primary owner was charged the WHOLE of every shared debt —
+     * his spouse's half of a joint mortgage, and the 60% of a tenants-in-common
+     * loan belonging to a co-owner who has no account here at all (W-0187) —
+     * while the joint owner was shown none of it.
+     *
+     * `liabilities` carries `ownership_type`, `ownership_percentage` and
+     * `joint_owner_id` like every other shared record. `calculateUserShare`
+     * returns 0.0 for anyone who is neither party, so a third party's share
+     * reduces the user's figure without being credited to anybody.
+     *
+     * **Mortgage-type liability rows count as mortgages, not as "other".** They
+     * are a second way to record the same debt and the profile has always
+     * presented them alongside the mortgages table. Summing them into "other"
+     * would have counted the same borrowing twice.
+     *
+     * @return array{mortgages: float, other: float, total: float}
+     */
+    public function calculateLiabilityTotals(int $userId): array
+    {
+        $liabilities = Liability::forUserOrJoint($userId)->get();
+
+        $share = fn (Liability $liability): float => $this->calculateUserShare($liability, $userId);
+
+        $mortgages = $this->calculateMortgageTotal($userId)
+            + $liabilities->where('liability_type', 'mortgage')->sum($share);
+
+        $other = (float) $liabilities->where('liability_type', '!=', 'mortgage')->sum($share);
+
+        return [
+            'mortgages' => round((float) $mortgages, 2),
+            'other' => round($other, 2),
+            'total' => round((float) $mortgages + $other, 2),
+        ];
+    }
+
+    /**
      * Get asset breakdown with counts.
      *
      * Note: Count includes all assets where user is owner OR joint_owner.
@@ -287,6 +440,14 @@ class CrossModuleAssetAggregator
             'cash' => [
                 'count' => $this->savingsStore->forUser($user)->count(),
                 'total' => $this->calculateCashTotal($userId),
+            ],
+            'chattel' => [
+                'count' => Chattel::forUserOrJoint($userId)->count(),
+                'total' => $this->calculateChattelTotal($userId),
+            ],
+            'business' => [
+                'count' => BusinessInterest::forUserOrJoint($userId)->count(),
+                'total' => $this->calculateBusinessTotal($userId),
             ],
             'mortgages' => [
                 'count' => $this->mortgageStore->forUser($user)->count(),

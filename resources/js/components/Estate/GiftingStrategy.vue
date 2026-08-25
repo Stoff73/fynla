@@ -319,15 +319,29 @@
             <p class="mb-2">
               Potentially Exempt Transfers become completely exempt from Inheritance Tax if you survive for 7 years after making the gift.
             </p>
-            <p class="font-medium mb-1">If death occurs within 7 years, taper relief applies:</p>
+            <!--
+              C4 — the schedule was written out here as prose, a fourth independent
+              copy of a table `TaxConfigService` already holds, under a heading that
+              stated taper applies whenever death falls within seven years. It does
+              not: IHTM14611 restricts it to gifts bearing tax in their own right, so
+              a gift covered by the allowance gets none however long ago it was made.
+              The qualification is the whole point and it was missing.
+            -->
+            <p class="font-medium mb-1">
+              If death occurs within 7 years, any part of a gift ABOVE your available
+              allowance is taxable — and taper relief reduces the tax on that part
+              once you have survived 3 years:
+            </p>
             <ul class="list-disc list-inside space-y-1 ml-2">
-              <li><span class="font-semibold">Years 0-3:</span> 40% Inheritance Tax rate (no relief)</li>
-              <li><span class="font-semibold">Years 3-4:</span> 32% Inheritance Tax rate (20% taper relief)</li>
-              <li><span class="font-semibold">Years 4-5:</span> 24% Inheritance Tax rate (40% taper relief)</li>
-              <li><span class="font-semibold">Years 5-6:</span> 16% Inheritance Tax rate (60% taper relief)</li>
-              <li><span class="font-semibold">Years 6-7:</span> 8% Inheritance Tax rate (80% taper relief)</li>
-              <li><span class="font-semibold">After 7 years:</span> 0% Inheritance Tax rate (100% relief - fully exempt)</li>
+              <li v-for="band in taperBands" :key="band.from">
+                <span class="font-semibold">Years {{ band.from }}-{{ band.to }}:</span>
+                {{ band.rate }}% Inheritance Tax rate<template v-if="band.relief"> ({{ band.relief }}% taper relief)</template>
+              </li>
             </ul>
+            <p class="mt-2">
+              A gift that stays within your allowance is not taxed at all, so taper
+              relief does not arise on it.
+            </p>
           </div>
         </div>
       </div>
@@ -495,8 +509,43 @@ export default {
 
   computed: {
     ...mapState('estate', ['gifts']),
+    // Published by IHTController since C5. The calculation lands under
+    // `secondDeathPlanning.iht_summary.current` — the same path `ihtLiability`
+    // reads — NOT a top-level `ihtCalculation` key, which does not exist. Empty
+    // until the estate call resolves, which renders as "within your allowance";
+    // that is the safe reading while loading, and the correct one for most gifts.
+    ...mapState('estate', {
+      failedGifts: (state) => state.secondDeathPlanning?.iht_summary?.current?.failed_gifts || [],
+    }),
     ...mapGetters('estate', ['giftsWithin7Years', 'giftsWithin7YearsValue']),
-    ...mapGetters('taxConfig', ['annualGiftExemption']),
+    ...mapGetters('taxConfig', ['annualGiftExemption', 'ihtGiftTaperBands']),
+
+    /**
+     * The taper schedule, from configuration. Falls back to the statutory table so
+     * the panel still reads correctly if the config call has not resolved — but the
+     * fallback is a LAST resort, not the source, which is the difference between
+     * this and the prose it replaced.
+     */
+    taperBands() {
+      const bands = this.ihtGiftTaperBands;
+      if (!Array.isArray(bands) || bands.length === 0) {
+        return [
+          { from: 0, to: 3, rate: 40, relief: 0 },
+          { from: 3, to: 4, rate: 32, relief: 20 },
+          { from: 4, to: 5, rate: 24, relief: 40 },
+          { from: 5, to: 6, rate: 16, relief: 60 },
+          { from: 6, to: 7, rate: 8, relief: 80 },
+          { from: 7, to: '+', rate: 0, relief: 100 },
+        ];
+      }
+      const full = bands.find((b) => (b.min_years ?? 0) === 0)?.tax_rate ?? 0.4;
+      return bands.map((b) => ({
+        from: b.min_years ?? 0,
+        to: b.max_years ?? '+',
+        rate: Math.round((b.tax_rate ?? 0) * 100),
+        relief: full > 0 ? Math.round((1 - (b.tax_rate ?? 0) / full) * 100) : 0,
+      }));
+    },
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -515,7 +564,15 @@ export default {
     },
 
     sortedGifts() {
-      return [...this.gifts].sort((a, b) => new Date(b.gift_date) - new Date(a.gift_date));
+      // C4 — attach the server's per-gift tax answer, keyed by id, so `GiftCard`
+      // and the timeline stop deciding taper from the gift's age. A gift with no
+      // entry in `failed_gifts` bears no tax and therefore no relief; that absence
+      // IS the answer and must reach the component as `taper: null`.
+      const byId = new Map((this.failedGifts || []).map((g) => [g.gift_id, g]));
+
+      return [...this.gifts]
+        .map((gift) => ({ ...gift, taper: byId.get(gift.id) || null }))
+        .sort((a, b) => new Date(b.gift_date) - new Date(a.gift_date));
     },
 
     petStrategy() {

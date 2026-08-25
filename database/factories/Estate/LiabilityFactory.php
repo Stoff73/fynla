@@ -14,8 +14,14 @@ class LiabilityFactory extends Factory
 
     public function definition(): array
     {
+        // 'mortgage' is deliberately NOT in this pool. NetWorthService skips
+        // mortgage-typed liabilities on purpose — property mortgages are counted
+        // from the mortgages table, and counting them here too would double them.
+        // While 'mortgage' was one of nine random defaults, any test that created
+        // a liability without naming its type lost that liability from the totals
+        // roughly one run in nine. That is what made NetWorthControllerTest red in
+        // CI and green locally. Ask for a mortgage explicitly with ->mortgage().
         $liabilityTypes = [
-            'mortgage',
             'secured_loan',
             'personal_loan',
             'credit_card',

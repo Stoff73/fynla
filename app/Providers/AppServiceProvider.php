@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Anthropic\Client;
+use App\Exceptions\Billing\AppleVerificationException;
 use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Models\RecommendationTracking;
+use App\Models\User;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Observers\RecommendationTrackingObserver;
+use App\Observers\SurvivingSpouseExpenditureObserver;
+use App\Observers\UserOnboardingStepObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
@@ -32,14 +36,20 @@ use App\Services\AI\Pointers\Handlers\TaxAllowanceHandler;
 use App\Services\AI\Pointers\Handlers\UserFinancialHandler;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiClient;
+use App\Services\Billing\Apple\AppleBridgeClient;
+use App\Services\Billing\Apple\AppleSignedDataVerifier;
+use App\Services\Billing\Apple\AppleStoreServerClient;
+use App\Services\Billing\Apple\PythonAppleSignedDataVerifier;
+use App\Services\Billing\Apple\PythonAppleStoreServerClient;
+use App\Services\Billing\Apple\SymfonyAppleBridgeClient;
+use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Gamification\LevelUpCollector;
-use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
-use App\Services\Lifecycle\LifecycleEngine;
-use App\Services\Lifecycle\LifecycleSnapshotService;
+use App\Services\Gamification\MilestoneCollector;
 use App\Services\Plans\PlanConfigService;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\DbTierGate;
+use App\Support\SecuringPropertyResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 
@@ -60,6 +70,22 @@ class AppServiceProvider extends ServiceProvider
         // Request-scoped collector that surfaces in-turn gamification level-ups
         // to the SSE/API layer (one instance per request).
         $this->app->scoped(LevelUpCollector::class);
+
+        // WP-5c-iii — same pattern for in-turn milestone mints (Fyn appends a
+        // plain-text acknowledgement in the same capture turn).
+        $this->app->scoped(MilestoneCollector::class);
+
+        // WP-5c-iii — scoped so its per-request memo works: the dashboard read
+        // composes the tax plan once (strategy unlocks) and milestone
+        // detection reuses it via forUserIfComputed().
+        $this->app->scoped(ComposedTaxPlanService::class);
+
+        // W-0228 — scoped so its memo is ONE cache for the whole request. Every
+        // mortgage share resolves the property securing it, and around twenty
+        // services ask in a single dashboard read. It cannot be a static on
+        // CalculatesOwnershipShare: a static in a trait is per using class, so
+        // that would be a dozen caches and no way to clear them.
+        $this->app->scoped(SecuringPropertyResolver::class);
 
         // Register both AI client singletons — runtime provider selection happens
         // in HasAiChat/HasAiGuardrails via cache check (admin toggle)
@@ -142,18 +168,42 @@ class AppServiceProvider extends ServiceProvider
             DbTierGate::class
         );
 
-        // LifecycleEngine is a singleton so its per-run caches
-        // (trialAfterEndCandidates, cachedHasDataIds) are shared across every
-        // campaign resolved from config during a single engine run. Without
-        // the singleton, Laravel would construct a fresh engine each time a
-        // campaign's constructor asks for one, defeating the cache and
-        // re-running the expensive candidate query N times per run.
-        $this->app->singleton(LifecycleEngine::class, function ($app) {
-            return new LifecycleEngine(
-                snapshotService: $app->make(LifecycleSnapshotService::class),
-                discountGenerator: $app->make(LifecycleDiscountCodeGenerator::class),
+        $this->app->singleton(AppleBridgeClient::class, function () {
+            $pythonExecutable = config('apple_store.python_executable');
+            $cliPath = config('apple_store.bridge_cli_path');
+            $timeout = config('apple_store.process_timeout_seconds');
+            $maxRequestBytes = config('apple_store.max_request_bytes');
+            $maxResponseBytes = config('apple_store.max_response_bytes');
+
+            if (
+                ! is_string($pythonExecutable)
+                || ! is_string($cliPath)
+                || (! is_int($timeout) && ! is_float($timeout))
+                || ! is_int($maxRequestBytes)
+                || ! is_int($maxResponseBytes)
+            ) {
+                throw new AppleVerificationException(
+                    'invalid_configuration',
+                );
+            }
+
+            return new SymfonyAppleBridgeClient(
+                pythonExecutable: $pythonExecutable,
+                cliPath: $cliPath,
+                timeout: (float) $timeout,
+                maxRequestBytes: $maxRequestBytes,
+                maxResponseBytes: $maxResponseBytes,
             );
         });
+        $this->app->singleton(
+            AppleSignedDataVerifier::class,
+            PythonAppleSignedDataVerifier::class,
+        );
+        $this->app->singleton(
+            AppleStoreServerClient::class,
+            PythonAppleStoreServerClient::class,
+        );
+
     }
 
     /**
@@ -169,6 +219,8 @@ class AppServiceProvider extends ServiceProvider
         InsightArticle::observe(InsightArticleObserver::class);
         DocumentArticle::observe(DocumentArticleObserver::class);
         RecommendationTracking::observe(RecommendationTrackingObserver::class);
+        User::observe(UserOnboardingStepObserver::class);
+        User::observe(SurvivingSpouseExpenditureObserver::class);
     }
 
     /**

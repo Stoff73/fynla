@@ -6,6 +6,7 @@ const KEY = 'm_scaffold_token';
 export const store = reactive({
   token: localStorage.getItem(KEY) || null,
   user: null,
+  subscriptionStatus: null,
   // Gamification (shared engine — GET /api/gamification/status). pendingCelebration
   // is the level-up to celebrate; set from a level_up SSE frame mid-chat or from a
   // missed-celebration delivered by fetchStatus on next app open.
@@ -17,6 +18,14 @@ export const store = reactive({
     nextActions: [],
   },
   pendingCelebration: null, // { level, level_name, next_actions } | null
+  // Same-route verify refresh: bumped when the onboarding chat applies an
+  // edit and re-verifies the screen the user is already on — the module
+  // screens watch this and refetch, since no remount happens without a
+  // route change.
+  screenRefreshTick: 0,
+  bumpScreenRefresh() {
+    this.screenRefreshTick += 1;
+  },
   // Bug-report sheet context. Opened from the floating FAB (no conversation) or
   // from the Fyn chat header (carries the active conversationId so the report
   // captures the transcript). Shared here because the sheet lives in App.vue
@@ -31,6 +40,7 @@ export const store = reactive({
     this.bugReport.conversationId = null;
   },
   setToken(t) {
+    if (this.token !== t) this.subscriptionStatus = null;
     this.token = t;
     if (t) localStorage.setItem(KEY, t);
     else localStorage.removeItem(KEY);
@@ -38,6 +48,7 @@ export const store = reactive({
   logout() {
     this.setToken(null);
     this.user = null;
+    this.subscriptionStatus = null;
   },
   // Pull the latest gamification status. A pending_celebration from a missed
   // level-up is surfaced here so it delivers on next open.
@@ -59,7 +70,7 @@ export const store = reactive({
           next_actions: d.pending_celebration.next_actions || [],
         };
       }
-    } catch (e) {
+    } catch {
       /* non-fatal — gamification must never break the dashboard */
     }
   },
@@ -77,7 +88,7 @@ export const store = reactive({
     this.pendingCelebration = null;
     try {
       if (this.token) await apiPost('/api/gamification/celebration/ack', {}, this.token);
-    } catch (e) {
+    } catch {
       /* non-fatal */
     }
   },

@@ -41,7 +41,7 @@ class FunnelAnswersMapper
             $dirty = true;
         }
 
-        // Marital status — funnel only asks "do you have a spouse or partner?".
+        // Marital status — the live funnels ask "Do you have a spouse?".
         // yes → married (the spouse-detail onboarding step confirms/refines);
         // no → single. Civil partnership etc. are refined later in onboarding.
         $spouse = $funnel['spouse'] ?? null;

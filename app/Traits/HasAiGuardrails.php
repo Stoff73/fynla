@@ -164,15 +164,11 @@ trait HasAiGuardrails
         }
 
         $configModel = config("{$configKey}.chat_model");
-        if ($configModel) {
-            return $configModel;
+        if ($complexity === 'complex' && $this->getUserPlan($user) === 'premium') {
+            return config("{$configKey}.advanced_chat_model") ?: ($configModel ?: $defaultModel);
         }
 
-        if ($complexity === 'complex' && $this->getUserPlan($user) === 'pro') {
-            return config("{$configKey}.advanced_chat_model", $defaultModel);
-        }
-
-        return $defaultModel;
+        return $configModel ?: $defaultModel;
     }
 
     /**
@@ -183,7 +179,7 @@ trait HasAiGuardrails
         $plan = $this->getUserPlan($user);
 
         return match ($plan) {
-            'pro' => 8192,
+            'premium' => 8192,
             default => 4096,
         };
     }
@@ -358,7 +354,7 @@ trait HasAiGuardrails
     }
 
     /**
-     * Get the user's subscription plan.
+     * Get the user's canonical entitlement tier.
      */
     private function getUserPlan(User $user): string
     {
@@ -366,15 +362,7 @@ trait HasAiGuardrails
             return 'preview';
         }
 
-        $subscription = $user->relationLoaded('subscription')
-            ? $user->subscription
-            : $user->subscription()->first();
-
-        if (! $subscription) {
-            return 'student';
-        }
-
-        return $subscription->plan ?? 'student';
+        return $this->userTier($user);
     }
 
     /**

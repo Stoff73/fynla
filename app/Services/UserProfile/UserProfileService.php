@@ -13,25 +13,35 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
+use App\Services\Estate\WillAnalysisService;
 use App\Services\Gamification\PointsService;
 use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\UKTaxCalculator;
+use App\Traits\CalculatesOwnershipShare;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 class UserProfileService
 {
+    use CalculatesOwnershipShare;
+    use ResolvesIncome;
+
     public function __construct(
         private readonly CrossModuleAssetAggregator $assetAggregator,
         private readonly UKTaxCalculator $taxCalculator,
         private readonly ChildBenefitService $childBenefitService,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly IncomeDefinitionsService $incomeDefinitions,
+        private readonly WillAnalysisService $willAnalysis,
     ) {}
 
     /**
@@ -81,8 +91,11 @@ class UserProfileService
                 ],
                 'phone' => $user->phone,
                 'education_level' => $user->education_level,
-                'good_health' => $user->good_health,
-                'smoker' => $user->smoker,
+                // `good_health` / `smoker` are not columns on `users` and never
+                // were, so both keys published null on every request. The real
+                // columns are these two (W-0006).
+                'health_status' => $user->health_status,
+                'smoking_status' => $user->smoking_status,
                 'life_expectancy_override' => $user->life_expectancy_override,
             ],
             'household' => $user->household,
@@ -96,8 +109,8 @@ class UserProfileService
             // consumed by the /m Income screen. Additive; never read by existing
             // consumers of income_occupation.
             'income_summary' => [
-                'user' => $this->incomeSources($user),
-                'spouse' => $user->spouse ? $this->incomeSources($user->spouse) : null,
+                'user' => $this->incomeSources($user, 'user'),
+                'spouse' => $this->spouseIncomeSources($user),
             ],
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
@@ -108,10 +121,17 @@ class UserProfileService
                     'clothing_personal_care' => $user->clothing_personal_care,
                     'entertainment_dining' => $user->entertainment_dining,
                     'childcare' => $user->childcare,
+                    'charitable_donations' => $user->charitable_donations,
                     'other_expenditure' => $user->other_expenditure,
                 ],
+                'presentation' => $this->expenditurePresentation($user),
             ],
             'family_members' => $this->getFamilyMembersWithSharing($user),
+            // W-0132 — what this person is actually leaving to charity, read from
+            // their will rather than from the `users.charitable_bequest` toggle the
+            // Family settings card used to display. Additive, and the same shape the
+            // estate module's own answer comes from.
+            'charitable_bequests' => $this->willAnalysis->charitableBequestSummary($user),
             'domicile_info' => $user->getDomicileInfo(),
             'assets_summary' => $assetsSummary,
             'liabilities_summary' => $liabilitiesSummary,
@@ -222,48 +242,14 @@ class UserProfileService
     }
 
     /**
-     * Calculate total annual taxable rental income from user's BTL properties.
-     * Uses PropertyService::calculateTaxPosition() as the single source of truth.
+     * The user's annual rental profit, Section 24 credit and per-property
+     * composition, from the one home for that figure (W-0175).
      *
-     * Includes both:
-     * - Properties where user is primary owner (user_id)
-     * - Properties where user is joint owner (joint_owner_id)
+     * @see PropertyService::annualRentalTaxPosition()
      */
     private function calculateAnnualRentalIncome(User $user): array
     {
-        $propertyService = app(PropertyService::class);
-        $properties = [];
-        $totalTaxableIncome = 0;
-        $totalSection24Credit = 0;
-
-        // Get all BTL properties where user is either primary owner OR joint owner
-        $btlProperties = $this->propertyStore->forUserByType($user, 'buy_to_let');
-        $btlProperties->load('mortgages');
-
-        foreach ($btlProperties as $property) {
-            // Pass user ID so calculateTaxPosition returns the correct ownership share
-            $taxPosition = $propertyService->calculateTaxPosition($property, $user->id);
-
-            if ($taxPosition['annual_taxable_income'] <= 0 && $taxPosition['section_24_annual_credit'] <= 0) {
-                continue;
-            }
-
-            $totalTaxableIncome += $taxPosition['annual_taxable_income'];
-            $totalSection24Credit += $taxPosition['section_24_annual_credit'];
-
-            $properties[] = [
-                'name' => $taxPosition['property_name'],
-                'annual_taxable' => $taxPosition['annual_taxable_income'],
-                'annual_credit' => $taxPosition['section_24_annual_credit'],
-                'ownership_percentage' => $taxPosition['ownership_percentage'],
-            ];
-        }
-
-        return [
-            'total' => round($totalTaxableIncome, 2),
-            'section_24_credit' => round($totalSection24Credit, 2),
-            'properties' => $properties,
-        ];
+        return app(PropertyService::class)->annualRentalTaxPosition($user);
     }
 
     /**
@@ -326,26 +312,14 @@ class UserProfileService
     /**
      * Calculate annual pension income for the user.
      * Includes DB pensions (if in payment) and state pension (if receiving).
+     *
+     * The docblock above is unchanged; it always described the intended rule. What
+     * changed is that the code now performs it — see ResolvesIncome, which is the
+     * one implementation the three copies of this function collapsed into (W-0036).
      */
     private function calculateAnnualPensionIncome(User $user): float
     {
-        $pensionIncome = 0.0;
-
-        // Sum DB pensions that are in payment (user has reached retirement age or pension is marked as in payment)
-        foreach ($user->dbPensions as $dbPension) {
-            // Check if pension is in payment (accrued_annual_pension represents current annual amount)
-            if ($dbPension->accrued_annual_pension > 0) {
-                $pensionIncome += (float) $dbPension->accrued_annual_pension;
-            }
-        }
-
-        // Add state pension if receiving
-        $statePension = $user->statePension;
-        if ($statePension && $statePension->already_receiving) {
-            $pensionIncome += (float) ($statePension->state_pension_forecast_annual ?? 0);
-        }
-
-        return $pensionIncome;
+        return $this->resolvePensionIncomeInPayment($user);
     }
 
     /**
@@ -397,22 +371,156 @@ class UserProfileService
      *
      * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}
      */
-    private function incomeSources(User $person): array
+    private function incomeSources(User $person, string $ownership): array
     {
-        $sources = [
-            'employment' => (float) ($person->annual_employment_income ?? 0),
-            'self_employment' => (float) ($person->annual_self_employment_income ?? 0),
-            'dividend' => (float) ($person->annual_dividend_income ?? 0),
-            'interest' => (float) ($person->annual_interest_income ?? 0),
-            'other' => (float) ($person->annual_other_income ?? 0),
+        $definition = $this->incomeDefinitions->calculate($person->id);
+        $components = $definition['components'];
+        $sourceDefinitions = [
+            'employment' => ['Employment', 'Taxable earned income'],
+            'self_employment' => ['Self-employment', 'Taxable earned income'],
+            'rental' => ['Rental income', 'Taxable property income'],
+            'dividend' => ['Dividends', 'Dividend income'],
+            'interest' => ['Interest', 'Savings income'],
+            'other' => ['Other', 'Other taxable income'],
+            'trust' => ['Trust income', 'Trust income'],
+            'pension_income' => ['Pension income', 'Taxable pension income'],
         ];
-        $sources['total'] = array_sum($sources);
+        $sources = $components;
+        $sources['total'] = (float) $definition['total_income'];
         // Identifying detail so the verify screen shows WHAT the user entered
         // (employer + role), not just the employment amount.
         $sources['employer'] = $person->employer ?: null;
         $sources['occupation'] = $person->occupation ?: null;
+        $sources['sources'] = collect($sourceDefinitions)
+            ->map(function (array $labels, string $key) use ($components, $ownership, $person): array {
+                $detail = null;
+                if ($key === 'employment') {
+                    $detail = collect([$person->employer, $person->occupation])
+                        ->filter(fn ($value): bool => is_string($value) && trim($value) !== '')
+                        ->implode(' · ') ?: null;
+                }
+
+                return [
+                    'key' => $key,
+                    'label' => $labels[0],
+                    'amount' => (float) ($components[$key] ?? 0),
+                    'frequency' => 'annual',
+                    'ownership' => $ownership,
+                    'ownership_label' => $ownership === 'spouse' ? 'Your spouse' : 'You',
+                    'detail' => $detail,
+                    'tax_position' => $labels[1],
+                ];
+            })
+            ->filter(fn (array $source): bool => $source['amount'] > 0)
+            ->values()
+            ->all();
+        $allowances = $definition['adjusted_allowances'];
+        $sources['tax_position'] = [
+            'total_income' => (float) $definition['total_income'],
+            'adjusted_net_income' => (float) $definition['adjusted_net_income'],
+            'personal_allowance' => (float) $allowances['personal_allowance'],
+            'personal_allowance_label' => $allowances['personal_allowance_tapered']
+                ? 'Tapered personal allowance'
+                : 'Standard personal allowance',
+            'pension_annual_allowance' => (float) $allowances['pension_annual_allowance'],
+            'pension_annual_allowance_label' => $allowances['pension_aa_tapered']
+                ? 'Tapered pension annual allowance'
+                : 'Standard pension annual allowance',
+        ];
 
         return $sources;
+    }
+
+    /**
+     * Spouse income for the /m Income screen's spouse-verify view.
+     *
+     * A linked spouse account returns its own income sources. Otherwise the
+     * SaveTax campaign captures the spouse's income on the household input (no
+     * account is linked during onboarding — linking is surfaced later via the
+     * dashboard), so surface that figure as the spouse's employment income.
+     * Returns null when there is no spouse income to show.
+     *
+     * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}|null
+     */
+    private function spouseIncomeSources(User $user): ?array
+    {
+        if ($user->spouse) {
+            return $this->incomeSources($user->spouse, 'spouse');
+        }
+
+        $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)
+            ->value('spouse_annual_income') ?? 0);
+        if ($spouseIncome <= 0) {
+            return null;
+        }
+
+        return [
+            'employment' => $spouseIncome,
+            'self_employment' => 0.0,
+            'dividend' => 0.0,
+            'interest' => 0.0,
+            'other' => 0.0,
+            'total' => $spouseIncome,
+            'employer' => null,
+            'occupation' => null,
+            'sources' => [[
+                'key' => 'employment',
+                'label' => 'Employment',
+                'amount' => $spouseIncome,
+                'frequency' => 'annual',
+                'ownership' => 'spouse',
+                'ownership_label' => 'Your spouse',
+                'detail' => null,
+                'tax_position' => 'Estimated earned income',
+            ]],
+            'tax_position' => [
+                'total_income' => $spouseIncome,
+                'adjusted_net_income' => null,
+                'personal_allowance' => null,
+                'personal_allowance_label' => 'Link a spouse profile for a calculated tax position',
+                'pension_annual_allowance' => null,
+                'pension_annual_allowance_label' => 'Link a spouse profile for a calculated tax position',
+            ],
+        ];
+    }
+
+    /**
+     * Server-owned presentation contract consumed without client arithmetic.
+     */
+    private function expenditurePresentation(User $user): array
+    {
+        $breakdown = $this->getExpenditureBreakdown($user);
+        $isCategory = $user->expenditure_entry_mode === 'category';
+
+        // W-0140. The composed figure is entries PLUS commitments, and Disposable
+        // Income depends on it staying that way. What was wrong is that a user who
+        // has recorded nothing was still described as having entered a total: the
+        // basis named a component that does not exist for them.
+        $hasRecordedExpenditure = $breakdown['monthly_manual'] > 0;
+
+        return [
+            'entry_mode' => $isCategory ? 'category' : 'summary',
+            'entry_mode_label' => $isCategory ? 'Category detail' : 'Monthly summary',
+            'active_monthly_total' => $breakdown['monthly'],
+            'active_annual_total' => $breakdown['annual'],
+            'manual_monthly_total' => $breakdown['monthly_manual'],
+            'commitments_monthly_total' => $breakdown['monthly_commitments'],
+            'manual_annual_total' => round($breakdown['monthly_manual'] * 12, 2),
+            'commitments_annual_total' => round($breakdown['monthly_commitments'] * 12, 2),
+            'has_recorded_expenditure' => $hasRecordedExpenditure,
+            'total_basis' => match (true) {
+                ! $hasRecordedExpenditure => 'Financial commitments only — no expenditure recorded',
+                $isCategory => 'Category entries plus financial commitments',
+                default => 'Monthly summary plus financial commitments',
+            },
+            'detail_available' => $isCategory,
+            'reconciles' => true,
+            'summary_only_reason' => match (true) {
+                $isCategory => null,
+                ! $hasRecordedExpenditure => 'No expenditure has been recorded. Add your spending to improve your insights.',
+                default => 'Only a monthly summary has been entered. Add category details to improve your insights.',
+            },
+        ];
     }
 
     /**
@@ -502,7 +610,11 @@ class UserProfileService
             'income_tax' => $simpleTax['income_tax'],
             'national_insurance' => $simpleTax['national_insurance'],
             'total_deductions' => $simpleTax['total_deductions'],
-            // Use detailed net_income (includes pension contributions) for consistency with TaxSummaryCard
+            // Total income less income tax and National Insurance, plus any
+            // Section 24 credit. Employee pension contributions are NOT deducted
+            // here — they reduce the tax, not this figure — and the comment that
+            // used to sit on this line said they were (W-0422). The label on the
+            // Income tab now states the same three deductions this makes.
             'net_income' => $netIncome,
             'effective_tax_rate' => $simpleTax['effective_tax_rate'],
             'breakdown' => $simpleTax['breakdown'],
@@ -540,13 +652,16 @@ class UserProfileService
         $breakdown = $this->assetAggregator->getAssetBreakdown($user->id);
 
         // Calculate Estate-specific assets (business, chattels)
-        $businessTotal = $user->businessInterests->sum(function ($business) {
-            return $business->current_valuation * ($business->ownership_percentage / 100);
-        });
+        // Same consolidation as chattels below: the local sum this replaced read
+        // `$user->businessInterests` (user_id only), so a business the user held as
+        // JOINT owner was worth nothing here.
+        $businessTotal = (float) $breakdown['business']['total'];
 
-        $chattelsTotal = $user->chattels->sum(function ($chattel) {
-            return $chattel->current_value * ($chattel->ownership_percentage / 100);
-        });
+        // W-0138: chattels come from the same aggregator as cash/investments/property.
+        // The local sum this replaced read `$user->chattels` (user_id only), so a
+        // chattel the user held as JOINT owner was worth nothing here, and applied
+        // ownership_percentage to individually-owned records that are wholly theirs.
+        $chattelsTotal = (float) $breakdown['chattel']['total'];
 
         // Calculate pensions
         $pensionsTotal = $user->dcPensions->sum('current_fund_value');
@@ -566,11 +681,11 @@ class UserProfileService
             ],
             'business' => [
                 'total' => $businessTotal,
-                'count' => $user->businessInterests->count(),
+                'count' => $breakdown['business']['count'],
             ],
             'chattels' => [
                 'total' => $chattelsTotal,
-                'count' => $user->chattels->count(),
+                'count' => $breakdown['chattel']['count'],
             ],
             'pensions' => [
                 'total' => $pensionsTotal,
@@ -581,16 +696,35 @@ class UserProfileService
     }
 
     /**
-     * Calculate total liabilities for the user
+     * Calculate total liabilities for the user.
+     *
+     * Public because it is the one itemisation of this user's debts at their own
+     * share, and a third surface now reads it: the Letter to Loved Ones, which
+     * had been summing raw balances at 100% and charging the household £72,000
+     * belonging to an off-platform co-owner (W-0421). Routed here rather than
+     * given a fourth implementation.
      */
-    private function calculateLiabilitiesSummary(User $user): array
+    public function calculateLiabilitiesSummary(User $user): array
     {
-        // Get mortgages from both Mortgage table and Estate\Liability table (type='mortgage')
-        $mortgageRecords = $this->mortgageStore->forUserPrimaryOnly($user); // From mortgages table
-        $mortgageLiabilities = $user->liabilities->where('liability_type', 'mortgage'); // From liabilities table
+        // Every figure here is the user's SHARE of the debt, not the whole of every
+        // record they happen to be primary owner of. This read `forUserPrimaryOnly`
+        // and `$user->liabilities`, both scoped to `user_id` alone and both at 100%,
+        // so `/protection` showed "Mortgage Debt £365,000" for a household whose
+        // primary owner owes £182,500 — including his wife's halves and £72,000
+        // belonging to a co-owner with no account here (W-0187). The items and the
+        // totals now come from the same share, so the list adds up to the figure
+        // above it and both agree with the property cards.
+        $userId = (int) $user->id;
+        $debtTotals = $this->assetAggregator->calculateLiabilityTotals($userId);
 
-        $mortgagesTotal = $mortgageRecords->sum('outstanding_balance') +
-                         $mortgageLiabilities->sum('current_balance');
+        // Reach: a mortgage secured on a jointly-owned property counts even where
+        // the user is not the borrower. Fraction: their side of the split.
+        $mortgageRecords = $this->assetAggregator->getMortgages($userId);
+        $mortgageLiabilities = Liability::forUserOrJoint($userId)
+            ->where('liability_type', 'mortgage')
+            ->get();
+
+        $mortgagesTotal = $debtTotals['mortgages'];
 
         // Combine mortgage items from both sources
         $mortgageItems = collect();
@@ -600,9 +734,9 @@ class UserProfileService
             $mortgageItems->push([
                 'id' => $mortgage->id,
                 'lender' => $mortgage->lender_name,
-                'outstanding_balance' => $mortgage->outstanding_balance,
+                'outstanding_balance' => round($this->calculateUserMortgageShare($mortgage, $userId), 2),
                 'interest_rate' => $mortgage->interest_rate,
-                'monthly_payment' => $mortgage->monthly_payment,
+                'monthly_payment' => round($this->calculateUserMortgageMonthlyPaymentShare($mortgage, $userId), 2),
                 'property_id' => $mortgage->property_id,
                 'source' => 'mortgage_table',
             ]);
@@ -613,7 +747,7 @@ class UserProfileService
             $mortgageItems->push([
                 'id' => $liability->id,
                 'lender' => $liability->liability_name,
-                'outstanding_balance' => $liability->current_balance,
+                'outstanding_balance' => round($this->calculateUserShare($liability, $userId), 2),
                 'interest_rate' => $liability->interest_rate,
                 'monthly_payment' => $liability->monthly_payment,
                 'property_id' => null,
@@ -622,8 +756,10 @@ class UserProfileService
         }
 
         // Get other liabilities (exclude mortgages)
-        $otherLiabilities = $user->liabilities->whereNotIn('liability_type', ['mortgage']);
-        $otherLiabilitiesTotal = $otherLiabilities->sum('current_balance');
+        $otherLiabilities = Liability::forUserOrJoint($userId)
+            ->whereNotIn('liability_type', ['mortgage'])
+            ->get();
+        $otherLiabilitiesTotal = $debtTotals['other'];
 
         return [
             'mortgages' => [
@@ -634,21 +770,33 @@ class UserProfileService
             'other' => [
                 'total' => $otherLiabilitiesTotal,
                 'count' => $otherLiabilities->count(),
-                'items' => $otherLiabilities->map(function ($liability) {
+                'items' => $otherLiabilities->map(function ($liability) use ($userId) {
                     return [
                         'id' => $liability->id,
                         'liability_type' => $liability->liability_type,
                         'liability_name' => $liability->liability_name,
                         'description' => $liability->liability_name,
-                        'amount' => $liability->current_balance,
+                        'amount' => round($this->calculateUserShare($liability, $userId), 2),
                         'monthly_payment' => $liability->monthly_payment,
                         'interest_rate' => $liability->interest_rate,
                         'notes' => $liability->notes,
                     ];
                 }),
             ],
-            'total' => $mortgagesTotal + $otherLiabilitiesTotal,
+            'total' => $debtTotals['total'],
         ];
+    }
+
+    /**
+     * The annual income shown for a family-member row that a real account sits
+     * behind — one definition for both the stored-row path and the virtual
+     * spouse path, which previously disagreed (W-0176).
+     */
+    private function linkedAccountAnnualIncome(User $linkedUser): ?float
+    {
+        $income = $linkedUser->annual_employment_income;
+
+        return $income === null ? null : (float) $income;
     }
 
     /**
@@ -661,14 +809,25 @@ class UserProfileService
     public function getFamilyMembersWithSharing(User $user): array
     {
         // Get user's own family members
-        $familyMembers = $user->familyMembers->map(function ($member) use ($user) {
+        $familyMembers = $user->familyMembers->map(function ($member) {
             $memberArray = $member->toArray();
             $memberArray['is_shared'] = false;
             $memberArray['owner'] = 'self';
 
-            // If this is a spouse and user has a spouse_id, get the spouse's email
-            if ($member->relationship === 'spouse' && $user->spouse_id && $user->spouse) {
-                $memberArray['email'] = $user->spouse->email;
+            // The email belongs to the account THIS row links to. Reading it
+            // off `users.spouse_id` handed the real spouse's address to a row
+            // that links to nobody, which is what made an orphan render as
+            // "Account Linked" beside the genuine one (W-0051).
+            if ($linkedUser = $member->liveLinkedUser()) {
+                $memberArray['email'] = $linkedUser->email;
+                // Same rule for income: the row's own `annual_income` column is
+                // whatever was typed before the accounts were linked and is never
+                // written again, so a linked spouse earning £120,000 rendered as
+                // £0 — the column holds the string '0.00', which is truthy in
+                // JavaScript, so the card printed it instead of hiding it
+                // (W-0176). Once an account is behind the row, that account is
+                // the source.
+                $memberArray['annual_income'] = $this->linkedAccountAnnualIncome($linkedUser);
             }
 
             return $memberArray;
@@ -692,10 +851,14 @@ class UserProfileService
                     'date_of_birth' => $spouseUser->date_of_birth?->format('Y-m-d'),
                     'gender' => $spouseUser->gender,
                     'national_insurance_number' => $spouseUser->national_insurance_number ? '***'.substr($spouseUser->national_insurance_number, -4) : null,
-                    'annual_income' => $spouseUser->annual_employment_income,
+                    'annual_income' => $this->linkedAccountAnnualIncome($spouseUser),
                     'is_dependent' => false,
                     'notes' => null,
                     'email' => $spouseUser->email,
+                    // Hand-built rather than serialised from a model, so the
+                    // predicate every surface reads has to be set explicitly.
+                    // This row exists BECAUSE the accounts are linked.
+                    'is_linked_account' => true,
                     'is_shared' => false,
                     'owner' => 'self',
                     'created_at' => null,
@@ -704,9 +867,14 @@ class UserProfileService
             }
         }
 
-        // If user has a linked spouse, get spouse's children (NOT the spouse record itself)
-        if ($user->spouse_id) {
-            $spouseFamilyMembers = FamilyMember::where('user_id', $user->spouse_id)
+        // If user has a linked spouse, get spouse's children (NOT the spouse record
+        // itself). Keyed on the LIVE spouse: a deleted spouse's records are kept
+        // for regulatory purposes but must stop being visible to their partner,
+        // and this payload was still handing them over — tagged owner: 'spouse'
+        // alongside a spouse field the same payload had already nulled out.
+        $liveSpouseId = $user->liveSpouseId();
+        if ($liveSpouseId) {
+            $spouseFamilyMembers = FamilyMember::where('user_id', $liveSpouseId)
                 ->where('relationship', 'child')  // Only children, not spouse record
                 ->orderBy('date_of_birth')
                 ->get();
@@ -1117,10 +1285,14 @@ class UserProfileService
         foreach ($liabilities as $liability) {
             if ($liability->monthly_payment > 0) {
                 // Adjust for joint ownership
-                $isJoint = $liability->ownership_type === 'joint';
+                $isJoint = in_array($liability->ownership_type, ['joint', 'tenants_in_common'], true);
                 $userIsOwner = $liability->user_id === $user->id;
+                $primaryPercentage = (float) ($liability->ownership_percentage ?? 50);
+                if ($primaryPercentage === 100.0) {
+                    $primaryPercentage = 50.0;
+                }
                 $ownershipPercentage = $isJoint
-                    ? ($userIsOwner ? ($liability->ownership_percentage ?? 50) : (100 - ($liability->ownership_percentage ?? 50)))
+                    ? ($userIsOwner ? $primaryPercentage : (100 - $primaryPercentage))
                     : 100;
 
                 // Apply ownership filter

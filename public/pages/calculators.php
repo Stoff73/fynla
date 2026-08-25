@@ -220,15 +220,15 @@
           </svg>
         </button>
         <div class="calc-stage-items" id="stage-items-protecting" hidden>
-          <button type="button" class="calc-sidebar-btn is-gated" data-calc="life-insurance" data-type="gated-free" aria-label="Life Insurance Needs calculator — requires free trial" aria-disabled="true">
+          <button type="button" class="calc-sidebar-btn is-gated" data-calc="life-insurance" data-type="gated-free" aria-label="Life Insurance Needs calculator — requires a Free account" aria-disabled="true">
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             <span class="calc-sidebar-btn__name">Life Insurance Needs</span>
-            <span class="calc-badge-trial">Free trial</span>
+            <span class="calc-badge-access">Free account</span>
           </button>
-          <button type="button" class="calc-sidebar-btn is-gated" data-calc="income-protection" data-type="gated-free" aria-label="Income Protection calculator — requires free trial" aria-disabled="true">
+          <button type="button" class="calc-sidebar-btn is-gated" data-calc="income-protection" data-type="gated-free" aria-label="Income Protection calculator — requires a Free account" aria-disabled="true">
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             <span class="calc-sidebar-btn__name">Income Protection</span>
-            <span class="calc-badge-trial">Free trial</span>
+            <span class="calc-badge-access">Free account</span>
           </button>
         </div>
       </div>
@@ -259,15 +259,15 @@
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
             <span class="calc-sidebar-btn__name">Pension Tax Relief</span>
           </button>
-          <button type="button" class="calc-sidebar-btn is-gated" data-calc="salary-sacrifice" data-type="gated-free" aria-label="Salary Sacrifice calculator — requires free trial" aria-disabled="true">
+          <button type="button" class="calc-sidebar-btn is-gated" data-calc="salary-sacrifice" data-type="gated-free" aria-label="Salary Sacrifice calculator — requires a Free account" aria-disabled="true">
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
             <span class="calc-sidebar-btn__name">Salary Sacrifice</span>
-            <span class="calc-badge-trial">Free trial</span>
+            <span class="calc-badge-access">Free account</span>
           </button>
           <button type="button" class="calc-sidebar-btn is-gated" data-calc="retirement-budget" data-type="gated-paid" aria-label="Retirement Budget Planner — requires paid subscription" aria-disabled="true">
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             <span class="calc-sidebar-btn__name">Retirement Budget Planner</span>
-            <span class="calc-badge-trial">Free trial</span>
+            <span class="calc-badge-access">Premium</span>
           </button>
         </div>
       </div>
@@ -290,20 +290,20 @@
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span class="calc-sidebar-btn__name">Pension Withdrawal Tax</span>
           </button>
-          <button type="button" class="calc-sidebar-btn is-gated" data-calc="iht-checker" data-type="gated-free" aria-label="Inheritance Tax Exposure Checker — requires free trial" aria-disabled="true">
+          <button type="button" class="calc-sidebar-btn is-gated" data-calc="iht-checker" data-type="gated-free" aria-label="Inheritance Tax Exposure Checker — requires a Free account" aria-disabled="true">
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
             <span class="calc-sidebar-btn__name">Inheritance Tax Checker</span>
-            <span class="calc-badge-trial">Free trial</span>
+            <span class="calc-badge-access">Free account</span>
           </button>
-          <button type="button" class="calc-sidebar-btn is-gated" data-calc="drawdown-runway" data-type="gated-free" aria-label="Pension Drawdown Runway calculator — requires free trial" aria-disabled="true">
+          <button type="button" class="calc-sidebar-btn is-gated" data-calc="drawdown-runway" data-type="gated-free" aria-label="Pension Drawdown Runway calculator — requires a Free account" aria-disabled="true">
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span class="calc-sidebar-btn__name">Pension Drawdown / Runway</span>
-            <span class="calc-badge-trial">Free trial</span>
+            <span class="calc-badge-access">Free account</span>
           </button>
           <button type="button" class="calc-sidebar-btn is-gated" data-calc="annuity-vs-drawdown" data-type="gated-paid" aria-label="Annuity vs Drawdown Comparison — requires paid subscription" aria-disabled="true">
             <svg class="calc-sidebar-btn__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             <span class="calc-sidebar-btn__name">Annuity vs Drawdown</span>
-            <span class="calc-badge-trial">Free trial</span>
+            <span class="calc-badge-access">Premium</span>
           </button>
         </div>
       </div>

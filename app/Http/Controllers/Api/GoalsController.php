@@ -11,6 +11,7 @@ use App\Http\Requests\Goals\UpdateGoalRequest;
 use App\Http\Resources\GoalContributionResource;
 use App\Http\Resources\GoalResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\Goal;
 use App\Services\Goals\FinancialForecastService;
 use App\Services\Goals\GoalAffordabilityService;
@@ -19,6 +20,9 @@ use App\Services\Goals\GoalProgressService;
 use App\Services\Goals\GoalRiskService;
 use App\Services\Goals\GoalsProjectionService;
 use App\Services\Goals\LifeEventService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\GoalStore;
+use App\Services\Stores\IngestSource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,6 +34,7 @@ use Illuminate\Http\Request;
 class GoalsController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly GoalsAgent $goalsAgent,
@@ -39,7 +44,8 @@ class GoalsController extends Controller
         private readonly GoalRiskService $riskService,
         private readonly GoalsProjectionService $projectionService,
         private readonly LifeEventService $lifeEventService,
-        private readonly FinancialForecastService $forecastService
+        private readonly FinancialForecastService $forecastService,
+        private readonly GoalStore $goalStore,
     ) {}
 
     /**
@@ -139,7 +145,6 @@ class GoalsController extends Controller
                 $data['assigned_module'] = $this->assignmentService->determineModule($data);
             }
 
-            $data['user_id'] = $user->id;
             $data['start_date'] = $data['start_date'] ?? now()->toDateString();
 
             // Calculate property costs if property goal
@@ -154,7 +159,7 @@ class GoalsController extends Controller
                 }
             }
 
-            $goal = Goal::create($data);
+            $goal = $this->goalStore->create($data, $user, IngestSource::FORM);
 
             // Clear cache
             $this->goalsAgent->clearCache($user->id);
@@ -168,6 +173,12 @@ class GoalsController extends Controller
                 'message' => 'Goal created successfully.',
                 'data' => new GoalResource($goal),
             ], 201);
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResponse(
+                $e,
+                'Goal limit reached for your current plan.',
+                'goals',
+            );
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Create goal', 500, ['user_id' => $user->id]);
         }
@@ -562,14 +573,26 @@ class GoalsController extends Controller
 
         try {
             // Get combined goals
+            // W-0471 — this read `$user->spouse_user_id`, which is NOT a column on
+            // `users` (the column is `spouse_id`). A missing attribute on an Eloquent
+            // MODEL returns null silently, so the clause became
+            // `where user_id = null`, matched nothing, and **the household branch
+            // never fired for any couple**. Measured: user 16 has `spouse_id = 17`
+            // and `spouse_user_id = NULL`.
+            //
+            // `liveSpouseId()` rather than `spouse_id`: it returns null once the
+            // partner's account is deleted, which is the retention decision
+            // (CSJ D1/D2, 2026-08-19 — keep the row, ignore it at read time).
+            $spouseId = $user->liveSpouseId();
+
             $goals = Goal::where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
                     ->orWhere('joint_owner_id', $user->id);
             })
-                ->orWhere(function ($query) use ($user) {
-                    $query->where('user_id', $user->spouse_user_id)
+                ->when($spouseId, fn ($q) => $q->orWhere(function ($query) use ($spouseId) {
+                    $query->where('user_id', $spouseId)
                         ->where('show_in_household_view', true);
-                })
+                }))
                 ->where('status', 'active')
                 ->orderBy('target_date')
                 ->get();

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Protection;
 
 use App\Agents\ProtectionAgent;
+use App\Constants\ProfileEnums;
 use App\Exceptions\FinancialCalculationException;
 use App\Models\FamilyMember;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Support\PremiumAnnualiser;
 use App\Traits\FormatsCurrency;
 use Carbon\Carbon;
 
@@ -189,30 +191,44 @@ class ComprehensiveProtectionPlanService
             $age = Carbon::parse($user->date_of_birth)->age;
         }
 
-        // Determine smoker status - check user table first, fallback to profile
-        $smokerStatus = isset($user->smoker) ? ($user->smoker ? 'Smoker' : 'Non-smoker') : ($profile->smoker_status ? 'Smoker' : 'Non-smoker');
+        // W-0033, decided 2026-08-21: the PROTECTION PROFILE is the authoritative
+        // source for smoking and health status in protection advice, and the user
+        // record is not consulted. This used to read `$user->smoker` and
+        // `$user->good_health` "first" — neither property has ever existed, so both
+        // branches were permanently false and the profile always won anyway.
+        //
+        // The decision is the enforcing layer's, not a preference. RecommendationEngine
+        // (:185, :232) generates the advice from `$profile->smoker_status`,
+        // ProtectionDataReadinessService (:199, :396) gates on it, and two other
+        // modules read the same profile field for the same fact
+        // (RetirementActionDefinitionService:1656, DecumulationPlanner:183). Nothing
+        // anywhere reads `users.smoking_status` for protection.
+        //
+        // The two sources are also not interchangeable: `users.smoking_status` is
+        // enum('never','quit_recent','quit_long_ago','yes') and
+        // `protection_profiles.smoker_status` is a BOOLEAN; `users.health_status` is
+        // enum('yes','yes_previous',…) and the profile's is in(excellent,good,fair,poor).
+        // Repointing these reads would be a vocabulary translation, and would put this
+        // summary out of step with the engine writing the advice beside it.
+        //
+        // Unanswered stays unanswered. `smoker_status` is a nullable boolean and
+        // `health_status` is nullable, and both previously rendered a missing answer as
+        // a definite one — "Non-smoker" and "Good". This method already says
+        // 'Not provided' for an absent date of birth.
+        $smokerStatus = match ($profile->smoker_status) {
+            true => 'Smoker',
+            false => 'Non-smoker',
+            default => 'Not provided',
+        };
 
-        // Determine health status - check user table first, fallback to profile
-        $healthStatus = 'Good'; // Default
-        if (isset($user->good_health)) {
-            $healthStatus = $user->good_health ? 'Good' : 'Pre-existing conditions';
-        } elseif (isset($profile->health_status)) {
-            $healthStatus = ucfirst($profile->health_status);
-        }
+        $healthStatus = $profile->health_status !== null && $profile->health_status !== ''
+            ? ucfirst($profile->health_status)
+            : 'Not provided';
 
-        // Format education level for display
-        $educationLevel = 'Not specified';
-        if ($user->education_level) {
-            $educationLevel = match ($user->education_level) {
-                'secondary' => 'Secondary (GCSE/O-Levels)',
-                'a_level' => 'A-Levels/Vocational',
-                'undergraduate' => 'Undergraduate Degree',
-                'postgraduate' => 'Postgraduate Degree',
-                'professional' => 'Professional Qualification',
-                'other' => 'Other',
-                default => 'Not specified',
-            };
-        }
+        // Format education level for display. The labels live in ProfileEnums so
+        // this cannot drift from the selects again — it held its own copy and kept
+        // rendering an acronym Rule 9 forbids after both selects were corrected.
+        $educationLevel = ProfileEnums::EDUCATION_LEVEL_LABELS[$user->education_level ?? ''] ?? 'Not specified';
 
         return [
             'name' => $user->name,
@@ -739,12 +755,10 @@ class ComprehensiveProtectionPlanService
 
     private function convertToAnnualPremium(float $amount, string $frequency): float
     {
-        return match ($frequency) {
-            'monthly' => $amount * 12,
-            'quarterly' => $amount * 4,
-            'annually', 'annual' => $amount,
-            default => $amount * 12,
-        };
+        // Kept as a named method because a dozen call sites read better for it, but
+        // the mapping itself lives in ONE place now — `/m` was carrying a second
+        // copy in a Vue computed property (Rule 20).
+        return PremiumAnnualiser::toAnnual($amount, $frequency);
     }
 
     private function estimateLifePremium(float $coverage, int $age, bool $smoker): float

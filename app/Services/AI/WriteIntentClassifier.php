@@ -49,6 +49,20 @@ final class WriteIntentClassifier
      * @var array<string, list<string>>
      */
     private const ENTITY_KEYWORDS = [
+        // 2026-08-19 — the household and profile records. Everything below the
+        // asset groups used to be absent, so "please record that I donate
+        // £2,400 a year to charity" matched a write VERB but no entity, the
+        // classifier returned null, the turn fell to the read-only surface and
+        // the model answered with the prompt-injection refusal (live: john,
+        // conversations 185-187). These records live on `users` and its
+        // satellites rather than an asset table; that is a storage detail, not
+        // a reason the user cannot ask Fyn to record them.
+        //
+        // `state_pension` is FIRST because the 'pension' group below ends in a
+        // bare 'pension' catch-all that would otherwise swallow it.
+        'state_pension' => [
+            'state pension forecast', 'state pension',
+        ],
         'protection_policy' => [
             'life insurance', 'life cover', 'life policy', 'life assurance',
             'critical illness', 'ci cover',
@@ -59,6 +73,7 @@ final class WriteIntentClassifier
         'savings_account' => [
             'cash isa', 'help to buy isa', 'lifetime isa', 'lisa',
             'savings account', 'easy access account', 'fixed-rate account',
+            'fixed term account', 'notice account',
             'current account', 'instant access',
         ],
         'investment_account' => [
@@ -82,8 +97,62 @@ final class WriteIntentClassifier
             'credit card', 'personal loan', 'student loan', 'car finance',
             'overdraft', 'loan',
         ],
+        // Physical valuables. CSJ 2026-08-18: everything a user owns is already
+        // an estate asset — EstateAssetAggregatorService builds the estate from
+        // properties, savings, investments, pensions, business interests,
+        // protection AND chattels. So "add my antique watch to my estate" is a
+        // CHATTEL, not a second record in the estate's own catch-all table.
+        // Without these words nothing matched, the message fell through to the
+        // read-only surface, and the model answered with the prompt-injection
+        // refusal (live on /m and native, 2026-08-18).
+        'chattel' => [
+            'antique', 'antiques', 'jewellery', 'jewelry', 'watch', 'ring', 'necklace',
+            'artwork', 'painting', 'paintings', 'sculpture', 'art collection',
+            'collectible', 'collectibles', 'memorabilia', 'stamp collection',
+            'coin collection', 'wine collection', 'classic car', 'motorbike',
+            'motorcycle', 'caravan', 'boat', 'yacht', 'furniture', 'heirloom',
+        ],
+        // A goal is often stated without the word "goal": what marks it is
+        // saving TOWARDS something. "I want to save 20000 for a house deposit
+        // by June 2030" routed to property on the incidental word "house" and
+        // the capture turn, told to record a property the user never mentioned,
+        // answered with the prompt-injection refusal instead (live conversation
+        // 157, 2026-08-17).
+        'charitable_giving' => [
+            'gift aid', 'charitable donation', 'charitable donations',
+            'charitable giving', 'donation to charity', 'donations to charity',
+            'donate to charity', 'charity', 'donation', 'donations',
+        ],
+        'expenditure' => [
+            'monthly expenditure', 'annual expenditure', 'expenditure',
+            'monthly outgoings', 'outgoings', 'monthly spending', 'spending',
+            'i spend', 'we spend', 'spend',
+            'monthly budget', 'household bills',
+        ],
+        'spouse' => [
+            'my wife', 'my husband', 'my spouse', 'my partner',
+            'wife', 'husband', 'spouse',
+        ],
+        'dependant' => [
+            'dependant', 'dependants', 'dependent', 'dependents',
+            'my daughter', 'my son', 'my child', 'my children',
+            'daughter', 'son', 'children',
+        ],
+        'work_details' => [
+            'my salary', 'my employer', 'my occupation', 'my job title',
+            'salary', 'employer', 'occupation',
+        ],
+        'personal_details' => [
+            'date of birth', 'my dob', 'marital status',
+        ],
+        'retirement_goals' => [
+            'retirement income', 'retire at', 'target retirement age',
+        ],
         'goal' => [
             'savings goal', 'goal', 'target',
+            'save for', 'saving for', 'saving up for', 'save towards', 'saving towards',
+            'put aside for', 'putting aside for', 'set aside for',
+            'house deposit', 'deposit for',
         ],
     ];
 
@@ -133,7 +202,7 @@ final class WriteIntentClassifier
             return null;
         }
 
-        $matchedVerb = $this->firstMatch($normalised, self::WRITE_VERB_PATTERNS);
+        $matchedVerb = $this->firstVerbMatch($normalised);
         if ($matchedVerb === null) {
             return null;
         }
@@ -150,6 +219,16 @@ final class WriteIntentClassifier
         // conservative false-positive contract (verb required, question
         // guard) is untouched.
         $goalKeyword = $this->firstMatch($normalised, self::ENTITY_KEYWORDS['goal']);
+
+        // Saving TOWARDS something, with the amount in between: "save 20000 for
+        // a house deposit". The keyword list cannot express that gap, and the
+        // gap is the common phrasing.
+        if ($goalKeyword === null
+            && preg_match('/\b(?:save|saving|saving up|put aside|putting aside|set aside)\b[^.!?]{0,40}\bfor\b/', $normalised, $goalMatch) === 1
+        ) {
+            $goalKeyword = trim($goalMatch[0]);
+        }
+
         if ($goalKeyword !== null) {
             return $this->buildResult('goal', $matchedVerb, $goalKeyword);
         }
@@ -186,6 +265,16 @@ final class WriteIntentClassifier
     }
 
     /**
+     * Public question check for callers that need the same advice-vs-write
+     * discrimination on a raw message (WP-1: the capture-continuation rule
+     * must not treat a mid-capture question as the awaited answer).
+     */
+    public function isQuestion(string $message): bool
+    {
+        return $this->looksLikeQuestion(strtolower(trim($message)));
+    }
+
+    /**
      * Does the message look like an advice question rather than a write
      * intent? Two signals: (1) ends with `?`, (2) starts with one of the
      * interrogative prefixes above. Either is sufficient.
@@ -203,6 +292,30 @@ final class WriteIntentClassifier
         }
 
         return false;
+    }
+
+    /**
+     * Matches WRITE_VERB_PATTERNS against the message, tolerating a single
+     * "also" interposed between the pronoun/contraction and the verb — e.g.
+     * "I also have a Halifax account" doesn't contain the literal "i have"
+     * substring, so the plain match misses it (live csjones report). Retried
+     * only when the literal match fails, so it cannot change the result for
+     * any message the literal pass already resolves — the existing
+     * precedence order is untouched.
+     */
+    private function firstVerbMatch(string $haystack): ?string
+    {
+        $matched = $this->firstMatch($haystack, self::WRITE_VERB_PATTERNS);
+        if ($matched !== null) {
+            return $matched;
+        }
+
+        $deAdverbed = preg_replace('/\b(i\'ve|we\'ve|i|we)\s+also\s+/', '$1 ', $haystack);
+        if ($deAdverbed === null || $deAdverbed === $haystack) {
+            return null;
+        }
+
+        return $this->firstMatch($deAdverbed, self::WRITE_VERB_PATTERNS);
     }
 
     private function firstMatch(string $haystack, array $needles): ?string
@@ -245,6 +358,7 @@ final class WriteIntentClassifier
             'mortgage' => ['provider', 'outstanding_balance', 'interest_rate', 'mortgage_type'],
             'liability' => ['liability_type', 'outstanding_balance', 'interest_rate'],
             'goal' => ['goal_name', 'target_amount', 'target_date'],
+            'chattel' => ['description', 'category', 'estimated_value'],
             default => [],
         };
     }

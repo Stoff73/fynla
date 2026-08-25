@@ -19,6 +19,7 @@ use App\Http\Requests\UpdateInvestmentAccountRequest;
 use App\Http\Resources\HoldingResource;
 use App\Http\Resources\InvestmentAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Jobs\RunMonteCarloSimulation;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
@@ -30,12 +31,17 @@ use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
+use App\Services\Investment\PortfolioPresentationService;
 use App\Services\Investment\ReturnCalculationService;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
+use App\Services\Stores\TierGate;
+use App\Support\HoldingValuation;
+use App\Support\SharedOwnership;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -59,6 +65,7 @@ class InvestmentController extends Controller
 {
     use CalculatesOwnershipShare;
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
@@ -68,6 +75,9 @@ class InvestmentController extends Controller
         private readonly LifeEventIntegrationService $lifeEventIntegration,
         private readonly GoalStrategyService $goalStrategy,
         private readonly InvestmentAccountStore $investmentAccountStore,
+        private readonly TierGate $tierGate,
+        private readonly PortfolioPresentationService $portfolioPresentation,
+        private readonly RiskPreferenceService $riskPreferenceService,
     ) {}
 
     /**
@@ -84,11 +94,14 @@ class InvestmentController extends Controller
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = InvestmentAccount::forUserOrJoint($user->id)
-            ->with(['holdings', 'user', 'jointOwner'])
+            ->with(['holdings', 'valueSnapshots', 'user', 'jointOwner'])
             ->get();
 
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+        $relevantPortfolioValue = (float) $accounts->flatMap->holdings->sum('current_value');
+
         // Transform accounts using resource and add calculated fields
-        $accountsData = $accounts->map(function ($account) use ($user) {
+        $accountsData = $accounts->map(function ($account) use ($user, $riskProfile, $relevantPortfolioValue) {
             $resourceData = (new InvestmentAccountResource($account))->toArray(request());
 
             // Add user-specific calculated fields
@@ -105,13 +118,16 @@ class InvestmentController extends Controller
             $jointOwner = $account->jointOwner;
             $resourceData['owner_name'] = $owner ? trim(($owner->first_name ?? '').' '.($owner->surname ?? '')) : null;
             $resourceData['joint_owner_name'] = $jointOwner ? trim(($jointOwner->first_name ?? '').' '.($jointOwner->surname ?? '')) : null;
+            $resourceData['portfolio'] = $this->portfolioPresentation->forInvestmentAccount(
+                $account,
+                $riskProfile,
+                $relevantPortfolioValue,
+            );
 
             return $resourceData;
         });
 
         $goals = InvestmentGoal::where('user_id', $user->id)->get();
-        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
-
         // Get life events and goal strategies relevant to investments
         try {
             $lifeEvents = $this->lifeEventIntegration->getEventsForModule($user->id, 'investment');
@@ -130,6 +146,11 @@ class InvestmentController extends Controller
             'success' => true,
             'data' => [
                 'accounts' => $accountsData,
+                // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the
+                // gate's primary-owner-only count (InvestmentAccountStore:192), NOT the
+                // joint-aware list above, so "X of Y used" matches what canCreate enforces.
+                'account_count' => InvestmentAccount::where('user_id', $user->id)->count(),
+                'account_limit' => $this->tierGate->hardLimit($user, InvestmentAccountStore::ENTITY_KEY),
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,
                 'life_events' => $lifeEvents,
@@ -324,13 +345,11 @@ class InvestmentController extends Controller
             ], 422);
         }
 
-        // Single-record pattern: Store FULL value directly (no splitting)
-        // For joint ownership, default to 50% if not specified
-        if ($validated['ownership_type'] === 'joint' && isset($validated['joint_owner_id'])) {
-            $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 50.00;
-        } else {
-            $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 100.00;
-        }
+        // Single-record pattern: Store FULL value directly (no splitting).
+        // The share itself is resolved by App\Support\SharedOwnership inside
+        // InvestmentAccountNormaliser::fromForm below — one rule, one home.
+        // This used to default the share only when the key was ABSENT, and the
+        // form always sends 100, so every joint account was stored 100/0 (W-0014).
 
         // Auto-assign main risk level if user has a risk profile
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
@@ -397,7 +416,13 @@ class InvestmentController extends Controller
                             $hasCashHolding = true;
                         }
 
-                        $account->holdings()->create([
+                        // The allocation percentage is where the value comes from
+                        // when nothing else is stated — an INPUT to the one shared
+                        // rule, never a competing one (Rule 20, W-0126). Today this
+                        // form sends no units or prices so the reconciliation is
+                        // inert; reading the shared class is what means the day it
+                        // does, units are handled here without anyone remembering to.
+                        $account->holdings()->create(HoldingValuation::reconcile([
                             'holdable_type' => InvestmentAccount::class,
                             'holdable_id' => $account->id,
                             'security_name' => $holdingData['security_name'],
@@ -406,36 +431,32 @@ class InvestmentController extends Controller
                             'cost_basis' => $holdingData['cost_basis'] ?? null,
                             'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
                             'current_value' => $currentValue,
-                        ]);
+                        ]));
                     }
 
                     // Auto-create cash holding for remainder — only if user didn't already add one
                     $totalAllocated = collect($holdings)->sum('allocation_percent');
                     if ($totalAllocated < 100 && ! $hasCashHolding) {
                         $remainderPercent = 100 - $totalAllocated;
-                        $account->holdings()->create([
+                        $account->holdings()->create(HoldingValuation::reconcile([
                             'holdable_type' => InvestmentAccount::class,
                             'holdable_id' => $account->id,
                             'security_name' => 'Cash',
                             'asset_type' => 'cash',
                             'allocation_percent' => $remainderPercent,
                             'current_value' => ($account->current_value * $remainderPercent) / 100,
-                        ]);
+                        ]));
                     }
                 }
             });
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (TierLimitExceededException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Investment account limit reached for your current plan.',
-                'error' => [
-                    'entity_key' => $e->entityKey,
-                    'current_count' => $e->currentCount,
-                    'hard_limit' => $e->hardLimit,
-                ],
-            ], 403);
+            return $this->tierLimitResponse(
+                $e,
+                'Investment account limit reached for your current plan.',
+                'investment',
+            );
         }
 
         // Clear cache
@@ -488,19 +509,19 @@ class InvestmentController extends Controller
         // Track old joint owner before update (for cache clearing if ownership changes)
         $oldJointOwnerId = $account->joint_owner_id;
 
-        // Single-record pattern: Handle ownership percentage when changing to/from joint
-        // Default to 50% when switching to joint ownership (if not explicitly set)
+        // Single-record pattern: resolve the share against the MERGED ownership type
+        // (the request may omit it), then hand the one shared rule the result.
         $ownershipType = $validated['ownership_type'] ?? $account->ownership_type;
         $jointOwnerId = $validated['joint_owner_id'] ?? $account->joint_owner_id;
 
-        if ($ownershipType === 'joint' && $jointOwnerId) {
-            // Switching to joint or already joint - default to 50% if not specified
-            if (! isset($validated['ownership_percentage'])) {
-                $validated['ownership_percentage'] = 50.00;
-            }
+        if (SharedOwnership::isShared($ownershipType) && $jointOwnerId) {
+            $validated['ownership_type'] = $ownershipType;
+            // The stored record, so an update that says nothing about the split
+            // keeps the share already on it (W-0040).
+            $validated = SharedOwnership::applyTo($validated, $ownershipType, $account);
         } elseif ($ownershipType === 'individual') {
             // Switching to individual - reset to 100%
-            $validated['ownership_percentage'] = 100.00;
+            $validated['ownership_percentage'] = SharedOwnership::INDIVIDUAL_PERCENTAGE;
             $validated['joint_owner_id'] = null;
         }
 
@@ -550,7 +571,7 @@ class InvestmentController extends Controller
             foreach ($holdings as $holdingData) {
                 $currentValue = ($account->current_value * $holdingData['allocation_percent']) / 100;
 
-                $account->holdings()->create([
+                $account->holdings()->create(HoldingValuation::reconcile([
                     'holdable_type' => InvestmentAccount::class,
                     'holdable_id' => $account->id,
                     'security_name' => $holdingData['security_name'],
@@ -559,21 +580,21 @@ class InvestmentController extends Controller
                     'cost_basis' => $holdingData['cost_basis'] ?? null,
                     'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
                     'current_value' => $currentValue,
-                ]);
+                ]));
             }
 
             // Auto-create cash holding for remainder
             $totalAllocated = collect($holdings)->sum('allocation_percent');
             if ($totalAllocated < 100) {
                 $remainderPercent = 100 - $totalAllocated;
-                $account->holdings()->create([
+                $account->holdings()->create(HoldingValuation::reconcile([
                     'holdable_type' => InvestmentAccount::class,
                     'holdable_id' => $account->id,
                     'security_name' => 'Cash',
                     'asset_type' => 'cash',
                     'allocation_percent' => $remainderPercent,
                     'current_value' => ($account->current_value * $remainderPercent) / 100,
-                ]);
+                ]));
             }
         }
 
@@ -704,16 +725,11 @@ class InvestmentController extends Controller
         $validated['holdable_id'] = $validated['investment_account_id'];
         unset($validated['investment_account_id']);
 
-        // Calculate cost_basis if purchase price is provided
-        if (isset($validated['purchase_price']) && isset($validated['current_price'])) {
-            // Calculate quantity from current value and price if both prices are provided
-            $validated['quantity'] = $validated['current_value'] / $validated['current_price'];
-            $validated['cost_basis'] = $validated['quantity'] * $validated['purchase_price'];
-        } else {
-            // No price data, set quantity and cost_basis to null
-            $validated['quantity'] = null;
-            $validated['cost_basis'] = null;
-        }
+        // Units, price and value are reconciled in ONE place (W-0039). Units are
+        // the fact; the value follows from them. This used to be a local copy of
+        // quantity = current_value / current_price, which made the unit count
+        // underivable and therefore unenterable.
+        $validated = HoldingValuation::reconcile($validated);
 
         $holding = Holding::create($validated);
 
@@ -782,14 +798,9 @@ class InvestmentController extends Controller
 
         $validated = $request->validated();
 
-        // Recalculate quantity and cost_basis if prices are provided
-        if (isset($validated['current_value']) && isset($validated['current_price']) && $validated['current_price'] > 0) {
-            $validated['quantity'] = $validated['current_value'] / $validated['current_price'];
-
-            if (isset($validated['purchase_price'])) {
-                $validated['cost_basis'] = $validated['quantity'] * $validated['purchase_price'];
-            }
-        }
+        // Same ONE reconciliation as the create path, resolved against the stored
+        // holding so a partial edit does not lose the fields it left alone.
+        $validated = HoldingValuation::reconcile($validated, $holding);
 
         $holding->update($validated);
 
@@ -953,10 +964,16 @@ class InvestmentController extends Controller
             ],
         ];
 
+        // Compute the post-edit share through the SAME trait as the before-value.
+        // Multiplying by the raw percentage here ignored which side of the joint
+        // pair is editing, so the audit trail disagreed with every screen (W-0015).
+        $afterAccount = clone $account;
+        $afterAccount->current_value = $validated['current_value'];
+
         $afterValues = [
             'current_value' => [
                 'full_value' => $validated['current_value'],
-                'user_share' => $validated['current_value'] * (($account->ownership_percentage ?? 100) / 100),
+                'user_share' => $this->calculateUserShare($afterAccount, $user->id),
             ],
         ];
 
@@ -1071,10 +1088,13 @@ class InvestmentController extends Controller
         $riskProfile = RiskProfile::where('user_id', $user->id)->first();
         $userRiskLevel = $riskProfile ? $this->diversificationAnalyzer->normalizeRiskLevel($riskProfile->risk_level ?? $riskProfile->risk_tolerance) : 3;
 
-        // Get account-level risk override if set
+        // Get account-level risk override if set. Read from the preference itself, not
+        // the `has_custom_risk` flag beside it — nothing writes that flag on an
+        // investment account, so gating on it discarded every override a user had set.
         $accountRiskLevel = null;
-        if ($account->has_custom_risk && $account->risk_preference) {
-            $accountRiskLevel = $this->diversificationAnalyzer->normalizeRiskLevel($account->risk_preference);
+        $accountRiskOverride = $this->riskPreferenceService->getProductRiskOverride($account);
+        if ($accountRiskOverride !== null) {
+            $accountRiskLevel = $this->diversificationAnalyzer->normalizeRiskLevel($accountRiskOverride);
         }
 
         // Run full analysis

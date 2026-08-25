@@ -8,6 +8,7 @@ use App\Constants\FinancialPlanningKnowledge;
 use App\Constants\QuerySchemas;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\Memory\FynMemoryStore;
@@ -22,8 +23,11 @@ use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
+use App\Services\Estate\WillTypePolicy;
+use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\TaxConfigService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 
 /**
@@ -52,6 +56,8 @@ final class FynContextAssembler
         private readonly ProceduralCorpusLoader $proceduralLoader,
         private readonly ProceduralContributionCollector $proceduralContributions,
         private readonly ProceduralVersionHolder $proceduralVersions,
+        private readonly ContextualResourceResolver $contextualResources,
+        private readonly WillTypePolicy $willTypePolicy,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -73,6 +79,10 @@ final class FynContextAssembler
         // IDENTITY (always present in every bucket set)
         $lines[] = '<user_profile>'."\n".$this->advice->buildUserProfile($ctx->user)."\n".'</user_profile>';
         $lines[] = '<current_context>'."\n".$this->advice->moduleContextFor($ctx->currentRoute)."\n".'</current_context>';
+        $surfaceAction = $this->surfaceActionContext($ctx);
+        if ($surfaceAction !== null) {
+            $lines[] = $surfaceAction;
+        }
 
         // Known facts — mode-independent, included whenever non-empty
         $known = $this->memory->renderKnownFactsBlock($ctx->user, $ctx->conversation);
@@ -153,6 +163,26 @@ final class FynContextAssembler
             $lines[] = "<live_data>\n".implode("\n\n", $liveBlocks)."\n</live_data>";
         }
 
+        // A follow-up asking why a figure appears in the user's saved tax plan
+        // must be grounded in that exact live plan. POSITION contains useful
+        // module summaries, but it is not the conflict-aware composed plan and
+        // cannot safely reconstruct a surfaced recommendation. Keep the heavy
+        // plan tool-only (lean-prompt law) and require it only for this explicit
+        // explanation/reference shape.
+        $taxPlanGrounding = $this->taxPlanGroundingDirective($ctx);
+        if ($taxPlanGrounding !== null) {
+            $lines[] = $taxPlanGrounding;
+        }
+
+        // Save Tax stores spouse financial inputs in a dedicated household
+        // row rather than on users/family_members. Surface that row only when
+        // the user explicitly asks about spouse finances, so the model cannot
+        // mistake an absent linked-spouse profile for absent campaign data.
+        $householdGrounding = $this->savedHouseholdFinancesDirective($ctx);
+        if ($householdGrounding !== null) {
+            $lines[] = $householdGrounding;
+        }
+
         // CoALA Phase 4c — procedural prompt overlays + FCA blocks. Additive
         // per-turn layers AFTER the static prefix and after <live_data>,
         // mirroring <knowledge>/<live_data>: load the active procedures of the
@@ -197,7 +227,11 @@ final class FynContextAssembler
             // The static NAVIGATION / BLOCKED-MODULE / MODULE-DEPENDENCY rules
             // now live once in the cached FynSystemPrompt
             // (<data_completeness_rules>) instead of ~595 tok every advice turn.
-            $lines[] = $this->advice->buildPrerequisiteStateContextLean($ctx->user);
+            $lines[] = $this->advice->buildPrerequisiteStateContextLean(
+                $ctx->user,
+                $ctx->classification,
+                $ctx->kycResult,
+            );
         }
 
         // KYC gate result (parity with legacy AdvicePromptBuilder Layer 9,
@@ -222,6 +256,16 @@ final class FynContextAssembler
                 $lines[] = "<financial_knowledge>\n{$knowledge}\n</financial_knowledge>";
             }
 
+            // Required tools + decision triggers (legacy Layer 8b parity).
+            // QuerySchemas already defines the minimum live reads for each
+            // advice classification; omitting this layer under unified let the
+            // model answer saved-data questions from the thin record summary
+            // and falsely claim detailed fields were missing.
+            $toolsAndTriggers = $this->advice->buildToolsAndTriggersBlock($ctx->classification);
+            if ($toolsAndTriggers !== '') {
+                $lines[] = $toolsAndTriggers;
+            }
+
             // "How do I start saving?" is a generic getting-started question, so
             // QueryClassifier rightly leaves it GENERAL (the savings keyword
             // table is deliberately narrow so "save tax" / "save for retirement"
@@ -233,6 +277,11 @@ final class FynContextAssembler
             $gettingStarted = $this->savingsGettingStartedDirective($ctx);
             if ($gettingStarted !== null) {
                 $lines[] = $gettingStarted;
+            }
+
+            $willStructure = $this->willStructureDirective($ctx);
+            if ($willStructure !== null) {
+                $lines[] = $willStructure;
             }
 
             $lines[] = $this->voicingRules();
@@ -254,10 +303,17 @@ final class FynContextAssembler
 
         if ($has(ContextBucket::CAPTURE)) {
             $focus = (string) $ctx->onboardingFocus;
-            $lines[] = FynCaptureTurnInstructions::render(
-                $this->focusLabel($focus),
-                implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
-            );
+            if (str_starts_with($focus, 'verify_edit_')) {
+                $lines[] = FynVerifyEditTurnInstructions::render(
+                    substr($focus, strlen('verify_edit_')),
+                );
+            } else {
+                $lines[] = FynCaptureTurnInstructions::render(
+                    $this->focusLabel($focus),
+                    implode(', ', OnboardingPromptBuilder::toolsForFocus($focus)),
+                    isModuleWalk: $focus !== OnboardingChatDirector::HANDOFF_FALLBACK_FOCUS,
+                );
+            }
         }
 
         if ($ctx->isPreview) {
@@ -274,6 +330,97 @@ final class FynContextAssembler
         $lines[] = '</user_message>';
 
         return implode("\n", $lines);
+    }
+
+    private function surfaceActionContext(FynTurnContext $ctx): ?string
+    {
+        $metadata = $ctx->conversation?->metadata;
+        if (! is_array($metadata) || ($metadata['source'] ?? null) !== 'surface_action') {
+            return null;
+        }
+
+        $resourceType = $metadata['resource_type'] ?? null;
+        $rawResourceId = $metadata['resource_id'] ?? null;
+        $resourceId = is_int($rawResourceId)
+            ? $rawResourceId
+            : (is_string($rawResourceId) && ctype_digit($rawResourceId) ? (int) $rawResourceId : null);
+
+        if (! is_string($resourceType) || $resourceType === '') {
+            return $this->unavailableSurfaceAction('dashboard');
+        }
+
+        $fallback = $this->contextualResources->overviewScreenFor($resourceType);
+
+        try {
+            $resource = $this->contextualResources->resolve(
+                $ctx->user,
+                $resourceType,
+                $resourceId,
+            );
+        } catch (ModelNotFoundException) {
+            return $this->unavailableSurfaceAction($fallback);
+        }
+
+        $lines = [
+            '<surface_action>',
+            'authority: server',
+            'status: available',
+            'rehydrated_at: '.now()->toIso8601String(),
+            'action: '.UserContentSanitiser::clean((string) ($metadata['action'] ?? 'edit')),
+            'resource_type: '.$resource->resourceType,
+            'resource_id: '.($resource->resourceId ?? 'none'),
+            'related_entity: '.UserContentSanitiser::wrap($resource->label),
+            'canonical_facts:',
+        ];
+
+        foreach ($resource->canonicalFacts as $field => $value) {
+            $lines[] = '- '.$field.': '.$this->renderCanonicalFact($value);
+        }
+
+        $lines[] = 'The client supplied identifiers only to select this context; the facts above were loaded from canonical records.';
+        $lines[] = 'User changes remain proposed facts until the validated capture/write workflow saves them.';
+        $lines[] = '</surface_action>';
+
+        return implode("\n", $lines);
+    }
+
+    private function unavailableSurfaceAction(string $fallback): string
+    {
+        return implode("\n", [
+            '<surface_action>',
+            'authority: server',
+            'status: unavailable',
+            'fallback_screen: '.UserContentSanitiser::clean($fallback),
+            'The selected resource is no longer available to this user. Do not rely on stale conversation context or disclose whether another user owns it.',
+            '</surface_action>',
+        ]);
+    }
+
+    private function renderCanonicalFact(mixed $value): string
+    {
+        if ($value === null) {
+            return 'not recorded';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        if (is_string($value)) {
+            return is_numeric($value) ? $value : UserContentSanitiser::wrap($value);
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return UserContentSanitiser::wrap($json === false ? 'unavailable' : $json);
     }
 
     /**
@@ -318,6 +465,145 @@ final class FynContextAssembler
             .'</savings_getting_started>';
     }
 
+    /**
+     * Ground spouse-finance questions in the dedicated Save Tax household row.
+     */
+    private function savedHouseholdFinancesDirective(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->isOnboarding()) {
+            return null;
+        }
+
+        $message = mb_strtolower($ctx->message);
+        $mentionsSpouse = preg_match('/\b(spouse|partner|husband|wife)\b/i', $message) === 1;
+        $mentionsFinances = preg_match(
+            '/\b(income|earn|salary|isa|pension|saving|investment|asset|household|financial|record)\b/i',
+            $message,
+        ) === 1;
+        if (! $mentionsSpouse || ! $mentionsFinances) {
+            return null;
+        }
+
+        $household = $ctx->user->taxStrategyHouseholdInput()->first();
+        if ($household === null) {
+            return null;
+        }
+
+        $fields = [
+            'spouse_annual_income' => 'Spouse annual income',
+            'spouse_isa_balance' => 'Spouse ISA balance',
+            'spouse_pension_input_annual' => 'Spouse annual pension contribution',
+            'spouse_existing_isa_balance' => 'Spouse existing ISA balance',
+            'spouse_existing_savings_balance' => 'Spouse existing savings balance',
+            'spouse_existing_investment_balance' => 'Spouse existing investment balance',
+            'spouse_existing_dividend_holdings_value' => 'Spouse existing dividend holdings value',
+            'spouse_existing_pension_balance' => 'Spouse existing pension balance',
+        ];
+
+        $values = [];
+        foreach ($fields as $field => $label) {
+            $value = $household->getAttribute($field);
+            if ($value !== null) {
+                $values[] = "- {$label}: £".number_format((float) $value, 2);
+            }
+        }
+
+        if ($household->spouse_employment_status !== null) {
+            $status = str_replace('_', ' ', (string) $household->spouse_employment_status);
+            $values[] = '- Spouse employment status: '.UserContentSanitiser::wrap($status);
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        return "<saved_household_finances>\n"
+            ."These are the authoritative Save Tax campaign household values currently saved for this user:\n"
+            .implode("\n", $values)."\n"
+            .'Use the listed values exactly. Do not say that a listed field is not recorded. Do not infer values for fields that are not listed.'
+            ."\n</saved_household_finances>";
+    }
+
+    /**
+     * Require the tool-only composed plan when the user asks Fyn to explain
+     * an existing tax-plan recommendation or calculation.
+     */
+    private function taxPlanGroundingDirective(FynTurnContext $ctx): ?string
+    {
+        if ($ctx->isOnboarding()
+            || ($ctx->classification['primary'] ?? null) !== QuerySchemas::TAX_OPTIMISATION) {
+            return null;
+        }
+
+        $message = mb_strtolower($ctx->message);
+        $referencesPlan = preg_match(
+            '/\b(my|the|saved|tax)\s+(plan|recommendation|action|strategy)\b/i',
+            $message,
+        ) === 1;
+        $asksForWorking = preg_match(
+            '/\b(explain|why|how|figure|figures|working|calculation|calculated|save|saving)\b/i',
+            $message,
+        ) === 1;
+
+        if (! $referencesPlan || ! $asksForWorking) {
+            return null;
+        }
+
+        return <<<'GROUNDING'
+<tax_plan_grounding>
+The user is asking you to explain a figure or action already shown in their saved tax plan. Before responding, you MUST call get_recommendations and use the matching item in its composed_tax_plan as the authoritative source. Do not reconstruct or rationalise the plan figure from partial conversation context. Show the matching item's exact saved balances, recorded rates, allowance, taxable amount, marginal rate, and arithmetic where present. If the amount quoted by the user differs from the live plan, say so plainly and explain the current figure instead.
+</tax_plan_grounding>
+GROUNDING;
+    }
+
+    /**
+     * W-0019 — Fyn reaches the same answer as the will builder form, from the
+     * same source (Rule 20). Fynla builds mirror wills only for married users;
+     * anything else is refused with a solicitor referral, and Fyn must quote
+     * the refusal rather than compose its own, or the two surfaces drift into
+     * two vocabularies.
+     */
+    private function willStructureDirective(FynTurnContext $ctx): ?string
+    {
+        if (! $this->willTypePolicy->isMarried($ctx->user)) {
+            return null;
+        }
+
+        // Deliberately narrow: a bare \bwill\b would fire on the modal verb in
+        // "I will retire at 60" and inject this block into most turns.
+        $mentionsAWill = preg_match(
+            '/\bwills\b|\btestament\b|\bwill\s+builder\b'
+            .'|\b(my|a|the|your|our|new|another|second|separate|mirror|simple|one[- ]sided|single)\s+will\b'
+            .'|\b(write|writing|make|making|draft|drafting|build|building|create|creating|set\s+up|setting\s+up|update|updating|change|changing|amend|amending)\s+(a|my|the|our|their)?\s*will\b/i',
+            $ctx->message,
+        ) === 1;
+
+        if (! $mentionsAWill) {
+            return null;
+        }
+
+        $married = WillTypePolicy::asText(WillTypePolicy::REFUSAL_MARRIED);
+        $noPartner = WillTypePolicy::asText(WillTypePolicy::REFUSAL_NO_MIRROR_PARTNER);
+
+        return <<<DIRECTIVE
+<will_structure_policy>
+The user is married or in a civil partnership. Fynla builds mirror wills only for these users — a matching pair, one for each partner.
+
+If they ask you to build, draft or set up any other kind of will — a simple will, a one-sided will, a will for them alone — do not draft, outline or part-build it, and do not offer a workaround. Reply with this text, unchanged:
+
+"{$married}"
+
+If they want a mirror will but tell you their spouse or civil partner will not make a matching one, reply with this text instead, unchanged:
+
+"{$noPartner}"
+
+You may open with a short natural line, but the text above must appear unchanged, and you must not add exceptions, caveats or alternatives to it. Do not close this particular reply with a follow-up question offering any other kind of will; the only follow-up you may offer is to start their mirror wills.
+
+Recording the details of a will they have already made elsewhere is unaffected — keep capturing those details as normal. A will they only intend to make outside Fynla is not a will to record; that is the same refusal.
+</will_structure_policy>
+DIRECTIVE;
+    }
+
     private function resolveFirstName(User $user): string
     {
         $first = trim((string) ($user->first_name ?? ''));
@@ -342,19 +628,10 @@ Ambiguity: if a figure the user gave you is ambiguous in a way that changes the 
 RULES;
     }
 
+    /** Delegates to the one focus → label map (Rule 20). */
     private function focusLabel(?string $focus): string
     {
-        return match ($focus) {
-            'savings', 'budgeting' => 'Cash & Savings',
-            'investment' => 'Investments',
-            'retirement' => 'Retirement',
-            'protection' => 'Protection',
-            'estate' => 'Estate Planning',
-            'business' => 'Business',
-            'goals' => 'Goals',
-            'savetax' => 'SaveTax',
-            default => (string) $focus,
-        };
+        return OnboardingPromptBuilder::focusLabel((string) $focus);
     }
 
     /**

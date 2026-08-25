@@ -31,9 +31,12 @@ it('surfaces a strategy-level unlock card naming the missing data point', functi
         ->and($strategyUnlocks[0]['type'])->toBe('unlock')
         ->and($strategyUnlocks[0]['module'])->toBe('tax');
 
-    // The meta text names the specific missing data point (e.g. "workplace pension").
+    // The card names the specific missing detail as a short noun (CSJ 4.2):
+    // "Unlock pension info" / "Enter your pension details".
+    $allTitleText = implode(' ', array_column($strategyUnlocks, 'title'));
     $allMetaText = implode(' ', array_column($strategyUnlocks, 'meta'));
-    expect($allMetaText)->toContain('workplace pension');
+    expect($allTitleText)->toContain('Unlock pension info')
+        ->and($allMetaText)->toContain('Enter your pension details');
 });
 
 it('strategy unlock cards carry the full unlock item shape', function () {

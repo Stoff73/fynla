@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Chattel;
 
+use App\Http\Traits\ValidatesSharedOwnership;
+use App\Support\SharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreChattelRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     public function authorize(): bool
     {
         return true;
@@ -58,6 +63,38 @@ class StoreChattelRequest extends FormRequest
             // Notes
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
+    }
+
+    /**
+     * A shared asset must name the other party.
+     *
+     * Selecting "Joint" and leaving the Joint Owner select untouched used to
+     * save with 200/201 and no error, producing a chattel 50% owned by the
+     * saver and 50% owned by nobody — invisible to the spouse, and missing from
+     * every household total (W-0025). The predicate lives in
+     * App\Support\SharedOwnership so chattels, property and mortgages all ask
+     * the same question.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $ownershipType = $this->input('ownership_type', 'individual');
+
+            // A stated share that is not a shared split is refused, never
+            // rewritten (W-0040).
+            $this->validateSharedOwnershipSplit($v, $ownershipType, $this->input('ownership_percentage'));
+
+            if (! SharedOwnership::isShared($ownershipType)) {
+                return;
+            }
+
+            if (! SharedOwnership::namesCounterparty($this->all())) {
+                $v->errors()->add(
+                    'joint_owner_id',
+                    'Choose who this is owned with, or enter their name.',
+                );
+            }
+        });
     }
 
     public function messages(): array

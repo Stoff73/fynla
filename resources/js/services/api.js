@@ -107,21 +107,22 @@ api.interceptors.response.use(
       // Handle 401 Unauthorized errors
       if (error.response.status === 401) {
         // Don't redirect if we're already on login/register endpoints (let component handle it)
+        // `/auth/user` is included so a transient 401 on the FIRST post-login
+        // user-fetch does not wipe the freshly-minted token and hard-redirect
+        // back to /login (the "had to click sign in twice" bug). Genuine token
+        // expiry is still caught by the router guard on the next navigation and
+        // by 401s on any other (non-allowlisted) endpoint.
         const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
           error.config?.url?.includes('/auth/register') ||
           error.config?.url?.includes('/auth/verify-code') ||
+          error.config?.url?.includes('/auth/user') ||
           error.config?.url?.includes('/preview/exit');
 
         // Check if we're in preview mode - don't redirect, just reject silently
         const isPreviewMode = store.getters['preview/isPreviewMode'];
 
         if (!isAuthEndpoint && !isPreviewMode) {
-          console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');
-          // Clear token via tokenStorage abstraction layer
-          await removeToken();
-          // routerBase is defined at the top of this file from VITE_ROUTER_BASE.
-          // The previous `/fps/` check was stale legacy and broke csjones (/fynla/).
-          window.location.href = `${routerBase}/login`;
+          await handleAuthExpiry();
         } else {
           // For auth endpoints, return the error to be handled by the component
           return Promise.reject({
@@ -210,6 +211,21 @@ api.interceptors.response.use(
     return api(config);
   }
 );
+
+/**
+ * Auth-expiry handling shared between the axios response interceptor above
+ * and the SSE stream helpers in aiChatService.js. The stream endpoints use
+ * raw fetch() (axios doesn't support streaming) and so bypass axios
+ * interceptors entirely — without this shared helper a 401/419 on a stream
+ * request dead-ends the turn behind a generic "connection lost" banner
+ * instead of re-authenticating the user like every other 401 in the app.
+ */
+export async function handleAuthExpiry() {
+  console.error('[API] 401/419 Unauthorized - Token expired or invalid. Redirecting to login...');
+  await removeToken();
+  // routerBase is defined at the top of this file from VITE_ROUTER_BASE.
+  window.location.href = `${routerBase}/login`;
+}
 
 export { apiBaseURL };
 export default api;

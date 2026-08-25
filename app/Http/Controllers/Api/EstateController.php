@@ -25,22 +25,26 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
-use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\LiabilityStore;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
 use App\Services\Tiers\TeaserGate;
+use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EstateController extends Controller
 {
+    use CalculatesOwnershipShare;
     use GatesEstateAccess;
     use SanitizedErrorResponse;
 
@@ -54,12 +58,13 @@ class EstateController extends Controller
         private readonly TeaserGate $teaserGate,
         private readonly EstateIhtExposureDetector $ihtExposureDetector,
         private readonly TierConfigurationStore $tierStore,
+        private readonly LiabilityStore $liabilityStore,
     ) {}
 
     /**
      * Get all estate planning data for authenticated user.
      *
-     * Server-side teaser gate (spec §10.2 / SP2 PR7): Free and Tier1 users
+     * Server-side teaser gate (spec §10.2 / SP2 PR7): Free users
      * receive a cheap IHT-exposure signal rather than the full module.
      * The Vue view branches on `mode` for defence-in-depth, but this
      * response is authoritative.
@@ -96,7 +101,15 @@ class EstateController extends Controller
             $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
         })->with('property')->limit(100)->get();
 
-        $mortgageLiabilities = $mortgages->map(function ($mortgage) {
+        // The share is applied HERE, not on the client. This used to hand the
+        // frontend the securing property's ownership pair and leave it to work the
+        // share out — a second implementation of the rule (Rule 20), and one that
+        // nothing on the other end actually read: `LiabilitiesList.vue` summed
+        // `current_balance` whole, so the Total Balance Owed included the 60% of a
+        // tenants-in-common mortgage belonging to an off-platform co-owner
+        // (W-0237). `calculateUserMortgageShare` resolves the property itself now
+        // (W-0228), so the one reader answers it once, on the server.
+        $mortgageLiabilities = $mortgages->map(function (Mortgage $mortgage) use ($user) {
             $property = $mortgage->property;
 
             return [
@@ -105,7 +118,12 @@ class EstateController extends Controller
                 'liability_type' => 'mortgage',
                 'liability_name' => 'Mortgage - '.($property->address_line_1 ?? 'Property'),
                 'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
+                'user_share' => round($this->calculateUserMortgageShare($mortgage, $user->id), 2),
                 'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
+                'user_monthly_payment_share' => round(
+                    $this->calculateUserMortgageMonthlyPaymentShare($mortgage, $user->id),
+                    2
+                ),
                 'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
                 'notes' => ucfirst(str_replace('_', ' ', $mortgage->mortgage_type ?? 'repayment')).' mortgage',
                 'ownership_type' => $property->ownership_type ?? 'individual',
@@ -186,9 +204,7 @@ class EstateController extends Controller
             $user->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
 
             // Also load spouse relationships if spouse is involved
-            $spouse = ($user->marital_status === 'married' && $user->spouse_id)
-                ? User::find($user->spouse_id)
-                : null;
+            $spouse = $user->marital_status === 'married' ? $user->liveSpouse() : null;
             if ($spouse) {
                 $spouse->load(['investmentAccounts', 'mortgages', 'properties', 'liabilities']);
             }
@@ -355,6 +371,31 @@ class EstateController extends Controller
     // ============ LIABILITY CRUD ============
 
     /**
+     * Return one liability through the same ownership rules used by the
+     * canonical Net Worth detail surfaces.
+     */
+    public function showLiability(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $liability = Liability::query()
+            ->whereKey($id)
+            ->where(function ($query) use ($user): void {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->with('jointOwner')
+            ->firstOrFail();
+
+        $data = (new LiabilityResource($liability))->resolve($request);
+        $data['is_primary_owner'] = $liability->user_id === $user->id;
+
+        return response()->json([
+            'success' => true,
+            'data' => ['liability' => $data],
+        ]);
+    }
+
+    /**
      * Store a new liability
      */
     public function storeLiability(StoreLiabilityRequest $request): JsonResponse
@@ -363,8 +404,7 @@ class EstateController extends Controller
         $validated = $request->validated();
 
         try {
-            $validated['user_id'] = $user->id;
-            $liability = Liability::create($validated);
+            $liability = $this->liabilityStore->create($validated, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);
@@ -378,6 +418,8 @@ class EstateController extends Controller
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Liability creation');
         }
@@ -392,11 +434,7 @@ class EstateController extends Controller
         $validated = $request->validated();
 
         try {
-            $liability = Liability::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $liability->update($validated);
+            $liability = $this->liabilityStore->update($id, $validated, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);
@@ -404,7 +442,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Liability updated successfully',
-                'data' => new LiabilityResource($liability->fresh()),
+                'data' => new LiabilityResource($liability),
             ]);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -424,11 +462,7 @@ class EstateController extends Controller
         $user = $request->user();
 
         try {
-            $liability = Liability::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $liability->delete();
+            $this->liabilityStore->delete($id, $user, IngestSource::FORM);
 
             // Invalidate cache
             $this->cacheInvalidation->invalidateForUser($user->id);

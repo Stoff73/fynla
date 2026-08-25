@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_goal",
-    "description": "Create a new financial goal. Use when the user wants to save for something specific. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple goals.",
+    "description": "Create a new financial goal. Use when the user wants to save for something specific. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple goals. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

@@ -1,5 +1,5 @@
 <template>
-  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="this policy" back @back="goBack">
+  <MobileChrome title="Protection" subtitle="Your insurance cover and the gaps that remain" :loading="loading" loading-label="this policy" :contextual-request="contextualRequest" back @back="goBack">
     <div class="m-card m-detail-header">
       <h1 class="m-h1">{{ headerProvider }}</h1>
       <p class="m-sub">{{ typeLabel }}</p>
@@ -78,6 +78,14 @@
           <span class="m-detail-key">Held in trust</span>
           <span class="m-detail-value">Yes</span>
         </div>
+        <div v-if="policy.joint_life" class="m-detail-row">
+          <span class="m-detail-key">Joint life</span>
+          <span class="m-detail-value">{{ policy.joint_life_with ? `Yes, with ${policy.joint_life_with}` : 'Yes' }}</span>
+        </div>
+        <div v-if="policy.is_own_policy === false" class="m-detail-row">
+          <span class="m-detail-key">Recorded by</span>
+          <span class="m-detail-value">{{ policy.joint_life_with || 'Your spouse' }}</span>
+        </div>
       </div>
 
       <!-- Premium -->
@@ -139,7 +147,9 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -184,6 +194,31 @@ export default {
     };
   },
   computed: {
+    contextualRequest() {
+      const resourceType = {
+        life: 'life_insurance_policy',
+        criticalIllness: 'critical_illness_policy',
+        incomeProtection: 'income_protection_policy',
+        disability: 'disability_policy',
+        sicknessIllness: 'sickness_illness_policy',
+      }[this.policyType];
+      if (!resourceType || !Number.isInteger(this.policyId) || this.policyId < 1) return null;
+      // A joint-life policy reaching this account through the spouse who recorded
+      // it is read-only here — the write path is scoped to that account, so an edit
+      // request would be refused. Do not offer one (W-0186).
+      if (this.policy?.is_own_policy === false) return null;
+      return buildContextualConversationRequest({
+        action: 'edit',
+        resourceType,
+        resourceId: this.policyId,
+        currentDestination: {
+          screen: 'protection_policy_detail',
+          params: { policy_id: this.policyId, policy_type: this.policyType },
+          fallback: 'protection',
+        },
+        origin: { kind: 'surface_action' },
+      });
+    },
     typeLabel() { return TYPE_LABELS[this.policyType] || 'Policy'; },
     headerProvider() { return this.policy?.provider || 'Policy'; },
     isLumpSum() { return this.policyType === 'life' || this.policyType === 'criticalIllness'; },
@@ -200,15 +235,11 @@ export default {
       if (!sub) return null;
       return LIFE_SUBTYPES[sub] || sub;
     },
-    annualCost() {
-      if (!this.policy?.premium_amount) return 0;
-      const amount = parseFloat(this.policy.premium_amount);
-      switch (this.policy.premium_frequency) {
-        case 'quarterly': return amount * 4;
-        case 'annually': case 'annual': case 'yearly': return amount;
-        default: return amount * 12;
-      }
-    },
+    // CSJ 2026-08-23: /m never works anything out — it shows what the backend
+    // computed. This annualised the premium itself, a second copy of the mapping
+    // in `PremiumAnnualiser`, so a frequency added to one would have been missed
+    // by the other. The server sends `annual_premium` now.
+    annualCost() { return Number(this.policy?.annual_premium ?? 0); },
     conditions() {
       const raw = this.policy?.conditions_covered;
       if (!raw) return [];
@@ -216,7 +247,7 @@ export default {
       try {
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : [];
-      } catch (e) {
+      } catch {
         return String(raw).split(',').map((s) => s.trim()).filter(Boolean);
       }
     },
@@ -244,7 +275,8 @@ export default {
       this.error = '';
       this.policy = null;
       try {
-        const { ok, data } = await apiGet('/api/protection', store.token);
+        const { ok, status, data } = await apiGet('/api/protection', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (!ok) {
           this.error = data?.message || 'We could not load this policy.';
           return;
@@ -253,7 +285,7 @@ export default {
         const groups = payload.policies || {};
         const arr = groups[GROUP_KEYS[this.policyType]] || [];
         this.policy = arr.find((p) => p.id === this.policyId) || null;
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

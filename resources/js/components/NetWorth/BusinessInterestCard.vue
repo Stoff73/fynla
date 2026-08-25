@@ -52,6 +52,13 @@
           <span class="detail-value">{{ formatCurrency(business.annual_profit) }}</span>
         </div>
 
+        <div v-if="filingDue" class="detail-row">
+          <span class="detail-label">{{ filingDue.label }}</span>
+          <span class="detail-value" :class="filingDue.overdue ? 'text-overdue' : 'text-due-soon'">
+            {{ filingDue.when }}
+          </span>
+        </div>
+
         <div v-if="business.bpr_eligible" class="detail-row">
           <span class="bpr-badge" title="May qualify for 100% Inheritance Tax relief">Business Relief Eligible</span>
         </div>
@@ -78,6 +85,27 @@ export default {
   emits: ['click', 'edit', 'delete'],
 
   computed: {
+    /**
+     * The next Companies House filing, surfaced on the card only once it is
+     * close enough to act on. next_filing comes from the server so the card,
+     * the detail view and the /m list all agree on which filing is next.
+     */
+    filingDue() {
+      const filing = this.business.next_filing;
+      if (!filing || filing.days_until > 30) return null;
+
+      const days = filing.days_until;
+      const label = filing.type === 'accounts' ? 'Accounts due' : 'Confirmation statement due';
+
+      let when;
+      if (days < 0) when = `Overdue by ${Math.abs(days)} ${Math.abs(days) === 1 ? 'day' : 'days'}`;
+      else if (days === 0) when = 'Today';
+      else if (days === 1) when = 'Tomorrow';
+      else when = `In ${days} days`;
+
+      return { label, when, overdue: days < 0 };
+    },
+
     businessTypeLabel() {
       const labels = {
         sole_trader: 'Sole Trader',
@@ -312,6 +340,15 @@ export default {
 .detail-value.text-gray {
   @apply text-neutral-500;
   font-weight: 500;
+}
+
+/* Rule 8: caution is violet, danger is raspberry. Never amber. */
+.detail-value.text-due-soon {
+  @apply text-violet-600;
+}
+
+.detail-value.text-overdue {
+  @apply text-raspberry-600;
 }
 
 .bpr-badge {

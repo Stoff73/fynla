@@ -66,8 +66,8 @@ final class AssetCaptureEntityExtractor
     {
         return match ($focus) {
             'protection' => 'create_protection_policy',
-            'savings', 'budgeting' => 'create_savings_account',
-            'retirement' => 'create_pension',
+            'savings' => 'create_savings_account',
+            'retirement', 'occupational' => 'create_pension',
             'investment' => 'create_investment_account',
             default => null,
         };
@@ -82,10 +82,23 @@ final class AssetCaptureEntityExtractor
      */
     public function extractForFocus(string $focus, string $message): array
     {
-        return match ($focus) {
+        // WP-1 — intent-only guard. "Help me add my pension details" (the
+        // Edit-details / next-action opener strings, and any hand-typed
+        // equivalent) names an entity TYPE but no facts about it. The type
+        // detectors below fire on the bare type word, so the gap-fill used
+        // to materialise a placeholder record ("Personal Pension", £0) from
+        // pure intent — the 2026-07-03 phantom-pension incident. An add/
+        // update request that carries no figure is a request for a capture
+        // conversation, not a capture.
+        if ($this->isIntentOnlyRequest($message)) {
+            return [];
+        }
+
+        $entities = match ($focus) {
             'protection' => $this->extractProtectionPolicies($message),
-            'savings', 'budgeting' => $this->extractSavingsAccounts($message),
+            'savings' => $this->extractSavingsAccounts($message),
             'retirement' => $this->extractPensions($message),
+            'occupational' => $this->extractOccupationalPensionAnswer($message),
             'investment' => $this->extractInvestmentAccounts($message),
             'property' => $this->extractProperties($message),
             'goal' => $this->extractGoals($message),
@@ -93,6 +106,31 @@ final class AssetCaptureEntityExtractor
             'liability' => $this->extractLiabilities($message),
             default => [],
         };
+
+        return $this->attachOwnership($focus, $entities, $message);
+    }
+
+    /**
+     * True when the message is an add/update REQUEST carrying no substance:
+     * it opens with an intent verb phrase and contains no digits and no
+     * currency amount. "Help me add my pension details" → true;
+     * "add my Halifax ISA with £5,000" → false (has a figure);
+     * "I have a workplace pension with Aviva" → false (no intent opener).
+     */
+    private function isIntentOnlyRequest(string $message): bool
+    {
+        $trimmed = trim($message);
+
+        $opensWithIntent = preg_match(
+            '/^(please\s+)?(help me|can you|could you|i(\'|’)?d like to|i want to|let(\'|’)?s)\s+(add|update|record|enter|set up|put in)\b/iu',
+            $trimmed
+        ) === 1 || preg_match('/^(add|update)\s+my\b/iu', $trimmed) === 1;
+
+        if (! $opensWithIntent) {
+            return false;
+        }
+
+        return preg_match('/[£\d]/u', $trimmed) !== 1;
     }
 
     /**
@@ -142,6 +180,112 @@ final class AssetCaptureEntityExtractor
     }
 
     /**
+     * Attach a deterministically-parsed ownership_type to entities headed
+     * for an ownership-gated create tool (CaptureAccuracyGate::OWNERSHIP_TOOLS
+     * — savings, investment, property, liability). The LLM repeatedly
+     * pattern-locks on its own prior failing tool call and keeps omitting
+     * ownership_type even after the user states it explicitly (live
+     * conversation 164, four consecutive turns) — this is the deterministic
+     * backstop. Conservative regex only, scanning the WHOLE message (not the
+     * per-entity chunk): the user's ownership answer often lands in a
+     * different sentence/turn than the entity's facts, e.g. the merged
+     * interruption-retry message "Original capture details: ...\nRequested
+     * missing details: Yes, it's owned individually by me". We never
+     * default ownership — an entity with no matching phrase is returned
+     * unchanged, mirroring CaptureAccuracyGate's own "never assume
+     * ownership" contract. The one exception is ISA entities: an ISA has
+     * exactly one legal owner under UK law, so the per-type extractors
+     * (extractOneSavingsAccount, extractOneInvestmentAccount) already stamp
+     * ownership_type: 'individual' before this method runs — deterministic,
+     * never inferred from phrasing — and the `??=` below leaves that value
+     * untouched.
+     *
+     * @param  list<array<string, mixed>>  $entities
+     * @return list<array<string, mixed>>
+     */
+    private function attachOwnership(string $focus, array $entities, string $message): array
+    {
+        if ($entities === [] || ! in_array($focus, ['savings', 'investment', 'property', 'liability'], true)) {
+            return $entities;
+        }
+
+        $ownership = $this->extractOwnershipType($message);
+        if ($ownership === null) {
+            return $entities;
+        }
+
+        return array_map(static function (array $entity) use ($ownership): array {
+            $entity['ownership_type'] ??= $ownership;
+
+            return $entity;
+        }, $entities);
+    }
+
+    /**
+     * Conservative ownership-phrase detector. Individual phrases are
+     * checked before joint ones; only the canonical two-way household
+     * ownership split (individual / joint) is ever inferred — tenants in
+     * common and trust ownership always require the user to be asked
+     * explicitly downstream, never guessed here.
+     */
+    public function extractOwnershipType(string $message): ?string
+    {
+        $lower = mb_strtolower($message);
+
+        // Vocabulary composed from OwnershipPhrasings — the ONE source (Rule
+        // 20); a private copy here diverged from the gate's and re-asked for
+        // ownership the user had stated (live 2026-07-23).
+        if (preg_match('/\b(?:'.OwnershipPhrasings::INDIVIDUAL.')\b/u', $lower) === 1) {
+            return 'individual';
+        }
+
+        if (preg_match('/\b(?:'.OwnershipPhrasings::JOINT.')\b/u', $lower) === 1) {
+            return 'joint';
+        }
+
+        return null;
+    }
+
+    /**
+     * Merge extractor-parsed entities with the LLM's own gate-blocked
+     * tool-call arguments for the same focus (OnboardingChatDirector
+     * collects these from `capture_write_result` events whose result was
+     * clarification_required — see handleInlineCapture). The LLM's own
+     * arguments are the BASE — its institution/balance/account_type parsing
+     * already reached the gate unmodified and is generally more reliable
+     * than this extractor's regexes — the extractor only fills keys the
+     * LLM's call left unset, chiefly ownership_type now that this extractor
+     * is the deterministic ownership parser. A key already present in the
+     * LLM's input (even if it later proves wrong) is never overwritten by
+     * the extractor. Matched by identity key (see identityKey()); an
+     * extracted entity with no matching LLM input is returned unchanged.
+     *
+     * @param  list<array<string, mixed>>  $extracted
+     * @param  list<array<string, mixed>>  $llmInputs  raw tool-call arguments from gate-blocked LLM attempts this turn
+     * @return list<array<string, mixed>>
+     */
+    public function mergeWithLlmInput(string $focus, array $extracted, array $llmInputs): array
+    {
+        if ($llmInputs === []) {
+            return $extracted;
+        }
+
+        $llmByKey = [];
+        foreach ($llmInputs as $llmInput) {
+            $key = $this->identityKey($focus, $llmInput, true);
+            if ($key !== '') {
+                $llmByKey[$key] = $llmInput;
+            }
+        }
+
+        return array_map(function (array $entity) use ($focus, $llmByKey): array {
+            $key = $this->identityKey($focus, $entity, false);
+
+            return isset($llmByKey[$key]) ? ($llmByKey[$key] + $entity) : $entity;
+        }, $extracted);
+    }
+
+    /**
      * Build the set of identity keys for rows persisted in the last 24h
      * for this user in the focus's target module(s). Used by findMissing
      * to suppress gap-fill emissions that would re-create existing rows
@@ -160,8 +304,8 @@ final class AssetCaptureEntityExtractor
 
         return match ($focus) {
             'protection' => $this->protectionPersistedKeys($user, $cutoff),
-            'savings', 'budgeting' => $this->savingsPersistedKeys($user, $cutoff),
-            'retirement' => $this->retirementPersistedKeys($user, $cutoff),
+            'savings' => $this->savingsPersistedKeys($user, $cutoff),
+            'retirement', 'occupational' => $this->retirementPersistedKeys($user, $cutoff),
             'investment' => $this->investmentPersistedKeys($user, $cutoff),
             'property' => $this->propertyPersistedKeys($user, $cutoff),
             'goal' => $this->goalPersistedKeys($user, $cutoff),
@@ -513,12 +657,28 @@ final class AssetCaptureEntityExtractor
         }
 
         $isIsa = preg_match('/\bisa\b|individual[\s-]savings[\s-]account/u', $lower) === 1;
+        if ($isIsa) {
+            $isCashIsa = preg_match('/\bcash[\s-]isa\b/u', $lower) === 1;
+            $isInvestmentIsa = preg_match('/\b(?:stocks?[\s&and-]+shares?|lifetime|lisa|innovative[\s-]finance)[\s-]isa\b/u', $lower) === 1;
 
+            // A bare ISA has no safe product type, while investment ISAs
+            // belong to extractInvestmentAccounts(). Never turn either into
+            // a Cash ISA merely to satisfy a create tool schema.
+            if (! $isCashIsa || $isInvestmentIsa) {
+                return null;
+            }
+        }
+
+        // Only classify as a savings product on an explicit savings signal; a
+        // bare provider + balance ("Barclays, £5,000") is a current/bank account
+        // by default (CSJ: don't assume savings unless the user stipulates it).
         $accountType = match (true) {
             preg_match('/\bfixed[\s-]term\b|\bfixed[\s-]rate[\s-]bond\b|\b\d+[\s-]year\s+bond\b/u', $lower) === 1 => 'fixed_term',
             preg_match('/\bnotice[\s-]account\b|\b\d+[\s-]day\s+notice\b/u', $lower) === 1 => 'notice',
             preg_match('/\bregular[\s-]saver\b|\bmonthly[\s-]saver\b/u', $lower) === 1 => 'regular_saver',
-            default => 'easy_access',
+            $isIsa => 'cash_isa',
+            $hasSavingsSignal => 'easy_access',
+            default => 'current_account',
         };
 
         $accountName = $this->composeSavingsName($provider, $lower, $isIsa);
@@ -533,6 +693,10 @@ final class AssetCaptureEntityExtractor
         }
         if ($isIsa) {
             $input['is_isa'] = true;
+            // An ISA has exactly one legal owner under UK law — deterministic,
+            // no phrasing needed (unlike attachOwnership() below, which never
+            // assumes ownership for non-ISA entities).
+            $input['ownership_type'] = 'individual';
         }
 
         return $input;
@@ -541,6 +705,7 @@ final class AssetCaptureEntityExtractor
     private function composeSavingsName(?string $provider, string $lowerChunk, bool $isIsa): string
     {
         $suffix = match (true) {
+            $isIsa && preg_match('/stocks?[\s&and-]+shares?|\bs&s\b/u', $lowerChunk) === 1 => 'Stocks & Shares Individual Savings Account',
             $isIsa => 'Cash Individual Savings Account',
             preg_match('/\beasy[\s-]access\b/u', $lowerChunk) === 1 => 'Easy Access Saver',
             preg_match('/\bfixed[\s-]term\b|\bfixed[\s-]rate[\s-]bond\b/u', $lowerChunk) === 1 => 'Fixed Term Bond',
@@ -557,6 +722,65 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<array<string, mixed>>
      */
+    /**
+     * The workplace-pension contribution answer at the occupational step
+     * ("I contribute 5% and my employer matches it. It's not salary
+     * sacrifice." / "my employer adds 3%, with Aviva"). Scoped to the
+     * dedicated `occupational` focus — outside that step "I contribute 5%"
+     * is ambiguous, so the generic retirement parser stays untouched. This
+     * is the deterministic backstop for the model's injection-refusal
+     * misfire on exactly this answer shape (live 2026-07-23, twice): the
+     * ONE gap-fill mechanism writes the pension when the model will not.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function extractOccupationalPensionAnswer(string $message): array
+    {
+        $lower = mb_strtolower($message);
+
+        // "No workplace pension" / "I don't have one" — nothing to create.
+        if (preg_match('/\b(?:no|don[\x{2019}\x{0027}]t\s+have|without)\b[^.!?]{0,25}\bpension\b/u', $lower) === 1) {
+            return [];
+        }
+
+        if (preg_match('/\b(?:i\s+)?(?:contribute|pay(?:\s+in)?|put(?:\s+in)?)\s+(?:about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*%/u', $lower, $employee) !== 1) {
+            return [];
+        }
+        $employeePercent = (float) $employee[1];
+
+        $employerPercent = null;
+        if (preg_match('/\bemployer\s+(?:adds?|contributes?|pays?(?:\s+in)?|puts?(?:\s+in)?|matches\s+(?:it\s+)?with)\s+(?:another\s+|about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*%/u', $lower, $employer) === 1) {
+            $employerPercent = (float) $employer[1];
+        } elseif (preg_match('/\bemployer\s+matches\b|\bmatched\s+by\s+my\s+employer\b/u', $lower) === 1) {
+            $employerPercent = $employeePercent;
+        }
+
+        $mentionsSacrifice = preg_match('/\bsalary\s+sacrifice\b/u', $lower) === 1;
+        $negatedSacrifice = preg_match('/\b(?:not|no|isn[\x{2019}\x{0027}]t|without)\b[^.!?]{0,40}\bsalary\s+sacrifice\b/u', $lower) === 1;
+        $salarySacrifice = $mentionsSacrifice && ! $negatedSacrifice;
+
+        $provider = null;
+        if (preg_match('/\bwith\s+([A-Z][A-Za-z&]+)\b/u', $message, $providerMatch) === 1) {
+            $provider = $providerMatch[1];
+        }
+
+        $input = [
+            'pension_category' => 'dc',
+            'scheme_type' => 'workplace',
+            'scheme_name' => ($provider !== null ? $provider.' ' : '').'Workplace Pension',
+            'employee_contribution_percent' => $employeePercent,
+            'salary_sacrifice' => $salarySacrifice,
+        ];
+        if ($employerPercent !== null) {
+            $input['employer_contribution_percent'] = $employerPercent;
+        }
+        if ($provider !== null) {
+            $input['provider'] = $provider;
+        }
+
+        return [$input];
+    }
+
     public function extractPensions(string $message): array
     {
         $chunks = $this->splitOnConnectors($message);
@@ -711,6 +935,12 @@ final class AssetCaptureEntityExtractor
         }
         if ($value !== null) {
             $input['current_value'] = $value;
+        }
+        if (in_array($accountType, ['stocks_shares_isa', 'lifetime_isa'], true)) {
+            // An ISA has exactly one legal owner under UK law — deterministic,
+            // no phrasing needed (unlike attachOwnership() below, which never
+            // assumes ownership for non-ISA entities).
+            $input['ownership_type'] = 'individual';
         }
 
         return $input;
@@ -1116,8 +1346,8 @@ final class AssetCaptureEntityExtractor
     {
         return match ($focus) {
             'protection' => $this->protectionIdentityKey($fields, $fromLlm),
-            'savings', 'budgeting' => $this->savingsIdentityKey($fields, $fromLlm),
-            'retirement' => $this->pensionIdentityKey($fields, $fromLlm),
+            'savings' => $this->savingsIdentityKey($fields, $fromLlm),
+            'retirement', 'occupational' => $this->pensionIdentityKey($fields, $fromLlm),
             'investment' => $this->investmentIdentityKey($fields, $fromLlm),
             'property' => $this->propertyIdentityKey($fields, $fromLlm),
             'goal' => $this->goalIdentityKey($fields, $fromLlm),

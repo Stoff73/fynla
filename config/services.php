@@ -69,6 +69,14 @@ return [
         'project_id' => env('FCM_PROJECT_ID'),
     ],
 
+    'apns' => [
+        'team_id' => env('APNS_TEAM_ID'),
+        'key_id' => env('APNS_KEY_ID'),
+        'bundle_id' => env('APNS_BUNDLE_ID'),
+        'private_key' => env('APNS_PRIVATE_KEY'),
+        'environment' => env('APNS_ENVIRONMENT', 'sandbox'),
+    ],
+
     // GitHub issue creation for in-app bug reports. The token needs only
     // Issues: write on the target repo, lives on the server .env, and is
     // disabled by default so nothing fires until provisioned.
@@ -77,6 +85,20 @@ return [
         'repo' => env('GITHUB_BUG_ISSUE_REPO', 'Stoff73/fynla'),
         'enabled' => env('GITHUB_BUG_ISSUE_ENABLED', false),
         'labels' => ['bug', 'from-mobile', 'claude-auto'],
+    ],
+
+    // Pexels stock-photo search — used to auto-assign a relevant cover image to
+    // CMS articles that have no embedded image. Free API key from pexels.com/api.
+    'pexels' => [
+        'key' => env('PEXELS_API_KEY'),
+    ],
+
+    // Companies House Public Data API — reads statutory filing due dates for a
+    // limited company the user has told us they own. Free key from
+    // https://developer.company-information.service.gov.uk/ (Basic auth: key as
+    // username, blank password). Absent key = feature silently inert.
+    'companies_house' => [
+        'key' => env('COMPANIES_HOUSE_API_KEY'),
     ],
 
 ];

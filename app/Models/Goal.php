@@ -117,6 +117,8 @@ class Goal extends Model
         'days_remaining',
         'months_remaining',
         'is_on_track',
+        'is_overdue',
+        'status_label',
         'display_goal_type',
     ];
 
@@ -231,6 +233,25 @@ class Goal extends Model
     public function getIsOnTrackAttribute(): bool
     {
         return app(GoalCalculationService::class)->calculateIsOnTrack($this);
+    }
+
+    /**
+     * Has the goal's target date already passed?
+     *
+     * `days_remaining` floors at zero, so it cannot answer this — a goal three
+     * weeks past its date and a goal due today both read 0 there.
+     */
+    public function getIsOverdueAttribute(): bool
+    {
+        return app(GoalCalculationService::class)->isOverdue($this);
+    }
+
+    /**
+     * The goal's standing, in the one vocabulary every surface reads (Rule 20).
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        return app(GoalCalculationService::class)->calculateStatusLabel($this);
     }
 
     /**

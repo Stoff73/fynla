@@ -10,6 +10,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\UserProfile\LetterToSpouseService;
 use App\Traits\StructuredLogging;
 
 class LetterEstateValidationService
@@ -19,6 +20,7 @@ class LetterEstateValidationService
     public function __construct(
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly LetterToSpouseService $letterService,
     ) {}
 
     /**
@@ -63,7 +65,7 @@ class LetterEstateValidationService
         $letterExecutor = trim($letter->executor_name ?? '');
         $willExecutor = trim($will->executor_name ?? '');
 
-        if ($letterExecutor !== '' && $willExecutor !== '' && ! $this->namesMatch($letterExecutor, $willExecutor)) {
+        if ($letterExecutor !== '' && $willExecutor !== '' && ! $this->executorsMatch($letterExecutor, $will)) {
             $warnings[] = [
                 'type' => 'executor_mismatch',
                 'severity' => 'high',
@@ -227,11 +229,14 @@ class LetterEstateValidationService
             ];
         }
 
-        // Liabilities check
+        // Liabilities check — counted by LetterToSpouseService so this panel and
+        // the letter's own liabilities section can never disagree about what the
+        // household owes (W-0022, Rule 20).
         $letterLiabilities = trim($letter->liabilities_info ?? '');
-        // Mortgages primary-only via MortgageStore — matches pre-PR-5a $user->mortgages() HasMany semantics
-        $liabilityCount = $user->liabilities()->count() + $this->mortgageStore->forUserPrimaryOnly($user)->count();
+        $liabilityCount = $this->letterService->outstandingLiabilityCount($user);
 
+        // The sentinel is kept for letters written before W-0022 stopped the
+        // generator asserting an absence; new letters leave the section empty.
         if ($liabilityCount > 0 && ($letterLiabilities === '' || $letterLiabilities === 'No outstanding liabilities recorded.')) {
             $warnings[] = [
                 'type' => 'missing_in_letter',
@@ -245,20 +250,91 @@ class LetterEstateValidationService
     }
 
     /**
-     * Fuzzy name comparison (case-insensitive, ignores titles).
+     * Do the letter and the will name the same executors?
+     *
+     * Compares the PARTIES, not the rendered strings. wills.executor_name is not
+     * a fact — it is a rendering: WillDocumentService::complete() builds it by
+     * joining will_documents.executors (the structured source of truth) with
+     * ", ". The letter's executor_name is free text the user typed. So the same
+     * two people arrive as "Sarah Jones & Barclays Wealth" on one side and
+     * "Sarah Jones, Barclays Wealth" on the other, and comparing the strings made
+     * an ampersand look like a different executor — telling the user to go and
+     * amend a will over one character (W-0208).
+     *
+     * This is not a loosened comparison: a genuinely different executor, or a
+     * letter naming only one of two, still produces different sets and still
+     * warns.
      */
-    private function namesMatch(string $name1, string $name2): bool
+    private function executorsMatch(string $letterExecutor, Will $will): bool
     {
-        $normalise = function (string $name): string {
-            $name = mb_strtolower(trim($name));
-            // Remove common titles
-            $name = (string) preg_replace('/^(mr\.?|mrs\.?|ms\.?|miss|dr\.?|prof\.?)\s+/i', '', $name);
-            // Remove extra whitespace
-            $name = (string) preg_replace('/\s+/', ' ', $name);
+        $willParties = $this->willExecutorParties($will);
 
-            return $name;
-        };
+        return $willParties !== [] && $willParties === $this->partySet($letterExecutor);
+    }
 
-        return $normalise($name1) === $normalise($name2);
+    /**
+     * The will's executors, taken from the structured list where there is one.
+     *
+     * A will built here has will_documents.executors and that is the fact; the
+     * string is only its rendering, so re-splitting the string would be reading
+     * the derived copy (Rule 20). Wills captured as free text — Fyn, onboarding —
+     * have no document, and only then is the string all there is.
+     *
+     * @return list<string>
+     */
+    private function willExecutorParties(Will $will): array
+    {
+        $documentNames = collect($will->willDocument?->executors ?? [])
+            ->pluck('name')
+            ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+            ->map(fn (string $name) => $this->normaliseParty($name))
+            ->all();
+
+        return $documentNames !== []
+            ? $this->asPartySet($documentNames)
+            : $this->partySet((string) $will->executor_name);
+    }
+
+    /**
+     * Split a human-written list of parties into a comparable set.
+     *
+     * "&" is here because the application renders with ", " while people type
+     * "&" — the exact difference W-0208 fired on. Over-splitting a firm called
+     * "Smith and Jones" is harmless: both sides are split the same way, so the
+     * sets still agree.
+     *
+     * @return list<string>
+     */
+    private function partySet(string $text): array
+    {
+        $parts = preg_split('/\s*(?:,|;|&|\band\b)\s*/i', $text) ?: [];
+
+        return $this->asPartySet(array_map(fn ($part) => $this->normaliseParty((string) $part), $parts));
+    }
+
+    /**
+     * @param  list<string>  $parties
+     * @return list<string>
+     */
+    private function asPartySet(array $parties): array
+    {
+        $parties = array_values(array_unique(array_filter($parties, fn (string $party) => $party !== '')));
+        sort($parties);
+
+        return $parties;
+    }
+
+    /**
+     * Normalise one party for comparison (case-insensitive, ignores titles).
+     */
+    private function normaliseParty(string $name): string
+    {
+        $name = mb_strtolower(trim($name));
+        // Remove common titles
+        $name = (string) preg_replace('/^(mr\.?|mrs\.?|ms\.?|miss|dr\.?|prof\.?)\s+/i', '', $name);
+        // Remove extra whitespace
+        $name = (string) preg_replace('/\s+/', ' ', $name);
+
+        return trim($name);
     }
 }

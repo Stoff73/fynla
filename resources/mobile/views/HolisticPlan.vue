@@ -5,7 +5,14 @@
     :loading="loading"
     loading-label="your holistic plan"
   >
-    <div v-if="error" class="m-card m-state">
+    <!-- Premium gate (/m freemium 5.3) -->
+    <div v-if="upgradeLocked" class="m-card m-state">
+      <p class="m-section-label" style="margin-top:0">A premium feature</p>
+      <p class="m-sub">Your Holistic Plan brings every module together into one plan, ranked against what you can afford. It's part of Premium.</p>
+      <button v-if="paidUpgradeAvailable" class="m-btn" @click="goUpgrade">Upgrade your plan</button>
+    </div>
+
+    <div v-else-if="error" class="m-card m-state">
       <p class="m-err">{{ error }}</p>
       <button class="m-btn" @click="load">Try again</button>
     </div>
@@ -61,7 +68,9 @@
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
+import { upgradeMixin } from '../mixins/upgrade.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -97,10 +106,25 @@ const AFFORDABILITY_LABELS = {
   beyond_current_surplus: 'Beyond your current surplus',
 };
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+function withDeadline(request, timeoutMs) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = window.setTimeout(() => {
+      const error = new Error('request_timeout');
+      error.code = 'request_timeout';
+      reject(error);
+    }, timeoutMs);
+  });
+  return Promise.race([request, deadline]).finally(() => window.clearTimeout(timer));
+}
+
 export default {
   name: 'MobileHolisticPlan',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', plan: null }),
+  mixins: [upgradeMixin],
+  data: () => ({ loading: true, error: '', upgradeLocked: false, plan: null, timeoutMs: REQUEST_TIMEOUT_MS }),
   computed: {
     items() { return Array.isArray(this.plan?.items) ? this.plan.items : []; },
     locked() { return Array.isArray(this.plan?.locked) ? this.plan.locked : []; },
@@ -144,13 +168,25 @@ export default {
     async load() {
       this.loading = true;
       this.error = '';
+      this.upgradeLocked = false;
       this.plan = null;
       try {
-        const { ok, data } = await apiGet('/api/holistic/composite-plan', store.token);
-        if (ok) this.plan = data?.data || {};
-        else this.error = data?.message || 'We could not load your holistic plan.';
-      } catch (e) {
-        this.error = 'Network error. Please try again.';
+        const { ok, status, data } = await withDeadline(
+          apiGet('/api/holistic/composite-plan', store.token),
+          this.timeoutMs,
+        );
+        if (handleAuthExpiry({ status }, this.$router)) return;
+        if (ok) {
+          this.plan = data?.data || {};
+        } else if (status === 403 && ['capability_denied', 'upgrade_required'].includes(data?.error)) {
+          this.upgradeLocked = true;
+        } else {
+          this.error = data?.message || 'We could not load your holistic plan.';
+        }
+      } catch (error) {
+        this.error = error?.code === 'request_timeout'
+          ? 'Your holistic plan is taking longer than expected. Please try again.'
+          : 'Network error. Please try again.';
       } finally {
         this.loading = false;
       }

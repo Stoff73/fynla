@@ -39,6 +39,8 @@ class MortgageResource extends JsonResource
             'remaining_term_months' => $this->remaining_term_months,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_id' => $this->joint_owner_id,
+            'joint_owner_name' => $this->joint_owner_name,
             'country' => $this->country,
 
             // Mixed mortgage fields
@@ -76,7 +78,7 @@ class MortgageResource extends JsonResource
 
             // Relationships
             'property' => $this->whenLoaded('property', fn () => new PropertyResource($this->property)),
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
 
             // Links
             'links' => [

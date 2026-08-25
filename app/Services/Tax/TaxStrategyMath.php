@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 
 /**
@@ -23,6 +24,8 @@ use Carbon\Carbon;
  */
 final class TaxStrategyMath
 {
+    use CalculatesOwnershipShare;
+
     /**
      * Per-instance memo keyed by user id for taxableIncomeFor(), which fires
      * a SavingsAccount query via estimateAnnualInterest. Strategies that call
@@ -33,8 +36,15 @@ final class TaxStrategyMath
      */
     private array $taxableIncomeCache = [];
 
+    /** @var array<int, array<string, mixed>> */
+    private array $incomeDefinitionsCache = [];
+
+    /** @var array<int, bool> */
+    private array $mpaaAppliesCache = [];
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
+        private readonly IncomeDefinitionsService $incomeDefinitions,
     ) {}
 
     /**
@@ -138,33 +148,112 @@ final class TaxStrategyMath
     }
 
     /**
-     * Composed taxable-income view: employment income + dividend income +
-     * estimated savings interest. Acts as a best-effort proxy for HMRC
-     * taxable income above the Personal Allowance.
+     * Total taxable income from every captured source. When the user has no
+     * explicit annual-interest figure, use the interest implied by captured
+     * savings balances and rates rather than silently treating it as zero.
      */
     public function taxableIncomeFor(User $user): float
     {
         $key = (int) $user->id;
         if (! isset($this->taxableIncomeCache[$key])) {
-            $employment = (float) ($user->annual_employment_income ?? 0);
-            $dividends = (float) ($user->annual_dividend_income ?? 0);
-            $interest = $this->estimateAnnualInterest($user);
-            $this->taxableIncomeCache[$key] = $employment + $dividends + $interest;
+            $definitions = $this->incomeDefinitionsFor($user);
+            $this->taxableIncomeCache[$key] = max(
+                0.0,
+                (float) ($definitions['total_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
+            );
         }
 
         return $this->taxableIncomeCache[$key];
     }
 
+    public function adjustedNetIncomeFor(User $user): float
+    {
+        $definitions = $this->incomeDefinitionsFor($user);
+
+        return max(
+            0.0,
+            (float) ($definitions['adjusted_net_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
+        );
+    }
+
+    public function nonSavingsIncomeFor(User $user): float
+    {
+        $definitions = $this->incomeDefinitionsFor($user);
+        $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
+
+        return max(
+            0.0,
+            $this->taxableIncomeFor($user)
+                - $this->resolvedInterest($user, $definitions)
+                - (float) ($components['dividend'] ?? 0),
+        );
+    }
+
+    public function personalAllowanceFor(User $user): float
+    {
+        return $this->personalAllowanceForIncome($this->adjustedNetIncomeFor($user));
+    }
+
+    public function personalAllowanceForIncome(float $adjustedNetIncome): float
+    {
+        $income = $this->taxConfig->getIncomeTax();
+        $full = (float) ($income['personal_allowance'] ?? 12570);
+        $threshold = (float) ($income['personal_allowance_taper_threshold'] ?? 100000);
+
+        if ($adjustedNetIncome <= $threshold) {
+            return $full;
+        }
+
+        return max(0.0, $full - floor(($adjustedNetIncome - $threshold) / 2));
+    }
+
+    public function moneyPurchaseAnnualAllowanceApplies(User $user): bool
+    {
+        $key = (int) $user->id;
+
+        return $this->mpaaAppliesCache[$key] ??= app(PensionStore::class)
+            ->forUserByType($user, 'dc')
+            ->contains(fn ($pension) => (bool) $pension->has_flexibly_accessed);
+    }
+
+    public function effectiveAnnualAllowanceFor(User $user): float
+    {
+        $pension = $this->taxConfig->getPensionAllowances();
+        $allowance = (float) ($pension['annual_allowance'] ?? 60000);
+        $taper = $pension['tapered_annual_allowance'] ?? [];
+        $thresholdLimit = (float) ($taper['threshold_income'] ?? 200000);
+        $adjustedLimit = (float) ($taper['adjusted_income_threshold'] ?? $taper['adjusted_income'] ?? 260000);
+        $minimum = (float) ($taper['minimum_allowance'] ?? 10000);
+        $rate = (float) ($taper['taper_rate'] ?? 0.5);
+        $thresholdIncome = $this->thresholdIncomeFor($user);
+        $adjustedIncome = $this->adjustedIncomeFor($user);
+        if ($thresholdIncome > $thresholdLimit && $adjustedIncome > $adjustedLimit) {
+            $allowance = max(
+                $minimum,
+                $allowance - floor(($adjustedIncome - $adjustedLimit) * $rate),
+            );
+        }
+
+        if ($this->moneyPurchaseAnnualAllowanceApplies($user)) {
+            $allowance = min(
+                $allowance,
+                (float) ($pension['money_purchase_annual_allowance'] ?? $pension['mpaa'] ?? 0),
+            );
+        }
+
+        return max(0.0, $allowance);
+    }
+
     /**
      * Remaining Pension Annual Allowance for the current tax year, after the
      * user's existing contributions and any in-flight slider override.
-     * Floored at 0; does not currently account for tapered AA (Phase 5) or
-     * carry-forward (Phase 4 — see PensionAACarryForwardStrategy).
+     * Floored at 0 and constrained by the tapered Annual Allowance or Money
+     * Purchase Annual Allowance where either applies. Carry-forward is handled
+     * separately by PensionAACarryForwardStrategy.
      */
     public function availableAnnualAllowance(User $user, ?TaxStrategyOverridesDTO $overrides): float
     {
-        $pension = $this->taxConfig->getPensionAllowances();
-        $aa = (float) ($pension['annual_allowance'] ?? 60000);
+        $aa = $this->effectiveAnnualAllowanceFor($user);
         $used = $this->estimatePensionContributionThisYear($user, $overrides);
 
         return max(0, $aa - $used);
@@ -172,22 +261,44 @@ final class TaxStrategyMath
 
     public function estimateAnnualInterest(User $user): float
     {
-        // forUser() is joint-aware; the Collection-level where('user_id')
-        // post-filter preserves the original single-owner sum.
+        // forUser() is joint-aware (primary or joint owner). HMRC splits
+        // joint-account interest by beneficial share (50/50 default between
+        // spouses), so each account contributes the user's ownership share —
+        // never the full balance. Issue log 2026-07-23 #21; mirrors the rule
+        // net worth already applies via CalculatesOwnershipShare.
         return (float) app(SavingsStore::class)->forUser($user)
-            ->where('user_id', $user->id)
             ->where('is_isa', false)
-            ->sum(function ($acc) {
-                // interest_rate convention is mixed across the codebase
-                // (factory writes decimals 0.04, seeders + onboarding write
-                // percent 4.0). Normalise: anything > 1 is treated as percent.
-                $rate = (float) $acc->interest_rate;
-                if ($rate > 1) {
-                    $rate /= 100;
-                }
+            ->sum(fn ($acc) => $this->calculateUserShare($acc, $user->id) * $this->normalisedInterestRate($acc));
+    }
 
-                return (float) $acc->current_balance * $rate;
+    /**
+     * The other owner's share of the user's shared non-ISA accounts — the
+     * interest HMRC attributes to the spouse. The SaveTax campaign stores the
+     * spouse as household input (no User row, joint_owner_id null), so the
+     * spouse grids can only derive this from the primary user's records.
+     */
+    public function estimateSpouseJointInterest(User $user): float
+    {
+        return (float) app(SavingsStore::class)->forUser($user)
+            ->where('is_isa', false)
+            ->filter(fn ($acc) => $this->isSharedOwnership($acc))
+            ->sum(function ($acc) use ($user) {
+                $fullInterest = (float) $acc->current_balance * $this->normalisedInterestRate($acc);
+
+                return $fullInterest - ($this->calculateUserShare($acc, $user->id) * $this->normalisedInterestRate($acc));
             });
+    }
+
+    /**
+     * interest_rate convention is mixed across the codebase (factory writes
+     * decimals 0.04, seeders + onboarding write percent 4.0). Normalise:
+     * anything > 1 is treated as percent.
+     */
+    private function normalisedInterestRate(object $acc): float
+    {
+        $rate = (float) $acc->interest_rate;
+
+        return $rate > 1 ? $rate / 100 : $rate;
     }
 
     public function estimateIsaSubscriptionsThisYear(User $user): float
@@ -289,13 +400,12 @@ final class TaxStrategyMath
      */
     public function thresholdIncomeFor(User $user): float
     {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + $this->estimateAnnualInterest($user)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
+        $definitions = $this->incomeDefinitionsFor($user);
+
+        return max(
+            0.0,
+            (float) ($definitions['threshold_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
+        );
     }
 
     /**
@@ -305,7 +415,12 @@ final class TaxStrategyMath
      */
     public function adjustedIncomeFor(User $user): float
     {
-        return $this->thresholdIncomeFor($user) + $this->employerPensionContributionsFor($user);
+        $definitions = $this->incomeDefinitionsFor($user);
+
+        return max(
+            0.0,
+            (float) ($definitions['adjusted_income'] ?? 0) + $this->interestAdjustment($user, $definitions),
+        );
     }
 
     /**
@@ -361,5 +476,33 @@ final class TaxStrategyMath
             : Carbon::parse((string) $dateOfBirth);
 
         return (int) $dob->diffInYears(now());
+    }
+
+    /** @return array<string, mixed> */
+    private function incomeDefinitionsFor(User $user): array
+    {
+        $key = (int) $user->id;
+        if (! isset($this->incomeDefinitionsCache[$key])) {
+            $this->incomeDefinitionsCache[$key] = $this->incomeDefinitions->calculate($key);
+        }
+
+        return $this->incomeDefinitionsCache[$key];
+    }
+
+    /** @param array<string, mixed> $definitions */
+    private function interestAdjustment(User $user, array $definitions): float
+    {
+        $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
+
+        return $this->resolvedInterest($user, $definitions) - (float) ($components['interest'] ?? 0);
+    }
+
+    /** @param array<string, mixed> $definitions */
+    private function resolvedInterest(User $user, array $definitions): float
+    {
+        $components = is_array($definitions['components'] ?? null) ? $definitions['components'] : [];
+        $captured = (float) ($components['interest'] ?? 0);
+
+        return $captured > 0 ? $captured : $this->estimateAnnualInterest($user);
     }
 }

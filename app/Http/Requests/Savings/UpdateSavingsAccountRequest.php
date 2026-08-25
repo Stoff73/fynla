@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Savings;
 
+use App\Http\Traits\ValidatesSharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateSavingsAccountRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     public function authorize(): bool
     {
         return true;
@@ -51,9 +54,10 @@ class UpdateSavingsAccountRequest extends FormRequest
             'maturity_date' => 'nullable|date',
             'is_emergency_fund' => 'sometimes|boolean',
             'is_isa' => 'sometimes|boolean',
-            'ownership_type' => ['sometimes', Rule::in(['individual', 'joint', 'trust'])],
+            'ownership_type' => ['sometimes', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'sometimes|nullable|exists:users,id',
+            'trust_id' => 'sometimes|nullable|exists:trusts,id',
             'country' => 'sometimes|nullable|string|max:255',
             'isa_type' => 'nullable|in:cash,stocks_shares,LISA',
             'isa_subscription_year' => 'nullable|string',
@@ -69,7 +73,13 @@ class UpdateSavingsAccountRequest extends FormRequest
     {
         $validator->after(function (Validator $v) {
             $isIsa = $this->boolean('is_isa') || in_array($this->input('account_type'), ['cash_isa', 'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa'], true);
-            $isJoint = $this->input('ownership_type') === 'joint' || $this->filled('joint_owner_id');
+            $ownershipType = $this->input('ownership_type');
+            $isJoint = in_array($ownershipType, ['joint', 'tenants_in_common'], true) || $this->filled('joint_owner_id');
+
+            // A share the caller STATED is checked; one they said nothing about
+            // is left alone, so an update that never mentions the split cannot
+            // rewrite the share already on record.
+            $this->validateSharedOwnershipSplit($v, $ownershipType, $this->input('ownership_percentage'));
 
             if ($isIsa && $isJoint) {
                 $v->errors()->add('ownership_type', 'ISAs cannot be jointly owned — every ISA is held in a single name under UK law.');

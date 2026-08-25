@@ -9,6 +9,13 @@ use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
 use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\Admin\Pipeline\ArticleSyncInboundController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineArticlesController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineCampaignsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineClipApprovalsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelinePostsController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelinePublishersController;
+use App\Http\Controllers\Api\Admin\Pipeline\PipelineSyncStatusController;
 use App\Http\Controllers\Api\Admin\ProceduralCorpusController;
 use App\Http\Controllers\Api\Admin\ProcedureAmendmentReviewController;
 use App\Http\Controllers\Api\Admin\SavingsMarketRateController;
@@ -20,10 +27,12 @@ use App\Http\Controllers\Api\AiAuditController;
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\Auth\RestoreAccountController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BalanceHistoryController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\ChattelController;
 use App\Http\Controllers\Api\ContactFormController;
+use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
@@ -64,6 +73,7 @@ use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\JointAccountLogController;
 use App\Http\Controllers\Api\JourneyController;
 use App\Http\Controllers\Api\LetterToSpouseController;
+use App\Http\Controllers\Api\LifeEventAllocationController;
 use App\Http\Controllers\Api\LifeEventController;
 use App\Http\Controllers\Api\LifeStageController;
 use App\Http\Controllers\Api\MFAController;
@@ -75,6 +85,7 @@ use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PersonalAccountsController;
+use App\Http\Controllers\Api\Plans\AdviserExportPackController;
 use App\Http\Controllers\Api\Plans\PlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PostcodeLookupController;
@@ -109,6 +120,7 @@ use App\Http\Controllers\Api\TaxYearController;
 use App\Http\Controllers\Api\UserMetricsController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\Webhooks\AppleNotificationController;
 use App\Http\Controllers\Api\WhatIfScenarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -126,12 +138,24 @@ use Illuminate\Support\Facades\Route;
 // Contact form (public, rate-limited)
 Route::post('/contact', [ContactFormController::class, 'submit'])->middleware('throttle:3,5');
 
+// Cookie-banner consent (public, rate-limited). The single write path for the
+// analytics + affiliate consent decision on every surface — the web SPA banner,
+// the server-rendered public pages, and /m. Public because the decision is made
+// before an account exists. See App\Services\Consent\CookieConsentService.
+Route::post('/cookie-consent', [CookieConsentController::class, 'store'])
+    ->middleware('throttle:cookie-consent');
+
+Route::post('/webhooks/apple/v2', AppleNotificationController::class)
+    ->middleware('throttle:apple-webhook')
+    ->name('api.webhooks.apple.v2');
+
 // Authentication routes
 Route::prefix('auth')->group(function () {
     // Each unauthenticated auth route uses a per-endpoint named limiter
     // (auth-N, keyed by path|ip) so steps never throttle each other. See the
     // limiter definitions + rationale in RouteServiceProvider::boot().
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-5');
+    Route::post('/registration-handoff/resolve', [AuthController::class, 'resolveRegistrationHandoff'])->middleware('throttle:auth-5');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-5');
     Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:auth-10');
     Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:auth-5');
@@ -299,13 +323,17 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     // Letter to Spouse
     Route::get('/letter-to-spouse', [LetterToSpouseController::class, 'show']);
     Route::get('/letter-to-spouse/exists', [LetterToSpouseController::class, 'exists']);
+    Route::get('/letter-to-spouse/financial-position', [LetterToSpouseController::class, 'financialPosition']);
     Route::get('/letter-to-spouse/spouse', [LetterToSpouseController::class, 'showSpouse']);
-    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update'])->middleware('feature:standard');
+    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update']);
 
     // Family Members CRUD — household/spouse linking is never tier-gated
     // (SP2 spec firm rule: family_module=full at every tier, including Free).
     Route::prefix('family-members')->group(function () {
         Route::get('/', [FamilyMembersController::class, 'index']);
+        // NOTE: the spouse-invite throttle is applied inside the controller,
+        // not here — `store` also adds children, and a family of six must not
+        // hit an invitation limit (W-0349).
         Route::post('/', [FamilyMembersController::class, 'store']);
         Route::get('/{id}', [FamilyMembersController::class, 'show']);
         Route::put('/{id}', [FamilyMembersController::class, 'update']);
@@ -357,6 +385,9 @@ Route::middleware('auth:sanctum')->prefix('tax-strategy')->group(function () {
 
 // Net Worth routes (Phase 3)
 Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
+    Route::get('/forecast', [NetWorthController::class, 'getForecast']);
+    Route::put('/forecast/assumptions', [NetWorthController::class, 'updateForecastAssumptions']);
+    Route::delete('/forecast/assumptions', [NetWorthController::class, 'resetForecastAssumptions']);
     Route::get('/overview', [NetWorthController::class, 'getOverview']);
     Route::get('/breakdown', [NetWorthController::class, 'getBreakdown']);
     Route::get('/assets-summary', [NetWorthController::class, 'getAssetsSummary']);
@@ -499,7 +530,7 @@ Route::middleware('auth:sanctum')->prefix('savings')->group(function () {
     Route::post('/scenarios', [SavingsController::class, 'scenarios']);
 
     // ISA allowance tracking
-    Route::get('/isa-allowance/{taxYear}', [SavingsController::class, 'isaAllowance'])->where('taxYear', '.*');
+    Route::get('/isa-allowance/{taxYear?}', [SavingsController::class, 'isaAllowance'])->where('taxYear', '.*');
 
     // Savings accounts
     Route::prefix('accounts')->group(function () {
@@ -562,6 +593,11 @@ Route::middleware('auth:sanctum')->prefix('life-events')->group(function () {
     Route::put('/{id}', [LifeEventController::class, 'update']);
     Route::delete('/{id}', [LifeEventController::class, 'destroy']);
     Route::post('/{id}/complete', [LifeEventController::class, 'markCompleted']);
+
+    // Tax-optimised funding allocations for a life event.
+    Route::get('/{id}/allocations', [LifeEventAllocationController::class, 'index']);
+    Route::put('/{id}/allocations/{allocationId}', [LifeEventAllocationController::class, 'update']);
+    Route::post('/{id}/allocations/regenerate', [LifeEventAllocationController::class, 'regenerate']);
 });
 
 // Investment module routes
@@ -859,10 +895,13 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 // Liabilities is a Free-tier module (capability_matrix: liabilities=full),
 // surfaced under Net Worth. Not count-gated.
 Route::middleware(['auth:sanctum'])->prefix('estate/liabilities')->group(function () {
+    Route::get('/{id}', [EstateController::class, 'showLiability']);
     Route::post('/', [EstateController::class, 'storeLiability']);
     Route::put('/{id}', [EstateController::class, 'updateLiability']);
     Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
 });
+
+Route::middleware('auth:sanctum')->get('/balance-history', [BalanceHistoryController::class, 'index']);
 
 // Estate read-only + IHT calculations (all tiers — used by dashboard)
 Route::middleware(['auth:sanctum'])->prefix('estate')->group(function () {
@@ -873,7 +912,7 @@ Route::middleware(['auth:sanctum'])->prefix('estate')->group(function () {
 });
 
 // Estate Planning write operations (pro tier)
-Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(function () {
+Route::middleware(['auth:sanctum', 'estate.full'])->prefix('estate')->group(function () {
 
     // IHT Profile
     Route::post('/profile', [IHTController::class, 'storeOrUpdateIHTProfile']);
@@ -915,7 +954,7 @@ Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(func
 
     // Will Builder + Will + Bequests + LPA are Estate-module sub-routes.
     // Spec §7 has no separate will/POA capability key — they fall under
-    // "Estate planning" (teaser for Free/Tier1). §10.2 requires them gated
+    // "Estate planning" (teaser for Free). §10.2 requires them gated
     // server-side, not just hidden. The legacy `feature:pro` above is NOT
     // sufficient: a grandfathered legacy-paid sub resolves to the `free`
     // tier under SP2 and must hit the Estate teaser, so the canonical
@@ -1018,6 +1057,10 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
         Route::delete('/{id}', [RetirementController::class, 'destroyDBPension']);
     });
 
+    // Retirement goals — the one write path for target retirement age and income,
+    // shared by web, /m and native (W-0035).
+    Route::put('/goals', [RetirementController::class, 'updateRetirementGoals']);
+
     // State pension
     Route::post('/state-pension', [RetirementController::class, 'updateStatePension']);
 });
@@ -1025,6 +1068,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
 // Plans routes (comprehensive cross-module plans)
 Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
     // Plan system
+    Route::get('/adviser-export-pack', AdviserExportPackController::class);
     Route::get('/statuses', [PlanController::class, 'statuses']);
     Route::get('/goal/{goalId}', [PlanController::class, 'generateGoalPlan']);
     Route::post('/goal/{goalId}/recalculate', [PlanController::class, 'recalculateGoalPlan']);
@@ -1046,7 +1090,7 @@ Route::middleware('auth:sanctum')->prefix('household')->group(function () {
 });
 
 // Holistic Planning routes (coordinating agent)
-Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('holistic')->group(function () {
+Route::middleware(['auth:sanctum', 'holistic.full'])->prefix('holistic')->group(function () {
     // Main holistic analysis and plan
     Route::post('/analyze', [HolisticPlanningController::class, 'analyze']);
     Route::post('/plan', [HolisticPlanningController::class, 'plan']);
@@ -1071,6 +1115,8 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
     Route::get('/summary', [RecommendationsController::class, 'summary']);
     Route::get('/top', [RecommendationsController::class, 'top']);
     Route::get('/completed', [RecommendationsController::class, 'completed']);
+    // WP-2 — unified actions payload (open, uncapped + completed history).
+    Route::get('/actions', [RecommendationsController::class, 'actions']);
 
     // Recommendation tracking actions
     Route::post('/{id}/mark-done', [RecommendationsController::class, 'markDone']);
@@ -1082,6 +1128,8 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
 // Gamification routes (points-and-levels engine)
 Route::middleware('auth:sanctum')->prefix('gamification')->group(function () {
     Route::get('/status', [GamificationController::class, 'status']);
+    // WP-3 — the activity history feed (events + dates, never points).
+    Route::get('/activity', [GamificationController::class, 'activity']);
     Route::post('/celebration/ack', [GamificationController::class, 'ackCelebration']);
 });
 
@@ -1107,9 +1155,11 @@ Route::prefix('payment')->group(function () {
 // Public pricing config — reads live tier store; no auth required
 Route::get('/pricing-config', [PricingConfigController::class, 'index']);
 
+Route::get('/payment/trial-status', fn () => abort(404));
+
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
-    Route::get('/trial-status', [PaymentController::class, 'trialStatus']);
+    Route::get('/subscription-status', [PaymentController::class, 'subscriptionStatus']);
     Route::get('/billing-history', [PaymentController::class, 'billingHistory']);
     Route::post('/create-order', [PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
     Route::post('/confirm', [PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');
@@ -1287,6 +1337,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/do
     Route::post('{document}/publish', [DocumentArticleController::class, 'publish']);
     Route::post('{document}/unpublish', [DocumentArticleController::class, 'unpublish']);
     Route::get('{document}/preview-url', [DocumentArticleController::class, 'previewUrl']);
+    Route::post('{document}/cover-image', [DocumentArticleController::class, 'uploadCoverImage']);
+    Route::get('{document}/social-clips', [DocumentArticleController::class, 'socialClips']);
+    Route::get('{document}/publish-recommendation', [DocumentArticleController::class, 'publishRecommendation']);
+    Route::post('{document}/stock-cover', [DocumentArticleController::class, 'stockCover']);
 });
 
 // News subscribers (admin)
@@ -1295,6 +1349,48 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('news-subscribers/export', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
     // FR-M15 — per-action AI cost-attribution dashboard data.
     Route::get('ai-cost-dashboard', [AiCostDashboardController::class, 'index']);
+});
+
+// Marketing Pipeline — Stage 5 cross-env sync inbound (shared-secret auth, no user session)
+Route::post('admin/pipeline/articles/sync-inbound', [ArticleSyncInboundController::class, 'receive'])
+    ->name('pipeline.articles.sync-inbound');
+
+// Marketing Pipeline — Stage 4 admin (campaigns + post approval queue)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/pipeline')->group(function () {
+    Route::apiResource('campaigns', PipelineCampaignsController::class)
+        ->parameters(['campaigns' => 'campaign']);
+
+    Route::get('posts', [PipelinePostsController::class, 'index']);
+    Route::get('posts/{post}', [PipelinePostsController::class, 'show']);
+    Route::patch('posts/{post}', [PipelinePostsController::class, 'update']);
+    Route::post('posts/{post}/approve', [PipelinePostsController::class, 'approve']);
+    Route::post('posts/{post}/reject', [PipelinePostsController::class, 'reject']);
+
+    // Stage 5 — Article manager (Word doc → cross-env publish flow)
+    Route::get('articles', [PipelineArticlesController::class, 'index']);
+    Route::get('articles/{article}', [PipelineArticlesController::class, 'show']);
+    Route::patch('articles/{article}', [PipelineArticlesController::class, 'update']);
+    Route::post('articles/{article}/publish-local', [PipelineArticlesController::class, 'publishLocal']);
+    Route::post('articles/{article}/push-to-dev', [PipelineArticlesController::class, 'pushToDev']);
+    Route::post('articles/{article}/push-to-live', [PipelineArticlesController::class, 'pushToLive']);
+    Route::post('articles/{article}/reimport', [PipelineArticlesController::class, 'reimport']);
+    Route::delete('articles/{article}', [PipelineArticlesController::class, 'destroy']);
+
+    // Stage 5 — Publisher whitelist (users allowed to push to live)
+    Route::get('publishers', [PipelinePublishersController::class, 'index']);
+    Route::post('publishers', [PipelinePublishersController::class, 'store']);
+    Route::delete('publishers/{userId}', [PipelinePublishersController::class, 'destroy']);
+    Route::get('publishers/search-users', [PipelinePublishersController::class, 'searchUsers']);
+
+    // Stage 5 — Cross-env sync credential health check
+    Route::get('sync-status', [PipelineSyncStatusController::class, 'index']);
+
+    // Stage 3.5 — Clip approval queue (between Stage 3 clip gen and Stage 4 compose)
+    Route::get('clip-approvals', [PipelineClipApprovalsController::class, 'index']);
+    Route::get('clip-approvals/{approval}', [PipelineClipApprovalsController::class, 'show']);
+    Route::post('clip-approvals/{approval}/approve', [PipelineClipApprovalsController::class, 'approve']);
+    Route::post('clip-approvals/{approval}/reject', [PipelineClipApprovalsController::class, 'reject']);
+    Route::post('clip-approvals/article/{pipelineArticleId}/approve-all', [PipelineClipApprovalsController::class, 'approveAll']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
@@ -1389,7 +1485,7 @@ Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
 
 // What-If Scenarios
-Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenarios')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('what-if-scenarios')->group(function () {
     Route::get('/', [WhatIfScenarioController::class, 'index']);
     Route::get('/count', [WhatIfScenarioController::class, 'count']);
     Route::get('/{id}', [WhatIfScenarioController::class, 'show']);
@@ -1399,23 +1495,26 @@ Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenari
 });
 
 // AI Chat routes
-Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('ai-chat')->group(function () {
     Route::get('/token-usage', [AiChatController::class, 'tokenUsage']);
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
+    Route::post('/contextual-conversations', [AiChatController::class, 'createContextual']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])
-        ->middleware('idempotent');
+        ->middleware(['throttle:ai-chat', 'idempotent']);
     // FR-M7 — stream a turn that was queued behind an in-flight one
     // (frontend-driven transport; called on the previous stream's `done`).
-    Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage']);
+    Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage'])
+        ->middleware('throttle:ai-chat');
     // FR-M7 scenario 4 — cancel a still-queued turn before it streams.
     Route::delete('/conversations/{id}/messages/{messageId}', [AiChatController::class, 'cancelQueuedMessage']);
     // FR-M9 — resumption surface: read the pending resumption, or clear it.
     Route::get('/resumption', [AiChatController::class, 'getResumption']);
     Route::delete('/conversations/{id}/resumption', [AiChatController::class, 'clearResumption']);
-    Route::post('/conversations/{id}/action', [AiChatController::class, 'action']);
+    Route::post('/conversations/{id}/action', [AiChatController::class, 'action'])
+        ->middleware('throttle:ai-chat');
     // Fyn-driven onboarding flow (backend-authoritative state machine)
     Route::get('/onboarding/status', [AiChatController::class, 'getOnboardingStatus']);
     Route::post('/onboarding/start', [AiChatController::class, 'startOnboarding']);

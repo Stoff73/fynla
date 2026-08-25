@@ -25,6 +25,13 @@ class BusinessInterestResource extends JsonResource
             'business_name' => $this->business_name,
             'business_type' => $this->business_type,
             'company_number' => $this->company_number,
+
+            // Companies House filing deadlines (null until a company number is
+            // synced against the register).
+            'accounts_due_on' => $this->accounts_due_on?->toDateString(),
+            'confirmation_statement_due_on' => $this->confirmation_statement_due_on?->toDateString(),
+            'companies_house_synced_at' => $this->companies_house_synced_at?->toIso8601String(),
+            'next_filing' => $this->nextFiling(),
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
             'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
@@ -55,8 +62,8 @@ class BusinessInterestResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'household' => $this->whenLoaded('household'),
             'trust' => $this->whenLoaded('trust'),
 

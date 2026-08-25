@@ -44,14 +44,6 @@ class DiscountCodeFactory extends Factory
         ]);
     }
 
-    public function trialExtension(int $days = 14): static
-    {
-        return $this->state(fn () => [
-            'type' => 'trial_extension',
-            'value' => $days,
-        ]);
-    }
-
     public function expired(): static
     {
         return $this->state(fn () => [

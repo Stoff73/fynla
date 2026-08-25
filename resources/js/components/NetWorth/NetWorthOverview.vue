@@ -35,12 +35,21 @@
               class="item-row"
             >
               <span class="item-name">{{ item.name }}</span>
-              <span class="item-value">{{ formatCurrency(item.value) }}</span>
+              <!-- A Defined Benefit scheme has no capital value, so showing its £0
+                   alone tells the user nothing. It leads with the income it actually
+                   pays — the same fact `/m` renders as "£35,000 a year" (W-0241). -->
+              <span v-if="item.type === 'db' && item.annual_pension > 0" class="item-value">
+                {{ formatCurrency(item.annual_pension) }} a year
+              </span>
+              <span v-else class="item-value">{{ formatCurrency(item.value) }}</span>
             </div>
             <div v-if="pensionItems.length > maxDisplayItems" class="view-all">
               +{{ pensionItems.length - maxDisplayItems }} more
             </div>
           </div>
+          <!-- The exclusion, stated where the figure is shown. Wording from the
+               backend's one home, never re-typed here (Rule 20). -->
+          <p v-if="pensionDisclosure" class="db-pension-disclosure">{{ pensionDisclosure }}</p>
         </div>
       </div>
 
@@ -268,6 +277,15 @@ export default {
 
     pensionItems() {
       return this.assetsSummaryDetailed.pensions?.items || [];
+    },
+
+    /**
+     * The Defined Benefit exclusion, as sent by the backend beside the figure it
+     * qualifies. Empty unless this household actually holds such a scheme — a
+     * disclosure shown to everyone explains nothing.
+     */
+    pensionDisclosure() {
+      return this.assetsSummaryDetailed.pensions?.disclosure || '';
     },
 
     propertyItems() {
@@ -571,6 +589,16 @@ export default {
   text-align: center;
   padding: 8px 0 0 0;
   font-weight: 500;
+}
+
+/* The Defined Benefit exclusion. Its own block with room to wrap — a clamped or
+   truncated disclosure is no disclosure, and W-0241's acceptance is that no surface
+   presents the total as complete. Palette tokens only (Rule 11). */
+.db-pension-disclosure {
+  font-size: 12px;
+  line-height: 1.5;
+  @apply text-neutral-600;
+  padding: 10px 0 0 0;
 }
 
 /* Mobile responsive */

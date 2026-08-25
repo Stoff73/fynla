@@ -46,6 +46,8 @@ class GoalResource extends JsonResource
             'days_remaining' => $this->days_remaining,
             'months_remaining' => $this->months_remaining,
             'is_on_track' => $this->is_on_track,
+            'is_overdue' => $this->is_overdue,
+            'status_label' => $this->status_label,
             'current_milestone' => $this->current_milestone,
             'next_milestone' => $this->next_milestone,
             'required_monthly_contribution' => $this->required_monthly_contribution,
@@ -60,6 +62,7 @@ class GoalResource extends JsonResource
             // Ownership
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'is_primary_owner' => $request->user()?->id === $this->user_id,
             'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
 
             // Property-specific fields
@@ -93,8 +96,8 @@ class GoalResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
 
             // Relationships
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
-            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new UserResource($this->jointOwner)),
+            'user' => $this->whenLoaded('user', fn () => new MinimalUserResource($this->user)),
+            'joint_owner' => $this->whenLoaded('jointOwner', fn () => new MinimalUserResource($this->jointOwner)),
             'contributions' => GoalContributionResource::collection($this->whenLoaded('contributions')),
             'linked_savings_account' => $this->whenLoaded('linkedSavingsAccount', fn () => new SavingsAccountResource($this->linkedSavingsAccount)),
 

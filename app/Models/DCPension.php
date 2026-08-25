@@ -10,6 +10,7 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -46,6 +47,9 @@ class DCPension extends Model
         'monthly_contribution_amount',
         'lump_sum_contribution',
         'investment_strategy',
+        'entered_allocation_baseline',
+        'entered_allocation_source',
+        'entered_allocation_effective_at',
         'platform_fee_percent',
         'platform_fee_type',
         'platform_fee_amount',
@@ -75,6 +79,46 @@ class DCPension extends Model
         'annual_allowance_used_gbp_calculated_at',
     ];
 
+    /**
+     * THE monthly contribution into this pension (Rule 20).
+     *
+     * A pension records its contributions in one of two ways — a flat monthly
+     * amount, or employee/employer percentages of salary — and something has to
+     * decide which wins when both are present. Two places decided, differently:
+     * `RetirementStrategyService::calculateTotalContributions()` takes the flat
+     * amount first and falls back to the percentages, while `/m`'s
+     * `RetirementPensionDetail.vue` took the PERCENTAGES first and fell back to the
+     * flat amount — so a pension holding both was described differently depending
+     * which screen you were on.
+     *
+     * The flat amount wins, matching the backend: it is what the user actually
+     * typed as their contribution, where the percentages may be a stale echo of a
+     * salary that has since changed.
+     *
+     * Appended so every serialisation carries it and no client has to work it out —
+     * CSJ, 2026-08-23: `/m` displays what the backend computed, it never calculates.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['monthly_contribution'];
+
+    public function getMonthlyContributionAttribute(): float
+    {
+        if ((float) ($this->monthly_contribution_amount ?? 0) > 0) {
+            return round((float) $this->monthly_contribution_amount, 2);
+        }
+
+        $salary = (float) ($this->annual_salary ?? 0);
+        if ($salary <= 0) {
+            return 0.0;
+        }
+
+        $percent = (float) ($this->employee_contribution_percent ?? 0)
+            + (float) ($this->employer_contribution_percent ?? 0);
+
+        return round($salary * $percent / 100 / 12, 2);
+    }
+
     protected $casts = [
         'current_fund_value' => 'decimal:2',
         'annual_salary' => 'decimal:2',
@@ -83,6 +127,8 @@ class DCPension extends Model
         'employer_matching_limit' => 'decimal:2',
         'monthly_contribution_amount' => 'decimal:2',
         'lump_sum_contribution' => 'decimal:2',
+        'entered_allocation_baseline' => 'array',
+        'entered_allocation_effective_at' => 'date',
         'platform_fee_percent' => 'decimal:4',
         'platform_fee_amount' => 'decimal:2',
         'advisor_fee_percent' => 'decimal:4',
@@ -135,5 +181,10 @@ class DCPension extends Model
     public function holdings(): MorphMany
     {
         return $this->morphMany(Holding::class, 'holdable');
+    }
+
+    public function valueSnapshots(): HasMany
+    {
+        return $this->hasMany(DCPensionValueSnapshot::class, 'dc_pension_id');
     }
 }

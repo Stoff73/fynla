@@ -381,7 +381,7 @@ class TaxOptimisationService
 
     private function buildSpousalStrategy(User $user, float $grossIncome, string $taxBand): ?array
     {
-        if ($user->marital_status !== 'married' || ! $user->spouse_id) {
+        if ($user->marital_status !== 'married' || ! $user->liveSpouseId()) {
             return null;
         }
 

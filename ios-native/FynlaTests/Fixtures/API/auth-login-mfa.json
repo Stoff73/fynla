@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "message": "MFA verification required.",
+  "requires_mfa": true,
+  "data": {
+    "mfa_token": "mfa-example-challenge",
+    "email": "e*****e@example.test"
+  }
+}

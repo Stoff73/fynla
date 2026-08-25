@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "data": {
+    "current_value": 180000,
+    "monthly_contribution": 500,
+    "percentile_20_at_retirement": 410000,
+    "median_at_retirement": 520000,
+    "retirement_age": 65,
+    "years_to_retirement": 20,
+    "expected_return": 5
+  }
+}

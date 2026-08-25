@@ -17,6 +17,7 @@ class Bequest extends Model
 
     protected $fillable = [
         'will_id',
+        'will_document_id',
         'user_id',
         'beneficiary_name',
         'beneficiary_user_id',
@@ -69,6 +70,20 @@ class Bequest extends Model
      * - beneficiary_type is 'charity'
      * - Has a charity registration number
      * - Beneficiary name contains charity indicators
+     *
+     * The ONE home for this decision (Rule 20). WillAnalysisService carried a
+     * near-identical private copy until 2026-08-21, and the two had already
+     * drifted: that copy also treated 'trust' as a charity indicator, so a
+     * "Smith Family Trust" counted toward the charitable total and could push a
+     * user onto the reduced Inheritance Tax rate they do not qualify for. A
+     * gift into a family trust is a chargeable transfer, not an exempt one —
+     * 'trust' is a structure word, not a charity word, and must not come back.
+     *
+     * The limitation this docblock used to record — "no write path populates
+     * beneficiary_type" — was true and is now fixed. Every write path classifies
+     * the beneficiary through nameLooksCharitable() below and stores the result,
+     * so the structured check is the one that answers first and the name list is
+     * the fallback it was always meant to be (W-0394).
      */
     public function isCharitable(): bool
     {
@@ -82,8 +97,30 @@ class Bequest extends Model
             return true;
         }
 
-        // Check beneficiary name for charity indicators
-        $name = strtolower($this->beneficiary_name ?? '');
+        return self::nameLooksCharitable($this->beneficiary_name ?? '');
+    }
+
+    /**
+     * Does this free-text beneficiary name read as a charity?
+     *
+     * The ONE home for the name list. It was inline in isCharitable() and had
+     * no other caller, so every write path stored the schema default
+     * `individual` and a gift to Cancer Research UK was recorded as a gift to a
+     * person. Nothing broke visibly, because isCharitable() re-derived the
+     * answer from the name on every read — but the stored data contradicted
+     * what the application believed, and any charity the list does not name
+     * (Guide Dogs, a local hospice trust, an air ambulance) had no second
+     * chance: it was an individual in the database and an individual to the
+     * charitable total, which is what decides the reduced Inheritance Tax rate.
+     *
+     * 'trust' is deliberately absent and must stay absent — a gift into a
+     * family trust is a chargeable transfer, not an exempt one. See the note in
+     * isCharitable() above.
+     */
+    public static function nameLooksCharitable(string $name): bool
+    {
+        $name = strtolower($name);
+
         $charityIndicators = [
             'charity',
             'charitable',
@@ -110,5 +147,18 @@ class Bequest extends Model
         }
 
         return false;
+    }
+
+    /**
+     * The beneficiary type to store when the caller has not stated one.
+     *
+     * A user who explicitly says "this is a charity" is always believed; this
+     * only fills the silence, and it fills it with the same judgement
+     * isCharitable() would reach anyway, so the stored row and the derived
+     * answer cannot disagree (Rule 20).
+     */
+    public static function inferBeneficiaryType(string $name): string
+    {
+        return self::nameLooksCharitable($name) ? 'charity' : 'individual';
     }
 }

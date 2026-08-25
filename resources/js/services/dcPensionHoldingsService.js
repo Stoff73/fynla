@@ -6,6 +6,16 @@ import api from './api';
  */
 const dcPensionHoldingsService = {
   /**
+   * List the holdings on a DC pension.
+   * @param {number} dcPensionId - DC Pension ID
+   * @returns {Promise} API response
+   */
+  async listHoldings(dcPensionId) {
+    const response = await api.get(`/retirement/pensions/dc/${dcPensionId}/holdings`);
+    return response.data;
+  },
+
+  /**
    * Create a new holding for a DC pension
    * @param {number} dcPensionId - DC Pension ID
    * @param {object} holdingData - Holding data

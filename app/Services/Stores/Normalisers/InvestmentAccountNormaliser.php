@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Stores\Normalisers;
 
 use App\Models\User;
+use App\Support\SharedOwnership;
 
 /**
  * InvestmentAccountNormaliser — translates upstream ingest shapes into a
@@ -16,6 +17,61 @@ use App\Models\User;
  */
 final class InvestmentAccountNormaliser
 {
+    /**
+     * Every `investment_accounts` column that is NOT NULL, carries a database
+     * default, AND can be reached from a client payload (i.e. appears in the
+     * Store/Update request rules).
+     *
+     * A null for any of these must be DROPPED, never passed through: the column
+     * cannot store it, and omitting the key is what lets the default apply.
+     *
+     * This exists because a per-column special case was not enough. `country` had
+     * its own null-drop in both FormRequests (PR #269) and nobody generalised it,
+     * so when `advisor_fee_percent` gained a `nullable` validation rule (W-0008)
+     * the frontend's explicit null — sent whenever the additional-information
+     * panel is collapsed — reached a NOT NULL column and 500'd EVERY investment
+     * account create (W-0052).
+     *
+     * The tester found one field; the reachable surface is 28. Any of them sent
+     * as null would have failed identically, so this covers the class rather
+     * than the instance. One rule here serves the form, Fyn and upload paths at
+     * once, and the schema-drift test in
+     * tests/Feature/Investment/InvestmentAccountNotNullColumnsTest.php fails if a
+     * column is added or a validation rule newly exposes one.
+     *
+     * @var list<string>
+     */
+    public const NOT_NULL_WITH_DEFAULT = [
+        'accelerated_vesting_allowed',
+        'advisor_fee_percent',
+        'clawback_risk',
+        'company_status',
+        'contribution_frequency',
+        'country',
+        'csop_disqualifying_event',
+        'current_value',
+        'employer_is_listed',
+        'ers_registered',
+        'grant_currency',
+        'has_anti_dilution',
+        'has_performance_conditions',
+        'holding_structure',
+        'investment_currency',
+        'loss_relief_eligible',
+        'negligible_value_claim',
+        'ownership_percentage',
+        'ownership_type',
+        'paye_via_payroll',
+        'platform_fee_frequency',
+        'platform_fee_type',
+        'scheme_status',
+        'units_exercised',
+        'units_expired',
+        'units_forfeited',
+        'units_unvested',
+        'units_vested',
+    ];
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -95,9 +151,16 @@ final class InvestmentAccountNormaliser
         }
         $data['ownership_type'] = $ownership;
 
-        // ownership_percentage default
-        if (! isset($data['ownership_percentage']) || $data['ownership_percentage'] === null) {
-            $data['ownership_percentage'] = $ownership === 'joint' ? 50.00 : 100.00;
+        // ownership_percentage — one rule, one home (App\Support\SharedOwnership).
+        $data = SharedOwnership::applyTo($data, $ownership);
+
+        // Drop nulls that a NOT NULL column cannot take, so its default applies.
+        // Must run BEFORE the casts below — (float) null is 0.0, which would
+        // silently write a zero where the caller meant "leave it alone".
+        foreach (self::NOT_NULL_WITH_DEFAULT as $field) {
+            if (array_key_exists($field, $data) && ($data[$field] === null || $data[$field] === '')) {
+                unset($data[$field]);
+            }
         }
 
         // Cast core currency/numeric fields to float

@@ -4,44 +4,40 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
-use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
-use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 
+/**
+ * Resolves the monthly contribution a projection should assume for an account.
+ *
+ * This is the ONE home for that question, and it answers it from what the user
+ * recorded — never from a rule of thumb about what someone like them might save.
+ *
+ * The rule matters because a projection is presented beside the account's own
+ * figures: a card reading "Monthly Contribution —" cannot be reconciled with a
+ * projection that quietly assumed the ISA allowance was subscribed in full every
+ * year for thirty years. Where nothing is recorded, nothing is contributed, and the
+ * projected value is growth on the stated capital at the stated rate — which is what
+ * the card says it is.
+ */
 class ContributionEstimatorService
 {
-    private const GIA_ANNUAL_PERCENT = 0.05;
-
     private const MONTHS_IN_YEAR = 12;
 
-    public function __construct(
-        private readonly TaxConfigService $taxConfig
-    ) {}
-
     /**
-     * Get ISA annual allowance from TaxConfigService
+     * Divisors converting a recorded contribution at its stated frequency to a month.
      */
-    private function getISAAllowance(): float
-    {
-        try {
-            $isaConfig = $this->taxConfig->getISAAllowances();
-
-            return (float) ($isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
-        } catch (\Exception $e) {
-            Log::error('TaxConfigService failed to provide ISA allowance, using fallback', [
-                'fallback_value' => TaxDefaults::ISA_ALLOWANCE,
-                'exception' => $e->getMessage(),
-            ]);
-
-            return TaxDefaults::ISA_ALLOWANCE;
-        }
-    }
+    private const FREQUENCY_MONTHS = [
+        'monthly' => 1,
+        'quarterly' => 3,
+        'annually' => 12,
+    ];
 
     /**
-     * Estimate monthly contribution for an account.
-     * Priority: user override > ISA subscription > account type defaults
+     * Resolve the monthly contribution for an account.
+     *
+     * Priority: what-if override > recorded regular contribution > contributions
+     * already made this tax year, annualised > nothing.
      */
     public function estimateMonthlyContribution(
         InvestmentAccount $account,
@@ -51,40 +47,47 @@ class ContributionEstimatorService
             return $userOverride;
         }
 
-        // For ISAs, use isa_subscription_current_year if available
-        if ($account->account_type === 'isa') {
-            return $this->estimateFromISASubscription($account);
-        }
-
-        // For GIA, estimate based on percentage of value
-        if ($account->account_type === 'gia') {
-            return $this->estimateFromAccountValue($account, self::GIA_ANNUAL_PERCENT);
-        }
-
-        // Default: no contribution for other types (SIPP handled via retirement)
-        return 0.0;
+        return $this->fromRecordedRegularContribution($account)
+            ?? $this->fromContributionsThisTaxYear($account)
+            ?? 0.0;
     }
 
-    private function estimateFromISASubscription(InvestmentAccount $account): float
+    /**
+     * The regular contribution the user entered on the account, at its stated frequency.
+     */
+    private function fromRecordedRegularContribution(InvestmentAccount $account): ?float
     {
-        $subscription = $account->isa_subscription_current_year ?? 0;
-        $isaAllowance = $this->getISAAllowance();
+        $amount = (float) ($account->monthly_contribution_amount ?? 0);
 
-        if ($subscription > 0) {
-            $monthsElapsed = $this->getMonthsElapsedInTaxYear();
-
-            return $monthsElapsed > 0 ? $subscription / $monthsElapsed : $isaAllowance / self::MONTHS_IN_YEAR;
+        if ($amount <= 0) {
+            return null;
         }
 
-        // Default to equal monthly contributions to max ISA
-        return $isaAllowance / self::MONTHS_IN_YEAR;
+        $frequency = $account->contribution_frequency ?? 'monthly';
+        $months = self::FREQUENCY_MONTHS[$frequency] ?? 1;
+
+        return $amount / $months;
     }
 
-    private function estimateFromAccountValue(InvestmentAccount $account, float $annualPercent): float
+    /**
+     * What has actually gone in this tax year, spread over the months elapsed.
+     *
+     * `isa_subscription_current_year` is the ISA-specific spelling of the same fact and
+     * is read only when the generic column is empty.
+     */
+    private function fromContributionsThisTaxYear(InvestmentAccount $account): ?float
     {
-        $value = $account->current_value ?? 0;
+        $contributed = (float) ($account->contributions_ytd ?? 0);
 
-        return ($value * $annualPercent) / self::MONTHS_IN_YEAR;
+        if ($contributed <= 0 && $account->account_type === 'isa') {
+            $contributed = (float) ($account->isa_subscription_current_year ?? 0);
+        }
+
+        if ($contributed <= 0) {
+            return null;
+        }
+
+        return $contributed / $this->getMonthsElapsedInTaxYear();
     }
 
     private function getMonthsElapsedInTaxYear(): int
@@ -100,11 +103,11 @@ class ContributionEstimatorService
             $taxYearStart = $now->copy()->setDate($now->year - 1, 4, 6);
         }
 
-        return max(1, (int) $taxYearStart->diffInMonths($now) + 1);
+        return max(1, min(self::MONTHS_IN_YEAR, (int) $taxYearStart->diffInMonths($now) + 1));
     }
 
     /**
-     * Estimate total portfolio monthly contribution.
+     * Total monthly contribution across a set of accounts.
      */
     public function estimatePortfolioContribution(
         Collection $accounts,

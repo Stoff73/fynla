@@ -1,266 +1,118 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import GiftingTimelineChart from '@/components/Estate/GiftingTimelineChart.vue';
 
+const yearsAgo = (years) => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - years);
+  return date.toISOString().split('T')[0];
+};
+
+const gifts = [
+  { id: 1, gift_date: yearsAgo(8), recipient: 'Alice', gift_value: 50000, gift_type: 'pet' },
+  { id: 2, gift_date: yearsAgo(5), recipient: 'Jane', gift_value: 30000, gift_type: 'pet' },
+  { id: 3, gift_date: yearsAgo(2), recipient: 'Bob', gift_value: 20000, gift_type: 'pet' },
+];
+
+const mountChart = (giftRecords = gifts) => mount(GiftingTimelineChart, {
+  props: { gifts: giftRecords },
+});
+
 describe('GiftingTimelineChart', () => {
-  beforeEach(() => {
-    if (!global.ApexCharts) {
-      global.ApexCharts = class {
-        constructor() {}
-        render() {}
-        updateOptions() {}
-        updateSeries() {}
-        destroy() {}
-      };
-    }
+  it('renders with gift records', () => {
+    expect(mountChart().exists()).toBe(true);
   });
 
-  const mockGifts = [
-    {
-      id: 1,
-      gift_date: '2020-01-15',
-      recipient: 'John',
-      gift_value: 50000,
-      gift_type: 'pet',
-    },
-    {
-      id: 2,
-      gift_date: '2022-06-10',
-      recipient: 'Jane',
-      gift_value: 30000,
-      gift_type: 'pet',
-    },
-    {
-      id: 3,
-      gift_date: '2024-03-20',
-      recipient: 'Bob',
-      gift_value: 20000,
-      gift_type: 'pet',
-    },
-  ];
-
-  it('renders with gifts prop', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    expect(wrapper.exists()).toBe(true);
+  it('displays the empty state when no gifts are provided', () => {
+    const wrapper = mountChart([]);
+    expect(wrapper.vm.series).toEqual([]);
+    expect(wrapper.text()).toContain('No gifts recorded yet');
   });
 
-  it('displays empty state when no gifts provided', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: [],
-      },
-    });
-
-    expect(wrapper.vm.hasGifts).toBe(false);
-    const html = wrapper.html();
-    expect(html).toMatch(/no.*gift|empty/i);
+  it('creates one range per gift', () => {
+    expect(mountChart().vm.series[0].data).toHaveLength(3);
   });
 
-  it('calculates years elapsed for each gift', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const timelineData = wrapper.vm.timelineData;
-    expect(timelineData.length).toBe(3);
-    timelineData.forEach((gift) => {
-      expect(gift.yearsElapsed).toBeGreaterThanOrEqual(0);
-    });
+  it('calculates elapsed years for chart metadata', () => {
+    const meta = mountChart().vm.series[0].data[1].meta;
+    expect(Number(meta.years_elapsed)).toBeGreaterThan(4.9);
   });
 
-  it('calculates years remaining until 7-year survival', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const timelineData = wrapper.vm.timelineData;
-    timelineData.forEach((gift) => {
-      expect(gift.yearsRemaining).toBeGreaterThanOrEqual(0);
-      expect(gift.yearsRemaining).toBeLessThanOrEqual(7);
-    });
+  it('calculates remaining years for chart metadata', () => {
+    const meta = mountChart().vm.series[0].data[1].meta;
+    expect(Number(meta.years_remaining)).toBeGreaterThan(1.9);
+    expect(Number(meta.years_remaining)).toBeLessThan(2.1);
   });
 
-  it('identifies gifts that survived 7 years', () => {
-    const oldGift = {
-      id: 99,
-      gift_date: '2010-01-01', // Over 7 years ago
-      recipient: 'Alice',
-      gift_value: 100000,
-      gift_type: 'pet',
-    };
-
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: [oldGift],
-      },
-    });
-
-    const timelineData = wrapper.vm.timelineData;
-    expect(timelineData[0].survived).toBe(true);
+  it('identifies gifts that have survived seven years', () => {
+    expect(mountChart().vm.series[0].data[0].meta.status).toContain('7 years survived');
   });
 
-  it('calculates taper relief for gifts 3-7 years old', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
+  it('reports the relief the SERVER computed, not one derived from the gift age', () => {
+    // C4 — `calculateTaperRelief()` is gone. It was a fourth hardcoded copy of the
+    // schedule and, like the others, answered from age alone. Relief exists only
+    // where the gift bears tax (IHTM14611), which depends on the whole estate's
+    // cumulation and cannot be known in a chart component.
+    const wrapper = mountChart();
 
-    // Test taper relief calculation method
-    expect(wrapper.vm.calculateTaperRelief(2.5)).toBe(0); // <3 years
-    expect(wrapper.vm.calculateTaperRelief(3.5)).toBe(20); // 3-4 years
-    expect(wrapper.vm.calculateTaperRelief(4.5)).toBe(40); // 4-5 years
-    expect(wrapper.vm.calculateTaperRelief(5.5)).toBe(60); // 5-6 years
-    expect(wrapper.vm.calculateTaperRelief(6.5)).toBe(80); // 6-7 years
-    expect(wrapper.vm.calculateTaperRelief(7.5)).toBe(100); // >7 years
+    expect(wrapper.vm.taperReliefFor({ taper: { taper_relief_percent: 60, taper_saving: 4000 } })).toBe('60%');
   });
 
-  it('assigns correct color for gifts within 3 years', () => {
-    const recentGift = {
-      id: 100,
-      gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 2)).toISOString().split('T')[0],
-      recipient: 'Test',
-      gift_value: 50000,
-      gift_type: 'pet',
-    };
+  it('says a gift within the allowance has no relief, however old', () => {
+    const wrapper = mountChart();
 
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: [recentGift],
-      },
-    });
-
-    const timelineData = wrapper.vm.timelineData;
-    expect(timelineData[0].color).toMatch(/#ef4444/i); // Red
+    expect(wrapper.vm.taperReliefFor({ taper: null })).toBe('None — within your allowance');
+    expect(wrapper.vm.taperReliefFor({ taper: { taper_relief_percent: 80, taper_saving: 0 } }))
+      .toBe('None — within your allowance');
   });
 
-  it('assigns correct color for gifts 3-7 years old', () => {
-    const midGift = {
-      id: 101,
-      gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 5)).toISOString().split('T')[0],
-      recipient: 'Test',
-      gift_value: 50000,
-      gift_type: 'pet',
-    };
-
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: [midGift],
-      },
-    });
-
-    const timelineData = wrapper.vm.timelineData;
-    expect(timelineData[0].color).toMatch(/#f59e0b/i); // Amber
+  it('uses the danger colour for a recent potentially exempt transfer', () => {
+    const wrapper = mountChart();
+    expect(wrapper.vm.getGiftColour(2, 'pet')).toBe(wrapper.vm.series[0].data[2].fillColour);
   });
 
-  it('assigns correct color for gifts survived 7+ years', () => {
-    const survivedGift = {
-      id: 102,
-      gift_date: new Date(new Date().setFullYear(new Date().getFullYear() - 8)).toISOString().split('T')[0],
-      recipient: 'Test',
-      gift_value: 50000,
-      gift_type: 'pet',
-    };
-
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: [survivedGift],
-      },
-    });
-
-    const timelineData = wrapper.vm.timelineData;
-    expect(timelineData[0].color).toMatch(/#10b981/i); // Green
-    expect(timelineData[0].survived).toBe(true);
+  it('uses the warning colour while taper relief applies', () => {
+    const wrapper = mountChart();
+    expect(wrapper.vm.getGiftColour(5, 'pet')).toBe(wrapper.vm.series[0].data[1].fillColour);
   });
 
-  it('sorts gifts by date (oldest first)', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const timelineData = wrapper.vm.timelineData;
-    for (let i = 0; i < timelineData.length - 1; i++) {
-      const date1 = new Date(timelineData[i].gift_date);
-      const date2 = new Date(timelineData[i + 1].gift_date);
-      expect(date1.getTime()).toBeLessThanOrEqual(date2.getTime());
-    }
+  it('uses the success colour after seven years', () => {
+    const wrapper = mountChart();
+    expect(wrapper.vm.getGiftColour(8, 'pet')).toBe(wrapper.vm.series[0].data[0].fillColour);
   });
 
-  it('displays taper relief reference table', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const html = wrapper.html();
-    expect(html).toMatch(/taper.*relief/i);
-    expect(html).toMatch(/20%|40%|60%|80%/); // Taper relief percentages
+  it('treats spouse and charity gifts as immediately exempt', () => {
+    const wrapper = mountChart([{ id: 4, gift_date: yearsAgo(1), recipient: 'Spouse', gift_value: 1000, gift_type: 'exempt' }]);
+    expect(wrapper.vm.series[0].data[0].meta.status).toContain('Exempt Gift');
   });
 
-  it('formats currency values in tooltips', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const formatted = wrapper.vm.formatCurrency(50000);
-    expect(formatted).toMatch(/£50,000|50000/);
+  it('preserves the supplied recipient order in chart data', () => {
+    expect(mountChart().vm.series[0].data.map(item => item.x)).toEqual(['Alice', 'Jane', 'Bob']);
   });
 
-  it('handles exactly 3 years (taper relief starts)', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const relief = wrapper.vm.calculateTaperRelief(3.0);
-    expect(relief).toBe(20); // First taper relief bracket
+  it('displays the taper-relief reference table', () => {
+    const text = mountChart().text();
+    expect(text).toContain('Taper Relief Rates');
+    expect(text).toContain('80% relief');
   });
 
-  it('handles exactly 7 years (fully exempt)', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const relief = wrapper.vm.calculateTaperRelief(7.0);
-    expect(relief).toBe(100); // Fully exempt
+  it('formats gift values for chart labels', () => {
+    expect(mountChart().vm.formatCurrency(50000)).toBe('£50,000');
   });
 
-  it('displays chart title', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
+  it('labels a gift by whether it is taxable, not by how old it is', () => {
+    const wrapper = mountChart();
 
-    const html = wrapper.html();
-    expect(html).toMatch(/7.*year|gifting.*timeline/i);
+    expect(wrapper.vm.getGiftStatus(6, 'pet', { taper: null })).toBe('Within your allowance');
+    expect(wrapper.vm.getGiftStatus(6, 'pet', { taper: { taper_relief_percent: 80, taper_saving: 3000 } }))
+      .toBe('Taper Relief (80%)');
+    expect(wrapper.vm.getGiftStatus(8, 'pet', { taper: null }))
+      .toBe('Inheritance Tax-Exempt (7 years survived)');
   });
 
-  it('creates ApexCharts configuration with correct type', () => {
-    const wrapper = mount(GiftingTimelineChart, {
-      props: {
-        gifts: mockGifts,
-      },
-    });
-
-    const chartOptions = wrapper.vm.chartOptions;
-    expect(chartOptions.chart.type).toBe('rangeBar');
+  it('configures the current range-bar chart', () => {
+    const wrapper = mountChart();
+    expect(wrapper.text()).toContain('7-Year Gifting Timeline');
+    expect(wrapper.vm.chartOptions.chart.type).toBe('rangeBar');
   });
 });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\ConversationSummariser;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -12,7 +13,9 @@ use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
@@ -358,4 +361,168 @@ it('resume contract is preserved even when a stale summary has been written to t
     expect($status['path'])->toBe('family');
     expect($status['selection'])->toBe('protection');
     expect($status['conversation_id'])->toBe($conversation->id);
+});
+
+it('projects onboarding, contextual, and legacy conversations into safe ordered history', function (): void {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $account = SavingsAccount::factory()->for($user)->create([
+        'account_name' => 'Rainy Day Account',
+        'current_balance' => 12500,
+    ]);
+
+    $onboarding = AiConversation::create([
+        'user_id' => $user->id,
+        'title' => 'Your Fynla setup',
+        'status' => 'paused',
+        'model_used' => 'test',
+        'message_count' => 1,
+        'last_message_at' => now()->subMinutes(20),
+        'metadata' => ['source' => 'fyn_onboarding'],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $onboarding->id,
+        'role' => 'assistant',
+        'content' => 'Let us continue setting up your plan.',
+    ]);
+
+    $legacy = AiConversation::create([
+        'user_id' => $user->id,
+        'title' => 'General question',
+        'status' => 'active',
+        'model_used' => 'test',
+        'message_count' => 1,
+        'last_message_at' => now()->subMinutes(10),
+        'metadata' => null,
+    ]);
+    AiMessage::create([
+        'conversation_id' => $legacy->id,
+        'role' => 'user',
+        'content' => 'How should I think about emergency savings?',
+    ]);
+
+    $contextual = AiConversation::create([
+        'user_id' => $user->id,
+        'title' => 'Edit Rainy Day Account',
+        'status' => 'active',
+        'model_used' => 'test',
+        'message_count' => 2,
+        'last_message_at' => now()->subMinute(),
+        'metadata' => [
+            'source' => 'surface_action',
+            'mode' => 'surface_action',
+            'action' => 'edit',
+            'resource_type' => 'savings_account',
+            'resource_id' => $account->id,
+            'current_destination' => [
+                'screen' => 'savings_account_detail',
+                'params' => ['account_id' => $account->id],
+                'fallback' => 'savings',
+            ],
+        ],
+    ]);
+    AiMessage::create([
+        'conversation_id' => $contextual->id,
+        'role' => 'assistant',
+        'content' => 'Your balance is £184,500 and the account number is 12345678.',
+    ]);
+    AiMessage::create([
+        'conversation_id' => $contextual->id,
+        'role' => 'system',
+        'content' => 'SYSTEM CONTENT MUST NOT APPEAR',
+    ]);
+
+    AiConversation::create([
+        'user_id' => $otherUser->id,
+        'title' => 'Another user conversation',
+        'status' => 'active',
+        'model_used' => 'test',
+        'last_message_at' => now(),
+    ]);
+    AiConversation::create([
+        'user_id' => $user->id,
+        'title' => 'Archived conversation',
+        'status' => 'archived',
+        'model_used' => 'test',
+        'last_message_at' => now(),
+    ]);
+
+    Sanctum::actingAs($user);
+    $response = $this->getJson('/api/ai-chat/conversations')->assertOk();
+    $history = collect($response->json('data'));
+
+    expect($history->pluck('id')->all())->toBe([
+        $contextual->id,
+        $legacy->id,
+        $onboarding->id,
+    ]);
+
+    $contextualItem = $history->firstWhere('id', $contextual->id);
+    expect($contextualItem)
+        ->toMatchArray([
+            'mode' => 'contextual',
+            'purpose' => 'Edit Bank Account',
+            'status' => 'active',
+            'related_entity' => [
+                'type' => 'savings_account',
+                'id' => $account->id,
+                'label' => 'Rainy Day Account',
+                'available' => true,
+                'explanation' => null,
+            ],
+        ])
+        ->and($contextualItem['fallback_destination']['screen'])->toBe('savings')
+        ->and($contextualItem['last_message_summary'])->toBe('Continue this contextual conversation with Fyn.')
+        ->and($contextualItem['last_message_summary'])->not->toContain('184,500')
+        ->and($contextualItem['last_message_summary'])->not->toContain('12345678')
+        ->and($contextualItem['last_message_summary'])->not->toContain('SYSTEM CONTENT')
+        ->and($contextualItem['created_at'])->toBeString()
+        ->and($contextualItem['updated_at'])->toBeString();
+
+    expect($history->firstWhere('id', $legacy->id)['mode'])->toBe('general')
+        ->and($history->firstWhere('id', $onboarding->id)['mode'])->toBe('onboarding');
+
+    $account->delete();
+    $unavailable = collect(
+        $this->getJson('/api/ai-chat/conversations')->assertOk()->json('data'),
+    )->firstWhere('id', $contextual->id);
+
+    expect($unavailable['related_entity']['available'])->toBeFalse()
+        ->and($unavailable['related_entity']['label'])->toBeNull()
+        ->and($unavailable['related_entity']['explanation'])
+        ->toBe('This related item is no longer available.')
+        ->and($unavailable['fallback_destination']['screen'])->toBe('savings');
+});
+
+it('batches contextual history availability checks by resource type', function (): void {
+    $user = User::factory()->create();
+    $accounts = SavingsAccount::factory()->count(3)->for($user)->create();
+
+    foreach ($accounts as $account) {
+        AiConversation::create([
+            'user_id' => $user->id,
+            'title' => 'Edit account',
+            'status' => 'active',
+            'model_used' => 'test',
+            'last_message_at' => now(),
+            'metadata' => [
+                'source' => 'surface_action',
+                'action' => 'edit',
+                'resource_type' => 'savings_account',
+                'resource_id' => $account->id,
+            ],
+        ]);
+    }
+
+    Sanctum::actingAs($user);
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $this->getJson('/api/ai-chat/conversations')->assertOk();
+
+    $savingsQueries = collect(DB::getQueryLog())
+        ->pluck('query')
+        ->filter(fn (string $query): bool => str_contains($query, 'savings_accounts'));
+
+    expect($savingsQueries)->toHaveCount(1);
 });

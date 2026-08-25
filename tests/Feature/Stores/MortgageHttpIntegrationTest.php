@@ -14,7 +14,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
-    $this->user = User::factory()->create(['tier' => 'tier1']);
+    $this->user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $this->property = Property::factory()->create(['user_id' => $this->user->id]);
     Sanctum::actingAs($this->user);
 });
@@ -53,6 +53,34 @@ it('creates a mortgage via POST and records FORM audit context', function () {
     expect($auditRow->metadata['ingest_source'] ?? null)->toBe('form');
 });
 
+it('does not copy a property co-owner into an individual mortgage', function () {
+    $coOwner = User::factory()->create(['tier' => 'premium']);
+    $sharedProperty = Property::factory()->create([
+        'user_id' => $this->user->id,
+        'joint_owner_id' => $coOwner->id,
+        'ownership_type' => 'tenants_in_common',
+        'ownership_percentage' => 30.00,
+    ]);
+
+    $response = $this->postJson("/api/properties/{$sharedProperty->id}/mortgages", [
+        'lender_name' => 'Nationwide',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 210000.00,
+        'monthly_payment' => 1300.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response->assertCreated();
+
+    $mortgage = Mortgage::where('property_id', $sharedProperty->id)->latest('id')->firstOrFail();
+
+    expect($mortgage->ownership_type)->toBe('individual')
+        ->and((float) $mortgage->ownership_percentage)->toBe(100.00)
+        ->and($mortgage->joint_owner_id)->toBeNull()
+        ->and($mortgage->joint_owner_name)->toBeNull();
+});
+
 it('updates a mortgage via PUT', function () {
     $mortgage = Mortgage::factory()->create([
         'user_id' => $this->user->id,
@@ -86,7 +114,7 @@ it('soft-deletes a mortgage via DELETE', function () {
 });
 
 it('rejects update from non-owner (joint owner is read-only)', function () {
-    $spouse = User::factory()->create(['tier' => 'tier1']);
+    $spouse = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     $mortgage = Mortgage::factory()->create([
         'user_id' => $this->user->id,
         'joint_owner_id' => $spouse->id,
@@ -122,7 +150,7 @@ it('returns 422 on invalid mortgage_type', function () {
 });
 
 it('returns 403 with structured payload when free-tier mortgage cap is exceeded', function () {
-    // Default user factory creates tier1 (unlimited); recreate as free-tier for this cap test.
+    // Default user factory creates Premium (unlimited); recreate as Free for this cap test.
     $freeUser = User::factory()->create(['tier' => 'free']);
     $freeProperty = Property::factory()->create(['user_id' => $freeUser->id]);
     Sanctum::actingAs($freeUser);
@@ -150,9 +178,9 @@ it('returns 403 with structured payload when free-tier mortgage cap is exceeded'
     $response->assertStatus(403)
         ->assertJson([
             'success' => false,
-            'error' => [
-                'entity_key' => 'mortgage',
-                'hard_limit' => 10,
-            ],
+            'error' => 'tier_limit_reached',
+            'entity_key' => 'mortgage',
+            'hard_limit' => 10,
+            'action' => 'subscription_options',
         ]);
 });

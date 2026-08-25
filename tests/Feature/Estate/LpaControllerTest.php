@@ -18,7 +18,7 @@ beforeEach(function () {
     // LPA is a full-Estate sub-route (spec §10.2): the acting user must be on
     // a full-Estate tier. Tier config seeded so TeaserGate resolves.
     $this->seed(TierConfigurationSeeder::class);
-    $this->user = User::factory()->create(['tier' => 'tier2']);
+    $this->user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
     Sanctum::actingAs($this->user);
 });
 
@@ -187,7 +187,7 @@ describe('DELETE /api/estate/lpa/{id}', function () {
 });
 
 describe('GET /api/estate/lpa/{id}/compliance', function () {
-    it('returns compliance checks for an LPA', function () {
+    it('returns the checks and the disclosure that must accompany them', function () {
         $lpa = LastingPowerOfAttorney::factory()
             ->propertyFinancial()
             ->create([
@@ -201,8 +201,38 @@ describe('GET /api/estate/lpa/{id}/compliance', function () {
         $response->assertOk()
             ->assertJsonStructure([
                 'success',
-                'data' => ['checks', 'passed', 'failed', 'warnings', 'overall_status'],
+                'data' => [
+                    'checks', 'passed', 'failed', 'warnings',
+                    'outcome', 'outcome_label', 'heading',
+                    'not_checked_heading', 'not_checked_intro', 'not_checked',
+                    'not_checked_close', 'referral',
+                ],
             ]);
+    });
+
+    // W-0100. The endpoint told users their Lasting Power of Attorney was
+    // "Compliant" from 1a3d17e99 (2026-03-16) until 2026-08-21. Nothing Fynla
+    // returns about an instrument the user holds may assert a property of it.
+    it('never returns a verdict on the instrument', function () {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        $response = $this->getJson("/api/estate/lpa/{$lpa->id}/compliance");
+
+        $response->assertOk();
+        expect($response->json('data'))->not->toHaveKey('overall_status');
+
+        // Nowhere in the response. "valid" is deliberately absent from this
+        // list: the disclosure says the checks "cannot tell you whether your
+        // Lasting Power of Attorney is valid", and a negation is the point.
+        $body = strtolower($response->getContent());
+        foreach (['compliant', 'compliance', 'approved', 'sufficient'] as $verdict) {
+            expect($body)->not->toContain($verdict);
+        }
+
+        // And the outcome line itself claims nothing about the instrument.
+        expect(strtolower($response->json('data.outcome_label')))->not->toContain('valid');
     });
 });
 

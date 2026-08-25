@@ -140,7 +140,7 @@
   <?php include __DIR__.'/partials/footer.php'; ?>
 
   <script src="/pages/js/site.js?v=3" defer></script>
-  <script src="/pages/js/savetax-plan-v4.js?v=10" defer></script>
+  <script src="/pages/js/savetax-plan-v4.js?v=12" defer></script>
 
 </body>
 </html>

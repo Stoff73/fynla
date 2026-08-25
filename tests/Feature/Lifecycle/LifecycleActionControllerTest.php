@@ -27,7 +27,7 @@ it('feedback creates a row with reason_code', function () {
     $user = User::factory()->create();
     LifecycleEmailLog::create([
         'user_id' => $user->id,
-        'campaign' => 'cancelled_trialer',
+        'campaign' => 'churned_subscriber',
         'sent_at' => now()->subDays(1),
     ]);
 
@@ -36,7 +36,7 @@ it('feedback creates a row with reason_code', function () {
         now()->addDays(7),
         [
             'user_id' => $user->id,
-            'campaign' => 'cancelled_trialer',
+            'campaign' => 'churned_subscriber',
             'reason' => 'too_expensive',
         ]
     );
@@ -57,7 +57,7 @@ it('feedback rejects an unknown reason code', function () {
         now()->addDays(7),
         [
             'user_id' => $user->id,
-            'campaign' => 'cancelled_trialer',
+            'campaign' => 'churned_subscriber',
             'reason' => 'invalid_reason',
         ]
     );
@@ -71,12 +71,12 @@ it('clicking a different reason on the same email replaces (not duplicates)', fu
     $url1 = URL::temporarySignedRoute(
         'lifecycle.feedback',
         now()->addDays(7),
-        ['user_id' => $user->id, 'campaign' => 'cancelled_trialer', 'reason' => 'too_expensive']
+        ['user_id' => $user->id, 'campaign' => 'churned_subscriber', 'reason' => 'too_expensive']
     );
     $url2 = URL::temporarySignedRoute(
         'lifecycle.feedback',
         now()->addDays(7),
-        ['user_id' => $user->id, 'campaign' => 'cancelled_trialer', 'reason' => 'missing_features']
+        ['user_id' => $user->id, 'campaign' => 'churned_subscriber', 'reason' => 'missing_features']
     );
 
     $this->get($url1);

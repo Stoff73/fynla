@@ -40,20 +40,32 @@ class MobileLevelService
         $points = (int) (UserGamification::where('user_id', $userId)->value('total_points') ?? 0);
         $progress = $this->levels->progress($points);
 
-        $total = count($nextActions);
-        $completed = count(array_filter($nextActions, static fn ($a) => ($a['done'] ?? false) === true));
+        // Each action represents a quarter of a level (CSJ): the hero card shows
+        // the actions still needed to reach the next level, derived from the
+        // level's points-based progress and capped at 4 — always 4 at the start
+        // of a level, 3/2/1 at 25/50/75%, never a static number. The actions
+        // LIST is unchanged (complete one, it's replaced by the next-best); the
+        // points awarded per action move the progress this reflects. The top
+        // level (no next level) has nothing left to earn.
+        $progressPercent = (int) $progress['progress_percent'];
+        $actionsToNext = $progress['next_level_name'] !== null
+            ? (int) max(0, min(4, (int) ceil((100 - $progressPercent) / 25)))
+            : 0;
+        $actionsInLevel = 4 - $actionsToNext;
 
         return [
             'level' => $progress['level'],
             'level_name' => $progress['level_name'],
             'next_level_name' => $progress['next_level_name'],
-            'progress_percent' => $progress['progress_percent'],
-            // "X of Y actions complete" heading (Rule #12-approved display).
-            'actions_completed' => $completed,
-            'actions_total' => $total,
-            // Legacy aliases so the pre-Phase-5 /m bundle never reads an undefined key.
-            'actions_in_level' => $completed,
-            'actions_for_next' => $total,
+            'progress_percent' => $progressPercent,
+            // "X of 4 actions to your next level" (Rule #12-approved display):
+            // X grows as the user progresses through the level, capped at 4.
+            'actions_completed' => $actionsInLevel,
+            'actions_total' => 4,
+            'actions_to_next' => $actionsToNext,
+            // Legacy aliases (pre-Phase-5 /m bundle) on the same per-level basis.
+            'actions_in_level' => $actionsInLevel,
+            'actions_for_next' => 4,
         ];
     }
 

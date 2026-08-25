@@ -502,7 +502,7 @@
     $module = [
       'id'      => 'cta-features',
       'heading' => 'Ready to take control of your finances?',
-      'subtext' => 'Start your free trial today. No credit card required.',
+      'subtext' => 'Create your free account today. No credit card required.',
       'actions' => [
         ['text' => 'Get started free', 'href' => '/register', 'primary' => true],
       ],

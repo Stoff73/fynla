@@ -30,7 +30,7 @@ export default defineConfig({
     build: {
         sourcemap: false,
         manifest: 'manifest.json',
-        outDir: 'public/m-build',
+        outDir: process.env.VITE_MOBILE_OUT_DIR || 'public/m-build',
         emptyOutDir: true,
         rollupOptions: {
             input: path.resolve(__dirname, 'resources/mobile/main.js'),

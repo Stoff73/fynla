@@ -36,7 +36,7 @@ class InsightsSeoMetaInjector
         } else {
             // Fall back to CMS-imported document articles. Drafts are skipped
             // (preview is admin-only and bypasses public SEO injection).
-            $doc = DocumentArticle::where('slug', $slug)->published()->first();
+            $doc = DocumentArticle::where('slug', $slug)->live()->first();
             if (! $doc) {
                 return $next($request);
             }

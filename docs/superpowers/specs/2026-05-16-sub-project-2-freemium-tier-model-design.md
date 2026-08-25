@@ -2,7 +2,7 @@
 title: Freemium Tier Model + Count Caps + Fyn Agent Metering
 date: 2026-05-16
 sub_project: 2 of 6 (Fynla major-overhaul series)
-status: APPROVED — design approved by CSJ 2026-05-16; A8/A9/A5 corrected at review gate; remaining §22 assumptions (A1–A4, A6, A7, A10) approved on defaults by CSJ 2026-05-16. Ready for implementation-plan pass.
+status: HISTORICAL AND SUPERSEDED — retained for design provenance; current economics are defined by `codex/plans/canonical/01-freemium-economic-contract.md`.
 author: Claude (Opus 4.7) + CSJ
 related_specs: 2026-05-14-module-canonical-store-design (SP1 — foundation, APPROVED); (forthcoming) mobile-first-iframe-shell, campaign-engine, track-onboarding, gamification
 ---

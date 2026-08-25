@@ -72,3 +72,31 @@ it('includes all required fields in user profile', function () {
         ],
     ]);
 });
+
+it('tells the mobile client a fresh null onboarding state is not paused', function () {
+    $freshUser = User::factory()->create([
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_context' => null,
+    ]);
+    $freshToken = $freshUser->createToken('auth_token');
+
+    $this->withToken($freshToken->plainTextToken)
+        ->getJson('/api/auth/user')
+        ->assertOk()
+        ->assertJsonPath('data.user.onboarding_fyn_paused', false);
+});
+
+it('tells the mobile client a deliberately parked onboarding state is paused', function () {
+    $pausedUser = User::factory()->create([
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_context' => ['paused_at_step' => 'campaign_income'],
+    ]);
+    $pausedToken = $pausedUser->createToken('auth_token');
+
+    $this->withToken($pausedToken->plainTextToken)
+        ->getJson('/api/auth/user')
+        ->assertOk()
+        ->assertJsonPath('data.user.onboarding_fyn_paused', true);
+});

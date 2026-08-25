@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Savings;
 
+use App\Http\Traits\ValidatesSharedOwnership;
+use App\Support\SharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class StoreSavingsAccountRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     public function authorize(): bool
     {
         return true;
@@ -25,6 +29,7 @@ class StoreSavingsAccountRequest extends FormRequest
         if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
             $this->offsetUnset('country');
         }
+
     }
 
     public function rules(): array
@@ -57,7 +62,7 @@ class StoreSavingsAccountRequest extends FormRequest
             'isa_subscription_amount' => 'nullable|numeric|min:0',
 
             // Ownership - defaults to 'individual' if not provided
-            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'joint_owner_id' => ['nullable', 'exists:users,id'],
             'trust_id' => ['nullable', 'exists:trusts,id'],
@@ -72,7 +77,14 @@ class StoreSavingsAccountRequest extends FormRequest
     {
         $validator->after(function (Validator $v) {
             $isIsa = $this->boolean('is_isa') || in_array($this->input('account_type'), ['cash_isa', 'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa'], true);
-            $isJoint = $this->input('ownership_type') === 'joint' || $this->filled('joint_owner_id');
+            $ownershipType = $this->input('ownership_type');
+            $isJoint = in_array($ownershipType, ['joint', 'tenants_in_common'], true) || $this->filled('joint_owner_id');
+
+            // A share the caller STATED is checked; one they said nothing about
+            // is defaulted downstream by SharedOwnership and is not an assertion
+            // to refuse. The modal has no share input and sends nothing, which is
+            // what made joint savings accounts impossible to create (W-0013).
+            $this->validateSharedOwnershipSplit($v, $ownershipType, $this->input('ownership_percentage'));
 
             if ($isIsa && $isJoint) {
                 $v->errors()->add('ownership_type', 'ISAs cannot be jointly owned — every ISA is held in a single name under UK law.');

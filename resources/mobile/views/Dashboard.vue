@@ -39,14 +39,27 @@
               </div>
             </div>
             <div class="md-level__copy">
-              <h2 class="md-level__heading" id="md-level-heading">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</h2>
+              <h2 class="md-level__heading" id="md-level-heading">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level</h2>
               <p class="md-level__sub">Complete actions to reach <strong>Level {{ level + 1 }}</strong>.</p>
             </div>
           </button>
+          <!-- WP-5c-iii — one persistent milestone nudge, tappable through to
+               the surface where the user acts on it. -->
+          <button
+            v-if="nextMilestone"
+            type="button"
+            class="md-next-milestone"
+            @click="goToMilestone"
+          >
+            <span class="md-next-milestone__title">Next milestone: {{ nextMilestone.title }}</span>
+            <span class="md-next-milestone__steps">{{ nextMilestone.steps }}</span>
+          </button>
         </div>
 
-        <!-- Callout: rank statement + focus-area carousel + actions -->
-        <div class="md-callout" role="note">
+        <!-- Callout: rank statement + focus-area carousel + actions. When the
+             next-milestone nudge is present it already clears the level
+             card's overflow, so the callout drops its clearance margin. -->
+        <div class="md-callout" :class="{ 'md-callout--below-nudge': nextMilestone }" role="note">
           <div class="md-callout__top">
             <p class="md-callout__levelup">LEVEL<br>UP</p>
             <div class="md-callout__top-copy">
@@ -98,8 +111,6 @@
 
             <!-- Actions for the selected card -->
             <section class="md-recs is-open" :aria-label="activeCard.label + ' actions'">
-              <p v-if="!activeCard.locked && activeRecCount" class="md-recs__count">{{ activeDoneCount }} of {{ activeRecCount }} done</p>
-
               <div class="md-recs__body">
                 <ul class="md-recs__list" aria-live="polite">
                   <li v-if="!visibleActions.length" class="md-rec md-rec--empty">
@@ -119,7 +130,7 @@
                       :aria-label="item.done ? 'Mark as not done' : 'Mark complete'"
                       @click="toggleRec(item)"
                     >
-                      <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
+                      <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
                     </button>
                     <a href="#" class="md-rec__action" @click.prevent="onActionTap(item)">
                       <span class="md-rec__lead" aria-hidden="true" v-html="item.type === 'unlock' ? KEY_ICON : BULB_ICON"></span>
@@ -237,7 +248,7 @@
     </div>
 
     <!-- Docked Fyn bar -->
-    <button type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
+    <button ref="fynDock" type="button" class="md-fyn-dock md-fyn-dock--bar" aria-label="Chat with Fyn" @click="openFyn">
       <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
       <span class="md-fyn-dock__text">
         <span class="md-fyn-dock__name">Fyn</span>
@@ -261,16 +272,10 @@
         </button>
       </div>
       <nav class="md-drawer__nav" aria-label="Primary navigation">
-        <div class="md-drawer__section">
-          <a href="#" class="md-drawer__link is-active" @click.prevent="goto('/dashboard')">
-            <span class="md-drawer__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg></span>
-            <span class="md-drawer__label">Dashboard</span>
-          </a>
-        </div>
         <div v-for="section in navSections" :key="section.group" class="md-drawer__section">
           <p class="md-drawer__group">{{ section.group }}</p>
-          <a v-for="link in section.links" :key="link.slug" href="#" class="md-drawer__link" @click.prevent="goto(link.route)">
-            <span class="md-drawer__icon" aria-hidden="true" v-html="link.icon"></span>
+          <a v-for="link in section.links" :key="link.slug" href="#" class="md-drawer__link" :class="{ 'is-active': link.route === '/dashboard' }" @click.prevent="goto(link.route)">
+            <span class="md-drawer__icon" aria-hidden="true" v-html="NAV_ICON[link.icon]"></span>
             <span class="md-drawer__label">{{ link.label }}</span>
           </a>
         </div>
@@ -314,7 +319,7 @@
 
       <div class="md-fyn__messages" ref="fynBody" aria-live="polite">
         <div v-for="(m, i) in messages" :key="i" class="md-fyn__msg" :class="m.role === 'user' ? 'md-fyn__msg--user' : 'md-fyn__msg--fyn'">
-          <p>{{ m.text || (sending && i === messages.length - 1 ? '…' : '') }}</p>
+          <p v-html="m.text ? fynHtml(m.text) : (sending && i === messages.length - 1 ? '…' : '')"></p>
           <!-- Onboarding bubble choices (quick_replies). Tapping sends the
                label, which the director matches back to the bubble. -->
           <div v-if="m.bubbles && m.bubbles.length" class="md-fyn__bubbles">
@@ -330,14 +335,15 @@
         </div>
       </div>
 
-      <!-- Advice prompt chips — only outside onboarding (onboarding uses bubbles). -->
-      <div v-if="suggestions.length && !onboardingActive" class="md-fyn__prompts" aria-label="Suggested questions">
-        <button v-for="s in suggestions" :key="s" type="button" class="md-fyn__prompt" @click="send(s)">{{ s }}</button>
+      <!-- Advice prompt chips — only outside onboarding (onboarding uses bubbles),
+           and only once the user record is loaded (see showSuggestionPills). -->
+      <div v-if="showSuggestionPills" class="md-fyn__prompts" aria-label="Suggested questions">
+        <button v-for="s in suggestions" :key="s" type="button" class="md-fyn__prompt" :disabled="sending" @click="send(s)">{{ s }}</button>
       </div>
 
       <form class="md-fyn__compose" @submit.prevent="send()">
         <span class="md-fyn-dock__avatar" aria-hidden="true"><img :src="fynIcon" alt="" /></span>
-        <input id="md-fyn-input" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
+        <input id="md-fyn-input" ref="fynInput" v-model="draft" type="text" class="md-fyn-dock__input md-fyn__input" placeholder="Ask Fyn anything..." aria-label="Ask Fyn a question" autocomplete="off" />
         <button type="submit" class="md-fyn-dock__send md-fyn__send" aria-label="Send to Fyn" :disabled="sending">
           <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 12h14M13 5l7 7-7 7" /></svg>
         </button>
@@ -360,6 +366,15 @@ import GamificationCelebration from '@m/components/GamificationCelebration.vue';
 // docked Fyn bar (MobileChrome) so the campaign verify flow can hand the chat
 // between screens. The dashboard keeps its own initFyn + pulseWheel.
 import onboardingChat from '../mixins/onboardingChat.js';
+import {
+  recordUnknownMobileDestination,
+  resolveMobileDestination,
+} from '../navigation/semanticDestinations.js';
+import { primaryNavigationSections } from '../navigation/navigationModel.js';
+import { issueWebHandoff } from '../navigation/webHandoff.js';
+// Shared with the web dashboard by relative path — the ownership.js precedent
+// (W-0015/F-0002). One rule, both surfaces.
+import { retirementHeadline } from '../../js/utils/retirementHeadline.js';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -402,6 +417,7 @@ export default {
     return {
       KEY_ICON,
       BULB_ICON,
+      NAV_ICON,
       loading: true,
       error: '',
       data: null,
@@ -421,6 +437,7 @@ export default {
       actionsTotal: 0,
       percentile: 57,
       pulsing: false,
+      nextMilestone: null,
       // drawer / fyn
       milestoneToast: null,
       drawerOpen: false,
@@ -432,13 +449,13 @@ export default {
       // navigation back to the dashboard. Persisted in sessionStorage, which
       // clears when the tab/session ends.
       nudgeDismissed: (() => {
-        try { return sessionStorage.getItem('m_fyn_nudge_dismissed') === '1'; } catch (e) { return false; }
+        try { return sessionStorage.getItem('m_fyn_nudge_dismissed') === '1'; } catch { return false; }
       })(),
       // "Not now" holds for the whole browsing session (spec decision D — the
       // bubble must not re-nag on every navigation back to the dashboard), so
       // the flag lives in sessionStorage, not just component state.
       unlockBubbleDismissed: (() => {
-        try { return sessionStorage.getItem('m_unlock_bubble_dismissed') === '1'; } catch (e) { return false; }
+        try { return sessionStorage.getItem('m_unlock_bubble_dismissed') === '1'; } catch { return false; }
       })(),
       // conversationId / resumeId / messages / draft / sending / fynStarted come
       // from the onboardingChat mixin (the shared chat client owns that state).
@@ -492,27 +509,7 @@ export default {
     // that have a dedicated mobile view are linked (the web sidebar's other
     // items have no mobile screen yet). Labels match the web wording.
     navSections() {
-      return [
-        { group: 'Cash Management', links: [
-          { slug: 'income', label: 'Income', icon: NAV_ICON.income, route: '/income' },
-          { slug: 'expenditure', label: 'Expenditure', icon: NAV_ICON.expenditure, route: '/expenditure' },
-        ] },
-        { group: 'Finances', links: [
-          { slug: 'net_worth', label: 'Net Worth', icon: NAV_ICON.net_worth, route: '/net-worth' },
-          { slug: 'savings', label: 'Savings', icon: NAV_ICON.savings, route: '/savings' },
-          { slug: 'investment', label: 'Investments', icon: NAV_ICON.investment, route: '/investment' },
-          { slug: 'retirement', label: 'Retirement', icon: NAV_ICON.retirement, route: '/retirement' },
-        ] },
-        { group: 'Family', links: [
-          { slug: 'protection', label: 'Protection', icon: NAV_ICON.protection, route: '/protection' },
-          { slug: 'estate', label: 'Estate Planning', icon: NAV_ICON.estate, route: '/estate' },
-        ] },
-        { group: 'Planning', links: [
-          { slug: 'goals', label: 'Goals', icon: NAV_ICON.goals, route: '/goals' },
-          { slug: 'tax', label: 'Tax Strategy', icon: NAV_ICON.tax, route: '/tax-strategy' },
-          { slug: 'holistic', label: 'Holistic Plan', icon: NAV_ICON.holistic, route: '/holistic-plan' },
-        ] },
-      ];
+      return primaryNavigationSections;
     },
     // Admin section — only for admin users (matches the web sidebar's gated
     // Admin section). The link opens the desktop Admin Panel, which has no
@@ -541,18 +538,22 @@ export default {
       const remaining = all.filter((a) => !this.skippedIds.includes(a.id));
       return remaining.length ? remaining : all;
     },
-    activeDoneCount() {
-      return this.activeActions.filter((a) => a.type === 'recommendation' && a.done).length;
-    },
-    activeRecCount() {
-      return this.activeActions.filter((a) => a.type === 'recommendation').length;
-    },
     suggestions() {
       const top = (this.focusAreas[0] && this.focusAreas[0].actions) || [];
       return top
         .filter((a) => a.type === 'recommendation' && !a.done)
         .slice(0, 3)
         .map((a) => `How do I "${a.title}"?`);
+    },
+    // Advice prompt pills must not render until the user's onboarding state is
+    // actually known. onboardingActive is false both when onboarding is genuinely
+    // finished AND while store.user is still null (a token-only arrival, or a
+    // non-fatal loadUser() failure) — so without this a mid-onboarding user could
+    // see and tap advice pills that route them wrongly before their real state
+    // resolves. Requiring store.user keeps pills hidden until it loads; a failed
+    // loadUser() leaves them hidden, the safe default.
+    showSuggestionPills() {
+      return this.suggestions.length && !this.onboardingActive && !!store.user;
     },
     fynInsight() {
       return this.data?.fyn_insight || '';
@@ -584,11 +585,12 @@ export default {
       const efTarget = 6;
       const savValue = sav.total_savings != null ? sav.total_savings : sav.value;
 
-      // Retirement — projected income vs target as a bar.
+      // Retirement — headline from the shared rule (js/utils/retirementHeadline.js),
+      // the same one the web dashboard reads; bar is projected income vs target.
       const projected = num(ret.projected_income);
       const target = num(ret.target_income);
       const retPct = target > 0 ? Math.min(100, Math.round((projected / target) * 100)) : 0;
-      const retValue = ret.income_gap != null ? ret.income_gap : ret.value;
+      const retHeadline = retirementHeadline(ret);
 
       // Investment — portfolio value as a full-width donut tile (5th panel).
       const inv = find('investment');
@@ -613,7 +615,7 @@ export default {
           caption: (prot.value || prot.total_coverage) > 0 ? 'Cover in place' : 'Add your cover',
         },
         {
-          key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card,
+          key: 'savings', label: 'Bank Accounts', tone: 'spring', icon: ICON.card,
           value: this.fmt(savValue), route: '/savings',
           viz: 'bar',
           barFill: efTarget > 0 ? Math.min(100, Math.round((efMonths / efTarget) * 100)) : 0,
@@ -623,12 +625,12 @@ export default {
         },
         {
           key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock,
-          value: this.fmt(retValue), route: '/retirement',
+          value: this.fmt(retHeadline.value) + (retHeadline.isAnnualIncome ? '/year' : ''), route: '/retirement',
           viz: 'bar',
           barFill: retPct,
-          barValue: retPct + '%',
-          barUnit: 'of target',
-          caption: target > 0 ? 'Towards your target' : 'Plan your retirement',
+          barValue: target > 0 ? retPct + '%' : 'Target not set',
+          barUnit: target > 0 ? 'of target' : '',
+          caption: retHeadline.caption,
         },
         {
           key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true,
@@ -654,13 +656,18 @@ export default {
     fmt(n) {
       return '£' + Math.round(Number(n) || 0).toLocaleString('en-GB');
     },
-    async load() {
-      this.loading = true;
-      this.error = '';
+    async load({ silent = false } = {}) {
+      // silent=true: refetch in the background (e.g. after a check-off) without
+      // a loading flash or replacing the dashboard with an error state.
+      if (!silent) {
+        this.loading = true;
+        this.error = '';
+      }
       try {
         const res = await apiGet('/api/v1/mobile/dashboard', store.token);
+        if (this.handleAuthExpiry(res)) return;
         if (!res.ok) {
-          this.error = 'We could not load your dashboard. Please try again.';
+          if (!silent) this.error = 'We could not load your dashboard. Please try again.';
           return;
         }
         const d = res.data?.data || res.data || {};
@@ -683,6 +690,9 @@ export default {
         this.actionsCompleted = lv.actions_completed ?? 0;
         this.actionsTotal = lv.actions_total ?? 0;
         this.percentile = d.percentile ?? 57;
+        // WP-5c-iii — one persistent nudge under the wheel: the nearest
+        // upcoming milestone with the step to reach it.
+        this.nextMilestone = d.next_milestone || null;
 
         // Surface the single most significant newly-crossed milestone (each
         // fires once server-side). Highest net-worth threshold, else highest goal.
@@ -692,10 +702,10 @@ export default {
           const goal = ms.filter((m) => m.type === 'goal').sort((a, b) => b.threshold - a.threshold);
           this.milestoneToast = nw[0] || goal[0] || ms[0];
         }
-      } catch (e) {
-        this.error = 'Network error. Please try again.';
+      } catch {
+        if (!silent) this.error = 'Network error. Please try again.';
       } finally {
-        this.loading = false;
+        if (!silent) this.loading = false;
       }
     },
     selectArea(i) {
@@ -733,6 +743,16 @@ export default {
     goToAchievements() {
       this.$router.push('/achievements');
     },
+    // WP-5c-iii — the milestone nudge deep-links to the surface where the
+    // user acts on it (route name from the backend; achievements fallback).
+    goToMilestone() {
+      const name = this.nextMilestone?.route;
+      if (name) {
+        this.$router.push({ name }).catch(() => this.$router.push('/achievements'));
+      } else {
+        this.$router.push('/achievements');
+      }
+    },
     // Tapping an action row: an unlock card sends the user into Fyn to capture
     // the missing module data; a recommendation opens a Fyn chat about it.
     onActionTap(item) {
@@ -740,22 +760,28 @@ export default {
       if (item.type === 'unlock') {
         // KYC gap → Fyn collects the missing details (the user's choice).
         this.openFynForCapture(item.module);
-      } else if (item.action && item.action.kind === 'navigate' && item.action.payload) {
+      } else if (item.action && item.action.kind === 'navigate') {
         // Recommendation → deep-link to the module screen where it's actioned.
-        this.goto(item.action.payload);
+        this.goto(resolveMobileDestination(
+          item.action,
+          recordUnknownMobileDestination,
+        ));
       }
     },
     dismissUnlockBubble() {
       this.unlockBubbleDismissed = true;
-      try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
+      try { sessionStorage.setItem('m_unlock_bubble_dismissed', '1'); } catch { /* private mode — in-memory dismissal still applies */ }
     },
     // "Later" on the tax-plan nudge — hold the dismissal for the session so it
     // doesn't reappear on every dashboard visit until the next login.
     dismissNudge() {
       this.nudgeDismissed = true;
-      try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch (e) { /* private mode — in-memory dismissal still applies */ }
+      try { sessionStorage.setItem('m_fyn_nudge_dismissed', '1'); } catch { /* private mode — in-memory dismissal still applies */ }
     },
-    openFynForCapture(module) {
+    // Awaits openFyn() before sending — same fix as openRecChat: openFyn()'s
+    // initFyn() may fire the async startOnboarding() stream, and sending while
+    // that's still in flight silently no-ops (this.sending stays true).
+    async openFynForCapture(module) {
       const prompts = {
         protection: 'Help me add my protection cover details',
         savings: 'Help me add my savings details',
@@ -765,7 +791,7 @@ export default {
         goals: 'Help me set a financial goal',
         tax: 'Help me complete my tax strategy details',
       };
-      this.openFyn();
+      await this.openFyn();
       this.send(prompts[module] || 'Help me add my financial details');
     },
     // Mark / unmark a recommendation action complete. Optimistic toggle, then
@@ -780,7 +806,10 @@ export default {
           module: item.module || 'general',
           recommendation_text: item.title || '',
         }, store.token)
-          .then(() => store.fetchStatus())
+          // Refetch the dashboard silently so the completed action is replaced
+          // by the next-best and the wheel "X of Y" running tally updates, plus
+          // the gamification status for the level ring / celebration (4.1/4.4).
+          .then(() => Promise.all([store.fetchStatus(), this.load({ silent: true })]))
           .then(() => {
             this.level = store.gamification.level;
             this.progressPercent = store.gamification.progressPercent;
@@ -804,25 +833,14 @@ export default {
       this.closeDrawer();
       if (this.$route.path !== route) this.$router.push(route);
     },
-    // Leave the /m mobile SPA for the desktop Admin Panel (no mobile equivalent).
-    // The desktop SPA reads its Sanctum token from sessionStorage('auth_token');
-    // the /m app holds it in localStorage('m_scaffold_token'). The reliable
-    // bridge is on the desktop side (mScaffoldBridge.js adopts the shared
-    // localStorage token at boot) — iOS partitions cross-context sessionStorage,
-    // so the seed below is only a best-effort fast-path for desktop browsers.
-    // Navigation must ALWAYS target the TOP window: navigating the iframe would
-    // load /admin inside the /m frame, where the in-frame guard bounces it back
-    // to /m/app.
-    gotoAdmin() {
+    // Leave /m for the existing Admin application using a single-use,
+    // server-authorised web session handoff. The mobile bearer never crosses
+    // into top-frame browser storage.
+    async gotoAdmin() {
       this.closeDrawer();
-      const url = (import.meta.env.VITE_ROUTER_BASE || '/') + 'admin';
       try {
-        const token = store.token || localStorage.getItem('m_scaffold_token');
-        if (token && window.top && window.top !== window) {
-          window.top.sessionStorage.setItem('auth_token', token);
-        }
-      } catch (e) { /* iOS partitioned storage — the desktop boot bridge covers it */ }
-      (window.top || window).location.href = url;
+        await issueWebHandoff('admin');
+      } catch { /* keep the current authenticated surface available */ }
     },
     // Share via the native share sheet (navigator.share) with a clipboard
     // fallback. Content comes from /api/v1/mobile/share/{type} — generic,
@@ -838,7 +856,7 @@ export default {
         } else if (navigator.clipboard) {
           await navigator.clipboard.writeText(`${payload.text} ${payload.url}`.trim());
         }
-      } catch (e) { /* user cancelled / unsupported — no-op */ }
+      } catch { /* user cancelled / unsupported — no-op */ }
     },
     shareMilestone() {
       if (this.milestoneToast) this.doShare(this.milestoneToast.share_type);
@@ -855,7 +873,7 @@ export default {
       // local state + redirect even if the call fails (expired token / offline).
       try {
         if (store.token) await apiPost('/api/auth/logout', {}, store.token);
-      } catch (e) { /* best-effort — proceed to local clear regardless */ }
+      } catch { /* best-effort — proceed to local clear regardless */ }
       store.logout();
       // Stay inside the /m SPA: route to the mobile login (/m/app/login), not the
       // desktop /login page. The mobile router base already carries the m/app/
@@ -870,16 +888,23 @@ export default {
       this.drawerOpen = false;
       window.setTimeout(() => { this.drawerMounted = false; }, 300);
     },
-    openFyn() {
+    // Returns the open+init promise chain so callers that need to send a message
+    // right after opening (e.g. openRecChat) can await it — initFyn may fire the
+    // async, unawaited startOnboarding() stream, and sending while that's still
+    // in flight silently no-ops (this.sending stays true). Callers that just open
+    // the dock (button @click handlers) can ignore the return value; awaiting is
+    // optional for them since nothing here changes their fire-and-forget usage.
+    async openFyn() {
       this.fynMounted = true;
-      this.$nextTick(() => {
-        this.fynOpen = true;
-        this.scrollFyn();
-        this.initFyn();
-      });
+      await this.$nextTick();
+      this.fynOpen = true;
+      this.scrollFyn();
+      await this.initFyn();
+      this.$nextTick(() => { this.$refs.fynInput?.focus(); });
     },
     closeFyn() {
       this.fynOpen = false;
+      this.$nextTick(() => { this.$refs.fynDock?.focus(); });
       window.setTimeout(() => { this.fynMounted = false; }, 320);
     },
     // Open the bug-report sheet from the Fyn chat, carrying the active
@@ -899,14 +924,26 @@ export default {
       // to the advice greeting instead of starting onboarding. loadUser is idempotent
       // (returns early when store.user is already set), so no delay in the common path.
       await this.loadUser();
-      if (this.onboardingActive) {
-        this.startOnboarding();
-      } else if (!this.messages.length) {
+      // A completed user arriving with a campaign token (?from=pensioncheck —
+      // a re-entry deep-link) must still hit the start endpoint: the server
+      // decides re-entry vs 409, and startOnboarding's fallback greeting
+      // covers the 409. Without this /m had no re-entry entry point at all
+      // (re-entry was desktop-only — Rule 19).
+      const from = this.$route.query.from || null;
+      if (this.onboardingActive || this.onboardingNeedsStart || from) {
+        // Returned (not fire-and-forget) so openFyn()'s caller can await the
+        // full stream settling — startOnboarding sets this.sending = true
+        // synchronously and only clears it in its own finally block, so a
+        // caller that sends a follow-up message right after opening (e.g.
+        // openRecChat) must wait for this to actually finish, not just start.
+        return this.startOnboarding(from);
+      }
+      if (!this.messages.length) {
         this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
       }
     },
-    openRecChat(rec) {
-      this.openFyn();
+    async openRecChat(rec) {
+      await this.openFyn();
       this.send(`How do I "${rec.title}"?`);
     },
     // Populate store.user so the greeting / drawer show the real name. The mobile
@@ -919,7 +956,7 @@ export default {
         if (res.ok) {
           store.user = res.data?.data?.user || res.data?.user || res.data?.data || null;
         }
-      } catch (e) {
+      } catch {
         /* non-fatal — greeting falls back to a generic label */
       }
     },
@@ -936,7 +973,9 @@ export default {
     // cold / token-only arrival store.user is still null at mount). Module screens
     // keep the nudge; the dashboard is the onboarding home, so Fyn leads here.
     await this.loadUser();
-    if (this.onboardingActive) {
+    // Campaign re-entry arrivals (?from=<campaign>) open Fyn too — initFyn
+    // forwards the token and the server decides whether it re-enters a walk.
+    if (this.onboardingActive || this.onboardingNeedsStart || this.$route.query.from) {
       this.openFyn();
     }
   },

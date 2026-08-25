@@ -47,12 +47,30 @@ it('is idempotent — does not fire when awin_fired_at is already set', function
     $payment = Payment::factory()->create([
         'user_id' => $user->id,
         'status' => 'completed',
+        'awin_cks' => 'click-ref-already-fired',
         'awin_fired_at' => now()->subMinute(),
     ]);
 
     (new FireAwinConversionJob($payment->id))->handle(app(AwinTrackingService::class));
 
     Http::assertNothingSent();
+});
+
+it('does not fire while another worker owns a fresh delivery claim', function () {
+    Http::fake(['www.awin1.com/*' => Http::response('OK', 200)]);
+
+    $payment = Payment::factory()->create([
+        'status' => 'completed',
+        'awin_order_ref' => 'FYN-PAY-CLAIMED',
+        'awin_cks' => 'click-ref-claimed',
+        'awin_claimed_at' => now(),
+        'awin_fired_at' => null,
+    ]);
+
+    (new FireAwinConversionJob($payment->id))->handle(app(AwinTrackingService::class));
+
+    Http::assertNothingSent();
+    expect($payment->fresh()->awin_fired_at)->toBeNull();
 });
 
 it('throws to trigger retry when the S2S call returns non-2xx', function () {
@@ -64,6 +82,7 @@ it('throws to trigger retry when the S2S call returns non-2xx', function () {
         'status' => 'completed',
         'awin_order_ref' => 'FYN-PAY-1',
         'awin_customer_acquisition' => 'new',
+        'awin_cks' => 'click-ref-retry',
         'awin_fired_at' => null,
     ]);
 
@@ -73,6 +92,7 @@ it('throws to trigger retry when the S2S call returns non-2xx', function () {
         ->toThrow(RuntimeException::class);
 
     expect($payment->fresh()->awin_fired_at)->toBeNull();
+    expect($payment->fresh()->awin_claimed_at)->toBeNull();
 });
 
 it('short-circuits when AWIN_ENABLED is false', function () {
@@ -105,6 +125,28 @@ it('does not fire for non-completed payments', function () {
 
     Http::assertNothingSent();
     expect($payment->fresh()->awin_fired_at)->toBeNull();
+});
+
+it('does not fire without a click reference — the consent gate (W-0049)', function () {
+    Http::fake(['www.awin1.com/*' => Http::response('OK', 200)]);
+
+    // awin_cks is the affiliate click reference captured from the awc cookie,
+    // and that cookie is set only for a visitor who accepted tracking. No
+    // reference means no consented click, so nothing may reach Awin.
+    $payment = Payment::factory()->create([
+        'user_id' => User::factory()->create()->id,
+        'status' => 'completed',
+        'awin_order_ref' => 'FYN-PAY-NO-CLICK',
+        'awin_customer_acquisition' => 'new',
+        'awin_cks' => null,
+        'awin_fired_at' => null,
+    ]);
+
+    (new FireAwinConversionJob($payment->id))->handle(app(AwinTrackingService::class));
+
+    Http::assertNothingSent();
+    expect($payment->fresh()->awin_fired_at)->toBeNull();
+    expect($payment->fresh()->awin_claimed_at)->toBeNull();
 });
 
 it('handles missing payment without throwing', function () {

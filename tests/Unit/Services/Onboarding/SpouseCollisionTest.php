@@ -52,6 +52,35 @@ describe('SpouseLinkingService::linkOrCreateSpouse (collision path)', function (
     });
 
     /**
+     * Live 2026-08-18, user 49: the spouse email belonged to a SOFT-DELETED
+     * account. The lookup skipped it (default scope), the service decided the
+     * user did not exist, and the INSERT hit the unique index — 1062 duplicate
+     * entry. The user was then shown the grouped_extract retry copy asking for
+     * the first name, date of birth and email they had just supplied, and every
+     * retry failed the same way. PR #697 closed this in FamilyMembersController;
+     * this is the same hole in the path Fyn's onboarding uses.
+     */
+    it('rejects a spouse email held by a soft-deleted account instead of crashing on the unique index', function () {
+        $currentUser = User::factory()->create(['marital_status' => 'married']);
+        $closed = User::factory()->create(['email' => 'closed@example.com']);
+        $closed->delete();
+
+        expect($closed->fresh()?->trashed() ?? User::withTrashed()->find($closed->id)->trashed())->toBeTrue();
+
+        $service = app(SpouseLinkingService::class);
+
+        expect(fn () => $service->linkOrCreateSpouse($currentUser, [
+            'first_name' => 'Meg',
+            'email' => 'closed@example.com',
+            'date_of_birth' => '1975-01-08',
+        ]))->toThrow(SpouseCollisionException::class);
+
+        // Nothing written: no second account, no link on the current user.
+        expect(User::where('email', 'closed@example.com')->count())->toBe(0)
+            ->and($currentUser->fresh()->spouse_id)->toBeNull();
+    });
+
+    /**
      * Regression for P0.8 — the spouse email lookup must be case-insensitive.
      * Previously a mixed-case input ("Busy@Example.com") did not match a
      * lowercase stored email and either fell through to creating a duplicate

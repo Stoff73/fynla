@@ -1,0 +1,126 @@
+{
+  "success": true,
+  "data": {
+    "profile": {
+      "id": 1,
+      "annual_income": 60000,
+      "mortgage_balance": 200000,
+      "other_debts": 10000,
+      "number_of_dependents": 2,
+      "has_no_policies": false
+    },
+    "policies": {
+      "life_insurance": [
+        {
+          "id": 41,
+          "policy_type": "level_term",
+          "provider": "Example Life",
+          "policy_number": "LIFE-41",
+          "sum_assured": 250000,
+          "premium_amount": 35,
+          "premium_frequency": "monthly",
+          "policy_start_date": "2024-01-01",
+          "policy_end_date": "2044-01-01",
+          "policy_term_years": 20,
+          "in_trust": true,
+          "is_mortgage_protection": false,
+          "beneficiaries": "Family"
+        }
+      ],
+      "critical_illness": [],
+      "income_protection": [
+        {
+          "id": 42,
+          "provider": "Example Income",
+          "policy_number": "IP-42",
+          "benefit_amount": 2500,
+          "benefit_frequency": "monthly",
+          "deferred_period_weeks": 13,
+          "benefit_period_months": 24,
+          "premium_amount": 28,
+          "premium_frequency": "monthly",
+          "occupation_class": "Professional",
+          "policy_start_date": "2025-01-01",
+          "policy_end_date": null,
+          "policy_term_years": 15
+        }
+      ],
+      "disability": [],
+      "sickness_illness": []
+    },
+    "coverage_gaps": {
+      "contract_version": "protection_gap_v1",
+      "totals": {
+        "need": 410000,
+        "cover": 250000,
+        "shortfall": 160000,
+        "coverage_percentage": 60.98
+      },
+      "categories": [
+        {
+          "key": "human_capital",
+          "label": "Income replacement capital",
+          "need": 300000,
+          "cover": 40000,
+          "shortfall": 260000,
+          "status": "gap",
+          "severity": "high",
+          "inputs": {
+            "income_that_stops": 60000,
+            "income_that_continues": 0,
+            "net_income_difference": 45000
+          },
+          "assumptions": [
+            {"key": "sustainable_withdrawal_rate", "value": 4.7, "unit": "percent"}
+          ],
+          "explanation": "This estimates capital needed to replace recorded earned income.",
+          "relevant_policies": [
+            {"id": 41, "type": "life_insurance", "provider": "Example Life", "name": "level_term", "cover": 250000}
+          ]
+        },
+        {
+          "key": "debt_protection",
+          "label": "Debt protection",
+          "need": 210000,
+          "cover": 210000,
+          "shortfall": 0,
+          "status": "covered",
+          "severity": "none",
+          "inputs": {"mortgage_balance": 200000, "other_debts": 10000},
+          "assumptions": [{"key": "allocation_priority", "value": "Life cover is allocated to debt first", "unit": null}],
+          "explanation": "This compares recorded debts with allocated life cover.",
+          "relevant_policies": []
+        },
+        {
+          "key": "final_expenses",
+          "label": "Final expenses",
+          "need": 7500,
+          "cover": 0,
+          "shortfall": 7500,
+          "status": "gap",
+          "severity": "high",
+          "inputs": {"configured_need": 7500},
+          "assumptions": [{"key": "configured_final_expenses", "value": 7500, "unit": "GBP"}],
+          "explanation": "This uses the configured final-expense amount.",
+          "relevant_policies": []
+        },
+        {
+          "key": "income_protection",
+          "label": "Income protection",
+          "need": 36000,
+          "cover": 30000,
+          "shortfall": 6000,
+          "status": "gap",
+          "severity": "low",
+          "inputs": {"gross_income": 60000},
+          "assumptions": [{"key": "maximum_benefit_ratio", "value": 60, "unit": "percent"}],
+          "explanation": "This compares the configured share of income with annualised recorded cover.",
+          "relevant_policies": [
+            {"id": 42, "type": "income_protection", "provider": "Example Income", "name": null, "cover": 30000}
+          ]
+        }
+      ],
+      "calculated_at": "2026-08-10T12:00:00Z"
+    }
+  }
+}

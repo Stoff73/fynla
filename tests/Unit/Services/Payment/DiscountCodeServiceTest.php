@@ -36,10 +36,6 @@ describe('calculateDiscount', function () {
         expect($this->service->calculateDiscount($code, 1099))->toBe(1099);
     });
 
-    it('returns zero for trial extension', function () {
-        $code = DiscountCode::factory()->trialExtension(14)->create();
-        expect($this->service->calculateDiscount($code, 1099))->toBe(0);
-    });
 });
 
 describe('validate', function () {
@@ -72,6 +68,20 @@ describe('validate', function () {
         $result = $this->service->validate('OFF', $this->user->id, 'standard', 'monthly', 1099);
         expect($result['valid'])->toBeFalse()
             ->and($result['message'])->toContain('no longer active');
+    });
+
+    it('rejects the retired trial extension discount type', function () {
+        DiscountCode::factory()->create([
+            'code' => 'LEGACYTRIAL',
+            'type' => 'trial_extension',
+            'value' => 14,
+            'is_active' => true,
+        ]);
+
+        $result = $this->service->validate('LEGACYTRIAL', $this->user->id, 'premium', 'monthly', 699);
+
+        expect($result['valid'])->toBeFalse()
+            ->and($result['message'])->toContain('no longer supported');
     });
 
     it('rejects expired code', function () {

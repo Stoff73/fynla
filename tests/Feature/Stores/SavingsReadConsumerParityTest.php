@@ -264,12 +264,16 @@ it('LetterToSpouseService immediate funds info lists single-owner-as-primary joi
         'institution' => 'JointBank',
     ]);
 
+    // The generators now take the letter's one financial position rather than a
+    // User, so that the prose, the cards and the exported document cannot state
+    // three different figures (W-0421). Reach is asserted through the same public
+    // entry point the letter itself uses.
     $service = app(LetterToSpouseService::class);
     $reflection = new ReflectionClass($service);
     $method = $reflection->getMethod('generateImmediateFundsInfo');
     $method->setAccessible(true);
 
-    $info = $method->invoke($service, $user);
+    $info = $method->invoke($service, $service->financialPosition($user));
 
     // Joint account (JointBank) should appear; individual (IndividualBank) should not
     expect($info)->toContain('JointBank');
@@ -307,7 +311,7 @@ it('LetterToSpouseService bank accounts info lists all single-owner accounts', f
     $method = $reflection->getMethod('generateBankAccountsInfo');
     $method->setAccessible(true);
 
-    $info = $method->invoke($service, $user);
+    $info = $method->invoke($service, $service->financialPosition($user));
 
     // Both user-owned accounts appear (individual + joint-as-primary)
     expect($info)->toContain('IndividualBank');
@@ -970,7 +974,7 @@ it('TaxOptimisationService:113,126,424 ISA / non-ISA / spouse-ISA reads identica
     expect($postSpouse)->toBe(3000.0);
 });
 
-it('TaxStrategyMath::estimateAnnualInterest output identical after store migration (joint excluded)', function () {
+it('TaxStrategyMath::estimateAnnualInterest attributes each account at the ownership share (joint included)', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
     $spouse = User::factory()->create(['is_preview_user' => false]);
 
@@ -988,8 +992,10 @@ it('TaxStrategyMath::estimateAnnualInterest output identical after store migrati
         'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 20000,
         'interest_rate' => 5.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
-    // Joint owned by spouse with user as joint_owner_id — forUser() is joint-aware;
-    // post-filter where('user_id') must exclude it from estimateAnnualInterest.
+    // Joint owned by spouse with user as joint_owner_id. Issue log 2026-07-23
+    // #21 intentionally changed semantics: the original migration-parity pin
+    // (joint excluded, 550.0) preserved a defect — HMRC splits joint-account
+    // interest by ownership share, so the user's 50% of £5,000 counts.
     SavingsAccount::factory()->create([
         'user_id' => $spouse->id, 'is_isa' => false, 'current_balance' => 100000,
         'interest_rate' => 5.0, 'joint_owner_id' => $user->id,
@@ -997,7 +1003,7 @@ it('TaxStrategyMath::estimateAnnualInterest output identical after store migrati
     ]);
 
     $math = app(TaxStrategyMath::class);
-    expect($math->estimateAnnualInterest($user))->toBe(550.0);
+    expect($math->estimateAnnualInterest($user))->toEqualWithDelta(3050.0, 0.001);
 });
 
 it('TaxStrategyMath::estimateIsaSubscriptionsThisYear only sums current-year ISA balances (Carbon filter parity)', function () {
@@ -1656,6 +1662,8 @@ it('SavingsAgent::generateRecommendations (IIFE site 276) passes a JOINT-AWARE s
         app(LiquidityAnalyzer::class),
         app(RateComparator::class),
         app(SavingsDataReadinessService::class),
+        app(SavingsStore::class),
+        app(CrossModuleAssetAggregator::class),
         $spy,
     );
 
@@ -1687,6 +1695,8 @@ it('SavingsAgent::generateRecommendations (IIFE site 276) hands an EMPTY collect
         app(LiquidityAnalyzer::class),
         app(RateComparator::class),
         app(SavingsDataReadinessService::class),
+        app(SavingsStore::class),
+        app(CrossModuleAssetAggregator::class),
         $spy,
     );
 
@@ -1791,7 +1801,7 @@ it('CoordinatingAgent::handleListRecords savings_account (site 1467) returns BOT
     Model::preventLazyLoading();
 });
 
-it('ISATracker::getISAAllowanceStatus cash-ISA + LISA nested-OR predicates count BOTH the isa_type-matched and account_type-matched rows (sites 73 & 102)', function () {
+it('ISATracker::getISAAllowanceStatus keeps cash ISA and LISA usage isolated to the requested tax year', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
     $taxYear = app(TaxConfigService::class)->getTaxYear();
 
@@ -1841,8 +1851,8 @@ it('ISATracker::getISAAllowanceStatus cash-ISA + LISA nested-OR predicates count
 
     // Cash ISA: Row A (4000) + Row B (3000); Row C excluded (null amount) = 7000.
     expect($status['cash_isa_used'])->toBe(7000.0);
-    // LISA: Row D (2000) + Row E (1500) = 3500.
-    expect($status['lisa_used'])->toBe(3500.0);
+    // LISA: Row D (2000). Row E belongs to 2019/20 and must not leak into 2025/26.
+    expect($status['lisa_used'])->toBe(2000.0);
 });
 
 it('ISATracker::updateISAUsage cash & LISA flat-where reads identical to pre-refactor (sites 220 & 225); missing user → 0.0', function () {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Stores\Normalisers;
 
 use App\Services\TaxConfigService;
+use App\Support\SharedOwnership;
 
 class SavingsAccountNormaliser
 {
@@ -13,26 +14,34 @@ class SavingsAccountNormaliser
      * by SavingsStore::create(). Replicates the ownership / country logic
      * that previously lived in SavingsController::storeAccount (lines 266-285).
      */
-    public function fromForm(array $request): array
+    public function fromForm(array $request, bool $partial = false, ?object $existing = null): array
     {
         $data = $request;
 
-        $data['ownership_type'] = $data['ownership_type'] ?? 'individual';
-
-        if (! isset($data['ownership_percentage'])) {
-            $data['ownership_percentage'] = 100.00;
+        if (! $partial) {
+            $data['ownership_type'] = $data['ownership_type'] ?? 'individual';
         }
 
-        if ($data['ownership_type'] === 'joint' && (float) $data['ownership_percentage'] === 100.00) {
-            $data['ownership_percentage'] = 50.00;
+        $ownershipType = $data['ownership_type'] ?? null;
+
+        // ownership_percentage — one rule, one home (App\Support\SharedOwnership).
+        // A partial update that says nothing about ownership must not inject a
+        // share; one that names an ownership_type goes through the same rule as
+        // a create, so a joint account can never be stored at 100/0 (W-0013/W-0014).
+        if ($ownershipType !== null && (! $partial || array_key_exists('ownership_type', $request))) {
+            // On an update the stored record comes too, so an account converted
+            // to joint without a stated split keeps the share it already had
+            // rather than being re-defaulted to 50 (W-0040).
+            $data = SharedOwnership::applyTo($data, $ownershipType, $existing);
         }
 
-        // Reset ownership to sole when switching back to individual.
+        // Reset ownership fields when switching back to individual.
         // Forces both fields regardless of what the caller passed — matches
         // SavingsController::updateAccount (lines 387-391).
-        if ($data['ownership_type'] === 'individual') {
+        if ($ownershipType === 'individual') {
             $data['joint_owner_id'] = null;
-            $data['ownership_percentage'] = 100.00;
+            $data['ownership_percentage'] = SharedOwnership::INDIVIDUAL_PERCENTAGE;
+            $data['trust_id'] = null;
         }
 
         // ISA accounts must always be United Kingdom.
@@ -41,6 +50,17 @@ class SavingsAccountNormaliser
             $data['country'] = 'United Kingdom';
         } elseif (! isset($data['country']) || $data['country'] === null) {
             $data['country'] = 'United Kingdom';
+        }
+
+        // Tax-year labels are stored canonically as YYYY/YY. The public API
+        // continues to accept the legacy YYYY-YY form used by older clients,
+        // but normalises it before both the account and ISA ledger are written.
+        if (isset($data['isa_subscription_year']) && is_string($data['isa_subscription_year'])) {
+            $data['isa_subscription_year'] = preg_replace(
+                '/^(\d{4})-(\d{2})$/',
+                '$1/$2',
+                $data['isa_subscription_year'],
+            ) ?? $data['isa_subscription_year'];
         }
 
         return $data;
@@ -62,6 +82,7 @@ class SavingsAccountNormaliser
             'current_balance' => (float) ($extraction['current_balance'] ?? 0),
             'ownership_type' => 'individual',
             'ownership_percentage' => 100.00,
+            'joint_owner_id' => null,
             'country' => $extraction['country'] ?? 'United Kingdom',
         ];
 
@@ -87,8 +108,11 @@ class SavingsAccountNormaliser
      */
     public function fromFyn(array $toolParams): array
     {
-        $isIsa = (bool) ($toolParams['is_isa'] ?? false);
-        $accountType = $toolParams['account_type'] ?? 'easy_access';
+        // An untyped account is a current/bank account by default, not a savings
+        // product (CSJ: only store a savings type when the user stipulates one).
+        $accountType = $toolParams['account_type'] ?? 'current_account';
+        $isIsa = in_array($accountType, ['cash_isa', 'junior_isa'], true)
+            || (bool) ($toolParams['is_isa'] ?? false);
 
         $dbAccountType = match ($accountType) {
             'fixed_term' => 'fixed',
@@ -114,8 +138,13 @@ class SavingsAccountNormaliser
             'access_type' => $accessType,
             'is_isa' => $isIsa,
             'is_emergency_fund' => (bool) ($toolParams['is_emergency_fund'] ?? false),
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100.00,
+            'ownership_type' => $toolParams['ownership_type'] ?? 'individual',
+            'ownership_percentage' => SharedOwnership::primaryOwnerPercentage(
+                $toolParams['ownership_type'] ?? 'individual',
+                $toolParams['ownership_percentage'] ?? null,
+            ),
+            'joint_owner_id' => $toolParams['joint_owner_id'] ?? null,
+            'trust_id' => $toolParams['trust_id'] ?? null,
         ];
 
         if (isset($toolParams['interest_rate'])) {

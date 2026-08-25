@@ -214,7 +214,7 @@
       <!-- Eligibility Status Banner -->
       <div v-if="badrFullyQualified" class="alert bg-spring-100 border border-spring-300 text-spring-800 mb-4">
         <p class="font-medium">Potentially Eligible for Business Asset Disposal Relief</p>
-        <p class="text-sm">All qualifying conditions appear to be met. Tax rate: 14% (from 6 April 2025)</p>
+        <p class="text-sm">All qualifying conditions appear to be met. Tax rate: 18% (from 6 April 2026)</p>
       </div>
       <div v-else class="alert bg-violet-100 border border-violet-300 text-violet-800 mb-4">
         <p class="font-medium">Business Asset Disposal Relief Flagged - Review Conditions</p>
@@ -272,7 +272,7 @@
           </svg>
           <div class="text-xs text-spring-800">
             <p class="font-medium">About Business Asset Disposal Relief</p>
-            <p class="mt-1">Business Asset Disposal Relief reduces Capital Gains Tax to 14% (from 6 April 2025) on qualifying gains up to a £1m lifetime limit. Claims must be submitted via Self Assessment by 31 January following the tax year of disposal.</p>
+            <p class="mt-1">Business Asset Disposal Relief reduces Capital Gains Tax to 18% (from 6 April 2026) on qualifying gains up to a £1m lifetime limit. Claims must be submitted via Self Assessment by 31 January following the tax year of disposal.</p>
           </div>
         </div>
       </div>
@@ -557,11 +557,11 @@ export default {
 
     estimatedBadrSaving() {
       if (!this.hasBadrPotential || !this.paperGainLoss || this.paperGainLoss <= 0) return null;
-      // Standard CGT rate for higher earners is typically 20% for assets, BADR reduces to 14%
-      // Saving is the difference: 20% - 14% = 6% of the gain
+      // Standard CGT rate for higher earners is typically 24% for assets, BADR reduces to 18%
+      // Saving is the difference: 24% - 18% = 6% of the gain
       const gain = Math.min(this.paperGainLoss, this.badrRemainingAllowance);
       if (gain <= 0) return null;
-      return gain * 0.06; // 6% saving (20% standard - 14% BADR)
+      return gain * 0.06; // 6% saving (24% standard - 18% BADR)
     },
   },
 

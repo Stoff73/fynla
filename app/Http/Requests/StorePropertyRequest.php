@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Traits\ValidatesSharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StorePropertyRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -32,6 +35,17 @@ class StorePropertyRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      */
+    /**
+     * A stated ownership share that is not a shared split is refused rather
+     * than rewritten (W-0040).
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($v) {
+            $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
+        });
+    }
+
     public function rules(): array
     {
         return [
@@ -68,6 +82,14 @@ class StorePropertyRequest extends FormRequest
 
             // Mortgage details (when auto-creating mortgage from property form)
             'mortgage_lender_name' => ['nullable', 'string', 'max:255'],
+            // W-0012. The wizard has always collected this and the request never
+            // accepted it, so it was stripped at validation on every property
+            // created with a mortgage — the tenth dropped field, and the one the
+            // field-list fix did not recover because the gap is on the RECEIVING
+            // side rather than the sending one. `mortgages.mortgage_account_number`
+            // exists and `UpdateMortgageRequest` already accepts it; only creation
+            // could not store it.
+            'mortgage_account_number' => ['nullable', 'string', 'max:50'],
             'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
             'mortgage_repayment_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_interest_only_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -80,9 +102,16 @@ class StorePropertyRequest extends FormRequest
             'mortgage_variable_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_start_date' => ['nullable', 'date'],
             'mortgage_maturity_date' => ['nullable', 'date'],
+            // The wizard renders these three; without rules here validated() strips
+            // them and the mortgage is written with a hardcoded term, no rate-fix
+            // end date and no interest portion (W-0012).
+            'mortgage_rate_fix_end_date' => ['nullable', 'date'],
+            'mortgage_remaining_term_months' => ['nullable', 'integer', 'min:0'],
+            'mortgage_monthly_interest_portion' => ['nullable', 'numeric', 'min:0'],
             'mortgage_ownership_type' => ['nullable', Rule::in(['individual', 'joint'])],
             'mortgage_original_loan_amount' => ['nullable', 'numeric', 'min:0'],
             'mortgage_joint_owner_id' => ['nullable', 'exists:users,id'],
+            'mortgage_joint_owner_name' => ['nullable', 'string', 'max:255'],
             'mortgage_ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
 
             // Rental (for BTL)

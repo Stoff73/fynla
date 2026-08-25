@@ -14,8 +14,24 @@ class GoalProgressService
 {
     private const MILESTONES = [25, 50, 75, 100];
 
+    public function __construct(
+        private readonly GoalCalculationService $calculationService
+    ) {}
+
     /**
      * Calculate detailed progress for a goal.
+     *
+     * `is_on_track` used to be decided here, a second time, by its own rule
+     * (`$currentAmount > 0 && $progressDelta >= -10`) over its own span — so
+     * the same goal could be on track on a card and behind in a plan, and the
+     * overdue blindness in `GoalCalculationService` had to be fixed twice to be
+     * fixed at all. There is one home for that judgement now, and this asks it
+     * (Rule 20, W-0411).
+     *
+     * The spans below are SIGNED. They were absolute, which on Carbon 2 turns a
+     * goal recorded against a past date — its `start_date` stamped with today,
+     * so the range runs backwards — into its own mirror image: three weeks gone
+     * read as three weeks of runway, and elapsed time read as almost none.
      */
     public function calculateProgress(Goal $goal): array
     {
@@ -25,12 +41,20 @@ class GoalProgressService
 
         $startDate = $goal->start_date ?? $goal->created_at;
         $targetDate = $goal->target_date;
+        $isOverdue = $this->calculationService->isOverdue($goal);
 
-        $totalDays = $startDate && $targetDate ? $startDate->diffInDays($targetDate) : 0;
-        $daysElapsed = $startDate ? $startDate->diffInDays(now()) : 0;
+        $totalDays = $startDate && $targetDate ? max(0, $startDate->diffInDays($targetDate, false)) : 0;
+        $daysElapsed = $startDate ? max(0, $startDate->diffInDays(now(), false)) : 0;
         $daysRemaining = $targetDate ? max(0, now()->startOfDay()->diffInDays($targetDate, false)) : 0;
 
-        $expectedProgress = $totalDays > 0 ? min(($daysElapsed / $totalDays) * 100, 100) : 0;
+        // Past its date, the whole of the period has been spent, whatever the
+        // stored span says about it. Leaving this at 0 — which is what an
+        // inverted range produced — made an overdue goal read as ahead.
+        $timeProgress = $isOverdue
+            ? 100.0
+            : ($totalDays > 0 ? min(($daysElapsed / $totalDays) * 100, 100) : 0);
+
+        $expectedProgress = $timeProgress;
         $progressDelta = $progressPercentage - $expectedProgress;
 
         return [
@@ -40,12 +64,14 @@ class GoalProgressService
             'progress_percentage' => round(min($progressPercentage, 100), 2),
             'expected_progress' => round($expectedProgress, 2),
             'progress_delta' => round($progressDelta, 2),
-            'is_on_track' => $currentAmount > 0 && $progressDelta >= -10,
+            'is_on_track' => $this->calculationService->calculateIsOnTrack($goal),
+            'is_overdue' => $isOverdue,
+            'status_label' => $this->calculationService->calculateStatusLabel($goal),
             'status' => $this->getProgressStatus($progressDelta),
             'days_elapsed' => $daysElapsed,
             'days_remaining' => $daysRemaining,
             'total_days' => $totalDays,
-            'time_progress_percentage' => $totalDays > 0 ? round(min(($daysElapsed / $totalDays) * 100, 100), 2) : 0,
+            'time_progress_percentage' => round($timeProgress, 2),
         ];
     }
 

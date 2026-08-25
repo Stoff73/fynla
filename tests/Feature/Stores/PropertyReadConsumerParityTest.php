@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Estate\IHTCalculationService;
 use App\Services\Stores\PropertyStore;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -25,6 +26,14 @@ beforeEach(function () {
  * semantics, every primary-only consumer chains `->where('user_id', $user->id)` onto
  * the Collection returned by the store. These tests lock that contract so no future
  * cluster (5b/5c/5d/5e) silently broadens semantics by omitting the filter.
+ *
+ * **W-0333 — `IHTCalculationService::projectProperties` is no longer one of them.**
+ * The primary-only filter stops a joint property being counted twice, but it counts
+ * primary rows at 100%, so a property held with someone OUTSIDE the household
+ * carries their share into the estate. That consumer now reads
+ * `CrossModuleAssetAggregator::calculatePropertyTotal` per member — reach and share
+ * — which does both: once, and only this household's part. The other four consumers
+ * keep the filter and their cases below are unchanged.
  */
 
 it('PropertyStore::forUser returns primary AND joint properties (canonical joint-aware contract)', function () {
@@ -121,9 +130,20 @@ it('EstateActionDefinitionService property sum is single-owner (matches pre-PR-5
     expect($postRefactorSum)->toBe(650000.0);
 });
 
-it('IHTCalculationService projected properties does NOT double-count joint property across spouse pair', function () {
-    $user = User::factory()->create(['is_preview_user' => false]);
-    $spouse = User::factory()->create(['is_preview_user' => false]);
+it('the estate projection counts a joint property once and a third party\'s share not at all', function () {
+    // W-0333. This case used to be called "IHTCalculationService projected
+    // properties does NOT double-count joint property across spouse pair" and
+    // **it never called IHTCalculationService.** It reproduced the query pattern
+    // inline and asserted arithmetic the test itself had written, so it would
+    // have stayed green through any change to the service — including the one
+    // that put £177,000 of a third party's money into a household's estate.
+    //
+    // The pattern observations it made are kept below, because they are true of
+    // the STORE and they are why the primary-only filter existed. What is new is
+    // that the service is now actually driven.
+    $user = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'date_of_birth' => '1970-01-01', 'gender' => 'male']);
+    $spouse = User::factory()->create(['is_preview_user' => false, 'marital_status' => 'married', 'date_of_birth' => '1970-01-01', 'gender' => 'female', 'spouse_id' => $user->id]);
+    $user->update(['spouse_id' => $spouse->id]);
 
     // One joint property: user primary, spouse joint.
     Property::factory()->create([
@@ -136,21 +156,41 @@ it('IHTCalculationService projected properties does NOT double-count joint prope
 
     $store = app(PropertyStore::class);
 
-    // PR 5a filter pattern — each spouse summed with primary-only filter:
-    $userPrimary = (float) $store->forUser($user)->where('user_id', $user->id)->sum('current_value');
-    $spousePrimary = (float) $store->forUser($spouse)->where('user_id', $spouse->id)->sum('current_value');
-    $totalWithFilter = $userPrimary + $spousePrimary;
+    // The store contract, unchanged: joint-aware on both sides double-counts,
+    // which is what `5278a2457` found and stopped.
+    $totalWithoutFilter = (float) $store->forUser($user)->sum('current_value')
+        + (float) $store->forUser($spouse)->sum('current_value');
+    expect($totalWithoutFilter)->toBe(1000000.0);
 
-    // Joint property is counted ONCE (under user, who is primary). Spouse's sum is 0
-    // (they have no primary-owned properties). Total = 500000.
+    // The primary-only filter it introduced counts the property once…
+    $totalWithFilter = (float) $store->forUser($user)->where('user_id', $user->id)->sum('current_value')
+        + (float) $store->forUser($spouse)->where('user_id', $spouse->id)->sum('current_value');
     expect($totalWithFilter)->toBe(500000.0);
 
-    // Sanity check: WITHOUT the primary filter, the joint property is counted twice
-    // (once under user via user_id match, once under spouse via joint_owner_id match).
-    $userJointAware = (float) $store->forUser($user)->sum('current_value');
-    $spouseJointAware = (float) $store->forUser($spouse)->sum('current_value');
-    $totalWithoutFilter = $userJointAware + $spouseJointAware;
-    expect($totalWithoutFilter)->toBe(1000000.0); // DOUBLE-COUNTED — what the filter prevents
+    // …but at 100% of the record, which is how a third party's share got in.
+    // `projectProperties` now reads `CrossModuleAssetAggregator::calculatePropertyTotal`
+    // per member — reach and share — which counts a jointly-held property once AND
+    // leaves a stranger's share out. Both properties of the projection, asserted
+    // against the service.
+    $projectedWithJointOnly = (float) app(IHTCalculationService::class)
+        ->calculate($user, $spouse, true)['projected_properties'];
+
+    Property::factory()->create([
+        'user_id' => $user->id,
+        'joint_owner_id' => null,
+        'current_value' => 295000,
+        'ownership_type' => 'tenants_in_common',
+        'ownership_percentage' => 40,
+    ]);
+
+    $projectedWithThirdParty = (float) app(IHTCalculationService::class)
+        ->calculate($user->fresh(), $spouse->fresh(), true)['projected_properties'];
+
+    // The £295,000 property adds only the household's £118,000 share — a ratio of
+    // 618,000 : 500,000 against the base. Under the defect it added the whole
+    // £295,000 and the ratio was 795,000 : 500,000.
+    expect($projectedWithThirdParty / $projectedWithJointOnly)
+        ->toEqualWithDelta(618000 / 500000, 0.0001);
 });
 
 it('IHTCalculationService hasMainResidence requires primary ownership, not joint-only', function () {

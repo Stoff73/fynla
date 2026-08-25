@@ -493,7 +493,7 @@ For DB Pensions (final salary, career average, public sector):
 - pensionable_service_years: Years of service (can be decimal)
 - pensionable_salary: Pensionable salary
 - normal_retirement_age: Scheme NRA
-- spouse_pension_percent: Spouse pension as decimal (50% = 0.50)
+- spouse_pension_percent: Spouse pension in percentage points (50% = 50, not 0.50)
 - lump_sum_entitlement: Tax-free lump sum
 - inflation_protection: One of [cpi, rpi, fixed, none]
 - revaluation_method: How benefits revalue
@@ -750,7 +750,7 @@ PROMPT;
         if (json_last_error() !== JSON_ERROR_NONE) {
             Log::warning('Failed to parse extraction response as JSON', [
                 'error' => json_last_error_msg(),
-                'content' => substr($content, 0, 500),
+                'content_length' => strlen($content),
             ]);
 
             throw new RuntimeException(

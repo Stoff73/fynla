@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "data": {
+    "expenditure": {
+      "monthly_expenditure": 3250.50,
+      "annual_expenditure": 119988,
+      "presentation": {"entry_mode":"category","entry_mode_label":"Category detail","active_monthly_total":1530.50,"active_annual_total":18366,"manual_monthly_total":1530.50,"commitments_monthly_total":0,"total_basis":"Category entries plus financial commitments","detail_available":true,"reconciles":true,"summary_only_reason":null},
+      "categories": {
+        "food_groceries": 650,
+        "transport_fuel": 280.50,
+        "clothing_personal_care": 125,
+        "entertainment_dining": 300,
+        "childcare": 0,
+        "other_expenditure": 175
+      }
+    }
+  }
+}

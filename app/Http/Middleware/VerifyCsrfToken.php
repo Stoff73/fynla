@@ -15,5 +15,7 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         'api/*',
+        // External webhook from Google Drive — authed by its channel token, not CSRF.
+        'pipeline/drive/webhook',
     ];
 }

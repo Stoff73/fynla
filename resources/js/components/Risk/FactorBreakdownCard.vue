@@ -58,6 +58,10 @@
           </span>
         </div>
         <p class="text-xs text-neutral-500 mt-1 line-clamp-2">{{ factor.description }}</p>
+        <!-- Deliberately OUTSIDE the line-clamp. Appended to the description this
+             sentence rendered as a clipped third line, which discloses nothing —
+             see PensionDisclosure. Null on every factor that has nothing to say. -->
+        <p v-if="factor.disclosure" class="text-xs text-neutral-500 mt-1">{{ factor.disclosure }}</p>
       </div>
     </div>
   </div>

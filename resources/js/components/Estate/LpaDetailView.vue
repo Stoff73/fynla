@@ -44,23 +44,21 @@
       ></div>
     </div>
 
-    <!-- Compliance Checklist (draft/incomplete only) -->
+    <!-- Checks (draft only). The heading comes from the API payload, which
+         composes it in LpaCheckPolicy — do not add a second one here. -->
     <div v-if="lpa.status === 'draft'" class="bg-white rounded-lg border border-light-gray p-5 mb-4 print:hidden">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        Compliance Checks
-      </h3>
       <LpaComplianceChecklist
         :compliance="compliance"
         :loading="complianceLoading"
       />
     </div>
 
-    <!-- Legal Disclaimer -->
+    <!-- What to do next. The document renders its own qualification at the top
+         (lpaDocumentRenderer), so this panel does not repeat it. -->
     <div class="bg-savannah-100 rounded-lg p-4 text-xs text-neutral-500">
       <p class="font-medium text-horizon-500 mb-1">Important</p>
       <p>
-        This document is a record of your Lasting Power of Attorney details. It is not a legally binding document.
-        To make your Lasting Power of Attorney legally valid, you must print and sign the official forms and register
+        To make a Lasting Power of Attorney, you must complete, print and sign the official forms and register
         them with the Office of the Public Guardian. Physical (wet ink) signatures are required from the donor,
         attorneys, certificate provider, and any witnesses. Visit
         <span class="font-medium">gov.uk/lasting-power-of-attorney</span> for more information.
@@ -210,6 +208,14 @@ export default {
   margin-bottom: 4px;
 }
 
+.lpa-document :deep(.doc-qualification) {
+  text-align: center;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 10px;
+  margin: 8px 0 0;
+  @apply text-neutral-600;
+}
+
 .lpa-document :deep(.clause) {
   margin-bottom: 8px;
   text-align: justify;
@@ -257,12 +263,6 @@ export default {
 .lpa-document :deep(.sig-meta) {
   font-size: 9px;
   @apply text-neutral-600;
-}
-
-.lpa-document :deep(.signed-name) {
-  font-family: 'Brush Script MT', 'Segoe Script', cursive;
-  font-size: 16px;
-  padding-left: 4px;
 }
 
 .lpa-document :deep(.registration-stamp) {

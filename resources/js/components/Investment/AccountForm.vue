@@ -102,8 +102,6 @@
               :risk-levels="allowedRiskLevels"
               :main-risk-level="mainRiskLevel"
               :fee-percentage-warning="feePercentageWarning"
-              :cash-isa-used="cashISAUsed"
-              :total-stocks-isa-used="totalStocksISAUsed"
               :account="account"
               :highlighted-field="highlightedField"
               @confirm-fee="confirmFeeAndSubmit"
@@ -142,6 +140,31 @@
 
           </div>
 
+          <!--
+            W-0257 — why the save did not happen.
+
+            The over-allocation message also appears at the holdings themselves,
+            but that section collapses, and a user who cannot see it was left
+            with a button that did nothing at all. A blocked submit says so
+            where the user is looking when they press it.
+
+            `errors.holdings` records that a submit WAS blocked;
+            `holdingsAllocationError` is the LIVE state. Both are required, and
+            the live one supplies the text — otherwise the message keeps naming
+            the old total after the user has corrected it. Caught in the browser:
+            the field-level message vanished at 100% while this one still read
+            "103.1%", which is a stale instruction to fix something already
+            fixed, and only marginally better than the silence it replaced.
+          -->
+          <p
+            v-if="errors.holdings && holdingsAllocationError"
+            class="px-6 pt-2 text-sm text-raspberry-600"
+            role="alert"
+            data-testid="account-form-blocked"
+          >
+            {{ holdingsAllocationError }}
+          </p>
+
           <!-- Footer -->
           <div :class="context === 'onboarding' ? 'mt-6 flex justify-end gap-3' : 'bg-eggshell-500 px-6 py-4 flex justify-end gap-3'">
             <button
@@ -170,7 +193,8 @@
           :holding="editingHoldingDetail"
           :accounts="account ? [account] : []"
           :default-account-id="account?.id"
-          @close="showHoldingDetailModal = false; editingHoldingDetail = null"
+          :save-error="holdingSaveError"
+          @close="showHoldingDetailModal = false; editingHoldingDetail = null; holdingSaveError = null"
           @save="handleHoldingDetailSave"
         />
       </div>
@@ -184,9 +208,11 @@ import PrivateInvestmentFields from './PrivateInvestmentFields.vue';
 import EmployeeShareSchemeFields from './EmployeeShareSchemeFields.vue';
 import StandardInvestmentFields from './StandardInvestmentFields.vue';
 import InlineHoldingsEditor from './InlineHoldingsEditor.vue';
+import { allocationErrorMessage } from '@/utils/holdingsAllocation';
 import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { isaAllowanceMixin } from '@/mixins/isaAllowanceMixin';
 import logger from '@/utils/logger';
 
 const HOLDABLE_ACCOUNT_TYPES = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
@@ -196,7 +222,7 @@ export default {
 
   emits: ['save', 'close'],
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, isaAllowanceMixin],
 
   components: {
     PrivateInvestmentFields,
@@ -244,6 +270,7 @@ export default {
         platform_fee_amount: null,
         platform_fee_type: 'percentage',
         platform_fee_frequency: 'annually',
+        advisor_fee_percent: null,
         isa_type: 'stocks_and_shares',
         isa_subscription_current_year: null,
         ownership_type: 'individual',
@@ -382,6 +409,7 @@ export default {
       submitting: false,
       feePercentageWarning: false,
       showHoldingDetailModal: false,
+      holdingSaveError: null,
       editingHoldingDetail: null,
       // Risk profile state
       mainRiskLevel: null,
@@ -565,16 +593,6 @@ export default {
       return this.paymentsRemainingThisTaxYear * amount;
     },
 
-    // Get Cash ISA usage from savings store
-    cashISAUsed() {
-      return this.$store.getters['savings/currentYearISASubscription'] || 0;
-    },
-
-    // Get total S&S ISA usage from investment store
-    totalStocksISAUsed() {
-      return this.$store.getters['investment/investmentISASubscription'] || 0;
-    },
-
     // Get other S&S ISA usage (excluding this account if editing)
     otherStocksISAUsed() {
       if (!this.isEditMode || !this.account) {
@@ -583,6 +601,31 @@ export default {
       // Subtract this account's subscription from total
       const thisAccountOriginal = parseFloat(this.account.isa_subscription_current_year) || 0;
       return Math.max(0, this.totalStocksISAUsed - thisAccountOriginal);
+    },
+
+    // The holdings the user can actually see and correct on this form (W-0257).
+    //
+    // Deliberately gated on the editor's OWN render condition rather than on
+    // `formData.holdings`. `showHoldingsEditor` is false for a non-holdable
+    // account type or a current value of zero, and `formData.holdings` can still
+    // carry rows in either case — a user who sets the value to 0, or switches
+    // account type, keeps whatever was entered before.
+    //
+    // Blocking a save over holdings that are nowhere on screen would be a new
+    // dead button with an unexplained message: **exactly the defect this fix
+    // exists to remove.** The guard only fires where the user has a control to
+    // act on.
+    visibleHoldings() {
+      if (!this.showHoldingsEditor || !this.showAdditionalInfo) return [];
+
+      return this.formData.holdings || [];
+    },
+
+    // The live over-allocation message, or null. Same single source as the
+    // holdings editor's own message (Rule 20), so the two cannot disagree about
+    // the total — which is precisely how the footer went stale.
+    holdingsAllocationError() {
+      return allocationErrorMessage(this.visibleHoldings);
     },
 
     // This account's subscription amount
@@ -930,6 +973,7 @@ export default {
         || f.planned_lump_sum_date
         || (f.platform_fee_percent !== null && f.platform_fee_percent !== '')
         || (f.platform_fee_amount !== null && f.platform_fee_amount !== '')
+        || (f.advisor_fee_percent !== null && f.advisor_fee_percent !== '' && f.advisor_fee_percent !== 0)
         || (f.holdings && f.holdings.length > 0)
       );
     },
@@ -975,7 +1019,22 @@ export default {
         submitData.planned_lump_sum_date = null;
         submitData.platform_fee_percent = null;
         submitData.platform_fee_amount = null;
-        submitData.holdings = [];
+        submitData.advisor_fee_percent = null;
+        // NOT `submitData.holdings = []` (W-0322, found while fixing W-0257).
+        //
+        // `InvestmentController::update` reads `$holdings = $validated['holdings']
+        // ?? null` and syncs `if ($holdings !== null)` — and an empty array is not
+        // null. Sending `[]` therefore ran `$account->holdings()->delete()`, wrote
+        // nothing back, and then auto-created a single 100% "Cash" holding for the
+        // remainder. Collapsing this section and pressing Update replaced every
+        // holding on the account with Cash, silently.
+        //
+        // Omitting the key entirely is the honest statement: this form is not
+        // showing holdings, so it is saying nothing about them. Clearing them
+        // remains possible the way a user would expect — expand the section,
+        // delete the rows, save; that sends a real empty array from a visible
+        // control.
+        delete submitData.holdings;
       }
 
       // For ISA accounts, keep isa_subscription_current_year (backend expects this field)
@@ -995,7 +1054,7 @@ export default {
         'account_type', 'account_type_other', 'provider', 'platform', 'country',
         'current_value', 'contributions_ytd', 'monthly_contribution_amount',
         'contribution_frequency', 'planned_lump_sum_amount', 'planned_lump_sum_date',
-        'platform_fee_percent', 'platform_fee_amount', 'platform_fee_type', 'platform_fee_frequency',
+        'platform_fee_percent', 'platform_fee_amount', 'platform_fee_type', 'platform_fee_frequency', 'advisor_fee_percent',
         'isa_type', 'isa_subscription_current_year',
         'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id',
         'risk_preference',
@@ -1054,6 +1113,17 @@ export default {
         }
       }
 
+      // State a share only where this form lets the user set one (W-0040).
+      // This form has no ownership-share input at all, so any percentage sitting
+      // in submitData came off the account resource on edit — inherited, never
+      // chosen. Switching an individual account (100) to joint therefore sent a
+      // stated 100 on a joint payload, which the boundary now refuses and which
+      // the user has no field to correct. Omitting it lets the server default a
+      // create to 50/50 and leave an existing record's share alone.
+      if (['joint', 'tenants_in_common'].includes(submitData.ownership_type)) {
+        delete submitData.ownership_percentage;
+      }
+
       // Emit save event - parent will close modal after successful save
       logger.debug('AI Fill', 'Emitting save event with data:', JSON.stringify(submitData).substring(0, 500));
       this.$emit('save', submitData);
@@ -1062,6 +1132,19 @@ export default {
 
     validateForm() {
       let isValid = true;
+
+      // W-0257 — the holdings total is a fact about the set, so it is checked
+      // once here rather than encoded into each input's `max`, where it made the
+      // form unsatisfiable and the Update button silently inert.
+      //
+      // Checked against what the user can SEE and fix — see `visibleHoldings`.
+      // A blocked save the user has no control to unblock is the same dead
+      // button in a different costume.
+      const holdingsError = allocationErrorMessage(this.visibleHoldings);
+      if (holdingsError) {
+        this.errors.holdings = holdingsError;
+        isValid = false;
+      }
 
       if (!this.formData.account_type) {
         this.errors.account_type = 'Account type is required';
@@ -1168,6 +1251,7 @@ export default {
 
     openHoldingDetails(holding) {
       this.editingHoldingDetail = holding;
+      this.holdingSaveError = null;
       this.showHoldingDetailModal = true;
     },
 
@@ -1180,9 +1264,15 @@ export default {
           });
           await this.$store.dispatch('investment/fetchInvestmentData');
         } catch (error) {
+          // Closing the modal on failure is how a discarded edit looked like a
+          // successful one (W-0009). Keep it open and say what went wrong.
           logger.error('Failed to update holding:', error);
+          this.holdingSaveError = error.response?.data?.message
+            || 'Failed to save the holding. Please try again.';
+          return;
         }
       }
+      this.holdingSaveError = null;
       this.showHoldingDetailModal = false;
       this.editingHoldingDetail = null;
     },
@@ -1204,6 +1294,7 @@ export default {
         platform_fee_amount: null,
         platform_fee_type: 'percentage',
         platform_fee_frequency: 'annually',
+        advisor_fee_percent: null,
         isa_type: 'stocks_and_shares',
         isa_subscription_current_year: null,
         ownership_type: 'individual',

@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "message": "Consents updated successfully.",
+  "data": {
+    "consents": {
+      "terms": {"consented": true, "version": "v1.0", "consented_at": "2026-07-01T12:00:00Z"},
+      "privacy": {"consented": true, "version": "v1.0", "consented_at": "2026-07-01T12:00:00Z"},
+      "marketing": {"consented": true, "version": "v1.0", "consented_at": "2026-07-18T12:00:00Z"},
+      "data_processing": {"consented": true, "version": "v1.0", "consented_at": "2026-07-01T12:00:00Z"},
+      "ai_chat": {"consented": true, "version": "v1.0", "consented_at": "2026-07-01T12:00:00Z"}
+    }
+  }
+}

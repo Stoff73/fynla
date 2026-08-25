@@ -3,7 +3,7 @@ procedure_id: 'estate.tool.create_family_member'
 kind: tool_schema
 module: estate
 provider: xai
-version: 1
+version: 2
 active: true
 effective_from: 2026-06-02
 ---
@@ -11,7 +11,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_family_member",
-    "description": "Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. \"I have a daughter Emily age 8 and a son James age 5\" → two tool calls).",
+    "description": "Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. \"I have a daughter Emily age 8 and a son James age 5\" → two tool calls). If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values. SPOUSE: adding a spouse creates or links a real Fynla account for them, which is what connects the household's finances, so \"email\" is REQUIRED when relationship is \"spouse\". If the user asks to add their spouse and has not given an email address, ask for it before calling this tool — do not call it with a null email and do not invent an address. The user may already have a linked spouse account; adding the same person again updates the existing record rather than creating a second one.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -37,6 +37,13 @@ effective_from: 2026-06-02
                     "other_dependent"
                 ],
                 "description": "\"spouse\" for married/civil partner. \"partner\" for unmarried partner. \"child\" for biological child. \"step_child\" for step children. \"parent\" for mother/father. \"other_dependent\" for other financially dependent relatives (aunt, grandparent, sibling etc)."
+            },
+            "email": {
+                "type": [
+                    "string",
+                    "null"
+                ],
+                "description": "The spouse's own email address. REQUIRED when relationship is \"spouse\" — their account is created or linked with it, and without it the household is not linked. Ask the user for it rather than guessing. Null for every other relationship."
             },
             "date_of_birth": {
                 "type": [
@@ -108,6 +115,7 @@ effective_from: 2026-06-02
             "first_name",
             "surname",
             "relationship",
+            "email",
             "date_of_birth",
             "gender",
             "is_dependent",

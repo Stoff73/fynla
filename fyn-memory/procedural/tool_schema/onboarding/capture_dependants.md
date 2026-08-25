@@ -24,9 +24,10 @@ effective_from: 2026-06-02
                             "type": "string",
                             "description": "The dependant's first name if mentioned, otherwise null."
                         },
-                        "age": {
-                            "type": "integer",
-                            "description": "The dependant's age in whole years. Required."
+                        "date_of_birth": {
+                            "type": "string",
+                            "format": "date",
+                            "description": "The exact date of birth explicitly supplied by the user, in YYYY-MM-DD format. Never infer this from an age."
                         },
                         "relationship": {
                             "type": "string",
@@ -39,7 +40,7 @@ effective_from: 2026-06-02
                         }
                     },
                     "required": [
-                        "age",
+                        "date_of_birth",
                         "relationship"
                     ],
                     "additionalProperties": false

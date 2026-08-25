@@ -10,6 +10,11 @@
     </div>
 
     <template v-else>
+      <!-- Personalised intro — shown once onboarding is complete (CSJ 3.2). -->
+      <div v-if="personalisedIntro" class="m-card mts-intro">
+        <p class="mts-intro__text">{{ personalisedIntro }}</p>
+      </div>
+
       <!-- Strategies first: household coordination, then recommended actions.
            Allowance detail (headroom + per-allowance bars) sits below. -->
       <!-- Household coordination (married / joint — only in household mode) -->
@@ -35,7 +40,7 @@
       <div class="m-card">
         <p class="m-section-label" style="margin-top:0">Recommended actions</p>
         <p v-if="!individualRecommendations.length" class="m-sub" style="margin-bottom:0">
-          Nothing to act on right now — your allowances are well-utilised and there's no tax-band optimisation to make at your current income.
+          {{ emptyRecommendationsMessage }}
         </p>
         <div v-else>
           <article v-for="rec in individualRecommendations" :key="rec.type" class="mts-rec" :class="{ 'mts-rec--warning': rec.category === 'warning' }">
@@ -51,21 +56,42 @@
               </div>
             </div>
             <p v-if="rec.description" class="mts-rec__desc">{{ rec.description }}</p>
-            <div v-if="rec.requires_advice || nextStep(rec)" class="mts-rec__foot">
+            <div class="mts-rec__foot">
               <button v-if="nextStep(rec)" type="button" class="mts-rec__cta" @click="goToNextStep(rec)">
                 {{ nextStep(rec).label }}
+              </button>
+              <!-- WP-2 — the same mark-done the dashboard actions carry, keyed
+                   on the same stable recommendation_id so completion syncs
+                   across every surface. -->
+              <button type="button" class="mts-rec__done" :disabled="marking !== null" @click="markDone(rec)">
+                Mark as done
               </button>
               <span v-if="rec.requires_advice" class="mts-rec__advice">Speak to an adviser</span>
             </div>
           </article>
         </div>
+
+        <!-- Done — completed strategies stay visible here (the dashboard
+             replaces them; the tax page keeps the overview). -->
+        <div v-if="completedRecommendations.length" class="mts-done">
+          <p class="m-section-label">Done</p>
+          <article v-for="rec in completedRecommendations" :key="rec.type" class="mts-rec mts-rec--done">
+            <div class="mts-rec__top">
+              <div class="mts-rec__title-wrap">
+                <h3 class="mts-rec__title">{{ rec.title }}</h3>
+              </div>
+              <span class="mts-rec__done-tag">Done{{ doneDate(rec) }}</span>
+            </div>
+          </article>
+        </div>
       </div>
 
-      <!-- Headroom hero -->
+      <!-- Allowance-position hero -->
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Allowance headroom available</p>
-        <p class="m-metric">{{ fmt(totalHeadroom) }}</p>
-        <p class="m-hero-sub">Across {{ headroomCount }} {{ headroomCount === 1 ? 'allowance' : 'allowances' }} you haven't fully used this year.</p>
+        <p class="m-sub m-label">Allowances with potential headroom</p>
+        <p class="m-metric mts-available">{{ headroomCount }}</p>
+        <p class="m-hero-sub">Review each allowance below. The amounts have different tax meanings and are not additive.</p>
+        <p class="m-hero-sub">{{ taxBasisNote }}</p>
       </div>
 
       <!-- User allowances -->
@@ -81,7 +107,7 @@
           </div>
           <div class="mts-allow__foot">
             <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span v-if="a.available !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
+            <span v-if="a.available !== false && a.known !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
           </div>
         </div>
       </div>
@@ -99,17 +125,21 @@
           </div>
           <div class="mts-allow__foot">
             <span class="mts-allow__remain" :class="`mts-allow__remain--${a.status}`">{{ remainingLabel(a) }}</span>
-            <span v-if="a.available !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
+            <span v-if="a.available !== false && a.known !== false" class="mts-allow__used">{{ fmt(a.used) }} used</span>
           </div>
         </div>
       </div>
+
+      <!-- Back to the dashboard — see the full action list (CSJ 3.5). -->
+      <button type="button" class="m-btn mts-back" @click="goBack">See all your actions to get more for your money</button>
     </template>
   </MobileChrome>
 </template>
 
 <script>
 import { store } from '../store.js';
-import { apiGet } from '../api.js';
+import { apiGet, apiPost } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
 function formatCurrency(value) {
@@ -133,29 +163,56 @@ const NEXT_STEPS = {
 export default {
   name: 'MobileTaxStrategy',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', dashboard: null }),
+  data: () => ({ loading: true, error: '', dashboard: null, marking: null }),
   computed: {
     taxYear() { return this.dashboard?.tax_year || ''; },
     calculationMode() { return this.dashboard?.calculation_mode || 'single'; },
     isHousehold() { return ['dual_earner', 'single_earner_couple'].includes(this.calculationMode); },
     userAllowances() { return this.dashboard?.user_allowances || []; },
     spouseAllowances() { return this.dashboard?.spouse_allowances || null; },
-    recommendations() { return this.dashboard?.recommendations || []; },
-    individualRecommendations() { return this.recommendations.filter((r) => r.category !== 'household'); },
+    // 3.3 — the page's actions are the composed tax plan (the same canonical
+    // source the dashboard uses via NextActionsService → ComposedTaxPlanService),
+    // so the two never disagree. The allowance grid below still comes from the
+    // calculator payload. Items carry the same shape (type/title/description/
+    // category/estimated_annual_tax_saved) the rows render.
+    recommendations() { return this.dashboard?.composed_plan?.items || []; },
+    personalisedIntro() {
+      // Shown once onboarding is complete (CSJ 3.2): a personal line naming the
+      // user + the saving the composed plan found, so /tax-strategy doesn't open
+      // cold after the onboarding hand-off.
+      if (!store.user || !store.user.onboarding_completed) return '';
+      const name = store.user.first_name || 'there';
+      const saving = Number(this.dashboard?.composed_plan?.combined_annual_saving) || 0;
+      return saving > 0
+        ? `Here's your personal tax strategy, ${name}. From what you told us, we've found around ${this.fmt(Math.round(saving))} a year you could keep.`
+        : `Here's your personal tax strategy, ${name}. From what you told us, here's how to make the most of your allowances.`;
+    },
+    // Open (not completed) items only — completed ones move to the Done group
+    // below so the page keeps the overview while the dashboard replaces them.
+    individualRecommendations() { return this.recommendations.filter((r) => r.category !== 'household' && !r.completed); },
+    completedRecommendations() { return this.recommendations.filter((r) => r.category !== 'household' && r.completed); },
     householdRecommendations() { return this.recommendations.filter((r) => r.category === 'household'); },
     householdIntro() {
+      const qualification = 'Transfers between eligible spouses or civil partners can usually be made without an immediate Capital Gains Tax charge, but the recipient normally inherits the original acquisition cost and may pay tax on a later disposal. Inheritance Tax spouse-exemption conditions apply.';
       return this.calculationMode === 'single_earner_couple'
-        ? 'The non-working spouse has a full set of unused tax-free allowances. Moving assets into their name uses those allowances without giving up household ownership — spousal transfers between UK-domiciled spouses are exempt from both Capital Gains Tax and Inheritance Tax.'
-        : 'These actions only work because both partners contribute. Spousal transfers between UK-domiciled spouses are exempt from Capital Gains Tax and Inheritance Tax.';
+        ? `Move assets into your spouse's name to use their unused allowances. ${qualification}`
+        : `Coordinate as a household. ${qualification}`;
     },
     householdHeading() {
       return this.calculationMode === 'single_earner_couple'
         ? 'Move assets to use spouse allowances'
         : 'Coordinate as a household';
     },
-    headroom() { return this.userAllowances.filter((a) => a.available !== false && Number(a.utilisation_pct) < 90); },
+    headroom() { return this.userAllowances.filter((a) => a.available !== false && a.known !== false && Number(a.remaining) > 0); },
     headroomCount() { return this.headroom.length; },
-    totalHeadroom() { return this.headroom.reduce((sum, a) => sum + (Number(a.remaining) || 0), 0); },
+    taxBasisNote() {
+      return 'Income Tax bands use England, Wales and Northern Ireland rates. Scottish Income Tax bands are not modelled in this journey.';
+    },
+    emptyRecommendationsMessage() {
+      return this.headroomCount > 0
+        ? 'No additional recommended actions are available from the information on file right now. Your unused allowances are shown below.'
+        : 'Your allowances are well-utilised — nothing to act on right now.';
+    },
   },
   async created() { await this.load(); },
   methods: {
@@ -163,8 +220,9 @@ export default {
     barWidth(a) { return `${Math.min(Number(a.utilisation_pct) || 0, 100)}%`; },
     remainingLabel(a) {
       if (a.available === false) return 'Not available';
+      if (a.known === false) return 'Current-year use not confirmed';
       if (Number(a.utilisation_pct) >= 100 || Number(a.remaining) <= 0) return 'Fully used';
-      return `${this.fmt(a.remaining)} of headroom`;
+      return `${this.fmt(a.remaining)} available`;
     },
     nextStep(rec) { return NEXT_STEPS[rec.type] || null; },
     goToNextStep(rec) {
@@ -172,15 +230,38 @@ export default {
       if (step) this.$router.push(step.route);
     },
     goBack() { this.$router.push({ name: 'dashboard' }); },
+    doneDate(rec) {
+      if (!rec.completed_at) return '';
+      const d = new Date(rec.completed_at);
+      return isNaN(d.getTime()) ? '' : ` ${d.toLocaleDateString('en-GB')}`;
+    },
+    // WP-2 — same completion write the dashboard uses (stable aggregator id),
+    // then a silent reload so the item moves to Done and the level updates.
+    async markDone(rec) {
+      if (!rec.recommendation_id || this.marking) return;
+      this.marking = rec.recommendation_id;
+      try {
+        await apiPost(`/api/recommendations/${rec.recommendation_id}/mark-done`, {
+          module: 'tax',
+          recommendation_text: rec.title || rec.type,
+        }, store.token);
+        await Promise.all([store.fetchStatus(), this.load()]);
+      } catch {
+        /* leave the item open on failure */
+      } finally {
+        this.marking = null;
+      }
+    },
     async load() {
       this.loading = true;
       this.error = '';
       this.dashboard = null;
       try {
-        const { ok, data } = await apiGet('/api/tax-strategy', store.token);
+        const { ok, status, data } = await apiGet('/api/tax-strategy', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.dashboard = data?.data || data || {};
         else this.error = data?.message || 'We could not load your tax position.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
@@ -191,6 +272,26 @@ export default {
 </script>
 
 <style scoped>
+.mts-available { color: var(--spring-600); }
+/* WP-2 — mark-done affordance + Done group. */
+.mts-rec__done {
+  padding: 6px 12px;
+  background: var(--white);
+  color: var(--spring-700);
+  border: 1px solid var(--spring-500);
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mts-rec__done:disabled { opacity: 0.6; cursor: default; }
+.mts-rec--done { opacity: 0.75; }
+.mts-rec__done-tag { font-size: 12px; font-weight: 700; color: var(--spring-700); white-space: nowrap; }
+.mts-done { margin-top: 12px; }
+.mts-intro { background: var(--eggshell-500); }
+.mts-intro__text { font-size: 14px; font-weight: 700; color: var(--horizon-500); line-height: 1.5; }
+.mts-back { margin-top: 4px; }
 .mts-allow { padding: 12px 0; border-bottom: 1px solid var(--horizon-100); }
 .mts-allow:first-of-type { padding-top: 4px; }
 .mts-allow:last-of-type { border-bottom: 0; padding-bottom: 0; }

@@ -409,7 +409,7 @@
       <div class="bg-spring-50 rounded-lg p-4">
         <h4 class="text-sm font-semibold text-spring-900 mb-3">Business Asset Disposal Relief (BADR)</h4>
         <p class="text-xs text-spring-700 mb-4">
-          BADR reduces Capital Gains Tax to 14% (from 6 April 2025) on qualifying disposals, up to a £1 million lifetime limit.
+          BADR reduces Capital Gains Tax to 18% (from 6 April 2026) on qualifying disposals, up to a £1 million lifetime limit.
         </p>
         <div class="space-y-4">
           <label class="flex items-start gap-3">

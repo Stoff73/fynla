@@ -1,0 +1,56 @@
+<h2>Greyed-Out Item — Hover Interaction</h2>
+<p class="subtitle">When a user hovers on a locked menu item, what should happen?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tooltip Only</h3>
+      <p>Simple tooltip appears on hover showing the required tier and a text link to upgrade.</p>
+      <div style="background: #1F2A44; border-radius: 8px; padding: 16px; margin-top: 12px; color: white; font-family: 'Segoe UI', sans-serif; font-size: 14px; position: relative;">
+        <div style="padding: 6px 12px; opacity: 0.4; cursor: not-allowed; display: flex; align-items: center; gap: 8px;">
+          <span>🔒</span> Estate Planning
+        </div>
+        <div style="position: absolute; left: 160px; top: 4px; background: #2a3654; border: 1px solid #5854E6; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #ccc; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+          Available on <strong style="color: #E83E6D;">Pro</strong> plan<br>
+          <a href="#" style="color: #E83E6D; text-decoration: underline; font-size: 11px;">Upgrade now →</a>
+        </div>
+      </div>
+      <div style="margin-top: 12px; color: #717171; font-size: 13px;">
+        <strong>Pros:</strong> Minimal, non-intrusive, fast<br>
+        <strong>Cons:</strong> Easy to miss, small click target
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Click Opens Upgrade Modal</h3>
+      <p>Tooltip on hover for info, but <strong>clicking</strong> the greyed item opens the PlanSelectionModal filtered to the required tier and above.</p>
+      <div style="background: #1F2A44; border-radius: 8px; padding: 16px; margin-top: 12px; color: white; font-family: 'Segoe UI', sans-serif; font-size: 14px; position: relative;">
+        <div style="padding: 6px 12px; opacity: 0.4; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>🔒</span> Estate Planning
+        </div>
+        <div style="position: absolute; left: 160px; top: 4px; background: #2a3654; border: 1px solid #5854E6; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #ccc; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+          Available on <strong style="color: #E83E6D;">Pro</strong> — click to upgrade
+        </div>
+      </div>
+      <div style="margin-top: 8px; color: #717171; font-size: 12px; text-align: center;">↓ clicking opens ↓</div>
+      <div style="background: white; border-radius: 12px; padding: 16px; margin-top: 8px; border: 2px solid #E83E6D;">
+        <div style="font-weight: 700; color: #1F2A44; font-size: 16px; margin-bottom: 4px;">Unlock Estate Planning</div>
+        <div style="color: #717171; font-size: 13px; margin-bottom: 12px;">Upgrade to Pro to access estate planning, wills, trusts, and more.</div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; background: #FFF3F6; border: 1px solid #E83E6D; border-radius: 8px; padding: 10px; text-align: center;">
+            <div style="font-weight: 700; color: #E83E6D;">Pro</div>
+            <div style="font-size: 12px; color: #717171;">£19.99/mo</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 12px; color: #717171; font-size: 13px;">
+        <strong>Pros:</strong> Clear upgrade path, reuses PlanSelectionModal, higher conversion<br>
+        <strong>Cons:</strong> Slightly more intrusive
+      </div>
+    </div>
+  </div>
+</div>

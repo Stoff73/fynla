@@ -1930,7 +1930,7 @@ class ProtectionActionDefinitionService
         }
 
         $trace[] = [
-            'question' => 'Does '.$firstName.'\'s spouse or partner have their own earned income?',
+            'question' => 'Does '.$firstName.'\'s spouse have their own earned income?',
             'data_field' => 'Spouse gross income',
             'data_value' => '£'.number_format($spouseGrossIncome, 0).' per year',
             'threshold' => 'Greater than £0',

@@ -10,7 +10,7 @@
         <section class="gd-header">
           <div class="gd-header__top">
             <span class="gd-header__level">Level {{ level }}</span>
-            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</span>
+            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level</span>
           </div>
           <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: progressPercent + '%' }"></div></div>
         </section>
@@ -36,7 +36,7 @@
               </div>
             </div>
             <div>
-              <h2 class="md-level__heading" id="gdm-level-h">{{ actionsCompleted }} of {{ actionsTotal }} actions complete</h2>
+              <h2 class="md-level__heading" id="gdm-level-h">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level</h2>
               <p class="md-level__sub">Complete actions to reach <strong>Level {{ level + 1 }}</strong>.</p>
             </div>
           </section>
@@ -85,7 +85,7 @@
                 <li v-if="!activeRecs.length" class="md-rec md-rec--empty">
                   <span class="md-rec__action"><span class="md-rec__text"><span class="md-rec__title">No recommendations here right now.</span></span></span>
                 </li>
-                <li v-for="(rec, idx) in activeRecs" :key="rec.id" class="md-rec" :class="{ 'is-done': rec.done }">
+                <li v-for="rec in activeRecs" :key="rec.id" class="md-rec" :class="{ 'is-done': rec.done }">
                   <button type="button" class="md-rec__check-btn" :aria-pressed="rec.done ? 'true' : 'false'" :aria-label="rec.done ? 'Mark as not done' : 'Mark complete'" @click="toggleRec(rec)">
                     <span class="md-rec__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></span>
                   </button>
@@ -130,7 +130,7 @@
         <section class="gd-header">
           <div class="gd-header__top">
             <span class="gd-header__level">Level {{ level }}</span>
-            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions complete — reach <strong>Level {{ level + 1 }}</strong></span>
+            <span class="gd-header__meta">{{ actionsCompleted }} of {{ actionsTotal }} actions to your next level — reach <strong>Level {{ level + 1 }}</strong></span>
           </div>
           <div class="gd-bar" role="img" :aria-label="`Level progress ${progressPercent} percent`"><div class="gd-bar__fill" :style="{ width: progressPercent + '%' }"></div></div>
           <div class="gd-header__levelup">
@@ -210,6 +210,7 @@
 <script>
 import api from '@/services/api';
 import logger from '@/utils/logger';
+import { retirementHeadline } from '@/utils/retirementHeadline';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -259,6 +260,13 @@ export default {
       areaStats: { save_tax: '', retirement: '', savings: '' },
       level: 1,
       percentile: 57,
+      // Engine-fed level counts (MobileLevelService — the canonical
+      // "X of 4 actions to your next level", identical to /m). Null until
+      // the payload arrives; the local recommendation count is only a
+      // fallback for a payload without the level block.
+      actionsCompletedSrv: null,
+      actionsTotalSrv: null,
+      progressSrv: null,
       cats: [
         { key: 'save_tax', route: '/tax-strategy', label: 'Save tax', icon: ICON.saveTax, info: 'Use your full ISA and pension allowances to keep more of what you earn.' },
         { key: 'retirement', route: '/net-worth/retirement', label: 'Retirement', icon: ICON.retirement, info: 'Close your projected income gap — small increases now compound.' },
@@ -276,19 +284,21 @@ export default {
     doneCount() {
       return this.activeRecs.filter((r) => r.done).length;
     },
-    // The level "actions" are the recommendations across all focus areas, so the
-    // progress bar and "X of Y actions complete" move live as the user checks /
-    // unchecks them (no server round-trip — instant, and works both ways).
     allRecs() {
       return Object.values(this.buckets).reduce((acc, list) => acc.concat(list || []), []);
     },
+    // Level counts come from the gamification engine (same payload block /m
+    // renders — "X of 4 actions to your next level", each action a quarter
+    // of a level). The local recommendation tally is only a fallback for a
+    // payload without the level block.
     actionsTotal() {
-      return this.allRecs.length;
+      return this.actionsTotalSrv ?? this.allRecs.length;
     },
     actionsCompleted() {
-      return this.allRecs.filter((r) => r.done).length;
+      return this.actionsCompletedSrv ?? this.allRecs.filter((r) => r.done).length;
     },
     progressPercent() {
+      if (this.progressSrv !== null) return this.progressSrv;
       return this.actionsTotal > 0 ? Math.round((this.actionsCompleted / this.actionsTotal) * 100) : 0;
     },
     // Empty = no recommendations and no net worth → show a focused "get started"
@@ -324,12 +334,13 @@ export default {
       const efTarget = 6;
       const savValue = sav.total_savings != null ? sav.total_savings : sav.value;
 
-      // Retirement — projected income vs target.
+      // Retirement — headline from the shared rule (retirementHeadline.js), so this
+      // and /m cannot answer differently; bar tracks projected income vs target.
       const ret = find('retirement');
       const projected = num(ret.projected_income);
       const target = num(ret.target_income);
       const retPct = target > 0 ? clampPct((projected / target) * 100) : 0;
-      const retValue = ret.income_gap != null ? ret.income_gap : ret.value;
+      const retHeadline = retirementHeadline(ret);
 
       // Investment — value + how much of total assets it represents.
       const inv = find('investment');
@@ -342,7 +353,7 @@ export default {
         { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, value: this.fmt(net), route: '/net-worth/wealth-summary', viz: 'donut', progress: equityPct, vizNum: equityPct + '%', vizCap: 'Equity', caption: this.fmt(totalAssets) + ' assets' },
         { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, value: covered ? this.fmt(protVal) : '£0', route: '/protection', viz: 'donut', progress: covered ? 100 : 0, vizNum: covered ? 'Active' : 'None', vizCap: 'Cover', caption: covered ? 'Cover in place' : 'Add your cover' },
         { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, value: this.fmt(savValue), route: '/net-worth/cash', viz: 'bar', barFill: efTarget > 0 ? clampPct((efMonths / efTarget) * 100) : 0, barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0', barUnit: '/ ' + efTarget + ' months', caption: efMonths >= efTarget ? 'Emergency fund on track' : (efMonths > 0 ? 'Building your fund' : 'Start your emergency fund') },
-        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(retValue), route: '/net-worth/retirement', viz: 'bar', barFill: retPct, barValue: retPct + '%', barUnit: 'of target', caption: target > 0 ? 'Towards your target' : 'Plan your retirement' },
+        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(retHeadline.value) + (retHeadline.isAnnualIncome ? '/year' : ''), route: '/net-worth/retirement', viz: 'bar', barFill: retPct, barValue: retPct + '%', barUnit: 'of target', caption: retHeadline.caption },
         { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, value: this.fmt(invValue), route: '/net-worth/investments', viz: 'donut', progress: invPct, vizNum: invValue > 0 ? String(invAccounts) : '0', vizCap: invAccounts === 1 ? 'Account' : 'Accounts', caption: invValue > 0 ? `${invHoldings} ${invHoldings === 1 ? 'holding' : 'holdings'}` : 'Add your investments' },
       ];
     },
@@ -422,6 +433,8 @@ export default {
           recommendation_text: rec.title || '',
         }).then(() => {
           this.$store.dispatch('gamification/fetchStatus').catch(() => {});
+          // Refresh the engine-fed level counts (points just landed).
+          this.load({ silent: true });
         }).catch(() => { /* non-fatal */ });
       }
     },
@@ -430,9 +443,13 @@ export default {
       const i = list.indexOf(rec);
       if (i !== -1) list.splice(i, 1);
     },
-    async load() {
-      this.loading = true;
-      this.error = '';
+    async load({ silent = false } = {}) {
+      // silent=true: background refetch (e.g. after a check-off) without a
+      // loading flash — same contract as the /m dashboard's load().
+      if (!silent) {
+        this.loading = true;
+        this.error = '';
+      }
       try {
         const res = await api.get('/v1/mobile/dashboard');
         const d = res.data?.data || res.data || {};
@@ -492,6 +509,9 @@ export default {
         const lv = d.level || {};
         this.level = lv.level ?? 1;
         this.percentile = d.percentile ?? 57;
+        this.actionsCompletedSrv = lv.actions_completed ?? null;
+        this.actionsTotalSrv = lv.actions_total ?? null;
+        this.progressSrv = lv.progress_percent ?? null;
       } catch (e) {
         logger.error?.('[GamifiedDashboard] load failed', e);
         this.error = 'We could not load your dashboard. Please refresh to try again.';

@@ -44,6 +44,33 @@ final class InvestmentDefaults
         'high' => 5, 'adventurous' => 5, 'aggressive' => 5,
     ];
 
+    /**
+     * The values a per-product risk override column can actually hold.
+     *
+     * This is the STORABLE vocabulary, which is narrower than RISK_LEVEL_MAP
+     * above: that map also accepts legacy labels (`cautious`, `balanced`,
+     * `growth`, `aggressive`) so a reader can normalise whatever it is handed,
+     * but the columns are
+     * `enum('low','lower_medium','medium','upper_medium','high')` and reject the
+     * aliases outright. A validator that reads the map's keys would therefore
+     * admit five values the database refuses.
+     *
+     * Both `dc_pensions.risk_preference` and `investment_accounts.risk_preference`
+     * are that enum. The list was retyped inline in at least four places before
+     * this constant existed (`RiskPreferenceController` twice,
+     * `AccountProjectionsRequest`, `AutoRiskCalculator::$riskOrder`); those copies
+     * are left alone here, but nothing new should add a fifth.
+     *
+     * @var list<string>
+     */
+    public const RISK_PREFERENCES = [
+        'low',
+        'lower_medium',
+        'medium',
+        'upper_medium',
+        'high',
+    ];
+
     // ==================== Asset Class Mapping ====================
 
     /**
@@ -59,7 +86,8 @@ final class InvestmentDefaults
         'emerging_markets' => 'equities',
         'equity' => 'equities',
         'stock' => 'equities',
-        'etf' => 'equities',
+        // ETF alone does not reveal whether exposure is equity, bond or mixed.
+        'etf' => 'unclassified',
         // Bonds
         'bond' => 'bonds',
         'fixed_income' => 'bonds',
@@ -145,7 +173,7 @@ final class InvestmentDefaults
      *  1. If $subType is set and exists in FUND_SUB_TYPES, return that mapping.
      *  2. If $assetType is 'fund' with no recognised $subType, return 'mixed'.
      *  3. Look up $assetType in ASSET_CLASS_MAP.
-     *  4. Fallback to 'equities'.
+     *  4. Fallback to 'unclassified'.
      */
     public static function resolveAssetClass(string $assetType, ?string $subType = null): string
     {
@@ -159,7 +187,7 @@ final class InvestmentDefaults
             return 'mixed';
         }
 
-        return self::ASSET_CLASS_MAP[$normalised] ?? 'equities';
+        return self::ASSET_CLASS_MAP[$normalised] ?? 'unclassified';
     }
 
     /**

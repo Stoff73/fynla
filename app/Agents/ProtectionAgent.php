@@ -11,10 +11,11 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Protection\AdequacyScorer;
 use App\Services\Protection\CoverageGapAnalyzer;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
-use App\Services\Stores\MortgageStore;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 
 class ProtectionAgent extends BaseAgent
@@ -30,7 +31,8 @@ class ProtectionAgent extends BaseAgent
         private readonly ProfileCompletenessChecker $completenessChecker,
         private readonly RecommendationPersonaliser $personaliser,
         private readonly ProtectionDataReadinessService $readinessService,
-        private readonly MortgageStore $mortgageStore
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        private readonly LifeCoverReach $lifeCoverReach
     ) {}
 
     /**
@@ -97,9 +99,17 @@ class ProtectionAgent extends BaseAgent
                 // Calculate protection needs
                 $needs = $this->gapAnalyzer->calculateProtectionNeeds($profile);
 
+                // The policies covering this user's LIFE. A joint-life policy covers
+                // both spouses and is recorded once, so reading the hasMany gave the
+                // other life assured a coverage analysis of zero (W-0186). It pays out
+                // in full on either death and the two are mutually exclusive events,
+                // so each account counting it is right; the estate aggregation, where
+                // that WOULD be a double count, is untouched.
+                $lifePoliciesCovering = $this->lifeCoverReach->policiesCovering($user);
+
                 // Calculate current coverage (including employer benefits)
                 $coverage = $this->gapAnalyzer->calculateTotalCoverage(
-                    $user->lifeInsurancePolicies,
+                    $lifePoliciesCovering,
                     $user->criticalIllnessPolicies,
                     $user->incomeProtectionPolicies,
                     $user->disabilityPolicies,
@@ -143,9 +153,16 @@ class ProtectionAgent extends BaseAgent
                 $currentAge = $user->date_of_birth ?
                     (int) $user->date_of_birth->diffInYears(now()) : 40;
 
-                // Calculate debt breakdown
-                $mortgageDebt = $this->mortgageStore->forUserPrimaryOnly($user)->sum('outstanding_balance');
-                $otherDebt = $user->liabilities()->sum('current_balance');
+                // Calculate debt breakdown — the user's SHARE of each debt, not the
+                // whole of every record they happen to be primary owner of. This
+                // showed "Mortgage Debt £365,000" beside an income-replacement panel
+                // computed on his income alone: debt household-wide, income
+                // individual, and £72,000 of it belonging to a co-owner with no
+                // account here (W-0187). Same home as the property cards and the
+                // estate module, so the three now agree.
+                $debtTotals = $this->assetAggregator->calculateLiabilityTotals($userId);
+                $mortgageDebt = $debtTotals['mortgages'];
+                $otherDebt = $debtTotals['other'];
 
                 // Check profile completeness
                 $profileCompleteness = $this->completenessChecker->checkCompleteness($user);
@@ -209,7 +226,7 @@ class ProtectionAgent extends BaseAgent
                         ],
                         'goal_commitments' => $goalCommitments,
                         'policies' => [
-                            'life_insurance' => $user->lifeInsurancePolicies->map(fn ($p) => [
+                            'life_insurance' => $lifePoliciesCovering->map(fn ($p) => [
                                 'id' => $p->id,
                                 'policy_type' => $p->policy_type,
                                 'provider' => $p->provider,
@@ -388,7 +405,7 @@ class ProtectionAgent extends BaseAgent
         $profile = $user->protectionProfile;
 
         $coverage = $this->gapAnalyzer->calculateTotalCoverage(
-            $user->lifeInsurancePolicies,
+            $this->lifeCoverReach->policiesCovering($user),
             $user->criticalIllnessPolicies,
             $user->incomeProtectionPolicies,
             $user->disabilityPolicies,

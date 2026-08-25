@@ -130,7 +130,7 @@
             Try the demo
           </a>
           <router-link to="/register" class="px-6 py-2.5 bg-horizon-500 text-white text-sm font-semibold rounded-lg hover:bg-horizon-600 transition-colors">
-            Start your free trial
+            Create your free account
           </router-link>
         </div>
       </div>

@@ -1,0 +1,2 @@
+event: fyn
+data: {"type":"future_frame","payload":{"kept":true}}

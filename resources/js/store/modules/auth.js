@@ -1,5 +1,5 @@
 import authService from '@/services/authService';
-import { removeToken, isNativePlatform } from '@/services/tokenStorage';
+import { removeToken } from '@/services/tokenStorage';
 
 import logger from '@/utils/logger';
 const state = {
@@ -33,15 +33,18 @@ const getters = {
   tierFlags: (state) => state.tierFlags,
   openApiAffordance: (state) => state.tierFlags?.open_api_affordance === true,
   currencyDisplayMode: (state) => state.tierFlags?.currency_display_mode ?? 'gbp_only',
+  // Mirrors TeaserGate::allows() on the backend: admin and preview personas
+  // bypass, otherwise the resolved tier's capability matrix decides. Screens
+  // gate on this so they never offer an entry form the API will refuse.
+  hasCapability: (state) => (capabilityKey) => state.user?.is_admin === true
+    || state.user?.is_preview_user === true
+    || state.tierFlags?.capabilities?.[capabilityKey] === 'full',
 };
 
 const actions = {
-  async register({ commit, dispatch, rootState }, userData) {
+  async register({ commit, dispatch }, userData) {
     commit('setLoading', true);
     commit('setError', null);
-
-    // Check if in preview mode BEFORE clearing auth
-    const wasInPreviewMode = rootState.auth?.user?.is_preview_user === true;
 
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
@@ -74,12 +77,9 @@ const actions = {
     }
   },
 
-  async login({ commit, dispatch, rootState }, credentials) {
+  async login({ commit, dispatch }, credentials) {
     commit('setLoading', true);
     commit('setError', null);
-
-    // Check if in preview mode BEFORE clearing auth
-    const wasInPreviewMode = rootState.auth?.user?.is_preview_user === true;
 
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
@@ -190,7 +190,7 @@ const actions = {
     }
   },
 
-  async fetchUserById({ commit }, userId) {
+  async fetchUserById(_context, userId) {
     try {
       const user = await authService.getUserById(userId);
       return user;
@@ -225,11 +225,9 @@ const mutations = {
     state.permissions = [];
     state.subscriptionData = null;
     state.tierFlags = null;
-    // Also drop the /m mobile bearer token. The desktop boot bridge
-    // (mScaffoldBridge.js) adopts localStorage('m_scaffold_token') into
-    // sessionStorage; without clearing it here, a sign-out would silently
-    // re-authenticate on the next boot.
-    try { localStorage.removeItem('m_scaffold_token'); } catch (e) { /* storage disabled */ }
+    // Explicit desktop sign-out also signs out the same-origin /m client.
+    // mScaffoldBridge never copies this bearer token into desktop storage.
+    try { localStorage.removeItem('m_scaffold_token'); } catch { /* storage disabled */ }
   },
 
   setTierFlags(state, flags) {

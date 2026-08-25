@@ -52,6 +52,13 @@ const actions = {
       commit('setRecalculating', false);
     }
   },
+  // WP-2 (one actions model) — mark a strategy done with the SAME stable
+  // aggregator id the dashboard actions use, then refetch so the item moves
+  // into the page's Done group and every other surface agrees.
+  async markRecommendationDone({ dispatch }, { recommendationId, recommendationText }) {
+    await taxStrategyService.markRecommendationDone(recommendationId, recommendationText);
+    await dispatch('fetchDashboard');
+  },
 };
 
 // Phase 2 (April30Updates) — `recommendations[]` is the canonical source of truth.

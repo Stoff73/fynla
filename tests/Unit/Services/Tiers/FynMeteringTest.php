@@ -29,11 +29,40 @@ $harness = fn () => new class
         return $this->isDailyBackstopExceeded($u);
     }
 
+    public function maxTokens(User $u): int
+    {
+        return $this->getAiMaxTokens($u);
+    }
+
     public function softDegradeModel(): string
     {
         return self::SOFT_DEGRADE_MODEL;
     }
 };
+
+it('gives Premium the advanced model for complex requests and the paid output allowance', function () use ($harness) {
+    config([
+        'services.ai_provider' => 'anthropic',
+        'services.anthropic.chat_model' => 'standard-model',
+        'services.anthropic.advanced_chat_model' => 'advanced-model',
+    ]);
+    $premium = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium', 'plan' => 'free']);
+
+    expect($harness()->model($premium, 'complex'))->toBe('advanced-model')
+        ->and($harness()->maxTokens($premium))->toBe(8192);
+});
+
+it('keeps Free on the standard model and lower output allowance', function () use ($harness) {
+    config([
+        'services.ai_provider' => 'anthropic',
+        'services.anthropic.chat_model' => 'standard-model',
+        'services.anthropic.advanced_chat_model' => 'advanced-model',
+    ]);
+    $free = User::factory()->create(['tier' => 'free', 'plan' => 'premium']);
+
+    expect($harness()->model($free, 'complex'))->toBe('standard-model')
+        ->and($harness()->maxTokens($free))->toBe(4096);
+});
 
 it('reads the weekly budget from the tier store, not the legacy plan array', function () use ($harness) {
     $u = User::factory()->create(['tier' => 'free']);
@@ -75,7 +104,10 @@ it('soft-degrades to a valid xAI model under the xai provider (never an Anthropi
 });
 
 it('never meters or soft-degrades preview personas, regardless of usage', function () use ($harness) {
-    config(['services.anthropic.chat_model' => null]); // let the trait choose
+    config([
+        'services.ai_provider' => 'anthropic',
+        'services.anthropic.chat_model' => 'claude-sonnet-4-6-20260320',
+    ]);
     $u = User::factory()->create(['is_preview_user' => true, 'tier' => null]);
     // Far exceeds any weekly budget and any daily backstop.
     foreach (range(0, 6) as $d) {
@@ -89,6 +121,7 @@ it('never meters or soft-degrades preview personas, regardless of usage', functi
     // returned model NOT being the soft-degrade model.
     expect($h->weeklyExceeded($u))->toBeFalse()
         ->and($h->dailyBackstopHit($u))->toBeFalse()
+        ->and($h->model($u, 'complex'))->toBe('claude-sonnet-4-6-20260320')
         ->and($h->model($u, 'complex'))->not->toBe($h->softDegradeModel());
 });
 

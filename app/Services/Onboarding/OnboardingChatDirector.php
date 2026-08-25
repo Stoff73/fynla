@@ -5,27 +5,49 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
+use App\Constants\QuerySchemas;
+use App\Enums\FynTurnIntent;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\CriticalIllnessPolicy;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
+use App\Models\Goal;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeInsurancePolicy;
 use App\Models\OnboardingProgress;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\AI\AdviceFyn;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
+use App\Services\AI\Fyn\FynVerifyEditTurnInstructions;
 use App\Services\AI\Loop\FynLoop;
+use App\Services\AI\Loop\SessionMode;
 use App\Services\AI\Memory\Episodic\ProceduralVersionHolder;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\MemoryRetrieverService;
+use App\Services\AI\QueryClassifier;
 use App\Services\AI\RecordDuplicateChecker;
+use App\Services\AI\Support\AckSentenceDeduper;
+use App\Services\AI\ToolResults;
+use App\Services\AI\WriteIntentClassifier;
+use App\Services\AI\XaiToolDefinitions;
+use App\Services\Coordination\ComposedModulePlanService;
 use App\Services\Coordination\ComposedTaxPlanService;
-use App\Services\Coordination\HouseholdFinancialContext;
+use App\Services\Coordination\PlanSources\RetirementStrategySource;
+use App\Services\Gamification\MilestoneCollector;
 use App\Services\Gamification\PointsService;
+use App\Services\Mobile\MilestoneDetectionService;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\TaxConfigService;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -59,6 +81,15 @@ use Illuminate\Support\Facades\Log;
 final class OnboardingChatDirector
 {
     /**
+     * Focus for an advice -> capture handoff whose entity types match no
+     * module. Not a module itself: it advertises the whole write surface, so a
+     * record type the map has never seen still reaches a turn that can write
+     * it. See the note at the $unifiedFocus assignment for what happened when
+     * this was 'savings'.
+     */
+    public const HANDOFF_FALLBACK_FOCUS = 'inline_capture';
+
+    /**
      * Hard cap on how many advice turns may auto-advance within a single
      * response. Advice turns chain with no user input between them, so a
      * state-table cycle would otherwise recurse without bound (see the
@@ -68,6 +99,15 @@ final class OnboardingChatDirector
      * ceiling that only ever trips on a genuine cycle.
      */
     private const MAX_ADVICE_CHAIN = 6;
+
+    /**
+     * Phrases that let the user back out of a pending_interruption_store
+     * awaiting_detail clarification loop instead of being forced to keep
+     * answering. Matched against the start of the lowercased, trimmed reply.
+     * Deliberately excludes "no" alone — that can be genuine detail content
+     * (e.g. "no interest").
+     */
+    private const AWAITING_DETAIL_ESCAPE_PHRASES = ['not now', 'stop', 'forget it', 'leave it', 'cancel'];
 
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
@@ -79,6 +119,8 @@ final class OnboardingChatDirector
         private readonly RecordDuplicateChecker $duplicateChecker,
         private readonly FynLoop $fynLoop,
         private readonly ProceduralVersionHolder $proceduralVersions,
+        private readonly QueryClassifier $queryClassifier,
+        private readonly WriteIntentClassifier $writeIntentClassifier,
     ) {}
 
     /**
@@ -160,6 +202,155 @@ final class OnboardingChatDirector
             return;
         }
 
+        // Income-challenge resolution (pending_income_challenge parked by
+        // maybeChallengeIncome). The user is answering "is X right?" — handle
+        // it before any normal turn routing.
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        if (isset($context['pending_income_challenge'])) {
+            $reply = mb_strtolower(trim($message));
+
+            // Clear the flag on every branch — Continue always ends the loop.
+            unset($context['pending_income_challenge']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            if ($reply === 'continue') {
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+
+                return;
+            }
+
+            if ($reply === 'change') {
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+                return;
+            }
+            // Anything else: the user typed a new figure instead of tapping —
+            // fall through to the normal capture path below, which re-captures
+            // and re-runs the challenge check.
+        }
+
+        // Short-format DOB confirm resolution (pending_dob_confirm parked by
+        // maybeConfirmShortDob). The user is answering "is 19th February 1982
+        // correct?" — handle it before any normal turn routing.
+        if (isset($context['pending_dob_confirm'])) {
+            $reply = mb_strtolower(trim($message));
+
+            unset($context['pending_dob_confirm']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            if (str_starts_with($reply, 'yes')) {
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+
+                return;
+            }
+
+            if (str_starts_with($reply, 'no')) {
+                // Wrong date — clear it and re-ask the DOB question.
+                $user->date_of_birth = null;
+                $user->save();
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+            // Anything else: the user typed a corrected date instead of
+            // tapping — fall through to the normal capture path, which
+            // re-captures and re-runs the confirm check.
+        }
+
+        // Interruption store-offer resolution (pending_interruption_store parked by
+        // handleInformationInterruption). The user is answering "want me to save
+        // that now?" — handle it before any normal turn routing.
+        //
+        // The awaiting_detail check runs BEFORE the yes/no matching. Once the
+        // capture turn has voiced a clarifying question (re-armed below via
+        // resolvePendingInterruptionCapture), the user's next reply IS the
+        // missing detail regardless of its wording — it must not be
+        // misrouted into the plain accept branch just because it happens to
+        // start with "yes" (e.g. "Yes, individually owned by me").
+        if (isset($context['pending_interruption_store'])) {
+            $pending = $context['pending_interruption_store'];
+            $reply = mb_strtolower(trim($message));
+            $awaitingDetail = ($pending['awaiting_detail'] ?? false) === true;
+
+            unset($context['pending_interruption_store']);
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            // Poisoned-payload discard: a question can never be capture
+            // details. Flags armed before the persona-gate fix (live
+            // conversation 168 — "Am I on track for retirement?" stored as
+            // the pending message with awaiting_detail) would otherwise merge
+            // the question into every subsequent capture attempt forever.
+            // Strip the accumulated merge prefixes, look at the original
+            // first line, and if it is a question drop the flag entirely so
+            // this message reaches the state's normal handling below.
+            $pendingOriginal = trim((string) preg_replace(
+                '/^(?:Original capture details:\s*)+/u',
+                '',
+                strtok((string) ($pending['message'] ?? ''), "\n") ?: ''
+            ));
+            if ($awaitingDetail && $pendingOriginal !== '' && $this->userAskedQuestion($pendingOriginal)) {
+                $awaitingDetail = false;
+                $pending = null;
+            }
+
+            if ($pending !== null && $awaitingDetail) {
+                // Escape hatch — without this, every reply while awaiting the
+                // missing detail is treated as that detail, with no way for
+                // the user to back out of the clarification loop. Checked
+                // BEFORE the merged-detail handling below. "no" alone is
+                // deliberately NOT an escape phrase — it may be genuine
+                // detail content (e.g. "no interest").
+                foreach (self::AWAITING_DETAIL_ESCAPE_PHRASES as $escapePhrase) {
+                    if (str_starts_with($reply, $escapePhrase)) {
+                        yield ['type' => 'content', 'text' => "No problem — we'll cover it during setup."];
+                        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                        return;
+                    }
+                }
+
+                $merged = "Original capture details: {$pending['message']}\n"
+                    ."Requested missing details: {$message}";
+
+                // Structured confirmed facts (Task 4): the awaiting-detail
+                // reply IS the answer to the gate's question — when the
+                // extractor's deterministic patterns parse an ownership from
+                // it, pass that as a confirmed fact so the gate needs no
+                // evidence-window chaining (the Santander-class shape).
+                $confirmedFacts = [];
+                $parsedOwnership = $this->entityExtractor->extractOwnershipType($message);
+                if ($parsedOwnership !== null) {
+                    $confirmedFacts['ownership_type'] = $parsedOwnership;
+                }
+
+                yield from $this->resolvePendingInterruptionCapture(
+                    $user, $conversation, $currentStateId, $state, $merged, $pending, $currentRoute, $confirmedFacts
+                );
+
+                return;
+            }
+
+            if ($pending !== null && str_starts_with($reply, 'yes')) {
+                yield from $this->resolvePendingInterruptionCapture(
+                    $user, $conversation, $currentStateId, $state, (string) $pending['message'], $pending, $currentRoute
+                );
+
+                return;
+            }
+
+            if ($pending !== null && (str_starts_with($reply, 'not now') || str_starts_with($reply, 'no'))) {
+                yield ['type' => 'content', 'text' => "No problem — we'll cover it during setup."];
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+            // Anything else (or a discarded poisoned payload): the user moved
+            // on — fall through to normal routing.
+        }
+
         // Phase 4e — stamp the active onboarding workflow procedure version onto
         // the turn so persistEpisode can bind it onto the episode. Recorded only
         // when the corpus actually supplies the workflow procedure (the merge
@@ -204,7 +395,7 @@ final class OnboardingChatDirector
         // saving an LLM round-trip whenever the user volunteered the
         // facts earlier in the conversation.
         if (($state['turn_type'] ?? '') === 'grouped_extract') {
-            $hydrated = $this->hydrateFromParking($user, $conversation, $currentStateId, $state);
+            $hydrated = $this->hydrateFromParking($user, $conversation, $currentStateId, $state, $message);
             if ($hydrated !== null) {
                 yield from $hydrated;
 
@@ -219,8 +410,74 @@ final class OnboardingChatDirector
         // Interpret the user answer against the current state.
         $interpretation = $this->interpretAnswer($state, $message);
 
-        if (! $interpretation['ok']) {
-            // Can't parse the answer — re-ask without advancing.
+        // Volunteered-record guard (live bug, csjones /m campaign expenditure
+        // step: "I have a Halifax fixed term savings account with £1,500 in
+        // it" was grabbed by parseExpenditureAmount's greedy £-figure match
+        // and recorded as monthly spending — the volunteered account was
+        // never offered). A free_text state with a value_parser (e.g.
+        // parseExpenditureAmount, parseIncomeAmount) matches on ANY embedded
+        // number, so it can succeed on a sentence that is actually a
+        // volunteered record for a completely different entity. The
+        // interruption dispatcher below only ever ran on interpretation
+        // FAILURE, so a successful-but-wrong parse never reached it. Classify
+        // BEFORE accepting a successful parse on these states so the store
+        // offer fires instead of silently persisting the wrong figure.
+        // Bubble states are exact-match (unaffected) and grouped/delegated
+        // states own their own capture handling (unaffected) — this only
+        // ever applies to free_text states carrying a value_parser.
+        $isParserState = ($state['turn_type'] ?? 'free_text') === 'free_text'
+            && ($state['value_parser'] ?? null) !== null;
+        $volunteeredRecord = $interpretation['ok']
+            && $isParserState
+            && $this->writeIntentClassifier->classify($message) !== null;
+
+        if (! $interpretation['ok'] || $volunteeredRecord) {
+            $interruption = $this->handleInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $currentRoute
+            );
+            if ($interruption !== null) {
+                yield from $interruption;
+
+                return;
+            }
+
+            // At the FRONT DOOR, an unparseable answer is where users got
+            // stuck: path_choice offers two labels, the interruption handling
+            // above did not claim the message, and the retry below just asks
+            // again — forever (CSJ 2026-08-18, seen live on /m). A user who has
+            // logged in before must be able to get on with something else, so
+            // step aside and let advice Fyn answer what they actually said.
+            // Onboarding pauses; it is never marked complete.
+            //
+            // Only here. Deeper in the walk the user has context and the retry
+            // is the right response — and the interruption mechanism (store
+            // offers, inline module answers) still runs first, everywhere.
+            if ($currentStateId === OnboardingStateMachine::STATE_PATH_CHOICE && trim($message) !== '') {
+                $user->onboarding_fyn_step = null;
+                $user->save();
+                $this->recordProgress($user, OnboardingStateMachine::STATE_FREE_CHAT, [
+                    'paused' => true,
+                    'reason' => 'free_text_at_path_choice',
+                ]);
+
+                // Resolved lazily: AdviceFyn takes this director in its
+                // constructor, so a constructor-injected reference is a cycle.
+                yield from app(AdviceFyn::class)->handle(
+                    $user,
+                    $conversation,
+                    $message,
+                    $currentRoute,
+                    persistUserMessage: false,
+                );
+
+                return;
+            }
+
+            // Can't parse the answer — re-ask without advancing. Also the
+            // fallback for a volunteered-record classification whose
+            // interruption handling declined to fire (e.g. it was also
+            // question-phrased but the query classifier found no primary
+            // topic) — never silently accept the parsed value in that case.
             yield [
                 'type' => 'content',
                 'text' => $interpretation['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?",
@@ -258,6 +515,24 @@ final class OnboardingChatDirector
             yield ['type' => 'content', 'text' => $ack];
         }
 
+        // Expenditure is a two-table write whose visible confirmation must be
+        // tied to the completed persistence step. Emit the same typed closing
+        // receipt used by delegated captures only after both users.* and the
+        // expenditure profile have been saved; the desktop and /m clients can
+        // then render a truthful read-back instead of trusting prose alone.
+        if (($state['capture_field'] ?? null) === 'monthly_expenditure') {
+            $monthly = (float) ($interpretation['captured_value'] ?? 0);
+            yield [
+                'type' => 'capture_complete',
+                'summary' => 'Recorded monthly spending of £'.number_format($monthly).'.',
+                'records_created' => [],
+                'fields_updated' => [
+                    'users.monthly_expenditure',
+                    'expenditure_profiles.total_monthly_expenditure',
+                ],
+            ];
+        }
+
         // Decide the next state id (applies skip_if transitively).
         $nextStateId = OnboardingStateMachine::getNextStateId(
             $currentStateId,
@@ -278,6 +553,14 @@ final class OnboardingChatDirector
         // Terminal state: wrap up onboarding and navigate.
         if ($nextStateId === OnboardingStateMachine::STATE_DONE) {
             yield from $this->emitDoneTurn($user, $conversation);
+
+            return;
+        }
+
+        // The user asked for something else. Step aside rather than hold them
+        // at the front door (CSJ 2026-08-18).
+        if ($nextStateId === OnboardingStateMachine::STATE_FREE_CHAT) {
+            yield from $this->emitFreeChatTurn($user, $conversation);
 
             return;
         }
@@ -403,13 +686,27 @@ final class OnboardingChatDirector
         // verbatim via loadConversation) shows a repeated "Welcome back" on
         // startup. Remove any earlier ones before persisting this one.
         $conversation->messages()
-            ->where('metadata->is_resume_greeting', true)
+            ->where(function ($query): void {
+                $query->where('metadata->is_resume_greeting', true)
+                    ->orWhere('metadata->turn_intent', FynTurnIntent::ResumeGreeting->value);
+            })
             ->delete();
 
+        // Persist the bubbles with the greeting (same metadata.bubbles pattern
+        // as every other onboarding turn) so a transcript-only render — the /m
+        // dock remount and the native app — still offers Continue / Something
+        // else. Without this the stored greeting is a dead end: the choices
+        // existed only in the live SSE stream.
         $message = $this->saveMessage($conversation, 'assistant', $greeting, [
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_resume_greeting' => true,
+                'turn_intent' => FynTurnIntent::ResumeGreeting->value,
+                'bubbles' => [
+                    ['id' => 'continue', 'label' => 'Continue'],
+                    ['id' => 'something_else', 'label' => 'Something else'],
+                ],
+                'action_bubbles' => true,
             ],
         ]);
 
@@ -432,13 +729,34 @@ final class OnboardingChatDirector
      */
     private function handleRestartAction(User $user, AiConversation $conversation): \Generator
     {
+        $this->coordinatingAgent->clearCaptureAccuracyEvidence($conversation->id);
         $conversation->messages()->delete();
 
-        $user->onboarding_fyn_step = OnboardingStateMachine::STATE_PATH_CHOICE;
+        // path_choice is meaningless for a completed user (a campaign
+        // re-entrant who restarts): reset every onboarding column, including
+        // active_campaign, so their next message routes to Advice Fyn instead
+        // of leaving them flagged mid-campaign in the generic flow.
+        $user->onboarding_fyn_step = $user->onboarding_completed === true
+            ? null
+            : OnboardingStateMachine::STATE_PATH_CHOICE;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
         $user->onboarding_fyn_context = null;
+        $user->active_campaign = null;
         $user->save();
+
+        if ($user->onboarding_fyn_step === null) {
+            $message = $this->saveMessage($conversation, 'assistant', 'No problem — what can I help you with?', [
+                'metadata' => [
+                    'is_pause_handoff' => true,
+                    'turn_intent' => FynTurnIntent::TerminalNote->value,
+                ],
+            ]);
+            yield ['type' => 'content', 'text' => 'No problem — what can I help you with?'];
+            yield ['type' => 'done', 'message_id' => $message->id];
+
+            return;
+        }
 
         yield ['type' => 'content', 'text' => "No problem — let's start fresh."];
 
@@ -452,8 +770,9 @@ final class OnboardingChatDirector
      * Pause onboarding without losing it. Stores the current step into
      * onboarding_fyn_context.paused_at_step and nulls onboarding_fyn_step
      * so AiChatController::sendMessage routes the user's next message to
-     * AdviceFyn. Path + selection are preserved so the dashboard can offer a
-     * Continue Onboarding CTA when the user is ready to come back.
+     * AdviceFyn. Path + selection are preserved so the next
+     * POST /onboarding/start resumes the paused campaign at the parked step
+     * (AiChatController::startOnboarding pause-resume branch).
      */
     private function handleSomethingElseAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
     {
@@ -462,14 +781,20 @@ final class OnboardingChatDirector
             $context['paused_at_step'] = $currentStateId;
             $user->onboarding_fyn_context = $context;
             $user->onboarding_fyn_step = null;
-            $user->save();
         }
+
+        // Clear active_campaign unconditionally so the next message routes to
+        // advice rather than back to the director. Both fresh and re-entry
+        // campaign arrivals carry active_campaign; pause must exit cleanly.
+        $user->active_campaign = null;
+        $user->save();
 
         $prompt = 'Of course — what can I help you with?';
         $message = $this->saveMessage($conversation, 'assistant', $prompt, [
             'metadata' => [
                 'paused_at_step' => $currentStateId,
                 'is_pause_handoff' => true,
+                'turn_intent' => FynTurnIntent::TerminalNote->value,
             ],
         ]);
 
@@ -537,15 +862,36 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_DEPENDANTS => 'noting whether you have dependants',
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => 'noting your dependants',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'noting your employment situation',
-            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your employer and role',
+            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your income',
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE => 'noting whether you have another role to add',
-            OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
             OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY => 'reviewing your family details',
             OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE => 'reviewing your full profile',
             OnboardingStateMachine::STATE_ASSET_CAPTURE => 'mapping your '.($user?->onboarding_fyn_selection ?? 'financial').' records',
             OnboardingStateMachine::STATE_ADD_MORE => 'choosing whether to add another module',
+            // Campaign walk states — without these every campaign resume
+            // greeting read "Last time we were mid-onboarding".
+            OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS => 'capturing your ISAs',
+            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS => 'capturing your bank and savings accounts',
+            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => 'capturing your investment accounts',
+            OnboardingStateMachine::STATE_CAMPAIGN_DOB => 'capturing your date of birth',
+            OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => 'capturing your workplace pension',
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS => 'capturing your pension contributions',
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY => 'capturing your pension contribution history',
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => "capturing your spouse's details",
+            'campaign_verify_announce',
+            'campaign_verify_navigate',
+            'campaign_verify_edit' => 'checking your details',
+            OnboardingStateMachine::STATE_CAMPAIGN2_EXISTING_RECAP => 'reviewing what we already have',
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS => 'capturing your pension values',
+            OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_DB => 'capturing your final salary pensions',
+            OnboardingStateMachine::STATE_CAMPAIGN2_FLEXIBLE_ACCESS => 'checking whether you have taken money from a pension',
+            OnboardingStateMachine::STATE_CAMPAIGN2_STATE_PENSION => 'capturing your State Pension forecast',
+            OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS => 'capturing your retirement goals',
+            OnboardingStateMachine::STATE_CAMPAIGN2_SPOUSE_PENSIONS => "capturing your spouse's pensions",
             default => 'mid-onboarding',
         };
     }
@@ -618,7 +964,21 @@ final class OnboardingChatDirector
             return;
         }
 
-        $promptText = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+        // A state's prompt_text may open with a one-off introduction (e.g.
+        // path_choice's "Hi, I'm Fyn — welcome to Fynla"). Every emission of a
+        // state after the first assistant message already exists in this
+        // conversation is a RE-emission — resume Continue, interruption
+        // re-emits, retry fallthroughs — so once that introduction has been
+        // shown once, swap in reprompt_text (when the state defines one)
+        // instead of replaying the full prompt_text. Evaluated before this
+        // turn's own message(s) are persisted below, so the very first
+        // emission (nothing persisted yet) always keeps the full prompt_text.
+        $effectiveState = $state;
+        if (isset($state['reprompt_text']) && $conversation->messages()->where('role', 'assistant')->exists()) {
+            $effectiveState['prompt_text'] = $state['reprompt_text'];
+        }
+
+        $promptText = OnboardingStateMachine::resolvePromptText($effectiveState, $user, '', $conversation);
         $layoutMode = (string) ($state['layout'] ?? 'wide');
         $skipLink = $state['skip_link'] ?? null;
 
@@ -628,6 +988,15 @@ final class OnboardingChatDirector
             'type' => 'onboarding_layout_change',
             'mode' => $layoutMode,
         ];
+
+        // Verify sub-flow prompts are their own intent — the evidence
+        // boundary (Task 3) treats step_prompt and verify_prompt alike, but
+        // consumers must be able to tell the families apart.
+        $turnIntent = match (true) {
+            $turnType === 'terminal' => FynTurnIntent::TerminalNote,
+            str_starts_with($stateId, 'campaign_verify_') => FynTurnIntent::VerifyPrompt,
+            default => FynTurnIntent::StepPrompt,
+        };
 
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
@@ -642,7 +1011,7 @@ final class OnboardingChatDirector
             }
             yield $event;
 
-            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId];
+            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
@@ -661,29 +1030,55 @@ final class OnboardingChatDirector
             $navigateTo = $state['navigate_to'] ?? null;
             $route = is_callable($navigateTo) ? $navigateTo($user) : $navigateTo;
             if (is_string($route) && $route !== '') {
+                $ctx = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
                 yield [
                     'type' => 'navigation',
                     'route_path' => $route,
-                    'description' => $stateId,
+                    // Never the internal state id — the web store renders a
+                    // navigation message's content from `description`, so leaking
+                    // the state id here surfaced "campaign_verify_navigate" as a
+                    // plain-text chat bubble. Onboarding navigation is an action,
+                    // not a message; the visible prompt is the quick_replies bubble.
+                    'description' => '',
+                    // The section being verified (income/spouse/…); the /m surface
+                    // uses it to label the screen (e.g. income vs spouse income).
+                    'section' => ((string) ($ctx['verify_section'] ?? '')) ?: null,
                 ];
             }
         } else {
-            // free_text / grouped_extract / terminal — plain content event.
-            // Grouped_extract turns emit a prompt too so the user knows what
-            // to type; the tool call happens on their next user message.
-            yield ['type' => 'content', 'text' => $promptText];
-
-            $metadata = ['onboarding_step' => $stateId];
+            // free_text / grouped_extract / terminal — content event(s). A
+            // prompt may carry BUBBLE_BREAK markers to render as separate chat
+            // bubbles (e.g. a "what we've heard" recap then the question). Each
+            // part is its own saved message so the transcript re-renders the
+            // same bubbles on resume; an onboarding_advance between parts makes
+            // the /m chat open a fresh bubble. Single-part prompts behave
+            // exactly as before (one content event, one saved message).
+            $metadata = ['onboarding_step' => $stateId, 'turn_intent' => $turnIntent->value];
             if (is_array($skipLink) && ! empty($skipLink)) {
                 $metadata['skip_link'] = $skipLink;
             }
 
-            $assistantMessage = $this->saveMessage(
-                $conversation,
-                'assistant',
-                $promptText,
-                ['metadata' => $metadata]
-            );
+            $parts = array_values(array_filter(
+                array_map('trim', explode(OnboardingStateMachine::BUBBLE_BREAK, $promptText)),
+                static fn (string $p): bool => $p !== ''
+            ));
+            if ($parts === []) {
+                $parts = [$promptText];
+            }
+
+            $assistantMessage = null;
+            foreach ($parts as $i => $part) {
+                if ($i > 0) {
+                    yield ['type' => 'onboarding_advance', 'from_step' => $stateId, 'to_step' => $stateId];
+                }
+                yield ['type' => 'content', 'text' => $part];
+                $assistantMessage = $this->saveMessage(
+                    $conversation,
+                    'assistant',
+                    $part,
+                    ['metadata' => $metadata]
+                );
+            }
 
             // For grouped_extract states, the frontend needs the skip_link
             // (and any other action affordances) out-of-band — emit a
@@ -715,7 +1110,11 @@ final class OnboardingChatDirector
         if ($text !== null && $text !== '') {
             yield ['type' => 'content', 'text' => $text];
             $this->saveMessage($conversation, 'assistant', $text, [
-                'metadata' => ['onboarding_step' => $stateId, 'advice_section' => $section],
+                'metadata' => [
+                    'onboarding_step' => $stateId,
+                    'advice_section' => $section,
+                    'turn_intent' => FynTurnIntent::AdviceAnswer->value,
+                ],
             ]);
         }
 
@@ -785,6 +1184,14 @@ final class OnboardingChatDirector
      * returned) — gift_aid_higher_rate_relief requires a live charitable-giving
      * figure and is covered in the synthesis turn.
      */
+    /**
+     * Strategy types voiced per savetax section — keys are section names,
+     * values are the composed-tax-plan item types to surface (plan order wins
+     * within the cap of two items; gift_aid_higher_rate_relief requires a live
+     * charitable-giving figure and is covered in the synthesis turn).
+     *
+     * @var array<string, list<string>>
+     */
     private const SECTION_STRATEGY_TYPES = [
         'income' => ['pa_taper_rescue', 'additional_rate_avoidance', 'tapered_annual_allowance'],
         'savings' => ['isa_topup_vs_psa', 'joint_savings_psa_split', 'lifetime_isa'],
@@ -795,16 +1202,50 @@ final class OnboardingChatDirector
     ];
 
     /**
-     * Build the conversational advice for a completed section from the composed
-     * tax plan catalogue. Numbers come from the engine (Rule #2); Fyn only
-     * phrases them. Plan order is respected — the composer's sequencing and
-     * conflict resolution are already applied. Returns null when there are no
-     * applicable strategies for the section.
+     * Strategy types voiced per pensioncheck section — keys are section names,
+     * values are the composed-retirement-plan item types to surface. These are
+     * the source='strategy' type IDs from RetirementActionDefinitionSeeder.
+     *
+     * Mapping rationale:
+     * - pensions: contribution/sacrifice types that fire for DC-pension users
+     * - state_pension: empty — ni_gaps/state_pension_no_forecast are agent-sourced
+     *   and not in the strategy catalogue; the advice turn fires but emits nothing
+     * - retirement_goals: plan_retirement_income fires when decumulation planning
+     *   is relevant (user within 10 years of retirement with DC pension value)
+     *
+     * @var array<string, list<string>>
+     */
+    private const PENSIONCHECK_SECTION_STRATEGY_TYPES = [
+        'pensions' => ['increase_pension_contribution', 'salary_sacrifice_pension', 'carry_forward_unused_allowance'],
+        'state_pension' => [],
+        'retirement_goals' => ['plan_retirement_income'],
+    ];
+
+    /**
+     * Build the conversational advice for a completed section. Routes to the
+     * correct plan source (tax or retirement) based on the user's campaign
+     * selection and the section name.
+     *
+     * Numbers come from the engine (Rule #2); Fyn only phrases them. Plan order
+     * is respected. Returns null when there are no applicable strategies for the
+     * section.
      */
     private function buildSectionAdvice(User $user, string $section): ?string
     {
         if ($section === 'synthesis') {
             return $this->buildSynthesisAdvice($user);
+        }
+
+        // Pensioncheck sections use the composed retirement plan. Sections outside
+        // the retirement map (e.g. spouse, income, savings) must stay silent — they
+        // have no pensioncheck advice and must not fall through to savetax builders.
+        $campaign = $user->onboarding_fyn_selection ?? 'savetax';
+        if ($campaign === 'pensioncheck') {
+            if (array_key_exists($section, self::PENSIONCHECK_SECTION_STRATEGY_TYPES)) {
+                return $this->buildRetirementSectionAdvice($user, $section);
+            }
+
+            return null;
         }
 
         $wanted = self::SECTION_STRATEGY_TYPES[$section] ?? null;
@@ -824,6 +1265,12 @@ final class OnboardingChatDirector
             return null;
         }
 
+        // Spouse section: one short line + the saving figure (CSJ 2.8/10),
+        // rather than voicing the individual strategy titles.
+        if ($section === 'spouse') {
+            return $this->buildSpouseAdvice($plan, $wanted);
+        }
+
         $lines = [];
         foreach ($plan['items'] as $item) {
             if (! in_array($item['type'] ?? '', $wanted, true)) {
@@ -840,93 +1287,215 @@ final class OnboardingChatDirector
             }
         }
 
-        return $lines === [] ? null : implode("\n\n", $lines);
+        if ($lines === []) {
+            return null;
+        }
+
+        // Every voiced strategy is a composed-plan item, which is exactly what
+        // the actions list on the dashboard / Tax Strategy page shows — tell
+        // the user it's been logged so nothing lands there silently. The
+        // spouse section already says this in its own wording.
+        $lines[] = "I've added this to your actions list to come back to later.";
+
+        return implode("\n\n", $lines);
     }
 
     /**
-     * A4 — the consolidated plan voiced at the end of the savetax flow:
-     * every eligible strategy in composer order (nothing dropped by section
-     * caps), numbered, with conflict notes, a combined realisable total, at
-     * most ONE locked-strategy tease, and the FCA signposting line. The
-     * /tax-strategy page renders the same composed plan, so chat and page
-     * cannot disagree.
-     *
-     * Conflict notes contain raw strategy-type tokens (e.g. "savings_to_spouse")
-     * from the composer. We humanise them by swapping the token for the title of
-     * the matching item when one exists, then fall back to space-replacing
-     * underscores. This keeps the text user-friendly without duplicating the
-     * composer's conflict-resolution logic.
+     * Build per-section advice for pensioncheck sections from the composed
+     * retirement plan. Same voicing shape as the savetax section advice — at
+     * most two items, tiered claim prefix, F6 actions-list notice. Returns null
+     * when PENSIONCHECK_SECTION_STRATEGY_TYPES maps the section to an empty list
+     * (state_pension) or when no matching items appear in the plan.
      */
-    private function buildSynthesisAdvice(User $user): ?string
+    private function buildRetirementSectionAdvice(User $user, string $section): ?string
     {
+        $wanted = self::PENSIONCHECK_SECTION_STRATEGY_TYPES[$section] ?? null;
+        if ($wanted === null || $wanted === []) {
+            return null;
+        }
+
         try {
-            $plan = app(ComposedTaxPlanService::class)->forUser($user);
+            $plan = app(ComposedModulePlanService::class)->forSource(
+                app(RetirementStrategySource::class),
+                $user
+            );
         } catch (\Throwable $e) {
-            Log::warning('[OnboardingChatDirector] Synthesis advice calculation failed', [
+            Log::warning('[OnboardingChatDirector] Retirement section advice calculation failed', [
                 'user_id' => $user->id,
+                'section' => $section,
                 'error' => $e->getMessage(),
             ]);
 
             return null;
         }
 
-        if ($plan['items'] === []) {
+        $lines = [];
+        foreach ($plan['items'] as $item) {
+            if (! in_array($item['type'] ?? '', $wanted, true)) {
+                continue;
+            }
+            $prefix = ($item['claim_tier'] ?? 'judgement') === 'mechanical' ? '' : 'You may want to consider: ';
+            $title = trim((string) ($item['title'] ?? ''));
+            $desc = trim((string) ($item['description'] ?? ''));
+            $lines[] = $prefix.$title.'.'.($desc !== '' ? ' '.$desc : '');
+            if (count($lines) >= 2) {
+                break;
+            }
+        }
+
+        if ($lines === []) {
             return null;
         }
 
-        // Build a type → title map for humanising conflict notes.
-        $typeToTitle = [];
+        $lines[] = "I've added this to your actions list to come back to later.";
+
+        return implode("\n\n", $lines);
+    }
+
+    /**
+     * Spouse-section advice (CSJ 2.8/10): a single short line plus a figure.
+     * Primary figure is the combined annual tax saving of the spouse strategies
+     * in the plan; when the engine has no quantified saving yet, fall back to
+     * the spouse's headline unused allowances (Personal Allowance + ISA) from
+     * TaxConfigService (Rule #2). Returns null when there is no spouse
+     * opportunity at all, so Fyn never promises a saving that doesn't exist.
+     *
+     * @param  array<string,mixed>  $plan
+     * @param  list<string>  $wanted
+     */
+    private function buildSpouseAdvice(array $plan, array $wanted): ?string
+    {
+        $hasSpouseStrategy = false;
+        $saving = 0.0;
         foreach ($plan['items'] as $item) {
-            $type = (string) ($item['type'] ?? '');
-            $title = trim((string) ($item['title'] ?? ''));
-            if ($type !== '' && $title !== '') {
-                $typeToTitle[$type] = $title;
+            if (in_array($item['type'] ?? '', $wanted, true)) {
+                $hasSpouseStrategy = true;
+                $saving += (float) ($item['estimated_annual_tax_saved'] ?? 0);
             }
         }
 
-        $lines = ['Here is your plan, in the order I suggest tackling it:'];
+        if (! $hasSpouseStrategy) {
+            return null;
+        }
+
+        if ($saving > 0) {
+            $figure = sprintf(' — around £%s a year', number_format((int) round($saving)));
+        } else {
+            $tax = app(TaxConfigService::class);
+            $allowance = (float) ($tax->getIncomeTax()['personal_allowance'] ?? 0)
+                + (float) ($tax->getISAAllowances()['annual_allowance'] ?? 0);
+            $figure = $allowance > 0
+                ? sprintf(' — they have around £%s of unused allowances', number_format((int) round($allowance)))
+                : '';
+        }
+
+        return "You can definitely save money with your spouse's allowances{$figure}. "
+            ."We've added this to your actions list which we'll take you to shortly.";
+    }
+
+    /**
+     * F4 synthesis — the consolidated plan voiced at the end of both campaigns.
+     * Campaign-aware: savetax mirrors the /tax-strategy composed plan (byte-
+     * identical to the pre-C5 behaviour, guarded by CampaignSynthesisTurnTest);
+     * pensioncheck mirrors the composed retirement plan with the same bullet
+     * shape and FCA signposting.
+     *
+     * Retirement items carry no estimated_annual_tax_saved (always null), so the
+     * combined-saving line is omitted when combined_annual_saving is zero —
+     * mirrors the structure, does not invent maths.
+     */
+    private function buildSynthesisAdvice(User $user): ?string
+    {
+        // Recompute on the freshly written records (not the model loaded at the
+        // start of the turn) so the plan voiced here is identical to the one
+        // /tax-strategy or /retirement renders next — chat and dashboard must
+        // never disagree.
+        $user->refresh();
+
+        $campaign = $user->onboarding_fyn_selection ?? 'savetax';
+
+        try {
+            $plan = $campaign === 'pensioncheck'
+                ? app(ComposedModulePlanService::class)->forSource(app(RetirementStrategySource::class), $user)
+                : app(ComposedTaxPlanService::class)->forUser($user);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Synthesis advice calculation failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            // The synthesis is the final recap turn — never leave it silent.
+            // Degrade to an honest closing line (no fabricated figures) rather
+            // than an empty advice turn that auto-advances with nothing voiced.
+            return $this->synthesisFallbackMessage($user, $campaign);
+        }
+
+        if ($plan['items'] === []) {
+            return $this->synthesisFallbackMessage($user, $campaign);
+        }
+
+        // Mirror the campaign dashboard exactly. For savetax that is /tax-strategy
+        // (TaxStrategy.vue renders composed_plan.items as "title — saves £X a year");
+        // for pensioncheck that is /retirement. Both render items in composer order
+        // as markdown "- " bullets — the format every other recap screen uses.
+        $leadIn = $campaign === 'pensioncheck'
+            ? "Here's your pension picture, built from what you told me — in the order I'd tackle it:"
+            : "Here's your tax plan, built from what you told me — in the order I'd tackle it:";
+
+        $bullets = [];
         foreach ($plan['items'] as $item) {
+            $title = trim((string) ($item['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
             $saving = $item['estimated_annual_tax_saved'] ?? null;
             $savingFormatted = is_numeric($saving) ? number_format((int) round((float) $saving)) : '';
-            // Skip the suffix when the title already quotes the amount
-            // ("Save around £24 a year by …" must not gain "— around £24 a year").
+            // Skip the suffix when the title already quotes the amount.
             $savingText = $savingFormatted !== '' && (float) $saving > 0
-                && ! str_contains((string) $item['title'], '£'.$savingFormatted)
-                ? sprintf(' — around £%s a year', $savingFormatted)
+                && ! str_contains($title, '£'.$savingFormatted)
+                ? sprintf(' — saves around £%s a year', $savingFormatted)
                 : '';
-            $lines[] = sprintf('%d. %s%s', $item['sequence_position'], $item['title'], $savingText);
+            $bullets[] = sprintf('- %s%s', $title, $savingText);
+        }
 
-            $conflictNote = trim((string) ($item['conflict_note'] ?? ''));
-            if ($conflictNote !== '') {
-                // Replace type tokens in the note with the item's title where known,
-                // then fall back to underscores → spaces for any remaining tokens.
-                foreach ($typeToTitle as $type => $title) {
-                    $conflictNote = str_replace($type, $title, $conflictNote);
-                }
-                $conflictNote = str_replace('_', ' ', $conflictNote);
-                $lines[] = '   Note: '.$conflictNote;
-            }
+        if ($bullets === []) {
+            return $this->synthesisFallbackMessage($user, $campaign);
+        }
+
+        // Blank line before the bullet block so markdown renders it as a list on
+        // both surfaces (web AiMessageContent + /m renderFynText).
+        $lines = [$leadIn, ''];
+        foreach ($bullets as $bullet) {
+            $lines[] = $bullet;
         }
 
         $total = (float) ($plan['combined_annual_saving'] ?? 0.0);
         if ($total > 0) {
+            $lines[] = '';
             $lines[] = sprintf('Together these are worth roughly £%s a year.', number_format((int) round($total)));
         }
 
-        foreach (array_slice($plan['locked'], 0, 1) as $locked) {
-            $missingFields = array_map(
-                fn (string $f): string => HouseholdFinancialContext::labelFor($f),
-                (array) ($locked['missing'] ?? [])
-            );
-            $lines[] = sprintf(
-                'One more strategy is waiting — tell me about your %s and I can check it for you.',
-                implode(' and your ', $missingFields),
-            );
-        }
-
+        $lines[] = '';
         $lines[] = 'For regulated advice personal to your circumstances, speak to a qualified financial adviser.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Honest closing line for the synthesis turn when the composed plan has no
+     * items (no applicable strategies, degenerate data, or a calculation
+     * failure). Voices completion and points forward to the campaign's own
+     * screen without fabricating any figures — the synthesis turn must never
+     * fall silent (a null advice turn auto-advances with nothing voiced).
+     */
+    private function synthesisFallbackMessage(User $user, string $campaign): string
+    {
+        $firstName = trim((string) ($user->first_name ?? ''));
+        $firstName = $firstName !== '' ? $firstName : 'there';
+
+        return $campaign === 'pensioncheck'
+            ? "That's your pension details saved, {$firstName}. You'll find your full retirement picture on the next screen."
+            : "That's your details saved, {$firstName}. You'll find your full tax strategy on the next screen.";
     }
 
     /**
@@ -1055,6 +1624,421 @@ final class OnboardingChatDirector
             'captured_value' => $parsed,
             'answer_for_transition' => $message,
         ];
+    }
+
+    /**
+     * Interruption intelligence (CSJ 2026-07-21): free text that failed
+     * interpretation at a capture step is not noise — classify it and respond.
+     * Returns null when nothing matched, so the caller's existing retry fires.
+     */
+    private function handleInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $currentRoute = null
+    ): ?\Generator {
+        if ($this->writeIntentClassifier->isQuestion($message)) {
+            $primary = $this->queryClassifier->classify($message, $currentRoute)['primary'] ?? null;
+
+            return $this->handleQuestionInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $primary, $currentRoute
+            );
+        }
+
+        if ($this->writeIntentClassifier->classify($message) !== null) {
+            return $this->handleInformationInterruption(
+                $user, $conversation, $currentStateId, $state, $message, $currentRoute
+            );
+        }
+
+        return null;
+    }
+
+    private function handleQuestionInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $primary,
+        ?string $currentRoute
+    ): ?\Generator {
+        if ($primary === null) {
+            return null;
+        }
+
+        $level = AdviceFyn::engineCallLevelFor($primary);
+
+        if ($level === 'holistic') {
+            return $this->deferQuestion($user, $conversation, $currentStateId, $state, $message, $primary); // Task 4
+        }
+
+        return (function () use ($user, $conversation, $currentStateId, $state, $message, $currentRoute): \Generator {
+            // Resolved lazily via the container rather than constructor-
+            // injected: AdviceFyn constructor-injects this director (so its
+            // delegate_to_capture handoff can reach handleInlineCapture),
+            // and ctor-injecting AdviceFyn back here would form a container
+            // cycle. Same service-locator precedent as buildSectionAdvice's
+            // app(ComposedTaxPlanService::class).
+            $readOnlyTools = app(AdviceFyn::class)->buildToolList($user);
+
+            // Baseline so the post-turn lookup below only ever considers a
+            // row THIS turn persisted — never a stale earlier message.
+            $assistantBaselineId = (int) ($conversation->messages()
+                ->where('role', 'assistant')
+                ->max('id') ?? 0);
+
+            // CSJ direction 2026-07-23: a straightforward definitive
+            // question gets a straight answer in any situation. The plain
+            // advice framing deflected a definitional question into an
+            // "I need more data" ask (live msgs 19631-19633) — the override
+            // frames the turn so the question is answered outright. run()
+            // (not stream()) so the delegate_to_capture handoff interception
+            // stays live for question-phrased writes (INV-2.4.1).
+            $advice = $this->fynLoop->run(
+                SessionMode::Advice,
+                $user,
+                $conversation,
+                $message,
+                $currentRoute,
+                $readOnlyTools,
+                persistUserMessage: false,
+                systemPromptOverride: $this->buildInterruptionAnswerPrompt(),
+            );
+
+            // The advice turn ends with its own terminal `done` event
+            // (HasAiChat::chat's closing yield). Drop it here rather than
+            // relaying it — a `done` reaching the frontend ends the SSE
+            // turn, which would cut the response off before the re-emitted
+            // step below renders.
+            //
+            // Content is BUFFERED, not relayed live (CSJ 2026-07-23): the
+            // model on this path rambled — the same answer voiced twice plus
+            // a parroted copy of the walk's own re-ask. The buffer is
+            // deduped and stripped of any question/echo, then emitted as ONE
+            // clean event; the persisted row is rewritten to match so a
+            // reload shows exactly what streamed. Any non-content event
+            // (a delegate_to_capture handoff's capture output) flushes the
+            // buffer raw and ends filtering — capture narration is not ours
+            // to rewrite here.
+            $answerBuffer = '';
+            $filtering = true;
+            foreach ($advice as $event) {
+                $type = $event['type'] ?? '';
+                if ($type === 'done') {
+                    continue;
+                }
+                if ($filtering && $type === 'content') {
+                    $answerBuffer .= (string) ($event['text'] ?? '');
+
+                    continue;
+                }
+                // Only capture-family events end filtering — a handoff's
+                // capture output is not ours to rewrite. Status events
+                // (thinking, classification, actions) relay through with
+                // filtering still on.
+                if ($filtering && in_array($type, ['tool_use', 'entity_created', 'capture_write_result', 'fill_form', 'capture_complete', 'handoff'], true)) {
+                    if ($answerBuffer !== '') {
+                        yield ['type' => 'content', 'text' => $answerBuffer];
+                        $answerBuffer = '';
+                    }
+                    $filtering = false;
+                }
+
+                yield $event;
+            }
+
+            if ($filtering && trim($answerBuffer) !== '') {
+                $clean = $this->definitiveAnswerText($answerBuffer);
+                if ($clean !== '') {
+                    yield ['type' => 'content', 'text' => $clean];
+
+                    $answerRow = $conversation->messages()
+                        ->where('role', 'assistant')
+                        ->where('id', '>', $assistantBaselineId)
+                        ->latest('id')
+                        ->first();
+                    if ($answerRow !== null && $answerRow->content !== $clean) {
+                        $answerRow->update(['content' => $clean]);
+                    }
+                }
+            }
+
+            $latestAssistant = $conversation->messages()
+                ->where('role', 'assistant')
+                ->where('id', '>', $assistantBaselineId)
+                ->latest('id')
+                ->first(['id', 'content', 'persona', 'metadata']);
+
+            // Review finding I-1 — this turn's tool list keeps
+            // delegate_to_capture, so a question-phrased write ("Can you add
+            // my ISA?") can trigger FynLoop::interceptHandoff →
+            // handleInlineCapture → a gate clarification mid-advice-turn.
+            // That handoff is the ONLY route to a genuine capture
+            // clarification here — handleInlineCapture always streams under
+            // persona 'data_capture' (see its own fynLoop->stream call),
+            // while a plain advice answer streams under 'advice'. Gate the
+            // clarification-arm on that persona rather than on content shape
+            // alone: a plain informational answer routinely closes with its
+            // own offer ("Would you like me to help you add those now?"),
+            // which is clarification-shaped by coincidence, not because a
+            // capture attempt is waiting on a missing detail (live
+            // conversation 168, msg 19558-19563 — "Am I on track for
+            // retirement?" got exactly that answer, then the genuine
+            // on-script "14 March 1988" DOB reply was hijacked into a bogus
+            // capture merge instead of reaching campaign_dob's own parser).
+            if ($latestAssistant === null || $latestAssistant->persona !== 'data_capture') {
+                if ($latestAssistant !== null) {
+                    $this->tagInterruptionAnswer($conversation, $assistantBaselineId);
+
+                    // Mid-stream done finalises the ANSWER bubble so the
+                    // re-emitted step prompt opens a fresh one (CSJ
+                    // 2026-07-23: the re-asked question is its own bubble).
+                    // Safe per deferQuestion's verified note: done is a
+                    // per-message finaliser on web, /m and native — the SSE
+                    // stream only ends when this generator exhausts.
+                    yield ['type' => 'done', 'message_id' => $latestAssistant->id];
+                }
+
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
+            // Structured turn intent (Task 2): a stamped row states outright
+            // whether the capture turn is waiting on a missing detail; the
+            // content heuristic remains for legacy rows only.
+            $latestAssistantIntent = is_array($latestAssistant->metadata)
+                ? ($latestAssistant->metadata['turn_intent'] ?? null)
+                : null;
+            $latestRequestsClarification = is_string($latestAssistantIntent) && $latestAssistantIntent !== ''
+                ? $latestAssistantIntent === FynTurnIntent::CaptureClarification->value
+                : $this->captureResponseRequestsClarification((string) $latestAssistant->content);
+
+            if ($latestRequestsClarification) {
+                // WriteIntentClassifier::classify() short-circuits to null for
+                // any message that looks like a question (the same check that
+                // routed this message into handleQuestionInterruption in the
+                // first place — see isQuestion()/looksLikeQuestion()), so in
+                // practice this always falls back to the generic shape below.
+                // Still call it first rather than hardcoding: if that
+                // precedence ever changes, a real classification wins.
+                $intent = $this->writeIntentClassifier->classify($message);
+
+                $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                $context['pending_interruption_store'] = [
+                    'message' => $message,
+                    'intent' => $intent ?? [
+                        'reason' => 'question_phrased_write',
+                        'entity_type' => 'savings_account',
+                        'fields_needed' => [],
+                    ],
+                    'state_id' => $currentStateId,
+                    'awaiting_detail' => true,
+                ];
+                $user->onboarding_fyn_context = $context;
+                $user->save();
+
+                yield ['type' => 'done', 'message_id' => $latestAssistant->id];
+
+                return;
+            }
+
+            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+        })();
+    }
+
+    /**
+     * A holistic-level question mid-onboarding is deferred rather than
+     * answered inline (a full orchestrateAnalysis call is too heavy to run
+     * mid-walk). Park it on the conversation's `deferred_questions`
+     * metadata, voice a promise to come back to it, then re-emit the
+     * current step so the walk isn't interrupted. Task 5 consumes
+     * `deferred_questions` at the completion terminals.
+     */
+    private function deferQuestion(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $primary = null
+    ): \Generator {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $deferred = $metadata['deferred_questions'] ?? [];
+        $entry = ['question' => $message, 'state_id' => $currentStateId];
+        // Topic derived deterministically at defer time (classifier primary →
+        // module label) so the completion raise can say "You asked about '…'
+        // earlier" without re-classifying (CSJ raise shape, 2026-07-23).
+        $topic = $this->deferredTopicLabel($primary);
+        if ($topic !== null) {
+            $entry['topic'] = $topic;
+        }
+        $deferred[] = $entry;
+        $metadata['deferred_questions'] = $deferred;
+        $conversation->update(['metadata' => $metadata]);
+
+        $promise = "Good question — that one deserves a proper answer, so I'll come back to it once your setup is done and I can see the full picture.";
+        $saved = $this->saveMessage($conversation, 'assistant', $promise, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'turn_intent' => FynTurnIntent::DeferredPromise->value,
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $promise];
+
+        // Mid-stream done: finalises this message only; the stream ends when
+        // the generator exhausts (consumers treat done per-message, not
+        // per-turn) — verified safe: the controller only ends the SSE stream
+        // once this generator itself exhausts, and web/`/m`/native all treat
+        // `done` as a per-message finaliser, not a stream terminator.
+        yield ['type' => 'done', 'message_id' => $saved->id];
+        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+    }
+
+    private function handleInformationInterruption(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $message,
+        ?string $currentRoute
+    ): ?\Generator {
+        $intent = $this->writeIntentClassifier->classify($message);
+        if ($intent === null) {
+            return null;
+        }
+
+        return (function () use ($user, $conversation, $currentStateId, $message, $intent): \Generator {
+            $offer = 'That sounds like something worth saving. Want me to save it to your plan now? We can also come back to it during setup.';
+            $bubbles = [
+                ['id' => 'store_now', 'label' => 'Yes, save it'],
+                ['id' => 'store_later', 'label' => 'Not now'],
+            ];
+
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['pending_interruption_store'] = [
+                'message' => $message,
+                'intent' => $intent,
+                'state_id' => $currentStateId,
+            ];
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            // No onboarding_step here on purpose: CoordinatingAgent::
+            // recentUserMessageEvidence treats any assistant message carrying
+            // onboarding_step (that isn't a capture failure or resume greeting)
+            // as the evidence-window boundary. The offer is a transient
+            // interruption prompt — stamping it as a step turn cut the user's
+            // original entity sentence out of CaptureAccuracyGate's evidence,
+            // so ownership could never be confirmed against the entity (live
+            // conversation 164 infinite clarification loop).
+            $saved = $this->saveMessage($conversation, 'assistant', $offer, [
+                'metadata' => [
+                    'bubbles' => $bubbles,
+                    'turn_intent' => FynTurnIntent::InterruptionOffer->value,
+                ],
+            ]);
+
+            yield [
+                'type' => 'quick_replies',
+                'prompt_text' => $offer,
+                'bubbles' => $bubbles,
+            ];
+            yield ['type' => 'done', 'message_id' => $saved->id];
+        })();
+    }
+
+    /**
+     * Run handleInlineCapture for a pending interruption-store message, then
+     * decide whether to re-arm pending_interruption_store (the capture turn
+     * is still asking a clarifying question — e.g. CaptureAccuracyGate
+     * blocked the write pending ownership) or resume the current walk step.
+     * Shared by the plain "yes" accept and the awaiting_detail merged-reply
+     * resolution above so the two paths cannot drift and a clarification
+     * question is never buried under the walk's re-prompt (live msg 19433).
+     *
+     * @param  array<string, mixed>  $state
+     * @param  array<string, mixed>  $pending
+     */
+    private function resolvePendingInterruptionCapture(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+        string $captureMessage,
+        array $pending,
+        ?string $currentRoute,
+        array $confirmedFacts = []
+    ): \Generator {
+        $captureContext = CaptureContext::fromArray([
+            'reason' => $pending['intent']['reason'] ?? 'volunteered_mid_onboarding',
+            'entity_types' => [$pending['intent']['entity_type'] ?? 'savings_account'],
+            'fields_needed' => $pending['intent']['fields_needed'] ?? [],
+        ]);
+
+        // Record-creation is authoritative over content-sniffing: a rescued
+        // write (deterministic gap-fill) can leave the model's own stale
+        // clarification-shaped narration in the persisted content even
+        // after the fix above trims the worst of it — so re-arming must
+        // never fire when handleInlineCapture actually persisted a record
+        // for the pending intent this turn (live conversation 164,
+        // msg 19465). Consume events explicitly (rather than `yield from`)
+        // so this can be tracked while still forwarding every event
+        // untouched.
+        $recordCreated = false;
+        foreach ($this->handleInlineCapture(
+            $user, $conversation, $captureMessage, $captureContext, $currentRoute, $confirmedFacts
+        ) as $captureEvent) {
+            $captureEventType = $captureEvent['type'] ?? '';
+            if ($captureEventType === 'entity_created'
+                || ($captureEventType === 'capture_complete' && ($captureEvent['records_created'] ?? []) !== [])) {
+                $recordCreated = true;
+            }
+
+            yield $captureEvent;
+        }
+
+        $latestAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first(['content', 'metadata']);
+        $latestAssistantMetadata = $latestAssistant !== null && is_array($latestAssistant->metadata)
+            ? $latestAssistant->metadata
+            : [];
+
+        // An A1 / interruption ANSWER must never re-arm the store flag
+        // either — it is not a fresh capture clarification, even when this
+        // lookup falls back to a stale row (e.g. handleInlineCapture
+        // persisted nothing new this turn). Structured turn intent (Task 2):
+        // a stamped row re-arms ONLY when it is a capture clarification; the
+        // tag + content heuristics remain for legacy rows only.
+        $latestAssistantIntent = $latestAssistantMetadata['turn_intent'] ?? null;
+        $latestRequestsClarification = is_string($latestAssistantIntent) && $latestAssistantIntent !== ''
+            ? $latestAssistantIntent === FynTurnIntent::CaptureClarification->value
+            : (($latestAssistantMetadata['is_interruption_answer'] ?? false) !== true
+                && $latestAssistant !== null
+                && $this->captureResponseRequestsClarification((string) $latestAssistant->content));
+        if (! $recordCreated
+            && $latestAssistant !== null
+            && $latestRequestsClarification) {
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['pending_interruption_store'] = [
+                'message' => $captureMessage,
+                'intent' => $pending['intent'],
+                'state_id' => $pending['state_id'],
+                'awaiting_detail' => true,
+            ];
+            $user->onboarding_fyn_context = $context;
+            $user->save();
+
+            return;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
     }
 
     private function retryTextForParser(string $parser): string
@@ -1192,20 +2176,29 @@ final class OnboardingChatDirector
             $user->onboarding_fyn_context = $context;
         }
 
-        $user->save();
+        // A single total is simple-entry data. Persist its mode, user total and
+        // profile mirror atomically so the desktop category view does not hide
+        // a value that `/m` can display.
+        if ($captureField === 'monthly_expenditure' && is_numeric($capturedValue) && (float) $capturedValue >= 0) {
+            $user->expenditure_entry_mode = 'simple';
+            DB::transaction(function () use ($user, $capturedValue): void {
+                $user->save();
+                $monthlyTotal = (float) $capturedValue;
+                if ($monthlyTotal > 0) {
+                    ExpenditureProfile::updateOrCreate(
+                        ['user_id' => $user->id],
+                        ['total_monthly_expenditure' => $monthlyTotal],
+                    );
+                } else {
+                    ExpenditureProfile::where('user_id', $user->id)
+                        ->update(['total_monthly_expenditure' => 0]);
+                }
+            });
 
-        // Mirror monthly_expenditure into the ExpenditureProfile row so the
-        // dashboard and IHTCalculationService (which both read
-        // total_monthly_expenditure off the profile) pick it up without the
-        // user needing a post-onboarding "my expenses aren't showing" turn.
-        // The user can still break it into categories later via the
-        // expenditure form; this write only populates the total.
-        if ($captureField === 'monthly_expenditure' && is_numeric($capturedValue) && (float) $capturedValue > 0) {
-            ExpenditureProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                ['total_monthly_expenditure' => (float) $capturedValue],
-            );
+            return;
         }
+
+        $user->save();
     }
 
     /**
@@ -1244,56 +2237,92 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Parse a "how many kids and what ages" free-text reply and create
-     * FamilyMember rows. Deliberately forgiving — Claude could be used
-     * for a richer parse in a follow-up iteration but for MVP the
-     * director handles it deterministically.
+     * Persist only explicit dependant dates. An age is useful conversational
+     * context but is not evidence for a precise date of birth.
      */
     private function createDependantFamilyMembers(User $user, string $rawText): void
     {
-        // B-2 — ensure household exists before any dependant insert.
+        $month = '(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)';
+        $date = '(?:\d{1,2}(?:st|nd|rd|th)?\s+'.$month.'\s+\d{4}|\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4})';
+        $pattern = '/\b(?<name>[A-Z][a-zA-Z\'’-]{1,30})\s*,?\s*(?:born|date of birth|dob(?:\s+is)?)\s*(?:on\s+)?(?<dob>'.$date.')/u';
+
+        if (preg_match_all($pattern, $rawText, $matches, PREG_SET_ORDER) === false || $matches === []) {
+            return;
+        }
+
+        $dependants = [];
+        foreach ($matches as $match) {
+            $parsed = $this->parseExplicitDependantDate((string) $match['dob']);
+            if ($parsed === null) {
+                return;
+            }
+            $dependants[] = [
+                'first_name' => (string) $match['name'],
+                'date' => $parsed,
+            ];
+        }
+
+        if ($dependants === []) {
+            return;
+        }
+
         $householdId = $this->householdProvisioner->ensureFor($user);
-
-        // Ages are the most reliable signal. Pull every integer between 0
-        // and 25 from the message; treat each as one dependant's age.
-        if (preg_match_all('/\b(\d{1,2})\b/', $rawText, $matches) === false) {
-            return;
-        }
-
-        $ages = array_values(array_filter(
-            array_map('intval', $matches[1] ?? []),
-            fn (int $n): bool => $n >= 0 && $n <= 25
-        ));
-
-        if (count($ages) === 0) {
-            // Record the raw text as notes on a single placeholder row so
-            // the intent is not lost.
-            FamilyMember::create([
-                'user_id' => $user->id,
-                'household_id' => $householdId,
-                'relationship' => 'child',
-                'first_name' => 'Dependant',
-                'is_dependent' => true,
-                'education_status' => 'not_applicable',
-                'notes' => 'Added via Fyn onboarding — ages not parsed. Raw: '.mb_substr($rawText, 0, 200),
-            ]);
-
-            return;
-        }
-
-        foreach ($ages as $age) {
+        foreach ($dependants as $dependant) {
+            $age = $dependant['date']->age;
             FamilyMember::create([
                 'user_id' => $user->id,
                 'household_id' => $householdId,
                 'relationship' => $age < 18 ? 'child' : 'other_dependent',
-                'first_name' => 'Dependant',
-                'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
+                'first_name' => $dependant['first_name'],
+                'date_of_birth' => $dependant['date']->toDateString(),
                 'is_dependent' => true,
                 'education_status' => $this->educationStatusForAge($age),
-                'notes' => 'Added via Fyn onboarding. Age '.$age.' inferred from "'
-                    .mb_substr($rawText, 0, 200).'"',
+                'notes' => 'Added via Fyn onboarding from an explicit date of birth.',
             ]);
         }
+    }
+
+    private function parseExplicitDependantDate(string $value): ?Carbon
+    {
+        $day = null;
+        $month = null;
+        $year = null;
+
+        if (preg_match('#^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$#', $value, $match) === 1) {
+            [$day, $month, $year] = [(int) $match[1], (int) $match[2], (int) $match[3]];
+        } elseif (preg_match('#^(\d{4})-(\d{1,2})-(\d{1,2})$#', $value, $match) === 1) {
+            [$day, $month, $year] = [(int) $match[3], (int) $match[2], (int) $match[1]];
+        } elseif (preg_match('/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})$/i', $value, $match) === 1) {
+            $months = [
+                'january' => 1, 'jan' => 1,
+                'february' => 2, 'feb' => 2,
+                'march' => 3, 'mar' => 3,
+                'april' => 4, 'apr' => 4,
+                'may' => 5,
+                'june' => 6, 'jun' => 6,
+                'july' => 7, 'jul' => 7,
+                'august' => 8, 'aug' => 8,
+                'september' => 9, 'sep' => 9, 'sept' => 9,
+                'october' => 10, 'oct' => 10,
+                'november' => 11, 'nov' => 11,
+                'december' => 12, 'dec' => 12,
+            ];
+            $day = (int) $match[1];
+            $month = $months[mb_strtolower($match[2])] ?? null;
+            $year = (int) $match[3];
+        }
+
+        if ($day === null || $month === null || $year === null || ! checkdate($month, $day, $year)) {
+            return null;
+        }
+
+        $date = Carbon::create($year, $month, $day, 0, 0, 0);
+
+        if ($date->isFuture() || $date->age > 120) {
+            return null;
+        }
+
+        return $date->startOfDay();
     }
 
     private function educationStatusForAge(int $age): string
@@ -1375,6 +2404,7 @@ final class OnboardingChatDirector
         AiConversation $conversation,
         string $currentStateId,
         array $state,
+        string $message = '',
     ): ?\Generator {
         $extractionTool = (string) ($state['extraction_tool'] ?? '');
         $parked = $conversation->onboarding_parked_facts ?? [];
@@ -1415,7 +2445,7 @@ final class OnboardingChatDirector
         // Emit the same shape handleGroupedExtractTurn produces on a
         // successful capture so downstream consumers (frontend store) see
         // no difference.
-        return (function () use ($user, $conversation, $currentStateId, $result) {
+        return (function () use ($user, $conversation, $currentStateId, $result, $message) {
             if (($result['onboarding_capture'] ?? false) === true) {
                 yield [
                     'type' => 'onboarding_field_captured',
@@ -1435,6 +2465,21 @@ final class OnboardingChatDirector
             $this->flushParkedFactsForState($conversation, $currentStateId);
 
             $user->refresh();
+
+            // A DOB given in a short two-digit-year format required a century
+            // inference — confirm it back in full before carrying on. The
+            // parking fast-path must not skip the confirm the grouped-extract
+            // path asks (the fact extractor parses the same short formats).
+            $confirming = yield from $this->maybeConfirmShortDob(
+                $user,
+                $conversation,
+                $currentStateId,
+                (array) ($result['details'] ?? []),
+                $message
+            );
+            if ($confirming) {
+                return;
+            }
 
             $nextStateId = OnboardingStateMachine::getNextStateId(
                 $currentStateId,
@@ -1490,6 +2535,10 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => ['dependants'],
             OnboardingStateMachine::STATE_BASE_WORK => ['employment'],
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => ['expenditure'],
+            // PensionCheck partial-carry bucket (income stashed during the
+            // two-turn retirement-goals capture). The handler clears it on
+            // success, but this flush is a safety-net for the advance path.
+            OnboardingStateMachine::STATE_CAMPAIGN2_RETIREMENT_GOALS => ['retirement_goals'],
             default => [],
         };
 
@@ -1609,13 +2658,13 @@ final class OnboardingChatDirector
         $captureDetails = [];
         $captureError = null;
 
-        // A1 — answer-the-user-first on a grouped_extract turn. When the
-        // user's message asks a question, buffer the model's prose so a
-        // definitional answer can be delivered alongside the scripted re-ask
-        // when no extraction lands. Without a question the prose is swallowed
-        // exactly as before (the extraction tool is meant to fire silently).
         $userAskedQuestion = $this->userAskedQuestion($message);
-        $answerBuffer = '';
+
+        // Baseline so the no-capture cleanup below removes only rows THIS
+        // extraction stream persisted (its off-script conversational prose).
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
 
         try {
             $generator = $this->fynLoop->stream(
@@ -1682,15 +2731,11 @@ final class OnboardingChatDirector
                 // Claude emit chatty text alongside the tool call. Letting
                 // that text through stacks two assistant messages (model
                 // text + director retry) on the user on failed captures.
-                //
-                // A1 — exception: when the user asked a question, keep the
-                // prose in $answerBuffer so a definitional answer can be
-                // emitted before the re-ask if no extraction lands.
+                // A user question is never answered from this prose — the
+                // no-capture branch routes it through the interruption
+                // dispatcher, the one governed answer path (all-paths rule,
+                // CSJ 2026-07-23).
                 if (($event['type'] ?? '') === 'content') {
-                    if ($userAskedQuestion) {
-                        $answerBuffer .= (string) ($event['text'] ?? '');
-                    }
-
                     continue;
                 }
 
@@ -1705,7 +2750,7 @@ final class OnboardingChatDirector
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId);
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
         }
@@ -1729,21 +2774,19 @@ final class OnboardingChatDirector
                 'tool' => $toolName,
             ]);
 
-            // A1 — the user asked a question that yielded no extraction.
-            // Deliver the definitional answer (personal figures stripped)
-            // before the scripted re-ask so the question is not ignored.
-            if ($userAskedQuestion && $answerBuffer !== '') {
-                $answer = $this->filterOffScriptContent($answerBuffer, $currentStateId, allowAnswer: true);
-                if ($answer !== '') {
-                    $answerMessage = $this->saveMessage($conversation, 'assistant', $answer, [
-                        'metadata' => [
-                            'onboarding_step' => $currentStateId,
-                            'is_question_answer' => true,
-                        ],
-                    ]);
-                    yield ['type' => 'content', 'text' => $answer, 'message_id' => $answerMessage->id];
-                }
-            }
+            // The extraction model's off-script prose was swallowed from the
+            // stream but persisted into the transcript by the shared chat
+            // path. Left in place it anchors every later LLM call this turn —
+            // live 2026-07-23: a wrong gross-income answer persisted here was
+            // parroted verbatim by the override-governed dispatcher call that
+            // followed. Delete it so the transcript mirrors the screen and
+            // the dispatcher reasons from clean history. The user's question
+            // is answered by emitRetry's interruption dispatcher below — the
+            // ONE governed answer path (all-paths rule, CSJ 2026-07-23).
+            $conversation->messages()
+                ->where('role', 'assistant')
+                ->where('id', '>', $assistantBaselineId)
+                ->delete();
 
             // Carry-forward disambiguation (director side). The model often
             // declines to call capture_pension_history for a lone figure like
@@ -1761,7 +2804,21 @@ final class OnboardingChatDirector
                 return;
             }
 
-            yield from $this->emitRetry($conversation, $state, $currentStateId);
+            // advance_on_answered_question: linear grouped_extract steps that
+            // write no entity record (e.g. campaign2_state_pension) advance when
+            // the user gave a substantive answer even though the model made no
+            // tool call. Mirrors the identical gate in the delegated handler
+            // (line ~2815) so both turn types honour the flag consistently.
+            if (($state['advance_on_answered_question'] ?? false) === true
+                && $this->messageHasSubstantiveAnswer($message)) {
+                $this->flushParkedFactsForState($conversation, $currentStateId);
+                $user->refresh();
+                yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+
+                return;
+            }
+
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
         }
@@ -1772,6 +2829,25 @@ final class OnboardingChatDirector
         // same grouped_extract path.
         $missing = (array) ($captureDetails['missing'] ?? []);
         if (count($missing) > 0) {
+            // CSJ decided policy (reconfirmed 2026-07-23): no question is
+            // ever dropped. A partial capture still owes the user their
+            // answer — dispatch the interruption first (inline answer for a
+            // simple question, acknowledge + defer for one needing more);
+            // the dispatcher re-emits the step, so the walk still re-asks.
+            // Mirrors emitRetry's dispatch on the no-capture path (live:
+            // Tessa's gross-income question vanished under the
+            // is_partial_retry re-ask, 2026-07-23).
+            if ($userAskedQuestion) {
+                $interruption = $this->handleInterruption(
+                    $user, $conversation, $currentStateId, $state, $message, $currentRoute
+                );
+                if ($interruption !== null) {
+                    yield from $interruption;
+
+                    return;
+                }
+            }
+
             yield from $this->emitPartialRetry($conversation, $currentStateId, $toolName, $missing);
 
             return;
@@ -1789,6 +2865,30 @@ final class OnboardingChatDirector
         // freshly-written columns.
         $user->refresh();
 
+        // Cross-check the captured income against the funnel band the user
+        // picked on the website. On a contradiction, challenge + hold here.
+        $challenged = yield from $this->maybeChallengeIncome($user, $conversation, $currentStateId, $captureDetails);
+        if ($challenged) {
+            return;
+        }
+
+        // A DOB given in a short two-digit-year format required a century
+        // inference — confirm it back in full before carrying on.
+        $confirming = yield from $this->maybeConfirmShortDob($user, $conversation, $currentStateId, $captureDetails, $message);
+        if ($confirming) {
+            return;
+        }
+
+        yield from $this->advanceFromState($user, $conversation, $currentStateId, $message);
+    }
+
+    /**
+     * Advance from a just-completed capture state to the next state and emit
+     * its turn. Extracted from handleGroupedExtractTurn so the income-challenge
+     * Continue branch can resume the advance after the user confirms.
+     */
+    private function advanceFromState(User $user, AiConversation $conversation, string $currentStateId, string $message): \Generator
+    {
         $nextStateId = OnboardingStateMachine::getNextStateId(
             $currentStateId,
             $message,
@@ -1848,20 +2948,41 @@ final class OnboardingChatDirector
     }
 
     /**
-     * Emit a retry turn for a failed grouped_extract. The retry text is
-     * saved as a real assistant message (so it survives the frontend's
-     * streamingText finally block that clears unflushed text), then a
-     * content + done event are yielded to close the turn cleanly. The
+     * Emit a retry turn for a failed grouped_extract. Site C hook (Task 6) —
+     * tries the same interruption intelligence Site A uses before falling
+     * back to the blind scripted retry: a question or volunteered write
+     * intent buried in an unparseable grouped-extract reply gets answered or
+     * offered a store, exactly as it would mid-walk. Only when
+     * handleInterruption declines (the message is neither a question nor a
+     * classified write intent) does the retry text below fire. The retry
+     * text is saved as a real assistant message (so it survives the
+     * frontend's streamingText finally block that clears unflushed text),
+     * then a content + done event are yielded to close the turn cleanly. The
      * user stays on the current state so they can try again.
      */
-    private function emitRetry(AiConversation $conversation, array $state, string $currentStateId): \Generator
-    {
+    private function emitRetry(
+        AiConversation $conversation,
+        array $state,
+        string $currentStateId,
+        User $user,
+        string $userMessage
+    ): \Generator {
+        $interruption = $this->handleInterruption(
+            $user, $conversation, $currentStateId, $state, $userMessage
+        );
+        if ($interruption !== null) {
+            yield from $interruption;
+
+            return;
+        }
+
         $retryText = (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?");
 
         $message = $this->saveMessage($conversation, 'assistant', $retryText, [
             'metadata' => [
                 'onboarding_step' => $currentStateId,
                 'is_retry' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -1891,6 +3012,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_terminal_error' => true,
                 'error_type' => $captureError['error_type'] ?? 'unknown',
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -1917,6 +3039,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_clarification' => true,
                 'clarification_type' => 'pension_history_total_vs_per_year',
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -1986,6 +3109,7 @@ final class OnboardingChatDirector
                 'onboarding_step' => $currentStateId,
                 'is_partial_retry' => true,
                 'missing_fields' => $missing,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ],
         ]);
 
@@ -2017,6 +3141,9 @@ final class OnboardingChatDirector
                 'date_of_birth' => 'their date of birth',
                 'email' => 'their email address',
             ],
+            'capture_retirement_goals' => [
+                'target_retirement_age' => 'the age you would like to retire at',
+            ],
             default => [],
         };
 
@@ -2024,6 +3151,15 @@ final class OnboardingChatDirector
             fn (string $field): ?string => $friendlyMap[$field] ?? null,
             $missing
         )));
+
+        if ($toolName === 'capture_dependants') {
+            $needsDate = collect($missing)->contains(
+                fn (string $field): bool => str_ends_with($field, '.date_of_birth')
+            );
+            $friendly = [$needsDate
+                ? 'the exact date of birth for each dependant'
+                : 'how each dependant is related to you'];
+        }
 
         if (count($friendly) === 0) {
             return 'I still need a couple of things to move on — could you share them again?';
@@ -2036,6 +3172,215 @@ final class OnboardingChatDirector
         };
 
         return 'Thanks — I still need '.$list.'. Could you share '.(count($friendly) === 1 ? 'that' : 'those').'?';
+    }
+
+    /**
+     * Cross-check a just-captured income figure against the band the user
+     * picked on the SaveTax funnel. Returns the mismatch payload to challenge,
+     * or null when there is nothing to challenge (no funnel band, unknown band,
+     * no figure captured, or the figure is in-band).
+     *
+     * @return array{field: string, band: string, entered: float}|null
+     */
+    private function detectIncomeFunnelMismatch(User $user, string $stateId, array $captureDetails): ?array
+    {
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if ($funnel === []) {
+            return null;
+        }
+        if (($funnel['campaign'] ?? 'savetax') !== 'savetax') {
+            return null;
+        }
+
+        if ($stateId === OnboardingStateMachine::STATE_BASE_WORK) {
+            $field = 'self';
+            $band = (string) ($funnel['income'] ?? '');
+            $issuedContext = $funnel['income_context'] ?? null;
+        } elseif ($stateId === OnboardingStateMachine::STATE_BASE_SPOUSE) {
+            $field = 'spouse';
+            $band = (string) ($funnel['spouseIncome'] ?? '');
+            $issuedContext = $funnel['spouse_income_context'] ?? null;
+        } else {
+            return null;
+        }
+
+        if (! FunnelIncomeBand::isKnown($band)) {
+            return null;
+        }
+
+        // $captureDetails is the handler's `details` array (assigned from
+        // $event['details'] in handleGroupedExtractTurn), so annual_income is a
+        // direct key here — NOT nested under another 'details'.
+        $enteredRaw = $captureDetails['annual_income'] ?? null;
+        if ($enteredRaw === null) {
+            // Spouse income is optional; user-income absence is handled by the
+            // income-required retry, not here.
+            return null;
+        }
+        $entered = (float) $enteredRaw;
+
+        $bandLabel = null;
+        try {
+            if (is_array($issuedContext)) {
+                $insideBand = FunnelIncomeBand::inContext($band, $issuedContext, $entered);
+                $bandLabel = FunnelIncomeBand::contextLabel($band, $issuedContext);
+            } else {
+                $insideBand = FunnelIncomeBand::inBand($band, $entered);
+            }
+            if ($insideBand) {
+                return null;
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+            try {
+                if (FunnelIncomeBand::inBand($band, $entered)) {
+                    return null;
+                }
+            } catch (\Throwable $fallbackException) {
+                report($fallbackException);
+
+                return null;
+            }
+        }
+
+        return [
+            'field' => $field,
+            'band' => $band,
+            'band_label' => $bandLabel,
+            'entered' => $entered,
+        ];
+    }
+
+    /**
+     * Plain-text challenge naming what the user told the funnel and what they
+     * just entered. No icons (Rule #15); British spelling.
+     *
+     * @param  array{field: string, band: string, band_label?: ?string, entered: float}  $mismatch
+     */
+    private function buildIncomeChallenge(array $mismatch, User $user): string
+    {
+        try {
+            $bandLabel = is_string($mismatch['band_label'] ?? null)
+                ? $mismatch['band_label']
+                : FunnelIncomeBand::label($mismatch['band']);
+        } catch (\Throwable $exception) {
+            report($exception);
+            $bandLabel = 'in the range you selected';
+        }
+        $entered = '£'.number_format($mismatch['entered']);
+
+        if ($mismatch['field'] === 'spouse') {
+            $whose = "your spouse's income was {$bandLabel}";
+            $question = "is {$entered} right for them?";
+        } else {
+            $whose = "your income was {$bandLabel}";
+            $question = "is {$entered} right?";
+        }
+
+        return "Earlier you told us {$whose}, but you've entered {$entered}. "
+            ."That changes your tax-saving calculation — {$question}";
+    }
+
+    /**
+     * If the just-captured income contradicts the funnel band, park a
+     * pending_income_challenge flag, emit the challenge + Continue/Change
+     * bubbles, and yield nothing further. Returns true when it challenged
+     * (caller must NOT advance), false otherwise.
+     */
+    private function maybeChallengeIncome(User $user, AiConversation $conversation, string $stateId, array $captureDetails): \Generator
+    {
+        $mismatch = $this->detectIncomeFunnelMismatch($user, $stateId, $captureDetails);
+        if ($mismatch === null) {
+            return false;
+        }
+
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['pending_income_challenge'] = $mismatch;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        $text = $this->buildIncomeChallenge($mismatch, $user);
+        $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => [
+                'onboarding_step' => $stateId,
+                'income_challenge' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $text,
+            'bubbles' => [
+                ['id' => 'continue', 'label' => 'Continue'],
+                ['id' => 'change', 'label' => 'Change'],
+            ],
+        ];
+
+        return true;
+    }
+
+    /**
+     * If the DOB just captured on the campaign DOB state came from a
+     * short two-digit-year format ("19/02/82", "19 Feb 82"), the century was
+     * inferred — park a pending_dob_confirm flag and confirm the full date
+     * back ("Your date of birth is 19th February 1982 — is that correct?")
+     * before advancing. Returns true when it asked (caller must NOT advance),
+     * false otherwise. Full-format dates advance exactly as before — no
+     * extra gate.
+     */
+    private function maybeConfirmShortDob(User $user, AiConversation $conversation, string $stateId, array $captureDetails, string $rawMessage): \Generator
+    {
+        if ($stateId !== OnboardingStateMachine::STATE_CAMPAIGN_DOB) {
+            return false;
+        }
+
+        $dob = (string) ($captureDetails['date_of_birth'] ?? '');
+        if ($dob === '') {
+            return false;
+        }
+
+        // Century inference only happens on a two-digit year: numeric
+        // ("19/02/82") or textual-month ("19 Feb 82") forms. A four-digit
+        // year needs no confirm.
+        $numericShort = preg_match('#\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2}(?!\d)#', $rawMessage) === 1;
+        $textualShort = preg_match('/\b\d{1,2}(?:st|nd|rd|th)?\s+(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\.?,?\s+\d{2}(?!\d)/i', $rawMessage) === 1;
+        if (! $numericShort && ! $textualShort) {
+            return false;
+        }
+
+        try {
+            $formatted = Carbon::parse($dob)->format('jS F Y');
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['pending_dob_confirm'] = ['dob' => $dob];
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        $text = "Your date of birth is **{$formatted}** — is that correct?";
+        $bubbles = [
+            ['id' => 'yes', 'label' => "Yes, that's right"],
+            ['id' => 'no', 'label' => 'No, change it'],
+        ];
+        $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => [
+                'onboarding_step' => $stateId,
+                'dob_confirm' => true,
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $text,
+            'bubbles' => $bubbles,
+        ];
+
+        return true;
     }
 
     /**
@@ -2057,9 +3402,9 @@ final class OnboardingChatDirector
         $knownFactsBlock = $this->memory->renderKnownFactsBlock($user, $conversation);
 
         $instructions = match ($toolName) {
-            'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
+            'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Dates may arrive in short formats — read numeric dates as UK day-first ("19/02/1982" is 19 February) and expand a two-digit year to the century that gives a plausible adult age ("19/02/82" or "19 Feb 82" → 1982-02-19, never 2082). Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
             'capture_spouse_details' => 'Extract the user\'s spouse or partner details. You need their first name, date of birth, and email address. If they mention an annual income, extract it too. Do NOT invent missing fields — if the user did not provide all three required fields, return an error.',
-            'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an age and a relationship (child, parent, or other_dependent). First names are optional. Map phrases: "son", "daughter", "step-daughter", "step-son", "kid", "child" → child. "mother", "father", "mum", "dad", "mum-in-law", etc. → parent. Sibling, nephew, elderly relative, friend → other_dependent. If the user says "two kids aged 4 and 7" return two entries with relationship=child.',
+            'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an exact date_of_birth in YYYY-MM-DD format and a relationship (child, parent, or other_dependent). First names are optional. Never convert an age into a date. If the user gives only an age, leave date_of_birth empty so the director asks for the exact date.',
             'capture_work_details' => 'Extract the user\'s employer or trade name, their role/position, and their gross annual income in GBP. Strip currency symbols and commas before returning the number. "75k" means 75000. Do not invent fields.',
             'capture_pension_history' => 'Extract the user\'s gross pension contributions for the recent tax years they mention. Strip currency symbols and commas ("90k" means 90000). The three most recent UK tax years are 2024/25, 2023/24, 2022/23. If the user gives a per-year breakdown, map each figure to its year. If they give a SINGLE figure with no per-year breakdown (e.g. "around £90,000"), do NOT guess a split across years and do NOT divide it — call the tool ONCE with that single figure under the most recent tax year (2024/25); the system will clarify total-vs-per-year with the user. "Zero" or "none" means a single entry of 0 for the most recent year. Always call the tool — never reply conversationally.',
             default => 'Extract the user\'s reply using the provided tool.',
@@ -2113,6 +3458,17 @@ PROMPT;
         array $state = []
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
+        // The state's true capture focus for the deterministic gap-fill.
+        // Campaign users carry selection 'savetax'/'pensioncheck', which maps
+        // to NO gap-fill tool — so the rescue mechanism never ran on any
+        // campaign delegated state (live 2026-07-23: the refused workplace
+        // pension answer was simply lost). States that declare capture_focus
+        // engage the ONE gap-fill with the right extractor.
+        $captureFocus = (string) ($state['capture_focus'] ?? $selection);
+        $delegatedMessage = $this->mergeUnresolvedCaptureMessage($conversation, $message);
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
 
         // April30Updates F-11 — duplicate-check guard.
         //
@@ -2127,7 +3483,7 @@ PROMPT;
         // recognises; estate / business / savetax fall through (no checker
         // mapping — handler-level dedup remains the floor for those).
         $entityType = match ($selection) {
-            'savings', 'budgeting' => 'savings_account',
+            'savings' => 'savings_account',
             'investment' => 'investment_account',
             'retirement' => 'pension',
             'protection' => 'protection_policy',
@@ -2136,7 +3492,7 @@ PROMPT;
         };
         if ($entityType !== null) {
             $intent = ['entity_type' => $entityType];
-            if ($this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+            if ($this->duplicateChecker->alreadyExists($user, $intent, $delegatedMessage)) {
                 Log::info('[OnboardingChatDirector] Duplicate capture suppressed', [
                     'user_id' => $user->id,
                     'conversation_id' => $conversation->id,
@@ -2158,11 +3514,19 @@ PROMPT;
         [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
 
+        // Update-by-id delegated states (e.g. campaign2_pension_pots) target an
+        // existing record, but the onboarding capture context surfaces only record
+        // counts — update_record has no entity_id to hit. Append the section's
+        // records (with ids) as reference data so the model can update the right
+        // row. Mirrors the verify-edit appendix; empty for capture states that
+        // declare no record_context (the create-only path is unchanged).
+        $restrictedPrompt .= $this->captureRecordContextAppendix($user, $state);
+
         try {
             $generator = $this->fynLoop->stream(
                 $user,
                 $conversation,
-                $message,
+                $delegatedMessage,
                 $currentRoute,
                 // May18 tripled-ack Fix A only fires under the data_capture
                 // persona (HasAiChat::captureTurnCompleteDirective gates on it).
@@ -2193,8 +3557,17 @@ PROMPT;
             // add_more turn gives the user a clear next step and any LLM
             // prose in that case is almost always off-script.
             $toolCallsSeen = 0;
+            $toolWritesLanded = 0;
+            $sawFailedWrite = false;
+            $pendingWriteFailures = [];
+            $failedWriteTools = [];
+            $ackShown = false;
             $contentBuffer = '';
+            $visibleResponse = '';
             $flushed = false;
+            $recordsCreated = [];
+            $modelRequestedClarification = false;
+            $delegatedDoneEvent = null;
 
             // A1 — answer-the-user-first. When the user's message asks a
             // question, the capture turn is allowed to answer it before
@@ -2216,19 +3589,54 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
-            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection, $userAskedQuestion) {
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$pendingWriteFailures, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, &$visibleResponse, $selection, $userAskedQuestion) {
                 $flushed = true;
-                if ($contentBuffer === '' || ($toolCallsSeen === 0 && ! $userAskedQuestion)) {
+                // Anti-parrot (live 19708→19712): the model narrates/echoes
+                // OUR scripted "couldn't save that" failure copy — from its
+                // tool feedback and from prior turns in the history — so each
+                // retry stacked the previous failure lines above the new one,
+                // and the echo tripped the clarification check below. System
+                // failure copy is composed deterministically after this flush
+                // (captureFailureText); it is never the model's to voice.
+                $contentBuffer = $this->stripEchoedFailureCopy($contentBuffer);
+                // WP-1 / F5 — drop the model's "Recorded…" ack when nothing was
+                // captured this turn: either no tool ran at all, or a write was
+                // attempted and FAILED / was blocked (a duplicate warning lands
+                // nothing). Its confident "Recorded — £200 monthly" must not reach
+                // the user, and suppressing it keeps $ackShown false so the honest
+                // failure line below can fire. A landed write, a fill_form (the B-1
+                // gap-fill creates it after done), or a question the answer belongs
+                // to still shows.
+                $nothingCaptured = $toolWritesLanded === 0 && $llmEmittedFills === []
+                    && ($toolCallsSeen === 0 || $sawFailedWrite);
+                $modelRequestedClarification = $nothingCaptured
+                    && $this->captureResponseRequestsClarification($contentBuffer);
+                if ($pendingWriteFailures !== [] && ! $userAskedQuestion && ! $modelRequestedClarification) {
                     $contentBuffer = '';
 
                     return null;
                 }
-                $cleaned = $this->filterOffScriptContent($contentBuffer, $selection, allowAnswer: $userAskedQuestion);
+                if ($contentBuffer === ''
+                    || ($nothingCaptured && ! $userAskedQuestion && ! $modelRequestedClarification)) {
+                    $contentBuffer = '';
+
+                    return null;
+                }
+                $cleaned = $this->filterOffScriptContent(
+                    $contentBuffer,
+                    $selection,
+                    allowAnswer: $userAskedQuestion || $modelRequestedClarification,
+                );
+                if ($nothingCaptured && $modelRequestedClarification) {
+                    $cleaned = $this->stripFalseCaptureAcknowledgement($cleaned);
+                }
                 $cleaned = $this->dedupeAckSentences($cleaned);
                 $contentBuffer = '';
                 if ($cleaned === '') {
                     return null;
                 }
+
+                $visibleResponse = $cleaned;
 
                 return ['type' => 'content', 'text' => $cleaned];
             };
@@ -2249,6 +3657,38 @@ PROMPT;
                     continue;
                 }
 
+                // WP-1 — landed-vs-failed signal from the delegated chat
+                // (HasAiChat emits it only on data_capture turns). Consumed
+                // here, never re-yielded: the frontend has no use for it, and
+                // the counts drive the honest advance gate below — a failed
+                // create must not count as a capture.
+                if ($type === 'capture_write_result') {
+                    $toolCallId = (string) ($event['tool_call_id'] ?? '');
+                    $retryOfToolCallId = (string) ($event['retry_of_tool_call_id'] ?? '');
+                    if (($event['landed'] ?? false) === true) {
+                        $toolWritesLanded++;
+                        if ($retryOfToolCallId !== '') {
+                            unset($pendingWriteFailures[$retryOfToolCallId]);
+                        }
+                    } elseif (($event['noop'] ?? false) !== true
+                        && ! ToolResults::isDuplicateSkip((array) ($event['result'] ?? []))) {
+                        $sawFailedWrite = true;
+                        $failureKey = $toolCallId !== '' ? $toolCallId : 'failure:'.count($pendingWriteFailures);
+                        $pendingWriteFailures[$failureKey] = [
+                            'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
+                            'tier_limit' => (($event['result']['error_type'] ?? '') === 'tier_limit_reached'),
+                        ];
+                        // Remember the tool so the gap-fill never blind-creates
+                        // the entity this failed (richer) attempt was refused for.
+                        $failedTool = trim((string) ($event['tool'] ?? $event['result']['tool'] ?? ''));
+                        if ($failedTool !== '' && ! in_array($failedTool, $failedWriteTools, true)) {
+                            $failedWriteTools[] = $failedTool;
+                        }
+                    }
+
+                    continue;
+                }
+
                 if ($type === 'fill_form') {
                     $llmEmittedFills[] = (array) ($event['fields'] ?? []);
                     yield $event;
@@ -2256,7 +3696,22 @@ PROMPT;
                     continue;
                 }
 
+                if (self::isRecordRowEvent($type)) {
+                    $record = self::recordRowFromEvent($event);
+                    $recordKey = $record['type'].':'.(string) $record['id'];
+                    $alreadyTracked = collect($recordsCreated)->contains(
+                        static fn (array $tracked): bool => $recordKey === $tracked['type'].':'.(string) $tracked['id']
+                    );
+                    if (! $alreadyTracked) {
+                        $recordsCreated[] = $record;
+                    }
+                    yield $event;
+
+                    continue;
+                }
+
                 if ($type === 'done') {
+                    $delegatedDoneEvent = $event;
                     // Flush the buffered ack content now, but DON'T forward the
                     // delegated chat's own `done` — the director emits the next
                     // turn (emitTurnForState / emitTerminalNavigationTurn) after
@@ -2267,13 +3722,19 @@ PROMPT;
                     // rendered. Mirrors the grouped_extract path's done-swallow.
                     $flushEvent = $flushBuffer();
                     if ($flushEvent !== null) {
+                        $ackShown = true;
                         yield $flushEvent;
                     }
 
                     // B-1 — synthesize tool calls for entities the LLM
                     // dropped BEFORE the done marker so the frontend's
                     // aiFormFill queue sees them in a single turn.
-                    yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
+                    foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
+                        if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
+                            $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
+                        }
+                        yield $gapFillEvent;
+                    }
 
                     continue;
                 }
@@ -2287,9 +3748,15 @@ PROMPT;
             if (! $flushed) {
                 $flushEvent = $flushBuffer();
                 if ($flushEvent !== null) {
+                    $ackShown = true;
                     yield $flushEvent;
                 }
-                yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
+                foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
+                    if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
+                        $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
+                    }
+                    yield $gapFillEvent;
+                }
             }
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Asset capture delegation failed', [
@@ -2325,10 +3792,94 @@ PROMPT;
         // What's salary sacrifice?") would otherwise stall the walk forever.
         // We advance once the user gave a substantive answer alongside the
         // question; a bare question with no answer still re-asks.
-        $capturedSomething = $toolCallsSeen > 0 || count($llmEmittedFills) > 0;
+        //
+        // WP-1 — "captured" means a write LANDED, not merely that the model
+        // attempted one. A failed create used to count (toolCallsSeen), so a
+        // question turn whose only write failed advanced as if captured.
+        $capturedSomething = $toolWritesLanded > 0 || count($llmEmittedFills) > 0 || $recordsCreated !== [];
+
+        // WP-1 / F5 — every attempted write failed or was blocked and the
+        // model's success ack was suppressed above: say plainly what happened
+        // rather than moving on in silence. A validation failure names the
+        // reason; a blocked duplicate (no failure message) gets a truthful
+        // "nothing new" line so Fyn never claims a figure it did not record.
+        if ($pendingWriteFailures !== [] && ! $ackShown) {
+            $failureText = $this->captureFailureText(array_values($pendingWriteFailures))
+                ?? "I couldn't record anything new there. If a figure has changed, "
+                    .'tell me the specific amount and I will update it.';
+            yield ['type' => 'content', 'text' => $failureText];
+            $visibleResponse = $failureText;
+            $ackShown = true;
+        }
+
+        // A failed write is never completion of the current capture step. Keep
+        // the state parked, but do not replay the full scripted question: the
+        // user has already supplied those facts and should see only the missing
+        // detail requested above. The next reply remains in this same state.
+        if ($pendingWriteFailures !== []) {
+            $failureMessage = $this->persistFailedCaptureResponse(
+                $conversation,
+                $assistantBaselineId,
+                $visibleResponse,
+                $currentStateId,
+            );
+            $this->recordProgress(
+                $user,
+                $currentStateId,
+                ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
+            );
+            yield ['type' => 'done', 'message_id' => $failureMessage->id];
+
+            return;
+        }
+
+        // A model may spot missing capture facts before attempting the write
+        // tool. That is a valid clarification turn, not completion of the
+        // current state. Keep the state parked and finish this SSE response
+        // with the delegated message's own done marker; advancing here would
+        // immediately follow the clarification with a false "I've saved..."
+        // verification announcement even though no write was attempted.
+        if ($modelRequestedClarification && ! $capturedSomething) {
+            $this->tagCaptureClarification($conversation, $assistantBaselineId);
+            $this->recordProgress(
+                $user,
+                $currentStateId,
+                ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
+            );
+
+            // CSJ decided policy (reconfirmed 2026-07-23): no question is
+            // ever dropped. When the model's turn only re-asked without
+            // answering the user's question, dispatch the interruption —
+            // inline answer or acknowledge + defer — before ending the
+            // turn. The dispatcher re-emits the step, keeping the walk's
+            // re-ask; without this the question silently vanished.
+            if ($userAskedQuestion) {
+                $interruption = $this->handleInterruption(
+                    $user, $conversation, $currentStateId, $state, $message, $currentRoute
+                );
+                if ($interruption !== null) {
+                    yield from $interruption;
+
+                    return;
+                }
+            }
+
+            yield $delegatedDoneEvent ?? ['type' => 'done'];
+
+            return;
+        }
+
         $advanceOnAnsweredQuestion = ($state['advance_on_answered_question'] ?? false) === true
             && $this->messageHasSubstantiveAnswer($message);
         if ($userAskedQuestion && ! $capturedSomething && ! $advanceOnAnsweredQuestion) {
+            // A1 — this turn's whole content was a plain answer to the
+            // user's question (no capture, no clarification — that branch
+            // already returned above). Tag the just-persisted answer so
+            // mergeUnresolvedCaptureMessage's followup scan and
+            // resolvePendingInterruptionCapture's re-arm check never mistake
+            // its own wording for a genuine capture clarification.
+            $this->tagInterruptionAnswer($conversation, $assistantBaselineId);
+
             $this->recordProgress(
                 $user,
                 $currentStateId,
@@ -2337,6 +3888,41 @@ PROMPT;
             yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
 
             return;
+        }
+
+        // A turn that produced NOTHING — no write landed, no tool attempted,
+        // no failure to report, and no visible reply (the model's only output
+        // was stripped system copy, or silence) — must never advance the
+        // walk: "I've saved your X" after a zero-output turn is a lie and the
+        // user's answer is silently lost (live 2026-07-23: grok voiced the
+        // injection refusal at the workplace-pension step, the strip emptied
+        // it, and the walk advanced claiming the pension was saved while
+        // nothing was written anywhere). Re-ask instead; the retype re-runs
+        // the capture on a clean turn.
+        if (! $capturedSomething
+            && ! $ackShown
+            && $toolCallsSeen === 0
+            && $pendingWriteFailures === []
+            && trim($visibleResponse) === ''
+            // A negative/none declaration legitimately writes nothing — "No
+            // personal pensions." completes the step even when the model
+            // stays silent; re-asking it would loop (live 2026-07-23).
+            // …and so does a completion declaration — "That's all my
+            // savings." closes the section (live 2026-07-23, msg 19859:
+            // grok refused it, the strip emptied the turn, and the guard
+            // re-asked "Sorry, I didn't catch that").
+            && preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) !== 1) {
+            yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
+
+            return;
+        }
+
+        if ($recordsCreated !== []) {
+            yield [
+                'type' => 'capture_complete',
+                'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
+                'records_created' => $recordsCreated,
+            ];
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
@@ -2411,8 +3997,20 @@ PROMPT;
         $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
         $section = (string) (($context['verify_section'] ?? '') ?: '');
 
-        $toolCallsSeen = 0;
+        // Snapshot the section's records before the edit so the read-back
+        // below can name exactly what changed (and its resulting amount).
+        $editScope = $this->verifyEditScope($user, $section, $message);
+        $preEdit = $this->verifyEditSnapshot($user, $section);
+        $preEditFields = $this->verifyEditFieldSnapshot($user, $editScope);
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
+
+        $toolWritesLanded = 0;
+        $sawFailedWrite = false;
+        $pendingWriteFailures = [];
         $contentBuffer = '';
+        $providerSnapshot = $this->verifyEditProviderSnapshot();
 
         try {
             $generator = $this->fynLoop->stream(
@@ -2422,15 +4020,15 @@ PROMPT;
                 $currentRoute,
                 persona: 'data_capture',
                 systemPromptOverride: $this->buildVerifyEditPrompt($user, $section),
-                // The capture bucket (FynCaptureTurnInstructions) is create-oriented
-                // and references the focus's create_ tools; stripping them to
-                // update-only confuses the model into the security refusal. Keep the
-                // full focus tool set (its Retraction clause already routes a
-                // correction to update_record/update_profile) and supply the record
-                // ids it normally lacks via the prompt appendix below.
-                allowedTools: OnboardingPromptBuilder::toolsForFocus($this->verifyEditFocus($section)),
+                // Verify edits use their own update-only context bucket. The
+                // ordinary capture bucket is create-oriented and caused the model
+                // to narrate an edit without calling update_record.
+                allowedTools: null,
                 persistUserMessage: false, // already saved at top of handleUserMessage
-                unifiedFocus: $this->verifyEditFocus($section),
+                toolsListOverride: $this->verifyEditToolDefinitions($user, $section, $message, $providerSnapshot),
+                unifiedFocus: 'verify_edit_'.$section,
+                verifyEditScope: $editScope,
+                providerOverride: $providerSnapshot,
             );
 
             foreach ($generator as $event) {
@@ -2443,8 +4041,29 @@ PROMPT;
                 }
 
                 if ($type === 'tool_use' || $type === 'tool_success') {
-                    $toolCallsSeen++;
                     yield $event;
+
+                    continue;
+                }
+
+                // The delegated data-capture loop reports whether each update
+                // actually committed. Consume this internal frame here: only a
+                // landed write may return the journey to its review screen.
+                if ($type === 'capture_write_result') {
+                    $toolCallId = (string) ($event['tool_call_id'] ?? '');
+                    $retryOfToolCallId = (string) ($event['retry_of_tool_call_id'] ?? '');
+                    if (($event['landed'] ?? false) === true) {
+                        $toolWritesLanded++;
+                        if ($retryOfToolCallId !== '') {
+                            unset($pendingWriteFailures[$retryOfToolCallId]);
+                        }
+                    } elseif (($event['noop'] ?? false) !== true) {
+                        $sawFailedWrite = true;
+                        $failureKey = $toolCallId !== '' ? $toolCallId : 'failure:'.count($pendingWriteFailures);
+                        $pendingWriteFailures[$failureKey] = is_string($event['message'] ?? null)
+                            ? (string) $event['message']
+                            : '';
+                    }
 
                     continue;
                 }
@@ -2472,32 +4091,80 @@ PROMPT;
                 'error' => $e->getMessage(),
             ]);
 
-            yield ['type' => 'content', 'text' => 'I had trouble applying that change. Could you tell me the specific value, for example "change my Cash ISA balance to £25,000"?'];
-            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+            $failureText = 'I had trouble applying that change. Tell me the exact value you want to replace and I will try again.';
+            $failureMessage = $this->persistVerifyEditResponse(
+                $conversation,
+                $assistantBaselineId,
+                $failureText,
+                $currentStateId,
+                'verify_edit_failed',
+            );
+            yield ['type' => 'content', 'text' => $failureText];
+            yield ['type' => 'done', 'message_id' => $failureMessage->id];
 
             return;
         }
 
-        $ack = trim($contentBuffer);
+        $persistedAck = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $assistantBaselineId)
+            ->latest('id')
+            ->first();
+        $ack = $this->dedupeAckSentences(trim((string) ($persistedAck?->content ?: $contentBuffer)));
 
-        // Honesty gate — if the model applied no update this turn, do NOT advance
-        // AND do NOT surface its acknowledgement. grok will sometimes narrate a
-        // change ("Got it — updated your balance to £X") without actually calling
-        // a write tool; showing that ack would have Fyn claim a change it never
-        // made. Suppress it, re-ask for the specific value, and stay on the edit
-        // state so the next turn cannot falsely claim success.
-        if ($toolCallsSeen === 0) {
-            yield ['type' => 'content', 'text' => "I wasn't able to apply that change. Could you tell me the specific value, for example \"change my Cash ISA balance to £25,000\"?"];
-            yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+        // Honesty gate — a tool attempt is not proof of a write. A failed or
+        // blocked update stays parked on this edit state and its model success
+        // prose is replaced in-place so live SSE and a reloaded transcript agree.
+        // A legitimate no-tool clarification is preserved verbatim.
+        if ($toolWritesLanded === 0 || $pendingWriteFailures !== []) {
+            $isClarification = ! $sawFailedWrite
+                && $this->captureResponseRequestsClarification($ack);
+            if ($isClarification) {
+                $responseText = $this->stripFalseCaptureAcknowledgement($ack);
+                $metadataFlag = 'verify_edit_clarification';
+            } else {
+                $failureReason = collect($pendingWriteFailures)->first(fn (string $failure): bool => $failure !== '');
+                $responseText = is_string($failureReason)
+                    ? "I couldn't apply that change — ".rtrim($failureReason, '.').'. Tell me the corrected value and I will try again.'
+                    : "I wasn't able to apply that change. Tell me the exact value you want to replace and I will try again.";
+                $metadataFlag = 'verify_edit_failed';
+            }
+            if ($responseText === '') {
+                $responseText = "I wasn't able to apply that change. Tell me the exact value you want to replace and I will try again.";
+                $metadataFlag = 'verify_edit_failed';
+            }
+
+            $responseMessage = $this->persistVerifyEditResponse(
+                $conversation,
+                $assistantBaselineId,
+                $responseText,
+                $currentStateId,
+                $metadataFlag,
+            );
+            yield ['type' => 'content', 'text' => $responseText];
+            yield ['type' => 'done', 'message_id' => $responseMessage->id];
 
             return;
         }
 
-        // A write tool ran — safe to surface the model's acknowledgement, then
-        // advance to re-show Gate 2 (campaign_verify_navigate).
-        if ($ack !== '') {
-            yield ['type' => 'content', 'text' => $ack];
+        // Deterministic read-back: name the resulting records from the
+        // database — "add £20 to HSBC" must come back as the stored total, so
+        // the user acknowledges the actual balance, not the model's
+        // paraphrase of the instruction.
+        $readBack = $this->verifyEditFieldReadBack($user, $editScope, $preEditFields)
+            ?? $this->verifyEditReadBack($user, $section, $preEdit);
+        $responseText = $readBack ?? $ack;
+        if ($responseText === '') {
+            $responseText = 'The corrected value is now saved.';
         }
+        $this->persistVerifyEditResponse(
+            $conversation,
+            $assistantBaselineId,
+            $responseText,
+            $currentStateId,
+            $readBack !== null ? 'verify_edit_readback' : 'verify_edit_success',
+        );
+        yield ['type' => 'content', 'text' => $responseText];
 
         $this->recordProgress(
             $user,
@@ -2530,6 +4197,122 @@ PROMPT;
      * the right row. Under legacy prompt mode the unified prompt is empty, so we
      * fall back to the asset-capture prompt as the base.
      */
+    /**
+     * Deterministic guard over the model's side-question answer (CSJ
+     * 2026-07-23): dedupe the rambled repeat, then keep sentences only up
+     * to the first question or bold step-prompt echo — the reply is the
+     * ANSWER; the walk re-asks its own question in the next bubble. Falls
+     * back to the deduped text when stripping would empty the answer (a
+     * pure-question reply — better voiced than silently dropped).
+     */
+    private function definitiveAnswerText(string $text): string
+    {
+        $text = AckSentenceDeduper::dedupe(trim($text));
+
+        $sentences = preg_split('/(?<=[.!?])\s+/u', $text) ?: [];
+        $kept = [];
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            if ($sentence === '') {
+                continue;
+            }
+            if (str_contains($sentence, '**') || str_ends_with($sentence, '?')) {
+                break;
+            }
+            $kept[] = $sentence;
+        }
+
+        return $kept !== [] ? implode(' ', $kept) : $text;
+    }
+
+    /**
+     * System prompt for the inline interruption-answer turn: the unified
+     * base plus turn context framing the side question as answerable
+     * outright (CSJ direction 2026-07-23: a straightforward definitive
+     * question gets a straight answer in any situation). Reference-style
+     * framing, not an instruction block — see buildVerifyEditPrompt's note
+     * on the prompt-injection refusal.
+     */
+    private function buildInterruptionAnswerPrompt(): string
+    {
+        $context = "\n\nTurn context — the user has paused their onboarding walk to ask a side question. "
+            .'Give the factual answer in ONE short paragraph of at most two sentences; the same answer applies to everyone, so it is general United Kingdom guidance, and it must be accurate under UK (HMRC) tax rules (for example, gross annual income means income before any deductions such as Income Tax, National Insurance and your own pension contributions — but it does not include employer pension contributions, which your employer pays on top of your salary). '
+            .'For this turn the usual missing-data guidance does not apply: no mention of personalised answers, no naming of missing data, no page or navigation suggestions, no offers of further help, and no closing question of any kind. '
+            .'The reply contains only the answer — nothing else.';
+
+        return FynSystemPrompt::text().$context;
+    }
+
+    /**
+     * THE failure-text composer for capture write failures (Rule 20 — the
+     * delegated and inline paths previously composed divergently: the
+     * delegated path appended the missing-detail tail to tier-limit
+     * messages, which a plan limit cannot satisfy; live /m msg 19716).
+     * A tier-limit message wins and shows verbatim (it carries its own
+     * upgrade call to action); otherwise the first named reason composes the
+     * missing-detail line. The transport placeholder "The write failed." is
+     * not a reason. Returns null when no failure carries a usable message.
+     *
+     * @param  list<array{message?: string, tier_limit?: bool}>  $failures
+     */
+    private function captureFailureText(array $failures): ?string
+    {
+        $tier = collect($failures)->first(
+            fn (array $failure): bool => ($failure['tier_limit'] ?? false) === true
+                && trim((string) ($failure['message'] ?? '')) !== ''
+        );
+        if ($tier !== null) {
+            return (string) $tier['message'];
+        }
+
+        $reason = collect($failures)
+            ->map(fn (array $failure): string => trim((string) ($failure['message'] ?? '')))
+            ->first(fn (string $message): bool => $message !== '' && $message !== 'The write failed.');
+
+        if (! is_string($reason)) {
+            return null;
+        }
+
+        // A reason already phrased as a question is a request for one more
+        // detail, not a failure report. Asking it plainly is what a person
+        // would do; wrapping it in an apology and a system instruction is what
+        // we used to do, and it read as broken (CSJ 2026-08-17, live).
+        if (str_ends_with($reason, '?')) {
+            return $reason;
+        }
+
+        return "I couldn't save that — ".rtrim($reason, '.').'. Give me the missing detail and I will try again.';
+    }
+
+    /**
+     * Strip sentences the model echoed from OUR scripted system copy — copy
+     * that is never the model's to voice on a capture turn. Two classes:
+     * failure lines ("I couldn't save that — …", parroted from tool feedback
+     * and prior turns; live msgs 19708→19712 stacked them on every retry, and
+     * the echo tripped the clarification heuristics), and the prompt-injection
+     * refusal ("I can only help with financial planning questions…", misfired
+     * live at the workplace-pension step on "It's not salary sacrifice" — a
+     * user answering OUR scripted question is by definition not an attack).
+     * Failure copy is composed deterministically by captureFailureText.
+     */
+    private function stripEchoedFailureCopy(string $text): string
+    {
+        // Sentence scan: a "." inside a decimal ("4.2%") is not a boundary —
+        // treating it as one truncated the echo mid-number and left a "2%."
+        // fragment in the visible bubble (live 2026-07-23, user 292 msg 19837).
+        $sentenceChars = '(?:[^.!?\n]|\.(?=\d))*';
+        $stripped = preg_replace(
+            [
+                '/'.$sentenceChars.'couldn[\x{2019}\x{0027}]t\s+save\s+that'.$sentenceChars.'[.!?]?\s*/iu',
+                '/'.$sentenceChars.'only\s+help\s+with\s+financial\s+planning\s+questions'.$sentenceChars.'[.!?]?\s*(?:How\s+can\s+I\s+assist\s+with\s+your\s+finances\?)?\s*/iu',
+            ],
+            '',
+            $text,
+        );
+
+        return trim(is_string($stripped) ? $stripped : $text);
+    }
+
     private function buildVerifyEditPrompt(User $user, string $section): string
     {
         $base = FynPromptMode::isUnified()
@@ -2556,6 +4339,597 @@ PROMPT;
      * types) for the verify-edit prompt, or a note that the section is stored
      * as profile fields (update_profile).
      */
+    /**
+     * Reference-data appendix for a delegated capture state that UPDATES an
+     * existing record by id (declared via the state's `record_context` section).
+     * The onboarding capture context surfaces only record counts, so update_record
+     * would have no entity_id to target; this lists the section's records with
+     * their ids. Non-directive framing (an instruction-style override block trips
+     * the model's prompt-injection refusal — see buildVerifyEditPrompt). Returns
+     * '' for states with no record_context, so the create-only capture path is
+     * byte-identical to before.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function captureRecordContextAppendix(User $user, array $state): string
+    {
+        $section = $state['record_context'] ?? null;
+        if (! is_string($section) || $section === '') {
+            return '';
+        }
+
+        // Contribution mode (campaign_pension_contribs): the user may be adding a
+        // contribution to a pension already on file, or describing a genuinely new
+        // one. Only steer toward update when an existing PERSONAL pension is present
+        // — a user whose only pension is the workplace scheme (occupational) still
+        // creates the new SIPP, so the standard savetax path is byte-identical.
+        if (($state['record_context_mode'] ?? '') === 'contribution') {
+            $personal = app(PensionStore::class)->personalDcPensionsFor($user);
+            if ($personal->isEmpty()) {
+                return '';
+            }
+            $rows = $personal
+                ->map(fn ($p): string => '- entity_type: dc_pension, entity_id: '.$p->id.' — "'
+                    .$p->scheme_name.'" ('.($p->provider ?: 'provider unknown').')')
+                ->implode("\n");
+
+            return "\n\nReference — the user's existing personal pensions:\n".$rows
+                ."\n\nIf the contribution the user just described is a payment into one of the "
+                .'pensions listed above (for example "£200 a month into my personal pension"), '
+                .'call update_record with that entity_id to set its monthly_contribution_amount '
+                .'— do NOT create a new pension for it. Only call create_pension when they are '
+                .'describing a genuinely different pension that is not listed above.';
+        }
+
+        // Reference mode (campaign_bank_accounts): a create-oriented state
+        // whose message may ALSO reference records already on file (live
+        // 2026-07-23: "the Santander pays 4%" — with no ids in context the
+        // model called update_record with entity_id 0 and both rate updates
+        // were lost). List the section's records so updates target the real
+        // id; accounts not listed are still created as normal.
+        if (($state['record_context_mode'] ?? '') === 'reference') {
+            return "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section).":\n"
+                .$this->verifyEditRecordContext($user, $section)
+                ."\n\nWhen the user gives a value for one of the records listed above (for "
+                .'example its interest rate or balance), call update_record with that '
+                .'record\'s entity_id — never entity_id 0, and never a new create for it. '
+                .'Anything not listed above is a new record — create it as normal.';
+        }
+
+        return "\n\nReference — the user's existing ".$this->sectionLabelForEdit($section)
+            .' (record the value the user gives against the matching entity_id with '
+            ."update_record; do not add a new record):\n"
+            .$this->verifyEditRecordContext($user, $section);
+    }
+
+    /**
+     * Build a provider-native, update-only catalogue whose record identifiers
+     * and profile sections are narrowed to the review currently on screen.
+     * The dispatch scope below enforces the same map server-side; the narrowed
+     * schema helps the model choose the valid target on its first attempt.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function verifyEditToolDefinitions(User $user, string $section, string $message = '', ?string $providerSnapshot = null): array
+    {
+        $provider = $providerSnapshot ?? $this->verifyEditProviderSnapshot();
+        $tools = $provider === 'xai'
+            ? app(XaiToolDefinitions::class)->getTools(false)
+            : app(AiToolDefinitions::class)->getTools(false);
+        if ($provider !== 'xai') {
+            $tools = array_map(static function (array $tool): array {
+                if (isset($tool['parameters']) && ! isset($tool['input_schema'])) {
+                    return [
+                        'name' => $tool['name'],
+                        'description' => $tool['description'],
+                        'input_schema' => $tool['parameters'],
+                    ];
+                }
+
+                return $tool;
+            }, $tools);
+        }
+        $scope = $this->verifyEditScope($user, $section, $message);
+        $allowed = array_flip($scope['tools']);
+        $entityTypes = array_keys($scope['records']);
+        $entityIds = collect($scope['records'])->flatten()->map(fn ($id): int => (int) $id)->unique()->values()->all();
+
+        $tools = array_values(array_filter($tools, static function (array $tool) use ($allowed): bool {
+            $name = $tool['name'] ?? ($tool['function']['name'] ?? null);
+
+            return is_string($name) && isset($allowed[$name]);
+        }));
+        $tools = array_values(array_filter($tools, static function (array $tool) use ($entityIds, $scope): bool {
+            $name = $tool['name'] ?? ($tool['function']['name'] ?? null);
+
+            return match ($name) {
+                'update_record' => $entityIds !== [],
+                'update_profile' => $scope['profile_sections'] !== [],
+                default => ($scope['tool_fields'][$name] ?? []) !== [],
+            };
+        }));
+
+        foreach ($tools as &$tool) {
+            $isXai = isset($tool['function']);
+            $name = $tool['name'] ?? ($tool['function']['name'] ?? null);
+            if ($isXai) {
+                $parameters = &$tool['function']['parameters'];
+            } else {
+                $parameters = &$tool['input_schema'];
+            }
+            if (! is_array($parameters)) {
+                continue;
+            }
+
+            if ($name === 'update_record') {
+                if (isset($parameters['oneOf']) && is_array($parameters['oneOf'])) {
+                    $parameters['oneOf'] = array_values(array_filter(array_map(
+                        function (array $branch) use ($scope): ?array {
+                            $entityType = $branch['properties']['entity_type']['const'] ?? null;
+                            if (! is_string($entityType) || ! isset($scope['records'][$entityType])) {
+                                return null;
+                            }
+                            $branch['properties']['entity_id']['enum'] = $scope['records'][$entityType];
+                            $allowedFields = array_flip($scope['record_fields'][$entityType] ?? []);
+                            $properties = $branch['properties']['fields']['properties'] ?? [];
+                            $branch['properties']['fields']['properties'] = $this->verifyEditFieldProperties($properties, $allowedFields);
+                            $branch['properties']['fields']['required'] = array_keys($allowedFields);
+                            $branch['properties']['fields']['additionalProperties'] = false;
+
+                            return $branch;
+                        },
+                        $parameters['oneOf'],
+                    )));
+                } else {
+                    $parameters['properties']['entity_type']['enum'] = $entityTypes;
+                    $parameters['properties']['entity_id']['enum'] = $entityIds;
+                    $parameters['properties']['entity_id']['description'] = 'The identifier of a record on the current review screen.';
+                    $allowedFields = collect($scope['record_fields'])->flatten()->unique()->flip()->all();
+                    $properties = $parameters['properties']['fields']['properties'] ?? [];
+                    $parameters['properties']['fields']['properties'] = $this->verifyEditFieldProperties($properties, $allowedFields);
+                    $parameters['properties']['fields']['required'] = array_keys($allowedFields);
+                    $parameters['properties']['fields']['additionalProperties'] = false;
+                }
+            }
+
+            if ($name === 'update_profile') {
+                if ($isXai) {
+                    $tool['function']['description'] = 'Update only the existing profile values shown on the current review screen.';
+                } else {
+                    $tool['description'] = 'Update only the existing profile values shown on the current review screen.';
+                }
+                $parameters['properties']['section']['enum'] = $scope['profile_sections'];
+                $parameters['properties']['section']['description'] = 'The profile section on the current review screen.';
+                $parameters['properties']['fields']['description'] = 'Only the replacement fields explicitly supplied by the user.';
+                $profileFieldNames = collect($scope['profile_fields'])->flatten()->unique()->values();
+                $parameters['properties']['fields']['properties'] = $profileFieldNames
+                    ->mapWithKeys(fn (string $field): array => [
+                        $field => ['type' => ['string', 'number', 'boolean', 'null']],
+                    ])->all();
+                $parameters['properties']['fields']['required'] = $profileFieldNames->all();
+                $parameters['properties']['fields']['additionalProperties'] = false;
+            }
+
+            if (! in_array($name, ['update_record', 'update_profile'], true)) {
+                $allowedFields = array_flip($scope['tool_fields'][$name] ?? []);
+                $properties = $parameters['properties'] ?? [];
+                $parameters['properties'] = array_intersect_key($properties, $allowedFields);
+                $parameters['required'] = array_keys($allowedFields);
+                $parameters['additionalProperties'] = false;
+            }
+        }
+        unset($tool);
+
+        return $tools;
+    }
+
+    /**
+     * Keep the provider's field schema when it exists and add a strict,
+     * generic property for newer allowlisted fields absent from an older
+     * provider catalogue. A field listed only in `required` but missing from
+     * `properties` cannot be emitted by strict function calling.
+     *
+     * @param  array<string, mixed>  $properties
+     * @param  array<string, mixed>  $allowedFields
+     * @return array<string, mixed>
+     */
+    private function verifyEditFieldProperties(array $properties, array $allowedFields): array
+    {
+        return collect(array_keys($allowedFields))->mapWithKeys(
+            fn (string $field): array => [
+                $field => $properties[$field] ?? [
+                    'type' => ['string', 'number', 'boolean', 'null'],
+                    'description' => 'The replacement value explicitly supplied by the user for '.$field.'.',
+                ],
+            ],
+        )->all();
+    }
+
+    private function verifyEditProviderSnapshot(): string
+    {
+        $providerVersion = (int) Cache::get('ai_provider_version', 0);
+
+        return (string) ($providerVersion > 0
+            ? Cache::get('ai_provider:v'.$providerVersion, config('services.ai_provider', 'anthropic'))
+            : Cache::get('ai_provider', config('services.ai_provider', 'anthropic')));
+    }
+
+    /**
+     * @return array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}
+     */
+    private function verifyEditScope(User $user, string $section, string $message = ''): array
+    {
+        $positiveMessage = mb_strtolower(trim($message));
+        $records = $this->verifyEditRecordScope($user, $section, $positiveMessage);
+        $recordFields = [];
+        foreach (array_keys($records) as $entityType) {
+            $fields = $this->verifyEditRecordFields($entityType, $positiveMessage);
+            if ($section === 'recap') {
+                $fields = array_values(array_intersect($fields, match ($entityType) {
+                    'dc_pension' => ['current_fund_value', 'employee_contribution_percent'],
+                    'db_pension' => ['accrued_annual_pension'],
+                    default => [],
+                }));
+            }
+            if ($fields === []) {
+                unset($records[$entityType]);
+            } else {
+                $recordFields[$entityType] = $fields;
+            }
+        }
+
+        $profileFields = $this->verifyEditProfileFields($section, $positiveMessage);
+        $profileSections = array_keys($profileFields);
+        $toolFields = $this->verifyEditToolFields($section, $positiveMessage);
+
+        if ($section === 'state_pension' && ! $user->statePension()->exists()) {
+            $toolFields = [];
+        }
+        if ($section === 'retirement_goals' && ! $user->retirementProfile()->exists()) {
+            $toolFields = [];
+        }
+
+        $tools = array_values(array_filter(
+            FynVerifyEditTurnInstructions::toolsForSection($section),
+            static fn (string $tool): bool => match ($tool) {
+                'update_record' => $records !== [],
+                'update_profile' => $profileSections !== [],
+                default => ($toolFields[$tool] ?? []) !== [],
+            },
+        ));
+
+        return [
+            'tools' => $tools,
+            'records' => $records,
+            'profile_sections' => $profileSections,
+            'record_fields' => $recordFields,
+            'profile_fields' => $profileFields,
+            'tool_fields' => $toolFields,
+        ];
+    }
+
+    /** @return array<string, list<int>> */
+    private function verifyEditRecordScope(User $user, string $section, string $message): array
+    {
+        $candidates = collect();
+        if (in_array($section, ['savings'], true)) {
+            $candidates = app(SavingsStore::class)->forUser($user)->map(fn ($record): array => [
+                'type' => 'savings_account', 'id' => (int) $record->id,
+                'labels' => [$record->account_name, $record->institution],
+            ]);
+        } elseif ($section === 'investments') {
+            $candidates = app(InvestmentAccountStore::class)->forUser($user)->map(fn ($record): array => [
+                'type' => 'investment_account', 'id' => (int) $record->id,
+                'labels' => [$record->account_name, $record->provider],
+            ]);
+        } elseif (in_array($section, ['pensions', 'recap'], true)) {
+            $dc = app(PensionStore::class)->forUserByType($user, 'dc')->map(fn ($record): array => [
+                'type' => 'dc_pension', 'id' => (int) $record->id,
+                'labels' => [$record->scheme_name, $record->provider],
+            ]);
+            $db = app(PensionStore::class)->forUserByType($user, 'db')->map(fn ($record): array => [
+                'type' => 'db_pension', 'id' => (int) $record->id,
+                'labels' => [$record->scheme_name, $record->provider],
+            ]);
+            $candidates = $dc->concat($db);
+        } elseif ($section === 'protection') {
+            $candidates = LifeInsurancePolicy::where('user_id', $user->id)->get()->map(fn ($record): array => [
+                'type' => 'life_insurance', 'id' => (int) $record->id,
+                'labels' => [$record->provider, $record->policy_type, 'life'],
+            ])->concat(CriticalIllnessPolicy::where('user_id', $user->id)->get()->map(fn ($record): array => [
+                'type' => 'critical_illness', 'id' => (int) $record->id,
+                'labels' => [$record->provider, 'critical illness'],
+            ]))->concat(IncomeProtectionPolicy::where('user_id', $user->id)->get()->map(fn ($record): array => [
+                'type' => 'income_protection', 'id' => (int) $record->id,
+                'labels' => [$record->provider, 'income protection'],
+            ]));
+        } elseif ($section === 'goals') {
+            $candidates = Goal::forUserOrJoint($user->id)->get()->map(fn ($record): array => [
+                'type' => 'goal', 'id' => (int) $record->id,
+                'labels' => [$record->goal_name],
+            ]);
+        } elseif ($section === 'estate') {
+            $candidates = app(PropertyStore::class)->forUser($user)->map(fn ($record): array => [
+                'type' => 'property', 'id' => (int) $record->id,
+                'labels' => [$record->address_line_1, $record->property_type],
+            ])->concat($user->trusts()->get()->map(fn ($record): array => [
+                'type' => 'trust', 'id' => (int) $record->id,
+                'labels' => [$record->trust_name],
+            ]))->concat($user->gifts()->get()->map(fn ($record): array => [
+                'type' => 'estate_gift', 'id' => (int) $record->id,
+                'labels' => [$record->recipient],
+            ]))->concat($user->assets()->get()->map(fn ($record): array => [
+                'type' => 'estate_asset', 'id' => (int) $record->id,
+                'labels' => [$record->asset_name],
+            ]))->concat(BusinessInterest::where(fn ($query) => $query
+                ->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id))->get()->map(fn ($record): array => [
+                    'type' => 'business_interest', 'id' => (int) $record->id,
+                    'labels' => [$record->business_name],
+                ]))->concat(Chattel::where(fn ($query) => $query
+                ->where('user_id', $user->id)
+                ->orWhere('joint_owner_id', $user->id))->get()->map(fn ($record): array => [
+                    'type' => 'chattel', 'id' => (int) $record->id,
+                    'labels' => [$record->name],
+                ]));
+        }
+
+        if ($candidates->isEmpty()) {
+            return [];
+        }
+        if ($candidates->count() === 1) {
+            $selected = $candidates;
+        } elseif (preg_match('/\b(?:all|both|each|every)\b/u', $message) === 1) {
+            // "both rates are wrong" names every candidate — a bulk
+            // correction edits each record rather than failing as ambiguous
+            // (live 2026-07-23: the exactly-one rule emptied the scope and
+            // the turn fell to the generic failure line).
+            $selected = $candidates;
+        } else {
+            $selected = $candidates->filter(static function (array $candidate) use ($message): bool {
+                foreach ($candidate['labels'] as $label) {
+                    $needle = mb_strtolower(trim((string) $label));
+                    if (mb_strlen($needle) >= 3 && str_contains($message, $needle)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+        }
+
+        // Every selected record was explicitly named (or covered by a bulk
+        // word), so a multi-record edit is unambiguous — "The Santander rate
+        // is 4% and the Halifax rate is 3.5%" edits both by id. The dispatch
+        // scope still pins entity ids and fields server-side. Only a message
+        // naming nothing stays out of scope.
+        if ($selected->isEmpty()) {
+            return [];
+        }
+
+        return $selected->groupBy('type')->map(
+            fn ($rows): array => $rows->pluck('id')->unique()->values()->all(),
+        )->all();
+    }
+
+    /** @return list<string> */
+    private function verifyEditRecordFields(string $entityType, string $message): array
+    {
+        $fields = match ($entityType) {
+            'savings_account' => [
+                'current_balance' => ['balance', 'current value'],
+                // "rate" and "pays" cover the natural phrasings ("the
+                // Santander rate is 4%", "it pays 4%") — live 2026-07-23 the
+                // narrow list matched nothing and the whole edit fell to the
+                // generic failure line.
+                'interest_rate' => ['interest rate', 'interest percentage', 'rate', 'pays'],
+                'isa_subscription_amount' => ['isa subscription', 'this tax year', 'contributed this year', 'added this year'],
+                'regular_contribution_amount' => ['regular contribution'],
+                'contribution_frequency' => ['contribution frequency'],
+                'institution' => ['provider', 'bank name', 'institution'],
+                'account_name' => ['account name', 'rename'],
+            ],
+            'investment_account' => [
+                'current_value' => ['current value', 'balance', 'portfolio value'],
+                'monthly_contribution_amount' => ['monthly contribution', 'per month'],
+                'contributions_ytd' => ['this tax year', 'contributed this year', 'year to date'],
+                'provider' => ['provider', 'platform'],
+                'account_name' => ['account name', 'rename'],
+            ],
+            'dc_pension' => [
+                'current_fund_value' => ['current pot', 'pot value', 'fund value', 'balance', 'current value'],
+                'monthly_contribution_amount' => ['monthly contribution', 'per month'],
+                'employee_contribution_percent' => ['employee contribution', 'my contribution', 'employee percentage'],
+                'employer_contribution_percent' => ['employer contribution', 'employer percentage'],
+                'annual_salary' => ['pension salary', 'salary basis'],
+                'salary_sacrifice' => ['salary sacrifice'],
+                'retirement_age' => ['pension retirement age', 'scheme retirement age'],
+                'scheme_name' => ['scheme name', 'rename'],
+                'provider' => ['provider'],
+            ],
+            'db_pension' => [
+                'accrued_annual_pension' => ['annual pension', 'accrued pension', 'yearly pension'],
+                'normal_retirement_age' => ['normal retirement age', 'scheme retirement age'],
+                'pensionable_salary' => ['pensionable salary'],
+                'pensionable_service_years' => ['service years', 'years of service'],
+                'scheme_name' => ['scheme name', 'rename'],
+            ],
+            'life_insurance' => [
+                'sum_assured' => ['sum assured', 'cover amount', 'cover', 'covered for'],
+                'premium_amount' => ['premium', 'pay'],
+                'premium_frequency' => ['premium frequency'],
+                'policy_end_date' => ['end date', 'expires', 'term ends'],
+                'provider' => ['provider', 'insurer'],
+            ],
+            'critical_illness' => [
+                'sum_assured' => ['sum assured', 'cover amount', 'cover', 'covered for'],
+                'premium_amount' => ['premium', 'pay'],
+                'premium_frequency' => ['premium frequency'],
+                'provider' => ['provider', 'insurer'],
+            ],
+            'income_protection' => [
+                'benefit_amount' => ['benefit', 'pays out', 'payout'],
+                'premium_amount' => ['premium', 'pay'],
+                'premium_frequency' => ['premium frequency'],
+                'deferred_period_weeks' => ['deferred period', 'waiting period'],
+                'provider' => ['provider', 'insurer'],
+            ],
+            'goal' => [
+                'target_amount' => ['target amount', 'target', 'amount', 'save'],
+                'target_date' => ['target date', 'by when', 'deadline', 'by 20'],
+                'monthly_contribution' => ['monthly contribution', 'per month'],
+                'goal_name' => ['goal name', 'rename'],
+            ],
+            'property' => [
+                'current_value' => ['value', 'worth'],
+                'monthly_rental_income' => ['rent', 'rental income'],
+                'property_type' => ['property type', 'buy-to-let', 'buy to let', 'main residence'],
+                'address_line_1' => ['address'],
+            ],
+            'trust' => [
+                'current_value' => ['value', 'worth'],
+                'trust_name' => ['trust name', 'rename'],
+            ],
+            'estate_gift' => [
+                'gift_value' => ['value', 'amount', 'worth'],
+                'gift_date' => ['date', 'when i gave', 'given in'],
+                'recipient' => ['recipient', 'gave it to', 'gave to'],
+            ],
+            'estate_asset' => [
+                'current_value' => ['value', 'worth'],
+                'asset_name' => ['name', 'rename'],
+            ],
+            'business_interest' => [
+                'current_valuation' => ['valuation', 'value', 'worth'],
+                'ownership_percentage' => ['ownership', 'stake', 'share'],
+                'annual_revenue' => ['revenue', 'turnover'],
+                'annual_profit' => ['profit'],
+            ],
+            'chattel' => [
+                'current_value' => ['value', 'worth'],
+                'name' => ['name', 'rename'],
+            ],
+            default => [],
+        };
+
+        return array_keys(array_filter(
+            $fields,
+            fn (array $phrases): bool => collect($phrases)
+                ->contains(fn (string $phrase): bool => $this->verifyEditContainsPositivePhrase($message, $phrase)),
+        ));
+    }
+
+    /** @return array<string, list<string>> */
+    private function verifyEditProfileFields(string $section, string $message): array
+    {
+        $maps = [];
+        if ($section === 'income') {
+            $maps['income_occupation'] = [
+                'annual_employment_income' => ['salary', 'employment income', 'employed income'],
+                'annual_self_employment_income' => ['self-employed income', 'self employed income', 'self-employment income'],
+                'annual_dividend_income' => ['dividend income', 'dividends'],
+                'annual_other_income' => ['other income'],
+                'target_retirement_age' => ['target retirement age', 'want to retire'],
+                'employment_status' => ['employment status', 'i am self-employed', 'i am self employed', 'i am employed', 'now self-employed', 'now self employed', 'now employed', 'i retired', 'i am retired', 'i am unemployed'],
+            ];
+        }
+        if ($section === 'recap') {
+            $maps['income_occupation'] = [
+                'annual_employment_income' => ['salary', 'employment income', 'employed income'],
+                'annual_self_employment_income' => ['self-employed income', 'self employed income', 'self-employment income'],
+            ];
+        }
+        if ($section === 'spouse') {
+            $maps['spouse_household'] = [
+                'spouse_works' => ['spouse works', 'partner works', 'spouse does not work', "spouse doesn't work", 'partner does not work'],
+                'spouse_annual_income' => ['spouse income', "spouse's income", 'partner income', "partner's income", 'spouse salary', 'partner salary'],
+                'spouse_employment_status' => ['spouse employment', 'partner employment'],
+                'spouse_isa_balance' => ['spouse isa', 'partner isa'],
+                'spouse_unrealised_gains' => ['spouse unrealised gains', 'partner unrealised gains'],
+                'spouse_annual_dividends' => ['spouse dividends', 'partner dividends'],
+                'spouse_pension_input_annual' => ['spouse pension contribution', 'partner pension contribution'],
+                'spouse_existing_savings_balance' => ['spouse savings', 'partner savings'],
+                'spouse_existing_investment_balance' => ['spouse investments', 'partner investments'],
+                'spouse_existing_pension_balance' => ['spouse pension balance', 'partner pension balance'],
+            ];
+        }
+        if ($section === 'expenditure') {
+            $maps['expenditure'] = [
+                'annual_expenditure' => ['annual expenditure', 'yearly expenditure', 'per year'],
+                'monthly_expenditure' => ['monthly expenditure', 'monthly spending', 'per month', 'expenses', 'expenditure', 'spending'],
+            ];
+        }
+        if ($section === 'recap') {
+            $maps['personal'] = [
+                'marital_status' => ['marital status', 'married', 'single', 'divorced', 'widowed'],
+            ];
+        }
+
+        $result = [];
+        foreach ($maps as $profileSection => $fieldMap) {
+            $matched = array_keys(array_filter(
+                $fieldMap,
+                fn (array $phrases): bool => collect($phrases)
+                    ->contains(fn (string $phrase): bool => $this->verifyEditContainsPositivePhrase($message, $phrase)),
+            ));
+            if ($matched !== []) {
+                if (in_array('annual_expenditure', $matched, true)) {
+                    $matched = ['annual_expenditure'];
+                }
+                $result[$profileSection] = $matched;
+            }
+        }
+
+        return $result;
+    }
+
+    /** @return array<string, list<string>> */
+    private function verifyEditToolFields(string $section, string $message): array
+    {
+        $fields = match ($section) {
+            'state_pension' => [
+                'forecast_annual' => ['forecast', 'annual amount', 'yearly amount'],
+                'ni_years_completed' => ['national insurance', 'qualifying years'],
+                'state_pension_age' => ['state pension age'],
+            ],
+            'retirement_goals' => [
+                'target_retirement_age' => ['retirement age', 'want to retire'],
+                'target_retirement_income' => ['retirement income', 'income target', 'income in retirement'],
+            ],
+            'giving' => [
+                'annual_donations' => ['donation', 'donations', 'charitable giving', 'gift aid'],
+            ],
+            default => [],
+        };
+        $matched = array_keys(array_filter(
+            $fields,
+            fn (array $phrases): bool => collect($phrases)
+                ->contains(fn (string $phrase): bool => $this->verifyEditContainsPositivePhrase($message, $phrase)),
+        ));
+        $tool = FynVerifyEditTurnInstructions::toolsForSection($section)[0] ?? null;
+
+        return $tool !== null && $matched !== [] ? [$tool => $matched] : [];
+    }
+
+    private function verifyEditContainsPositivePhrase(string $message, string $phrase): bool
+    {
+        $pattern = '/(?<![\pL\pN_-])'.preg_quote($phrase, '/').'(?![\pL\pN_-])/iu';
+        if (preg_match_all($pattern, $message, $matches, PREG_OFFSET_CAPTURE) < 1) {
+            return false;
+        }
+
+        foreach ($matches[0] as $match) {
+            $prefix = substr($message, 0, (int) $match[1]);
+            $clauseParts = preg_split('/[.;,!]/u', $prefix);
+            $clause = mb_strtolower(trim((string) end($clauseParts)));
+            if (preg_match('/\b(?:not|rather than)\b/u', $clause) !== 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function verifyEditRecordContext(User $user, string $section): string
     {
         switch ($section) {
@@ -2576,9 +4950,13 @@ PROMPT;
                 return "Their investment accounts:\n".($rows !== '' ? $rows : '- (none on file)');
 
             case 'pensions':
-                $rows = app(PensionStore::class)->forUserByType($user, 'dc')
+                $dcRows = app(PensionStore::class)->forUserByType($user, 'dc')
                     ->map(fn ($p): string => "- entity_type: dc_pension, entity_id: {$p->id} — \"{$p->scheme_name}\" (".($p->provider ?: 'provider unknown').'), current value £'.number_format((float) $p->current_fund_value))
                     ->implode("\n");
+                $dbRows = app(PensionStore::class)->forUserByType($user, 'db')
+                    ->map(fn ($p): string => "- entity_type: db_pension, entity_id: {$p->id} — \"{$p->scheme_name}\" (".($p->provider ?: 'provider unknown').'), accrued annual pension £'.number_format((float) $p->accrued_annual_pension))
+                    ->implode("\n");
+                $rows = collect([$dcRows, $dbRows])->filter()->implode("\n");
 
                 return "Their pensions:\n".($rows !== '' ? $rows : '- (none on file)');
 
@@ -2590,18 +4968,344 @@ PROMPT;
                     .'annual_dividend_income £'.number_format((float) $user->annual_dividend_income).'.';
 
             case 'expenditure':
-                return 'Their expenditure is stored on their profile (use update_profile or set_expenditure): '
+                return 'Their expenditure is stored on their profile (use update_profile): '
                     .'monthly_expenditure £'.number_format((float) $user->monthly_expenditure).' per month.';
 
             case 'giving':
-                return 'Their charitable giving is stored on their profile (use update_profile).';
+                return 'Their charitable giving is stored on their profile (use capture_charitable_giving).';
 
             case 'spouse':
-                return "Their spouse's details are stored on the linked spouse profile (use update_profile).";
+                $household = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+                if ($household === null) {
+                    return 'Their spouse household details are not on file. Ask for clarification and do not call an update tool.';
+                }
+
+                return "Their spouse household details are stored separately from the user's own profile "
+                    .'(use update_profile with section spouse_household): '
+                    .'spouse_annual_income £'.number_format((float) $household->spouse_annual_income).', '
+                    .'spouse_isa_balance £'.number_format((float) $household->spouse_isa_balance).', '
+                    .'spouse_pension_input_annual £'.number_format((float) $household->spouse_pension_input_annual).'.';
+
+            case 'recap':
+                return 'The recap shows annual employment income £'.number_format((float) $user->annual_employment_income)
+                    .', annual self-employment income £'.number_format((float) $user->annual_self_employment_income)
+                    .', marital status '.((string) $user->marital_status ?: 'not recorded').", and these pensions:\n"
+                    .str_replace("Their pensions:\n", '', $this->verifyEditRecordContext($user, 'pensions'));
 
             default:
                 return 'Update the relevant existing record or profile field for this section.';
         }
+    }
+
+    /**
+     * Snapshot a verify section's records (id → label + headline amount) so
+     * the post-edit read-back can diff before/after. Profile-backed sections
+     * (income, expenditure, giving, spouse) return null — the model's prose
+     * acknowledgement stands there.
+     *
+     * @return array<int|string, array{label: string, amount: float, noun?: string}>|null
+     */
+    private function verifyEditSnapshot(User $user, string $section): ?array
+    {
+        return match ($section) {
+            'savings' => app(SavingsStore::class)->forUser($user)
+                ->mapWithKeys(fn ($a): array => [$a->id => [
+                    'label' => trim((string) $a->account_name.($a->institution ? ' at '.$a->institution : '')),
+                    'amount' => (float) $a->current_balance,
+                ]])->all(),
+            'investments' => app(InvestmentAccountStore::class)->forUser($user)
+                ->mapWithKeys(fn ($a): array => [$a->id => [
+                    'label' => (string) $a->account_name,
+                    'amount' => (float) $a->current_value,
+                ]])->all(),
+            'pensions', 'recap' => array_merge(
+                app(PensionStore::class)->forUserByType($user, 'dc')
+                    ->mapWithKeys(fn ($p): array => ['dc:'.$p->id => [
+                        'label' => (string) $p->scheme_name,
+                        'amount' => (float) $p->current_fund_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                app(PensionStore::class)->forUserByType($user, 'db')
+                    ->mapWithKeys(fn ($p): array => ['db:'.$p->id => [
+                        'label' => (string) $p->scheme_name,
+                        'amount' => (float) $p->accrued_annual_pension,
+                        'noun' => 'annual pension',
+                    ]])->all(),
+            ),
+            'protection' => array_merge(
+                LifeInsurancePolicy::where('user_id', $user->id)->get()
+                    ->mapWithKeys(fn ($p): array => ['life:'.$p->id => [
+                        'label' => trim((string) $p->provider.' life cover'),
+                        'amount' => (float) $p->sum_assured,
+                        'noun' => 'cover',
+                    ]])->all(),
+                CriticalIllnessPolicy::where('user_id', $user->id)->get()
+                    ->mapWithKeys(fn ($p): array => ['ci:'.$p->id => [
+                        'label' => trim((string) $p->provider.' critical illness cover'),
+                        'amount' => (float) $p->sum_assured,
+                        'noun' => 'cover',
+                    ]])->all(),
+                IncomeProtectionPolicy::where('user_id', $user->id)->get()
+                    ->mapWithKeys(fn ($p): array => ['ip:'.$p->id => [
+                        'label' => trim((string) $p->provider.' income protection'),
+                        'amount' => (float) $p->benefit_amount,
+                        'noun' => 'benefit',
+                    ]])->all(),
+            ),
+            'goals' => Goal::forUserOrJoint($user->id)->get()
+                ->mapWithKeys(fn ($g): array => [$g->id => [
+                    'label' => (string) $g->goal_name,
+                    'amount' => (float) $g->target_amount,
+                    'noun' => 'target',
+                ]])->all(),
+            'estate' => array_merge(
+                app(PropertyStore::class)->forUser($user)
+                    ->mapWithKeys(fn ($p): array => ['prop:'.$p->id => [
+                        'label' => (string) ($p->address_line_1 ?: 'property'),
+                        'amount' => (float) $p->current_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                $user->trusts()->get()
+                    ->mapWithKeys(fn ($t): array => ['trust:'.$t->id => [
+                        'label' => (string) $t->trust_name,
+                        'amount' => (float) $t->current_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                $user->gifts()->get()
+                    ->mapWithKeys(fn ($g): array => ['gift:'.$g->id => [
+                        'label' => trim('gift to '.(string) $g->recipient),
+                        'amount' => (float) $g->gift_value,
+                        'noun' => 'value',
+                    ]])->all(),
+                BusinessInterest::where(fn ($query) => $query
+                    ->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id))->get()
+                    ->mapWithKeys(fn ($b): array => ['biz:'.$b->id => [
+                        'label' => (string) $b->business_name,
+                        'amount' => (float) $b->current_valuation,
+                        'noun' => 'valuation',
+                    ]])->all(),
+            ),
+            default => null,
+        };
+    }
+
+    /**
+     * Deterministic post-edit acknowledgement: re-read the section's records
+     * and name exactly what changed with its resulting amount. Null when the
+     * section isn't record-backed or nothing detectably changed.
+     */
+    private function verifyEditReadBack(User $user, string $section, ?array $before): ?string
+    {
+        if ($before === null) {
+            return null;
+        }
+        $after = $this->verifyEditSnapshot($user, $section);
+        if ($after === null) {
+            return null;
+        }
+
+        $defaultNoun = $section === 'savings' ? 'balance' : 'value';
+        $lines = [];
+        foreach ($after as $id => $row) {
+            $prev = $before[$id] ?? null;
+            $noun = $row['noun'] ?? $defaultNoun;
+            if ($prev === null) {
+                $lines[] = sprintf('Added %s — %s £%s.', $row['label'], $noun, number_format($row['amount']));
+            } elseif (abs($prev['amount'] - $row['amount']) > 0.005 || $prev['label'] !== $row['label']) {
+                $lines[] = sprintf('Updated %s — %s now £%s.', $row['label'], $noun, number_format($row['amount']));
+            }
+        }
+        foreach ($before as $id => $row) {
+            if (! array_key_exists($id, $after)) {
+                $lines[] = sprintf('Removed %s.', $row['label']);
+            }
+        }
+
+        return $lines === [] ? null : implode("\n", $lines);
+    }
+
+    /**
+     * Snapshot only the exact fields mechanically armed for this correction.
+     * The post-write receipt is built from these database values, never from
+     * model-authored success prose.
+     *
+     * @param  array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}  $scope
+     * @return array<string, array{subject:string,field:string,value:mixed}>
+     */
+    private function verifyEditFieldSnapshot(User $user, array $scope): array
+    {
+        $snapshot = [];
+        foreach ($scope['records'] as $entityType => $ids) {
+            foreach ($ids as $id) {
+                $record = match ($entityType) {
+                    'savings_account' => app(SavingsStore::class)->find((int) $id, $user),
+                    'investment_account' => app(InvestmentAccountStore::class)->find((int) $id, $user),
+                    'dc_pension' => app(PensionStore::class)->find((int) $id, 'dc', $user),
+                    'db_pension' => app(PensionStore::class)->find((int) $id, 'db', $user),
+                    default => null,
+                };
+                if ($record === null) {
+                    continue;
+                }
+                $subject = (string) ($record->account_name
+                    ?? $record->scheme_name
+                    ?? $record->provider
+                    ?? str_replace('_', ' ', $entityType));
+                foreach ($scope['record_fields'][$entityType] ?? [] as $field) {
+                    $snapshot[$entityType.':'.$id.':'.$field] = [
+                        'subject' => $subject,
+                        'field' => $field,
+                        'value' => $record->getAttribute($field),
+                    ];
+                }
+            }
+        }
+
+        $freshUser = $user->fresh();
+        foreach ($scope['profile_fields'] as $section => $fields) {
+            $model = $section === 'spouse_household'
+                ? TaxStrategyHouseholdInput::where('user_id', $user->id)->first()
+                : $freshUser;
+            if ($model === null) {
+                continue;
+            }
+            foreach ($fields as $field) {
+                $value = $section === 'spouse_household' && $field === 'spouse_works'
+                    ? $freshUser?->household_calculation_mode === 'dual_earner'
+                    : $model->getAttribute($field);
+                $snapshot['profile:'.$section.':'.$field] = [
+                    'subject' => match ($section) {
+                        'spouse_household' => 'spouse details',
+                        'expenditure' => 'expenditure',
+                        'personal' => 'personal details',
+                        default => 'income',
+                    },
+                    'field' => $field,
+                    'value' => $value,
+                ];
+            }
+        }
+
+        foreach ($scope['tool_fields'] as $tool => $fields) {
+            $model = match ($tool) {
+                'capture_state_pension' => $user->statePension()->first(),
+                'capture_retirement_goals' => $user->retirementProfile()->first(),
+                'capture_charitable_giving' => $freshUser,
+                default => null,
+            };
+            if ($model === null) {
+                continue;
+            }
+            foreach ($fields as $field) {
+                $column = match ($field) {
+                    'forecast_annual' => 'state_pension_forecast_annual',
+                    'annual_donations' => 'annual_charitable_donations',
+                    default => $field,
+                };
+                $snapshot['tool:'.$tool.':'.$field] = [
+                    'subject' => match ($tool) {
+                        'capture_state_pension' => 'State Pension',
+                        'capture_retirement_goals' => 'retirement goals',
+                        default => 'charitable giving',
+                    },
+                    'field' => $field,
+                    'value' => $model->getAttribute($column),
+                ];
+            }
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * @param  array{tools:list<string>,records:array<string,list<int>>,profile_sections:list<string>,record_fields:array<string,list<string>>,profile_fields:array<string,list<string>>,tool_fields:array<string,list<string>>}  $scope
+     * @param  array<string, array{subject:string,field:string,value:mixed}>  $before
+     */
+    private function verifyEditFieldReadBack(User $user, array $scope, array $before): ?string
+    {
+        $after = $this->verifyEditFieldSnapshot($user, $scope);
+        $lines = [];
+        foreach ($after as $key => $row) {
+            $changed = ! array_key_exists($key, $before)
+                || $this->verifyEditComparableValue($before[$key]['value']) !== $this->verifyEditComparableValue($row['value']);
+            $lines[] = sprintf(
+                '%s %s — %s %s %s.',
+                $changed ? 'Updated' : 'Confirmed',
+                $row['subject'],
+                $this->verifyEditFieldLabel($row['field']),
+                $changed ? 'now' : 'is',
+                $this->verifyEditFieldValue($row['field'], $row['value']),
+            );
+        }
+
+        return $lines === [] ? null : implode("\n", $lines);
+    }
+
+    private function verifyEditComparableValue(mixed $value): string
+    {
+        if (is_numeric($value)) {
+            return number_format((float) $value, 4, '.', '');
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        return mb_strtolower(trim((string) $value));
+    }
+
+    private function verifyEditFieldLabel(string $field): string
+    {
+        return [
+            'current_balance' => 'balance',
+            'interest_rate' => 'interest rate',
+            'isa_subscription_amount' => 'ISA subscriptions this tax year',
+            'current_value' => 'current value',
+            'contributions_ytd' => 'contributions this tax year',
+            'current_fund_value' => 'current pot value',
+            'accrued_annual_pension' => 'annual pension',
+            'employee_contribution_percent' => 'employee contribution',
+            'employer_contribution_percent' => 'employer contribution',
+            'annual_employment_income' => 'employment income',
+            'annual_self_employment_income' => 'self-employment income',
+            'spouse_annual_income' => 'annual income',
+            'spouse_works' => 'work status',
+            'monthly_expenditure' => 'monthly expenditure',
+            'annual_expenditure' => 'annual expenditure',
+            'forecast_annual' => 'annual forecast',
+            'ni_years_completed' => 'National Insurance qualifying years',
+            'state_pension_age' => 'State Pension age',
+            'target_retirement_age' => 'target retirement age',
+            'target_retirement_income' => 'target retirement income',
+            'annual_donations' => 'annual Gift Aid donations',
+        ][$field] ?? str_replace('_', ' ', $field);
+    }
+
+    private function verifyEditFieldValue(string $field, mixed $value): string
+    {
+        if (in_array($field, [
+            'current_balance', 'isa_subscription_amount', 'regular_contribution_amount',
+            'current_value', 'monthly_contribution_amount', 'contributions_ytd',
+            'current_fund_value', 'accrued_annual_pension', 'annual_salary',
+            'pensionable_salary', 'annual_employment_income', 'annual_self_employment_income',
+            'annual_dividend_income', 'annual_other_income', 'spouse_annual_income',
+            'spouse_isa_balance', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+            'spouse_pension_input_annual', 'monthly_expenditure', 'annual_expenditure',
+            'forecast_annual', 'target_retirement_income', 'annual_donations',
+        ], true)) {
+            return '£'.number_format((float) $value, 0);
+        }
+        if (in_array($field, ['interest_rate', 'employee_contribution_percent', 'employer_contribution_percent'], true)) {
+            return rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.').'%';
+        }
+        if (is_bool($value) || in_array($field, ['spouse_works', 'salary_sacrifice'], true)) {
+            return (bool) $value ? 'yes' : 'no';
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('j F Y');
+        }
+
+        return (string) $value;
     }
 
     /** Onboarding capture focus for a verify-edit section (keeps the turn in capture mode). */
@@ -2611,6 +5315,11 @@ PROMPT;
             'savings' => 'savings',
             'investments' => 'investment',
             'pensions' => 'retirement',
+            // Existing-recap edits (pensioncheck re-entry): the recap spans
+            // income + pensions + spouse, so arm the pensioncheck catalogue
+            // (create_pension/capture_salary_sacrifice + update_profile/
+            // update_record) rather than the savetax default.
+            'recap' => 'pensioncheck',
             default => 'savetax',
         };
     }
@@ -2634,30 +5343,205 @@ PROMPT;
      *
      * @param  array<string, mixed>  $state
      */
+    /**
+     * The terminal turn's route-carrying quick-reply bubble, keyed on the
+     * state's navigate_to so each campaign lands on its own destination. The
+     * savetax tax-strategy bubble (id/label) is preserved byte-identical; the
+     * pensioncheck retirement route gets its own copy; any other route degrades
+     * to a neutral "view my plan" label.
+     *
+     * @return array{id: string, label: string, route: string}
+     */
+    private function terminalNavigationBubble(string $route): array
+    {
+        [$id, $label] = match ($route) {
+            '/tax-strategy' => ['view_strategy', 'Take me to my tax strategy'],
+            '/retirement' => ['view_retirement', 'Take me to my retirement plan'],
+            default => ['view_plan', 'Take me to my plan'],
+        };
+
+        return ['id' => $id, 'label' => $label, 'route' => $route];
+    }
+
+    /**
+     * Raise any holistic questions parked by `deferQuestion` mid-walk, once
+     * the walk is done and the full picture is available. Shared by both
+     * completion terminals (`emitDoneTurn`, `emitTerminalNavigationTurn`) —
+     * ordering contract pinned by CampaignReentryExitTest: deferred raise →
+     * app note → celebration/route bubble last, so the tappable route bubble
+     * stays the latest turn. Clears `deferred_questions` from the conversation
+     * metadata after emitting, preserving every other key (`source` is the
+     * resume-lookup pivot and must survive).
+     */
+    /**
+     * Map a classifier primary to the module label the completion raise
+     * names ("You asked about 'Investments' earlier"). Null when no clean
+     * label exists — the raise then quotes the question itself.
+     */
+    private function deferredTopicLabel(?string $primary): ?string
+    {
+        if ($primary === null) {
+            return null;
+        }
+
+        $modules = QuerySchemas::MODULE_MAP[$primary] ?? [];
+        if (count($modules) > 1) {
+            return 'your overall finances';
+        }
+
+        return match ($modules[0] ?? null) {
+            'protection' => 'Protection',
+            'savings' => 'Savings',
+            'investment' => 'Investments',
+            'retirement' => 'Retirement',
+            'estate' => 'Estate planning',
+            'goals' => 'Goals',
+            'tax' => 'Tax',
+            'property' => 'Property',
+            'income' => 'Income',
+            default => null,
+        };
+    }
+
+    private function emitDeferredQuestions(User $user, AiConversation $conversation): \Generator
+    {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $deferred = $metadata['deferred_questions'] ?? [];
+        if ($deferred === []) {
+            return;
+        }
+
+        // The questions move to pending_deferred_answer rather than being
+        // dropped: the raise's Yes lands on the ADVICE state as plain text,
+        // and AdviceFyn::handle restores the original question from this key
+        // (live 2026-07-23: with the questions deleted here, the bare "Yes"
+        // reached the planner context-free and punted with the no-action
+        // defer instead of answering).
+        unset($metadata['deferred_questions']);
+        $metadata['pending_deferred_answer'] = [
+            'raised_at' => now()->timestamp,
+            'questions' => array_values($deferred),
+        ];
+        $conversation->update(['metadata' => $metadata]);
+
+        // CSJ raise shape (2026-07-23): thank the user by name, name the
+        // completed flow, reference each question's topic, warn that a
+        // proper answer may need additional information, and offer Yes/No.
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        }
+
+        $flowName = match ((string) ($user->onboarding_fyn_selection ?? '')) {
+            'savetax' => 'your Save Tax onboarding',
+            'pensioncheck' => 'your Pension Check onboarding',
+            default => 'your onboarding',
+        };
+
+        $topics = array_map(
+            static fn (array $entry): string => "'".(string) ($entry['topic'] ?? mb_substr((string) ($entry['question'] ?? ''), 0, 60))."'",
+            array_values($deferred),
+        );
+        $topicList = count($topics) > 1
+            ? implode(', ', array_slice($topics, 0, -1)).' and '.end($topics)
+            : $topics[0];
+
+        $prompt = "Thanks {$firstName} for the information — {$flowName} is now complete. "
+            ."You asked about {$topicList} earlier; to answer your "
+            .(count($topics) > 1 ? 'questions' : 'question')
+            .' properly I may need some additional information. Are you okay to continue?';
+
+        $bubbles = [
+            ['id' => 'deferred_yes', 'label' => 'Yes'],
+            ['id' => 'deferred_no', 'label' => 'No'],
+        ];
+
+        $saved = $this->saveMessage($conversation, 'assistant', $prompt, [
+            'metadata' => [
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::DeferredRaise->value,
+            ],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $prompt,
+            'bubbles' => $bubbles,
+        ];
+
+        // Mid-stream done: finalises this message only; the stream ends when
+        // the generator exhausts (consumers treat done per-message, not
+        // per-turn) — see the matching note on deferQuestion's mid-stream
+        // done for the same reasoning.
+        yield ['type' => 'done', 'message_id' => $saved->id];
+    }
+
     private function emitTerminalNavigationTurn(
         User $user,
         AiConversation $conversation,
         string $stateId,
         array $state
     ): \Generator {
+        // Capture before any mutations so the once-only completion side effects
+        // can be gated: a re-entry user is already completed and must not have
+        // their completed_at reset or accumulate a duplicate recordProgress row.
+        $wasAlreadyCompleted = $user->onboarding_completed;
+
         $selection = $user->onboarding_fyn_selection ?? '';
         $nextRoute = (string) $state['navigate_to'];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
 
-        yield ['type' => 'content', 'text' => $celebration];
+        yield from $this->emitDeferredQuestions($user, $conversation);
+
+        // CSJ direction 2026-07-21: before the celebration lands, tell the
+        // completing user the experience is better in the app — its own Fyn
+        // bubble (both surfaces open a fresh bubble per quick_replies frame),
+        // ahead of the celebration so the route bubble stays the latest
+        // (tappable) turn.
+        $appNote = "By the way — the Fynla experience is even better in the app. Everything you've just set up will be there the moment you sign in.";
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $appNote,
+            'bubbles' => [],
+        ];
+
+        $this->saveMessage(
+            $conversation,
+            'assistant',
+            $appNote,
+            ['metadata' => [
+                'onboarding_step' => $stateId,
+                'turn_intent' => FynTurnIntent::TerminalNote->value,
+            ]]
+        );
+
+        // The user taps a button to view their plan rather than being
+        // auto-navigated, so the celebration message lands first. The
+        // route-carrying bubble navigates on tap (handled in the /m chooseBubble
+        // + web handleQuickReplySelect) — no auto navigation event. The bubble
+        // id + label follow the terminal state's navigate_to so each campaign
+        // shows its own destination (savetax → tax strategy; pensioncheck →
+        // retirement plan) rather than the hardcoded savetax text.
+        $bubbles = [$this->terminalNavigationBubble($nextRoute)];
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $celebration,
+            'bubbles' => $bubbles,
+        ];
 
         $assistantMessage = $this->saveMessage(
             $conversation,
             'assistant',
             $celebration,
-            ['metadata' => ['onboarding_step' => $stateId]]
+            ['metadata' => [
+                'onboarding_step' => $stateId,
+                'bubbles' => $bubbles,
+                'turn_intent' => FynTurnIntent::Celebration->value,
+            ]]
         );
-
-        yield [
-            'type' => 'navigation',
-            'route_path' => $nextRoute,
-            'description' => $stateId,
-        ];
 
         yield [
             'type' => 'onboarding_complete',
@@ -2667,15 +5551,26 @@ PROMPT;
 
         yield ['type' => 'done', 'message_id' => $assistantMessage->id];
 
-        $user->onboarding_completed = true;
-        $user->onboarding_completed_at = now();
+        // Clear campaign and onboarding scratch columns unconditionally so both
+        // fresh and re-entry users exit cleanly. Completion columns and the
+        // recordProgress call are guarded: re-entry users are already marked
+        // complete and their original completed_at must not be overwritten.
+        $user->active_campaign = null;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
         $user->onboarding_fyn_context = null;
+
+        if (! $wasAlreadyCompleted) {
+            $user->onboarding_completed = true;
+            $user->onboarding_completed_at = now();
+        }
+
         $user->save();
 
-        $this->recordProgress($user, $stateId, ['next_route' => $nextRoute]);
+        if (! $wasAlreadyCompleted) {
+            $this->recordProgress($user, $stateId, ['next_route' => $nextRoute]);
+        }
     }
 
     /**
@@ -2697,10 +5592,27 @@ PROMPT;
             OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
+            OnboardingStateMachine::STATE_BASE_WORK => $this->incomeAck($user),
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'Thanks — I\'ve noted your monthly spending.',
             OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING => $this->charitableGivingAck($user),
             default => null,
         };
+    }
+
+    /**
+     * "What we've heard" recap after the income capture — echoes the gross
+     * annual figure so the next question (the savings/ISA section) reads as a
+     * fresh bubble rather than an abrupt jump.
+     */
+    private function incomeAck(User $user): string
+    {
+        $income = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0);
+        if ($income <= 0) {
+            return 'Got it — thanks.';
+        }
+
+        return sprintf('Got it — £%s a year, noted.', number_format($income, 0));
     }
 
     /**
@@ -2718,6 +5630,14 @@ PROMPT;
         return sprintf('Recorded — around £%s a year through Gift Aid.', number_format($amount, 0));
     }
 
+    /**
+     * Never claim a link the row does not carry. The free-text spouse capture
+     * (createSpouseFamilyMember, above) writes a row with no account behind it,
+     * and this acknowledgement told the user their accounts were linked anyway
+     * — so they walked away believing the household was set up when
+     * `users.spouse_id` was still NULL (W-0051). One predicate answers it:
+     * FamilyMember::isLinkedAccount().
+     */
     private function spouseAck(User $user): string
     {
         $spouse = FamilyMember::where('user_id', $user->id)
@@ -2727,6 +5647,10 @@ PROMPT;
 
         if ($spouse === null || $spouse->first_name === null) {
             return 'Got it — your spouse is now on file.';
+        }
+
+        if (! $spouse->isLinkedAccount()) {
+            return "Got it — I've added {$spouse->first_name}. Their own account isn't linked yet, so I'm only working from what you tell me. You can link it later from your family settings.";
         }
 
         return "Got it — I've added {$spouse->first_name} and linked the two of you.";
@@ -2771,12 +5695,31 @@ PROMPT;
      */
     private function emitGapFillToolCalls(
         User $user,
+        AiConversation $conversation,
         string $selection,
         string $message,
-        array $llmEmittedFills
+        array $llmEmittedFills,
+        array $failedAttemptTools = []
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($selection);
         if ($tool === null) {
+            return;
+        }
+
+        // The LLM already attempted this tool and the write FAILED (validation
+        // or gate clarification) — the turn is parked on a clarifying question
+        // and the user's answer re-runs the capture with the full facts. A
+        // blind extractor create here would land a DEGRADED row the richer
+        // failed attempt was refused for (live 2026-07-24: grok's Aviva
+        // create_protection_policy carried £250k/£30 but failed on term
+        // length; the extractor then created the policy with no amounts).
+        if (in_array($tool, $failedAttemptTools, true)) {
+            Log::info('[OnboardingChatDirector] Gap-fill suppressed — failed LLM attempt pending clarification', [
+                'user_id' => $user->id,
+                'selection' => $selection,
+                'tool' => $tool,
+            ]);
+
             return;
         }
 
@@ -2812,8 +5755,16 @@ PROMPT;
                 'status' => 'running',
             ];
 
+            // A workplace-pension gap-fill needs the salary the percentages
+            // apply to; the message rarely restates it, the profile has it.
+            if ($tool === 'create_pension'
+                && ! isset($input['annual_salary'])
+                && (float) ($user->annual_employment_income ?? 0) > 0) {
+                $input['annual_salary'] = (float) $user->annual_employment_income;
+            }
+
             try {
-                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id);
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Gap-fill tool execution failed', [
                     'user_id' => $user->id,
@@ -2855,6 +5806,19 @@ PROMPT;
                 ];
             }
 
+            // Onboarding executeTool writes persist directly (no fill_form):
+            // surface the landed record so the caller counts it as a capture
+            // (the zero-output guard and the advance gate both key on it) and
+            // the frontend renders the record card.
+            if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
+                yield [
+                    'type' => 'entity_created',
+                    'entity_type' => (string) ($result['entity_type'] ?? ''),
+                    'entity_id' => $result['entity_id'],
+                    'name' => (string) ($input['scheme_name'] ?? $input['account_name'] ?? $input['name'] ?? ''),
+                ];
+            }
+
             yield [
                 'type' => 'tool_use',
                 'tool' => $tool,
@@ -2893,6 +5857,215 @@ PROMPT;
     }
 
     /**
+     * Detect a delegated model response that asks for a missing capture fact
+     * before it attempts any write tool. This response must remain visible and
+     * keep the current state parked; it is not a zero-entity completion turn.
+     */
+    private function captureResponseRequestsClarification(string $response): bool
+    {
+        $response = trim($response);
+        if ($response === '') {
+            return false;
+        }
+
+        return str_contains($response, '?')
+            || preg_match(
+                '/\b(?:i need|could you|can you|would you|please (?:tell|confirm|provide|share)|tell me|confirm whether)\b/i',
+                $response,
+            ) === 1;
+    }
+
+    /**
+     * Remove a model-authored success sentence when every attempted write was
+     * rejected and the rest of the response is a valid clarification request.
+     */
+    private function stripFalseCaptureAcknowledgement(string $response): string
+    {
+        $cleaned = preg_replace(
+            '/^\s*(?:(?:great|thanks|thank you|okay|perfect|all set)[\s,\x{2014}\x{2013}-]*)?(?:(?:recorded|saved|added|updated)\b|got it\b|i[\'’]ve\s+(?:recorded|saved|added|updated)\b|that[\'’]s\s+(?:recorded|saved|added|updated)\b|(?:both|all|the)?\s*(?:accounts?|records?|details?|items?)\s+(?:are|have\s+been)\s+(?:now\s+)?(?:recorded|saved|added|updated)\b)[^.!?;]*(?:[.!?;]\s*|$)/iu',
+            '',
+            $response,
+            1,
+        );
+
+        return trim(is_string($cleaned) ? $cleaned : $response);
+    }
+
+    /**
+     * Reconstruct one unresolved capture payload when the model asked for a
+     * required fact on the preceding turn. Resume greetings are transparent:
+     * they must not sever the original answer from the requested detail.
+     */
+    private function mergeUnresolvedCaptureMessage(AiConversation $conversation, string $message): string
+    {
+        $currentUserMessage = $conversation->messages()
+            ->where('role', 'user')
+            ->latest('id')
+            ->first(['id', 'content']);
+
+        if ($currentUserMessage === null || $currentUserMessage->content !== $message) {
+            return $message;
+        }
+
+        $previousUserMessage = $conversation->messages()
+            ->where('role', 'user')
+            ->where('id', '<', $currentUserMessage->id)
+            ->latest('id')
+            ->first(['id', 'content']);
+
+        if ($previousUserMessage === null) {
+            return $message;
+        }
+
+        // A question can never be "original capture details" — live
+        // conversation 168, msg 19550: the user asked "How is my financial
+        // health?" (an A1-eligible off-topic question, not a capture
+        // attempt), got a question-shaped data-gap answer, then replied with
+        // a genuine on-script bank-account answer. The scan below would
+        // otherwise treat that answer as a clarification for the QUESTION
+        // rather than a fresh capture payload, merging the two into
+        // "Original capture details: How is my financial health…" and
+        // handing the model a question to record as a fact. Reuse the
+        // shared A1 heuristic — if the previous user turn asked a question,
+        // there is no unresolved capture attempt to complete.
+        if ($this->userAskedQuestion((string) $previousUserMessage->content)) {
+            return $message;
+        }
+
+        $clarificationFound = false;
+        $assistantMessages = $conversation->messages()
+            ->where('role', 'assistant')
+            ->whereBetween('id', [$previousUserMessage->id + 1, $currentUserMessage->id - 1])
+            ->orderBy('id')
+            ->get(['content', 'metadata']);
+
+        foreach ($assistantMessages as $assistantMessage) {
+            $metadata = is_array($assistantMessage->metadata) ? $assistantMessage->metadata : [];
+
+            // Structured turn intent (Task 2): a stamped row answers the
+            // question the heuristics below approximate — only a capture
+            // clarification arms the merge; greetings and interruption
+            // answers are transparent; any other stamped intent means no
+            // capture is pending. Heuristics remain for legacy rows only.
+            $turnIntent = $metadata['turn_intent'] ?? null;
+            if (is_string($turnIntent) && $turnIntent !== '') {
+                if ($turnIntent === FynTurnIntent::CaptureClarification->value) {
+                    $clarificationFound = true;
+
+                    continue;
+                }
+                if (in_array($turnIntent, [
+                    FynTurnIntent::ResumeGreeting->value,
+                    FynTurnIntent::InterruptionAnswer->value,
+                ], true)) {
+                    continue;
+                }
+
+                return $message;
+            }
+
+            if (($metadata['is_resume_greeting'] ?? false) === true
+                || ($metadata['is_interruption_answer'] ?? false) === true) {
+                continue;
+            }
+
+            // A deterministic state prompt starts a fresh capture question;
+            // it is not a model request to complete the previous user answer.
+            if (isset($metadata['onboarding_step'])
+                && ($metadata['capture_write_failed'] ?? false) !== true) {
+                return $message;
+            }
+
+            // The canned security-refusal (CoreIdentity::get() /
+            // FynSystemPrompt::text() security rule 6: "I can only help with
+            // financial planning questions. How can I assist with your
+            // finances?") ends in a "?" and would otherwise satisfy
+            // captureResponseRequestsClarification below — arming the merge
+            // off a refusal, not a genuine request for a missing capture
+            // fact (the same live conversation 168 turn: once the merge
+            // above handed the model a question to record, it refused, and
+            // the refusal itself is question-shaped enough to poison the
+            // NEXT turn's merge too). It is never a clarification request.
+            if (str_starts_with(trim((string) $assistantMessage->content), 'I can only help with')) {
+                return $message;
+            }
+
+            if (! $this->captureResponseRequestsClarification((string) $assistantMessage->content)) {
+                return $message;
+            }
+
+            $clarificationFound = true;
+        }
+
+        if (! $clarificationFound) {
+            return $message;
+        }
+
+        return "Original capture details: {$previousUserMessage->content}\n"
+            ."Requested missing details: {$message}";
+    }
+
+    /**
+     * Tag the most recently persisted assistant message (created after
+     * $afterId) as an A1 / interruption ANSWER. Used for turns that persist
+     * through the underlying chat pipeline's own saveMessage rather than this
+     * director's — the interruption dispatcher's plain advisory answer in
+     * handleQuestionInterruption, and the delegated capture turn's own A1
+     * answer in handleAssetCaptureTurn — so the flag can still be applied
+     * after the fact, mirroring persistFailedCaptureResponse's pattern.
+     *
+     * Read by mergeUnresolvedCaptureMessage's followup scan and
+     * resolvePendingInterruptionCapture's re-arm check so neither treats
+     * this answer's own wording — which often ends in a question, e.g.
+     * "Would you like me to help you add those now?" — as grounds to hijack
+     * the NEXT reply into the merged-detail / capture-followup path. The
+     * state's own parser must see that next reply untouched.
+     */
+    private function tagInterruptionAnswer(AiConversation $conversation, int $afterId): void
+    {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $afterId)
+            ->latest('id')
+            ->first();
+
+        if ($message === null) {
+            return;
+        }
+
+        $metadata = is_array($message->metadata) ? $message->metadata : [];
+        $message->update(['metadata' => array_merge($metadata, [
+            'is_interruption_answer' => true,
+            'turn_intent' => FynTurnIntent::InterruptionAnswer->value,
+        ])]);
+    }
+
+    /**
+     * Stamp the most recently persisted assistant message (created after
+     * $afterId) as a capture clarification. The shared pipeline stamps every
+     * data_capture persist capture_ack by default; a turn that captured
+     * nothing and asked for a missing fact is a clarification — the intent
+     * Task 2-4 read-side consumers key their followup arming on.
+     */
+    private function tagCaptureClarification(AiConversation $conversation, int $afterId): void
+    {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $afterId)
+            ->latest('id')
+            ->first();
+
+        if ($message === null) {
+            return;
+        }
+
+        $metadata = is_array($message->metadata) ? $message->metadata : [];
+        $message->update(['metadata' => array_merge($metadata, [
+            'turn_intent' => FynTurnIntent::CaptureClarification->value,
+        ])]);
+    }
+
+    /**
      * Decide whether a (possibly question-bearing) message also carries a
      * substantive answer to the scripted prompt. Used by the
      * `advance_on_answered_question` gate so a linear delegated step advances
@@ -2926,6 +6099,12 @@ PROMPT;
             "don't have", 'do not have', 'not got', "haven't got",
             "it's matched", 'is matched', 'and matched', 'employer matches',
             'i contribute', 'i pay', 'i put in',
+            // Explicit "I don't know" signals — a user who cannot provide a
+            // value IS giving a substantive answer to the scripted prompt.
+            // Required for advance_on_answered_question on campaign2_state_pension
+            // and campaign2_pension_pots so "not sure" advances rather than loops.
+            'not sure', "don't know", 'do not know', 'unsure', 'no idea',
+            'not certain', 'uncertain',
         ];
         foreach ($answerTokens as $token) {
             if (str_contains($lower, $token)) {
@@ -3024,72 +6203,13 @@ PROMPT;
 
     /**
      * A2 — collapse the repeated short acks the model emits once per
-     * agent-loop pass ("Got it — recording those now.Recorded." family).
-     * On each continuation the model re-narrates its acknowledgment and the
-     * buffered prose stacks; the May-18 captureTurnCompleteDirective dampens
-     * this but does not eliminate it.
-     *
-     * A consecutive sentence is dropped when, against its predecessor, it is:
-     *   (a) identical (case-insensitive); or
-     *   (b) a short (<=6 words) textual prefix-duplicate of it
-     *       ("Recorded the ISA." + "Recorded."); or
-     *   (c) a bare standalone acknowledgment ("Recorded.", "Got it.",
-     *       "Done.", "Noted.") following ANY prior sentence — a bare ack
-     *       carries no information regardless of what preceded it; the
-     *       closed set in isBareAck() never matches informative content.
-     *
-     * The split pattern uses `\s*` (not `\s+`) so "now.Recorded." splits into
-     * two sentences despite the missing space. Legitimate multi-sentence
-     * answers survive untouched: a substantive follow-on ("It saves Y.", "Now
-     * your savings outside an ISA.") is neither a prefix-duplicate nor a bare
-     * ack, and the new record-stating ack ("Recorded — two ISAs …") is long
-     * enough never to qualify as the short predecessor in (c).
+     * agent-loop pass. Extracted to AckSentenceDeduper so HasAiChat can
+     * apply the SAME dedupe when persisting delegated data_capture turns —
+     * the live stream and the reloaded transcript must show the same text.
      */
     private function dedupeAckSentences(string $text): string
     {
-        // Split after sentence punctuation followed by whitespace OR directly
-        // by an uppercase/£ start ("now.Recorded." has no space). A full stop
-        // followed by a digit or lowercase is NOT a boundary — "3.25%" and
-        // "e.g. rates" must survive intact (live-browser regression 2026-06-11:
-        // the old `\s*` split decimals and re-joined them as "3. 25%").
-        $sentences = preg_split('/(?<=[.!?])\s+|(?<=[.!?])(?=[A-Z£])/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        $deduped = [];
-        foreach ($sentences as $s) {
-            $prev = $deduped === [] ? null : end($deduped);
-            if ($prev !== null && (strcasecmp($prev, $s) === 0
-                || (str_word_count($s) <= 6 && str_word_count($prev) <= 6
-                    && (str_starts_with(strtolower($prev), strtolower(rtrim($s, '.!?')))
-                        || str_starts_with(strtolower($s), strtolower(rtrim($prev, '.!?')))))
-                || $this->isBareAck($s))) {
-                continue;
-            }
-            $deduped[] = $s;
-        }
-
-        return implode(' ', $deduped);
-    }
-
-    /**
-     * A2 — is the sentence a bare standalone acknowledgment with no payload?
-     * The closed re-narration family the model stacks ("Recorded.", "Got it.",
-     * "Done.", "Noted.", "Got it — recording those now."). Matched on the
-     * sentence's lowercased alphabetic content so trailing punctuation, the
-     * em-dash, and casing don't matter. A record-stating ack that names what
-     * was captured ("Recorded — two ISAs totalling £22,000.") carries extra
-     * words and is NOT bare, so it never matches.
-     */
-    private function isBareAck(string $sentence): bool
-    {
-        $core = strtolower(trim(preg_replace('/[^\p{L}\s]+/u', ' ', $sentence) ?? ''));
-        $core = trim(preg_replace('/\s+/', ' ', $core) ?? '');
-
-        return in_array($core, [
-            'recorded',
-            'got it',
-            'done',
-            'noted',
-            'got it recording those now',
-        ], true);
+        return AckSentenceDeduper::dedupe($text);
     }
 
     // ─── Terminal state ───────────────────────────────────────────────────
@@ -3100,6 +6220,40 @@ PROMPT;
      * onboarding_fyn_step so subsequent Fyn messages go through the normal
      * CoordinatingAgent path.
      */
+    /**
+     * Leave onboarding open but get out of the user's way.
+     *
+     * CSJ 2026-08-18: a user who has logged in before must never be stuck at
+     * the two-option front door. Choosing "Something else" pauses onboarding —
+     * the step pointer is nulled, which routes every later turn to advice Fyn
+     * (the canonical paused-onboarding case) — and Fyn simply asks what they
+     * want. `onboarding_completed` stays false, because they have not
+     * onboarded; nothing is marked done that was not done.
+     */
+    private function emitFreeChatTurn(User $user, AiConversation $conversation): \Generator
+    {
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_FREE_CHAT) ?? [];
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        yield ['type' => 'content', 'text' => $text];
+
+        $assistantMessage = $this->saveMessage(
+            $conversation,
+            'assistant',
+            $text,
+            ['metadata' => [
+                'onboarding_step' => OnboardingStateMachine::STATE_FREE_CHAT,
+            ]]
+        );
+
+        yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+
+        $user->onboarding_fyn_step = null;
+        $user->save();
+
+        $this->recordProgress($user, OnboardingStateMachine::STATE_FREE_CHAT, ['paused' => true]);
+    }
+
     private function emitDoneTurn(User $user, AiConversation $conversation): \Generator
     {
         $selection = $user->onboarding_fyn_selection ?? '';
@@ -3113,13 +6267,18 @@ PROMPT;
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_DONE) ?? [];
         $celebration = OnboardingStateMachine::resolvePromptText($state, $user);
 
+        yield from $this->emitDeferredQuestions($user, $conversation);
+
         yield ['type' => 'content', 'text' => $celebration];
 
         $assistantMessage = $this->saveMessage(
             $conversation,
             'assistant',
             $celebration,
-            ['metadata' => ['onboarding_step' => OnboardingStateMachine::STATE_DONE]]
+            ['metadata' => [
+                'onboarding_step' => OnboardingStateMachine::STATE_DONE,
+                'turn_intent' => FynTurnIntent::Celebration->value,
+            ]]
         );
 
         yield [
@@ -3143,6 +6302,7 @@ PROMPT;
         // user row is runtime state only.
         $user->onboarding_completed = true;
         $user->onboarding_completed_at = now();
+        $user->active_campaign = null;
         $user->onboarding_fyn_step = null;
         $user->onboarding_fyn_path = null;
         $user->onboarding_fyn_selection = null;
@@ -3223,6 +6383,75 @@ PROMPT;
         return $message;
     }
 
+    private function persistFailedCaptureResponse(
+        AiConversation $conversation,
+        int $assistantBaselineId,
+        string $content,
+        string $stateId,
+    ): AiMessage {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $assistantBaselineId)
+            ->latest('id')
+            ->first();
+        $metadata = $message !== null && is_array($message->metadata)
+            ? $message->metadata
+            : [];
+        $attributes = [
+            'content' => $content,
+            'metadata' => array_merge($metadata, [
+                'onboarding_step' => $stateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ]),
+        ];
+
+        if ($message !== null) {
+            $message->update($attributes);
+
+            return $message->refresh();
+        }
+
+        return $this->saveMessage($conversation, 'assistant', $content, $attributes);
+    }
+
+    private function persistVerifyEditResponse(
+        AiConversation $conversation,
+        int $assistantBaselineId,
+        string $content,
+        string $stateId,
+        string $metadataFlag,
+    ): AiMessage {
+        $message = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '>', $assistantBaselineId)
+            ->latest('id')
+            ->first();
+        $metadata = $message !== null && is_array($message->metadata)
+            ? $message->metadata
+            : [];
+        $attributes = [
+            'content' => $content,
+            'metadata' => array_merge($metadata, [
+                'onboarding_step' => $stateId,
+                $metadataFlag => true,
+                // Success/read-back is a verify acknowledgement; a failure or
+                // clarification asks the user for another input.
+                'turn_intent' => in_array($metadataFlag, ['verify_edit_success', 'verify_edit_readback'], true)
+                    ? FynTurnIntent::VerifyAck->value
+                    : FynTurnIntent::CaptureClarification->value,
+            ]),
+        ];
+
+        if ($message !== null) {
+            $message->update($attributes);
+
+            return $message->refresh();
+        }
+
+        return $this->saveMessage($conversation, 'assistant', $content, $attributes);
+    }
+
     private function errorEvent(string $text): array
     {
         return ['type' => 'content', 'text' => $text];
@@ -3254,6 +6483,14 @@ PROMPT;
      * can dedup against them. After the LLM stream completes, runs the
      * multi-entity gap-fill on every focus inferred from the CaptureContext.
      *
+     * Structured confirmed facts (Task 4): $confirmedFacts — deterministic
+     * facts about this capture (extractor-parsed ownership/subtype from an
+     * awaiting-detail reply) — are carried as agent state for the duration
+     * of the turn, so both the streamed tool dispatch and the direct
+     * gap-fill executeTool calls resolve them in CaptureAccuracyGate.
+     * Always cleared on exit, however the generator ends.
+     *
+     * @param  array<string, mixed>|null  $confirmedFacts
      * @return \Generator<array<string, mixed>>
      */
     public function handleInlineCapture(
@@ -3262,6 +6499,44 @@ PROMPT;
         string $message,
         CaptureContext $context,
         ?string $currentRoute = null,
+        ?array $confirmedFacts = null,
+    ): \Generator {
+        // Facts travel explicitly on both write paths — as a stream()
+        // parameter for the LLM dispatch (CoordinatingAgent is container-
+        // transient; agent state set here never reaches FynLoop's instance)
+        // and as an executeTool argument for the deterministic gap-fill. No
+        // shared transient: clear-ordering between the stream's finally and
+        // the post-stream gap-fill must not matter.
+        // CSJ 2026-08-17: answering Fyn's own outstanding question about a record is
+        // an EXPLICIT edit, so the write handler may amend it directly instead of
+        // asking again. Set on this service's own agent for the deterministic
+        // gap-fill/extractor writes, and passed separately into FynLoop::stream for
+        // the LLM dispatch — same both-paths discipline as confirmedFacts above,
+        // because CoordinatingAgent is container-transient.
+        if ($context->isContinuation) {
+            $this->coordinatingAgent->setExplicitEditEntityType(
+                $context->entityTypes[0] ?? null,
+                $context->continuationRecordId,
+            );
+        }
+
+        try {
+            yield from $this->runInlineCapture($user, $conversation, $message, $context, $currentRoute, $confirmedFacts);
+        } finally {
+            if ($context->isContinuation) {
+                $this->coordinatingAgent->setExplicitEditEntityType(null);
+            }
+        }
+    }
+
+    /** @return \Generator<array<string, mixed>> */
+    private function runInlineCapture(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        CaptureContext $context,
+        ?string $currentRoute = null,
+        ?array $confirmedFacts = null,
     ): \Generator {
         $allowedTools = $this->captureToolSet($context);
 
@@ -3275,15 +6550,28 @@ PROMPT;
         // Mirror handleAssetCaptureTurn: derive the focus from the
         // CaptureContext and carry it for the duration of the turn (no-op
         // under legacy — the property is only read on the unified path).
-        // The `?? 'savings'` fallback is the deflection guarantee: a turn that
-        // reached handleInlineCapture is a write the classifier or the LLM
+        // The fallback is the deflection guarantee: a turn that reached
+        // handleInlineCapture is a write the classifier or the LLM
         // delegate_to_capture path has ALREADY cleared, so it must stay in
         // capture mode even when the entity type has no module focus (e.g. an
         // LLM-emitted entity the map below doesn't know). A null focus here
         // demotes the turn to advice mode, the CAPTURE bucket is dropped, and
         // the model deflects with the security refusal (June13 §6c).
+        //
+        // It falls back to 'inline_capture', NOT 'savings'. entity_types is a
+        // free-text array on the delegate_to_capture schema and the module map
+        // below covers assets only, so every household-shaped record advice can
+        // hand over — spouse, dependants, personal details, work, expenditure,
+        // charitable giving, state pension, retirement goals — used to land in
+        // the savings focus. The turn then read "you can use
+        // create_savings_account; anything else is not in scope for this Cash &
+        // Savings turn" while carrying the full write catalogue underneath, and
+        // the model's only scripted exit was the refusal. Same dead end as the
+        // budgeting alias (user 80, conversation 67, 2026-08-18), reached
+        // through the advice door instead of the walk. 'inline_capture' frames
+        // the turn as what it is and offers the whole write surface.
         $unifiedFocus = FynPromptMode::isUnified()
-            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? 'savings')
+            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? self::HANDOFF_FALLBACK_FOCUS)
             : null;
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
@@ -3291,6 +6579,37 @@ PROMPT;
 
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
+
+        /** @var array<string, array{message: string, content_offset: int, tier_limit: bool, tool: string}> $pendingWriteFailures */
+        $pendingWriteFailures = [];
+
+        // Raw tool-call arguments from every gate-blocked (clarification_required)
+        // LLM attempt this turn, keyed by tool name. The deterministic gap-fill
+        // below merges these onto its own extracted fields (LLM input as base,
+        // extractor fills only missing keys — see
+        // AssetCaptureEntityExtractor::mergeWithLlmInput) so a call the LLM
+        // otherwise got right except for a dropped ownership_type can still be
+        // rescued (live conversation 164).
+        /** @var array<string, list<array<string, mixed>>> $llmClarificationInputs */
+        $llmClarificationInputs = [];
+
+        /** @var list<string> $failedAttemptTools */
+        $failedAttemptTools = [];
+
+        /** @var list<array<string, mixed>> $presentationActions */
+        $presentationActions = [];
+
+        $writeResultSequence = 0;
+
+        /** @var array<string, mixed>|null $terminalEvent */
+        $terminalEvent = null;
+
+        /** @var list<array<string, mixed>> $contentEvents */
+        $contentEvents = [];
+
+        $assistantBaselineId = (int) ($conversation->messages()
+            ->where('role', 'assistant')
+            ->max('id') ?? 0);
 
         // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
         // chat() turn that emitted delegate_to_capture already saved the
@@ -3307,6 +6626,9 @@ PROMPT;
             allowedTools: $allowedTools,
             persistUserMessage: false,
             unifiedFocus: $unifiedFocus,
+            confirmedFacts: $confirmedFacts,
+            explicitEditEntityType: $context->isContinuation ? ($context->entityTypes[0] ?? null) : null,
+            explicitEditRecordId: $context->isContinuation ? $context->continuationRecordId : null,
         );
 
         foreach ($generator as $event) {
@@ -3316,21 +6638,308 @@ PROMPT;
                 continue;
             }
 
+            // The inline-capture generator has additional deterministic work
+            // after the model stream (failure text, gap fill, confirmation and
+            // milestone acknowledgement). Hold its terminal marker until that
+            // work is complete so every client sees one final `done` frame.
+            if ($type === 'done') {
+                $terminalEvent = $event;
+
+                continue;
+            }
+
+            // Buffer model narration until the write outcome is known. A
+            // failed write must never leak a model-authored "Saved" claim or
+            // duplicate the deterministic boundary failure text.
+            if ($type === 'content') {
+                $contentEvents[] = $event;
+
+                continue;
+            }
+
+            if ($type === 'action') {
+                $presentationActions[] = $event;
+
+                continue;
+            }
+
+            // Internal landed/failed telemetry is consumed at the director
+            // boundary. It is not part of the public SSE contract. A failed
+            // direct write must become deterministic user-facing text rather
+            // than leaking a machine event or relying on model narration.
+            if ($type === 'capture_write_result') {
+                $result = (array) ($event['result'] ?? []);
+                $messageText = trim((string) ($event['message'] ?? $result['message'] ?? ''));
+                $explicitFailure = ($event['error'] ?? false) === true
+                    || (($result['error'] ?? false) === true);
+                $tool = trim((string) ($event['tool'] ?? $result['tool'] ?? '')) ?: '__unknown__';
+                $landed = $event['landed'] ?? $result['landed'] ?? null;
+                $retryOfToolCallId = trim((string) (
+                    $event['retry_of_tool_call_id'] ?? $result['retry_of_tool_call_id'] ?? ''
+                ));
+                $retryContentOffset = null;
+                if ($retryOfToolCallId !== '') {
+                    $retryContentOffset = $pendingWriteFailures[$retryOfToolCallId]['content_offset'] ?? null;
+                    unset($pendingWriteFailures[$retryOfToolCallId]);
+                }
+
+                $toolCallId = trim((string) ($event['tool_call_id'] ?? $result['tool_call_id'] ?? ''));
+                if ($toolCallId === '') {
+                    $toolCallId = $tool.':'.(++$writeResultSequence);
+                }
+
+                // The LLM's own arguments for a gate-blocked attempt — remembered
+                // so the deterministic gap-fill below can retry with them as its
+                // base (see AssetCaptureEntityExtractor::mergeWithLlmInput).
+                if ($explicitFailure && ($result['error_type'] ?? null) === 'clarification_required' && $tool !== '__unknown__') {
+                    $rawInput = (array) ($event['input'] ?? []);
+                    if ($rawInput !== []) {
+                        $llmClarificationInputs[$tool][] = $rawInput;
+                    }
+                } elseif ($explicitFailure
+                    && $tool !== '__unknown__'
+                    && ! ToolResults::isDuplicateSkip($result)
+                    && ! in_array($tool, $failedAttemptTools, true)) {
+                    // Any OTHER explicit failure (validation_failed, chiefly)
+                    // parks the turn on a clarifying question — suppress the
+                    // blind extractor create for this tool (see
+                    // runExtractorForFocus), it would land the degraded row
+                    // the richer failed attempt was refused for.
+                    $failedAttemptTools[] = $tool;
+                }
+
+                if (! $explicitFailure && $landed === true) {
+                    continue;
+                }
+
+                $failed = ! ToolResults::isDuplicateSkip($result)
+                    && ($explicitFailure
+                        || ($landed === false && $messageText !== ''));
+                if ($failed) {
+                    $pendingWriteFailures[$toolCallId] = [
+                        'message' => $messageText !== ''
+                            ? $messageText
+                            : 'The information could not be saved.',
+                        'content_offset' => $retryContentOffset ?? count($contentEvents),
+                        'tier_limit' => ($result['reason'] ?? null) === 'tier_limit_reached',
+                        'tool' => $tool,
+                    ];
+                }
+
+                continue;
+            }
+
             if ($type === 'fill_form') {
                 $llmEmittedFills[] = (array) ($event['fields'] ?? []);
             }
 
             // Track every record persisted by a create_* / direct-write handler
             // so the closing capture_complete event carries the full list.
-            if ($type === 'entity_created') {
-                $recordsCreated[] = [
-                    'type' => (string) ($event['entity_type'] ?? ''),
-                    'id' => $event['entity_id'] ?? null,
-                    'name' => (string) ($event['name'] ?? ''),
-                ];
+            if (self::isRecordRowEvent($type)) {
+                $recordsCreated[] = self::recordRowFromEvent($event);
             }
 
             yield $event;
+        }
+
+        // Deterministic multi-entity gap-fill runs BEFORE the write-failure
+        // resolution below (rather than after, as it did previously) so a
+        // gate-blocked LLM tool call that the gap-fill goes on to rescue —
+        // merged with the LLM's own correct fields, see
+        // AssetCaptureEntityExtractor::mergeWithLlmInput — never surfaces as
+        // "I couldn't save that" once the record has, in fact, just been
+        // saved (live conversation 164).
+        /** @var list<string> $gapFilledTools */
+        $gapFilledTools = [];
+        foreach ($this->emitGapFillFromCaptureContext(
+            $user,
+            $conversation,
+            $context,
+            $message,
+            $llmEmittedFills,
+            $llmClarificationInputs,
+            $confirmedFacts,
+            $failedAttemptTools,
+        ) as $gapFillEvent) {
+            if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
+                $recordsCreated[] = [
+                    'type' => (string) ($gapFillEvent['entity_type'] ?? ''),
+                    'id' => $gapFillEvent['entity_id'] ?? null,
+                    'name' => (string) ($gapFillEvent['name'] ?? ''),
+                ];
+                $gapFilledTools[] = (string) ($gapFillEvent['tool'] ?? '');
+            }
+
+            yield $gapFillEvent;
+        }
+
+        // A tool the gap-fill just rescued is no longer an unresolved
+        // failure — drop its pending entry before deciding what failure
+        // text (if any) to surface. Per-tool granularity (not per-entity):
+        // sufficient for the single-entity interruption-retry flow this
+        // fixes (AssetCaptureEntityExtractor's own class doc: "under-filling
+        // is the acceptable degradation"). The rescued entries' own
+        // content_offset is kept (not discarded with the entry) — see
+        // $rescuedContentOffsets below: the model's own narration AFTER a
+        // failing tool call is still stale once that call is rescued, even
+        // though the failure entry itself is gone.
+        /** @var list<int> $rescuedContentOffsets */
+        $rescuedContentOffsets = [];
+        if ($gapFilledTools !== []) {
+            foreach ($pendingWriteFailures as $failedToolCallId => $failure) {
+                if (in_array($failure['tool'] ?? null, $gapFilledTools, true)) {
+                    $rescuedContentOffsets[] = $failure['content_offset'];
+                    unset($pendingWriteFailures[$failedToolCallId]);
+                }
+            }
+        }
+
+        // Any tool call that failed this turn — whether still unresolved or
+        // since rescued by the gap-fill — taints every content event
+        // narrated after it. WP-1's capture_write_failed directive
+        // ("tell the user plainly what could not be saved") routinely makes
+        // the model narrate its OWN apology in the very next continuation
+        // ("I couldn't save that — I need you to confirm..."); that text is
+        // ordinary `content`, not the deterministic wrap-text below, so the
+        // gap-fill unset above never touches it. Left alone it survives
+        // untouched into both the SSE stream and the row the underlying
+        // stream already persisted (live conversation 164, msg 19465) even
+        // though the write it was apologising for has, in fact, just
+        // succeeded. Truncating at the earliest offset among ALL of this
+        // turn's failed attempts — resolved or not — drops that stale
+        // narration in both cases.
+        if ($pendingWriteFailures !== [] || $rescuedContentOffsets !== []) {
+            $safeOffset = min(array_merge(
+                array_column($pendingWriteFailures, 'content_offset'),
+                $rescuedContentOffsets,
+            ));
+            $safeContentEvents = array_slice($contentEvents, 0, $safeOffset);
+            // Anti-parrot: the model echoes OUR scripted "couldn't save that"
+            // copy from tool feedback and prior turns — never its line to
+            // voice (the composer below owns failure copy).
+            $safeModelText = $this->stripEchoedFailureCopy(implode('', array_map(
+                static fn (array $event): string => (string) ($event['text'] ?? ''),
+                $safeContentEvents,
+            )));
+            if ($safeModelText === '') {
+                $safeContentEvents = [];
+            } else {
+                $safeContentEvents = [['type' => 'content', 'text' => $safeModelText]];
+            }
+
+            if ($pendingWriteFailures !== []) {
+                $firstFailure = array_values($pendingWriteFailures)[0];
+
+                // One ask per turn (CSJ 2026-07-23, live: the Santander
+                // ownership ask rendered twice, msg 19675): when the model's
+                // safe narration already asks for the missing detail, the
+                // scripted failure line repeats the same demand — the model's
+                // ask carries the turn. A tier-limit message always shows: it
+                // is a hard stop, not a clarification the model could voice.
+                // The row keeps its CaptureClarification stamp +
+                // capture_write_failed metadata below, so the awaiting-detail
+                // re-arm is untouched.
+                $modelAlreadyAsked = ! $firstFailure['tier_limit']
+                    && $safeModelText !== ''
+                    && $this->captureResponseRequestsClarification($safeModelText);
+
+                if ($modelAlreadyAsked) {
+                    $persistedText = $safeModelText;
+
+                    foreach ($safeContentEvents as $safeContentEvent) {
+                        yield $safeContentEvent;
+                    }
+                } else {
+                    $failureText = $this->captureFailureText(array_values($pendingWriteFailures))
+                        ?? "I couldn't record anything new there. If a figure has changed, "
+                            .'tell me the specific amount and I will update it.';
+                    $failureSeparator = $safeModelText !== '' ? "\n\n" : '';
+                    $persistedText = $safeModelText.$failureSeparator.$failureText;
+
+                    foreach ($safeContentEvents as $safeContentEvent) {
+                        yield $safeContentEvent;
+                    }
+                    yield ['type' => 'content', 'text' => $failureSeparator.$failureText];
+                }
+            } else {
+                // Every failed attempt this turn was rescued — no failure
+                // text to surface, just the safe prefix (if any) narrated
+                // before the now-superseded failing call.
+                $persistedText = $safeModelText;
+
+                foreach ($safeContentEvents as $safeContentEvent) {
+                    yield $safeContentEvent;
+                }
+            }
+
+            $modelText = implode('', array_map(
+                static fn (array $event): string => (string) ($event['text'] ?? ''),
+                $contentEvents,
+            ));
+            $newAssistantMessages = $conversation->messages()
+                ->where('role', 'assistant')
+                ->where('id', '>', $assistantBaselineId);
+            $persistedMessage = $modelText !== ''
+                ? (clone $newAssistantMessages)->where('content', $modelText)->latest('id')->first()
+                : null;
+            $persistedMessage ??= $newAssistantMessages->latest('id')->first();
+
+            // Review finding M-2 — a fully-rescued call (every entry above
+            // moved from $pendingWriteFailures into $rescuedContentOffsets,
+            // so $failureText is never appended) can compute an empty
+            // $persistedText when the earliest rescued content_offset is 0:
+            // the tool call was the very first thing in the turn, so there is
+            // no safe narration prefix to keep. Blanking an existing row to
+            // '' would persist a genuinely empty assistant message — strictly
+            // worse than the stale (now-superseded) narration it already
+            // holds. Skip the update in that case and leave the original
+            // content in place, rather than deleting the row: nothing else in
+            // this method tracks whether other yielded events (e.g.
+            // capture_complete's message_id) still reference this row, so a
+            // silent no-op is the safe, simple choice.
+            $captureIntent = $pendingWriteFailures !== []
+                ? FynTurnIntent::CaptureClarification->value
+                : FynTurnIntent::CaptureAck->value;
+            if ($persistedMessage !== null && $persistedText !== '') {
+                $metadata = is_array($persistedMessage->metadata) ? $persistedMessage->metadata : [];
+                $persistedMessage->update([
+                    'content' => $persistedText,
+                    'metadata' => array_merge(
+                        $metadata,
+                        ['turn_intent' => $captureIntent],
+                        $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    ),
+                ]);
+            } elseif ($persistedMessage === null && $persistedText !== '') {
+                $this->saveMessage($conversation, 'assistant', $persistedText, [
+                    'metadata' => array_merge(
+                        ['turn_intent' => $captureIntent],
+                        $pendingWriteFailures !== [] ? ['capture_write_failed' => true] : [],
+                    ),
+                ]);
+            }
+        } else {
+            foreach ($contentEvents as $contentEvent) {
+                yield $contentEvent;
+            }
+
+            // A no-tool clarification turn (the model asked for a missing
+            // fact without attempting a write) persists through the pipeline
+            // with the default capture_ack stamp — refine it so read-side
+            // consumers see the clarification.
+            if ($recordsCreated === [] && $llmEmittedFills === []) {
+                $modelText = implode('', array_map(
+                    static fn (array $event): string => (string) ($event['text'] ?? ''),
+                    $contentEvents,
+                ));
+                if ($modelText !== '' && $this->captureResponseRequestsClarification($modelText)) {
+                    $this->tagCaptureClarification($conversation, $assistantBaselineId);
+                }
+            }
+        }
+
+        foreach ($presentationActions as $presentationAction) {
+            yield $presentationAction;
         }
 
         // Gamification: the inline-capture path (advice-mode write handoff, incl.
@@ -3361,14 +6970,6 @@ PROMPT;
             );
         }
 
-        yield from $this->emitGapFillFromCaptureContext(
-            $user,
-            $conversation,
-            $context,
-            $message,
-            $llmEmittedFills,
-        );
-
         // Emit a single closing capture_complete event so AiChatPanel.vue can
         // render the rich record-card bubble (one card per record) instead of
         // leaving the user with the bare entity_created mini-bubble plus the
@@ -3380,7 +6981,34 @@ PROMPT;
                 'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
                 'records_created' => $recordsCreated,
             ];
+
+            // WP-5c-iii — a capture can cross a milestone (first ISA, will in
+            // place, mortgage paydown); run the cheap detections and let Fyn
+            // acknowledge the first mint in the same turn, plain text.
+            // Detection failures never break the capture stream.
+            try {
+                $milestones = app(MilestoneDetectionService::class);
+                $milestones->detectIsaFirst($user);
+                $milestones->detectEstateBasics($user);
+                $milestones->detectMortgagesPaid($user);
+
+                $mint = app(MilestoneCollector::class)->first();
+                if ($mint !== null) {
+                    $sentence = "That's a milestone: ".lcfirst($mint['label']);
+                    yield ['type' => 'content', 'text' => $sentence];
+                    $this->saveMessage($conversation, 'assistant', $sentence, [
+                        'metadata' => [
+                            'milestone_ack' => $mint['type'],
+                            'turn_intent' => FynTurnIntent::Celebration->value,
+                        ],
+                    ]);
+                }
+            } catch (\Throwable) {
+                // best-effort
+            }
         }
+
+        yield $terminalEvent ?? ['type' => 'done'];
     }
 
     /**
@@ -3390,6 +7018,44 @@ PROMPT;
      *
      * @param  list<array{type: string, id: int|string|null, name: string}>  $records
      */
+    /**
+     * The one shape of a `capture_complete` record row, built from the entity
+     * event that produced it.
+     *
+     * SPEC-crud-handler-contract §5.3/§5.4 — the row carries the page the
+     * record lives on, resolved server-side by GateRoutes, so every client
+     * links to the same place instead of keeping its own route table (the web
+     * chat panel kept a fourth one until 2026-08-17).
+     *
+     * @param  array<string, mixed>  $event
+     * @return array{type: string, id: mixed, name: string, route: ?string, mobile_route: ?string, label: ?string}
+     */
+    /**
+     * Whether an event contributes a row to the closing capture_complete card.
+     *
+     * `entity_updated` counts because it is now also how a write with no record
+     * id reports itself — a capture_* handler or set_expenditure writing columns
+     * on `users`. Those pages all exist; without this the confirmation could not
+     * offer the View link that a created record gets, so the same fact was
+     * confirmable or not depending only on which handler happened to write it.
+     */
+    private static function isRecordRowEvent(string $type): bool
+    {
+        return $type === 'entity_created' || $type === 'entity_updated';
+    }
+
+    private static function recordRowFromEvent(array $event): array
+    {
+        return [
+            'type' => (string) ($event['entity_type'] ?? ''),
+            'id' => $event['entity_id'] ?? null,
+            'name' => (string) ($event['name'] ?? ''),
+            'route' => $event['route'] ?? null,
+            'mobile_route' => $event['mobile_route'] ?? null,
+            'label' => $event['label'] ?? null,
+        ];
+    }
+
     private function buildCaptureCompleteSummary(array $records): string
     {
         if (count($records) === 1) {
@@ -3408,31 +7074,13 @@ PROMPT;
      */
     private function captureToolSet(CaptureContext $context): array
     {
-        return [
-            'create_savings_account', 'create_investment_account', 'create_holding',
-            'create_pension', 'create_property', 'create_mortgage',
-            'create_protection_policy', 'create_family_member',
-            'create_goal', 'create_life_event', 'create_trust',
-            'create_will', 'update_will',
-            'create_power_of_attorney', 'update_power_of_attorney',
-            'create_asset', 'create_liability', 'create_estate_gift',
-            'create_chattel', 'create_business_interest',
-            'update_record', 'update_profile', 'set_expenditure',
-            // S0.5.r — what-if scenarios persist a WhatIfScenario row, so
-            // they route through the handoff like every other create_*.
-            'create_what_if_scenario',
-            // S0.5.r — delete is allowed in inline-capture so the user can
-            // ask Advice Fyn to remove a record and have the handoff dispatch
-            // delete_record for them.
-            'delete_record',
-            // SaveTax campaign sections 4-6 — used during the campaign-only
-            // post-expenditure state-machine branch. Always whitelisted; the
-            // state machine itself gates which states can call which tool.
-            'capture_salary_sacrifice',
-            'capture_spouse_work_status',
-            'capture_spouse_household_data',
-            'capture_spouse_non_working_assets',
-        ];
+        // Rule 20 — one list. AdviceFyn::WRITE_TOOLS is the canonical set of
+        // write surfaces stripped from advice mode; every one of them must be
+        // dispatchable here or the strip creates a dead end the user cannot
+        // escape: advice will not write it, and the Fyn it delegates to has no
+        // tool for it. navigate_to_page is the one exclusion — it is stripped
+        // from advice as an escape hatch (S0.5.t), not because it writes.
+        return array_values(array_diff(AdviceFyn::WRITE_TOOLS, ['navigate_to_page']));
     }
 
     /**
@@ -3448,6 +7096,7 @@ PROMPT;
      * skipped rather than aborting the turn.
      *
      * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @param  array<string, list<array<string, mixed>>>  $llmClarificationInputs  raw tool-call arguments from gate-blocked LLM attempts this turn, keyed by tool name
      * @return \Generator<array<string, mixed>>
      */
     private function emitGapFillFromCaptureContext(
@@ -3456,11 +7105,14 @@ PROMPT;
         CaptureContext $context,
         string $message,
         array $llmEmittedFills,
+        array $llmClarificationInputs = [],
+        ?array $confirmedFacts = null,
+        array $failedAttemptTools = [],
     ): \Generator {
         $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
 
         foreach ($focuses as $focus) {
-            yield from $this->runExtractorForFocus($user, $focus, $message, $llmEmittedFills);
+            yield from $this->runExtractorForFocus($user, $conversation, $focus, $message, $llmEmittedFills, $llmClarificationInputs, $confirmedFacts, $failedAttemptTools);
         }
     }
 
@@ -3469,22 +7121,47 @@ PROMPT;
      * entities the LLM dropped.
      *
      * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @param  array<string, list<array<string, mixed>>>  $llmClarificationInputs  raw tool-call arguments from gate-blocked LLM attempts this turn, keyed by tool name
      * @return \Generator<array<string, mixed>>
      */
     private function runExtractorForFocus(
         User $user,
+        AiConversation $conversation,
         string $focus,
         string $message,
         array $llmEmittedFills,
+        array $llmClarificationInputs = [],
+        ?array $confirmedFacts = null,
+        array $failedAttemptTools = [],
     ): \Generator {
         $tool = $this->entityExtractor->toolNameForFocus($focus);
         if ($tool === null) {
             return;
         }
 
+        // Same suppression as emitGapFillToolCalls: an LLM attempt that
+        // FAILED validation is parked on a clarifying question — a blind
+        // extractor create would land the degraded row the richer attempt
+        // was refused for. (Gate-blocked clarification_required attempts are
+        // NOT in this list — their arguments merge below instead.)
+        if (in_array($tool, $failedAttemptTools, true)) {
+            Log::info('[OnboardingChatDirector] Inline gap-fill suppressed — failed LLM attempt pending clarification', [
+                'user_id' => $user->id,
+                'focus' => $focus,
+                'tool' => $tool,
+            ]);
+
+            return;
+        }
+
         try {
             $extracted = $this->entityExtractor->extractForFocus($focus, $message);
             $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFills, $user);
+            // Merge precedence: the LLM's own gate-blocked arguments are the
+            // base (institution/balance/account_type already reached the gate
+            // unmodified), the extractor only fills keys the LLM's call left
+            // unset — chiefly ownership_type (live conversation 164).
+            $missing = $this->entityExtractor->mergeWithLlmInput($focus, $missing, $llmClarificationInputs[$tool] ?? []);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Inline-capture gap-fill extraction failed', [
                 'user_id' => $user->id,
@@ -3515,7 +7192,14 @@ PROMPT;
             ];
 
             try {
-                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+                $result = $this->coordinatingAgent->executeTool(
+                    $tool,
+                    $input,
+                    $user,
+                    $conversation->id,
+                    evidenceOverride: $this->verbatimEvidenceFromCaptureMessage($message),
+                    confirmedFacts: $confirmedFacts,
+                );
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Inline-capture gap-fill tool execution failed', [
                     'user_id' => $user->id,
@@ -3554,12 +7238,73 @@ PROMPT;
                 ];
             }
 
+            // A direct-write handler (e.g. handleCreateSavingsAccount)
+            // returns `created: true` on success. Surfacing this lets
+            // handleInlineCapture fold a gap-fill rescue into the same
+            // capture_complete summary and drop a matching pending write
+            // failure that the LLM's own attempt on this tool left behind
+            // (see the pendingWriteFailures/$gapFilledTools cleanup there).
+            if (($result['created'] ?? false) === true) {
+                yield [
+                    'type' => 'entity_created',
+                    'entity_type' => (string) ($result['entity_type'] ?? ''),
+                    'entity_id' => $result['entity_id'] ?? null,
+                    'name' => (string) ($result['name'] ?? ''),
+                    'tool' => $tool,
+                ];
+            }
+
             yield [
                 'type' => 'tool_use',
                 'tool' => $tool,
                 'status' => 'complete',
             ];
         }
+    }
+
+    /**
+     * Build a CaptureAccuracyGate evidence override from the gap-fill's own
+     * capture message — verbatim user words, never fabricated. The message
+     * may be the interruption-retry merge ("Original capture details: ...\n
+     * Requested missing details: ...", see resolvePendingInterruptionCapture)
+     * and, across repeated clarification rounds, that prefix pair can nest
+     * (the prior round's already-merged message becomes the next round's
+     * "Original capture details:" body). Splitting on newlines and stripping
+     * every leading occurrence of either prefix from each line recovers the
+     * plain sentences the user actually typed, in order, with no synthetic
+     * chain-walking — sidestepping CaptureAccuracyGate's DB-evidence
+     * chain-walk, which an interposed turn (e.g. "Yes, save it") can sever
+     * before it reaches the clarifying detail (live conversation 164).
+     */
+    private function verbatimEvidenceFromCaptureMessage(string $message): string
+    {
+        $lines = preg_split('/\r\n|\r|\n/', $message) ?: [$message];
+        $stripped = array_map(
+            fn (string $line): string => $this->stripCaptureMergePrefixes($line),
+            $lines,
+        );
+
+        return implode("\n", array_values(array_filter(
+            $stripped,
+            static fn (string $line): bool => $line !== '',
+        )));
+    }
+
+    /**
+     * Strip every leading "Original capture details:" / "Requested missing
+     * details:" prefix from a single line (repeated occurrences included —
+     * see verbatimEvidenceFromCaptureMessage).
+     */
+    private function stripCaptureMergePrefixes(string $line): string
+    {
+        $line = trim($line);
+        $prefixPattern = '/^(?:Original capture details:|Requested missing details:)\s*/i';
+
+        while (preg_match($prefixPattern, $line) === 1) {
+            $line = trim(preg_replace($prefixPattern, '', $line, 1) ?? '');
+        }
+
+        return $line;
     }
 
     /**

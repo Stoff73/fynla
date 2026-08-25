@@ -139,14 +139,15 @@ const authService = {
 
   /**
    * Verify email code and get auth token
-   * @param {string} challengeToken - Challenge token from login response
+   * @param {string|number} verificationId - Pending registration ID or login challenge token
    * @param {string} code - 6-digit verification code
    * @param {string} type - 'login' or 'registration'
    * @returns {Promise}
    */
-  async verifyCode(challengeToken, code, type) {
+  async verifyCode(verificationId, code, type) {
+    const verificationField = type === 'registration' ? 'pending_id' : 'challenge_token';
     const response = await api.post('/auth/verify-code', {
-      challenge_token: challengeToken,
+      [verificationField]: verificationId,
       code,
       type,
     });
@@ -258,13 +259,24 @@ const authService = {
     return response.data;
   },
 
+  async restoreCheckHandoff(registrationHandoff, password) {
+    const response = await api.post('/auth/restore/check', {
+      registration_handoff: registrationHandoff,
+      password,
+    });
+    return response.data;
+  },
+
   /**
    * Restore an account previously scheduled for deletion.
    * @param {string} restorationToken
    * @returns {Promise}
    */
-  async restore(restorationToken) {
-    const response = await api.post('/auth/restore', { restoration_token: restorationToken });
+  async restore(restorationToken, mfaCode = null) {
+    const response = await api.post('/auth/restore', {
+      restoration_token: restorationToken,
+      ...(mfaCode ? { mfa_code: mfaCode } : {}),
+    });
     return response.data;
   },
 };

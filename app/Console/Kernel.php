@@ -7,6 +7,7 @@ namespace App\Console;
 use App\Jobs\AiAuditRetentionJob;
 use App\Jobs\AiIdempotencyCleanupJob;
 use App\Jobs\PublishScheduledInsightsJob;
+use App\Models\WebHandoff;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -19,13 +20,15 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('subscriptions:send-renewal-reminders')->dailyAt('09:00');
         $schedule->command('data-retention:send-warnings')->dailyAt('09:00');
-        $schedule->command('trials:expire')->dailyAt('00:05');
+        $schedule->command('subscriptions:expire')->dailyAt('00:05');
         $schedule->command('accounts:execute-scheduled-deletions')->dailyAt('00:10');
         $schedule->command('accounts:execute-grace-deletions')->dailyAt('00:15');
         $schedule->command('accounts:send-deletion-reminders')->dailyAt('00:20');
         $schedule->command('accounts:purge-after-retention')->monthlyOn(1, '02:00');
         $schedule->command('registrations:cleanup')->hourly();
         $schedule->command('sessions:cleanup')->dailyAt('02:00');
+        $schedule->command('model:prune', ['--model' => [WebHandoff::class]])
+            ->dailyAt('02:10');
         $schedule->command('audit:purge')->weeklyOn(0, '03:00');
         // CoALA Phase 5 FR-M10 — pause + consolidate conversations idle 3+ min.
         $schedule->command('ai:conversations:summarise-stale --idle-minutes=3 --pause')
@@ -38,8 +41,12 @@ class Kernel extends ConsoleKernel
         $schedule->command('notifications:mortgage-rate-alerts')->dailyAt('09:30');
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
+        $schedule->command('business:send-filing-alerts')->dailyAt('10:45');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
-        $schedule->command('tier:sync-revolut')->weeklyOn(1, '02:00'); // SP2 PR5: Mon 02:00, alongside billing cadence
+        $schedule->command('payments:reconcile-pending --older-than=15')->everyTenMinutes()->withoutOverlapping();
+        $schedule->command('apple:notifications:recover')
+            ->everyTenMinutes()
+            ->withoutOverlapping();
 
         $schedule->job(new PublishScheduledInsightsJob)->everyFiveMinutes();
 
@@ -60,6 +67,47 @@ class Kernel extends ConsoleKernel
         // blobs. Purge (6-year hard delete) is manual / --force only.
         $schedule->command('fyn:episodic:reconcile')->daily();
         $schedule->command('fyn:episodic:cold-archive')->weekly();
+
+        // Marketing pipeline — article + video detection. Polled every few
+        // minutes (config('pipeline.poll_frequency_minutes', 5)) so new Drive
+        // files / published articles enter the pipeline within minutes without
+        // waiting for a daily scan. The Drive webhook (when configured) triggers
+        // the same commands instantly; this polling is the always-on safety net.
+        // withoutOverlapping stops a slow run stacking on the next tick.
+        $pollEvery = max(1, (int) config('pipeline.poll_frequency_minutes', 5));
+
+        $schedule->command('pipeline:detect-new-article-docs')
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
+
+        $schedule->command('pipeline:detect-new-articles')
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
+
+        // CMS DocumentArticles → same script pipeline.
+        $schedule->command('pipeline:detect-new-document-articles')
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
+
+        $schedule->command('pipeline:detect-new-videos')
+            ->cron('*/'.$pollEvery.' * * * *')->withoutOverlapping();
+
+        // Real-time Drive trigger — re-register the change webhook before it
+        // expires (no-op when PIPELINE_DRIVE_WEBHOOK_URL is unset).
+        $schedule->command('pipeline:drive-watch')->dailyAt('05:00')->withoutOverlapping();
+
+        // Quarterly (1 Jan / 1 Apr / 1 Jul / 1 Oct) housekeeping reminder.
+        $schedule->command('pipeline:audit-social-videos')
+            ->cron('0 8 1 1,4,7,10 *');
+
+        // Stage 3.5 — auto-approve clip approvals near their scheduled post time.
+        $schedule->command('pipeline:auto-approve-clips')
+            ->cron('*/'.((int) config('pipeline.clip_approval.auto_approve_cron_frequency_minutes', 5)).' * * * *');
+
+        // Stage 4 — social scheduling + reporting.
+        $schedule->command('pipeline:schedule-ready-posts')->hourly();
+        $schedule->command('pipeline:recalculate-optimal-times')->weeklyOn(1, '06:00');
+        $schedule->command('pipeline:weekly-social-report')->weeklyOn(
+            (int) config('pipeline.reports.weekly_social_schedule_day', 1),
+            (string) config('pipeline.reports.weekly_social_schedule_time', '09:00'),
+        );
     }
 
     /**

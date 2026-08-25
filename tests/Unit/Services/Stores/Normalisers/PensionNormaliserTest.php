@@ -133,6 +133,35 @@ describe('PensionNormaliser::fromFynPension', function () {
 
         expect($canonical['pension_type'])->toBe('occupational');
     });
+
+    // CSJ 2026-08-17: the default is ALWAYS a personal pension. It used to be
+    // 'occupational', so anything the match arm did not recognise silently became
+    // a workplace pension — the "Sip" incident, where the user said SIPP and the
+    // app recorded "Aviva workplace pension".
+    it('defaults an unstated scheme_type to personal, never workplace', function () {
+        foreach ([null, '', 'nonsense', 'Self-Invested Personal Pension'] as $schemeType) {
+            $canonical = (new PensionNormaliser)->fromFynPension([
+                'pension_category' => 'dc',
+                'scheme_name' => 'Aviva Pension',
+                'scheme_type' => $schemeType,
+            ]);
+
+            expect($canonical['pension_type'])
+                ->toBe('personal', 'scheme_type '.var_export($schemeType, true).' must default to personal');
+        }
+    });
+
+    it('matches Fyn scheme_type case-insensitively', function () {
+        foreach (['SIPP' => 'sipp', 'Sipp' => 'sipp', 'sipp' => 'sipp', 'WORKPLACE' => 'occupational', 'Stakeholder' => 'stakeholder'] as $input => $expected) {
+            $canonical = (new PensionNormaliser)->fromFynPension([
+                'pension_category' => 'dc',
+                'scheme_name' => 'Aviva Pension',
+                'scheme_type' => $input,
+            ]);
+
+            expect($canonical['pension_type'])->toBe($expected, "scheme_type '{$input}' should map to '{$expected}'");
+        }
+    });
 });
 
 describe('PensionNormaliser::fromFynInputHistory', function () {
@@ -165,4 +194,38 @@ describe('PensionNormaliser::fromUploadDc', function () {
         expect((float) $canonical['current_fund_value'])->toBe(32500.00);
         expect($canonical)->not->toHaveKey('source_document_id');
     });
+});
+
+it('carries salary_sacrifice through fromFynPension — false is a fact, not an absence', function (): void {
+    // 2026-07-23 live (user 293, DCPension 175): the user said "It's not
+    // salary sacrifice", the occupational extractor sent
+    // salary_sacrifice=false, and the normaliser dropped it — the row
+    // persisted NULL (unknown) and downstream salary-sacrifice advice
+    // could re-ask or mis-target.
+    $normaliser = new PensionNormaliser;
+
+    $denied = $normaliser->fromFynPension([
+        'pension_category' => 'dc',
+        'scheme_type' => 'workplace',
+        'scheme_name' => 'Workplace Pension',
+        'employee_contribution_percent' => 5,
+        'salary_sacrifice' => false,
+    ]);
+    $confirmed = $normaliser->fromFynPension([
+        'pension_category' => 'dc',
+        'scheme_type' => 'workplace',
+        'scheme_name' => 'Workplace Pension',
+        'employee_contribution_percent' => 5,
+        'salary_sacrifice' => true,
+    ]);
+    $unknown = $normaliser->fromFynPension([
+        'pension_category' => 'dc',
+        'scheme_type' => 'workplace',
+        'scheme_name' => 'Workplace Pension',
+        'employee_contribution_percent' => 5,
+    ]);
+
+    expect($denied['salary_sacrifice'])->toBeFalse()
+        ->and($confirmed['salary_sacrifice'])->toBeTrue()
+        ->and($unknown)->not->toHaveKey('salary_sacrifice');
 });

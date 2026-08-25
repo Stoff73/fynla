@@ -71,6 +71,21 @@ class RouteServiceProvider extends ServiceProvider
             });
         }
 
+        // Cookie-banner consent (public, unauthenticated). Named, not inline:
+        // Laravel keys inline throttles for unauthenticated requests by
+        // sha1("$domain|$ip") with no path component, so an inline limit here
+        // would share one bucket with every other inline-throttled public
+        // route. Generous enough that a visitor toggling their mind, or a
+        // household behind one NAT address, is never refused.
+        RateLimiter::for('cookie-consent', function (Request $request) {
+            return Limit::perMinute(20)->by($request->path().'|'.$request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many requests. Please wait a moment and try again.',
+                ], 429);
+            });
+        });
+
         // Rate limit for data export (expensive operation)
         RateLimiter::for('export', function (Request $request) {
             return Limit::perHour(3)->by($request->user()?->id ?: $request->ip())->response(function () {
@@ -131,6 +146,29 @@ class RouteServiceProvider extends ServiceProvider
             });
         });
 
+        RateLimiter::for('apple-webhook', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many requests.',
+                ], 429);
+            });
+        });
+
+        RateLimiter::for('native-session', function (Request $request) {
+            $key = $request->user() === null
+                ? 'ip:'.$request->ip()
+                : 'user:'.$request->user()->getAuthIdentifier();
+
+            return Limit::perMinute(10)->by($key)->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'native_session_rate_limited',
+                    'message' => 'Too many native session attempts. Please try again later.',
+                ], 429);
+            });
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')
@@ -139,6 +177,12 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware(['api', 'identify.mobile'])
                 ->prefix('api/v1')
                 ->group(base_path('routes/api_v1.php'));
+
+            if ($this->app->environment('e2e')) {
+                Route::middleware('api')
+                    ->prefix('__e2e')
+                    ->group(base_path('routes/e2e.php'));
+            }
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));

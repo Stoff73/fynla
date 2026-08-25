@@ -128,11 +128,11 @@ it('DAILY_TOKEN_LIMITS constant does not exist anywhere in app/', function () us
 it('no tier-keyed token-budget map literal appears in app/ outside the store/tiers/seeder', function () use ($appDir, $allowedPaths) {
     // Detects the DAILY_TOKEN_LIMITS pattern: an array associating old plan
     // slugs (preview/trial/student/standard/family/pro) or new tier slugs
-    // (free/tier1/tier2/tier3) with large token-count integers.
+    // (free/premium) with large token-count integers.
     // Pattern: a quoted plan/tier key followed by => and a six-or-more-digit number.
     $violations = countTierLiteralLeaks(
         $appDir,
-        "/['\"](?:preview|trial|student|standard|family|pro|free|tier1|tier2|tier3)['\"]\\s*=>\\s*[0-9_]{6,}/",
+        "/['\"](?:preview|trial|student|standard|family|pro|free|premium)['\"]\\s*=>\\s*[0-9_]{6,}/",
         [],
         $allowedPaths
     );
@@ -201,4 +201,38 @@ it('SavingsStore calls tierGate->canCreate() before persisting a new account', f
     expect(str_contains($source, 'canCreate('))->toBeTrue(
         'SavingsStore must call $this->tierGate->canCreate() before persisting. The gate seam has been removed.'
     );
+});
+
+it('capped financial records can only be created inside their canonical stores', function () use ($projectRoot) {
+    $allowedFiles = [
+        realpath($projectRoot.'/app/Services/Stores/SavingsStore.php'),
+        realpath($projectRoot.'/app/Services/Stores/InvestmentAccountStore.php'),
+        realpath($projectRoot.'/app/Services/Stores/PensionStore.php'),
+    ];
+    $patterns = [
+        '/\bSavingsAccount::(?:create|firstOrCreate|updateOrCreate)\s*\(/',
+        '/\bInvestmentAccount::(?:create|firstOrCreate|updateOrCreate)\s*\(/',
+        '/\b(?:DC|DB)Pension::(?:create|firstOrCreate|updateOrCreate)\s*\(/',
+        '/->(?:savingsAccounts|investmentAccounts|dcPensions|dbPensions)\(\)->create\s*\(/',
+    ];
+    $violations = [];
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($projectRoot.'/app', FilesystemIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $file) {
+        if ($file->getExtension() !== 'php' || in_array($file->getRealPath(), $allowedFiles, true)) {
+            continue;
+        }
+
+        $source = file_get_contents($file->getPathname());
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $source) === 1) {
+                $violations[] = str_replace($projectRoot.'/', '', $file->getPathname());
+                break;
+            }
+        }
+    }
+
+    expect($violations)->toBe([], 'Capped records must be created through SavingsStore, InvestmentAccountStore, or PensionStore so every form, import, onboarding, and Fyn path reaches TierGate.');
 });

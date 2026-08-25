@@ -228,7 +228,7 @@ try {
         <!-- Save-tax highlight — headline saving + CTA into the savetax funnel.
              The figure counts up to its value when scrolled into view (JS). -->
         <div class="feature-savetax">
-          <p class="feature-savetax__headline">You could save tax today</p>
+          <p class="feature-savetax__headline">A representative Save Tax estimate</p>
           <?php if ($homeSaveTaxFigure) { ?>
             <p
               class="feature-savetax__figure"
@@ -238,7 +238,7 @@ try {
             >£0</p>
           <?php } ?>
           <p class="feature-savetax__sub">
-            <?php if ($homeSaveTaxFigure) { ?>You can save up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> in tax. <?php } ?>Answer a few quick questions and Fyn will show the UK tax allowances you could be missing. Find out how much tax you can save.
+            <?php if ($homeSaveTaxFigure) { ?>An average estimated saving of up to <strong><?= htmlspecialchars($homeSaveTaxFigure, ENT_QUOTES) ?></strong> each year. <?php } ?>This is illustrative, not personal financial advice. Answer a few quick questions and Fyn will show the UK tax allowances you could be missing out on.
           </p>
           <a href="/savetax" class="feature-savetax__cta">Save tax now</a>
         </div>

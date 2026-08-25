@@ -1,0 +1,206 @@
+# Documentation index — dated design docs, plans and evidence
+
+Chronological pointer to every dated document under `docs/`. These trees are
+**canonical** — do not move them into `{Month}/{Month}{D}Updates/` folders and
+do not copy them there. `tests/Architecture/ClientParityLedgerTest.php:85` pins
+the literal path of one of them, so a move breaks the test suite.
+
+Session handovers and working notes live in `{Month}/{Month}{D}Updates/`.
+This file is the bridge between the two conventions.
+
+Undated material filed off the repo root on 2026-08-21 is **not** listed below
+(this table is dated docs only):
+
+| Tree | Holds |
+|---|---|
+| `docs/reference/` | Live non-code reference: `prompts/` (Fyn system prompt corpus), `tools/` (Fyn tool catalogue), `Articles/`, `FCA/`, `fyn/`, `campaigns/`, `investmentTree/`, `fynlaFeaturesModules/`, plus loose reference docs (`Persona Data.md`, `System Map.md`, `sshCLI.md`, the `.docx` templates). |
+| `docs/archive/` | Superseded and historical: `appMapping/`, `revolut/`, `awin/`, `brettTesting/`, plus finished plans and one-off notes. |
+| `docs/assets/templates/` | Social/marketing image templates (`ImageRendererService`). |
+| `docs/dashboards/` | Dashboard screenshot history. |
+
+Regenerate after adding docs:
+
+```bash
+bash August/August17Updates/regen-docs-index.sh > docs/INDEX.md
+```
+
+| Date | Kind | Document |
+|---|---|---|
+| 2026-08-13 | plans | [google-drive-marketing-readiness](plans/2026-08-13-google-drive-marketing-readiness.md) |
+| 2026-08-11 | specs | [fynla-integrated-ai-control-plane-design](superpowers/specs/2026-08-11-fynla-integrated-ai-control-plane-design.md) |
+| 2026-08-11 | plans | [ios-m-personalised-achievements](superpowers/plans/2026-08-11-ios-m-personalised-achievements.md) |
+| 2026-08-11 | plans | [ios-m-parity-closure](superpowers/plans/2026-08-11-ios-m-parity-closure.md) |
+| 2026-08-11 | plans | [fynla-integrated-ai-control-plane-programme](superpowers/plans/2026-08-11-fynla-integrated-ai-control-plane-programme.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s08-operations-and-rollout](superpowers/plans/2026-08-11-fynla-control-plane-s08-operations-and-rollout.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s07-slack-agent-and-automation](superpowers/plans/2026-08-11-fynla-control-plane-s07-slack-agent-and-automation.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s06-dashboard-access-and-people](superpowers/plans/2026-08-11-fynla-control-plane-s06-dashboard-access-and-people.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s05-developer-sync-and-session-start](superpowers/plans/2026-08-11-fynla-control-plane-s05-developer-sync-and-session-start.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s04-worker-and-coding-execution](superpowers/plans/2026-08-11-fynla-control-plane-s04-worker-and-coding-execution.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s03-siteground-sql-knowledge](superpowers/plans/2026-08-11-fynla-control-plane-s03-siteground-sql-knowledge.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s02-identity-policy-jobs-and-mcp](superpowers/plans/2026-08-11-fynla-control-plane-s02-identity-policy-jobs-and-mcp.md) |
+| 2026-08-11 | plans | [fynla-control-plane-s01-registry-and-releases](superpowers/plans/2026-08-11-fynla-control-plane-s01-registry-and-releases.md) |
+| 2026-08-11 | evidence | [pr7-ios-m-parity-closure](superpowers/evidence/2026-08-11-pr7-ios-m-parity-closure.md) |
+| 2026-08-11 | evidence | [pr6-personalised-achievements](superpowers/evidence/2026-08-11-pr6-personalised-achievements.md) |
+| 2026-08-10 | testing | [projection-parity-evidence](testing/2026-08-10-projection-parity-evidence.md) |
+| 2026-08-10 | testing | [financial-data-parity-evidence](testing/2026-08-10-financial-data-parity-evidence.md) |
+| 2026-08-10 | testing | [contextual-fyn-conversation-history-evidence](testing/2026-08-10-contextual-fyn-conversation-history-evidence.md) |
+| 2026-08-10 | testing | [canonical-details-ios-m-evidence](testing/2026-08-10-canonical-details-ios-m-evidence.md) |
+| 2026-08-10 | plans | [ios-m-projections](superpowers/plans/2026-08-10-ios-m-projections.md) |
+| 2026-08-10 | plans | [financial-data-parity](superpowers/plans/2026-08-10-financial-data-parity.md) |
+| 2026-08-10 | plans | [contextual-fyn-conversation-history](superpowers/plans/2026-08-10-contextual-fyn-conversation-history.md) |
+| 2026-08-10 | plans | [canonical-details-navigation-reuse](superpowers/plans/2026-08-10-canonical-details-navigation-reuse.md) |
+| 2026-08-09 | testing | [ios-m-parity-pr1-evidence](testing/2026-08-09-ios-m-parity-pr1-evidence.md) |
+| 2026-08-09 | specs | [ios-m-parity-debugging-design](superpowers/specs/2026-08-09-ios-m-parity-debugging-design.md) |
+| 2026-08-09 | plans | [ios-m-parity-foundations](superpowers/plans/2026-08-09-ios-m-parity-foundations.md) |
+| 2026-08-04 | plans | [independent-mortgage-liability](superpowers/plans/2026-08-04-independent-mortgage-liability.md) |
+| 2026-08-03 | specs | [independent-mortgage-liability-design](superpowers/specs/2026-08-03-independent-mortgage-liability-design.md) |
+| 2026-07-22 | specs | [structured-turn-intent-and-gate-facts](superpowers/specs/2026-07-22-structured-turn-intent-and-gate-facts.md) |
+| 2026-07-22 | plans | [structured-turn-intent-implementation](superpowers/plans/2026-07-22-structured-turn-intent-implementation.md) |
+| 2026-07-21 | plans | [onboarding-interruption-intelligence](superpowers/plans/2026-07-21-onboarding-interruption-intelligence.md) |
+| 2026-07-20 | specs | [fynla-founder-agent-platform-design](superpowers/specs/2026-07-20-fynla-founder-agent-platform-design.md) |
+| 2026-07-20 | plans | [fynla-founder-agent-platform-programme](superpowers/plans/2026-07-20-fynla-founder-agent-platform-programme.md) |
+| 2026-07-20 | plans | [fynla-founder-agent-platform-phase-3](superpowers/plans/2026-07-20-fynla-founder-agent-platform-phase-3.md) |
+| 2026-07-20 | plans | [fynla-founder-agent-platform-phase-2](superpowers/plans/2026-07-20-fynla-founder-agent-platform-phase-2.md) |
+| 2026-07-20 | plans | [fynla-founder-agent-platform-phase-1](superpowers/plans/2026-07-20-fynla-founder-agent-platform-phase-1.md) |
+| 2026-07-18 | specs | [apple-python-verifier-bridge-design](superpowers/specs/2026-07-18-apple-python-verifier-bridge-design.md) |
+| 2026-07-15 | specs | [session-start-standing-authorisation-design](superpowers/specs/2026-07-15-session-start-standing-authorisation-design.md) |
+| 2026-07-15 | specs | [savetax-allowance-registration-ctas-design](superpowers/specs/2026-07-15-savetax-allowance-registration-ctas-design.md) |
+| 2026-07-15 | plans | [session-start-standing-authorisation](superpowers/plans/2026-07-15-session-start-standing-authorisation.md) |
+| 2026-07-15 | plans | [savetax-allowance-registration-ctas](superpowers/plans/2026-07-15-savetax-allowance-registration-ctas.md) |
+| 2026-07-11 | specs | [user-testing-report-reconciliation](superpowers/specs/2026-07-11-user-testing-report-reconciliation.md) |
+| 2026-07-10 | specs | [online-readiness-design](superpowers/specs/2026-07-10-online-readiness-design.md) |
+| 2026-07-10 | specs | [july-updates-inventory](superpowers/specs/2026-07-10-july-updates-inventory.md) |
+| 2026-07-10 | specs | [fyn-evidence-first-advice-design](superpowers/specs/2026-07-10-fyn-evidence-first-advice-design.md) |
+| 2026-07-10 | plans | [online-readiness-programme](superpowers/plans/2026-07-10-online-readiness-programme.md) |
+| 2026-07-10 | plans | [fyn-evidence-first-advice](superpowers/plans/2026-07-10-fyn-evidence-first-advice.md) |
+| 2026-06-29 | specs | [income-funnel-crosscheck-design](superpowers/specs/2026-06-29-income-funnel-crosscheck-design.md) |
+| 2026-06-29 | plans | [income-funnel-crosscheck](superpowers/plans/2026-06-29-income-funnel-crosscheck.md) |
+| 2026-06-16 | specs | [savetax-verify-after-capture-design](superpowers/specs/2026-06-16-savetax-verify-after-capture-design.md) |
+| 2026-06-16 | plans | [savetax-verify-after-capture](superpowers/plans/2026-06-16-savetax-verify-after-capture.md) |
+| 2026-06-15 | specs | [cross-module-plan-composer-design](superpowers/specs/2026-06-15-cross-module-plan-composer-design.md) |
+| 2026-06-15 | specs | [coala-phase-6-learning-actions-design](superpowers/specs/2026-06-15-coala-phase-6-learning-actions-design.md) |
+| 2026-06-15 | plans | [cross-module-plan-composer](superpowers/plans/2026-06-15-cross-module-plan-composer.md) |
+| 2026-06-15 | plans | [coala-phase-6-learning-actions](superpowers/plans/2026-06-15-coala-phase-6-learning-actions.md) |
+| 2026-06-11 | specs | [track2-coala-integration-design](superpowers/specs/2026-06-11-track2-coala-integration-design.md) |
+| 2026-06-11 | plans | [track2-coala-integration](superpowers/plans/2026-06-11-track2-coala-integration.md) |
+| 2026-06-10 | specs | [recommendation-insight-quality-design](superpowers/specs/2026-06-10-recommendation-insight-quality-design.md) |
+| 2026-06-10 | specs | [m-gamification-recommendations-design](superpowers/specs/2026-06-10-m-gamification-recommendations-design.md) |
+| 2026-06-10 | plans | [recommendation-insight-quality-track1](superpowers/plans/2026-06-10-recommendation-insight-quality-track1.md) |
+| 2026-06-10 | plans | [m-gamification-recommendations](superpowers/plans/2026-06-10-m-gamification-recommendations.md) |
+| 2026-06-06 | specs | [gamification-engine-design](superpowers/specs/2026-06-06-gamification-engine-design.md) |
+| 2026-06-06 | plans | [gamification-engine](superpowers/plans/2026-06-06-gamification-engine.md) |
+| 2026-06-02 | specs | [coala-phase-4f-procedural-admin-viewer-design](superpowers/specs/2026-06-02-coala-phase-4f-procedural-admin-viewer-design.md) |
+| 2026-06-02 | specs | [coala-phase-4e-procedural-version-stamping-design](superpowers/specs/2026-06-02-coala-phase-4e-procedural-version-stamping-design.md) |
+| 2026-06-02 | specs | [coala-phase-4d-onboarding-workflow-design](superpowers/specs/2026-06-02-coala-phase-4d-onboarding-workflow-design.md) |
+| 2026-06-02 | specs | [coala-phase-4c-prompt-overlays-design](superpowers/specs/2026-06-02-coala-phase-4c-prompt-overlays-design.md) |
+| 2026-06-02 | specs | [coala-phase-4b-tool-schema-externalisation-design](superpowers/specs/2026-06-02-coala-phase-4b-tool-schema-externalisation-design.md) |
+| 2026-06-02 | specs | [coala-phase-4a-procedural-substrate-design](superpowers/specs/2026-06-02-coala-phase-4a-procedural-substrate-design.md) |
+| 2026-06-02 | specs | [coala-4b-xai-tool-schema-design](superpowers/specs/2026-06-02-coala-4b-xai-tool-schema-design.md) |
+| 2026-06-02 | plans | [coala-phase-4f-procedural-admin-viewer](superpowers/plans/2026-06-02-coala-phase-4f-procedural-admin-viewer.md) |
+| 2026-06-02 | plans | [coala-phase-4e-procedural-version-stamping](superpowers/plans/2026-06-02-coala-phase-4e-procedural-version-stamping.md) |
+| 2026-06-02 | plans | [coala-phase-4d-onboarding-workflow](superpowers/plans/2026-06-02-coala-phase-4d-onboarding-workflow.md) |
+| 2026-06-02 | plans | [coala-phase-4c-prompt-overlays](superpowers/plans/2026-06-02-coala-phase-4c-prompt-overlays.md) |
+| 2026-06-02 | plans | [coala-phase-4b-tool-schema-externalisation](superpowers/plans/2026-06-02-coala-phase-4b-tool-schema-externalisation.md) |
+| 2026-06-02 | plans | [coala-phase-4a-procedural-substrate](superpowers/plans/2026-06-02-coala-phase-4a-procedural-substrate.md) |
+| 2026-06-02 | plans | [coala-4b-xai-tool-schema](superpowers/plans/2026-06-02-coala-4b-xai-tool-schema.md) |
+| 2026-06-01 | specs | [coala-pointer-registry-design](superpowers/specs/2026-06-01-coala-pointer-registry-design.md) |
+| 2026-06-01 | specs | [coala-phase-2-episodic-hybrid-design](superpowers/specs/2026-06-01-coala-phase-2-episodic-hybrid-design.md) |
+| 2026-06-01 | plans | [coala-pointer-registry-plan](superpowers/plans/2026-06-01-coala-pointer-registry-plan.md) |
+| 2026-06-01 | plans | [coala-phase-2-episodic-hybrid-plan](superpowers/plans/2026-06-01-coala-phase-2-episodic-hybrid-plan.md) |
+| 2026-06-01 | plans | [coala-phase-1-semantic-memory-plan](superpowers/plans/2026-06-01-coala-phase-1-semantic-memory-plan.md) |
+| 2026-05-29 | specs | [pure-freemium-signup-design](superpowers/specs/2026-05-29-pure-freemium-signup-design.md) |
+| 2026-05-29 | plans | [pure-freemium-signup](superpowers/plans/2026-05-29-pure-freemium-signup.md) |
+| 2026-05-29 | plans | [freemium-nav-and-limit-ux](superpowers/plans/2026-05-29-freemium-nav-and-limit-ux.md) |
+| 2026-05-27 | plans | [sub-project-1-pass-6-investments-plan](superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md) |
+| 2026-05-27 | plans | [sub-project-1-pass-5-mortgages-plan](superpowers/plans/2026-05-27-sub-project-1-pass-5-mortgages-plan.md) |
+| 2026-05-26 | plans | [sub-project-1-pass-4-properties-plan](superpowers/plans/2026-05-26-sub-project-1-pass-4-properties-plan.md) |
+| 2026-05-24 | plans | [sub-project-1-pass-3-pensions-plan](superpowers/plans/2026-05-24-sub-project-1-pass-3-pensions-plan.md) |
+| 2026-05-22 | plans | [sub-project-1-pass-2-reference-data](superpowers/plans/2026-05-22-sub-project-1-pass-2-reference-data.md) |
+| 2026-05-19 | specs | [sub-project-3-mobile-iframe-scaffold-design](superpowers/specs/2026-05-19-sub-project-3-mobile-iframe-scaffold-design.md) |
+| 2026-05-19 | plans | [sub-project-3-mobile-iframe-scaffold](superpowers/plans/2026-05-19-sub-project-3-mobile-iframe-scaffold.md) |
+| 2026-05-16 | specs | [sub-project-2-freemium-tier-model-design](superpowers/specs/2026-05-16-sub-project-2-freemium-tier-model-design.md) |
+| 2026-05-16 | specs | [fyn-prompt-rework-design](superpowers/specs/2026-05-16-fyn-prompt-rework-design.md) |
+| 2026-05-16 | plans | [sub-project-2-freemium-tier-model-plan](superpowers/plans/2026-05-16-sub-project-2-freemium-tier-model-plan.md) |
+| 2026-05-16 | plans | [fyn-prompt-rework](superpowers/plans/2026-05-16-fyn-prompt-rework.md) |
+| 2026-05-14 | specs | [module-canonical-store-design](superpowers/specs/2026-05-14-module-canonical-store-design.md) |
+| 2026-05-14 | plans | [sub-project-1-pass-1-savings-plan](superpowers/plans/2026-05-14-sub-project-1-pass-1-savings-plan.md) |
+| 2026-05-05 | specs | [csjones-dev-reconciliation-design](superpowers/specs/2026-05-05-csjones-dev-reconciliation-design.md) |
+| 2026-05-05 | plans | [csjones-dev-reconciliation](superpowers/plans/2026-05-05-csjones-dev-reconciliation.md) |
+| 2026-04-21 | specs | [fyn-persona-split-design](superpowers/specs/2026-04-21-fyn-persona-split-design.md) |
+| 2026-04-17 | specs | [admin-insights-cms-design](superpowers/specs/2026-04-17-admin-insights-cms-design.md) |
+| 2026-04-17 | plans | [admin-insights-cms](superpowers/plans/2026-04-17-admin-insights-cms.md) |
+| 2026-04-14 | specs | [lifecycle-email-engine-design](superpowers/specs/2026-04-14-lifecycle-email-engine-design.md) |
+| 2026-04-02 | specs | [excel-holdings-import-design](superpowers/specs/2026-04-02-excel-holdings-import-design.md) |
+| 2026-04-02 | plans | [excel-holdings-import](superpowers/plans/2026-04-02-excel-holdings-import.md) |
+| 2026-03-30 | specs | [admin-user-metrics-design](superpowers/specs/2026-03-30-admin-user-metrics-design.md) |
+| 2026-03-30 | plans | [admin-user-metrics](superpowers/plans/2026-03-30-admin-user-metrics.md) |
+| 2026-03-25 | specs | [vault-gateway-design](superpowers/specs/2026-03-25-vault-gateway-design.md) |
+| 2026-03-25 | specs | [module-status-bar-design](superpowers/specs/2026-03-25-module-status-bar-design.md) |
+| 2026-03-25 | specs | [dashboard-batch9-design](superpowers/specs/2026-03-25-dashboard-batch9-design.md) |
+| 2026-03-25 | plans | [vault-gateway](superpowers/plans/2026-03-25-vault-gateway.md) |
+| 2026-03-25 | plans | [dashboard-batch9](superpowers/plans/2026-03-25-dashboard-batch9.md) |
+| 2026-03-24 | specs | [xai-property-form-fill-design](superpowers/specs/2026-03-24-xai-property-form-fill-design.md) |
+| 2026-03-24 | specs | [integrated-investment-holdings-design](superpowers/specs/2026-03-24-integrated-investment-holdings-design.md) |
+| 2026-03-24 | specs | [calculator-page-redesign](superpowers/specs/2026-03-24-calculator-page-redesign.md) |
+| 2026-03-24 | plans | [calculator-page-redesign](superpowers/plans/2026-03-24-calculator-page-redesign.md) |
+| 2026-03-23 | specs | [dashboard-nav-restructure](superpowers/specs/2026-03-23-dashboard-nav-restructure.md) |
+| 2026-03-23 | specs | [dashboard-cash-income-redesign](superpowers/specs/2026-03-23-dashboard-cash-income-redesign.md) |
+| 2026-03-23 | plans | [dashboard-nav-restructure](superpowers/plans/2026-03-23-dashboard-nav-restructure.md) |
+| 2026-03-22 | specs | [openai-agent-sdk-migration-design](superpowers/specs/2026-03-22-openai-agent-sdk-migration-design.md) |
+| 2026-03-22 | plans | [sub-navigation-bar](superpowers/plans/2026-03-22-sub-navigation-bar.md) |
+| 2026-03-22 | plans | [dashboard-ui-polish-batch2](superpowers/plans/2026-03-22-dashboard-ui-polish-batch2.md) |
+| 2026-03-21 | specs | [goals-whatif-integration-design](superpowers/specs/2026-03-21-goals-whatif-integration-design.md) |
+| 2026-03-21 | specs | [ai-form-fill-design](superpowers/specs/2026-03-21-ai-form-fill-design.md) |
+| 2026-03-21 | plans | [whatif-scenario-system](superpowers/plans/2026-03-21-whatif-scenario-system.md) |
+| 2026-03-21 | plans | [life-events-expansion](superpowers/plans/2026-03-21-life-events-expansion.md) |
+| 2026-03-21 | plans | [goals-module-integration](superpowers/plans/2026-03-21-goals-module-integration.md) |
+| 2026-03-21 | plans | [ai-form-fill](superpowers/plans/2026-03-21-ai-form-fill.md) |
+| 2026-03-19 | plans | [tax-settings-admin-fix](superpowers/plans/2026-03-19-tax-settings-admin-fix.md) |
+| 2026-03-19 | plans | [mobile-fyn-character](superpowers/plans/2026-03-19-mobile-fyn-character.md) |
+| 2026-03-19 | plans | [homepage-caption-cards-responsive](superpowers/plans/2026-03-19-homepage-caption-cards-responsive.md) |
+| 2026-03-19 | plans | [hero-panel-text-overlay-and-overlap](superpowers/plans/2026-03-19-hero-panel-text-overlay-and-overlap.md) |
+| 2026-03-19 | plans | [hero-header-image-swap](superpowers/plans/2026-03-19-hero-header-image-swap.md) |
+| 2026-03-19 | plans | [header-flush-and-captions](superpowers/plans/2026-03-19-header-flush-and-captions.md) |
+| 2026-03-19 | plans | [header-card-text-size-margin](superpowers/plans/2026-03-19-header-card-text-size-margin.md) |
+| 2026-03-19 | plans | [data-readiness-overhaul](superpowers/plans/2026-03-19-data-readiness-overhaul.md) |
+| 2026-03-19 | plans | [cls-sitemap-image-optimisation](superpowers/plans/2026-03-19-cls-sitemap-image-optimisation.md) |
+| 2026-03-18 | plans | [solutions-stats-bar-layout](superpowers/plans/2026-03-18-solutions-stats-bar-layout.md) |
+| 2026-03-18 | plans | [mobile-padding-optimisation](superpowers/plans/2026-03-18-mobile-padding-optimisation.md) |
+| 2026-03-18 | plans | [homepage-colour-text-tweaks](superpowers/plans/2026-03-18-homepage-colour-text-tweaks.md) |
+| 2026-03-18 | plans | [hero-swap-financial-freedom](superpowers/plans/2026-03-18-hero-swap-financial-freedom.md) |
+| 2026-03-18 | plans | [hero-spacing-cta-reorder](superpowers/plans/2026-03-18-hero-spacing-cta-reorder.md) |
+| 2026-03-18 | plans | [hero-left-align-meetfyn-swap](superpowers/plans/2026-03-18-hero-left-align-meetfyn-swap.md) |
+| 2026-03-18 | plans | [hero-centred-layout](superpowers/plans/2026-03-18-hero-centred-layout.md) |
+| 2026-03-17 | specs | [admin-advisor-design](superpowers/specs/2026-03-17-admin-advisor-design.md) |
+| 2026-03-17 | plans | [advisor-dashboard](superpowers/plans/2026-03-17-advisor-dashboard.md) |
+| 2026-03-17 | plans | [admin-enhancement](superpowers/plans/2026-03-17-admin-enhancement.md) |
+| 2026-03-16 | plans | [homepage-v2-visual-updates-batch6](superpowers/plans/2026-03-16-homepage-v2-visual-updates-batch6.md) |
+| 2026-03-16 | plans | [homepage-v2-visual-updates-batch5](superpowers/plans/2026-03-16-homepage-v2-visual-updates-batch5.md) |
+| 2026-03-16 | plans | [homepage-v2-visual-updates-batch4](superpowers/plans/2026-03-16-homepage-v2-visual-updates-batch4.md) |
+| 2026-03-16 | plans | [homepage-v2-visual-updates-batch3](superpowers/plans/2026-03-16-homepage-v2-visual-updates-batch3.md) |
+| 2026-03-16 | plans | [homepage-v2-visual-updates-batch2](superpowers/plans/2026-03-16-homepage-v2-visual-updates-batch2.md) |
+| 2026-03-16 | plans | [homepage-spacing-text-tweaks](superpowers/plans/2026-03-16-homepage-spacing-text-tweaks.md) |
+| 2026-03-16 | plans | [homepage-nav-mega-menus](superpowers/plans/2026-03-16-homepage-nav-mega-menus.md) |
+| 2026-03-16 | plans | [homepage-margin-text-tweaks-2](superpowers/plans/2026-03-16-homepage-margin-text-tweaks-2.md) |
+| 2026-03-16 | plans | [hero-spacing-alignment-input](superpowers/plans/2026-03-16-hero-spacing-alignment-input.md) |
+| 2026-03-15 | specs | [actions-dashboard-decision-view-design](superpowers/specs/2026-03-15-actions-dashboard-decision-view-design.md) |
+| 2026-03-15 | plans | [code-review-remediation](superpowers/plans/2026-03-15-code-review-remediation.md) |
+| 2026-03-15 | plans | [actions-dashboard-decision-view](superpowers/plans/2026-03-15-actions-dashboard-decision-view.md) |
+| 2026-03-13 | specs | [investment-deduplication-design](superpowers/specs/2026-03-13-investment-deduplication-design.md) |
+| 2026-03-13 | specs | [full-codebase-remediation-design](superpowers/specs/2026-03-13-full-codebase-remediation-design.md) |
+| 2026-03-13 | plans | [full-codebase-remediation](superpowers/plans/2026-03-13-full-codebase-remediation.md) |
+| 2026-03-12 | specs | [mobile-module-detail-pages-design](superpowers/specs/2026-03-12-mobile-module-detail-pages-design.md) |
+| 2026-03-12 | plans | [mobile-module-detail-pages](superpowers/plans/2026-03-12-mobile-module-detail-pages.md) |
+| 2026-03-10 | plans | [phase2b-implementation-plan](plans/2026-03-10-phase2b-implementation-plan.md) |
+| 2026-03-10 | plans | [phase2b-design](plans/2026-03-10-phase2b-design.md) |
+| 2026-03-10 | plans | [phase2a-implementation-plan](plans/2026-03-10-phase2a-implementation-plan.md) |
+| 2026-03-10 | plans | [phase2a-design](plans/2026-03-10-phase2a-design.md) |
+| 2026-03-10 | plans | [mobile-implementation-plan](plans/2026-03-10-mobile-implementation-plan.md) |
+| 2026-03-06 | plans | [mobile-app-exploration](plans/2026-03-06-mobile-app-exploration.md) |
+| undated | architecture | [client-parity-ledger](architecture/client-parity-ledger.md) |
+| undated | plans | [fynla-ios-deploy-guide](plans/fynla-ios-deploy-guide.md) |
+| undated | plans | [mobileAppTask](plans/mobileAppTask.md) |
+| undated | plans | [phase0-deploy-notes](plans/phase0-deploy-notes.md) |
+| undated | plans | [phase1-deploy-notes](plans/phase1-deploy-notes.md) |
+| undated | plans | [phase2a-deploy-notes](plans/phase2a-deploy-notes.md) |
+| undated | plans | [phase2b-deploy-notes](plans/phase2b-deploy-notes.md) |

@@ -93,24 +93,21 @@ class DBPensionMapper extends AbstractFieldMapper
     /**
      * Parse spouse pension percentage - stored as decimal in DB (0.50 for 50%).
      */
+    /**
+     * `spouse_pension_percent` is stored in PERCENTAGE POINTS — 50 for 50%.
+     *
+     * This method used to do the exact opposite, converting 50 to 0.50 on the
+     * strength of a comment that said "DB stores as decimal". It did not: the
+     * column is validated `min:0|max:100` by both StoreDBPensionRequest and
+     * PensionStore, the factory seeds 50.0 / 66.67 / 100.0, and both
+     * HouseholdPlanningService and PensionDerivedColumnCalculator divide by 100
+     * when they use it. Only this mapper and the extraction prompt that feeds it
+     * believed otherwise, so a Defined Benefit pension imported from a document
+     * projected the spouse's pension at a hundredth of the real figure (W-0030).
+     */
     private function parseSpousePercent(mixed $value): ?float
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $percent = $this->parsePercentage($value);
-
-        if ($percent === null) {
-            return null;
-        }
-
-        // DB stores as decimal (0.50 for 50%)
-        if ($percent > 1) {
-            return $percent / 100;
-        }
-
-        return $percent;
+        return $this->parsePercentagePoints($value);
     }
 
     /**

@@ -1,5 +1,14 @@
 <template>
-  <MobileChrome title="Estate" subtitle="Inheritance tax exposure and planning" :loading="loading" loading-label="your estate">
+  <!--
+    W-0138 fault 3, second limb. The subtitle read "Inheritance tax exposure and
+    planning" while this screen deliberately shows no Inheritance Tax figure at all
+    — CSJ's W-0469 decision made it a summary that hands off to the web app.
+    That decision settles the FIGURE half of the fault and leaves this half: the
+    item's acceptance is a disjunction, *"shows an Inheritance Tax liability, OR its
+    subtitle stops promising one"*, and the second limb had not been taken
+    (quality-lead, re-certification).
+  -->
+  <MobileChrome title="Estate" subtitle="Your estate, your will and your plans" :loading="loading" loading-label="your estate">
     <div v-if="loading" class="m-card m-state">
       <p class="m-sub">Loading your estate position…</p>
     </div>
@@ -9,7 +18,7 @@
       <button class="m-btn" @click="load">Try again</button>
     </div>
 
-    <!-- Teaser mode (free / Tier 1) — informational, no upgrade CTA on /m. -->
+    <!-- Teaser mode (Free) -->
     <template v-else-if="mode === 'teaser'">
       <div class="m-card m-hero">
         <p class="m-sub m-label">Estimated Inheritance Tax liability</p>
@@ -17,16 +26,35 @@
       </div>
       <div class="m-card">
         <p v-if="teaser.headline" class="m-sub" style="margin:0 0 12px">{{ teaser.headline }}</p>
-        <p class="me-note">Full estate planning — assets, gifts, trusts, will and personalised Inheritance Tax planning — is part of Tier 2.</p>
+        <p v-if="teaser.unmodelled_relief_caveat" class="me-caveat">{{ teaser.unmodelled_relief_caveat }}</p>
+        <!--
+          W-0467, compliance-lead finding D (2026-08-24): "personalised" is precisely
+          the word separating generic guidance from a personal recommendation, and
+          Fynla is not FCA-authorised. It appeared here and twice in the headline —
+          one claim with two homes, so both were changed together (Rule 20).
+        -->
+        <p class="me-note">Full estate planning — assets, gifts, trusts, will and Inheritance Tax planning tools — is part of Premium.</p>
+        <!-- Rule 3: the only next step offered to a household facing a large bill was a purchase. -->
+        <p class="me-note" style="margin-top:8px">For an estate of this size it is worth discussing your position with a regulated financial adviser or a specialist solicitor.</p>
+        <button v-if="paidUpgradeAvailable" type="button" class="m-btn" style="margin-top:16px" @click="goUpgrade">Compare plans</button>
       </div>
     </template>
 
-    <!-- Full mode (Tier 2+) -->
+    <!-- Full mode (Premium) -->
     <template v-else>
+      <!--
+        W-0138 fault 2. This figure is `netWorth.net_worth` — **this account's own
+        records** — labelled "Estimated estate value" with the basis nowhere stated,
+        while the web Inheritance Tax screen shows a POOLED household figure for the
+        same household. Two surfaces, two numbers, one name, and nothing telling the
+        reader which they are looking at (open since 2026-08-21).
+        The figure is not changed here; it is labelled.
+      -->
       <div class="m-card m-hero">
         <p class="m-sub m-label">Estimated estate value</p>
         <p class="m-metric">{{ fmt(netEstate) }}</p>
         <p class="m-hero-sub">{{ fmt(totalAssets) }} in assets, less {{ fmt(totalLiabilities) }} of liabilities.</p>
+        <p class="m-hero-sub" style="margin-top:6px">Based on your own records. It does not include anything held only in your partner's name.</p>
       </div>
 
       <div class="m-card">
@@ -59,6 +87,32 @@
           <span class="me-row__label">Will</span>
           <span class="me-row__value" :class="willInPlace ? 'me-row__value--ok' : 'me-row__value--warn'">{{ willInPlace ? 'In place' : 'Not set up' }}</span>
         </div>
+        <button type="button" class="me-row me-row--link" @click="openBequests">
+          <span class="me-row__label">Specific bequests</span>
+          <span class="me-row__right">
+            <span class="me-row__value">{{ bequests.length }} {{ bequests.length === 1 ? 'bequest' : 'bequests' }}</span>
+            <span class="me-row__view">View</span>
+          </span>
+        </button>
+      </div>
+
+      <!--
+        W-0469. This screen shows an estate value and a composition and NO
+        Inheritance Tax calculation — no allowances, no business relief, no tax on
+        failed gifts. CSJ's decision (2026-08-23) is that it stays a summary and
+        says so, rather than rendering a subset of the web breakdown and letting a
+        reader mistake the part for the whole.
+
+        No W-0466 caveat here: this card shows no Inheritance Tax figure, so there
+        is nothing on it to qualify. The caveat lives where a figure does — the web
+        breakdown, and the Free teaser at the top of this file, which is the only
+        Inheritance Tax number `/m` ever prints.
+      -->
+      <div class="m-card">
+        <p class="m-section-label" style="margin-top:0">Your Inheritance Tax calculation</p>
+        <p class="me-note">The full breakdown — your allowances, any business relief, and tax on gifts made in the last seven years — is on the web app.</p>
+        <button type="button" class="m-btn" style="margin-top:16px" @click="openIhtOnWeb">Open on the web app</button>
+        <p v-if="handoffError" class="m-err" style="margin-top:12px">{{ handoffError }}</p>
       </div>
     </template>
   </MobileChrome>
@@ -67,7 +121,10 @@
 <script>
 import { store } from '../../store.js';
 import { apiGet } from '../../api.js';
+import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
+import { upgradeMixin } from '../../mixins/upgrade.js';
+import { issueWebHandoff } from '../../navigation/webHandoff.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -79,7 +136,8 @@ const COMP_LABELS = { property: 'Property', investment: 'Investments', cash: 'Ca
 export default {
   name: 'MobileEstate',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null }),
+  mixins: [upgradeMixin],
+  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null, bequests: [], handoffError: '' }),
   computed: {
     gifts() { return this.payload?.gifts || []; },
     trusts() { return this.payload?.trusts || []; },
@@ -97,6 +155,15 @@ export default {
     fmt(v) { return formatCurrency(v); },
     compLabel(type) { return COMP_LABELS[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Assets'); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
+    openBequests() { this.$router.push({ name: 'm-estate-bequests' }); },
+    async openIhtOnWeb() {
+      this.handoffError = '';
+      try {
+        await issueWebHandoff('estate_iht');
+      } catch {
+        this.handoffError = 'We could not open the web app just now. Please try again.';
+      }
+    },
     async load() {
       this.loading = true;
       this.error = '';
@@ -104,8 +171,11 @@ export default {
       this.teaser = {};
       this.payload = null;
       this.netWorth = null;
+      this.bequests = [];
+      this.handoffError = '';
       try {
-        const { ok, data } = await apiGet('/api/estate', store.token);
+        const { ok, status, data } = await apiGet('/api/estate', store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (!ok) {
           this.error = data?.message || 'We could not load your estate position.';
           return;
@@ -117,9 +187,15 @@ export default {
           this.payload = data?.data || {};
           // Pull the authoritative estate net-worth for the headline figures.
           const nw = await apiGet('/api/estate/net-worth', store.token);
+          if (handleAuthExpiry(nw, this.$router)) return;
           if (nw.ok) this.netWorth = nw.data?.data?.net_worth || nw.data?.net_worth || nw.data?.data || null;
+          // /api/estate's will_info carries no bequests, so the count for the
+          // drill-down row comes from the same endpoint the bequests screen uses.
+          const bq = await apiGet('/api/estate/bequests', store.token);
+          if (handleAuthExpiry(bq, this.$router)) return;
+          if (bq.ok) this.bequests = bq.data?.data || [];
         }
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
@@ -131,6 +207,11 @@ export default {
 
 <style scoped>
 .me-note { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin: 0; }
+/* W-0466 F8 — `--violet-800` is not defined in resources/mobile/style.css, which
+   declares only `--violet-400` and `--violet-500`; the mobile bundle carries its
+   own tokens and does not inherit the web palette, so the text fell back to the
+   browser default. `--eggshell-500` IS defined (style.css:39) and is unchanged. */
+.me-caveat { font-size: 13px; color: var(--violet-500); line-height: 1.5; margin: 0 0 12px; background: var(--eggshell-500); border-radius: 8px; padding: 12px; }
 .me-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--light-gray); }
 .me-row:first-of-type { padding-top: 4px; }
 .me-row:last-of-type { border-bottom: 0; padding-bottom: 0; }
@@ -139,6 +220,10 @@ export default {
 .me-row--total .me-row__label { font-weight: 700; color: var(--horizon-500); }
 .me-row__value { font-size: 14px; font-weight: 700; color: var(--horizon-500); white-space: nowrap; }
 .me-row--total .me-row__value { font-size: 16px; }
+.me-row--link { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--light-gray); font: inherit; text-align: left; cursor: pointer; }
+.me-row--link:last-of-type { border-bottom: 0; padding-bottom: 0; }
+.me-row__right { display: flex; align-items: baseline; gap: 10px; }
+.me-row__view { font-size: 12px; font-weight: 700; color: var(--raspberry-500); }
 .me-row__value--ok { color: var(--spring-600); }
 .me-row__value--warn { color: var(--violet-500); }
 </style>

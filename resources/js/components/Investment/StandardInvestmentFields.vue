@@ -244,6 +244,28 @@
       </div>
     </div>
 
+    <!-- Adviser Fee (not shown for NS&I) — collapsed by default, see "Additional information".
+         Same shape as DCPensionForm.vue's advisor fee; the column, the fee
+         breakdown and the projections all read it already (W-0008). -->
+    <div v-if="!isNSIType && showAdditionalInfo">
+      <label for="advisor_fee_percent" class="block text-sm font-medium text-neutral-500 mb-1">
+        Adviser Fee (% per year)
+      </label>
+      <input
+        id="advisor_fee_percent"
+        v-model.number="localData.advisor_fee_percent"
+        type="number"
+        step="0.01"
+        min="0"
+        max="10"
+        class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        placeholder="e.g., 0.75"
+      />
+      <p class="mt-1 text-xs text-neutral-500">
+        Annual adviser fee as a percentage of the account value
+      </p>
+    </div>
+
     <!-- Risk Level Section (hidden during onboarding) -->
     <template v-if="!isOnboarding">
       <div v-if="hasRiskProfile" class="pt-4 border-t border-light-gray">
@@ -516,12 +538,13 @@ import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import riskService from '@/services/riskService';
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { isaAllowanceMixin } from '@/mixins/isaAllowanceMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'StandardInvestmentFields',
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, isaAllowanceMixin],
 
   components: {
     CountrySelector,
@@ -560,14 +583,6 @@ export default {
     feePercentageWarning: {
       type: Boolean,
       default: false,
-    },
-    cashISAUsed: {
-      type: Number,
-      default: 0,
-    },
-    totalStocksISAUsed: {
-      type: Number,
-      default: 0,
     },
     account: {
       type: Object,

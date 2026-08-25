@@ -3,6 +3,10 @@
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Lifecycle\LifecycleActionController;
 use App\Http\Controllers\NewsletterActionController;
+use App\Http\Controllers\Pipeline\ClipApprovalActionController;
+use App\Http\Controllers\Pipeline\DriveWebhookController;
+use App\Http\Controllers\Pipeline\SignedClipDownloadController;
+use App\Http\Controllers\WebHandoffController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -40,6 +44,10 @@ Route::middleware('signed')->prefix('lifecycle')->group(function () {
 Route::post('/lifecycle/feedback-text', [LifecycleActionController::class, 'submitFeedbackText'])
     ->name('lifecycle.feedback-text')
     ->middleware('signed');
+
+Route::get('/web-handoff/{token}', WebHandoffController::class)
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->name('web-handoff.consume');
 
 // Public RSS feeds. MUST be declared BEFORE the SPA catch-all so the
 // FeedController returns RSS XML instead of the Vue shell.
@@ -614,6 +622,33 @@ Route::middleware('redirect.authed')->group(function () {
     });
 }); // end public-facing pages group
 
+// ─── Pension Check campaign ──────────────────────────────────────────────────
+// /pensioncheck       = pension-check questionnaire funnel (entry gate)
+// /pensioncheck/plan  = projected-pot estimate + register card
+// More-specific routes MUST be declared before /pensioncheck.
+
+// Real Pension Check funnel pages — guests only. Authenticated users are
+// redirected to the dashboard by redirect.authed middleware.
+Route::middleware('redirect.authed')->group(function () {
+    Route::get('/pensioncheck/plan', function () {
+        ob_start();
+        include public_path('pages/pensioncheck-plan.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+
+    Route::get('/pensioncheck', function () {
+        ob_start();
+        include public_path('pages/pensioncheck.php');
+
+        return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+            ->header('Vary', 'Accept-Encoding');
+    });
+}); // end Pension Check funnel group
+
 // ─── Save Tax campaign ───────────────────────────────────────────────────────
 // /savetax          = quick-registration questionnaire funnel (entry gate)
 // /savetax/v2       = mockup: gradient bg + continue-required flow
@@ -709,8 +744,35 @@ Route::get('/m/app/{any?}', function () {
 Route::get('/mockup/dashboard', function () {
     ob_start();
     include public_path('pages/dashboard-mockup.php');
+
     return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8']);
 });
+
+// Marketing pipeline — Google Drive change webhook (real-time trigger).
+// Google POSTs here on any Drive change; the X-Goog-Channel-Token header is the
+// auth (verified in the controller). CSRF-exempt (see VerifyCsrfToken).
+Route::post('/pipeline/drive/webhook', [DriveWebhookController::class, 'handle'])
+    ->name('pipeline.drive.webhook');
+
+// Marketing pipeline — signed clip download for the tracker sheet review link.
+// Signature enforces 30-day expiry (see PIPELINE_SIGNED_URL_TTL_DAYS).
+Route::get('/pipeline/clips/{slug}/{filename}', [SignedClipDownloadController::class, 'download'])
+    ->name('pipeline.clip.download')
+    ->where('slug', '[a-z0-9-]{1,80}')
+    ->where('filename', 'clip-[0-9]{1,3}\.mp4');
+
+// Marketing pipeline — magic-link clip approval from the approval email.
+// 48-char single-use tokens with a 48-hour TTL are the auth (no login required).
+Route::get('/pipeline/clips/approve/{token}', [ClipApprovalActionController::class, 'approve'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.approve');
+Route::get('/pipeline/clips/reject/{token}', [ClipApprovalActionController::class, 'reject'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.reject');
+Route::get('/pipeline/clips/approve-all/{pipelineArticleId}/{token}', [ClipApprovalActionController::class, 'approveAll'])
+    ->where('pipelineArticleId', '[0-9]+')
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('pipeline.clip.approve-all');
 
 // Serve Vue.js SPA for all routes (catch-all).
 //

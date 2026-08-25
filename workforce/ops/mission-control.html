@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang=en-GB><head><meta charset=utf-8>
+<title>Fynla Workforce — Mission Control</title><style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Inter,-apple-system,sans-serif;background:#FAFBFC;color:#0F172A;font-size:13px;padding:22px;line-height:1.45}
+.w{max-width:1180px;margin:0 auto}
+h1{font-size:19px;font-weight:900;letter-spacing:-.2px}
+h2{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:#5B6883;margin-bottom:11px}
+.sub{font-size:11px;color:#5B6883}
+header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}
+section{background:#fff;border:1px solid #E4E9F1;border-radius:10px;padding:14px 16px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#5B6883;padding:0 8px 7px 0;border-bottom:1px solid #E4E9F1}
+td{padding:7px 8px 7px 0;border-bottom:1px solid #F1F4F9;vertical-align:top}
+tr:last-child td{border-bottom:0}
+.id{font-weight:700;white-space:nowrap}
+.dim{color:#5B6883}
+.warn{color:#E83E6D;font-weight:700;font-size:11px}
+.p{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.s-done{background:#E7F7F1;color:#0E7A5A}.s-in_progress{background:#ECEBFD;color:#3F3BB8}
+.s-review{background:#FBF3EA;color:#8A6A3C}.s-blocked,.s-gated{background:#FDEAF0;color:#B32350}
+.s-queued,.s-claimed{background:#F1F4F9;color:#5B6883}
+.m{padding:8px 0;border-bottom:1px solid #F1F4F9}.m:last-child{border-bottom:0}
+.mh{display:flex;justify-content:space-between;align-items:baseline;font-size:12px}
+.bar{height:5px;background:#DDE3ED;border-radius:3px;margin-top:6px;overflow:hidden}
+.bar span{display:block;height:100%;background:#20B486;border-radius:3px}
+ul{list-style:none}li{padding:5px 0;border-bottom:1px solid #F1F4F9;font-size:12px}li:last-child{border-bottom:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+footer{font-size:10.5px;color:#5B6883;text-align:center;margin-top:8px}
+</style></head><body><div class=w>
+<header><div><h1>Fynla Workforce — Mission Control</h1>
+<div class=sub>Read from <code>workforce/ops/</code> on disk. Nothing here is illustrative.</div></div>
+<div class=sub>Fri 14 Aug 12:16 UTC</div></header>
+
+<section><h2>Missions</h2><div class=m><div class=mh><b>M-0001 — Make recorded state match actual state</b><span class=dim>2/3 done</span></div><div class=bar><span style='width:66%'></span></div></div><div class=m><div class=mh><b>M-0002 — Know what already exists before building anything</b><span class=dim>1/1 done</span></div><div class=bar><span style='width:100%'></span></div></div><div class=m><div class=mh><b>M-0003 — Make the evidence gate operative</b><span class=dim>1/1 done</span></div><div class=bar><span style='width:100%'></span></div></div></section>
+
+<div class=grid>
+<section><h2>Awaiting a founder</h2><ul><li class=dim>Nothing waiting.</li></ul></section>
+<section><h2>Trunk health</h2><p style="font-size:12px">================================================</p>
+<p class=sub style="margin-top:6px">Run <code>bash workforce/ops/sweep.sh</code> for detail.</p></section>
+</div>
+
+<section><h2>Board</h2><table>
+<thead><tr><th style=width:70px>ID</th><th>Title</th><th style=width:120px>Owner</th><th style=width:100px>Status</th><th style=width:130px>Surfaces</th><th style=width:150px>Gate</th></tr></thead>
+<tbody><tr><td class=id>W-0001</td><td>Remove dead widow persona residue from code and docs</td><td>build-lead</td><td><span class='p s-review'>review</span></td><td class=dim>[web]</td><td class=warn>evidence incomplete</td></tr><tr><td class=id>W-0002</td><td>Reconcile fynlaBrain vault against repo state</td><td>archivist</td><td><span class='p s-done'>done</span></td><td class=dim>[]</td><td class=warn></td></tr><tr><td class=id>W-0003</td><td>Correct remaining stale Current State vault docs</td><td>archivist</td><td><span class='p s-done'>done</span></td><td class=dim>[]</td><td class=warn></td></tr><tr><td class=id>W-0004</td><td>Map the autonomous bug-fix loop before it collides with Build</td><td>cartographer</td><td><span class='p s-done'>done</span></td><td class=dim>[web, m, ios]</td><td class=warn></td></tr><tr><td class=id>W-0005</td><td>Apply ratified CODEOWNERS removal</td><td>chief-of-staff</td><td><span class='p s-done'>done</span></td><td class=dim>[]</td><td class=warn></td></tr></tbody></table></section>
+
+<section><h2>Agents</h2><table>
+<thead><tr><th style=width:200px>Name</th><th style=width:110px>Role</th><th style=width:80px>Items held</th></tr></thead>
+<tbody><tr><td><b>archivist</b></td><td class=dim>workforce</td><td>2</td></tr><tr><td><b>build-lead</b></td><td class=dim>workforce</td><td>1</td></tr><tr><td><b>cartographer</b></td><td class=dim>workforce</td><td>1</td></tr><tr><td><b>chief-of-staff</b></td><td class=dim>workforce</td><td>1</td></tr><tr><td><b>compliance-lead</b></td><td class=dim>workforce</td><td>0</td></tr><tr><td><b>database-optimizer</b></td><td class=dim>specialist</td><td>0</td></tr><tr><td><b>design-lead</b></td><td class=dim>workforce</td><td>0</td></tr><tr><td><b>frontend-developer</b></td><td class=dim>specialist</td><td>0</td></tr><tr><td><b>growth-lead</b></td><td class=dim>workforce</td><td>0</td></tr><tr><td><b>intelligence-lead</b></td><td class=dim>workforce</td><td>0</td></tr><tr><td><b>laravel-stack-deployer</b></td><td class=dim>specialist</td><td>0</td></tr><tr><td><b>premium-ui-designer</b></td><td class=dim>specialist</td><td>0</td></tr><tr><td><b>product-lead</b></td><td class=dim>workforce</td><td>0</td></tr><tr><td><b>product-manager</b></td><td class=dim>specialist</td><td>0</td></tr><tr><td><b>quality-lead</b></td><td class=dim>workforce</td><td>0</td></tr><tr><td><b>quartermaster</b></td><td class=dim>workforce</td><td>0</td></tr><tr><td><b>security-reviewer</b></td><td class=dim>specialist</td><td>0</td></tr><tr><td><b>tax-compliance-reviewer</b></td><td class=dim>specialist</td><td>0</td></tr><tr><td><b>ux-writing-expert</b></td><td class=dim>specialist</td><td>0</td></tr></tbody></table></section>
+
+<footer>Regenerate: <code>bash workforce/ops/mission-control.sh</code></footer>
+</div></body></html>

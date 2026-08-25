@@ -34,7 +34,7 @@
                   {{ trust.is_active ? 'Active' : 'Inactive' }}
                 </span>
                 <span v-if="trust.is_relevant_property_trust" class="rpt-badge">
-                  RPT
+                  Relevant Property Trust
                 </span>
               </div>
               <h1 class="trust-name">{{ trust.trust_name }}</h1>
@@ -290,7 +290,7 @@ export default {
     getIncomeTaxDisplay(type) {
       const rates = {
         bare: 'Beneficiary rates',
-        interest_in_possession: '20% / 8.75% (dividends)',
+        interest_in_possession: '20% / 10.75% (dividends)',
         discretionary: '45% / 39.35% (dividends)',
         accumulation_maintenance: '45% / 39.35% (dividends)',
         life_insurance: 'N/A',
@@ -338,7 +338,7 @@ export default {
     getTaxNote(type) {
       const notes = {
         bare: 'Income and gains taxed using beneficiary\'s personal allowances',
-        interest_in_possession: 'Lower rates: 20% on other income, 8.75% on dividends',
+        interest_in_possession: 'Lower rates: 20% on other income, 10.75% on dividends',
         discretionary: 'Higher rates apply. £500 tax-free if income below threshold',
         accumulation_maintenance: 'Same rates as discretionary trusts',
         life_insurance: 'No regular income tax - policy proceeds on death',
@@ -388,23 +388,23 @@ export default {
 
 /* Error State */
 .error-state {
-  @apply bg-red-50 border border-red-200 rounded-xl;
+  @apply bg-raspberry-50 border border-raspberry-200 rounded-xl;
   padding: 24px;
   text-align: center;
-  @apply text-red-800;
+  @apply text-raspberry-700;
 }
 
 .retry-btn {
   margin-top: 16px;
   padding: 8px 16px;
-  @apply bg-red-800 text-white;
+  @apply bg-raspberry-600 text-white;
   border-radius: 8px;
   font-weight: 500;
   transition: background 0.2s;
 }
 
 .retry-btn:hover {
-  @apply bg-red-900;
+  @apply bg-raspberry-700;
 }
 
 /* Trust Content */
@@ -442,6 +442,9 @@ export default {
 .header-badges {
   display: flex;
   gap: 8px;
+  /* Wraps so the spelled-out "Relevant Property Trust" badge (Rule 9) fits
+     alongside the status badge on a narrow screen. */
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
@@ -453,7 +456,7 @@ export default {
 }
 
 .status-badge.active {
-  @apply bg-green-100 text-green-800;
+  @apply bg-spring-100 text-spring-700;
 }
 
 .status-badge.inactive {
@@ -464,7 +467,7 @@ export default {
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  @apply bg-blue-50 text-blue-700;
+  @apply bg-light-blue-100 text-horizon-500;
   border-radius: 9999px;
 }
 
@@ -550,11 +553,11 @@ export default {
 }
 
 .metric-value.positive {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .metric-value.negative {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .metric-value.date {
@@ -656,7 +659,7 @@ export default {
 
 /* RPT Info Card */
 .rpt-info-card {
-  @apply bg-blue-50 border border-blue-300;
+  @apply bg-light-blue-100 border border-light-blue-500;
   border-radius: 12px;
   padding: 24px;
 }
@@ -671,14 +674,14 @@ export default {
 .rpt-icon {
   width: 24px;
   height: 24px;
-  @apply text-blue-600;
+  @apply text-light-blue-500;
   flex-shrink: 0;
 }
 
 .rpt-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-blue-800;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -693,21 +696,21 @@ export default {
   padding-left: 20px;
   margin-bottom: 8px;
   font-size: 14px;
-  @apply text-blue-800;
+  @apply text-horizon-500;
 }
 
 .rpt-list li::before {
   content: '-';
   position: absolute;
   left: 0;
-  @apply text-blue-600;
+  @apply text-light-blue-500;
 }
 
 .next-charge {
   font-size: 14px;
-  @apply text-blue-800;
+  @apply text-horizon-500;
   margin: 0;
   padding-top: 12px;
-  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  @apply border-t border-light-blue-500/20;
 }
 </style>

@@ -50,7 +50,7 @@
           <div>
             <p class="text-xs text-neutral-500 uppercase tracking-wider">Required Capital</p>
             <p class="text-lg font-bold text-horizon-500 mt-1">{{ formatCurrency(requiredCapitalAtRetirement) }}</p>
-            <p class="text-xs text-neutral-400">Based on {{ formatCurrency(targetIncome) }}/year target</p>
+            <p class="text-xs text-neutral-400">{{ targetIncomeCaption }}</p>
           </div>
 
           <!-- Projected Capital -->
@@ -318,9 +318,28 @@ export default {
              this.projections?.pension_pot_projection?.years_to_retirement || 0;
     },
 
-    // Target Income from centralised source
+    // Target Income from centralised source. The £35,000 that used to sit at the
+    // end of this chain was a made-up number presented as the user's own target
+    // whenever both real sources were absent (W-0035). Zero reads as "no target",
+    // which the caption below handles honestly.
     targetIncome() {
-      return this.requiredCapital?.required_income || this.profile?.target_retirement_income || 35000;
+      return this.requiredCapital?.required_income || this.profile?.target_retirement_income || 0;
+    },
+
+    /**
+     * Says where the target came from. `income_source` is the API being honest:
+     * 'profile' when the user stated a figure, 'calculated' when
+     * RequiredCapitalCalculator fell back to a proportion of their income. Showing
+     * a derived figure as though the user chose it is the defect W-0035 fixed.
+     */
+    targetIncomeCaption() {
+      if (this.targetIncome <= 0) {
+        return 'Set a retirement target to see what capital you need';
+      }
+
+      return this.requiredCapital?.income_source === 'profile'
+        ? `Based on your ${this.formatCurrency(this.targetIncome)}/year target`
+        : `Based on ${this.formatCurrency(this.targetIncome)}/year, worked out from your income`;
     },
 
     // Capital values

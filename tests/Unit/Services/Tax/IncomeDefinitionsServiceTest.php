@@ -4,18 +4,27 @@ declare(strict_types=1);
 
 use App\Models\DCPension;
 use App\Models\User;
-use App\Services\Stores\PropertyStore;
+use App\Services\Property\PropertyService;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Database\Eloquent\Model;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->taxConfig = app(TaxConfigService::class);
-    $this->service = new IncomeDefinitionsService($this->taxConfig, app(PropertyStore::class));
+    $this->service = new IncomeDefinitionsService($this->taxConfig, app(PropertyService::class));
+
+    // These tests verify income-definition math only. Mute model events so the
+    // RecommendationCacheObserver (agent cache invalidation) does not fire when
+    // arranging DCPension fixtures — it is irrelevant here and keeps the unit
+    // test isolated from the wider agent dependency graph.
+    $this->modelEventDispatcher = Model::getEventDispatcher();
+    Model::unsetEventDispatcher();
 });
 
 afterEach(function () {
+    Model::setEventDispatcher($this->modelEventDispatcher);
     Mockery::close();
 });
 
@@ -130,10 +139,10 @@ describe('Threshold and Adjusted Income', function () {
         ]);
 
         $result = $this->service->calculate($user->id);
-        // Net = 250000 - 12500 (pension relief) = 237500
-        // ANI = 237500 (not blind)
-        // Threshold = 237500 - 12500 (employee contributions) = 225000
-        expect($result['threshold_income'])->toBe(225000.00);
+        // FA 2004 s228ZA: threshold income = total income less net-pay employee
+        // contributions, deducted ONCE. Total = 250000, employee = 12500.
+        // Threshold = 250000 - 12500 = 237500 (the old code double-deducted to 225000).
+        expect($result['threshold_income'])->toBe(237500.00);
     });
 
     it('calculates adjusted income by adding employer contributions', function () {
@@ -148,9 +157,33 @@ describe('Threshold and Adjusted Income', function () {
         ]);
 
         $result = $this->service->calculate($user->id);
-        // Threshold = 225000, employer = 25000
-        // Adjusted = 225000 + 25000 = 250000
-        expect($result['adjusted_income'])->toBe(250000.00);
+        // FA 2004 s228ZA: adjusted income = total income plus employer
+        // contributions. Total = 250000, employer = 25000.
+        // Adjusted = 250000 + 25000 = 275000 (the old code understated it to 250000).
+        expect($result['adjusted_income'])->toBe(275000.00);
+    });
+
+    it('no longer under-states a high earner so the AA taper correctly applies', function () {
+        // The old double-deduction chain gave threshold 225000 / adjusted 250000,
+        // and adjusted 250000 (< £260k) fell below the taper trigger, so no taper.
+        // Correct FA 2004 s228ZA gives threshold 237500 / adjusted 275000 → taper applies.
+        $user = User::factory()->create([
+            'annual_employment_income' => 250000,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 250000,
+            'employee_contribution_percent' => 5.00,
+            'employer_contribution_percent' => 10.00,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+
+        expect($result['threshold_income'])->toBe(237500.00)
+            ->and($result['adjusted_income'])->toBe(275000.00)
+            ->and($result['adjusted_allowances']['pension_aa_tapered'])->toBeTrue();
+        // Adjusted excess = 275000 - 260000 = 15000; reduction = 7500; AA = 52500.
+        expect($result['adjusted_allowances']['pension_annual_allowance'])->toBe(52500.00);
     });
 });
 
@@ -219,5 +252,122 @@ describe('Components breakdown', function () {
         ]);
         expect($result['components']['employment'])->toBe(50000.00);
         expect($result['components']['dividend'])->toBe(3000.00);
+    });
+});
+
+/**
+ * W-0189 — the panel printed a chain whose steps did not produce the figures
+ * beneath them, and the question that had to be settled before touching anything
+ * was whether the ARITHMETIC or the PRESENTATION was wrong.
+ *
+ * It is the presentation. Threshold Income and Adjusted Income both branch from
+ * TOTAL income; neither continues the Net Income column above it, and the employee
+ * contribution they involve has already been deducted once at Net Income. Deducting
+ * it a second time would be the bug.
+ *
+ * These pin that branching explicitly, and pin the arrangement the service now
+ * publishes so the screen can name it instead of leaving a reader to guess why one
+ * deduction appears at two steps.
+ */
+describe('W-0189 — which base each definition is built from', function () {
+    it('builds threshold and adjusted income from total income, not from net income', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 145000,
+            'annual_dividend_income' => 14290,
+            'is_gift_aid' => true,
+            'annual_charitable_donations' => 4000,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 145000,
+            'employee_contribution_percent' => 8.00,
+            'employer_contribution_percent' => 8.00,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+        $employee = $result['deductions']['employee_pension_contributions'];
+        $employer = $result['deductions']['employer_pension_contributions'];
+
+        // Gift Aid reduces net income and does NOT reduce threshold income, so with
+        // a donation in play the two are provably different numbers — which is what
+        // makes this a test of the base rather than a restatement of the fixture.
+        expect($result['deductions']['gift_aid_gross'])->toBeGreaterThan(0.0)
+            ->and($result['net_income'])->not->toBe($result['threshold_income']);
+
+        expect($result['threshold_income'])->toBe(round($result['total_income'] - $employee, 2))
+            ->and($result['adjusted_income'])->toBe(round($result['total_income'] + $employer, 2));
+    });
+
+    it('deducts the employee contribution once across the two definitions that name it', function () {
+        // David Jones's figures, with the £14,290 arriving as dividends rather than
+        // rental profit — the deduction behaves identically and the fixture stays a
+        // unit fixture.
+        $user = User::factory()->create([
+            'annual_employment_income' => 145000,
+            'annual_dividend_income' => 14290,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 145000,
+            'employee_contribution_percent' => 8.00,
+            'employer_contribution_percent' => 8.00,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+        $employee = $result['deductions']['employee_pension_contributions'];
+
+        // £11,600 out of £159,290 leaves £147,690 — reached once, by either route,
+        // never £136,090. The screen showed the deduction twice and printed £147,690
+        // beneath the second one.
+        expect($employee)->toBe(11600.00)
+            ->and($result['total_income'])->toBe(159290.00)
+            ->and($result['net_income'])->toBe(147690.00)
+            ->and($result['threshold_income'])->toBe(147690.00)
+            ->and($result['threshold_income'])->not->toBe(round($result['net_income'] - $employee, 2));
+    });
+
+    it('names the arrangement as net pay when no workplace pension sacrifices salary', function () {
+        $user = User::factory()->create(['annual_employment_income' => 145000]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 145000,
+            'employee_contribution_percent' => 8.00,
+            'employer_contribution_percent' => 8.00,
+            'salary_sacrifice' => false,
+        ]);
+
+        expect($this->service->calculate($user->id)['pension_arrangement'])->toBe('net_pay');
+    });
+
+    it('names salary sacrifice where a workplace pension uses it', function () {
+        $user = User::factory()->create(['annual_employment_income' => 145000]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 145000,
+            'employee_contribution_percent' => 8.00,
+            'employer_contribution_percent' => 8.00,
+            'salary_sacrifice' => true,
+        ]);
+
+        $result = $this->service->calculate($user->id);
+
+        // Naming it does NOT change the figures. The sacrificed pay is not added
+        // back under FA 2004 s228ZA(3) because nothing records whether the entered
+        // employment income is the pre- or post-sacrifice figure; the screen states
+        // the arrangement rather than claiming a treatment that was never applied.
+        expect($result['pension_arrangement'])->toBe('salary_sacrifice')
+            ->and($result['threshold_income'])->toBe(round($result['total_income'] - 11600.00, 2));
+    });
+
+    it('names no arrangement for a user with nothing to deduct', function () {
+        $user = User::factory()->create(['annual_employment_income' => 128880]);
+
+        $result = $this->service->calculate($user->id);
+
+        // Sarah Jones: every figure on her panel is the same figure, and it must
+        // stay that way rather than growing steps that do nothing.
+        expect($result['pension_arrangement'])->toBe('none')
+            ->and($result['threshold_income'])->toBe($result['total_income'])
+            ->and($result['adjusted_income'])->toBe($result['total_income']);
     });
 });

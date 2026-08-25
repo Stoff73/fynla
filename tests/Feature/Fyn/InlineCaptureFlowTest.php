@@ -50,6 +50,7 @@ it('strips onboarding_layout_change and quick_replies, passes fill_form and cont
     // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
     // legacy — non-weakening (other expectations stay strict).
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {
@@ -88,6 +89,568 @@ it('strips onboarding_layout_change and quick_replies, passes fill_form and cont
 
     // Handoff invisibility — no persona_state_change ever emitted.
     expect($types)->not->toContain('persona_state_change');
+});
+
+it('consumes a failed capture write result and emits deterministic failure text', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => 'Saved your Cash ISA.',
+                'persona' => 'data_capture',
+            ]);
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'error' => true,
+                'message' => 'Account type is required.',
+            ];
+            yield ['type' => 'content', 'text' => 'Saved your Cash ISA.'];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'Add my account',
+        new CaptureContext(
+            reason: 'user wants to add a savings account',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    expect(collect($events)->pluck('type'))->not->toContain('capture_write_result');
+
+    $failures = collect($events)->filter(
+        fn (array $event): bool => ($event['type'] ?? null) === 'content'
+            && str_contains((string) ($event['text'] ?? ''), "couldn't save")
+    );
+    expect($failures)->toHaveCount(1)
+        ->and($failures->first()['text'])->toContain('Account type is required')
+        ->and(collect($events)->pluck('text')->filter()->implode(' '))->not->toContain('Saved your Cash ISA')
+        ->and($conversation->messages()->where('content', 'like', '%Saved your Cash ISA%')->exists())->toBeFalse()
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->count())->toBe(1);
+
+    $types = collect($events)->pluck('type')->values();
+    expect($types->filter(fn (string $type): bool => $type === 'done'))->toHaveCount(1)
+        ->and($types->last())->toBe('done')
+        ->and($types->search('content'))->toBeLessThan($types->search('done'));
+});
+
+it('preserves a side-question answer when the capture write fails', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $answerText = 'The Personal Savings Allowance depends on your Income Tax band.';
+    $falseSaveText = 'Saved your Cash ISA.';
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $answerText, $falseSaveText) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $answerText.$falseSaveText,
+                'persona' => 'data_capture',
+            ]);
+            yield ['type' => 'content', 'text' => $answerText];
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'error' => true,
+                'message' => 'Account type is required.',
+            ];
+            yield ['type' => 'content', 'text' => $falseSaveText];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'Add my ISA. What is the Personal Savings Allowance?',
+        new CaptureContext(
+            reason: 'user asks a question while adding a savings account',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    $persistedText = (string) $conversation->messages()
+        ->where('role', 'assistant')
+        ->latest('id')
+        ->value('content');
+
+    expect($streamText)->toContain($answerText)
+        ->and($streamText)->toContain("I couldn't save that")
+        ->and($streamText)->not->toContain($falseSaveText)
+        ->and($persistedText)->toContain($answerText)
+        ->and($persistedText)->toContain("I couldn't save that")
+        ->and($persistedText)->not->toContain($falseSaveText)
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->count())->toBe(1);
+
+    $types = collect($events)->pluck('type')->values();
+    expect($types->filter(fn (string $type): bool => $type === 'done'))->toHaveCount(1)
+        ->and($types->last())->toBe('done');
+});
+
+it('emits one ask when the model already requested the missing detail before the blocked write', function () {
+    // CSJ live catch 2026-07-23 (msg 19675): the model asked for ownership,
+    // the gate blocked the write for the same reason, and the scripted
+    // "I couldn't save that" line stacked a second copy of the same ask under
+    // the model's own. One ask per turn: when the safe narration already
+    // requests the missing detail, the scripted line is dropped — while the
+    // row keeps capture_write_failed so the awaiting-detail re-arm still
+    // fires.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $modelAsk = 'I need to know whether this Santander savings account is owned individually or jointly, and if jointly, the joint owner\'s name and your percentage share.';
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $modelAsk) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $modelAsk,
+                'persona' => 'data_capture',
+            ]);
+            yield ['type' => 'content', 'text' => $modelAsk];
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'error' => true,
+                'message' => 'I need you to confirm whether you own it individually or with someone else',
+            ];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'I have a Santander savings account with £9,000 in it',
+        new CaptureContext(
+            reason: 'volunteered_mid_onboarding',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    $persistedText = (string) $conversation->messages()
+        ->where('role', 'assistant')
+        ->latest('id')
+        ->value('content');
+
+    expect($streamText)->toContain('owned individually or jointly')
+        ->and($streamText)->not->toContain("I couldn't save that")
+        ->and($persistedText)->toBe($modelAsk)
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->count())->toBe(1);
+});
+
+it('does not report a resolved write failure after the corrected retry lands', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $successText = 'Saved your Cash ISA after correcting the account type.';
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $successText) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $successText,
+                'persona' => 'data_capture',
+            ]);
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'tool_call_id' => 'retry-failed',
+                'model_iteration' => 1,
+                'landed' => false,
+                'message' => 'Account type is required.',
+            ];
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'tool_call_id' => 'retry-success',
+                'model_iteration' => 2,
+                'retry_of_tool_call_id' => 'retry-failed',
+                'landed' => true,
+                'message' => null,
+            ];
+            yield [
+                'type' => 'entity_created',
+                'entity_type' => 'savings_account',
+                'entity_id' => 42,
+                'name' => 'Cash ISA',
+            ];
+            yield ['type' => 'content', 'text' => $successText];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'Add my Cash ISA',
+        new CaptureContext(
+            reason: 'user wants to add a savings account',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    expect($streamText)->toContain($successText)
+        ->and($streamText)->not->toContain("couldn't save")
+        ->and(collect($events)->where('type', 'capture_complete'))->toHaveCount(1)
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeFalse()
+        ->and($conversation->messages()->where('content', $successText)->exists())->toBeTrue();
+
+    $types = collect($events)->pluck('type')->values();
+    expect($types->filter(fn (string $type): bool => $type === 'done'))->toHaveCount(1)
+        ->and($types->last())->toBe('done');
+});
+
+it('keeps the earliest safe-content cutoff when a correlated retry also fails', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $answerText = 'The Personal Savings Allowance depends on your Income Tax band.';
+    $falseSaveText = 'Saved your Halifax ISA.';
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $answerText, $falseSaveText) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $answerText.$falseSaveText,
+                'persona' => 'data_capture',
+            ]);
+            yield ['type' => 'content', 'text' => $answerText];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'tool_call_id' => 'failed-first',
+                'model_iteration' => 1,
+                'landed' => false,
+                'message' => 'Account type is required.',
+            ];
+            yield ['type' => 'content', 'text' => $falseSaveText];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'tool_call_id' => 'failed-retry',
+                'model_iteration' => 2,
+                'retry_of_tool_call_id' => 'failed-first',
+                'landed' => false,
+                'message' => 'Institution is required.',
+            ];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'Add my ISA. What is the Personal Savings Allowance?',
+        new CaptureContext(
+            reason: 'user asks a question while adding a savings account',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    $persistedText = (string) $conversation->messages()
+        ->where('role', 'assistant')
+        ->latest('id')
+        ->value('content');
+
+    expect($streamText)->toContain($answerText)
+        ->and($streamText)->toContain('Institution is required')
+        ->and($streamText)->not->toContain($falseSaveText)
+        ->and($persistedText)->toContain($answerText)
+        ->and($persistedText)->toContain('Institution is required')
+        ->and($persistedText)->not->toContain($falseSaveText)
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->count())->toBe(1);
+});
+
+it('keeps a same-batch same-tool partial failure in either result order', function (array $landedResults) {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $landedResults) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => 'Saved both savings accounts.',
+                'persona' => 'data_capture',
+            ]);
+
+            foreach ($landedResults as $index => $landed) {
+                $callId = 'batch-call-'.($index + 1);
+                yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+                if ($landed) {
+                    yield [
+                        'type' => 'entity_created',
+                        'entity_type' => 'savings_account',
+                        'entity_id' => 100 + $index,
+                        'name' => 'Nationwide Saver',
+                    ];
+                }
+                yield [
+                    'type' => 'capture_write_result',
+                    'tool' => 'create_savings_account',
+                    'tool_call_id' => $callId,
+                    'model_iteration' => 1,
+                    'landed' => $landed,
+                    'message' => $landed ? null : 'Halifax account type is required.',
+                ];
+            }
+
+            yield ['type' => 'content', 'text' => 'Saved both savings accounts.'];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'Add my Halifax ISA and Nationwide saver',
+        new CaptureContext(
+            reason: 'user wants to add two savings accounts',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    expect($streamText)->toContain("I couldn't save that")
+        ->and($streamText)->toContain('Halifax account type is required')
+        ->and($streamText)->not->toContain('Saved both savings accounts')
+        ->and(collect($events)->where('type', 'capture_complete'))->toHaveCount(1)
+        ->and(collect($events)->pluck('type'))->not->toContain('capture_write_result')
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->count())->toBe(1);
+
+    $types = collect($events)->pluck('type')->values();
+    expect($types->filter(fn (string $type): bool => $type === 'done'))->toHaveCount(1)
+        ->and($types->last())->toBe('done');
+})->with([
+    'failed result before successful sibling' => [[false, true]],
+    'successful sibling before failed result' => [[true, false]],
+]);
+
+it('does not report failure after a complete correlated retry batch lands', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $successText = 'Saved your house-deposit and emergency-fund goals.';
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($conversation, $successText) {
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $successText,
+                'persona' => 'data_capture',
+            ]);
+            foreach (['house', 'emergency'] as $name) {
+                yield [
+                    'type' => 'capture_write_result',
+                    'tool' => 'create_goal',
+                    'tool_call_id' => $name.'-failed',
+                    'model_iteration' => 1,
+                    'landed' => false,
+                    'message' => ucfirst($name).' target date is required.',
+                ];
+            }
+            foreach (['house', 'emergency'] as $index => $name) {
+                yield [
+                    'type' => 'entity_created',
+                    'entity_type' => 'goal',
+                    'entity_id' => 200 + $index,
+                    'name' => ucfirst($name).' goal',
+                ];
+                yield [
+                    'type' => 'capture_write_result',
+                    'tool' => 'create_goal',
+                    'tool_call_id' => $name.'-retry',
+                    'model_iteration' => 2,
+                    'retry_of_tool_call_id' => $name.'-failed',
+                    'landed' => true,
+                    'message' => null,
+                ];
+            }
+            yield ['type' => 'content', 'text' => $successText];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'Add my house-deposit and emergency-fund goals',
+        new CaptureContext(
+            reason: 'user wants to add two goals',
+            entityTypes: ['goal'],
+        ),
+    ), false);
+
+    $streamText = collect($events)->pluck('text')->filter()->implode('');
+    expect($streamText)->toContain($successText)
+        ->and($streamText)->not->toContain("couldn't save")
+        ->and(collect($events)->where('type', 'capture_complete'))->toHaveCount(1)
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeFalse();
+
+    $types = collect($events)->pluck('type')->values();
+    expect($types->filter(fn (string $type): bool => $type === 'done'))->toHaveCount(1)
+        ->and($types->last())->toBe('done');
+});
+
+it('consumes a duplicate capture write result without presenting it as a failure', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () {
+            yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => 'create_savings_account',
+                'landed' => false,
+                'message' => null,
+            ];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleInlineCapture(
+        $user,
+        $conversation,
+        'Add my existing account again',
+        new CaptureContext(
+            reason: 'user repeats an existing savings account',
+            entityTypes: ['savings_account'],
+        ),
+    ), false);
+
+    expect(collect($events)->pluck('type'))->not->toContain('capture_write_result')
+        ->and(collect($events)->pluck('text')->filter()->implode(' '))->not->toContain("couldn't save")
+        ->and($conversation->messages()->where('metadata->capture_write_failed', true)->exists())->toBeFalse();
 });
 
 /**
@@ -130,6 +693,7 @@ it('frames the inline capture as a capture turn (non-null focus) for every captu
                 $capturedFocus = $focus;
             }
         });
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {
@@ -173,3 +737,68 @@ it('frames the inline capture as a capture turn (non-null focus) for every captu
     'savings_account' => ['savings_account'],
     'pension' => ['pension'],
 ]);
+
+// ── Task 4 follow-up (live csjones defect, 2026-07-23): confirmed facts must
+// reach the STREAMED tool dispatch. CoordinatingAgent is container-transient,
+// so facts set on the director's own instance never reach FynLoop's separate
+// instance — the Vanguard "On my own." two-step store blocked live while the
+// unit pin (which unified the instances via app()->instance) stayed green.
+// Facts now travel as a FynLoop::stream parameter, the same instance-pairing
+// discipline unifiedFocus uses. This pins the wiring at the loop boundary. ──
+
+it('threads confirmed facts through FynLoop::stream to the loop agent instance and clears them after', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+    ]);
+
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'advice',
+        'title' => 'Advice',
+    ]);
+
+    $factsCalls = [];
+    $agent = Mockery::mock(CoordinatingAgent::class);
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')
+        ->andReturnUsing(function ($facts) use (&$factsCalls) {
+            $factsCalls[] = $facts;
+        });
+    $agent->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () {
+            yield ['type' => 'content', 'text' => 'Recorded.'];
+            yield ['type' => 'done'];
+        });
+
+    app()->instance(CoordinatingAgent::class, $agent);
+
+    /** @var OnboardingChatDirector $director */
+    $director = app(OnboardingChatDirector::class);
+
+    $context = new CaptureContext(
+        reason: 'user is adding their own savings_account',
+        entityTypes: ['savings_account'],
+    );
+
+    iterator_to_array(
+        $director->handleInlineCapture(
+            $user,
+            $conversation,
+            'Original capture details: I have a Vanguard account\nRequested missing details: On my own.',
+            $context,
+            null,
+            ['ownership_type' => 'individual'],
+        ),
+        false,
+    );
+
+    // The facts reached the agent BEFORE the stream (any set carrying the
+    // ownership fact), and every set was later cleared back to null.
+    $sets = array_values(array_filter($factsCalls, fn ($f) => $f !== null));
+    expect($sets)->not->toBeEmpty();
+    expect($sets[0])->toBe(['ownership_type' => 'individual']);
+    expect(end($factsCalls))->toBeNull();
+});

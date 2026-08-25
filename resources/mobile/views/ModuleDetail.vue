@@ -30,6 +30,19 @@
         </div>
       </div>
 
+      <!--
+        W-0466 G3. This screen renders ONLY the enumerated `fields` list above, so the
+        caveat the engine publishes alongside the Inheritance Tax figure rendered
+        nowhere and `/m /module/estate` printed an unqualified number. It is deliberately
+        NOT added to `fields`: that list produces label/value rows, and a sentence is not
+        a value. Read straight off the summary, so it appears wherever the summary
+        carries one rather than only for estate.
+      -->
+      <div v-if="caveat || pensionCaveat" class="m-card">
+        <p v-if="caveat" class="me-caveat">{{ caveat }}</p>
+        <p v-if="pensionCaveat" class="me-caveat">{{ pensionCaveat }}</p>
+      </div>
+
       <div v-if="!rows.length" class="m-card m-state">
         <p class="m-sub">No additional detail available yet for this module.</p>
       </div>
@@ -45,6 +58,7 @@
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -75,7 +89,7 @@ const MODULE_CONFIG = {
     fields: ['total_life_cover', 'total_critical_illness_cover', 'total_income_protection', 'policy_count', 'critical_gaps', 'status'],
   },
   savings: {
-    label: 'Savings',
+    label: 'Bank Accounts',
     subtitle: 'Cash, ISA allowance and emergency fund',
     hero: (s) => ({
       label: 'Emergency fund runway',
@@ -136,6 +150,12 @@ export default {
     heroLabel() { return this.hero.label; },
     heroValue() { return this.hero.value; },
     heroSecondary() { return this.hero.secondary; },
+    // W-0466 G3 — the engine publishes this beside the tax figure; nothing on this
+    // screen was reading it. Not part of `fields`, which builds label/value rows.
+    caveat() { return this.summary?.unmodelled_relief_caveat || null; },
+    // W-0363 — the projected column omits defined contribution pensions. Same
+    // treatment as the caveat above, on the surface Rule 19 requires.
+    pensionCaveat() { return this.summary?.projected_pension_exclusion_caveat || null; },
     rows() {
       if (!this.summary) return [];
       // Pull the curated fields if present; fall back to flattening the summary.
@@ -172,10 +192,11 @@ export default {
       this.error = '';
       this.summary = null;
       try {
-        const { ok, data } = await apiGet(`/api/v1/mobile/modules/${this.slug}`, store.token);
+        const { ok, status, data } = await apiGet(`/api/v1/mobile/modules/${this.slug}`, store.token);
+        if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.summary = data?.data?.summary ?? data?.summary ?? data?.data ?? data ?? {};
         else this.error = data?.message || 'We could not load this module.';
-      } catch (e) {
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;

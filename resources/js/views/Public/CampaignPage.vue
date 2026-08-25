@@ -74,8 +74,8 @@
             <div class="w-12 h-12 bg-spring-100 rounded-xl flex items-center justify-center mb-3">
               <svg class="w-6 h-6 text-spring-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
             </div>
-            <h3 class="text-lg font-semibold text-horizon-500 mb-1">7-Day Free Trial</h3>
-            <p class="text-sm text-neutral-500">Try any plan risk-free. No credit card required to start.</p>
+            <h3 class="text-lg font-semibold text-horizon-500 mb-1">Free Account</h3>
+            <p class="text-sm text-neutral-500">Free has no time limit. No credit card required.</p>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-3">
@@ -89,7 +89,7 @@
               <svg class="w-6 h-6 text-horizon-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
             </div>
             <h3 class="text-lg font-semibold text-horizon-500 mb-1">Cancel Anytime</h3>
-            <p class="text-sm text-neutral-500">No lock-in contracts. Downgrade or cancel whenever you like.</p>
+            <p class="text-sm text-neutral-500">Cancel paid access whenever you like. It continues to the end of the purchased period.</p>
           </div>
         </div>
       </div>
@@ -189,7 +189,7 @@
     <div class="bg-light-pink-100 py-14">
       <div class="campaign-inner max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">Ready to take control?</h2>
-        <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">Start your free 7-day trial today. No credit card required.</p>
+        <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">Create your free account today. No credit card required.</p>
         <router-link to="/register?from=fyn" class="inline-block px-8 py-3 bg-spring-500 text-white text-lg font-semibold rounded-lg hover:bg-spring-600 transition-colors">Get started for free</router-link>
       </div>
     </div>

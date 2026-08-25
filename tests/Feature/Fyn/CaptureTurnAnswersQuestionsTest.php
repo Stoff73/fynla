@@ -57,7 +57,19 @@ it('softens the two FR-M14 absolutes that conflict with the exception', function
 
     // ...and the FR-M14 guardrail's "Do NOT ask any question" is now scoped
     // to everything OUTSIDE the exception, so the protection survives.
-    expect($rendered)->toContain('Outside the QUESTION EXCEPTION above, do NOT ask any question');
+    expect($rendered)->toContain('Outside the QUESTION EXCEPTION and')
+        ->and($rendered)->toContain('CAPTURE ACCURACY RULE above, do NOT ask any question');
+});
+
+it('requires explicit ownership and ISA subtype before creating an asset', function () {
+    $rendered = FynCaptureTurnInstructions::render('SaveTax', 'create_savings_account');
+
+    expect($rendered)->toContain('CAPTURE ACCURACY RULE')
+        ->and($rendered)->toContain('never infer an ISA subtype, and never infer ownership for a non-ISA')
+        ->and($rendered)->toContain('NEVER ask who owns an ISA')
+        ->and($rendered)->toContain('Never convert a missing ownership answer to individual for a non-ISA record')
+        ->and($rendered)->toContain('never convert a bare')
+        ->and($rendered)->toContain('ISA to a Cash ISA');
 });
 
 it('keeps the unified and legacy capture templates in lockstep', function () {
@@ -79,7 +91,7 @@ it('keeps the unified and legacy capture templates in lockstep', function () {
         // softened absolutes (the "Do NOT greet" line minus follow-up
         // questions, and the "Outside the QUESTION EXCEPTION above" prefix).
         // Everything in this window is slot-free, so byte-identity holds.
-        $endMarker = 'Outside the QUESTION EXCEPTION above, do NOT ask any question';
+        $endMarker = 'CAPTURE ACCURACY RULE above, do NOT ask any question';
         $start = strpos($text, 'QUESTION EXCEPTION');
         $end = strpos($text, $endMarker);
         expect($start)->not->toBeFalse();
@@ -136,6 +148,7 @@ function driveCaptureTurn(User $user, AiConversation $conversation, string $mess
             }
         });
     $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     test()->instance(CoordinatingAgent::class, $mock);
 
     $received = [];
@@ -267,8 +280,55 @@ describe('delegated capture turn answers a question (A1)', function () {
     });
 });
 
-describe('grouped_extract turn answers a question before re-asking (A1)', function () {
-    it('emits the answer and the scripted retry when a question yields no extraction', function () {
+describe('grouped_extract turn routes a question through the central dispatcher', function () {
+    // All-paths rule (CSJ 2026-07-23, live regression): the extraction
+    // model's off-script prose is NEVER voiced as the answer — it bypassed
+    // the governed interruption prompt and guard, and live it voiced a
+    // factually wrong gross-income answer that then poisoned the transcript
+    // for the dispatcher's own call. The no-capture branch now scrubs the
+    // stream-persisted prose and lets emitRetry's interruption dispatcher —
+    // the ONE governed answer path — answer the question.
+
+    /**
+     * Call 1 = the extraction turn (persists its off-script prose exactly as
+     * the live shared chat path does, no capture event). Call 2+ = the
+     * dispatcher's advice-mode answer. Mirrors the call-counting idiom of
+     * OnboardingInterruptionTest's "answers a question inline" case.
+     */
+    function driveQuestionCaptureTurn(User $user, AiConversation $conversation, string $message, string $extractionProse, string $dispatcherAnswer): array
+    {
+        $calls = 0;
+        $mock = Mockery::mock(app(CoordinatingAgent::class));
+        $mock->shouldReceive('chatWithPromptOverride')
+            ->andReturnUsing(function (...$args) use (&$calls, $extractionProse, $dispatcherAnswer) {
+                $calls++;
+                /** @var AiConversation $conversationArg */
+                $conversationArg = $args[1];
+                $text = $calls === 1 ? $extractionProse : $dispatcherAnswer;
+                $conversationArg->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $text,
+                    'persona' => $calls === 1 ? 'data_capture' : 'advice',
+                ]);
+
+                return (function () use ($text) {
+                    yield ['type' => 'content', 'text' => $text];
+                    yield ['type' => 'done', 'message_id' => 900];
+                })();
+            });
+        $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+        $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+        test()->instance(CoordinatingAgent::class, $mock);
+
+        $received = [];
+        foreach (app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, $message) as $event) {
+            $received[] = $event;
+        }
+
+        return $received;
+    }
+
+    it('never voices the extraction turn\'s off-script prose — the dispatcher answers and the prose is scrubbed from the transcript', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -282,26 +342,31 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
             'title' => 'Onboarding',
         ]);
 
-        // Model answers the question but emits no onboarding_field_captured —
-        // the no-capture path fires emitRetry.
-        $received = driveCaptureTurn($user, $conversation, 'what do you mean by marital status?', [
-            ['type' => 'content', 'text' => 'Marital status means whether you are single, married, or in a civil partnership. It affects allowances you can share.'],
-            ['type' => 'done', 'message_id' => 1],
-        ]);
+        $prose = 'Yes, marital status includes everything about your household finances and I need two more pieces of data from you.';
+        $answer = 'Marital status means whether you are single, married, or in a civil partnership.';
 
-        $contentTexts = array_column(
+        $received = driveQuestionCaptureTurn($user, $conversation, 'what do you mean by marital status?', $prose, $answer);
+
+        $contentTexts = array_values(array_column(
             array_filter($received, fn ($e) => ($e['type'] ?? null) === 'content'),
             'text'
-        );
-        $joined = implode(' | ', $contentTexts);
+        ));
 
-        // Both the answer AND the scripted retry are present.
-        $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
-        expect($joined)->toContain('Marital status means whether you are single')
-            ->and($joined)->toContain($retry);
+        // The extraction model's prose never reaches the user...
+        expect(implode(' | ', $contentTexts))->not->toContain('two more pieces of data');
+        // ...the dispatcher's governed answer does, exactly once.
+        $answerEvents = array_values(array_filter($contentTexts, fn ($t) => str_contains($t, 'single, married')));
+        expect($answerEvents)->toHaveCount(1);
+
+        // The prose row the stream persisted is scrubbed — transcript
+        // mirrors the screen and cannot poison later calls this turn.
+        expect($conversation->messages()->where('content', 'like', '%two more pieces of data%')->exists())->toBeFalse();
+
+        // The walk stayed on the grouped-extract step — no blind advance.
+        expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 
-    it('strips personal figures from a grouped_extract answer but keeps the retry', function () {
+    it('scrubbed prose includes personal figures — they never reach an event or survive in the transcript', function () {
         $user = User::factory()->create([
             'first_name' => 'Test',
             'is_preview_user' => false,
@@ -315,23 +380,18 @@ describe('grouped_extract turn answers a question before re-asking (A1)', functi
             'title' => 'Onboarding',
         ]);
 
-        // NOTE: the personal-figure sentence must not name an allowance/limit/
-        // threshold/band — those words trigger the statutory-definition
-        // carve-out and the sentence would legitimately survive.
-        $received = driveCaptureTurn($user, $conversation, 'why does my income matter?', [
-            ['type' => 'content', 'text' => 'Your income sets which tax band applies. Based on your £110,000 salary you would pay extra tax.'],
-            ['type' => 'done', 'message_id' => 1],
-        ]);
+        $prose = 'Your income sets which tax band applies. Based on your £110,000 salary you would pay extra tax.';
+        $answer = 'Your income determines which tax band applies to you.';
 
-        $contentTexts = array_column(
+        $received = driveQuestionCaptureTurn($user, $conversation, 'why does my income matter?', $prose, $answer);
+
+        $allText = implode(' | ', array_column(
             array_filter($received, fn ($e) => ($e['type'] ?? null) === 'content'),
             'text'
-        );
-        $joined = implode(' | ', $contentTexts);
+        ));
 
-        $retry = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL)['retry_text'];
-        expect($joined)->toContain('Your income sets which tax band applies.')
-            ->and($joined)->not->toContain('£110,000')
-            ->and($joined)->toContain($retry);
+        expect($allText)->not->toContain('£110,000');
+        expect($conversation->messages()->where('content', 'like', '%£110,000%')->exists())->toBeFalse();
+        expect($allText)->toContain('determines which tax band');
     });
 });

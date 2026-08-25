@@ -8,8 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLifeEventRequest;
 use App\Http\Requests\UpdateLifeEventRequest;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\LifeEvent;
 use App\Services\Goals\LifeEventService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\IngestSource;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +26,7 @@ use Illuminate\Http\Request;
 class LifeEventController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly LifeEventService $lifeEventService
@@ -44,6 +48,11 @@ class LifeEventController extends Controller
                 'data' => [
                     'events' => $events,
                     'count' => $events->count(),
+                    // W-0207: the expected income and expenditure totals are
+                    // served, not left to each client to sum. Web and /m were
+                    // adding the list up separately and both counted events that
+                    // had already happened as money still to come.
+                    'summary' => $this->lifeEventService->summariseUpcoming($events),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -74,13 +83,19 @@ class LifeEventController extends Controller
         $data = $request->validated();
 
         try {
-            $event = $this->lifeEventService->createEvent($user->id, $data);
+            $event = $this->lifeEventService->createEvent($user, $data, IngestSource::FORM);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Life event created successfully.',
                 'data' => $event,
             ], 201);
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResponse(
+                $e,
+                'Life Event limit reached for your current plan.',
+                'dashboard',
+            );
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Create life event', 500, ['user_id' => $user->id]);
         }

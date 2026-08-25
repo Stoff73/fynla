@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Validator;
  * (joint-aware). For primary-only reads, use forUserPrimaryOnly. Pattern locked
  * by MortgageReadConsumerParityTest (PR 5a).
  *
- * Tier-cap key: 'mortgage' (free=10 by default, tier1+=null).
+ * Tier-cap key: 'mortgage' (Free=10 by default, Premium=null).
  *
  * Cross-store recalc (PR 6): writes fire events consumed by
  * RecalculatePropertyOutstandingMortgage listener which recomputes
@@ -304,7 +304,31 @@ class MortgageStore
             'ownership_type' => ($partial ? 'sometimes|' : 'required|').'in:individual,joint',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
             'interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
-            'rate_type' => 'sometimes|nullable|in:fixed,variable,tracker,discount,capped,offset',
+            // Was `in:fixed,variable,tracker,discount,capped,offset` — wrong in both
+            // directions at once, and the only one of four layers that disagreed
+            // (W-0326).
+            //
+            // It REJECTED `mixed`, which `mortgages.rate_type` stores, which all
+            // three form requests permit, and which the property form offers the
+            // user in its rate-type select. A part-fixed part-variable mortgage
+            // therefore could not be recorded at all: the save returned 422 and
+            // `PropertyDetailInline.vue:701` swallowed it, so the modal closed as
+            // though it had worked.
+            //
+            // It ALSO allowed `capped` and `offset`, which the column's enum has
+            // no room for — a value passing here could only ever fail at the
+            // write. Removing them is not a product decision: they are
+            // unreachable today whatever anyone decides. Whether the app SHOULD
+            // support them is a real question and is raised as W-0328, because
+            // "currently unstorable" and "unwanted" are not the same thing.
+            //
+            // Contrast `ownership_type` two lines above, which is deliberately
+            // NARROWER than its column: the enum gained `tenants_in_common` in
+            // 2026-01, but `MortgageNormaliser:79-81` coerces it to `joint`
+            // before it ever reaches here, on purpose. A column wider than its
+            // rule is only a defect when it refuses something a user can
+            // legitimately do — which is why this line changed and that one did not.
+            'rate_type' => 'sometimes|nullable|in:fixed,variable,tracker,discount,mixed',
             'original_loan_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'remaining_term_months' => 'sometimes|nullable|integer|min:0|max:600',
             'start_date' => 'sometimes|nullable|date',

@@ -311,7 +311,13 @@
           </div>
           <span class="text-xs font-semibold text-raspberry-700 bg-raspberry-100 px-3 py-1 rounded-full">Auto-populated</span>
         </div>
-        <div class="p-6 space-y-6">
+        <div v-if="financialPositionError" class="p-6">
+          <p class="text-sm text-raspberry-700">
+            Your current financial position could not be loaded, so this section is not
+            showing figures. Please reload the page before printing or saving this letter.
+          </p>
+        </div>
+        <div v-else class="p-6 space-y-6">
           <!-- Bank Accounts / Savings -->
           <div>
             <div class="flex justify-between items-center mb-3">
@@ -326,16 +332,20 @@
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-horizon-500">{{ account.account_name || account.provider }}</div>
-                    <div class="text-sm text-neutral-500">{{ account.institution || account.provider }}</div>
+                    <div class="font-medium text-horizon-500">{{ account.name }}</div>
+                    <div class="text-sm text-neutral-500">{{ account.subtext }}</div>
                   </div>
                   <div class="flex flex-col gap-1 items-end">
-                    <span v-if="account.is_isa || account.account_type === 'cash_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
-                    <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
-                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                    <span
+                      v-for="badge in itemBadges(account, 'savings')"
+                      :key="badge.label"
+                      class="text-xs px-2 py-0.5 rounded"
+                      :class="badge.screen"
+                    >{{ badge.label }}</span>
                   </div>
                 </div>
-                <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.current_balance) }}</div>
+                <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.value) }}</div>
+                <div v-if="isSharedItem(account)" class="text-xs text-neutral-500">Your share of {{ formatCurrency(account.full_value) }}</div>
               </div>
             </div>
             <p v-else class="text-sm text-neutral-500 italic">No savings accounts recorded</p>
@@ -355,12 +365,12 @@
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-horizon-500">{{ pension.scheme_name || pension.provider }}</div>
-                    <div class="text-sm text-neutral-500">{{ pension.provider }}</div>
+                    <div class="font-medium text-horizon-500">{{ pension.name }}</div>
+                    <div class="text-sm text-neutral-500">{{ pension.subtext }}</div>
                   </div>
                 </div>
                 <div class="mt-2">
-                  <div class="text-lg font-semibold text-horizon-500">{{ formatCurrency(pension.current_value || pension.current_fund_value) }}</div>
+                  <div class="text-lg font-semibold text-horizon-500">{{ formatCurrency(pension.value) }}</div>
                   <div v-if="pension.employer" class="text-xs text-neutral-500 mt-1">{{ pension.employer }}</div>
                 </div>
               </div>
@@ -382,17 +392,20 @@
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-horizon-500">{{ account.account_name || account.provider }}</div>
-                    <div class="text-sm text-neutral-500">{{ account.provider }}</div>
+                    <div class="font-medium text-horizon-500">{{ account.name }}</div>
+                    <div class="text-sm text-neutral-500">{{ account.subtext }}</div>
                   </div>
                   <div class="flex flex-col gap-1 items-end">
-                    <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
-                    <span v-else-if="account.account_type === 'gia'" class="text-xs bg-savannah-100 text-neutral-500 px-2 py-0.5 rounded">General Investment Account</span>
-                    <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
-                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                    <span
+                      v-for="badge in itemBadges(account, 'investments')"
+                      :key="badge.label"
+                      class="text-xs px-2 py-0.5 rounded"
+                      :class="badge.screen"
+                    >{{ badge.label }}</span>
                   </div>
                 </div>
-                <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.current_value) }}</div>
+                <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.value) }}</div>
+                <div v-if="isSharedItem(account)" class="text-xs text-neutral-500">Your share of {{ formatCurrency(account.full_value) }}</div>
               </div>
             </div>
             <p v-else class="text-sm text-neutral-500 italic">No investment accounts recorded</p>
@@ -412,8 +425,8 @@
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-horizon-500">{{ property.property_name || property.address_line_1 }}</div>
-                    <div class="text-sm text-neutral-500">{{ formatPropertyType(property.property_type) }}</div>
+                    <div class="font-medium text-horizon-500">{{ property.name }}</div>
+                    <div class="text-sm text-neutral-500">{{ property.subtext }}</div>
                   </div>
                   <span :class="ownershipBadgeClass(property.ownership_type)" class="text-xs px-2 py-0.5 rounded">
                     {{ formatOwnershipType(property.ownership_type) }}
@@ -421,11 +434,12 @@
                 </div>
                 <div class="mt-2 flex justify-between">
                   <div>
-                    <div class="text-sm text-neutral-500">Value</div>
-                    <div class="font-semibold text-horizon-500">{{ formatCurrency(property.current_value) }}</div>
+                    <div class="text-sm text-neutral-500">{{ isSharedItem(property) ? 'Your share' : 'Value' }}</div>
+                    <div class="font-semibold text-horizon-500">{{ formatCurrency(property.value) }}</div>
+                    <div v-if="isSharedItem(property)" class="text-xs text-neutral-500">of {{ formatCurrency(property.full_value) }}</div>
                   </div>
                   <div v-if="property.mortgage_balance">
-                    <div class="text-sm text-neutral-500">Mortgage</div>
+                    <div class="text-sm text-neutral-500">{{ isSharedItem(property) ? 'Your mortgage share' : 'Mortgage' }}</div>
                     <div class="font-semibold text-red-600">{{ formatCurrency(property.mortgage_balance) }}</div>
                   </div>
                 </div>
@@ -448,13 +462,13 @@
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-horizon-500">{{ policy.provider }}</div>
-                    <div class="text-sm text-neutral-500">{{ formatPolicyType(policy.policy_type) }}</div>
+                    <div class="font-medium text-horizon-500">{{ policy.name }}</div>
+                    <div class="text-sm text-neutral-500">{{ policy.subtext }}</div>
                   </div>
                 </div>
                 <div class="mt-2">
                   <div class="text-sm text-neutral-500">Sum Assured</div>
-                  <div class="font-semibold text-green-600">{{ formatCurrency(policy.sum_assured || policy.benefit_amount) }}</div>
+                  <div class="font-semibold text-green-600">{{ formatCurrency(policy.value) }}</div>
                 </div>
               </div>
             </div>
@@ -475,15 +489,19 @@
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-horizon-500">{{ liability.liability_name }}</div>
-                    <div class="text-sm text-neutral-500">{{ formatLiabilityType(liability.liability_type) }}</div>
+                    <div class="font-medium text-horizon-500">{{ liability.name }}</div>
+                    <div class="text-sm text-neutral-500">{{ liability.subtext }}</div>
                   </div>
                   <div class="flex flex-col gap-1 items-end">
-                    <span v-if="liability.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
-                    <span v-else-if="liability.ownership_type === 'tenants_in_common'" class="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">TIC</span>
+                    <span
+                      v-for="badge in itemBadges(liability, 'liabilities')"
+                      :key="badge.label"
+                      class="text-xs px-2 py-0.5 rounded"
+                      :class="badge.screen"
+                    >{{ badge.label }}</span>
                   </div>
                 </div>
-                <div class="mt-2 font-semibold text-red-600">{{ formatCurrency(liability.current_balance) }}</div>
+                <div class="mt-2 font-semibold text-red-600">{{ formatCurrency(liability.value) }}</div>
               </div>
             </div>
             <p v-else class="text-sm text-neutral-500 italic">No liabilities recorded</p>
@@ -756,11 +774,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import letterService from '@/services/letterService';
-import savingsService from '@/services/savingsService';
-import investmentService from '@/services/investmentService';
-import propertyService from '@/services/propertyService';
 import protectionService from '@/services/protectionService';
-import estateService from '@/services/estateService';
 import retirementService from '@/services/retirementService';
 import authService from '@/services/authService';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -821,6 +835,10 @@ export default {
         totalLiabilities: 0,
       },
       letterData: null,
+      // Part 2 is a statement about someone's estate, made to their bereaved
+      // partner. A failed load must read as a failed load — an empty section
+      // with £0 totals is indistinguishable from a household that owns nothing.
+      financialPositionError: false,
       printTimeout: null,
       closeTimeout: null,
     };
@@ -938,35 +956,72 @@ export default {
       }
     },
 
+    /**
+     * Load Part 2.
+     *
+     * Savings, investments, property and debt come from ONE endpoint, already at
+     * this user's share of every record. They used to come from four module
+     * endpoints and be totalled here with `reduce()` at 100%, which is how a
+     * letter addressed to a bereaved spouse came to credit the estate with
+     * £177,000 belonging to an off-platform co-owner of one property, and charge
+     * the household his £72,000 of mortgage. Nothing on this page does that
+     * arithmetic any more; adding a share to a client-side reducer would have
+     * been a fifth copy of the rule rather than the removal of one.
+     *
+     * Pensions and protection deliberately still come from their own modules. A
+     * defined-contribution pension is individual, so no share applies; and which
+     * policies reach a given user is the protection module's question, answered
+     * by its own reader — re-answering either here would rebuild the very thing
+     * being removed.
+     */
     async loadProfileData() {
       this.loading = true;
       try {
-        const [savingsRes, investmentsRes, propertiesRes, protectionRes, estateRes, retirementRes] = await Promise.all([
-          savingsService.getSavingsData().catch(() => ({ data: [] })),
-          investmentService.getInvestmentData().catch(() => ({ data: [] })),
-          propertyService.getProperties().catch(() => ({ data: [] })),
+        const [positionRes, protectionRes, retirementRes] = await Promise.all([
+          letterService.getFinancialPosition().catch((error) => {
+            logger.error('Error loading letter financial position:', error);
+            return null;
+          }),
           protectionService.getProtectionData().catch(() => ({ data: {} })),
-          estateService.getEstateData().catch(() => ({ data: { liabilities: [] } })),
           retirementService.getRetirementData().catch(() => ({ data: {} })),
         ]);
 
-        // Extract savings accounts from nested structure
-        this.profileData.savings = savingsRes.data?.accounts || savingsRes?.accounts || [];
-        this.profileData.investments = investmentsRes.data?.accounts || investmentsRes?.accounts || [];
-        this.profileData.properties = propertiesRes.data?.properties || propertiesRes.data || propertiesRes || [];
+        const position = positionRes?.data || null;
+        this.financialPositionError = !position;
 
-        // Liabilities come from estate endpoint
-        const estate = estateRes.data || estateRes || {};
-        this.profileData.liabilities = estate.liabilities || [];
+        this.profileData.savings = this.positionItems(position, 'savings');
+        this.profileData.investments = this.positionItems(position, 'investments');
+        this.profileData.properties = this.positionItems(position, 'properties').map(item => ({
+          ...item,
+          subtext: this.formatPropertyType(item.property_type),
+        }));
+        this.profileData.liabilities = this.positionItems(position, 'liabilities').map(item => ({
+          ...item,
+          subtext: this.formatLiabilityType(item.liability_type),
+        }));
+
+        this.profileData.totalSavings = position?.savings?.total ?? 0;
+        this.profileData.totalInvestments = position?.investments?.total ?? 0;
+        this.profileData.totalPropertyValue = position?.properties?.total ?? 0;
+        this.profileData.totalLiabilities = position?.liabilities?.total ?? 0;
 
         // Pensions from retirement endpoint
         const retirement = retirementRes.data || retirementRes || {};
-        const dcPensions = retirement.dc_pensions || [];
-        const dbPensions = retirement.db_pensions || [];
         this.profileData.pensions = [
-          ...dcPensions.map(p => ({ ...p, pension_type: 'dc' })),
-          ...dbPensions.map(p => ({ ...p, pension_type: 'db' })),
-        ];
+          ...(retirement.dc_pensions || []),
+          ...(retirement.db_pensions || []),
+        ].map(pension => ({
+          id: `pension-${pension.id}`,
+          name: pension.scheme_name || pension.provider,
+          subtext: pension.provider || '',
+          // `||`, not `??`: the two columns are alternatives rather than a
+          // value and a default, and `current_value` is absent on every defined
+          // contribution row. Preserved exactly as it was so this consolidation
+          // changes where the figure comes from and not which column wins.
+          value: Number(pension.current_value || pension.current_fund_value || 0),
+          employer: pension.employer || '',
+          ownership_type: 'individual',
+        }));
 
         // Combine all protection policies - handle nested policies structure
         const protection = protectionRes.data || protectionRes || {};
@@ -975,20 +1030,81 @@ export default {
           ...(policies.life_insurance || []).map(p => ({ ...p, policy_type: 'life' })),
           ...(policies.critical_illness || []).map(p => ({ ...p, policy_type: 'critical_illness' })),
           ...(policies.income_protection || []).map(p => ({ ...p, policy_type: 'income_protection' })),
-        ];
+        ].map(policy => ({
+          id: `${policy.policy_type}-${policy.id}`,
+          name: policy.provider,
+          subtext: this.formatPolicyType(policy.policy_type),
+          value: Number(policy.sum_assured || policy.benefit_amount || 0),
+          ownership_type: 'individual',
+        }));
 
-        // Calculate totals
-        this.profileData.totalSavings = this.profileData.savings.reduce((sum, a) => sum + (parseFloat(a.current_balance) || 0), 0);
-        this.profileData.totalPensions = this.profileData.pensions.reduce((sum, p) => sum + (parseFloat(p.current_value) || parseFloat(p.current_fund_value) || 0), 0);
-        this.profileData.totalInvestments = this.profileData.investments.reduce((sum, a) => sum + (parseFloat(a.current_value) || 0), 0);
-        this.profileData.totalPropertyValue = this.profileData.properties.reduce((sum, p) => sum + (parseFloat(p.current_value) || 0), 0);
-        this.profileData.totalCoverage = this.profileData.policies.reduce((sum, p) => sum + (parseFloat(p.sum_assured) || parseFloat(p.benefit_amount) || 0), 0);
-        this.profileData.totalLiabilities = this.profileData.liabilities.reduce((sum, l) => sum + (parseFloat(l.current_balance) || 0), 0);
+        // The only two totals still added up here, and the only two where a share
+        // is not the question: a pension is individually held, and a sum assured
+        // is what a policy pays out, not a slice of an asset.
+        this.profileData.totalPensions = this.profileData.pensions.reduce((sum, p) => sum + p.value, 0);
+        this.profileData.totalCoverage = this.profileData.policies.reduce((sum, p) => sum + p.value, 0);
       } catch (error) {
         logger.error('Error loading profile data:', error);
+        this.financialPositionError = true;
       } finally {
         this.loading = false;
       }
+    },
+
+    /**
+     * @param {Object|null} position
+     * @param {string} section
+     * @returns {Array}
+     */
+    positionItems(position, section) {
+      return position?.[section]?.items || [];
+    },
+
+    /**
+     * Does this record belong to someone else as well as to the reader?
+     *
+     * `full_value` is the whole record and `value` this user's share; they are
+     * equal on anything wholly owned. Comparing them is how the page knows to
+     * show both figures, without re-deriving the ownership rule it just stopped
+     * owning.
+     */
+    isSharedItem(item) {
+      if (item?.full_value === undefined || item?.full_value === null) return false;
+      return Math.abs(Number(item.full_value) - Number(item.value)) > 0.005;
+    },
+
+    /**
+     * The badges for one item — decided ONCE, for the screen and the printed
+     * document alike. They were two `if` ladders in two places, and the printed
+     * one spelled "Tenants in Common" while the screen said "TIC".
+     *
+     * `screen` and `print` are the class strings each surface needs; the decision
+     * itself is shared, which is the part that used to drift.
+     */
+    itemBadges(item, type) {
+      const badges = [];
+
+      if (type === 'savings' && (item.is_isa || item.account_type === 'cash_isa')) {
+        badges.push({ label: 'ISA', screen: 'bg-green-100 text-green-700', print: 'badge-green' });
+      }
+
+      if (type === 'investments') {
+        // `isa`, not `stocks_and_shares_isa` — the latter is an `isa_type` value
+        // and this column never holds it, so this badge had never once fired.
+        if (item.account_type === 'isa' || item.account_type === 'stocks_and_shares_isa') {
+          badges.push({ label: 'ISA', screen: 'bg-green-100 text-green-700', print: 'badge-green' });
+        } else if (item.account_type === 'gia') {
+          badges.push({ label: 'General Investment Account', screen: 'bg-savannah-100 text-neutral-500', print: 'badge-gray' });
+        }
+      }
+
+      if (item.ownership_type === 'joint') {
+        badges.push({ label: 'Joint', screen: 'bg-blue-100 text-blue-700', print: 'badge-blue' });
+      } else if (item.ownership_type === 'tenants_in_common') {
+        badges.push({ label: 'Tenants in Common', screen: 'bg-violet-100 text-violet-700', print: 'badge-purple' });
+      }
+
+      return badges;
     },
 
     async checkMaritalStatus() {
@@ -1500,6 +1616,7 @@ export default {
     <div class="section-title">Part 2: Financial Overview</div>
     <div class="section-subtitle">Your current financial position (automatically updated)</div>
 
+    ${this.financialPositionError ? '<div class="card"><div class="pre-wrap">Your current financial position could not be loaded when this document was produced. The figures below are incomplete — reload the letter and print it again.</div></div>' : ''}
     ${this.buildFinancialHtml('Bank Accounts & Savings', this.profileData.savings, this.profileData.totalSavings, 'savings')}
     ${this.buildFinancialHtml('Pensions', this.profileData.pensions, this.profileData.totalPensions, 'pensions')}
     ${this.buildFinancialHtml('Investments', this.profileData.investments, this.profileData.totalInvestments, 'investments')}
@@ -1557,6 +1674,16 @@ export default {
       `;
     },
 
+    /**
+     * One section of the printed document.
+     *
+     * This used to carry a `switch (type)` naming a different value column per
+     * section — `current_balance`, `current_value`, `sum_assured` — read straight
+     * off the raw records. That was the SAME question the screen answered four
+     * inches away with its own arithmetic, and the exported document is the copy
+     * that outlives every later fix. Both now read the one item shape: `name`,
+     * `subtext`, `value` at this user's share, and badges from `itemBadges`.
+     */
     buildFinancialHtml(title, items, total, type) {
       if (!items || items.length === 0) return '';
 
@@ -1565,90 +1692,23 @@ export default {
       const amountClass = isLiability ? 'card-amount-red' : isPolicy ? 'card-amount-green' : '';
 
       const itemsHtml = items.map(item => {
-        let name, value, subtext, badge = '';
+        const badges = this.itemBadges(item, type)
+          .map(badge => `<span class="badge ${badge.print}">${this.escapeHtml(badge.label)}</span>`)
+          .join(' ');
 
-        switch (type) {
-          case 'savings':
-            name = item.account_name || item.provider;
-            value = item.current_balance;
-            subtext = item.institution || item.provider;
-            // Add ISA and ownership badges
-            const savingsBadges = [];
-            if (item.is_isa || item.account_type === 'cash_isa') {
-              savingsBadges.push('<span class="badge badge-green">ISA</span>');
-            }
-            if (item.ownership_type === 'joint') {
-              savingsBadges.push('<span class="badge badge-blue">Joint</span>');
-            } else if (item.ownership_type === 'tenants_in_common') {
-              savingsBadges.push('<span class="badge badge-purple">Tenants in Common</span>');
-            }
-            if (savingsBadges.length > 0) {
-              badge = savingsBadges.join(' ');
-            }
-            break;
-          case 'pensions':
-            name = item.scheme_name || item.provider;
-            value = item.current_value || item.current_fund_value;
-            subtext = item.provider;
-            // No badge needed for pensions
-            break;
-          case 'investments':
-            name = item.account_name || item.provider;
-            value = item.current_value;
-            subtext = item.provider;
-            // Add account type and ownership badges
-            const investmentBadges = [];
-            if (item.account_type === 'stocks_and_shares_isa') {
-              investmentBadges.push('<span class="badge badge-green">ISA</span>');
-            } else if (item.account_type === 'gia') {
-              investmentBadges.push('<span class="badge badge-gray">General Investment Account</span>');
-            }
-            if (item.ownership_type === 'joint') {
-              investmentBadges.push('<span class="badge badge-blue">Joint</span>');
-            } else if (item.ownership_type === 'tenants_in_common') {
-              investmentBadges.push('<span class="badge badge-purple">Tenants in Common</span>');
-            }
-            if (investmentBadges.length > 0) {
-              badge = investmentBadges.join(' ');
-            }
-            break;
-          case 'properties':
-            name = item.property_name || item.address_line_1;
-            value = item.current_value;
-            subtext = this.formatPropertyType(item.property_type);
-            // Add ownership badge
-            if (item.ownership_type === 'joint') {
-              badge = '<span class="badge badge-blue">Joint</span>';
-            } else if (item.ownership_type === 'tenants_in_common') {
-              badge = '<span class="badge badge-purple">Tenants in Common</span>';
-            }
-            break;
-          case 'policies':
-            name = item.provider;
-            value = item.sum_assured || item.benefit_amount;
-            subtext = this.formatPolicyType(item.policy_type);
-            break;
-          case 'liabilities':
-            name = item.liability_name;
-            value = item.current_balance;
-            subtext = this.formatLiabilityType(item.liability_type);
-            // Add ownership badge for joint liabilities
-            if (item.ownership_type === 'joint') {
-              badge = '<span class="badge badge-blue">Joint</span>';
-            } else if (item.ownership_type === 'tenants_in_common') {
-              badge = '<span class="badge badge-purple">Tenants in Common</span>';
-            }
-            break;
-        }
+        const shareNote = this.isSharedItem(item)
+          ? `<div class="card-detail">Your share of ${this.formatCurrency(item.full_value)}</div>`
+          : '';
 
         return `
           <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <div class="card-value">${this.escapeHtml(name)}</div>
-              ${badge}
+              <div class="card-value">${this.escapeHtml(item.name || '')}</div>
+              ${badges}
             </div>
-            <div class="card-detail">${this.escapeHtml(subtext)}</div>
-            <div class="card-amount ${amountClass}">${this.formatCurrency(value)}</div>
+            <div class="card-detail">${this.escapeHtml(item.subtext || '')}</div>
+            <div class="card-amount ${amountClass}">${this.formatCurrency(item.value)}</div>
+            ${shareNote}
           </div>
         `;
       }).join('');

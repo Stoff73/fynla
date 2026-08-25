@@ -7,10 +7,13 @@ namespace App\Services\LifeStage;
 use App\Models\Estate\Will;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
+use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
 
 class LifeStageService
 {
+    use ResolvesIncome;
+
     public const VALID_STAGES = ['university', 'early_career', 'mid_career', 'peak', 'retirement'];
 
     /**
@@ -204,10 +207,37 @@ class LifeStageService
      */
     private function hasPensionValueAbove(User $user, float $threshold): bool
     {
+        // Defined Benefit pensions are deliberately absent from this sum.
+        //
+        // The line removed here was `$user->dbPensions()->sum('transfer_value')`,
+        // and `db_pensions` has no `transfer_value` column. Because that is a
+        // QUERY BUILDER sum it reached MySQL as `select sum(transfer_value) …` and
+        // threw `SQLSTATE[42S22]: Unknown column 'transfer_value'` — a live,
+        // unguarded 500 for any mid_career user over 48 who does not have all
+        // children aged 18 or over, since the `||` above short-circuits only when
+        // the children check passes first (W-0242). The identical mistake in
+        // MobileDashboardAggregator reads over a Collection, where a missing
+        // attribute silently sums to zero, which is why one copy was invisible and
+        // this one was fatal.
+        //
+        // The term is gone for good, not pending a valuation. CSJ ruled on
+        // 2026-08-22 (W-0241, option 3): Defined Benefit schemes are EXCLUDED from
+        // net worth by decision, and the surfaces say so where the figure is shown.
+        // A `transfer_value` column, migration or form field is explicitly out of
+        // scope, as is any capitalisation multiple applied to
+        // `accrued_annual_pension`.
+        //
+        // So do NOT restore this term. The defect was never the exclusion — it was
+        // that the application already did (3) while this code read as though it
+        // did (1), silently. Counting Defined Contribution alone is now what the
+        // code says as well as what it does.
+        //
+        // Ruling recorded in full at the foot of
+        // workforce/ops/board/W-0241-net-worth-counts-every-defined-benefit-pension-as-zero.md.
+        // Not open for re-litigation (Rule 18).
         $dcTotal = $user->dcPensions()->sum('current_fund_value');
-        $dbTotal = $user->dbPensions()->sum('transfer_value');
 
-        return ($dcTotal + $dbTotal) > $threshold;
+        return $dcTotal > $threshold;
     }
 
     /**
@@ -368,7 +398,7 @@ class LifeStageService
             'target_retirement_age' => $user->target_retirement_age !== null,
 
             // Income — any source > 0
-            'has_income' => $this->calculateTotalIncome($user) > 0,
+            'has_income' => $this->resolveGrossAnnualIncome($user) > 0,
 
             // Expenditure
             'has_expenditure' => $user->monthly_expenditure > 0 || $this->hasExpenditureProfile($user),
@@ -528,20 +558,6 @@ class LifeStageService
             'goals' => '/goals',
             default => '/onboarding',
         };
-    }
-
-    /**
-     * Calculate total income from all sources (same as PrerequisiteGateService).
-     */
-    private function calculateTotalIncome(User $user): float
-    {
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
     }
 
     /**

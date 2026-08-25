@@ -37,7 +37,7 @@ it('sorts by value descending', function () {
     expect($values)->toEqual($sorted);
 });
 
-it('marks a recommendation item done when a matching completed tracking row exists', function () {
+it('excludes a completed recommendation from the list (banked + replaced by next-best)', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 
     // Stub the aggregator with one stable recommendation so the id is deterministic
@@ -57,7 +57,7 @@ it('marks a recommendation item done when a matching completed tracking row exis
         ]]);
     app()->instance(RecommendationsAggregatorService::class, $aggregator);
 
-    // Matching completed tracking row drives the done=true branch.
+    // A matching completed tracking row removes the rec from the actionable list.
     RecommendationTracking::create([
         'user_id' => $user->id,
         'recommendation_id' => $recommendationId,
@@ -70,10 +70,10 @@ it('marks a recommendation item done when a matching completed tracking row exis
 
     $items = app(NextActionsService::class)->build($user->id);
 
+    // Completed recs are banked toward the wheel count + replaced, not shown
+    // ticked — so the rec is absent from the actionable list (CSJ 4.4).
     $item = collect($items)->firstWhere('id', $recommendationId);
-    expect($item)->not->toBeNull()
-        ->and($item['type'])->toBe('recommendation')
-        ->and($item['done'])->toBeTrue();
+    expect($item)->toBeNull();
 });
 
 it('deep-links a tax recommendation to the tax strategy screen', function () {
@@ -128,4 +128,70 @@ it('builds focus-area cards: a Top card first, then one per module', function ()
 
 afterEach(function () {
     Mockery::close();
+});
+
+it('suppresses unlock items while the user is mid-onboarding — the walk is the action', function () {
+    // CSJ 2026-07-23 (live): a brand-new mid-walk user saw four "Unlock X
+    // advice — date of birth is required" actions on the dashboard while Fyn
+    // was about to ask for exactly that data in the walk. While the director
+    // owns the next turn (onboarding_fyn_step non-null), unlock prompts are
+    // noise that competes with onboarding — the dashboard's "finish your
+    // plan with Fyn" nudge is the one call to action.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => 'base_work',
+    ]);
+
+    $service = app(NextActionsService::class);
+
+    expect(collect($service->build($user->id))->where('type', 'unlock'))->toBeEmpty();
+
+    // The unified Top card carries no unlock prompts mid-walk; the
+    // per-module tab cards keep their true gate state (the level map).
+    $areas = collect($service->focusAreas($user->id));
+    $top = $areas->firstWhere('key', 'top');
+    expect(collect($top['actions'])->where('type', 'unlock'))->toBeEmpty();
+    expect($areas->where('locked', true))->not->toBeEmpty();
+});
+
+it('shows unlock items again once the walk is over (step nulled)', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => true,
+        'onboarding_fyn_step' => null,
+    ]);
+
+    $unlocks = collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock');
+    expect($unlocks)->not->toBeEmpty();
+});
+
+it('suppresses unlock items for a fresh campaign registrant before the first turn stamps the step', function () {
+    // 2026-07-23 live (user 292, round 2): the first dashboard fetch races
+    // the chat turn that stamps onboarding_fyn_step, so the suppressed list
+    // was cached with four unlock prompts at the exact moment the campaign
+    // walk was starting. A funnel registrant who has not started the walk
+    // (onboarding_started_at null) is walking by construction.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_started_at' => null,
+        'funnel_answers' => ['campaign' => 'savetax', 'employment_status' => 'full_time'],
+    ]);
+
+    expect(collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock'))->toBeEmpty();
+});
+
+it('keeps unlock items for a paused walker whose step was nulled', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_started_at' => now()->subHour(),
+        'funnel_answers' => ['campaign' => 'savetax'],
+    ]);
+
+    $unlocks = collect(app(NextActionsService::class)->build($user->id))->where('type', 'unlock');
+    expect($unlocks)->not->toBeEmpty();
 });

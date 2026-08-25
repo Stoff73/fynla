@@ -47,6 +47,11 @@ class PropertyStore
         return Property::forUserOrJoint($user->id)->get();
     }
 
+    public function existsForUser(User $user): bool
+    {
+        return Property::forUserOrJoint($user->id)->exists();
+    }
+
     public function forUserWithJointOwner(User $user): Collection
     {
         return Property::forUserOrJoint($user->id)->with('jointOwner')->get();
@@ -98,6 +103,28 @@ class PropertyStore
             ->get();
     }
 
+    /**
+     * The ownership columns of one property, by key, unscoped by user.
+     *
+     * **Deliberately not user-scoped, and deliberately narrow.** A debt is shared
+     * exactly as the asset securing it is shared (CSJ ruling, W-0228), so working
+     * out what a user owes on a mortgage means reading the property behind it —
+     * and that property may be owned by someone else entirely. `find()` takes a
+     * `User` and would return null in exactly the case the ruling exists to
+     * handle: a mortgage on a property the viewer co-owns but did not record.
+     *
+     * Selecting only the ownership columns is the guard. This is not a general
+     * unscoped `find()` — it cannot return an address, a valuation or a rental
+     * figure, so it cannot become a route around the user scope for anything but
+     * the question it is named for.
+     */
+    public function findOwnershipBasis(int $propertyId): ?Property
+    {
+        return Property::query()
+            ->select(['id', 'user_id', 'joint_owner_id', 'ownership_type', 'ownership_percentage'])
+            ->find($propertyId);
+    }
+
     // ---------- Writes ----------
 
     public function create(array $data, User $user, IngestSource $source): Property
@@ -127,14 +154,15 @@ class PropertyStore
         $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data, $user, $source) {
             $property->fill($data);
             $dirty = $property->getDirty();
+            $previous = array_intersect_key($property->getOriginal(), $dirty);
             $property->save();
             $fresh = $property->fresh();
             $this->recalculateDerived($fresh, $user, $source, 'update');
 
-            return ['fresh' => $fresh, 'dirty' => $dirty];
+            return ['fresh' => $fresh, 'dirty' => $dirty, 'previous' => $previous];
         }));
 
-        event(new PropertyUpdated($result['fresh'], $result['dirty'], $user, $source));
+        event(new PropertyUpdated($result['fresh'], $result['dirty'], $user, $source, $result['previous']));
 
         return $result['fresh'];
     }
@@ -153,9 +181,10 @@ class PropertyStore
     public function delete(int $id, User $user, string $reason): void
     {
         $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+        $jointOwnerId = $property->joint_owner_id === null ? null : (int) $property->joint_owner_id;
         $property->delete();
 
-        event(new PropertyDeleted($id, $user, $reason));
+        event(new PropertyDeleted($id, $user, $reason, $jointOwnerId));
     }
 
     public function restore(int $id, User $user): Property
@@ -192,7 +221,7 @@ class PropertyStore
 
     /**
      * Persists derived columns via `forceFill + saveQuietly`. Observer-dedup
-     * note: NetWorthCacheObserver / RecommendationCacheObserver / PropertyRiskObserver
+     * note: UserDataCacheObserver / PropertyRiskObserver
      * already fire from the originating store write (create/update) OR from the
      * originating Mortgage write that triggered the cross-store listener. The
      * derived-column write is a second persistence step that must NOT re-trigger

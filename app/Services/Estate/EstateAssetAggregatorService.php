@@ -11,13 +11,14 @@ use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
 use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Protection\LifeCoverReach;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
+use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -42,6 +43,8 @@ class EstateAssetAggregatorService
     public function __construct(
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly LifeCoverReach $lifeCoverReach,
+        private readonly TaxConfigService $taxConfig,
     ) {}
 
     /**
@@ -111,17 +114,26 @@ class EstateAssetAggregatorService
             // Use trait to calculate user's share based on ownership_percentage
             $userValue = $this->calculateUserShare($business, $user->id);
 
-            // Business Property Relief (BPR): 100% relief for qualifying trading businesses
-            // Requires: bpr_eligible flag AND trading status AND 2+ years ownership
-            $ihtExempt = false;
+            // W-0091 / W-0463 — QUALIFICATION only. Whether the business qualifies
+            // for Business Property Relief is a fact about the business; HOW MUCH
+            // relief it gets is a fact about the estate, because the allowance is
+            // capped across everything that claims it. Deciding both here is what
+            // produced the defect: `is_iht_exempt = true` meant 100% relief,
+            // uncapped, forever.
+            //
+            // The minimum ownership period comes from the configuration rather than
+            // a literal 2 (Rule 2).
+            $businessRelief = $this->taxConfig->getBusinessRelief();
+            $minOwnershipYears = (int) ($businessRelief['min_ownership_years'] ?? 2);
+
+            $reliefQualifies = false;
             if ($business->bpr_eligible && $business->trading_status === 'trading') {
-                // Check 2-year ownership rule if acquisition_date is set
                 if ($business->acquisition_date) {
                     $yearsOwned = Carbon::parse($business->acquisition_date)->diffInYears(now());
-                    $ihtExempt = $yearsOwned >= 2;
+                    $reliefQualifies = $yearsOwned >= $minOwnershipYears;
                 } else {
-                    // If no acquisition date set but marked BPR eligible, assume eligible
-                    $ihtExempt = true;
+                    // Marked eligible with no acquisition date — take the flag.
+                    $reliefQualifies = true;
                 }
             }
 
@@ -134,7 +146,12 @@ class EstateAssetAggregatorService
                 'ownership_type' => $business->ownership_type ?? 'individual',
                 'ownership_percentage' => $business->ownership_percentage ?? 100,
                 'is_primary_owner' => $this->isPrimaryOwner($business, $user->id),
-                'is_iht_exempt' => $ihtExempt, // BPR at 100% for qualifying trading businesses
+                // Set by applyBusinessPropertyRelief() below, once the shared cap
+                // has been allocated across every qualifying asset in this estate.
+                'is_iht_exempt' => false,
+                'iht_relief_amount' => 0.0,
+                'iht_relief_type' => $reliefQualifies ? 'business_property_relief' : null,
+                'iht_relief_qualifies' => $reliefQualifies,
                 'bpr_eligible' => $business->bpr_eligible ?? false,
                 'trading_status' => $business->trading_status,
             ];
@@ -189,18 +206,148 @@ class EstateAssetAggregatorService
                 'ownership_percentage' => 100,
                 'is_primary_owner' => true,
                 'is_iht_exempt' => true,
-                'annual_income' => $pension->expected_annual_pension ?? 0, // For income projections
+                // W-0154. Was `$pension->expected_annual_pension ?? 0` — a column that
+                // has never existed on `db_pensions`, so this was 0 for every Defined
+                // Benefit pension in the application. The derived column is preferred
+                // because it is the revalued figure at the scheme's Normal Retirement
+                // Age; it is null until a write triggers recalculation, hence the
+                // fallback to the accrued figure the form actually captures.
+                //
+                // Stated plainly: **nothing reads this field today.** No consumer of
+                // `gatherUserAssets()` touches `annual_income` on a `db_pension` row —
+                // the estate's own retirement income projection
+                // (`IHTCalculationService::getRetirementIncome()`) reads no pension at
+                // all, which is the larger defect and is tracked separately as W-0154
+                // R1. Corrected here so the field is truthful when something does read
+                // it, rather than left as a value that would be wrong the day it was
+                // wired up.
+                'annual_income' => (float) (
+                    $pension->projected_annual_pension_at_nra_gbp
+                    ?? $pension->accrued_annual_pension
+                    ?? 0
+                ),
             ];
         });
 
-        return $assets
-            ->concat($investmentAssets)
-            ->concat($propertyAssets)
-            ->concat($savingsAssets)
-            ->concat($businessAssets)
-            ->concat($chattelAssets)
-            ->concat($dcPensionAssets)
-            ->concat($dbPensionAssets);
+        return $this->applyBusinessPropertyRelief(
+            $assets
+                ->concat($investmentAssets)
+                ->concat($propertyAssets)
+                ->concat($savingsAssets)
+                ->concat($businessAssets)
+                ->concat($chattelAssets)
+                ->concat($dcPensionAssets)
+                ->concat($dbPensionAssets)
+        );
+    }
+
+    /**
+     * Allocate Business Property Relief across the estate, under the shared cap.
+     *
+     * W-0091 / W-0463. Relief used to be a boolean: a qualifying business was
+     * worth its full value or nothing, so a £6m trading business left the estate
+     * entirely. The £2,500,000 cap has been in force since **2026-04-06** — 100%
+     * relief on the first £2.5m of qualifying value and `relief_above_cap` (50%)
+     * on the rest — and `TaxConfigService::getBusinessRelief()` held all of it,
+     * dated and switched on, with no caller anywhere in the application. On that
+     * £6m business the correct answer is £1.75m chargeable, so roughly £700,000 of
+     * Inheritance Tax was not being shown.
+     *
+     * **Why the cap forces an estate-level pass.** It is one allowance covering
+     * everything that claims it, so no single asset can decide its own relief.
+     *
+     * **The allowance is apportioned PRO RATA, and that is mandatory.**
+     * IHTA 1984 s124D(7): the 100% allowance is available against all qualifying
+     * assets "IN THE SAME PROPORTION AS EACH ASSET REPRESENTS AS PART OF ALL THE
+     * QUALIFYING ASSETS in the estate" (IHTM25524). No election, no ordering choice.
+     *
+     * This took the largest holdings first, on a stated rationale — "the allocation
+     * that relieves the most" — that was simply **false**: total relief is
+     * `min(cap, total) + max(0, total − cap) × rate`, which is invariant to order.
+     * Nothing was being maximised. The order was never visible in the headline tax
+     * either, but it IS visible in `is_iht_exempt`, and a wholly-relieved asset is
+     * dropped from gross assets — so on two £2m businesses the old order showed
+     * £2m of gross assets where pro rata shows £4m, the same net estate reached by
+     * a line the user reads differently.
+     *
+     * **Dated, not hardcoded.** `allowance_cap_effective_date` decides whether the
+     * cap applies at all, so a death before 6 April 2026 still gets the old
+     * uncapped 100% and the answer follows the configuration rather than the
+     * calendar in someone's head.
+     *
+     * **What this deliberately does not do**, because the data model cannot express
+     * it yet — both registered against W-0463:
+     *   - **Agricultural Property Relief.** There is no agricultural asset type or
+     *     flag anywhere in the schema, so there is nothing to relieve. The cap is
+     *     configured as shared between the two reliefs (`cap_shared_with_bpr`), so
+     *     when agricultural property does become expressible it must join THIS
+     *     allocation rather than get a second cap of its own.
+     *   - **AIM shares at 50% outside the cap.** `business_interests` has no column
+     *     identifying AIM holdings, so they cannot be distinguished from any other
+     *     qualifying business.
+     */
+    private function applyBusinessPropertyRelief(Collection $assets): Collection
+    {
+        $config = $this->taxConfig->getBusinessRelief();
+
+        $qualifying = $assets->filter(fn ($asset) => ($asset->iht_relief_qualifies ?? false) === true);
+
+        if ($qualifying->isEmpty()) {
+            return $assets;
+        }
+
+        $capApplies = (bool) ($config['cap_in_effect'] ?? false)
+            && $this->capIsInForce($config['allowance_cap_effective_date'] ?? null);
+
+        $cap = $capApplies ? (float) ($config['allowance_cap'] ?? 0) : INF;
+        $rateAboveCap = (float) ($config['relief_above_cap'] ?? 0);
+
+        $totalQualifying = (float) $qualifying->sum('current_value');
+
+        if ($totalQualifying <= 0) {
+            return $assets;
+        }
+
+        foreach ($qualifying as $asset) {
+            $value = (float) $asset->current_value;
+
+            // s124D(7) — each asset's share of the allowance is its share of the
+            // qualifying total. Where the cap does not bind at all, every asset is
+            // wholly relieved and the proportion is irrelevant.
+            $atFullRelief = $cap === INF
+                ? $value
+                : min($value, $cap * ($value / $totalQualifying));
+
+            $relief = $atFullRelief + (($value - $atFullRelief) * $rateAboveCap);
+
+            $asset->iht_relief_amount = round($relief, 2);
+            // Only a wholly relieved asset leaves the estate. A partly relieved one
+            // stays, carrying its relief, or the chargeable remainder would vanish
+            // with it — the `reject(is_iht_exempt)` consumers take the whole value.
+            $asset->is_iht_exempt = round($relief, 2) >= round($value, 2) && $value > 0;
+        }
+
+        return $assets;
+    }
+
+    /**
+     * Whether the capped regime is in force today, per its configured start date.
+     *
+     * A missing or unparseable date means the cap is NOT applied: the safe default
+     * is the treatment that was correct before the cap existed, rather than
+     * silently taxing an estate on a date nobody configured.
+     */
+    private function capIsInForce(?string $effectiveDate): bool
+    {
+        if ($effectiveDate === null || $effectiveDate === '') {
+            return false;
+        }
+
+        try {
+            return today()->greaterThanOrEqualTo(Carbon::parse($effectiveDate));
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -251,14 +398,30 @@ class EstateAssetAggregatorService
     }
 
     /**
-     * Get total existing life cover for a user
+     * The protection cover this user's life carries.
+     *
+     * **Per-life, not per-household.** This asked `where('user_id', …)`, so a
+     * joint-life policy reached only the account that typed it: Sarah Jones was
+     * assessed at £0 while David's £500,000 joint-life policy insured her life too,
+     * on the one product whose purpose is covering both of them (W-0341). It now
+     * routes to `LifeCoverReach`, the one home for "which policies cover this life"
+     * (Rule 20) — the same reader `ProtectionAgent`, `ProtectionController` and
+     * `LifeInsurancePolicyResource` use, so the four cannot disagree.
+     *
+     * **Do not add this to a spouse's figure.** The joint-life policy is in both
+     * their answers deliberately and pays out once. `LifeCoverReach::householdCoverInTrust()`
+     * is the household question, and it stays owner-scoped for that reason.
+     *
+     * Critical illness stays `user_id`-scoped because it has nothing to reach with:
+     * `critical_illness_policies` carries no `joint_life` column, no `joint_owner_id`
+     * and no ownership fields — verified against the schema, not inferred. A critical
+     * illness policy insures one life by construction here.
      */
     public function getExistingLifeCover(User $user): float
     {
-        $lifeInsurance = LifeInsurancePolicy::where('user_id', $user->id)
-            ->sum('sum_assured');
+        $lifeInsurance = (float) $this->lifeCoverReach->policiesCovering($user)->sum('sum_assured');
 
-        $criticalIllness = CriticalIllnessPolicy::where('user_id', $user->id)
+        $criticalIllness = (float) CriticalIllnessPolicy::where('user_id', $user->id)
             ->sum('sum_assured');
 
         return $lifeInsurance + $criticalIllness;

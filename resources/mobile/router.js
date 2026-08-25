@@ -5,11 +5,16 @@ import ModuleDetail from './views/ModuleDetail.vue';
 import TaxStrategy from './views/TaxStrategy.vue';
 import HolisticPlan from './views/HolisticPlan.vue';
 import Income from './views/Income.vue';
+import IncomeDetail from './views/IncomeDetail.vue';
 import Expenditure from './views/Expenditure.vue';
 import Achievements from './views/Achievements.vue';
+import ConversationHistory from './views/ConversationHistory.vue';
 import MobileLogin from './views/Login.vue';
 import MobileNetWorth from './views/modules/NetWorth.vue';
 import MobileNetWorthCategory from './views/modules/NetWorthCategory.vue';
+import MobilePropertyDetail from './views/modules/PropertyDetail.vue';
+import MobileMortgageDetail from './views/modules/MortgageDetail.vue';
+import MobileLiabilityDetail from './views/modules/LiabilityDetail.vue';
 import MobileProtection from './views/modules/Protection.vue';
 import MobileProtectionPolicy from './views/modules/ProtectionPolicy.vue';
 import MobileSavings from './views/modules/Savings.vue';
@@ -19,18 +24,20 @@ import MobileRetirementPensionDetail from './views/modules/RetirementPensionDeta
 import MobileInvestment from './views/modules/Investment.vue';
 import MobileInvestmentAccountDetail from './views/modules/InvestmentAccountDetail.vue';
 import MobileEstate from './views/modules/Estate.vue';
+import MobileEstateBequests from './views/modules/EstateBequests.vue';
 import MobileGoals from './views/modules/Goals.vue';
+import MobileGoalDetail from './views/modules/GoalDetail.vue';
+import MobileBalanceHistory from './views/BalanceHistory.vue';
+import PersonalInformation from './views/PersonalInformation.vue';
+import Settings from './views/Settings.vue';
+import NotificationPreferences from './views/NotificationPreferences.vue';
+import SpouseSharing from './views/SpouseSharing.vue';
+import Subscription from './views/Subscription.vue';
 
 // Inner SPA lives under /m/app — but on subdirectory deploys (csjones serves the
 // whole app at /fynla/) the actual URL is /fynla/m/app/. Derive from VITE_ROUTER_BASE
 // (the same var the parent SPA's router uses). Defaults to '/' for iOS / unset.
 const MOBILE_ROUTER_BASE = (import.meta.env.VITE_ROUTER_BASE || '/') + 'm/app/';
-
-// The CANONICAL login is the funnel login (main app /login), framed inside /m.
-// /m/app is post-auth only — it has no login screen of its own; unauthenticated
-// access (incl. after sign-out) goes here, where it loads in-frame via the
-// Sec-Fetch-Dest:iframe redirect-skip.
-const CANONICAL_LOGIN = (import.meta.env.VITE_ROUTER_BASE || '/') + 'login';
 
 const router = createRouter({
   history: createWebHistory(MOBILE_ROUTER_BASE),
@@ -42,10 +49,16 @@ const router = createRouter({
     { path: '/tax-strategy', name: 'tax-strategy', component: TaxStrategy, meta: { auth: true } },
     { path: '/holistic-plan', name: 'holistic-plan', component: HolisticPlan, meta: { auth: true } },
     { path: '/income', name: 'm-income', component: Income, meta: { auth: true } },
+    { path: '/income/:owner/:source', name: 'm-income-detail', component: IncomeDetail, meta: { auth: true } },
     { path: '/expenditure', name: 'm-expenditure', component: Expenditure, meta: { auth: true } },
     { path: '/achievements', name: 'm-achievements', component: Achievements, meta: { auth: true } },
+    { path: '/conversation-history', name: 'm-conversation-history', component: ConversationHistory, meta: { auth: true } },
     { path: '/net-worth', name: 'm-net-worth', component: MobileNetWorth, meta: { auth: true } },
+    { path: '/net-worth/history', name: 'm-balance-history', component: MobileBalanceHistory, meta: { auth: true } },
     { path: '/net-worth/:category', name: 'm-net-worth-category', component: MobileNetWorthCategory, props: true, meta: { auth: true } },
+    { path: '/net-worth/property/:id', name: 'm-property', component: MobilePropertyDetail, meta: { auth: true } },
+    { path: '/net-worth/mortgage/:id', name: 'm-mortgage', component: MobileMortgageDetail, meta: { auth: true } },
+    { path: '/net-worth/liability/:id', name: 'm-liability', component: MobileLiabilityDetail, meta: { auth: true } },
     { path: '/protection', name: 'm-protection', component: MobileProtection, meta: { auth: true } },
     { path: '/protection/policy/:policyType/:id', name: 'm-protection-policy', component: MobileProtectionPolicy, props: true, meta: { auth: true } },
     { path: '/savings', name: 'm-savings', component: MobileSavings, meta: { auth: true } },
@@ -55,7 +68,19 @@ const router = createRouter({
     { path: '/investment', name: 'm-investment', component: MobileInvestment, meta: { auth: true } },
     { path: '/investment/account/:id', name: 'm-investment-account', component: MobileInvestmentAccountDetail, meta: { auth: true } },
     { path: '/estate', name: 'm-estate', component: MobileEstate, meta: { auth: true } },
+    { path: '/estate/bequests', name: 'm-estate-bequests', component: MobileEstateBequests, meta: { auth: true } },
     { path: '/goals', name: 'm-goals', component: MobileGoals, meta: { auth: true } },
+    { path: '/goals/:id', name: 'm-goal', component: MobileGoalDetail, meta: { auth: true } },
+    { path: '/personal-information', name: 'm-personal-information', component: PersonalInformation, meta: { auth: true } },
+    { path: '/settings', name: 'm-settings', component: Settings, meta: { auth: true } },
+    { path: '/notifications', name: 'm-notifications', component: NotificationPreferences, meta: { auth: true } },
+    // Rule 19 parity for the web /settings/family sharing panel. Also the
+    // landing point for the spouse-permission notification email, which links
+    // to /settings/spouse-permission — phones are routed to /m, so without a
+    // route here a mobile invitee cannot answer the request at all (W-0347).
+    { path: '/spouse-sharing', name: 'm-spouse-sharing', component: SpouseSharing, meta: { auth: true } },
+    { path: '/settings/spouse-permission', redirect: '/spouse-sharing' },
+    { path: '/subscription', name: 'm-subscription', component: Subscription, meta: { auth: true } },
   ],
 });
 

@@ -41,7 +41,7 @@ class InsightController extends Controller
             // ahead of native insights and re-sorted by published_at desc.
             $docTotal = 0;
             if (! $category && $page === 1) {
-                $docs = DocumentArticle::published()->orderByDesc('published_at')->get();
+                $docs = DocumentArticle::live()->orderByDesc('published_at')->get();
                 $docTotal = $docs->count();
                 $docItems = DocumentArticleAsInsightListResource::collection($docs)->resolve();
                 $items = collect($docItems)->merge($items)
@@ -62,23 +62,44 @@ class InsightController extends Controller
 
     public function featured(): JsonResponse
     {
-        // Prefer an explicitly-flagged article; fall back to the most recently
-        // published one so the homepage always has a featured article.
-        $featured = $this->articles->getFeatured()
-            ?? InsightArticle::published()->orderByDesc('published_at')->first();
+        // An explicitly-flagged native article wins the featured slot.
+        $featuredModel = $this->articles->getFeatured();
+        $featured = $featuredModel
+            ? (new InsightArticleListResource($featuredModel))->resolve()
+            : null;
 
-        $supporting = InsightArticle::published()
-            ->when($featured, fn ($q) => $q->where('id', '!=', $featured->id))
-            ->orderByDesc('published_at')
+        // Pool the most-recent published articles from BOTH sources — native
+        // insights AND CMS/pipeline document articles — so document articles
+        // surface on the homepage strip, not just the /insights listing.
+        $insights = InsightArticle::published()->orderByDesc('published_at')->take(6)->get();
+        $docs = DocumentArticle::live()->orderByDesc('published_at')->take(6)->get();
+        $pool = collect(DocumentArticleAsInsightListResource::collection($docs)->resolve())
+            ->merge(InsightArticleListResource::collection($insights)->resolve())
+            ->sortByDesc('published_at')
+            // De-dupe by title so the same story never appears twice (e.g. an
+            // article that exists as both a native insight and a CMS document).
+            ->unique(fn ($a) => mb_strtolower(trim((string) ($a['title'] ?? ''))))
+            ->values();
+
+        // No explicit feature → the newest across the pool leads.
+        if ($featured === null) {
+            $featured = $pool->first();
+            $pool = $pool->slice(1)->values();
+        }
+
+        $featuredSlug = $featured['slug'] ?? null;
+        $featuredTitle = mb_strtolower(trim((string) ($featured['title'] ?? '')));
+        $supporting = $pool
+            ->reject(fn ($a) => ($featuredSlug !== null && ($a['slug'] ?? null) === $featuredSlug)
+                || ($featuredTitle !== '' && mb_strtolower(trim((string) ($a['title'] ?? ''))) === $featuredTitle))
             ->take(2)
-            ->get();
+            ->values()
+            ->all();
 
         return response()->json([
             'data' => [
-                'featured' => $featured
-                    ? (new InsightArticleListResource($featured))->resolve()
-                    : null,
-                'supporting' => InsightArticleListResource::collection($supporting)->resolve(),
+                'featured' => $featured,
+                'supporting' => $supporting,
             ],
         ]);
     }
@@ -96,15 +117,17 @@ class InsightController extends Controller
             $insightQuery->published();
         }
         if ($article = $insightQuery->first()) {
-            return new InsightArticleResource($article->load('author'));
+            return new InsightArticleResource($article->load(['author', 'pipelineCampaign']));
         }
 
-        // Fall back to CMS-imported document articles.
+        // Fall back to CMS-imported document articles. `live()` rather than
+        // `published()`: an article scheduled for a future date must not be
+        // reachable at its URL before then (admins still see it via ?preview).
         $docQuery = DocumentArticle::where('slug', $slug);
         if (! $allowDraft) {
-            $docQuery->published();
+            $docQuery->live();
         }
 
-        return new DocumentArticleAsInsightResource($docQuery->firstOrFail());
+        return new DocumentArticleAsInsightResource($docQuery->with('campaign')->firstOrFail());
     }
 }

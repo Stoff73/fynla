@@ -60,6 +60,7 @@ function bindAdviceStreamWithPayload(array $payload): void
     // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
     // legacy — non-weakening (other expectations stay strict).
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function () use ($payload) {
             $stream = function () use ($payload) {
@@ -155,6 +156,7 @@ it('does NOT emit handoff_error when only reason is missing — recovers via Cap
     // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
     // legacy — non-weakening (other expectations stay strict).
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function (...$args) {
             $persona = $args[8] ?? null;

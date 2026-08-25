@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "data": {
+    "tax_year": "2025/26",
+    "current_tax_year": "2026/27",
+    "prior_tax_year": "2024/25",
+    "available_tax_years": ["2026/27", "2025/26"],
+    "cash_isa_used": 1000,
+    "stocks_shares_isa_used": 0,
+    "lisa_used": 0,
+    "total_used": 1000,
+    "total_allowance": 20000,
+    "remaining": 19000,
+    "percentage_used": 5,
+    "account_breakdown": [],
+    "owners": []
+  }
+}

@@ -62,10 +62,14 @@
                 class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">Select status</option>
-                <option value="Active">Active</option>
-                <option value="Deferred">Deferred</option>
-                <option value="In Payment">In Payment</option>
+                <option v-for="option in schemeStatusOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
               </select>
+              <p class="mt-1 text-xs text-neutral-500">
+                Tells us whether this pension is being paid to you now, which decides
+                whether it counts towards your income today.
+              </p>
             </div>
             <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'scheme_type' }">
               <label for="scheme_type" class="block text-sm font-medium text-neutral-500 mb-2">
@@ -76,8 +80,9 @@
                 v-model="formData.scheme_type"
                 class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
-                <option value="final_salary">Final Salary</option>
-                <option value="career_average">Career Average (CARE)</option>
+                <option v-for="option in schemeTypeOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
               </select>
             </div>
           </div>
@@ -131,6 +136,41 @@
             </div>
           </div>
 
+          <!-- Normal Retirement Age and Spouse Pension -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'normal_retirement_age' }">
+              <label for="normal_retirement_age" class="block text-sm font-medium text-neutral-500 mb-2">
+                Normal Retirement Age
+              </label>
+              <input
+                id="normal_retirement_age"
+                v-model.number="formData.normal_retirement_age"
+                type="number"
+                min="55"
+                max="75"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 60"
+              />
+              <p class="text-xs text-neutral-500 mt-1">The age this scheme pays out in full</p>
+            </div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'spouse_pension_percent' }">
+              <label for="spouse_pension_percent" class="block text-sm font-medium text-neutral-500 mb-2">
+                Spouse Pension (%)
+              </label>
+              <input
+                id="spouse_pension_percent"
+                v-model.number="formData.spouse_pension_percent"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 50"
+              />
+              <p class="text-xs text-neutral-500 mt-1">Percentage paid to your spouse after your death</p>
+            </div>
+          </div>
+
           <!-- Accrual Rate -->
           <div>
             <label for="accrual_rate" class="block text-sm font-medium text-neutral-500 mb-2">
@@ -147,10 +187,27 @@
             <p class="text-xs text-neutral-500 mt-1">Common: 60 (public sector), 80 (older schemes)</p>
           </div>
 
-          <!-- Revaluation Rate -->
-          <div>
+          <!-- Inflation Protection -->
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'inflation_protection' }">
+            <label for="inflation_protection" class="block text-sm font-medium text-neutral-500 mb-2">
+              Inflation Protection
+            </label>
+            <select
+              id="inflation_protection"
+              v-model="formData.inflation_protection"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            >
+              <option v-for="option in inflationProtectionOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <p class="text-xs text-neutral-500 mt-1">How the scheme increases your pension before it comes into payment</p>
+          </div>
+
+          <!-- Fixed Revaluation Rate -->
+          <div v-if="formData.inflation_protection === 'fixed'">
             <label for="revaluation_rate" class="block text-sm font-medium text-neutral-500 mb-2">
-              Revaluation Rate (% p.a.)
+              Fixed Revaluation Rate (% a year)
             </label>
             <input
               id="revaluation_rate"
@@ -162,7 +219,6 @@
               class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               placeholder="e.g., 2.50"
             />
-            <p class="text-xs text-neutral-500 mt-1">For CARE schemes - typical: CPI, CPI+1.5%, or fixed %</p>
           </div>
 
           <!-- PCLS Available -->
@@ -224,6 +280,12 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex';
+import {
+  DB_SCHEME_TYPE_OPTIONS,
+  DB_SCHEME_STATUS_OPTIONS,
+  DB_INFLATION_PROTECTION_OPTIONS,
+  buildDbPensionPayload,
+} from './dbPensionFields';
 
 export default {
   name: 'DBPensionForm',
@@ -250,11 +312,17 @@ export default {
         annual_income: null,
         service_years: null,
         final_salary: null,
+        normal_retirement_age: null,
+        spouse_pension_percent: null,
         accrual_rate: null,
+        inflation_protection: 'none',
         revaluation_rate: null,
         pcls_available: null,
         notes: '',
       },
+      schemeTypeOptions: DB_SCHEME_TYPE_OPTIONS,
+      schemeStatusOptions: DB_SCHEME_STATUS_OPTIONS,
+      inflationProtectionOptions: DB_INFLATION_PROTECTION_OPTIONS,
     };
   },
 
@@ -272,8 +340,27 @@ export default {
       immediate: true,
       handler(newPension) {
         if (newPension) {
-          // Editing existing pension - populate form with pension data
-          this.formData = { ...newPension };
+          // Editing an existing pension. The record arrives in `db_pensions`
+          // column names, which are NOT this form's field names — spreading it
+          // straight onto formData left every input bound to an undefined key,
+          // so the edit form opened blank and then refused to submit.
+          this.formData = {
+            ...this.formData,
+            employer_name: newPension.scheme_name ?? '',
+            scheme_type: newPension.scheme_type ?? 'final_salary',
+            // Persists since W-0032, so an edit restores it rather than opening
+            // blank and silently clearing what the user last answered.
+            scheme_status: newPension.scheme_status ?? '',
+            annual_income: this.toNumber(newPension.accrued_annual_pension),
+            service_years: this.toNumber(newPension.pensionable_service_years),
+            final_salary: this.toNumber(newPension.pensionable_salary),
+            normal_retirement_age: this.toNumber(newPension.normal_retirement_age),
+            spouse_pension_percent: this.toNumber(newPension.spouse_pension_percent),
+            inflation_protection: newPension.inflation_protection ?? 'none',
+            revaluation_rate: this.parseRevaluationRate(newPension.revaluation_method),
+            pcls_available: this.toNumber(newPension.lump_sum_entitlement),
+            notes: newPension.notes ?? '',
+          };
         }
       },
     },
@@ -323,6 +410,20 @@ export default {
   },
 
   methods: {
+    /** null/'' stay null so an untouched optional field posts null, not 0. */
+    toNumber(value) {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? null : parsed;
+    },
+
+    /** '2.5%' -> 2.5. `revaluation_method` is stored as the formatted string. */
+    parseRevaluationRate(revaluationMethod) {
+      if (!revaluationMethod) return null;
+      const match = String(revaluationMethod).match(/(\d+(?:\.\d+)?)/);
+      return match ? Number(match[1]) : null;
+    },
+
     handleSubmit() {
       // Basic validation
       if (!this.formData.employer_name) {
@@ -330,7 +431,11 @@ export default {
         return;
       }
 
-      if (!this.formData.scheme_status) {
+      // W-0032 gave scheme status a column, so an edit now restores it and the
+      // requirement can apply to both paths. Records saved before the column
+      // existed have nothing to restore, so an edit of one is still allowed
+      // through — blocking it would trap the user on a pension they already have.
+      if (!this.formData.scheme_status && !(this.isEdit && !this.pension?.scheme_status)) {
         alert('Please select a scheme status');
         return;
       }
@@ -345,20 +450,19 @@ export default {
         return;
       }
 
-      // Map form fields to API field names
-      const apiData = {
-        scheme_name: this.formData.employer_name,
-        scheme_type: this.formData.scheme_type,
-        accrued_annual_pension: this.formData.annual_income,
-        pensionable_service_years: this.formData.service_years,
-        pensionable_salary: this.formData.final_salary,
-        revaluation_method: this.formData.revaluation_rate ? `${this.formData.revaluation_rate}%` : null,
-        lump_sum_entitlement: this.formData.pcls_available,
-        // Map accrual_rate if needed by backend
-        // inflation_protection can be added if form has it
-      };
-
-      this.$emit('save', apiData);
+      this.$emit('save', buildDbPensionPayload({
+        schemeName: this.formData.employer_name,
+        schemeType: this.formData.scheme_type,
+        schemeStatus: this.formData.scheme_status,
+        annualIncome: this.formData.annual_income,
+        serviceYears: this.formData.service_years,
+        pensionableSalary: this.formData.final_salary,
+        normalRetirementAge: this.formData.normal_retirement_age,
+        spousePensionPercent: this.formData.spouse_pension_percent,
+        inflationProtection: this.formData.inflation_protection,
+        revaluationRate: this.formData.revaluation_rate,
+        lumpSum: this.formData.pcls_available,
+      }));
     },
   },
 };

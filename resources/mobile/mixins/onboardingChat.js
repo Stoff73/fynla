@@ -16,17 +16,22 @@
 // dashboard, so the level-up frame is safe to handle from either surface.
 import { apiGet, apiPost, apiStream } from '../api.js';
 import { store } from '../store.js';
+import { handleAuthExpiry as sharedHandleAuthExpiry } from '../authExpiry.js';
+import { renderFynText } from '../utils/fynText.js';
+import {
+  loadMobileSubscriptionStatus,
+  shouldShowMobileUpgrade,
+} from './upgrade.js';
 
 // The routes the onboarding chat may navigate the /m surface to: the per-section
 // verify destinations (campaign_verify_navigate → the section's screen) plus the
 // terminal turn (campaign → /tax-strategy). Anything outside this set is a
 // desktop-only route with no /m screen and is ignored (the chat thread still
 // carries the result). Keep in step with OnboardingStateMachine::campaignVerifyConfig().
-export const ONBOARDING_NAV_ROUTES = [
-  '/tax-strategy', '/income', '/expenditure', '/savings', '/investment', '/retirement',
-];
-
 export default {
+  created() {
+    loadMobileSubscriptionStatus();
+  },
   data() {
     return {
       conversationId: null,
@@ -35,13 +40,28 @@ export default {
       draft: '',
       sending: false,
       fynStarted: false,
+      transcriptLoadError: '',
+      transcriptFallbackDestination: null,
     };
   },
   computed: {
     // Onboarding is "active" only when explicitly not completed (null/undefined
     // — e.g. the user is not loaded yet — must NOT trigger the onboarding chat).
+    // A completed user mid campaign re-entry (users.active_campaign set by the
+    // pensioncheck re-entry stamp) counts as active too, so the verify pills
+    // and dock-resume work during the re-entry walk (Rule 19 parity).
     onboardingActive() {
-      return store.user?.onboarding_completed === false;
+      return (store.user?.onboarding_completed === false || Boolean(store.user?.active_campaign))
+        && store.user?.onboarding_fyn_step !== null;
+    },
+    // A newly registered user has no step until the first /onboarding/start
+    // request assigns one. That is distinct from "Something else", which also
+    // nulls the step but is deliberately parked and exposed as paused by the
+    // user resource. Only the fresh state should auto-start on the dashboard.
+    onboardingNeedsStart() {
+      return store.user?.onboarding_completed === false
+        && store.user?.onboarding_fyn_step === null
+        && store.user?.onboarding_fyn_paused !== true;
     },
   },
   methods: {
@@ -49,24 +69,99 @@ export default {
     // it with the real wheel animation. The full fireworks takeover is driven
     // separately by the shared GamificationCelebration via store.pendingCelebration.
     pulseWheel() {},
+    // Render a Fyn bubble's text: escape HTML, then turn **bold** into <strong>
+    // (the SaveTax onboarding bolds the question line). Used via v-html in the
+    // dock + dashboard bubble templates.
+    fynHtml(text) {
+      return renderFynText(text);
+    },
 
     scrollFyn() {
       const b = this.$refs.fynBody;
       if (b) b.scrollTop = b.scrollHeight;
     },
 
+    // Thin wrapper over the shared ../authExpiry.js helper — kept as a mixin
+    // method so every existing chat-path caller (and this file's own tests)
+    // keeps calling `this.handleAuthExpiry(res)` unchanged. See authExpiry.js
+    // for the full rationale. Returns true when it handled the response (a
+    // 401), so callers can bail out immediately without also rendering an
+    // error bubble.
+    handleAuthExpiry(res) {
+      return sharedHandleAuthExpiry(res, this.$router);
+    },
+
     async ensureConversation() {
       if (this.conversationId) return this.conversationId;
       const res = await apiPost('/api/ai-chat/conversations', {}, store.token);
+      if (this.handleAuthExpiry(res)) return null;
       this.conversationId = res.data?.data?.id ?? res.data?.id ?? res.data?.conversation?.id ?? null;
       return this.conversationId;
+    },
+
+    resetConversationState() {
+      this.conversationId = null;
+      this.resumeId = null;
+      this.messages = [];
+      this.draft = '';
+      this.sending = false;
+      this.fynStarted = false;
+      this.transcriptLoadError = '';
+      this.transcriptFallbackDestination = null;
+    },
+
+    async createContextualConversation(request) {
+      this.resetConversationState();
+      const res = await apiPost('/api/ai-chat/contextual-conversations', request, store.token);
+      if (this.handleAuthExpiry(res) || !res?.ok) return null;
+
+      const conversationId = res.data?.data?.conversation?.id
+        ?? res.data?.conversation?.id
+        ?? null;
+      if (!conversationId) return null;
+
+      this.conversationId = conversationId;
+      this.fynStarted = true;
+      const opening = res.data?.data?.opening_message
+        ?? res.data?.opening_message
+        ?? null;
+      if (opening?.content) {
+        this.messages = [{
+          role: opening.role === 'user' ? 'user' : 'fyn',
+          text: opening.content,
+          bubbles: [],
+          actionBubbles: false,
+        }];
+      }
+
+      const loaded = await this.loadTranscript(conversationId);
+      if (!loaded && !this.messages.length) return null;
+
+      return conversationId;
+    },
+
+    async openConversation(conversationId) {
+      this.resetConversationState();
+      this.conversationId = conversationId;
+      this.fynStarted = true;
+      const loaded = await this.loadTranscript(conversationId);
+
+      return loaded ? conversationId : null;
+    },
+
+    async retryTranscript() {
+      if (!this.conversationId) return false;
+      return this.loadTranscript(this.conversationId);
     },
 
     // First turn of the onboarding chat (dashboard entry). Onboarding-incomplete
     // users (incl. funnel arrivals) start the onboarding conversation; a returning
     // mid-flow user gets the welcome-back resume (summary + Continue / Something
     // else), not the full transcript.
-    async startOnboarding() {
+    // `from` is the campaign token carried on the landing URL (?from=pensioncheck);
+    // when truthy it is forwarded to the start endpoint so the controller can
+    // apply re-entry logic for campaigns that support it.
+    async startOnboarding(from = null) {
       if (this.sending) return;
       this.sending = true;
       this.resumeId = null;
@@ -74,20 +169,32 @@ export default {
       this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
       try {
-        await apiStream(
+        const result = await apiStream(
           '/api/ai-chat/onboarding/start',
-          {},
+          from ? { from } : {},
           store.token,
-          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
+          (piece) => this.appendFynText(cursor, piece),
           (ev) => this.handleFynEvent(cursor, ev),
         );
+        if (this.handleAuthExpiry(result)) return;
         if (this.resumeId) {
-          await this.streamFynAction(this.resumeId, 'resume', cursor);
-        } else if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+          if (await this.streamFynAction(this.resumeId, 'resume', cursor)) return;
+        }
+        this.finalizeCaptureReply(cursor);
+        if (!this.resumeId && !cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = `Hi ${this.firstName}. Let's get your plan started — what would you like to look at?`;
         }
+        // Campaign re-entry just started for a completed user: the server has
+        // stamped users.active_campaign, but store.user was fetched at login
+        // and is stale — mirror the stamp so onboardingActive flips and the
+        // verify pills / dock-resume render mid re-entry. The 409-fallback
+        // case is excluded (it produced no content and no bubbles above).
+        if (from && store.user && store.user.onboarding_completed === true
+            && (cursor.got || (cursor.reply.bubbles && cursor.reply.bubbles.length))) {
+          store.user.active_campaign = from;
+        }
         if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
-      } catch (e) {
+      } catch {
         cursor.reply.text = 'Sorry, I had trouble starting just now. Please try again.';
       } finally {
         this.sending = false;
@@ -110,19 +217,20 @@ export default {
         // /onboarding/start emits a `resume` event carrying the existing
         // conversation id (captured by handleFynEvent → this.conversationId).
         const probe = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
-        await apiStream(
+        const result = await apiStream(
           '/api/ai-chat/onboarding/start',
           {},
           store.token,
           () => {},
           (ev) => this.handleFynEvent(probe, ev),
         );
+        if (this.handleAuthExpiry(result)) return;
         if (this.conversationId) {
           await this.loadTranscript(this.conversationId);
         } else if (!this.messages.length) {
           this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
         }
-      } catch (e) {
+      } catch {
         if (!this.messages.length) {
           this.messages.push({ role: 'fyn', text: 'Sorry, I had trouble loading that just now. Please try again.' });
         }
@@ -137,40 +245,80 @@ export default {
     // metadata; only the latest turn keeps them tappable (earlier turns are
     // already answered).
     async loadTranscript(conversationId) {
+      await loadMobileSubscriptionStatus();
       const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
+      if (this.handleAuthExpiry(res)) return false;
+      if (!res?.ok) {
+        this.transcriptFallbackDestination = res?.status === 410
+          && res.data?.error === 'contextual_resource_unavailable'
+          ? res.data?.data?.fallback_destination ?? null
+          : null;
+        this.transcriptLoadError = this.transcriptFallbackDestination
+          ? 'This related item is no longer available.'
+          : 'Fyn created the conversation, but could not load the full conversation. Please try again.';
+        return false;
+      }
       const msgs = (res && res.ok && (res.data?.data?.messages || res.data?.messages)) || [];
-      if (!msgs.length) return;
-      const mapped = msgs.map((m) => ({
-        role: m.role === 'user' ? 'user' : 'fyn',
-        text: m.content || '',
-        bubbles: (m.metadata && Array.isArray(m.metadata.bubbles)) ? m.metadata.bubbles.slice() : [],
-      }));
+      if (!msgs.length) {
+        if (this.messages.length) {
+          this.transcriptLoadError = '';
+          this.transcriptFallbackDestination = null;
+          return true;
+        }
+        this.transcriptLoadError = 'Fyn could not load that conversation. Please try again.';
+        return false;
+      }
+      const mapped = msgs.map((m) => {
+        const metadata = m.metadata || {};
+        const bubbles = Array.isArray(metadata.bubbles) ? metadata.bubbles.slice() : [];
+        const actions = Array.isArray(metadata.actions) ? metadata.actions : [];
+        if (shouldShowMobileUpgrade(store.subscriptionStatus)
+            && actions.some((action) => action?.action === 'subscription_options')) {
+          bubbles.push({ id: 'subscription_options', label: 'Compare plans' });
+        }
+        if (metadata.skip_link?.label && !bubbles.some((bubble) => bubble.id === 'skip')) {
+          bubbles.push({ id: 'skip', label: metadata.skip_link.label });
+        }
+
+        return {
+          role: m.role === 'user' ? 'user' : 'fyn',
+          text: m.content || '',
+          bubbles,
+          actionBubbles: Boolean(metadata.action_bubbles),
+        };
+      });
       mapped.forEach((m, i) => { if (i < mapped.length - 1) m.bubbles = []; });
       this.messages = mapped;
+      this.transcriptLoadError = '';
+      this.transcriptFallbackDestination = null;
       this.$nextTick(this.scrollFyn);
+      return true;
     },
 
     // Stream a director action (resume / continue / something_else) into the
     // given cursor's reply, rendering the turn it produces — e.g. the welcome-
     // back summary + Continue / Something else bubbles on resume, or the saved
-    // step's turn on continue.
+    // step's turn on continue. Returns true when the request 401'd and was
+    // handled (logout + redirect), so callers can skip further processing.
     async streamFynAction(conversationId, action, cursor) {
       cursor.got = false;
       cursor.reply.text = '';
       cursor.reply.bubbles = [];
       try {
-        await apiStream(
+        const result = await apiStream(
           `/api/ai-chat/conversations/${conversationId}/action`,
           { action },
           store.token,
-          (piece) => { if (piece) cursor.got = true; cursor.reply.text += piece; this.$nextTick(this.scrollFyn); },
+          (piece) => this.appendFynText(cursor, piece),
           (ev) => this.handleFynEvent(cursor, ev),
         );
-      } catch (e) {
+        if (this.handleAuthExpiry(result)) return true;
+      } catch {
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble loading that just now. Please try again.';
         }
       }
+      return false;
     },
 
     // Run a resume action bubble (Continue / Something else): stream the turn it
@@ -182,8 +330,10 @@ export default {
       this.messages.push(cursor.reply);
       this.$nextTick(this.scrollFyn);
       try {
-        await this.streamFynAction(this.conversationId, action, cursor);
-        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation);
+        if (await this.streamFynAction(this.conversationId, action, cursor)) return;
+        this.finalizeCaptureReply(cursor);
+        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
+        if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
@@ -216,6 +366,17 @@ export default {
         // Mid-campaign verify navigate or the terminal turn. Captured here; the
         // caller decides how the surface presents it after the stream.
         cursor.navigation = ev.route_path;
+        // The server has advanced to Gate 2, but the mobile user snapshot was
+        // fetched before the campaign started. Keep its step in sync so the
+        // destination screen's MobileChrome resumes this conversation instead
+        // of opening a new advice chat from the stale null step.
+        if (store.user && ev.section && ev.route_path !== '/tax-strategy') {
+          store.user.onboarding_fyn_step = 'campaign_verify_navigate';
+        }
+        // Section being verified (income/spouse/…) — the destination screen uses
+        // it to label itself (e.g. the income page shows "Your income" vs "Your
+        // spouse's income"). Carried as a route query on push.
+        cursor.navSection = ev.section || null;
         // A verify-navigate turn carries the Gate-2 confirm ("is this
         // correct?") AND a route to the section's screen. The confirm belongs
         // on THAT screen, once the user can see it — not in this dock, before
@@ -234,6 +395,20 @@ export default {
         }
         return;
       }
+      if (ev.type === 'onboarding_complete') {
+        // The campaign terminal has flipped users.onboarding_completed
+        // server-side. Mirror it locally so the on-page verify pills
+        // (Continue / Edit) and the onboarding-resume branches stop
+        // rendering — without this a stale store.user keeps a "Continue"
+        // pill on the tax-strategy screen after the terminal. The terminal
+        // also clears active_campaign server-side — mirror that too, or a
+        // re-entrant's pills would keep rendering until the next user fetch.
+        if (store.user) {
+          store.user.onboarding_completed = true;
+          store.user.active_campaign = null;
+        }
+        return;
+      }
       if (ev.type === 'level_up') {
         // A write this turn crossed a level threshold. The frame arrives AFTER
         // `done`, so the reply is already on screen. Stash it; the caller fires
@@ -243,6 +418,106 @@ export default {
           level_name: ev.level_name,
           next_actions: ev.next_actions || [],
         };
+        return;
+      }
+      if (ev.type === 'token_limit') {
+        cursor.got = true;
+        cursor.reply.text = ev.message || "You've reached your daily Fyn usage limit.";
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'consent_required') {
+        cursor.got = true;
+        cursor.reply.text = 'Artificial intelligence chat consent has been withdrawn. Contact Fynla support to restore your artificial intelligence features.';
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'handoff_error') {
+        cursor.got = true;
+        cursor.reply.text = ev.message || "I couldn't pick up that request — could you try again?";
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'error') {
+        cursor.got = true;
+        cursor.reply.text = ev.message || 'Fyn could not complete that request. Please try again.';
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'entity_created' || ev.type === 'entity_updated' || ev.type === 'entity_deleted') {
+        cursor.got = true;
+        cursor.createdEntityNames = cursor.createdEntityNames || [];
+        if (ev.name && ev.type === 'entity_created') cursor.createdEntityNames.push(ev.name);
+        // Never clobber a bubble that already carries prose (a clarifying
+        // question streamed before this create) — split the confirmation
+        // into its own bubble, same dance as capture_complete below.
+        let confirmation = cursor.captureReply;
+        if (!confirmation) {
+          if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+            confirmation = { role: 'fyn', text: '', bubbles: [] };
+            this.messages.push(confirmation);
+          } else {
+            confirmation = cursor.reply;
+          }
+        }
+        confirmation.capturePending = true;
+        if (ev.type === 'entity_deleted') {
+          confirmation.text = ev.name ? `Deleted ${ev.name}.` : 'That record was deleted.';
+        } else if (ev.type === 'entity_updated') {
+          confirmation.text = ev.name ? `Updated ${ev.name}.` : 'Your information was updated.';
+        } else {
+          confirmation.text = cursor.createdEntityNames.length > 1
+            ? `Saved ${cursor.createdEntityNames.length} records.`
+            : (ev.name ? `Saved ${ev.name}.` : 'Your information was saved.');
+        }
+        // The link to the page the record lives on. `mobile_route` is resolved
+        // server-side (GateRoutes) and is null for a page /m does not have, in
+        // which case the confirmation stands on its own rather than sending the
+        // user somewhere that does not exist.
+        if (ev.mobile_route && ev.type !== 'entity_deleted') {
+          confirmation.bubbles = [{
+            id: 'view_record',
+            label: ev.label ? `View ${ev.label}` : 'View record',
+            route: ev.mobile_route,
+          }];
+        }
+        cursor.captureReply = confirmation;
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'capture_complete') {
+        cursor.got = true;
+        let confirmation = cursor.captureReply;
+        if (!confirmation) {
+          if (cursor.reply.text || (cursor.reply.bubbles && cursor.reply.bubbles.length)) {
+            confirmation = { role: 'fyn', text: '', bubbles: [] };
+            this.messages.push(confirmation);
+          } else {
+            confirmation = cursor.reply;
+          }
+        } else if (!this.messages.includes(confirmation)) {
+          this.messages.push(confirmation);
+        }
+        confirmation.text = ev.summary || 'Your information was saved.';
+        confirmation.capturePending = false;
+        confirmation.captureFinalized = true;
+        cursor.captureReply = confirmation;
+        cursor.reply = confirmation;
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'skip_link' && ev.skip_link?.label) {
+        cursor.got = true;
+        cursor.reply.bubbles = [{ id: 'skip', label: ev.skip_link.label }];
+        cursor.reply.actionBubbles = true;
+        this.$nextTick(this.scrollFyn);
+        return;
+      }
+      if (ev.type === 'action' && ev.action === 'subscription_options') {
+        if (store.subscriptionStatus && !shouldShowMobileUpgrade(store.subscriptionStatus)) return;
+        cursor.got = true;
+        cursor.reply.bubbles = [{ id: 'subscription_options', label: 'Compare plans' }];
+        this.$nextTick(this.scrollFyn);
         return;
       }
       if (ev.type === 'quick_replies') {
@@ -255,7 +530,10 @@ export default {
         }
         cursor.got = true;
         if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
-        cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles : [];
+        cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles.slice() : [];
+        if (ev.skip_link?.label && !cursor.reply.bubbles.some((bubble) => bubble.id === 'skip')) {
+          cursor.reply.bubbles.push({ id: 'skip', label: ev.skip_link.label });
+        }
         // Resume re-engagement bubbles (Continue / Something else) are director
         // actions, not onboarding answers — flag them so chooseBubble routes
         // them to the action endpoint instead of sending the label as a message.
@@ -266,10 +544,23 @@ export default {
 
     chooseBubble(bubble, message) {
       if (this.sending || !bubble) return;
+      if (bubble.id === 'subscription_options') {
+        if (store.subscriptionStatus && !shouldShowMobileUpgrade(store.subscriptionStatus)) return;
+        if (message && message.bubbles) message.bubbles = [];
+        this.$router.push('/subscription');
+        return;
+      }
+      // Navigation bubble (e.g. the terminal "Take me to my tax strategy") —
+      // go straight to the route; never send the label as a message.
+      if (bubble.route) {
+        if (message && message.bubbles) message.bubbles = [];
+        this.handleOnboardingNavigation(bubble.route);
+        return;
+      }
       // Resume re-engagement bubbles (Continue / Something else) are director
       // actions — route to the action endpoint and consume the bubbles so they
       // can't be re-tapped. Regular onboarding bubbles send their label.
-      if (message && message.actionBubbles) {
+      if (message && (message.actionBubbles || bubble.id === 'skip')) {
         message.bubbles = [];
         this.runFynAction(bubble.id);
         return;
@@ -291,20 +582,29 @@ export default {
       try {
         const cid = await this.ensureConversation();
         if (!cid) {
+          // ensureConversation already logged out + redirected on a 401 (which
+          // nulls store.token) — don't also render a failure bubble behind it.
+          if (!store.token) return;
           cursor.reply.text = 'Sorry, I could not start a conversation just now.';
           return;
         }
-        await apiStream(
+        const result = await apiStream(
           `/api/ai-chat/conversations/${cid}/messages`,
           { message: text, current_route: (this.$route && this.$route.path) || '/dashboard' },
           store.token,
           (piece) => {
-            if (piece) cursor.got = true;
-            cursor.reply.text += piece;
-            this.$nextTick(this.scrollFyn);
+            this.appendFynText(cursor, piece);
           },
           (ev) => this.handleFynEvent(cursor, ev),
         );
+        if (this.handleAuthExpiry(result)) return;
+        // 202 = queued behind an in-flight turn (cross-surface double-send or
+        // a lock still held). Stream the queued reply once the lock frees
+        // instead of showing a false failure while the message sits queued.
+        if (result && result.queued) {
+          if (await this.streamQueuedReply(cid, result.data && result.data.message_id, cursor)) return;
+        }
+        this.finalizeCaptureReply(cursor);
         if (!cursor.got && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
           cursor.reply.text = 'Sorry, I had trouble responding just now.';
         } else if (!cursor.reply.text && !(cursor.reply.bubbles && cursor.reply.bubbles.length)) {
@@ -313,16 +613,73 @@ export default {
           const idx = this.messages.indexOf(cursor.reply);
           if (idx !== -1) this.messages.splice(idx, 1);
         }
-        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation);
+        if (cursor.navigation) this.handleOnboardingNavigation(cursor.navigation, cursor.navSection);
         // Celebrate AFTER the reply has rendered (the level_up frame arrives
         // after `done`), so the fireworks never interrupt Fyn mid-reply.
         if (cursor.levelUp) { store.queueCelebration(cursor.levelUp); this.pulseWheel(); }
-      } catch (e) {
+      } catch {
         cursor.reply.text = 'Sorry, something went wrong. Please try again.';
       } finally {
         this.sending = false;
         this.$nextTick(this.scrollFyn);
       }
+    },
+
+    // Stream a queued message's reply (202 path). The stream endpoint 409s
+    // while the prior turn still holds the conversation lock, so retry on a
+    // short backoff; give up honestly rather than pretending it failed. Returns
+    // true when a 401 was hit and handled (logout + redirect), so send() can
+    // skip the rest of its post-processing.
+    async streamQueuedReply(cid, messageId, cursor) {
+      if (!messageId) {
+        cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
+        cursor.got = true;
+        return false;
+      }
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const res = await apiStream(
+          `/api/ai-chat/conversations/${cid}/messages/${messageId}/stream`,
+          {},
+          store.token,
+          (piece) => {
+            this.appendFynText(cursor, piece);
+          },
+          (ev) => this.handleFynEvent(cursor, ev),
+        );
+        if (this.handleAuthExpiry(res)) return true;
+        if (!res || res.status !== 409) return false; // streamed (or a real error — send() falls back)
+        await new Promise((resolve) => { setTimeout(resolve, 1500); });
+      }
+      cursor.reply.text = 'Fyn is still answering your previous message — give it a moment and try again.';
+      cursor.got = true;
+      return false;
+    },
+
+    appendFynText(cursor, piece) {
+      if (!piece) return;
+
+      if (cursor.reply.capturePending || cursor.reply.captureFinalized) {
+        if (cursor.reply.capturePending) {
+          const index = this.messages.indexOf(cursor.reply);
+          if (index !== -1) this.messages.splice(index, 1);
+        }
+        cursor.reply = { role: 'fyn', text: '', bubbles: [] };
+        this.messages.push(cursor.reply);
+      }
+
+      cursor.got = true;
+      cursor.reply.text += piece;
+      this.$nextTick(this.scrollFyn);
+    },
+
+    finalizeCaptureReply(cursor) {
+      const confirmation = cursor.captureReply;
+      if (!confirmation?.capturePending) return;
+
+      confirmation.capturePending = false;
+      confirmation.captureFinalized = true;
+      if (!this.messages.includes(confirmation)) this.messages.push(confirmation);
+      cursor.reply = confirmation;
     },
 
     // Onboarding-driven navigation on the /m surface: the campaign verify flow
@@ -331,9 +688,36 @@ export default {
     // in front, then route. When the chat re-emits a navigation for the screen
     // we're ALREADY on (the dock re-showing the Gate-2 turn), keep the chat open
     // so the bubbles stay visible. Unknown desktop-only routes are ignored.
-    handleOnboardingNavigation(routePath) {
-      if (!ONBOARDING_NAV_ROUTES.includes(routePath)) return;
-      if (this.$route && this.$route.path === routePath) return;
+    routeExistsOnMobile(routePath) {
+      try {
+        return this.$router.resolve(routePath).matched.length > 0;
+      } catch {
+        return false;
+      }
+    },
+
+    handleOnboardingNavigation(routePath, section = null) {
+      // "Does /m have this screen?" is a question the /m router already answers.
+      // A hardcoded list here used to answer it instead, and drifted: it never
+      // gained /personal-information, so every View link the server resolved to
+      // Personal or Family Details was swallowed silently — the bubble rendered,
+      // the tap did nothing. The router cannot drift from itself (Rule 20).
+      if (!this.routeExistsOnMobile(routePath)) return;
+      if (this.$route && this.$route.path === routePath) {
+        // Re-verify on the screen the user is ALREADY on (a verify-edit just
+        // applied here): close the chat so they actually see the updated page
+        // — the Gate-2 confirm waits as the on-page Continue/Edit pills and
+        // in the transcript on reopen. Bump the refresh tick so the screen
+        // refetches the just-edited figures (no remount without a route
+        // change, so the mounted-time data is stale).
+        this.closeFyn();
+        store.bumpScreenRefresh();
+        return;
+      }
+      // Carry the verified section as a query so the destination screen can
+      // label itself (e.g. /income → "Your income" vs "Your spouse's income").
+      // route_path stays clean for the matching above; the query rides on push.
+      const target = section ? `${routePath}?section=${encodeURIComponent(section)}` : routePath;
       this.closeFyn();
       // Let the dock's slide-down animation play out before swapping the route.
       // closeFyn starts a 300ms transform transition (.md-fyn in dashboard.css);
@@ -341,7 +725,7 @@ export default {
       // the close is cut off and the hand-off looks abrupt. Match the CSS
       // duration so the dock minimises smoothly, THEN navigate.
       window.setTimeout(() => {
-        if (this.$route.path !== routePath) this.$router.push(routePath);
+        if (this.$route.path !== routePath) this.$router.push(target);
       }, 300);
     },
   },

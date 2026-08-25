@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "id": "102",
+      "kind": "action",
+      "label": "Completed: Review your pension contribution",
+      "occurred_at": "2026-07-18T10:00:00Z"
+    },
+    {
+      "id": "101",
+      "kind": "data",
+      "label": "Added your first pension",
+      "occurred_at": "2026-07-17T10:00:00Z"
+    }
+  ],
+  "next_cursor": 101
+}

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Stores\Normalisers;
 
+use App\Support\SharedOwnership;
+
 class PropertyNormaliser
 {
     private const ALLOWED_PROPERTY_TYPES = ['main_residence', 'secondary_residence', 'buy_to_let'];
@@ -52,10 +54,10 @@ class PropertyNormaliser
             $data['tenure_type'] = $this->canonicalTenureType($data['tenure_type']);
         }
 
-        // ownership_percentage defaults to 100 for individual / trust; required for joint*.
-        if (in_array($data['ownership_type'], ['individual', 'trust'], true)) {
-            $data['ownership_percentage'] = $data['ownership_percentage'] ?? 100.00;
-        }
+        // ownership_percentage — one rule, one home (App\Support\SharedOwnership).
+        // This is where the joint 50/50 default now lives; PropertyController used
+        // to carry its own copy of it.
+        $data = SharedOwnership::applyTo($data);
 
         return $data;
     }
@@ -156,12 +158,14 @@ class PropertyNormaliser
             $canonical['joint_ownership_type'] = $canonical['joint_ownership_type'] ?? 'joint_tenancy';
         }
 
-        // ownership_percentage
-        if (isset($toolParams['ownership_percentage']) && is_numeric($toolParams['ownership_percentage'])) {
-            $canonical['ownership_percentage'] = (float) $toolParams['ownership_percentage'];
-        } elseif (in_array($canonical['ownership_type'], ['individual', 'trust'], true)) {
-            $canonical['ownership_percentage'] = 100.00;
-        }
+        // ownership_percentage — one rule, one home (App\Support\SharedOwnership),
+        // as in fromForm(). This path carried its own copy, which defaulted only
+        // individual and trust and left a shared asset to whatever the caller
+        // happened to send (W-0040).
+        $canonical['ownership_percentage'] = SharedOwnership::primaryOwnerPercentage(
+            $canonical['ownership_type'],
+            is_numeric($toolParams['ownership_percentage'] ?? null) ? $toolParams['ownership_percentage'] : null,
+        );
 
         // Lease numeric
         if (isset($toolParams['lease_remaining_years']) && is_numeric($toolParams['lease_remaining_years'])) {

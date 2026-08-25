@@ -96,6 +96,7 @@ it('AdviceFyn passes assistant honesty text through unchanged when a write tool 
     // fix, June13 §6c), so FynLoop sets it on the agent. Allow it without
     // weakening the strict chatWithPromptOverride expectation.
     $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $agent->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {

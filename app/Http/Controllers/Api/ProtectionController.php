@@ -34,6 +34,8 @@ use App\Models\SicknessIllnessPolicy;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Protection\ComprehensiveProtectionPlanService;
+use App\Services\Protection\LifeCoverReach;
+use App\Services\Protection\ProtectionGapPresentationService;
 use App\Traits\PolicyCRUDTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,7 +52,9 @@ class ProtectionController extends Controller
         private readonly ProtectionAgent $protectionAgent,
         private readonly ComprehensiveProtectionPlanService $comprehensiveProtectionPlan,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly ProtectionGapPresentationService $gapPresentation,
+        private readonly LifeCoverReach $lifeCoverReach,
     ) {}
 
     /**
@@ -83,7 +87,11 @@ class ProtectionController extends Controller
             'sicknessIllnessPolicies',
         ]);
 
-        $lifePolicies = $user->lifeInsurancePolicies;
+        // The policies covering this user's LIFE, which is not the same set as the
+        // policies they own: a joint-life policy covers both spouses and is recorded
+        // once. Reading the hasMany told the other life assured she had no cover at
+        // all, on the one product bought to cover her (W-0186).
+        $lifePolicies = $this->lifeCoverReach->policiesCovering($user);
         $criticalIllnessPolicies = $user->criticalIllnessPolicies;
         $incomeProtectionPolicies = $user->incomeProtectionPolicies;
         $disabilityPolicies = $user->disabilityPolicies;
@@ -100,6 +108,7 @@ class ProtectionController extends Controller
                     'disability' => DisabilityPolicyResource::collection($disabilityPolicies),
                     'sickness_illness' => SicknessIllnessPolicyResource::collection($sicknessIllnessPolicies),
                 ],
+                'coverage_gaps' => $this->gapPresentation->forUser($user, $profile),
                 'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'protection'), [], report: true),
                 'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'protection'), null, report: true),
             ],

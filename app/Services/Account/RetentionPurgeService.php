@@ -7,6 +7,7 @@ namespace App\Services\Account;
 use App\Models\User;
 use App\Services\AI\Memory\Episodic\EpisodeBlobLocator;
 use App\Services\AI\Memory\FynMemoryStore;
+use App\Services\Expenditure\HouseholdExpenditureWriter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -140,13 +141,13 @@ class RetentionPurgeService
                 'mfa_confirmed_at' => null,
                 'mfa_enabled' => false,
                 'remember_token' => null,
+                'apple_app_account_token' => null,
                 // Relationships
                 'spouse_id' => null,
                 'household_id' => null,
                 // Subscription
                 'plan' => 'free',
                 'tier' => null,
-                'trial_ends_at' => null,
             ]);
         });
 
@@ -170,6 +171,17 @@ class RetentionPurgeService
      */
     private function cleanupReverseReferences(int $userId): void
     {
+        // W-0477 — before the link goes, put the survivor's stored halves back into
+        // household terms. Under the shared mode each row IS the half, and nothing
+        // downstream can tell a half from a whole once there is no partner to hold
+        // the other one: spending reads at half, disposable income at double. This
+        // service writes through the query builder and fires no model events, so
+        // `SurvivingSpouseExpenditureObserver` never sees it — hence the explicit
+        // call. Done first, while `spouse_id` still identifies the household.
+        User::where('spouse_id', $userId)
+            ->get()
+            ->each(fn (User $survivor) => app(HouseholdExpenditureWriter::class)->promoteSharesToHousehold($survivor));
+
         // Other users who have this user as their spouse
         DB::table('users')->where('spouse_id', $userId)->update(['spouse_id' => null]);
 
@@ -343,9 +355,9 @@ class RetentionPurgeService
 
             // ── Subscription / Billing ──
             // NB: data_retention_email_log and renewal_reminder_log are intentionally
-            // excluded — they have only subscription_id (no user_id) and cascade from
-            // the subscriptions delete below.
-            'trial_reminder_log',
+            'apple_notification_recoveries',
+            'apple_transactions',
+            'premium_entitlements',
             'payments',
             'subscriptions',
         ];

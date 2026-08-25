@@ -1,11 +1,12 @@
 <template>
   <div class="fyn-quick-replies">
+    <!-- v-html is safe here: renderFynText escapes the text before converting
+         **bold** markers, and prompt text is server-authored (never user HTML). -->
     <p
       v-if="promptText"
       class="text-sm text-horizon-500 mb-3 leading-snug"
-    >
-      {{ promptText }}
-    </p>
+      v-html="promptHtml"
+    ></p>
     <div
       v-if="hasDescriptions"
       class="flex flex-col gap-2"
@@ -54,6 +55,8 @@
 </template>
 
 <script>
+import { renderFynText } from '../../../mobile/utils/fynText.js';
+
 export default {
   name: 'FynQuickReplies',
 
@@ -78,6 +81,9 @@ export default {
   computed: {
     hasDescriptions() {
       return Array.isArray(this.bubbles) && this.bubbles.some(b => b && b.description);
+    },
+    promptHtml() {
+      return renderFynText(this.promptText);
     },
   },
 

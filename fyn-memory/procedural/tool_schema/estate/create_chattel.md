@@ -10,7 +10,7 @@ effective_from: 2026-06-02
 ```json
 {
     "name": "create_chattel",
-    "description": "Record a personal valuable item (jewellery, art, collectibles, vehicles). Use when the user mentions valuable personal possessions. You MAY call this tool multiple times in the same turn when the user mentions multiple items.",
+    "description": "Record a personal valuable item (jewellery, art, collectibles, vehicles). Use when the user mentions valuable personal possessions. You MAY call this tool multiple times in the same turn when the user mentions multiple items. If the user has only asked to add details without giving any specifics yet, do NOT call this tool — ask for the details first, and never invent names or values.",
     "parameters": {
         "type": "object",
         "properties": {

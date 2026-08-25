@@ -192,12 +192,25 @@ export default {
       return filtered;
     },
 
+    // Totals are the VIEWER's share, not the full balances. Summing
+    // `current_balance` charged this user the whole of every shared debt and the
+    // 60% of a tenants-in-common mortgage belonging to an off-platform co-owner
+    // — £365,000 against a real figure of £293,000 (W-0237). The share is
+    // computed on the server by the one reader and arrives as `user_share`;
+    // `current_balance` is still the right figure to show against an individual
+    // row, because that is what is owed on the debt.
     totalBalance() {
-      return this.filteredLiabilities.reduce((sum, l) => sum + parseFloat(l.current_balance || 0), 0);
+      return this.filteredLiabilities.reduce(
+        (sum, l) => sum + parseFloat(l.user_share ?? l.current_balance ?? 0),
+        0,
+      );
     },
 
     totalMonthlyPayments() {
-      return this.filteredLiabilities.reduce((sum, l) => sum + parseFloat(l.monthly_payment || 0), 0);
+      return this.filteredLiabilities.reduce(
+        (sum, l) => sum + parseFloat(l.user_monthly_payment_share ?? l.monthly_payment ?? 0),
+        0,
+      );
     },
 
     hasMortgageLiabilities() {

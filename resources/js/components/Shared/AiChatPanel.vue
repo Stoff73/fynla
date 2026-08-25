@@ -177,7 +177,7 @@
         <div
           v-for="(msg, idx) in messages"
           :key="msg.id ?? idx"
-          v-show="msg.role !== 'entity_created'"
+          v-show="!isEntityWriteRole(msg.role)"
         >
           <!-- Quick-reply bubbles (Fyn onboarding tool output) -->
           <FynQuickReplies
@@ -230,9 +230,10 @@
               ]"
             >
               <AiMessageContent
-                v-if="msg.role === 'assistant'"
+                v-if="msg.role === 'assistant' || msg.role === 'action'"
                 :message="msg"
                 @navigate="handleNavigation"
+                @subscription-options="handleSubscriptionOptions"
               />
               <span v-else>{{ msg.content }}</span>
             </div>
@@ -432,6 +433,7 @@ import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 import analyticsService from '@/services/analyticsService';
 import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
 import { fynIconUrl } from '@/constants/fynIcon';
+import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
 
 export default {
     name: 'AiChatPanel',
@@ -457,15 +459,15 @@ export default {
             inputMessage: '',
             windowWidth: window.innerWidth,
             dockedInputHeight: 0,
-            _defaultInputHeight: 0,
+            defaultInputHeight: 0,
             suggestionsCollapsed: true,
-            _resizing: false,
-            _resizeStartY: 0,
-            _resizeStartHeight: 0,
+            resizing: false,
+            resizeStartY: 0,
+            resizeStartHeight: 0,
             thinkingStatusIndex: 0,
-            _thinkingTimer: null,
+            thinkingTimer: null,
             countdownSeconds: null,
-            _countdownTimer: null,
+            countdownTimer: null,
             scrollSpacerHeight: 300,
         };
     },
@@ -689,7 +691,7 @@ export default {
                 const inputContainer = this.$refs.inputContainer;
                 if (inputContainer) {
                     const naturalHeight = inputContainer.offsetHeight;
-                    this._defaultInputHeight = naturalHeight;
+                    this.defaultInputHeight = naturalHeight;
                     this.dockedInputHeight = naturalHeight;
                 }
                 this.updateScrollSpacer();
@@ -709,11 +711,11 @@ export default {
         if (this._onResizeEnd) {
             document.removeEventListener('mouseup', this._onResizeEnd);
         }
-        if (this._thinkingTimer) {
-            clearInterval(this._thinkingTimer);
+        if (this.thinkingTimer) {
+            clearInterval(this.thinkingTimer);
         }
-        if (this._countdownTimer) {
-            clearInterval(this._countdownTimer);
+        if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
         }
     },
 
@@ -733,17 +735,17 @@ export default {
         },
 
         secondsUntilReset(newVal) {
-            if (this._countdownTimer) {
-                clearInterval(this._countdownTimer);
-                this._countdownTimer = null;
+            if (this.countdownTimer) {
+                clearInterval(this.countdownTimer);
+                this.countdownTimer = null;
             }
             if (newVal && newVal > 0) {
                 this.countdownSeconds = newVal;
-                this._countdownTimer = setInterval(() => {
+                this.countdownTimer = setInterval(() => {
                     this.countdownSeconds--;
                     if (this.countdownSeconds <= 0) {
-                        clearInterval(this._countdownTimer);
-                        this._countdownTimer = null;
+                        clearInterval(this.countdownTimer);
+                        this.countdownTimer = null;
                         this.$store.commit('aiChat/SET_TOKEN_LIMIT', { reached: false, resetAt: null, secondsUntilReset: null });
                     }
                 }, 1000);
@@ -786,14 +788,14 @@ export default {
                 this.$nextTick(() => this.scrollToLastUserMessage());
                 // Start rotating status messages
                 this.thinkingStatusIndex = 0;
-                this._thinkingTimer = setInterval(() => {
+                this.thinkingTimer = setInterval(() => {
                     this.thinkingStatusIndex++;
                 }, 2500);
             } else {
                 // Stop rotating status messages
-                if (this._thinkingTimer) {
-                    clearInterval(this._thinkingTimer);
-                    this._thinkingTimer = null;
+                if (this.thinkingTimer) {
+                    clearInterval(this.thinkingTimer);
+                    this.thinkingTimer = null;
                 }
             }
         },
@@ -835,6 +837,10 @@ export default {
     },
 
     methods: {
+        focusInput() {
+            this.$nextTick(() => this.$refs.inputField?.focus());
+        },
+
         ...mapActions('aiChat', [
             'close',
             'toggle',
@@ -886,50 +892,39 @@ export default {
             await this.postAction('skip');
         },
 
+        isEntityWriteRole(role) {
+            // entity_created / entity_updated / entity_deleted. These carry the
+            // confirmation data; the visible card is capture_complete.
+            return typeof role === 'string' && role.startsWith('entity_');
+        },
+
         /**
          * Phase 13 — record-card "View" button. Navigates to the relevant
          * module page for the captured record.
          */
         handleRecordView(record) {
-            // Each entity type the create_* handlers emit needs an explicit
-            // entry — falling back to /dashboard makes the View link feel
-            // broken. Aliases keep both the historical short keys
-            // ("life_insurance") AND the canonical long keys the protection
-            // handler emits ("life_insurance_policy") working.
-            const routeMap = {
-                savings_account: '/net-worth/cash',
-                investment_account: '/net-worth/investments',
-                holding: '/net-worth/investments',
-                dc_pension: '/net-worth/retirement',
-                db_pension: '/net-worth/retirement',
-                pension: '/net-worth/retirement',
-                property: '/net-worth/property',
-                mortgage: '/net-worth/property',
-                life_insurance: '/protection',
-                life_insurance_policy: '/protection',
-                critical_illness: '/protection',
-                critical_illness_policy: '/protection',
-                income_protection: '/protection',
-                income_protection_policy: '/protection',
-                protection_policy: '/protection',
-                trust: '/trusts',
-                business_interest: '/net-worth/business',
-                chattel: '/net-worth/chattels',
-                liability: '/net-worth/liabilities',
-                estate_liability: '/net-worth/liabilities',
-                asset: '/net-worth/wealth-summary',
-                estate_asset: '/net-worth/wealth-summary',
-                estate_gift: '/estate',
-                family_member: '/profile?section=family',
-                will: '/estate/will-builder',
-                power_of_attorney: '/estate/power-of-attorney',
-                lasting_power_of_attorney: '/estate/power-of-attorney',
-                goal: '/goals',
-                life_event: '/goals?tab=events',
-                what_if_scenario: '/planning/what-if',
-            };
-            const route = routeMap[record.type] || '/dashboard';
-            this.$router.push(route);
+            // The server resolves the page (GateRoutes::forEntityType) and sends
+            // it on the record row, so every surface links to the same place.
+            // This component kept its own copy of that table until 2026-08-17 —
+            // a fourth one, and the reason routes drifted per surface (Rule 20,
+            // SPEC-crud-handler-contract §5.4).
+            //
+            // The historical short keys it also carried ("life_insurance",
+            // "asset", "pension") are gone: the write handlers emit the canonical
+            // long keys, which is what the server maps.
+            //
+            // Refresh the cached user first. Profile-backed pages (expenditure,
+            // personal, income) render from auth/currentUser, which was loaded at
+            // sign-in — so a field Fyn had just written showed as its old value on
+            // the very page the user was sent to confirm it. Module pages fetch
+            // their own records on mount and were never affected; /m refetches the
+            // profile per page, so this is the desktop store only. Navigation must
+            // not depend on it succeeding.
+            this.$store.dispatch('auth/fetchUser')
+                .catch(() => {})
+                .finally(() => {
+                    this.$router.push(record.route || '/dashboard');
+                });
         },
 
         formatEntityType(type) {
@@ -987,19 +982,19 @@ export default {
         },
 
         startInputResize(e) {
-            this._resizing = true;
-            this._resizeStartY = e.clientY;
-            this._resizeStartHeight = this.dockedInputHeight;
+            this.resizing = true;
+            this.resizeStartY = e.clientY;
+            this.resizeStartHeight = this.dockedInputHeight;
             document.body.style.cursor = 'row-resize';
             document.body.style.userSelect = 'none';
             this._onResizeMove = (ev) => {
-                if (!this._resizing) return;
-                const delta = this._resizeStartY - ev.clientY;
-                const newHeight = Math.max(this._defaultInputHeight, Math.min(400, this._resizeStartHeight + delta));
+                if (!this.resizing) return;
+                const delta = this.resizeStartY - ev.clientY;
+                const newHeight = Math.max(this.defaultInputHeight, Math.min(400, this.resizeStartHeight + delta));
                 this.dockedInputHeight = newHeight;
             };
             this._onResizeEnd = () => {
-                this._resizing = false;
+                this.resizing = false;
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
                 document.removeEventListener('mousemove', this._onResizeMove);
@@ -1198,6 +1193,12 @@ export default {
         //     onboarding bubbles are never navigation intents.
         async handleQuickReplySelect(bubble, msg) {
             if (this.streaming || this.loading) return;
+            // Navigation bubble (e.g. the terminal "Take me to my tax strategy")
+            // — route straight there; never send the label as a message.
+            if (bubble && bubble.route) {
+                this.handleNavigation(bubble.route);
+                return;
+            }
             const isActionBubble = Boolean(msg?.metadata?.action_bubbles);
             const id = (bubble && bubble.id) ? String(bubble.id).trim() : '';
             const label = (bubble && bubble.label) ? bubble.label.trim() : '';
@@ -1226,6 +1227,10 @@ export default {
             } else {
                 this.$router.push(routePath);
             }
+        },
+
+        handleSubscriptionOptions() {
+            this.$router.push(subscriptionOptionsLocation());
         },
 
         scrollToBottom() {
@@ -1292,7 +1297,7 @@ export default {
             if (msg.role === 'user') {
                 return 'bg-raspberry-500 text-white';
             }
-            if (msg.role === 'navigation' || msg.role === 'entity_created') {
+            if (msg.role === 'navigation' || this.isEntityWriteRole(msg.role) || msg.role === 'action') {
                 return 'bg-transparent p-0';
             }
             // Pinned by tests/Feature/Fyn/CaptureCompleteStylingTest.php —

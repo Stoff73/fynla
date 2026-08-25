@@ -26,8 +26,17 @@
           :class="{ 'is-active': tab === 'milestones' }"
           role="tab"
           :aria-selected="tab === 'milestones' ? 'true' : 'false'"
+          data-progress-tab="milestones"
           @click="tab = 'milestones'"
         >Milestones</button>
+        <button
+          type="button"
+          class="ma-tab"
+          :class="{ 'is-active': tab === 'history' }"
+          role="tab"
+          :aria-selected="tab === 'history' ? 'true' : 'false'"
+          @click="tab = 'history'"
+        >History</button>
       </div>
     </div>
 
@@ -37,32 +46,27 @@
     </div>
 
     <template v-else>
-      <!-- Achievements tab -->
+      <!-- Achievements tab. WP-4: the old "Next" section (the dashboard's
+           top-4 actions repeated) is gone — actions live on the dashboard;
+           this page is what the user has DONE and earned. -->
       <template v-if="tab === 'achievements'">
-        <!-- Next — the up-to-four next actions to take. Tapping any one opens Fyn
-             to collect the information that action needs. -->
-        <div class="m-card">
-          <p class="m-section-label" style="margin-top:0">Next</p>
-          <p v-if="!next.length" class="m-sub" style="margin-bottom:0">
-            You're all caught up — nothing to action right now.
-          </p>
-          <div v-else>
-            <button
-              v-for="item in next"
-              :key="item.id"
-              type="button"
-              class="ma-next"
-              :class="{ 'is-unlock': item.type === 'unlock' }"
-              @click="openNext(item)"
-            >
-              <span class="ma-next__lead" aria-hidden="true" v-html="item.type === 'unlock' ? KEY_ICON : BULB_ICON"></span>
-              <div class="ma-next__main">
-                <span class="ma-next__title">{{ item.title }}</span>
-                <span v-if="item.meta" class="ma-next__meta">{{ item.meta }}</span>
-              </div>
-              <svg class="ma-next__chevron" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-            </button>
+        <!-- Done — completed actions (WP-2: completed work was saved in
+             recommendation_tracking but shown nowhere). Newest first. -->
+        <div v-if="completed.length" class="m-card">
+          <p class="m-section-label" style="margin-top:0">Done</p>
+          <div class="ma-badges">
+            <div v-for="item in completed" :key="item.id" class="ma-badge is-earned">
+              <span class="ma-badge__title">{{ item.title }}</span>
+              <span class="ma-badge__status">{{ completedLabel(item) }}</span>
+            </div>
           </div>
+          <!-- WP-5c-ii — done work is never truncated; load the rest on demand. -->
+          <button
+            v-if="completed.length < completedTotal"
+            class="m-btn ma-more"
+            :disabled="loadingMoreCompleted"
+            @click="loadMoreCompleted"
+          >{{ loadingMoreCompleted ? 'Loading…' : 'Show more' }}</button>
         </div>
 
         <!-- Earned — badges; earned ones prominent, unearned muted. -->
@@ -76,20 +80,62 @@
               v-for="badge in achievements"
               :key="badge.key"
               class="ma-badge"
-              :class="{ 'is-earned': badge.earned }"
+              :class="{ 'is-earned': badge.state === 'earned' }"
+              data-achievement-item
             >
+              <span class="ma-badge__emblem" aria-hidden="true">Badge</span>
               <span class="ma-badge__title">{{ badge.title }}</span>
               <span class="ma-badge__desc">{{ badge.description }}</span>
-              <span class="ma-badge__status">{{ badge.earned ? earnedLabel(badge) : 'Not yet earned' }}</span>
+              <span class="ma-badge__status">{{ achievementStateLabel(badge) }}</span>
+              <span v-if="badge.state === 'earned' && provenanceLabel(badge)" class="ma-badge__provenance">{{ provenanceLabel(badge) }}</span>
             </div>
           </div>
         </div>
       </template>
 
       <!-- Milestones tab -->
-      <template v-else>
+      <template v-else-if="tab === 'milestones'">
+        <!-- Next up — the next milestone from every family that applies,
+             grouped, each with the step that gets there (WP-5b + WP-5c-ii). -->
+        <div v-if="upcoming.length" class="m-card">
+          <p class="m-section-label" style="margin-top:0">Next up</p>
+          <template v-for="(section, sectionIndex) in groupedUpcoming" :key="'grp-' + section.group">
+            <p class="ma-group">{{ section.group }}</p>
+            <div class="ma-badges">
+              <div
+                v-for="(up, i) in section.items"
+                :key="section.group + '-' + i"
+                class="ma-badge"
+                data-achievement-item
+              >
+                <span :id="`upcoming-title-${sectionIndex}-${i}`" class="ma-badge__title">{{ up.title }}</span>
+                <span class="ma-badge__desc">{{ up.steps }}</span>
+                <span class="ma-badge__status">{{ achievementStateLabel(up) }}</span>
+                <span v-if="showsProgress(up)" class="ma-progress">
+                  <span class="ma-progress__label">{{ up.progress.label }}</span>
+                  <span
+                    class="ma-progress__track"
+                    role="progressbar"
+                    :aria-labelledby="`upcoming-title-${sectionIndex}-${i}`"
+                    :aria-valuemin="0"
+                    :aria-valuemax="100"
+                    :aria-valuenow="up.progress.percent"
+                    :aria-valuetext="up.progress.label"
+                  ><span class="ma-progress__fill" :style="{ width: `${up.progress.percent}%` }"></span></span>
+                </span>
+                <button
+                  v-if="upcomingActionLabel(up)"
+                  type="button"
+                  class="ma-badge__action ma-badge__action--button"
+                  @click="goToUpcoming(up)"
+                >{{ upcomingActionLabel(up) }}</button>
+              </div>
+            </div>
+          </template>
+        </div>
+
         <div class="m-card">
-          <p class="m-section-label" style="margin-top:0">Financial milestones</p>
+          <p class="m-section-label" style="margin-top:0">Reached</p>
           <p v-if="!milestones.length" class="m-sub" style="margin-bottom:0">
             No milestones reached yet — keep building your plan.
           </p>
@@ -98,11 +144,48 @@
               v-for="ms in milestones"
               :key="ms.key"
               class="ma-badge"
-              :class="{ 'is-earned': ms.achieved }"
+              :class="{ 'is-earned': ms.state === 'earned' }"
+              data-achievement-item
+              data-reached-milestone
             >
+              <span class="ma-badge__emblem" aria-hidden="true">Badge</span>
               <span class="ma-badge__title">{{ ms.title }}</span>
-              <span class="ma-badge__status">{{ ms.achieved ? achievedLabel(ms) : 'Not yet reached' }}</span>
+              <span class="ma-badge__status">{{ achievementStateLabel(ms) }}</span>
+              <span v-if="ms.state === 'earned' && reachedProvenanceLabel(ms)" class="ma-badge__provenance">{{ reachedProvenanceLabel(ms) }}</span>
             </div>
+          </div>
+          <button
+            v-if="milestoneCursor && !milestoneLoadError"
+            type="button"
+            class="m-btn ma-more"
+            :disabled="loadingMoreMilestones"
+            data-load-more-milestones
+            @click="loadMoreMilestones"
+          >{{ loadingMoreMilestones ? 'Loading…' : 'Load more reached milestones' }}</button>
+          <div v-if="milestoneLoadError" class="m-state ma-load-error" aria-live="polite" data-milestone-load-error>
+            <p class="m-err">{{ milestoneLoadError }}</p>
+            <button type="button" class="m-btn" data-retry-milestones @click="loadMoreMilestones">Try again</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- History tab — everything you've done, newest first (WP-3). -->
+      <template v-else>
+        <div class="m-card">
+          <p class="m-section-label" style="margin-top:0">Your activity</p>
+          <p v-if="!activity.length" class="m-sub" style="margin-bottom:0">
+            Nothing here yet — your answers, records, and completed actions will show up as you go.
+          </p>
+          <div v-else class="ma-history">
+            <div v-for="(ev, i) in activity" :key="i" class="ma-history__row">
+              <span class="ma-history__label">{{ ev.label }}</span>
+              <span class="ma-history__date">{{ formatDate(ev.occurred_at) }}</span>
+            </div>
+          </div>
+          <!-- WP-5c-ii — infinite scroll: the sentinel loads the next page of
+               the ledger as it comes into view; cursor null = fully loaded. -->
+          <div v-if="activityCursor" ref="historySentinel" class="ma-sentinel">
+            <span v-if="loadingMoreActivity" class="m-sub">Loading more…</span>
           </div>
         </div>
       </template>
@@ -113,55 +196,106 @@
 <script>
 import { store } from '../store.js';
 import { apiGet } from '../api.js';
+import { handleAuthExpiry } from '../authExpiry.js';
+import { resolveMobileDestination } from '../navigation/semanticDestinations.js';
 import MobileChrome from '../components/MobileChrome.vue';
 
-// Leading glyphs distinguishing the two action types — grey key for locked
-// "unlock" prompts, coloured bulb for actionable recommendations.
-const KEY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4-2a6 6 0 01-7.743 5.743L11 14H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>';
-const BULB_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>';
+const legacyMilestoneActions = Object.freeze({
+  dashboard: 'Go to dashboard',
+  'm-net-worth': 'Review net worth',
+  'm-goals': 'Review goals',
+  'm-estate': 'Review estate plan',
+  'm-savings': 'Review savings',
+  'm-retirement': 'Review retirement',
+  'm-protection': 'Review protection',
+  'tax-strategy': 'Review tax strategy',
+});
+
+function validMilestoneCursor(cursor) {
+  return cursor === null || (typeof cursor === 'string' && cursor.length > 0);
+}
 
 export default {
   name: 'MobileAchievements',
   components: { MobileChrome },
   data() {
     return {
-      KEY_ICON,
-      BULB_ICON,
       tab: 'achievements',
       loading: true,
       error: '',
       achievements: [],
-      next: [],
+      completed: [],
+      completedTotal: 0,
+      completedPage: 1,
+      loadingMoreCompleted: false,
       milestones: [],
+      milestoneCursor: null,
+      loadingMoreMilestones: false,
+      milestoneLoadError: '',
+      upcoming: [],
+      activity: [],
+      activityCursor: null,
+      loadingMoreActivity: false,
+      historyObserver: null,
     };
+  },
+  computed: {
+    // WP-5c-ii — group the upcoming list by its group field, preserving the
+    // backend's order (Wealth, Goals, Tax year, Savings, Retirement,
+    // Protection & estate, Property, Journey).
+    groupedUpcoming() {
+      const sections = [];
+      for (const up of this.upcoming) {
+        const group = up.group || 'Milestones';
+        const last = sections[sections.length - 1];
+        if (last && last.group === group) {
+          last.items.push(up);
+        } else {
+          sections.push({ group, items: [up] });
+        }
+      }
+      return sections;
+    },
+  },
+  watch: {
+    // The history sentinel only exists while its tab is active — re-arm the
+    // observer on each switch in.
+    tab(next) {
+      if (next === 'history') {
+        this.$nextTick(() => this.armHistoryObserver());
+      } else {
+        this.disarmHistoryObserver();
+      }
+    },
   },
   async created() {
     await this.load();
+  },
+  beforeUnmount() {
+    this.disarmHistoryObserver();
   },
   methods: {
     goBack() {
       this.$router.push({ name: 'dashboard' });
     },
-    // Tapping a next-action opens Fyn to collect the information that action
-    // needs. Unlock / data-capture actions ask Fyn to gather the module details;
-    // a real recommendation asks Fyn how to action it.
-    openNext(item) {
-      const chrome = this.$refs.chrome;
-      if (!chrome || !item) return;
-      const capture = {
-        protection: 'Help me add my protection cover details',
-        savings: 'Help me add my savings details',
-        investment: 'Help me add my investment details',
-        retirement: 'Help me add my pension details',
-        estate: 'Help me add my estate planning details',
-        goals: 'Help me set a financial goal',
-      };
-      const kind = item.action && item.action.kind;
-      if (kind === 'fyn_capture' || item.type === 'unlock') {
-        chrome.openFynWith(capture[item.module] || 'Help me add my financial details');
-      } else {
-        chrome.openFynWith(`How do I "${item.title}"?`);
+    // WP-5c-iii — an upcoming milestone deep-links to where the user acts.
+    goToUpcoming(up) {
+      if (!up) return;
+      const destination = up.next_action?.label ? resolveMobileDestination(up.next_action) : null;
+      if (destination) {
+        const navigation = this.$router.push(destination);
+        if (navigation?.catch) navigation.catch(() => {});
+      } else if (this.upcomingActionLabel(up) && this.legacyMilestoneRoute(up.route)) {
+        const navigation = this.$router.push({ name: up.route });
+        if (navigation?.catch) navigation.catch(() => {});
       }
+    },
+    legacyMilestoneRoute(route) {
+      return Object.hasOwn(legacyMilestoneActions, route);
+    },
+    upcomingActionLabel(item) {
+      if (typeof item?.next_action?.label === 'string' && item.next_action.label.trim()) return item.next_action.label;
+      return this.legacyMilestoneRoute(item?.route) ? legacyMilestoneActions[item.route] : '';
     },
     formatDate(iso) {
       if (!iso) return '';
@@ -173,27 +307,139 @@ export default {
       const date = this.formatDate(badge.earned_at);
       return date ? `Earned ${date}` : 'Earned';
     },
+    achievementStateLabel(item) {
+      if (item?.state === 'earned') return 'Earned';
+      if (item?.state === 'in_progress') return 'In progress';
+      if (item?.state === 'inapplicable') return 'Not applicable';
+      return 'Locked';
+    },
+    provenanceLabel(item) {
+      const provenance = item?.provenance;
+      if (!provenance?.occurred_at) return '';
+      const date = this.formatDate(provenance.occurred_at);
+      return date ? `Earned on ${date}` : 'Earned';
+    },
+    reachedProvenanceLabel(item) {
+      const provenance = item?.provenance;
+      if (!provenance?.occurred_at) return '';
+      const date = this.formatDate(provenance.occurred_at);
+      return date ? `Reached on ${date}` : 'Reached';
+    },
+    showsProgress(item) {
+      return item?.state === 'in_progress' && item.progress !== null && typeof item.progress === 'object';
+    },
     achievedLabel(ms) {
       const date = this.formatDate(ms.achieved_at);
       return date ? `Reached ${date}` : 'Reached';
+    },
+    completedLabel(item) {
+      const date = this.formatDate(item.completed_at);
+      return date ? `Done ${date}` : 'Done';
     },
     async load() {
       this.loading = true;
       this.error = '';
       try {
-        const res = await apiGet('/api/v1/mobile/achievements', store.token);
+        const [res, act] = await Promise.all([
+          apiGet('/api/v1/mobile/achievements/v2', store.token),
+          apiGet('/api/gamification/activity', store.token),
+        ]);
+        if (handleAuthExpiry(res, this.$router)) return;
         if (!res.ok) {
           this.error = 'We could not load your progress. Please try again.';
           return;
         }
         const d = res.data?.data || {};
         this.achievements = Array.isArray(d.achievements) ? d.achievements : [];
-        this.next = Array.isArray(d.next) ? d.next : [];
-        this.milestones = Array.isArray(d.milestones) ? d.milestones : [];
-      } catch (e) {
+        this.completed = Array.isArray(d.completed) ? d.completed : [];
+        this.completedTotal = Number(d.completed_total) || this.completed.length;
+        this.completedPage = 1;
+        this.milestones = this.mergeMilestones([], d.milestones);
+        this.milestoneCursor = validMilestoneCursor(d.next_cursor) ? d.next_cursor : null;
+        this.upcoming = Array.isArray(d.upcoming) ? d.upcoming : [];
+        this.activity = act.ok && Array.isArray(act.data?.data) ? act.data.data : [];
+        this.activityCursor = act.ok ? (act.data?.next_cursor ?? null) : null;
+      } catch {
         this.error = 'Network error. Please try again.';
       } finally {
         this.loading = false;
+      }
+    },
+    async loadMoreMilestones() {
+      if (this.loadingMoreMilestones || !this.milestoneCursor) return;
+      this.loadingMoreMilestones = true;
+      this.milestoneLoadError = '';
+      try {
+        const cursor = this.milestoneCursor;
+        const res = await apiGet(`/api/v1/mobile/achievements/v2/milestones?cursor=${encodeURIComponent(cursor)}`, store.token);
+        if (handleAuthExpiry(res, this.$router)) return;
+        const data = res.data?.data;
+        if (!res.ok || !Array.isArray(data?.milestones) || !Object.hasOwn(data, 'next_cursor') || !validMilestoneCursor(data.next_cursor)) throw new Error('continuation_failed');
+        this.milestones = this.mergeMilestones(this.milestones, data.milestones);
+        this.milestoneCursor = data.next_cursor;
+      } catch {
+        this.milestoneLoadError = 'Could not load more reached milestones. Please try again.';
+      } finally {
+        this.loadingMoreMilestones = false;
+      }
+    },
+    mergeMilestones(existing, incoming) {
+      const merged = [];
+      const keys = new Set();
+      for (const milestone of [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]) {
+        if (typeof milestone?.key !== 'string' || keys.has(milestone.key)) continue;
+        keys.add(milestone.key);
+        merged.push(milestone);
+      }
+      return merged;
+    },
+    // WP-5c-ii — next page of completed actions, appended.
+    async loadMoreCompleted() {
+      if (this.loadingMoreCompleted) return;
+      this.loadingMoreCompleted = true;
+      try {
+        const next = this.completedPage + 1;
+        const res = await apiGet(`/api/v1/mobile/achievements/completed?page=${next}`, store.token);
+        const d = res.ok ? (res.data?.data || {}) : {};
+        if (Array.isArray(d.completed) && d.completed.length) {
+          this.completed = this.completed.concat(d.completed);
+          this.completedPage = next;
+          this.completedTotal = Number(d.completed_total) || this.completedTotal;
+        }
+      } finally {
+        this.loadingMoreCompleted = false;
+      }
+    },
+    // WP-5c-ii — next page of the activity ledger (cursor on the last row).
+    async loadMoreActivity() {
+      if (this.loadingMoreActivity || !this.activityCursor) return;
+      this.loadingMoreActivity = true;
+      try {
+        const res = await apiGet(`/api/gamification/activity?before=${this.activityCursor}`, store.token);
+        if (res.ok) {
+          const events = Array.isArray(res.data?.data) ? res.data.data : [];
+          this.activity = this.activity.concat(events);
+          this.activityCursor = res.data?.next_cursor ?? null;
+        }
+      } finally {
+        this.loadingMoreActivity = false;
+      }
+    },
+    armHistoryObserver() {
+      this.disarmHistoryObserver();
+      const sentinel = this.$refs.historySentinel;
+      if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+      this.historyObserver = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          this.loadMoreActivity();
+        }
+      }, { rootMargin: '200px' });
+      this.historyObserver.observe(sentinel);
+    },
+    disarmHistoryObserver() {
+      if (this.historyObserver) {
+        this.historyObserver.disconnect();
+        this.historyObserver = null;
       }
     },
   },
@@ -221,36 +467,6 @@ export default {
 }
 .ma-tab:active { opacity: 0.8; }
 
-/* Next-action rows — tappable eggshell cards (open Fyn). Hover lifts to white
-   with a light-pink border, matching the dashboard recommendation rows. */
-.ma-next {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  background: var(--eggshell-500);
-  border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.ma-next:last-child { margin-bottom: 0; }
-.ma-next:hover { background: var(--white); border-color: var(--light-pink-200); }
-/* Unlock prompts read differently: light-grey dotted border + grey key glyph. */
-.ma-next.is-unlock { border: 1px dotted var(--horizon-300); }
-.ma-next.is-unlock:hover { background: var(--white); border-color: var(--horizon-400); }
-.ma-next__lead { flex-shrink: 0; display: flex; align-items: center; color: var(--raspberry-500); }
-.ma-next__lead svg { display: block; }
-.ma-next.is-unlock .ma-next__lead { color: var(--neutral-400); }
-.ma-next__main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.ma-next__title { font-size: 15px; font-weight: 700; color: var(--horizon-500); }
-.ma-next__meta { font-size: 13px; color: var(--neutral-500); }
-.ma-next__chevron { color: var(--raspberry-500); flex-shrink: 0; }
-
 /* Badge cards — earned prominent, unearned muted */
 .ma-badges { display: flex; flex-direction: column; gap: 10px; }
 .ma-badge {
@@ -272,4 +488,73 @@ export default {
 .ma-badge__desc { font-size: 13px; color: var(--neutral-500); line-height: 1.4; }
 .ma-badge__status { font-size: 12px; font-weight: 700; color: var(--neutral-500); }
 .ma-badge.is-earned .ma-badge__status { color: var(--spring-600); }
+.ma-badge__emblem {
+  align-self: flex-start;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--horizon-100);
+  color: var(--horizon-500);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ma-badge.is-earned .ma-badge__emblem { background: var(--spring-500); color: var(--white); }
+.ma-badge__provenance { font-size: 12px; color: var(--neutral-500); }
+.ma-badge__action { font-size: 13px; font-weight: 700; color: var(--horizon-500); }
+.ma-badge__action--button {
+  align-self: flex-start;
+  border: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.ma-badge__action--button:focus-visible { outline: 3px solid var(--horizon-500); outline-offset: 2px; }
+.ma-progress { display: flex; flex-direction: column; gap: 5px; }
+.ma-progress__label { font-size: 12px; color: var(--neutral-500); }
+.ma-progress__track { display: block; overflow: hidden; height: 7px; border-radius: 999px; background: var(--horizon-100); }
+.ma-progress__fill { display: block; height: 100%; background: var(--horizon-500); }
+
+/* WP-5c-iii — upcoming steps are tappable deep-links. */
+.ma-badge--link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* WP-5c-ii — grouped Next up, load-more, history sentinel. */
+.ma-group {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--neutral-500);
+}
+.ma-group:first-of-type { margin-top: 8px; }
+.ma-more { width: 100%; margin-top: 12px; }
+.ma-sentinel { min-height: 24px; text-align: center; padding: 6px 0; }
+.ma-load-error { margin-top: 12px; }
+
+/* WP-3 — activity history rows. */
+.ma-history { display: flex; flex-direction: column; }
+.ma-history__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--horizon-100);
+}
+.ma-history__row:last-child { border-bottom: 0; padding-bottom: 0; }
+.ma-history__label { font-size: 14px; font-weight: 600; color: var(--horizon-500); line-height: 1.4; }
+.ma-history__date { font-size: 12px; color: var(--neutral-500); white-space: nowrap; }
 </style>

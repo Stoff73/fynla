@@ -1,0 +1,122 @@
+import Observation
+
+enum AppRoute: Hashable, Sendable {
+    case dashboard
+    case achievements
+    case conversationHistory
+    case personalInformation
+    case subscription
+    case income
+    case incomeDetail(owner: String, source: String)
+    case expenditure
+    case netWorth(category: String?)
+    case balanceHistory
+    case protection(policyType: String?, id: Int?)
+    case savings(accountID: Int?)
+    case investment(accountID: Int?)
+    case retirement(pensionType: String?, id: Int?)
+    case estate
+    case goals
+    case goalDetail(id: Int)
+    case propertyDetail(id: Int)
+    case mortgageDetail(id: Int)
+    case liabilityDetail(id: Int)
+    case taxStrategy
+    case holisticPlan
+    case bugReport
+    case settings
+
+    var requiresUnlockedSession: Bool {
+        self != .settings
+    }
+
+    var mobilePath: String {
+        switch self {
+        case .dashboard: "/dashboard"
+        case .achievements: "/achievements"
+        case .conversationHistory: "/conversation-history"
+        case .personalInformation: "/personal-information"
+        case .subscription: "/subscription"
+        case .income: "/income"
+        case let .incomeDetail(owner, source): "/income/\(owner)/\(source)"
+        case .expenditure: "/expenditure"
+        case .netWorth: "/net-worth"
+        case .balanceHistory: "/net-worth/history"
+        case .protection: "/protection"
+        case .savings: "/savings"
+        case .investment: "/investment"
+        case .retirement: "/retirement"
+        case .estate: "/estate"
+        case .goals: "/goals"
+        case let .goalDetail(id): "/goals/\(id)"
+        case let .propertyDetail(id): "/net-worth/property/\(id)"
+        case let .mortgageDetail(id): "/net-worth/mortgage/\(id)"
+        case let .liabilityDetail(id): "/net-worth/liability/\(id)"
+        case .taxStrategy: "/tax-strategy"
+        case .holisticPlan: "/holistic-plan"
+        case .bugReport: "/report-a-problem"
+        case .settings: "/settings"
+        }
+    }
+}
+
+@MainActor
+@Observable
+final class AppRouter {
+    private let session: AppSession
+    private(set) var path: [AppRoute] = []
+
+    init(session: AppSession) {
+        self.session = session
+    }
+
+    @discardableResult
+    func navigate(to route: AppRoute) -> Bool {
+        guard canNavigate(to: route) else { return false }
+        path.append(route)
+        return true
+    }
+
+    @discardableResult
+    func open(_ route: AppRoute) -> Bool {
+        guard canNavigate(to: route) else { return false }
+        path = route == .dashboard ? [] : [route]
+        return true
+    }
+
+    @discardableResult
+    func removeLast() -> Bool {
+        guard !path.isEmpty else { return false }
+        path.removeLast()
+        return true
+    }
+
+    func reset() {
+        path.removeAll(keepingCapacity: false)
+    }
+
+    @discardableResult
+    func restore(_ routes: [AppRoute]) -> Bool {
+        guard routes.allSatisfy(canNavigate) else { return false }
+        path = routes
+        return true
+    }
+
+    private func canNavigate(to route: AppRoute) -> Bool {
+        switch session.state {
+        case .authenticatedUnlocked:
+            true
+        case .authenticatedLocked:
+            !route.requiresUnlockedSession
+        case .launching,
+             .signedOut,
+             .authenticating,
+             .verificationRequired,
+             .multiFactorRequired,
+             .restorationRequired,
+             .passwordChangeRequired,
+             .deletingAccount:
+            false
+        }
+    }
+}

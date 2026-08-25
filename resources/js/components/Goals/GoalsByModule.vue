@@ -198,6 +198,7 @@ export default {
     },
 
     getStatusLabel(goal) {
+      if (goal.status_label) return goal.status_label;
       if (this.isNotStarted(goal)) return 'Not Started';
       if (goal.is_on_track) return 'On Track';
       return 'Behind';

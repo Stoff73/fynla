@@ -251,4 +251,4 @@ The frontend MasterTag stays loaded until users refresh, but the Sale object wil
 - Plan: `April/April15Updates/awinIntegrate.md`
 - Vault doc: `fynlaBrain/Current State/AwinIntegration.md`
 - Awin merchant dashboard: `https://ui.awin.com/merchant/126105`
-- Integration snippets from Awin: `awin/integration.md`
+- Integration snippets from Awin: `docs/archive/awin/integration.md`

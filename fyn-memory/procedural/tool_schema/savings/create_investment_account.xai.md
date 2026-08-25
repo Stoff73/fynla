@@ -3,7 +3,7 @@ procedure_id: 'savings.tool.create_investment_account'
 kind: tool_schema
 module: savings
 provider: xai
-version: 2
+version: 3
 active: true
 effective_from: 2026-06-11
 ---
@@ -11,7 +11,7 @@ effective_from: 2026-06-11
 ```json
 {
     "name": "create_investment_account",
-    "description": "Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. Use account_type \"other\" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead.",
+    "description": "Create an investment account only after the user explicitly states its type and whether it is owned individually or jointly. A bare ISA must be clarified as Stocks & Shares, Lifetime, Innovative Finance, or Cash before choosing this tool. Joint records also require the joint owner and primary owner's percentage share. Use account_type other for alternative financial assets.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -24,6 +24,7 @@ effective_from: 2026-06-11
                 "enum": [
                     "stocks_shares_isa",
                     "lifetime_isa",
+                    "innovative_finance_isa",
                     "personal_investment_account",
                     "onshore_bond",
                     "offshore_bond",
@@ -51,6 +52,19 @@ effective_from: 2026-06-11
                 "type": "number",
                 "description": "Current value in pounds"
             },
+            "ownership_type": {
+                "type": "string",
+                "enum": ["individual", "joint"],
+                "description": "Ownership explicitly confirmed by the user. Investment accounts support individual or joint ownership; ISAs must be individual."
+            },
+            "joint_owner_id": {
+                "type": ["integer", "null"],
+                "description": "User ID of the confirmed joint owner. Required when ownership is joint; otherwise null."
+            },
+            "ownership_percentage": {
+                "type": ["number", "null"],
+                "description": "Primary owner's confirmed percentage share. Required when ownership is joint or tenants_in_common; otherwise 100 for individual."
+            },
             "monthly_contribution_amount": {
                 "type": [
                     "number",
@@ -70,14 +84,14 @@ effective_from: 2026-06-11
                     "number",
                     "null"
                 ],
-                "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (GIA, shares); leave null for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
+                "description": "Annual dividend income this account pays in pounds, when the user states it (e.g. \"pays about £800 a year in dividends\" → 800). Only for taxable accounts (General Investment Account, shares); leave null for ISAs — ISA dividends are tax-free and never use the Dividend Allowance."
             },
             "isa_subscription_current_year": {
                 "type": [
                     "number",
                     "null"
                 ],
-                "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; leave null for GIA and other taxable accounts."
+                "description": "For an ISA, how much the user has paid IN during the CURRENT tax year, when stated (e.g. \"I've put in £5,000 this year\" → 5000). This is the subscription that counts against the £20,000 ISA allowance — NOT the account's total value. Only for ISA account types; leave null for General Investment Account and other taxable accounts."
             },
             "bond_purchase_date": {
                 "type": [
@@ -409,7 +423,7 @@ effective_from: 2026-06-11
                         "type": "null"
                     }
                 ],
-                "description": "Array of holdings to add inline when creating the account. Only for ISA, GIA, onshore/offshore bonds, VCT, EIS. Each holding has security_name, asset_type, allocation_percent (% of account), and optional cost_basis. Any unallocated remainder auto-defaults to cash. If the user mentions specific funds/ETFs/shares they hold, include them here instead of using create_holding separately."
+                "description": "Array of holdings to add inline when creating the account. Only for ISA, General Investment Account, onshore/offshore bonds, VCT, EIS. Each holding has security_name, asset_type, allocation_percent (% of account), and optional cost_basis. Any unallocated remainder auto-defaults to cash. If the user mentions specific funds/ETFs/shares they hold, include them here instead of using create_holding separately."
             }
         },
         "required": [
@@ -417,6 +431,9 @@ effective_from: 2026-06-11
             "account_type",
             "provider",
             "current_value",
+            "ownership_type",
+            "joint_owner_id",
+            "ownership_percentage",
             "monthly_contribution_amount",
             "platform_fee_percent",
             "annual_dividend_income",

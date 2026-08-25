@@ -22,6 +22,31 @@ class GiftingStrategyOptimizer
     ) {}
 
     /**
+     * The first year of survival at which taper relief starts to reduce the charge.
+     *
+     * Read from the schedule rather than stated as a 3, so the sentence a user is
+     * shown and the rate they are charged cannot disagree.
+     */
+    private function taperReliefStartYear(): int
+    {
+        $fullRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? 0.40);
+
+        foreach ($this->taxConfig->getTaperRelief('pet') as $band) {
+            if (($band['tax_rate'] ?? $fullRate) < $fullRate) {
+                return (int) ($band['min_years'] ?? 3);
+            }
+        }
+
+        return 3;
+    }
+
+    /** The survival period after which a potentially exempt transfer falls out entirely. */
+    private function petWindowYears(): int
+    {
+        return (int) ($this->taxConfig->getPETRules()['years_to_exemption'] ?? 7);
+    }
+
+    /**
      * Calculate optimal gifting strategy to reduce IHT liability to zero or minimum
      *
      * Prioritizes PETs (every 7 years), uses annual exemptions, and CLTs as last resort
@@ -265,13 +290,16 @@ class GiftingStrategyOptimizer
             'iht_saved' => round($ihtSaved, 2),
             'risk_level' => 'Medium',
             'exempt_immediately' => false,
-            'taper_relief_from_year' => 3,
+            // W-0463 — was a hardcoded 3, a second statement of a schedule the
+            // configuration already holds. Derived from the first band that
+            // charges less than the full rate, so moving the schedule moves this.
+            'taper_relief_from_year' => $this->taperReliefStartYear(),
             'implementation_steps' => [
                 'Gift £'.number_format($amountPerCycle, 0).' every 7 years to maximize IHT efficiency',
                 'Consider gifting to discretionary trust for flexibility',
                 'Gifts must not have reservation of benefit',
                 'Keep detailed gift records with dates and amounts',
-                'Taper relief applies if you survive 3-7 years',
+                'Taper relief applies if you survive '.$this->taperReliefStartYear().'-'.$this->petWindowYears().' years',
             ],
             'notes' => $complete7YearCycles > 0 ?
                 "You have {$complete7YearCycles} complete 7-year cycle(s) before expected death" :

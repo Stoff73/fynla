@@ -153,7 +153,7 @@
               <p class="font-semibold text-raspberry-800">Gains Exceed Capital Gains Tax Allowance</p>
               <p class="text-sm text-raspberry-700">
                 Your unrealised gains exceed the annual Capital Gains Tax allowance by {{ formatCurrency(cgtExcess) }}.
-                If realised, this would result in approximately {{ formatCurrency(cgtExcess * 0.20) }} in Capital Gains Tax.
+                If realised, this would result in approximately {{ formatCurrency(estimatedCgtOnExcess) }} in Capital Gains Tax.
               </p>
             </div>
           </div>
@@ -363,6 +363,7 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { mapGetters } from 'vuex';
+import { CGT_HIGHER_RATE } from '@/constants/taxConfig';
 import investmentService from '@/services/investmentService';
 import ISATransferModal from './ISATransferModal.vue';
 import HarvestLossModal from './HarvestLossModal.vue';
@@ -393,7 +394,7 @@ export default {
   },
 
   computed: {
-    ...mapGetters('taxConfig', ['cgtAnnualAllowance']),
+    ...mapGetters('taxConfig', ['cgtAnnualAllowance', 'cgtHigherRate']),
 
     currentPosition() {
       return this.taxData?.current_position || {};
@@ -423,6 +424,11 @@ export default {
       const gains = this.currentPosition.net_unrealized_gains || 0;
       const allowance = this.currentPosition.cgt_allowance || this.cgtAnnualAllowance;
       return Math.max(0, gains - allowance);
+    },
+
+    estimatedCgtOnExcess() {
+      // Higher-rate CGT on gains above the annual allowance (2026/27: 24%)
+      return this.cgtExcess * (this.cgtHigherRate ?? CGT_HIGHER_RATE);
     },
 
     cgtAllowanceRemaining() {

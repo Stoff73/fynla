@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Stores;
 
+use App\Constants\InvestmentDefaults;
+use App\Constants\PensionEnums;
 use App\Events\Pension\DBPensionCreated;
 use App\Events\Pension\DBPensionDeleted;
 use App\Events\Pension\DBPensionRestored;
@@ -31,6 +33,7 @@ use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PensionStore
 {
@@ -56,6 +59,23 @@ class PensionStore
     }
 
     /**
+     * User-scoped id-based read for batched contextual history rehydration.
+     */
+    public function findMany(array $ids, string $type, User $user): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        $model = $this->modelClassForType($type);
+
+        return $model::query()
+            ->whereIn('id', $ids)
+            ->where('user_id', $user->id)
+            ->get();
+    }
+
+    /**
      * Return every pension the user owns, grouped by type.
      *
      * @return array{dc: Collection, db: Collection, state: ?StatePension, input_history: Collection}
@@ -68,6 +88,13 @@ class PensionStore
             'state' => StatePension::where('user_id', $user->id)->first(),
             'input_history' => PensionInputHistory::where('user_id', $user->id)->orderBy('tax_year')->get(),
         ];
+    }
+
+    public function existsForUser(User $user): bool
+    {
+        return DCPension::where('user_id', $user->id)->exists()
+            || DBPension::where('user_id', $user->id)->exists()
+            || StatePension::where('user_id', $user->id)->exists();
     }
 
     public function forUserByType(User $user, string $type): Collection
@@ -90,6 +117,94 @@ class PensionStore
         }
 
         return $query->orderBy('tax_year')->get();
+    }
+
+    /**
+     * True when the user has at least one DC workplace pension whose
+     * current_fund_value is greater than zero.
+     *
+     * current_fund_value is NOT NULL DEFAULT 0; the <= 0 sentinel is
+     * deliberate — zero means "not yet captured", not "no value".
+     */
+    public function hasWorkplaceDcPensionWithValue(User $user): bool
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('scheme_type', 'workplace')
+            ->where('current_fund_value', '>', 0)
+            ->exists();
+    }
+
+    /**
+     * True when the user has already flagged has_flexibly_accessed on any
+     * of their DC pensions.
+     */
+    public function hasFlexiblyAccessedDcPension(User $user): bool
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('has_flexibly_accessed', true)
+            ->exists();
+    }
+
+    /**
+     * Return the first DC pension (by id) whose current_fund_value is
+     * missing (<=0), or null when all pots have values.
+     *
+     * current_fund_value is NOT NULL DEFAULT 0; the <= 0 sentinel means
+     * "not yet captured". The caller iterates one pot at a time.
+     */
+    public function firstDcPensionMissingPotValue(User $user): ?DCPension
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('current_fund_value', '<=', 0)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * True when at least one DC pension is still missing a pot value
+     * (current_fund_value <= 0). Used to decide whether the pot-capture
+     * loop should continue.
+     */
+    public function hasDcPensionsMissingPotValue(User $user): bool
+    {
+        return DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('current_fund_value', '<=', 0)
+            ->exists();
+    }
+
+    /**
+     * All DC pensions belonging to the user, without eager-loading
+     * holdings (narrow read for display/recap contexts).
+     */
+    public function dcPensionsFor(User $user): Collection
+    {
+        return DCPension::where('user_id', $user->id)->get();
+    }
+
+    /**
+     * The user's personal DC pensions (SIPP / personal / stakeholder) — the ones
+     * a personal-contribution answer could belong to. Excludes workplace
+     * (occupational) schemes, so the contribution reference context only fires
+     * when the user actually has a personal pension on file.
+     */
+    public function personalDcPensionsFor(User $user): Collection
+    {
+        return DCPension::where('user_id', $user->id)
+            ->whereIn('pension_type', ['personal', 'sipp', 'stakeholder'])
+            ->get();
+    }
+
+    /**
+     * All DB pensions belonging to the user (narrow read for
+     * display/recap contexts).
+     */
+    public function dbPensionsFor(User $user): Collection
+    {
+        return DBPension::where('user_id', $user->id)->get();
     }
 
     // ---------- Writes (DC pension) ----------
@@ -474,13 +589,24 @@ class PensionStore
             'expected_return_percent' => 'sometimes|nullable|numeric|min:0|max:20',
             'has_flexibly_accessed' => 'sometimes|boolean',
             'flexible_access_date' => 'sometimes|nullable|date|before_or_equal:today',
-            'salary_sacrifice' => 'sometimes|boolean',
+            // `dc_pensions.salary_sacrifice` is tinyint(1) NULL — null is a
+            // storable value meaning "not stated", and DCPensionForm sends exactly
+            // that when the checkbox has never been touched. Without `nullable`
+            // this rejected it as "must be true or false" (W-0262): the field had
+            // no rule in StoreDCPensionRequest, so `validated()` stripped it and
+            // the mismatch could not surface until that rule was added.
+            'salary_sacrifice' => 'sometimes|nullable|boolean',
             'employer_ni_rebate_pct' => 'sometimes|nullable|numeric|min:0|max:1',
             'beneficiary_id' => 'sometimes|nullable|integer|exists:users,id',
             'beneficiary_name' => 'sometimes|nullable|string|max:255',
             'investment_strategy' => 'sometimes|nullable|string|max:255',
             'member_number' => 'sometimes|nullable|string|max:255',
-            'risk_preference' => 'sometimes|nullable|string|max:64',
+            // The column is enum('low','lower_medium','medium','upper_medium','high')
+            // — any other string passed `string|max:64` and died as a QueryException
+            // at the column, exactly as `inflation_protection` did below before it
+            // was tightened. The vocabulary comes from one constant, not a list
+            // retyped here (W-0262).
+            'risk_preference' => ['sometimes', 'nullable', Rule::in(InvestmentDefaults::RISK_PREFERENCES)],
             'has_custom_risk' => 'sometimes|boolean',
         ];
 
@@ -495,6 +621,10 @@ class PensionStore
         $rules = [
             'scheme_name' => ($partial ? 'sometimes|' : 'required|').'string|max:255',
             'scheme_type' => ($partial ? 'sometimes|' : 'required|').'in:final_salary,career_average,public_sector',
+            // W-0032. Optional and nullable: null means the user has not stated a
+            // status, which DBPension::isInPayment() reads as "fall back to age".
+            // The vocabulary comes from PensionEnums, not from a list retyped here.
+            'scheme_status' => 'sometimes|nullable|in:'.implode(',', PensionEnums::SCHEME_STATUSES),
             'accrued_annual_pension' => 'sometimes|nullable|numeric|min:0|max:999999.99',
             'pensionable_service_years' => 'sometimes|nullable|numeric|min:0|max:99',
             'pensionable_salary' => 'sometimes|nullable|numeric|min:0|max:999999.99',
@@ -502,7 +632,9 @@ class PensionStore
             'revaluation_method' => 'sometimes|nullable|string|max:64',
             'spouse_pension_percent' => 'sometimes|nullable|numeric|min:0|max:100',
             'lump_sum_entitlement' => 'sometimes|nullable|numeric|min:0',
-            'inflation_protection' => 'sometimes|nullable|string|max:64',
+            // The column is enum('cpi','rpi','fixed','none') NOT NULL — any other
+            // string got past `string|max:64` and died as a QueryException.
+            'inflation_protection' => 'sometimes|nullable|in:cpi,rpi,fixed,none',
         ];
 
         $validator = Validator::make($data, $rules);

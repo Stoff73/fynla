@@ -26,7 +26,7 @@ class RedirectPhoneToMobile
         'm', 'm/*', 'api/*', 'admin/*', 'advisor/*',
         'lifecycle/*', 'feed/*', 'storage/*', 'subscribe/*', 'unsubscribe/*',
         'sanctum/*', 'broadcasting/*', 'livewire/*',
-        'checkout', 'preview', 'preview/*',
+        'checkout', 'settings', 'settings/*', 'preview', 'preview/*',
     ];
 
     /**
@@ -38,7 +38,7 @@ class RedirectPhoneToMobile
      * @var array<int, string>
      */
     private const CAMPAIGN_PREFIXES = [
-        'savetax', 'biggerpension', 'paymortgage', 'managedebt', 'wealth',
+        'savetax', 'pensioncheck', 'biggerpension', 'paymortgage', 'managedebt', 'wealth',
     ];
 
     public function handle(Request $request, Closure $next): Response
