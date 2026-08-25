@@ -1984,7 +1984,6 @@ Per-persona gradient banner shown in preview/demo mode.
 |---------|----------|
 | young_family | `from-blue-500 to-blue-600` |
 | peak_earners | `from-green-500 to-green-600` |
-| widow | `from-purple-500 to-purple-600` |
 | entrepreneur | `from-fuchsia-500 to-fuchsia-600` |
 | young_saver | `from-cyan-500 to-cyan-600` |
 | retired_couple | `from-rose-500 to-rose-600` |
@@ -2494,7 +2493,6 @@ Grid of persona cards for the demo/preview flow.
 |---------|----------|
 | young_family | `from-blue-500 to-blue-700` |
 | peak_earners | `from-green-500 to-green-700` |
-| widow | `from-purple-500 to-purple-700` |
 | entrepreneur | `from-fuchsia-500 to-fuchsia-700` |
 | young_saver | `from-cyan-500 to-cyan-700` |
 | retired_couple | `from-rose-500 to-rose-700` |
@@ -2785,7 +2783,6 @@ Fynla does not use photo avatars. User identity is represented through these pat
 |---------|-------|
 | young_family | 👨‍👩‍👧 |
 | peak_earners | 💼 |
-| widow | 🌹 |
 | entrepreneur | 🚀 |
 | young_saver | 🎯 |
 | retired_couple | 🏖️ |

@@ -165,14 +165,16 @@ php artisan tinker --execute="echo App\Models\User::where('email', 'admin@fps.co
 
 ## Preview Personas
 
-The application includes four preview personas for demonstration purposes:
+The application includes six preview personas for demonstration purposes:
 
 | Persona ID | Primary User | Spouse | Scenario |
 |------------|--------------|--------|----------|
 | `young_family` | James Carter | Emily Carter | Young couple, mortgage, workplace pensions |
 | `peak_earners` | David Mitchell | Sarah Mitchell | High earners, multiple properties, SIPP + NHS pension |
-| `widow` | Margaret Thompson | Robert (deceased) | Estate planning focus |
 | `entrepreneur` | Alex Chen | None | SIPP, business interests |
+| `young_saver` | John Morgan | None | Emergency fund, first-time savings, Lifetime ISA |
+| `retired_couple` | Patricia Bennett | Harold Bennett | Decumulation, estate planning |
+| `student` | Janice Taylor | None | Student loan, Cash ISA + Lifetime ISA |
 
 ### Persona Data Files
 
@@ -180,8 +182,10 @@ Located in: `resources/js/data/personas/`
 
 - `young_family.json`
 - `peak_earners.json`
-- `widow.json`
 - `entrepreneur.json`
+- `young_saver.json`
+- `retired_couple.json`
+- `student.json`
 
 When updating persona data:
 1. Edit the JSON file

@@ -1451,7 +1451,7 @@
 |-----------|---------|
 | **Feature** | Preview Mode |
 | **Category** | Onboarding |
-| **What it does** | Allows visitors to explore the application using pre-populated demo personas: Young Family (James & Emily Carter - mortgage, workplace pensions), Peak Earners (David & Sarah Mitchell - multiple properties, complex pensions), Widow (Margaret Thompson - estate planning focus), Entrepreneur (Alex Chen - SIPP, business interests). Personas are isolated from real user data. |
+| **What it does** | Allows visitors to explore the application using pre-populated demo personas: Young Family (James & Emily Carter - mortgage, workplace pensions), Peak Earners (David & Sarah Mitchell - multiple properties, complex pensions), Entrepreneur (Alex Chen - SIPP, business interests). Personas are isolated from real user data. |
 | **Why it exists** | Prospective users want to see the application with realistic data before committing to registration. Preview mode demonstrates value without requiring personal data entry. |
 | **Integrates with** | Persona data seeding, Data isolation, Landing page, Registration conversion |
 

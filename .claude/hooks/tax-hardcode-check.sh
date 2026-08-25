@@ -2,10 +2,17 @@
 # Stop hook: Check for hardcoded tax values in app code
 # Runs after every session to catch any newly introduced hardcoded tax values
 
-cd /Users/CSJ/Desktop/fynla
+ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)}"
+cd "$ROOT" || exit 0
 
 # Only check files that have been modified (staged or unstaged)
-CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null; git diff --cached --name-only 2>/dev/null)
+# Tracked edits, staged edits, and NEW files. Untracked files were previously
+# skipped entirely, which is exactly where new violations land. Deduped because a
+# staged edit otherwise appears twice and every finding was reported twice. W-0483.
+CHANGED_FILES=$( { git diff --name-only HEAD 2>/dev/null
+  git diff --cached --name-only 2>/dev/null
+  git ls-files --others --exclude-standard 2>/dev/null
+} | sort -u)
 
 if [ -z "$CHANGED_FILES" ]; then
   exit 0

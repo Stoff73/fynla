@@ -12,16 +12,26 @@
 # ponytail: grep heuristics, not a parser — false positives are possible; the
 # block downgrades after one round precisely so a justified exception can pass.
 
-cd /Users/CSJ/Desktop/fynla || exit 0
+ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)}"
+cd "$ROOT" || exit 0
 
 INPUT=$(cat 2>/dev/null || echo '{}')
-SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // "nosession"' 2>/dev/null || echo "nosession")
-STOP_ACTIVE=$(printf '%s' "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
+# shellcheck source=lib-json.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib-json.sh"
+
+SESSION_ID=$(json_field "$INPUT" session_id nosession)
+STOP_ACTIVE=$(json_field "$INPUT" stop_hook_active false)
 [ "$STOP_ACTIVE" = "true" ] && exit 0
 
 MARKER="${TMPDIR:-/tmp}/fynla-design-lint-${SESSION_ID}"
 
-CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null; git diff --cached --name-only 2>/dev/null)
+# Tracked edits, staged edits, and NEW files. Untracked files were previously
+# skipped entirely, which is exactly where new violations land. Deduped because a
+# staged edit otherwise appears twice and every finding was reported twice. W-0483.
+CHANGED_FILES=$( { git diff --name-only HEAD 2>/dev/null
+  git diff --cached --name-only 2>/dev/null
+  git ls-files --others --exclude-standard 2>/dev/null
+} | sort -u)
 [ -z "$CHANGED_FILES" ] && exit 0
 
 VIOLATIONS=""
@@ -55,16 +65,27 @@ for file in $CHANGED_FILES; do
   fi
 
   # Rule 15 — emoji in source (arrows/checkmarks skipped: too noisy in comments)
-  EMOJI=$(python3 -c "
-import sys
-try:
-    with open('$file', encoding='utf-8', errors='ignore') as f:
-        for n, line in enumerate(f, 1):
-            if any(0x1F000 <= ord(c) <= 0x1FAFF or 0x2600 <= ord(c) <= 0x27BF or 0x2B00 <= ord(c) <= 0x2BFF for c in line):
-                print(f'{n}: {line.strip()[:80]}')
-except Exception:
-    pass
-" 2>/dev/null | head -3 || true)
+  # PHP, not python3: python3 is not a dependency of this repo and resolves to the
+  # Microsoft Store stub on Windows, which made this check a silent pass everywhere
+  # it ran without a real python3 on PATH. See W-0483.
+  EMOJI=$(php -r '
+$path = $argv[1];
+if (! is_file($path)) { exit(0); }
+$ranges = [[0x1F000, 0x1FAFF], [0x2600, 0x27BF], [0x2B00, 0x2BFF]];
+$n = 0;
+foreach (file($path) as $line) {
+    $n++;
+    foreach (preg_split("//u", rtrim($line), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $c) {
+        $cp = mb_ord($c, "UTF-8");
+        foreach ($ranges as [$lo, $hi]) {
+            if ($cp >= $lo && $cp <= $hi) {
+                printf("%d: %s\n", $n, substr(trim($line), 0, 80));
+                continue 3;
+            }
+        }
+    }
+}
+' "$file" 2>/dev/null | head -3 || true)
   if [ -n "$EMOJI" ]; then
     VIOLATIONS="$VIOLATIONS\n$file — emoji in source (Rule 15 bans emoji in any string/label/comment):\n$EMOJI"
   fi
@@ -76,9 +97,9 @@ REASON="Design-system lint failed on changed files (CLAUDE.md Rules 8/11/15). Fi
 
 if [ ! -f "$MARKER" ]; then
   touch "$MARKER" 2>/dev/null || true
-  jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
+  json_emit_block "$REASON"
 else
-  jq -n --arg msg "WARNING (repeat): design-lint still detects violations in changed files. $REASON" '{systemMessage: $msg}'
+  json_emit systemMessage "WARNING (repeat): design-lint still detects violations in changed files. $REASON"
 fi
 
 exit 0
