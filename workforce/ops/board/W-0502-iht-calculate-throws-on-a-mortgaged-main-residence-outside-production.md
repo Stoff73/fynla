@@ -158,3 +158,31 @@ The test that exists (`IhtHandlesAMortgagedMainResidenceTest`) exercises the pat
 asserts the share is taken rather than the whole, so it is not worthless — **but it
 would not have caught this defect and must not be mistaken for a guard against it.**
 Acceptance 2 stays open, and acceptance 3's sweep is untouched.
+
+### Acceptance 3 — the sweep, done
+
+Done properly rather than pattern-matched, having got the trigger wrong once already:
+every relation read on a model returned by a store read, checked against whether that
+read loads it.
+
+| Consumer | Relation read | Source | State |
+|---|---|---|---|
+| `IHTCalculationService:2303` | `$property->mortgages` | `forUserByType()` | **was broken — fixed** |
+| `IHTCalculationService:1273` | `$property->mortgages` | `forUserByType()` | same read, same fix |
+| **`NetWorthService:372`** | `$property->mortgages` | **`forUserWithJointOwner()`** | **SECOND INSTANCE — proven to throw, fixed** |
+| `IHTFormattingService:369` | `$mortgage->property` | `forUser()->load('property')` | safe |
+| `ComprehensiveEstatePlanService:542` | `$mortgage->property` | `forUser()->load('property:id,...')` | safe |
+| `NetWorthService:609` | `$account->jointOwner` | queries with `->with('jointOwner')` | safe |
+
+**The sweep was worth doing: it found a second live instance.**
+`forUserWithJointOwner()` loaded `jointOwner` and not `mortgages`, while
+`NetWorthService` nets a property down by the debt secured on it. Proven to throw
+before the fix, confirmed OK after.
+
+**A pattern worth noticing, and worth CSJ's view.** The two safe `$mortgage->property`
+sites are safe because each call site does its own `->load('property')` — the very
+`load()`-at-the-call-site this item's acceptance 1 argues against. It works, and it
+means the same knowledge lives in two consumers instead of one store. Deciding
+whether stores should own eager-loading outright is bigger than this item.
+
+758 passed across NetWorth, Stores, Estate and Estate services.

@@ -54,7 +54,12 @@ class PropertyStore
 
     public function forUserWithJointOwner(User $user): Collection
     {
-        return Property::forUserOrJoint($user->id)->with('jointOwner')->get();
+        // W-0502 acceptance 3 — the same shape as `forUserByType()`, found by sweeping
+        // for it rather than assuming one instance was the only one.
+        // `NetWorthService:372` reads `$property->mortgages` on what this returns, to
+        // net a property down by the debt secured on it. Proven to throw
+        // LazyLoadingViolationException before this line was added.
+        return Property::forUserOrJoint($user->id)->with(['jointOwner', 'mortgages'])->get();
     }
 
     public function forUsers(array $userIds): Collection
