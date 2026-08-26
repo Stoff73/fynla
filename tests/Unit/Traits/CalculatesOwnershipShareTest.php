@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Traits;
 
+use App\Exceptions\FinancialCalculationException;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Traits\CalculatesOwnershipShare;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class CalculatesOwnershipShareTest extends TestCase
@@ -101,6 +103,75 @@ class CalculatesOwnershipShareTest extends TestCase
         expect($calculator->shareFor($account, 16))->toBe(60000.00)
             ->and($calculator->shareFor($account, 17))->toBe(40000.00);
     }
+
+    /**
+     * W-0425 — `userShareFraction` refuses a mortgage and `atUserShare` did not.
+     *
+     * Both read the ownership columns ON the record, and CSJ's W-0228 ruling makes
+     * a mortgage's share follow the PROPERTY securing it. Handed a mortgage,
+     * `atUserShare` returned the pre-ruling answer with nothing to indicate it —
+     * on the household this was found against, joint 50% on the mortgage row
+     * against tenants-in-common 40% on its property, so £60,000 where £48,000 is
+     * correct.
+     *
+     * Not reachable today: the only callers are `SavingsAgent:92` and
+     * `InvestmentAgent:116`, both account collections. Guarded because the guard
+     * that keeps it unreachable already existed one method away.
+     */
+    public function test_at_user_share_refuses_a_mortgage_the_way_user_share_fraction_does(): void
+    {
+        $mortgage = new Mortgage([
+            'user_id' => 16,
+            'joint_owner_id' => 17,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50.00,
+            'outstanding_balance' => 120000.00,
+        ]);
+        $mortgage->property_id = 9;
+
+        $calculator = new OwnershipShareCalculator;
+
+        foreach ([
+            fn () => $calculator->atShare([$mortgage], 16)->all(),
+            fn () => $calculator->fractionFor($mortgage, 16),
+        ] as $call) {
+            try {
+                $call();
+                $this->fail('Expected a mortgage to be refused.');
+            } catch (FinancialCalculationException $e) {
+                // The same message from both, pointing at the one method that
+                // resolves the property.
+                $this->assertStringContainsString('calculateUserMortgageShare', $e->getMessage());
+                $this->assertStringContainsString('W-0228', $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * The other half of W-0425's acceptance: an over-broad guard would empty two
+     * agents' analyses, since `atUserShare` is what puts every derived figure at
+     * the user's fraction (W-0238).
+     */
+    public function test_at_user_share_still_answers_for_the_account_collections_that_use_it(): void
+    {
+        $account = new InvestmentAccount([
+            'user_id' => 16,
+            'joint_owner_id' => 17,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 60.00,
+            'current_value' => 100000.00,
+        ]);
+
+        $calculator = new OwnershipShareCalculator;
+
+        $mine = $calculator->atShare([$account], 16)->first();
+        $theirs = $calculator->atShare([$account], 17)->first();
+
+        expect((float) $mine->current_value)->toBe(60000.00)
+            ->and((float) $theirs->current_value)->toBe(40000.00)
+            // Presentation copies: the record itself must be untouched (W-0238).
+            ->and((float) $account->current_value)->toBe(100000.00);
+    }
 }
 
 class OwnershipShareCalculator
@@ -110,6 +181,17 @@ class OwnershipShareCalculator
     public function shareFor(object $asset, int $userId): float
     {
         return $this->calculateUserShare($asset, $userId);
+    }
+
+    /** @param iterable<int, object> $assets */
+    public function atShare(iterable $assets, int $userId): Collection
+    {
+        return $this->atUserShare($assets, $userId);
+    }
+
+    public function fractionFor(object $asset, int $userId): float
+    {
+        return $this->userShareFraction($asset, $userId);
     }
 
     public function mortgageBalanceFor(Mortgage $mortgage, int $userId): float
