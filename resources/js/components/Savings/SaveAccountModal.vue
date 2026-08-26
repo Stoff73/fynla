@@ -495,14 +495,27 @@
                   Joint Owner
                 </label>
                 <select
-                  v-model="formData.joint_owner_id"
+                  v-model="jointOwnerSelection"
+                  @change="handleJointOwnerSelection"
                   class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="">Select joint owner</option>
-                  <option v-if="spouse && spouse.id" :value="spouse.id">{{ spouse.name }} (Spouse)</option>
-                  <option v-if="!spouse || !spouse.id" value="" disabled>Link your spouse's account to enable joint ownership</option>
+                  <option v-if="spouse && spouse.id" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse)</option>
+                  <option value="other">Other (Enter Name)</option>
                 </select>
-                <p class="text-sm text-neutral-500 mt-1">
+                <div v-if="jointOwnerSelection === 'other'" class="mt-3">
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Joint Owner Name</label>
+                  <input
+                    v-model="formData.joint_owner_name"
+                    type="text"
+                    placeholder="Enter joint owner's full name"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  />
+                  <p class="text-sm text-neutral-500 mt-1">
+                    This person doesn't have an account here, so the account will only appear in yours.
+                  </p>
+                </div>
+                <p v-else class="text-sm text-neutral-500 mt-1">
                   Joint accounts will appear in both your and your spouse's accounts.
                 </p>
               </div>
@@ -597,6 +610,9 @@ export default {
 
   data() {
     return {
+      // W-0042 — which KIND of co-owner was chosen, which joint_owner_id alone
+      // cannot express once "Other" is an option.
+      jointOwnerSelection: '',
       submitting: false,
       isaAllowanceError: null,
       formData: {
@@ -620,6 +636,7 @@ export default {
         planned_lump_sum_date: null,
         ownership_type: 'individual',
         joint_owner_id: null,
+        joint_owner_name: '',
         beneficiary_id: '',
         beneficiary_name: '',
         beneficiary_dob: '',
@@ -912,6 +929,8 @@ export default {
         this.formData.country = 'United Kingdom';
         this.formData.ownership_type = 'individual';
         this.formData.joint_owner_id = null;
+        this.formData.joint_owner_name = '';
+        this.jointOwnerSelection = '';
         // Set isa_type based on account_type
         if (newType === 'cash_isa') {
           this.formData.isa_type = 'cash';
@@ -926,6 +945,8 @@ export default {
         this.formData.institution = 'NS&I';
         this.formData.ownership_type = 'individual';
         this.formData.joint_owner_id = null;
+        this.formData.joint_owner_name = '';
+        this.jointOwnerSelection = '';
       }
       // Auto-set access type based on product type
       if (newType === 'notice') {
@@ -948,6 +969,21 @@ export default {
   },
 
   methods: {
+    // W-0042 — record WHICH option was chosen. A shared account names either a
+    // linked account or an off-platform person; the two are mutually exclusive,
+    // so choosing one clears the other rather than leaving both attached.
+    handleJointOwnerSelection() {
+      if (this.jointOwnerSelection.startsWith('linked_')) {
+        this.formData.joint_owner_id = parseInt(this.jointOwnerSelection.replace('linked_', ''), 10);
+        this.formData.joint_owner_name = '';
+      } else if (this.jointOwnerSelection === 'other') {
+        this.formData.joint_owner_id = null;
+      } else {
+        this.formData.joint_owner_id = null;
+        this.formData.joint_owner_name = '';
+      }
+    },
+
     loadAccountData() {
       this.formData = {
         institution: this.account.institution || '',
@@ -970,10 +1006,22 @@ export default {
         planned_lump_sum_date: this.formatDateForInput(this.account.planned_lump_sum_date),
         ownership_type: this.account.ownership_type || 'individual',
         joint_owner_id: this.account.joint_owner_id || null,
+        joint_owner_name: this.account.joint_owner_name || '',
         beneficiary_id: this.account.beneficiary_id || '',
         beneficiary_name: this.account.beneficiary_name || '',
         beneficiary_dob: this.formatDateForInput(this.account.beneficiary_dob) || '',
       };
+
+      // W-0042 — rebuild WHICH option was chosen. Without this a shared account
+      // reopens with the select blank, and saving it would drop the co-owner that
+      // is stored — the same round-trip defect W-0368 was raised for on property.
+      if (this.formData.joint_owner_id) {
+        this.jointOwnerSelection = 'linked_' + this.formData.joint_owner_id;
+      } else if (this.formData.joint_owner_name) {
+        this.jointOwnerSelection = 'other';
+      } else {
+        this.jointOwnerSelection = '';
+      }
     },
 
     formatDateForInput(date) {
@@ -1047,6 +1095,8 @@ export default {
         planned_lump_sum_date: isISA && !this.isJuniorISA ? this.formData.planned_lump_sum_date : null,
         ownership_type: this.formData.ownership_type,
         joint_owner_id: this.formData.ownership_type === 'joint' ? this.formData.joint_owner_id : null,
+        // W-0042 — the off-platform co-owner, only meaningful while the account is shared.
+        joint_owner_name: this.formData.ownership_type === 'joint' ? (this.formData.joint_owner_name || null) : null,
         // Junior ISA beneficiary fields
         beneficiary_id: this.isJuniorISA && this.formData.beneficiary_id !== 'other' ? this.formData.beneficiary_id : null,
         beneficiary_name: this.isJuniorISA ? this.formData.beneficiary_name : null,

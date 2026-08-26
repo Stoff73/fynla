@@ -499,14 +499,28 @@
         </label>
         <select
           id="joint_owner_id"
-          v-model="localData.joint_owner_id"
+          v-model="jointOwnerSelection"
+          @change="handleJointOwnerSelection"
           class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="">Select joint owner</option>
-          <option v-if="spouse" :value="spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
-          <option v-if="!spouse" value="" disabled>No spouse linked - add spouse in Family Members</option>
+          <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+          <option value="other">Other (Enter Name)</option>
         </select>
-        <p class="text-sm text-neutral-500 mt-1">
+        <div v-if="jointOwnerSelection === 'other'" class="mt-3">
+          <label for="joint_owner_name" class="block text-sm font-medium text-neutral-500 mb-1">Joint Owner Name</label>
+          <input
+            id="joint_owner_name"
+            v-model="localData.joint_owner_name"
+            type="text"
+            placeholder="Enter joint owner's full name"
+            class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
+          <p class="text-sm text-neutral-500 mt-1">
+            This person doesn't have an account here, so the account will only appear in yours.
+          </p>
+        </div>
+        <p v-else class="text-sm text-neutral-500 mt-1">
           Joint accounts will appear in both your and your spouse's accounts.
         </p>
       </div>
@@ -775,6 +789,18 @@ export default {
   },
 
   methods: {
+    handleJointOwnerSelection() {
+      if (this.jointOwnerSelection.startsWith('linked_')) {
+        this.localData.joint_owner_id = parseInt(this.jointOwnerSelection.replace('linked_', ''), 10);
+        this.localData.joint_owner_name = '';
+      } else if (this.jointOwnerSelection === 'other') {
+        this.localData.joint_owner_id = null;
+      } else {
+        this.localData.joint_owner_id = null;
+        this.localData.joint_owner_name = '';
+      }
+    },
+
     switchFeeToFixed() {
       this.$emit('switch-fee-to-fixed');
     },
