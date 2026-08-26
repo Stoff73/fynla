@@ -3,14 +3,14 @@ id: W-0502
 title: IHTCalculationService::calculate() throws on a mortgaged main residence everywhere except production, so the estate calculation 500s on staging for the most ordinary case there is
 mission: w-0368-undivided-share-discount
 branch: null
-owner: null
+owner: build-lead
 reviewers: [quality-lead]
-status: open
+status: review
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-26T00:00:00Z
-claimed: null
+claimed: 2026-08-26
 blocked_by: []
 gate: null
 handoff_to: null
@@ -108,3 +108,53 @@ mortgages and pass.
 - **W-0501** — routed the estate action evaluator through `calculate()`, which is how
   this surfaced.
 - **W-0368** — `sumMainResidenceNetShare()` is the method that work added.
+
+---
+
+## Correction and fix — 2026-08-26
+
+### The trigger stated above is WRONG
+
+This item said the trigger was "a main residence carrying a mortgage". **It is not.**
+`chris@fynla.org` has exactly that — property 69, one mortgage — and
+`calculate()` returns normally for him. I inferred the trigger from the one account
+that failed instead of bisecting it, and the inference was wrong.
+
+**The reproducible trigger is being the `joint_owner_id` of a property whose
+`user_id` is somebody else.** Bisected: Chris alone is fine; add a property owned by
+user 9 with Chris as joint owner and `calculate()` throws; delete it and he is fine
+again.
+
+`PropertyStore::forUserByType()` reads `forUserOrJoint`, so that property comes back,
+and `sumMainResidenceNetShare()` then reads `$property->mortgages` — a relation the
+store never loaded.
+
+### Not fully explained, and said so
+
+**Why the viewer's OWN mortgaged main residence does not throw, I could not
+establish.** `relationLoaded('mortgages')` reports false for both properties, so both
+should lazy-load and both should raise. Only the joint-owned one does. I stopped
+digging into Eloquent's violation handling rather than keep spending on it, and the
+fix does not depend on the answer.
+
+### Fixed
+
+`forUserByType()` now eager-loads `mortgages`. That is correct on its own merits
+whatever the exact trigger: the store hands out models, both consumers of this read
+subtract a mortgage from a residence value, and neither can ask for the relation
+itself. It removes the throw off-production and an N+1 in production.
+
+Verified against the reproduction: the case that threw now returns a liability of
+£498,500. 786 passed across Estate, Estate services, Stores, Property and NetWorth.
+
+### No regression guard — acceptance 2 NOT met
+
+**I could not reproduce this in a test.** Three fixtures were tried — an individually
+owned mortgaged home, the same with a direct descendant, and the joint-owner shape
+that reproduces in tinker — and all three passed against the *unfixed* code. Whatever
+distinguishes the seeded database from a factory-built fixture, I did not find it.
+
+The test that exists (`IhtHandlesAMortgagedMainResidenceTest`) exercises the path and
+asserts the share is taken rather than the whole, so it is not worthless — **but it
+would not have caught this defect and must not be mistaken for a guard against it.**
+Acceptance 2 stays open, and acceptance 3's sweep is untouched.

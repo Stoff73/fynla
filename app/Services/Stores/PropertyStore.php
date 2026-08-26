@@ -84,8 +84,22 @@ class PropertyStore
 
     public function forUserByType(User $user, string $propertyType): Collection
     {
+        // W-0502 — `mortgages` eager-loaded because every consumer of this read that
+        // does anything with a residence's NET value reads it:
+        // `IHTCalculationService::sumMainResidenceNetShare()` (:2303) and
+        // `projectMainResidenceNetValue()` (:1273) both subtract the mortgage from
+        // the value, and neither can ask for the relation itself — the store hands
+        // them models, not a builder.
+        //
+        // Without it the read is a lazy load, which `AppServiceProvider:217` turns
+        // into a LazyLoadingViolationException everywhere except production
+        // (`preventLazyLoading(! app()->isProduction())`) — so staging 500s where
+        // production merely runs an extra query per property. Reproduced against the
+        // seeded database with a user who is the `joint_owner_id` of a property
+        // owned by somebody else.
         return Property::forUserOrJoint($user->id)
             ->where('property_type', $propertyType)
+            ->with('mortgages')
             ->get();
     }
 
