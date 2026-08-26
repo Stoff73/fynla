@@ -64,17 +64,53 @@ describe('Daily Insights API', function () {
         ]);
     });
 
-    it('reads the savings figures out of the agent payload', function () {
-        $user = User::factory()->create();
+    // The rotation at DailyInsightService:252 is `$insights[(int) now()->format('z')
+    // % count($insights)]` — day of year. The shared beforeEach mock supplies BOTH
+    // savings keys, so `compose()` builds TWO insights and the rotation alternates
+    // by the parity of the day: this file asserted the ISA text while the mock could
+    // serve the emergency-fund one, and the test therefore failed on every EVEN
+    // day-of-year. Measured: 2026-08-24 z=235 ISA, 2026-08-25 z=236 emergency fund,
+    // 2026-08-26 z=237 ISA, 2026-08-27 z=238 emergency fund. It went red in CI on
+    // the 25th and green locally on the 26th — same code, a day apart.
+    //
+    // Each key produces its own insight independently (`:118` and `:129`), so one
+    // key per test makes `count($insights)` exactly 1 and the rotation a genuine
+    // no-op — which is what the old comment claimed and the mock did not deliver.
+    // Both readers stay covered; neither depends on the calendar.
+    it('reads the ISA allowance out of the agent payload', function () {
+        mockAnalysis([
+            'savings' => [
+                'total_savings' => 12000,
+                'full_analysis' => [
+                    'isa_allowance' => ['remaining' => 12000.00],
+                ],
+            ],
+        ]);
 
-        $insight = $this->actingAs($user, 'sanctum')
+        $insight = $this->actingAs(User::factory()->create(), 'sanctum')
             ->getJson('/api/v1/mobile/insights/daily')
             ->assertOk()
             ->json('data.insight');
 
-        // Only savings produces here, so the day-of-year rotation is a no-op and
-        // this is the emergency fund or the ISA allowance — never the catch-all.
         expect($insight)->toContain('12,000.00');
+    });
+
+    it('reads the emergency-fund runway out of the agent payload', function () {
+        mockAnalysis([
+            'savings' => [
+                'emergency_fund_months' => 3.5,
+                'full_analysis' => [
+                    'emergency_fund' => ['runway_months' => 3.5],
+                ],
+            ],
+        ]);
+
+        $insight = $this->actingAs(User::factory()->create(), 'sanctum')
+            ->getJson('/api/v1/mobile/insights/daily')
+            ->assertOk()
+            ->json('data.insight');
+
+        expect($insight)->toContain('3.5 months');
     });
 
     it('reads the pension Annual Allowance under its own key', function () {
