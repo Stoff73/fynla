@@ -45,6 +45,7 @@ class EstateAssetAggregatorService
         private readonly MortgageStore $mortgageStore,
         private readonly LifeCoverReach $lifeCoverReach,
         private readonly TaxConfigService $taxConfig,
+        private readonly UndividedShareDiscount $undividedShareDiscount,
     ) {}
 
     /**
@@ -81,7 +82,23 @@ class EstateAssetAggregatorService
                 'user_id' => $user->id,
                 'asset_type' => 'property',
                 'asset_name' => $property->address_line_1 ?: 'Property',
-                'current_value' => $this->calculateUserShare($property, $user->id),
+                // W-0368 — an undivided share co-owned with a NON-spouse is valued
+                // for Inheritance Tax at a discount for restricted marketability.
+                // **IHTA 1984 s160** is the authority — the price the property would
+                // fetch on the open market — and IHTM15071 / SVM113040 are HMRC
+                // guidance on applying it, not the source of it.
+                //
+                // **s161 does not deny the discount between spouses.** It SUBSTITUTES
+                // a valuation basis, valuing related property as a proportion of the
+                // combined whole, and that basis leaves no restriction for a discount
+                // to price. `UndividedShareDiscount` is the one home for the rule.
+                //
+                // This is the Inheritance Tax path, so the discount belongs here and
+                // NOT in `calculateUserShare`, which net worth and every other module
+                // read.
+                'current_value' => $this->undividedShareDiscount->shareValue($property, $user),
+                'undiscounted_share' => $this->calculateUserShare($property, $user->id),
+                'undivided_share_discount' => $this->undividedShareDiscount->discountAmount($property, $user),
                 'full_value' => (float) $property->current_value,
                 'ownership_type' => $property->ownership_type ?? 'individual',
                 'ownership_percentage' => $property->ownership_percentage ?? 100,

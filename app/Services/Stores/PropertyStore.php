@@ -153,6 +153,7 @@ class PropertyStore
 
         $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data, $user, $source) {
             $property->fill($data);
+            $this->forgetSupersededSpouseAnswer($property, $data);
             $dirty = $property->getDirty();
             $previous = array_intersect_key($property->getOriginal(), $dirty);
             $property->save();
@@ -165,6 +166,47 @@ class PropertyStore
         event(new PropertyUpdated($result['fresh'], $result['dirty'], $user, $source, $result['previous']));
 
         return $result['fresh'];
+    }
+
+    /**
+     * W-0368 — `joint_owner_is_spouse` answers "is THIS co-owner my spouse".
+     *
+     * Replace the co-owner and the stored answer is about somebody else. Carried
+     * forward, a `false` given truthfully about a third party discounts an
+     * undivided share held with a spouse, which understates Inheritance Tax
+     * (IHTA 1984 s161) — the direction W-0368 exists to prevent. Forgetting it
+     * re-asks, and an unanswered question takes no discount, which overstates:
+     * the safe direction.
+     *
+     * A guard at the boundary rather than the closure of a live hole, and said
+     * plainly because W-0368 has already shipped one fix that could never fire.
+     * This method has exactly one caller today — `PropertyController::update()`,
+     * behind the single `PUT /api/properties/{id}` — and the web form always
+     * sends the field, so no current user route reaches a stale answer. There is
+     * no `update_property` Fyn tool and `/m` issues no PUT.
+     *
+     * It belongs here anyway, and here rather than in each writer (Rule 20),
+     * because the next writer is the `update_property` tool `/m` and native need,
+     * and `PropertyNormaliser::fromFyn()` whitelists `joint_owner_name` without
+     * the answer — so that writer arrives holding exactly this defect.
+     *
+     * A write that states the answer itself is left alone: on the web form the
+     * select offers "<name> (Spouse)" and "Other (Enter Name)" as separate
+     * choices, so the value it sends describes whoever is named beneath it.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function forgetSupersededSpouseAnswer(Property $property, array $data): void
+    {
+        if (array_key_exists('joint_owner_is_spouse', $data)) {
+            return;
+        }
+
+        $dirty = $property->getDirty();
+
+        if (array_key_exists('joint_owner_id', $dirty) || array_key_exists('joint_owner_name', $dirty)) {
+            $property->joint_owner_is_spouse = null;
+        }
     }
 
     public function updateOrCreate(array $match, array $data, User $user, IngestSource $source): Property
@@ -314,6 +356,9 @@ class PropertyStore
             'joint_ownership_type' => 'sometimes|nullable|in:joint_tenancy,tenants_in_common',
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
             'joint_owner_name' => 'sometimes|nullable|string|max:255',
+            // W-0368. Fyn is /m's only write path, so this rule decides whether /m
+            // and native can record the answer at all.
+            'joint_owner_is_spouse' => 'sometimes|nullable|boolean',
             'household_id' => 'sometimes|nullable|integer|exists:households,id',
             'trust_id' => 'sometimes|nullable|integer|exists:trusts,id',
             'trust_name' => 'sometimes|nullable|string|max:255',

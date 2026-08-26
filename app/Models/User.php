@@ -446,6 +446,37 @@ class User extends Authenticatable
     }
 
     /**
+     * The spouse's id while they are still the spouse, live account or not.
+     *
+     * There are THREE spouse questions in this application and they are not
+     * interchangeable. Pick by what you actually need to know:
+     *
+     * | Question | Method | On account deletion |
+     * |---|---|---|
+     * | May I show their data? | `liveSpouseId()` | null |
+     * | May I attach a `joint_owner_id`? | `hasReciprocalSpouseLink()` | false |
+     * | **Are these two married?** | **this** | **unchanged** |
+     *
+     * The first two must go dark when an account is deleted. This one must not:
+     * deleting an account is not a divorce, and `spouse_id` is retained on both
+     * sides precisely so the fact survives. The link ends when it is genuinely
+     * broken, which nulls the column on both sides (`FamilyMembersController`).
+     *
+     * **Do NOT route this through `hasReciprocalSpouseLink()`.** It looks like the
+     * obvious consolidation and is not: its existence check runs under the
+     * `SoftDeletes` global scope, so it returns false once the spouse's account
+     * goes. W-0368 measured what that costs — IHTA 1984 s161 values a spouse's
+     * related property on a substituted basis, so asking this question through a
+     * soft-delete-scoped answer let a deleted account switch an undivided-share
+     * discount ON over a spouse's share and understate Inheritance Tax. Pinned by
+     * `DeletedSpouseVisibilityTest`.
+     */
+    public function spouseIdRegardlessOfAccountState(): ?int
+    {
+        return $this->spouse_id === null ? null : (int) $this->spouse_id;
+    }
+
+    /**
      * The spouse's account while it is live, or null once it is deleted.
      *
      * Resolved WITHOUT lazy loading — `Model::preventLazyLoading()` is on, so

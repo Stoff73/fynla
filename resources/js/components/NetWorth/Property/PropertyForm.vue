@@ -1139,6 +1139,8 @@ export default {
         ownership_percentage: 100,
         joint_owner_id: null,
         joint_owner_name: '',
+        // NULL, not false — "never asked" is a distinct state from "not the spouse".
+        joint_owner_is_spouse: null,
         household_id: null,
         trust_id: null,
         trust_name: '',
@@ -1529,11 +1531,25 @@ export default {
       this.form.current_value = this.property.current_value || null;
       this.form.purchase_price = this.property.purchase_price || null;
 
-      // Set joint owner selection state
+      // W-0368 — `??` and never `||`. A stored `false` is the answer that turns
+      // the Inheritance Tax discount ON (IHTA 1984 s160); `||` would map it to
+      // `null` and silently disable the feature. Without this line the read below
+      // could never be satisfied, and because handleSubmit() spreads the whole
+      // form, every edit-and-save wrote the untouched `null` default over the
+      // user's answer.
+      this.form.joint_owner_is_spouse = this.property.joint_owner_is_spouse ?? null;
+
+      // Set joint owner selection state.
+      //
+      // W-0368 — a named spouse used to come back as "Other", so reopening a
+      // property and saving it silently converted a spouse co-owner into a third
+      // party and changed an Inheritance Tax valuation. Read the stored answer.
       if (this.form.joint_owner_id) {
         this.jointOwnerSelection = 'linked_' + this.form.joint_owner_id;
       } else if (this.form.joint_owner_name) {
-        this.jointOwnerSelection = 'other';
+        this.jointOwnerSelection = this.form.joint_owner_is_spouse === true && this.spouse
+          ? 'spouse_name'
+          : 'other';
       }
 
       // Set trust selection state
@@ -1697,17 +1713,24 @@ export default {
     },
 
     handleJointOwnerSelection() {
+      // W-0368 — record WHICH option was chosen, not just the resulting name.
+      // Whether the co-owner is the spouse decides an Inheritance Tax valuation
+      // (IHTA 1984 s161), and it used to be discarded here: picking "<name>
+      // (Spouse)" and typing the same name under "Other" produced identical rows.
+      // It cannot be recovered afterwards — on the live data neither marital status
+      // nor the name distinguishes them.
       if (this.jointOwnerSelection.startsWith('linked_')) {
-        // Extract ID and set joint_owner_id
         this.form.joint_owner_id = parseInt(this.jointOwnerSelection.replace('linked_', ''));
         this.form.joint_owner_name = ''; // Clear free text field
+        this.form.joint_owner_is_spouse = true;
       } else if (this.jointOwnerSelection === 'spouse_name') {
         // Spouse without linked account — use their name
         this.form.joint_owner_id = null;
         this.form.joint_owner_name = this.spouse?.name || '';
+        this.form.joint_owner_is_spouse = true;
       } else if (this.jointOwnerSelection === 'other') {
-        // Clear linked ID when using free text
         this.form.joint_owner_id = null;
+        this.form.joint_owner_is_spouse = false;
       }
     },
 
