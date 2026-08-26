@@ -225,8 +225,16 @@ describe('Funding Source Tracking', function () {
     });
 });
 
-describe('Life Cover Affordability', function () {
-    it('marks affordable life cover with no warning [4A.T6]', function () {
+describe('Life Cover Cost Removal', function () {
+    // These replace the former `Life Cover Affordability` cases, which asserted an
+    // `affordability` block computed from an estimated premium. Fynla no longer
+    // states one: what a policy costs is set by an insurer after underwriting, which
+    // ComplianceRules rule 3 names as something to signpost rather than perform, and
+    // since 2026-08-13 (05-perimeter.md §3) those rules bind all outbound content.
+    //
+    // Written as removal assertions, in the same shape as `Health Score Removal`
+    // below, so reinstating the estimate turns these red rather than passing quietly.
+    it('states the cover amount and attaches no cost to it [W-0141]', function () {
         $user = User::factory()->create([
             'date_of_birth' => now()->subYears(45),
         ]);
@@ -244,22 +252,26 @@ describe('Life Cover Affordability', function () {
                     'title' => 'Whole of Life Cover',
                     'description' => 'Test',
                     'actions' => [],
-                    'estimated_premium' => 1200,
                     'cover_amount' => 60000,
                 ],
             ]],
         ]);
-        // Monthly premium would be £100, 5% of £2000 disposable = affordable
-        $this->disposableIncome->shouldReceive('getMonthlyForUser')->andReturn(2000.0);
 
         $plan = $this->service->generatePlan($user->id);
         $lifeCoverAction = collect($plan['actions'])->firstWhere('category', 'new_life_cover');
 
-        expect($lifeCoverAction['affordability']['is_affordable'])->toBeTrue()
+        // The recommendation survives...
+        expect($lifeCoverAction)->not->toBeNull()
+            ->and($lifeCoverAction['category'])->toBe('new_life_cover')
+            // ...and carries no cost judgement. BasePlanService:290-291 passes both
+            // keys through with `?? null`, so the assertion is on the VALUE being
+            // null, not on the key being absent — the key is emitted for every
+            // action type and several legitimately populate it.
+            ->and($lifeCoverAction['affordability'])->toBeNull()
             ->and($lifeCoverAction['affordability_warning'])->toBeNull();
     });
 
-    it('flags unaffordable life cover with warning [4A.T7]', function () {
+    it('does not resurrect a cost when the agent still supplies one [W-0141]', function () {
         $user = User::factory()->create([
             'date_of_birth' => now()->subYears(45),
         ]);
@@ -277,19 +289,19 @@ describe('Life Cover Affordability', function () {
                     'title' => 'Whole of Life Cover',
                     'description' => 'Test',
                     'actions' => [],
+                    // A stale caller, or a future one, passing the old key.
                     'estimated_premium' => 12000,
                     'cover_amount' => 600000,
                 ],
             ]],
         ]);
-        // Monthly premium would be £1000, 50% of £2000 disposable = unaffordable
-        $this->disposableIncome->shouldReceive('getMonthlyForUser')->andReturn(2000.0);
 
         $plan = $this->service->generatePlan($user->id);
         $lifeCoverAction = collect($plan['actions'])->firstWhere('category', 'new_life_cover');
 
-        expect($lifeCoverAction['affordability']['is_affordable'])->toBeFalse()
-            ->and($lifeCoverAction)->toHaveKey('affordability_warning');
+        // The plan layer must not build an affordability judgement out of it.
+        expect($lifeCoverAction['affordability'])->toBeNull()
+            ->and($lifeCoverAction['affordability_warning'])->toBeNull();
     });
 });
 

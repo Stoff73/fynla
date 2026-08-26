@@ -178,3 +178,237 @@ this is fixed. That is the signal.**
   self-insurance**, generically. **Not a W-0141 finding and I am not raising it as one** — but
   it is exactly the shape the `Q-02` question set's categories B and C are built to probe, and
   whoever runs that corpus should know this static framework exists alongside whatever Fyn says.
+
+## Q-03 measured, 2026-08-26 — and a correction to the ruling's central premise
+
+Compliance-lead asked for the delta to be **assigned rather than estimated**, and
+said the remedy decision depends on it. Measured below entirely from Fynla's own
+configured values. **No external actuarial data was introduced and none is needed.**
+
+### The correction — Fynla does use the answer. Two modules of three.
+
+The ruling states: *"Neither service reads smoker status or health status anywhere"*
+and generalises it to *"Fynla collecting an answer and not using it."*
+
+**The first half is right and the generalisation is wrong.** Verified independently:
+
+| Module | Reads `smoker_status`? | What it does |
+|---|---|---|
+| **Protection** — `RecommendationEngine:182-186` | **Yes** | `$basePremium *= $smokerLoading` |
+| **Retirement** — `DecumulationPlanner:203-204` | **Yes** | `$factor *= 1.20` — enhanced annuity rates |
+| **Estate** — `LifeCoverCalculator:300`, `LifePolicyStrategyService:22` | **No** | comment only; rate applied unconditionally |
+
+`LifePolicyStrategyService::PREMIUM_TABLE` is indexed `[age][genderIndex]` — it has
+a gender dimension and **no smoker dimension at all**.
+
+**So this is not "Fynla knows something and its output does not". It is Fynla
+answering the same question two ways and a third module not asking it.** A user who
+declares they smoke gets a loaded premium in Protection, an enhanced annuity in
+Retirement, and an unloaded whole-of-life estimate in Estate — three modules, one
+declared fact, two different treatments and one omission.
+
+That is a smaller and more tractable defect than the ruling describes, because
+**the missing factor already exists and is already configured.**
+
+### One consequence for the ruling's permitted wording
+
+The sentence compliance marked as *"not optional and must not be softened"*:
+
+> *It does not use what you have told us about your own health or whether you smoke.*
+
+**That is true of the Estate figure and false of the Protection recommendation.**
+Applied to a Protection premium it would misdescribe Fynla in the opposite
+direction — telling a user their answer was ignored when it was applied. The wording
+needs scoping to the Estate surface, or rewording per surface. Flagged for
+compliance-lead rather than amended here.
+
+### The delta
+
+`protection.premium_factors.smoker_loading` = **1.5**, read live from
+`TaxConfigService`. **Configured, not a fallback** — the full block is
+`{"ip_rate":0.02,"ci_ratio":2.5,"base_rate":0.5,"smoker_loading":1.5}`.
+
+So Fynla's own recorded position is that a smoker pays **1.5×** a non-smoker.
+Applying that to `LifeCoverCalculator::estimateWholeOfLifePremium()`, which applies
+no smoker factor:
+
+| Age | Cover | Shown / yr | At Fynla's own ×1.5 | Understated by |
+|---|---|---|---|---|
+| 35 | £250,000 | £3,600 | £5,400 | £1,800 |
+| 45 | £250,000 | £4,500 | £6,750 | £2,250 |
+| 55 | £250,000 | £6,750 | £10,125 | £3,375 |
+| 65 | £250,000 | £11,250 | £16,875 | £5,625 |
+| 75 | £250,000 | £18,000 | £27,000 | £9,000 |
+| 45 | £500,000 | £9,000 | £13,500 | £4,500 |
+| 65 | £500,000 | £22,500 | £33,750 | £11,250 |
+| 75 | £500,000 | £36,000 | £54,000 | £18,000 |
+
+**The relative error is constant: the figure understates a smoker's premium by
+33.3%.** It scales linearly with cover and with the age loading, so the money
+understatement grows with both — £1,800/yr at the cheap end, £18,000/yr at the
+expensive end.
+
+Against compliance's own test — *small delta → disclosure is proportionate; large
+delta → the figure should perhaps not be shown at all* — **a third of the premium,
+always in the direction that makes cover look more affordable than Fynla itself
+believes it to be, is not a rounding error.**
+
+### The schema half is unchanged and still as the item describes
+
+Live, 2026-08-26:
+
+    protection_profiles.smoker_status   tinyint(1)    NOT NULL  DEFAULT '0'
+    protection_profiles.health_status   varchar(255)  NOT NULL  DEFAULT 'good'
+
+### A stale comment that would tell the next reader this is solved
+
+`ComprehensiveProtectionPlanService:215-218` now renders `'Not provided'` for a null
+— the display fix compliance credited. But its comment says:
+
+> *`smoker_status` is a nullable boolean and `health_status` is nullable*
+
+**Both are NOT NULL.** So the `default => 'Not provided'` arm is unreachable, exactly
+as the item's Intent says, and the comment asserts the opposite of the schema. Anyone
+reading it concludes the unknown case is handled. It is written, and dead.
+
+**Not corrected here** — the fix is the migration in acceptance 2, and the comment
+becomes true the moment that lands. Noted so it is not mistaken for the fix.
+
+## Remedy chosen 2026-08-26 — Azlan: "only recommend the cover, not the premium. There is a rule on this."
+
+**The rule is canonical and it is not one I proposed.**
+`app/Services/AI/Prompts/ComplianceRules.php`:
+
+- **Rule 3 — Signpost regulated advice.** Names **"protection underwriting"**
+  explicitly among the areas where Fynla must acknowledge its limits and point to a
+  regulated adviser.
+- **Rule 7 — never state financial product details from memory.**
+- **Rule 2 — no product recommendations.**
+
+And `05-perimeter.md` §3, ratified 2026-08-13: **the seven rules bind all outbound
+content, not only Fyn's chat.**
+
+**A premium is underwriting output.** It is set by an insurer after assessing an
+individual, and Fynla cannot know it. So the question this item has been circling —
+*is the non-smoker assumption defensible, and by how much is it wrong* — **dissolves.
+The figure should not be stated at any accuracy.** Q-03's 33.3% understatement
+measures the error in a number that should not be there.
+
+**This supersedes the disclosure wording in the compliance ruling above.** That
+wording was drafted on the premise that the figure would be retained.
+
+### The distinction that scopes the work
+
+**Estimated premiums** — Fynla's guess at what a user *would* pay. Underwriting.
+Must go.
+
+**Recorded premiums** — what the user *told* Fynla they pay on a policy they hold.
+Their own data, on their own record. **Stays.** `ProtectionCurrentSituation.vue:220`
+and `planPrintMixin.js:1356` show `total_monthly_premiums` from stored policies and
+are not in scope.
+
+Conflating the two would delete legitimate data display, so it is stated before any
+edit.
+
+### Full scope — every site that states an ESTIMATED premium
+
+**Backend**
+
+| Site | What it does |
+|---|---|
+| `EstateAgent:1162` | `$remainingLiability * 0.02` |
+| `EstateAgent:1170` | prose: *"premiums are still affordable (estimated £X/year at approximately 2% of cover)"* — **a premium quote AND an affordability judgement** |
+| `EstateAgent:1197` | trace line: *"Estimated annual premium: £X"* |
+| `EstateAgent:1201` | `'estimated_premium' => …` |
+| `LifeCoverCalculator:128,143,189,202` | `annual_premium` on both scenarios |
+| `LifeCoverCalculator:293-331` | `estimateWholeOfLifePremium()` — the method itself |
+| `LifePolicyStrategyService:27-60` | `PREMIUM_TABLE`, `[age][genderIndex]` |
+| `RecommendationEngine:177` | `estimateLifePremium()` |
+| `RecommendationEngine:40,209,220,249` | `estimatedCost` on life, decreasing term, critical illness and income protection |
+
+**Frontend**
+
+| Site | What it does |
+|---|---|
+| `HolisticPlanContent.vue:387-395` | reads `monthly_premium_estimate` |
+| `planPrintMixin.js:2344` | renders it as a badge — *"(£X/month)"* |
+| `planPrintMixin.js:3201-3203` | same, print path |
+
+`/m` and iOS not yet surveyed for equivalents.
+
+### Why this is not being executed in the same breath
+
+This removes displayed financial figures from **four modules across at least two
+surfaces**, and `estimatedCost` is a documented field other code reads. That is a
+different size of change from the one this item was raised as, and stripping
+figures users may currently rely on is not something to do on inference from a
+one-line instruction. **Scope recorded; execution put to Azlan.**
+
+## Slice 1 done 2026-08-26 — the Estate life-cover recommendation
+
+Scope answered by Azlan: *"only recommend the cover and word appropriately around
+that"*, applied to every estimated-premium site. This is the first slice, complete
+and tested on its own. The rest is scoped below, not done.
+
+### Changed
+
+**`EstateAgent`** — the `new_life_cover` recommendation no longer computes or states
+a premium.
+
+| Was | Now |
+|---|---|
+| `$estimatedAnnualPremium = $remainingLiability * 0.02` | removed |
+| *"At age 62, premiums are still affordable (estimated £4,000/year at approximately 2% of cover)"* | *"What such a policy costs depends on underwriting, so an insurer or a regulated adviser is the right place to get a figure."* |
+| action: *"Estimated annual premium: £4,000 (approximately 2% of cover at age 62)"* | action: *"The cost depends on underwriting — get quotes from multiple providers, or speak to a regulated adviser"* |
+| `'estimated_premium' => …` | removed |
+
+`cover_amount` is untouched. **The recommendation still says how much cover; it no
+longer says what it costs.** The block already carried *"Get quotes from multiple
+providers"* — the correct signpost, sitting beside an estimate that contradicted it.
+
+**`EstatePlanService::enrichRecommendations`** — the whole life-cover `affordability`
+block removed: `monthly_premium_estimate`, `is_affordable`, `affordability_ratio`,
+and the `affordability_warning` prose (*"The estimated monthly premium of £X
+represents Y% of your disposable income"*).
+
+**Leaving it in place would have been worse than removing it.** With the premium
+gone every figure would read £0, every plan would be declared affordable, and the
+warning would never fire — a false reassurance where there had at least been a
+number. The now-dead `$monthlyDisposable` local went with it; the accessor is still
+used at `:723` so the dependency stays.
+
+### Tested
+
+`Life Cover Affordability` in `EstatePlanRefactorTest` pinned the removed behaviour,
+so it was replaced by **`Life Cover Cost Removal`** — modelled on the
+`Health Score Removal` block below it, which pins a removal rather than a value. Two
+cases: the recommendation survives with no cost attached, and the plan layer does
+not rebuild a judgement even when a caller still passes the old `estimated_premium`
+key.
+
+**One correction worth recording.** The first version asserted the keys were
+*absent*. They are not: `BasePlanService:290-291` passes `affordability` and
+`affordability_warning` through with `?? null` for every action type, several of
+which legitimately populate them. The true assertion is that the **values are null**
+for life cover. Found by a probe printing the real action keys rather than by
+reasoning about the shape — the removal had worked, the assertion was wrong.
+
+`EstatePlanRefactorTest` **19 passed**; `ProtectionRecommendationAdapterTest` and
+`GetRecommendationsCompletenessTest` **20 passed**; `php -l` and `pint` clean.
+
+### Not done — the remaining scope, unchanged from the map above
+
+Estate scenarios (`LifeCoverCalculator::estimateWholeOfLifePremium`,
+`annual_premium`), `LifePolicyStrategyService::PREMIUM_TABLE`, Protection
+(`RecommendationEngine::estimateLifePremium` feeding `estimatedCost` on four
+recommendation types), `ProtectionActionDefinitionService:270`,
+`RecommendationsAggregatorService`'s `total_estimated_cost`, and five frontend files
+including `LifeCoverRecommendations.vue`, which shows **"Annual Premium" as a
+headline stat and a comparison-table column**.
+
+**One nuance for whoever takes it:** those components render
+`annual_premium || annual_investment`. The self-insurance scenario's
+`annual_investment` is **not** a premium — it is what the user would invest instead,
+which Fynla can legitimately state. The two share a display slot, so this is a UI
+restructure rather than a deletion, and deleting the slot would take a legitimate
+figure with it.
