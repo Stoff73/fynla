@@ -54,7 +54,12 @@ class PropertyStore
 
     public function forUserWithJointOwner(User $user): Collection
     {
-        return Property::forUserOrJoint($user->id)->with('jointOwner')->get();
+        // W-0502 acceptance 3 — the same shape as `forUserByType()`, found by sweeping
+        // for it rather than assuming one instance was the only one.
+        // `NetWorthService:372` reads `$property->mortgages` on what this returns, to
+        // net a property down by the debt secured on it. Proven to throw
+        // LazyLoadingViolationException before this line was added.
+        return Property::forUserOrJoint($user->id)->with(['jointOwner', 'mortgages'])->get();
     }
 
     public function forUsers(array $userIds): Collection
@@ -84,8 +89,22 @@ class PropertyStore
 
     public function forUserByType(User $user, string $propertyType): Collection
     {
+        // W-0502 — `mortgages` eager-loaded because every consumer of this read that
+        // does anything with a residence's NET value reads it:
+        // `IHTCalculationService::sumMainResidenceNetShare()` (:2303) and
+        // `projectMainResidenceNetValue()` (:1273) both subtract the mortgage from
+        // the value, and neither can ask for the relation itself — the store hands
+        // them models, not a builder.
+        //
+        // Without it the read is a lazy load, which `AppServiceProvider:217` turns
+        // into a LazyLoadingViolationException everywhere except production
+        // (`preventLazyLoading(! app()->isProduction())`) — so staging 500s where
+        // production merely runs an extra query per property. Reproduced against the
+        // seeded database with a user who is the `joint_owner_id` of a property
+        // owned by somebody else.
         return Property::forUserOrJoint($user->id)
             ->where('property_type', $propertyType)
+            ->with('mortgages')
             ->get();
     }
 

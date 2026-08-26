@@ -23,8 +23,8 @@ re-check rather than re-derive.
 | `7476ac5b8` | C2 — all three routes |
 | `5a34bf535` | C6 — citations, plus the session tech-debt pass |
 | `243922925` | `User::spouseIdRegardlessOfAccountState()` — names the relationship question and guards it |
-| `4fdf274ff` | W-0488 raised (`/m` and native cannot answer the question) |
-| `c8e71bdd5` | W-0489 raised (your fifth valuation site, re-scoped after measurement) |
+| `4fdf274ff` | W-0500 raised (`/m` and native cannot answer the question) |
+| `c8e71bdd5` | W-0501 raised (your fifth valuation site, re-scoped after measurement) |
 
 ## The three routes
 
@@ -128,8 +128,8 @@ now returns no "denies" anywhere. I verified that rather than asserting it, sinc
 
 - **C4** — `undiscounted_share` / `undivided_share_discount` still read by nothing, and
   `PersonalizedGiftingStrategyService:328` still quotes a sale price that is the
-  discounted share. Open. Cross-referenced from W-0489.
-- **C5 / your fifth site** — raised as **W-0489**, and **re-scoped after measurement**.
+  discounted share. Open. Cross-referenced from W-0501.
+- **C5 / your fifth site** — raised as **W-0501**, and **re-scoped after measurement**.
   You called it non-blocking because it overstates. It is wrong in **both** directions:
   `estimateEstateValue()` drops the non-primary side of every joint asset entirely, so
   a joint owner's share is reported as **£0** and the recommendation never fires. A
@@ -144,7 +144,7 @@ now returns no "denies" anywhere. I verified that rather than asserting it, sinc
 
 You asked whether shipping a correct-but-dormant rule was right. CSJ ruled on
 2026-08-26: **option B — the answer must come from a structured question the user
-answers, never from an LLM's reading of conversation.** Raised as **W-0488**, with the
+answers, never from an LLM's reading of conversation.** Raised as **W-0500**, with the
 implementation route found and grounded: `quick_replies` are suppressed on the
 post-onboarding capture path by design (INV-2.4.1 / INV-2.4.2), so it follows the
 `CaptureAccuracyGate` + deterministic-extractor pattern that `ownership_type` already
