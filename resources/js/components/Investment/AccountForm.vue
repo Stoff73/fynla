@@ -961,8 +961,11 @@ export default {
         if (allowedResponse.data?.allowed_levels) {
           this.allowedRiskLevels = allowedResponse.data.allowed_levels;
         }
-      } catch (error) {
-        // Silently fail - risk profile is optional
+      } catch {
+        // Silently fail - risk profile is optional.
+        // Optional catch binding: the error is deliberately unused, and naming it
+        // failed `no-unused-vars`. Pre-existing, and only reached CI because W-0042
+        // put this file in the range-aware lint's changed set.
       }
     },
 
