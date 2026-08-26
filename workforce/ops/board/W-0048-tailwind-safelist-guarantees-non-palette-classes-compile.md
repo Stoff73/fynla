@@ -94,3 +94,125 @@ both exists and passes contrast. **CSJ owns the guide; flagged, not amended.**
   Tailwind safelist) and the same sweep ledger. This item wins: it carries the reviewer
   chain (`reviewers: [build-lead]`) and was raised first. W-0082's three surviving
   constraints are recorded in the note above; nothing from it is lost.
+
+## Measurement 2026-08-26 — no colour changed, park respected
+
+Re-measured because the ledger dates from 2026-08-21. **Nothing in this section
+edits a colour; it establishes what is true today so the parked decision can be
+taken on current figures.**
+
+### The count has not run away
+
+Non-palette colour utilities across `resources/js`, `resources/views`,
+`resources/css`:
+
+| Family | Occurrences |
+|---|---|
+| blue | 222 |
+| green | 148 |
+| teal | 122 |
+| red | 98 |
+| pink | 81 |
+| gray | 59 |
+| slate | 55 |
+| emerald | 29 |
+| yellow | 20 |
+| fuchsia | 17 |
+| rose | 15 |
+| cyan | 11 |
+| **total** | **877** |
+
+Consistent with the 916-occurrence ledger. **The park has held** — this is not
+growing while it waits.
+
+### The safelist is unchanged and still guarantees four non-palette families
+
+`tailwind.config.js:9-13` still safelists `green`, `teal`, `blue` and `red` at
+seven utilities each. The item's diagnosis stands: those compile forever, nothing
+warns, and Rule 11 has no mechanism behind it.
+
+### The unbuildable clause is worse than recorded — it is live, and it is used
+
+The item flags `bg-light-blue-100 text-light-blue-700` in the guide as a build
+error. Two corrections, both verified:
+
+**It is not a build error.** Tailwind does not fail on an undefined utility; it
+simply emits nothing. `.text-light-blue-700` appears in **no** compiled stylesheet
+under `public/build/assets/`, while `.text-raspberry-700`, `.text-violet-700` and
+`.text-spring-700` all do.
+
+**And it is not confined to the guide.** `resources/js/views/Public/insights/
+InsightsHubPage.vue:324` uses it for the 'Platform updates' insight tag:
+
+    'Platform updates': 'bg-light-blue-100 text-light-blue-700',
+
+Proven in a browser rather than argued: a span carrying those two classes was
+rendered inside a host with `color: magenta`. It came back **`#FF00FF`** — the
+inherited colour — with the correct `#DDE2EF` background. Its siblings resolved
+`#6D28D9` and `#047857` correctly.
+
+**So on a public page, that badge has a coloured background and text in whatever
+colour it inherits.** It is a class that does nothing, not a near-miss on contrast.
+
+`light-blue` defines **100 and 500 only** (`tailwind.config.js:106-109`). The guide
+specifies the broken pair twice, at lines 797 and 822.
+
+### Contrast, if it is ever fixed
+
+| Pair | Ratio | AA |
+|---|---|---|
+| `light-blue-500` on `light-blue-100` | **2.89:1** | fail |
+| `neutral-500` on `light-blue-100` | 3.76:1 | fail |
+| **`horizon-500` on `light-blue-100`** | **11.00:1** | **pass** |
+
+The item's 2.9:1 figure is correct. `horizon-500` is the palette-correct pair that
+also passes — worth recording so the decision is not re-derived later.
+
+### What the existing mechanism already covers, and what it misses
+
+`.claude/hooks/design-lint.sh` (repaired under W-0491) greps changed files for
+banned colour tokens and blocks on a hit — forward-only, changed files only, so it
+cannot fire on the 877. But its pattern is:
+
+    (amber|orange)-[0-9]{2,3}|gray-[0-9]{2,3}|(primary|secondary)-[0-9]{2,3}
+
+**It does not match `blue`, `green`, `teal`, `red` or `pink`** — the four families
+the safelist guarantees, plus the one in `app.css:323`. So the mechanism acceptance
+1 asks for is **half-built already**, and widening the pattern is a lint change that
+edits no colour.
+
+`resources/mobile/` remains outside it entirely, per acceptance 3 — the hook only
+inspects `*.vue|*.js|*.css`, which does cover `resources/mobile/style.css`, but the
+pattern is Tailwind-class-shaped and `/m` uses hex and custom properties. W-0081
+cleared `/m`'s hex; nothing stops it returning.
+
+### Still parked, and correctly so
+
+Acceptance 2 (trim the safelist), the 877-occurrence migration, `app.css:323`, and
+the Risk module's five-step ramp are all untouched and stay that way under CSJ's
+decision. Nothing above changes a rendered colour.
+
+### Decisions taken 2026-08-26 — Azlan
+
+Both halves of the above were put to Azlan rather than acted on, because CSJ's park
+governs and the mechanism call is design-lead's.
+
+**1. The mechanism — NOT built. "Leave it and raise in future if still required."**
+
+`design-lint.sh`'s pattern is deliberately left as it is. It does not match `blue`,
+`green`, `teal`, `red` or `pink`, so new occurrences in those families are not
+caught. **That is a known, accepted gap while the park holds**, not an oversight:
+widening the pattern is a lint change that edits no colour, it was offered on that
+basis, and the answer was to leave it.
+
+To be re-raised when this item unparks — at which point it is the cheapest half of
+acceptance 1, since the hook already exists, already runs, and is already
+forward-only.
+
+**2. The broken tag — RAISED, NOT FIXED.** `text-light-blue-700` at
+`InsightsHubPage.vue:324` emits nothing and the tag inherits its colour. Written up
+with the browser evidence as **W-0499**. `fynlaDesignGuide.md:797` and `:822`
+specify the same unbuildable pair and are likewise left alone.
+
+**Nothing in this item has edited a colour, a class, the safelist or the guide.**
+The park is intact.
