@@ -40,6 +40,10 @@ class SavingsAccountNormaliser
         // SavingsController::updateAccount (lines 387-391).
         if ($ownershipType === 'individual') {
             $data['joint_owner_id'] = null;
+            // W-0042 — clear the off-platform name with the id. Leaving it behind
+            // would keep a co-owner attached to an account the user has just said
+            // is theirs alone.
+            $data['joint_owner_name'] = null;
             $data['ownership_percentage'] = SharedOwnership::INDIVIDUAL_PERCENTAGE;
             $data['trust_id'] = null;
         }
@@ -144,6 +148,7 @@ class SavingsAccountNormaliser
                 $toolParams['ownership_percentage'] ?? null,
             ),
             'joint_owner_id' => $toolParams['joint_owner_id'] ?? null,
+            'joint_owner_name' => $toolParams['joint_owner_name'] ?? null,
             'trust_id' => $toolParams['trust_id'] ?? null,
         ];
 

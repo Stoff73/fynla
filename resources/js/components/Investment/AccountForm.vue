@@ -275,6 +275,7 @@ export default {
         isa_subscription_current_year: null,
         ownership_type: 'individual',
         joint_owner_id: null,
+        joint_owner_name: '',
         trust_id: null,
         risk_preference: null,
         // Inline holdings
@@ -740,6 +741,7 @@ export default {
             isa_subscription_current_year: newAccount.isa_subscription_current_year || null,
             ownership_type: newAccount.ownership_type || 'individual',
             joint_owner_id: newAccount.joint_owner_id || null,
+            joint_owner_name: newAccount.joint_owner_name || '',
             trust_id: newAccount.trust_id || null,
             platform_fee_type: newAccount.platform_fee_type || 'percentage',
             platform_fee_frequency: newAccount.platform_fee_frequency || 'annually',
@@ -782,6 +784,7 @@ export default {
             isa_subscription_current_year: this.account.isa_subscription_current_year || null,
             ownership_type: this.account.ownership_type || 'individual',
             joint_owner_id: this.account.joint_owner_id || null,
+            joint_owner_name: this.account.joint_owner_name || '',
             trust_id: this.account.trust_id || null,
             risk_preference: this.account.risk_preference || null,
             platform_fee_type: this.account.platform_fee_type || 'percentage',
@@ -837,6 +840,7 @@ export default {
         // ISA can only be owned by an individual
         this.formData.ownership_type = 'individual';
         this.formData.joint_owner_id = null;
+        this.formData.joint_owner_name = '';
         this.formData.trust_id = null;
       }
       // Clear account_type_other when switching away from 'other'
@@ -853,6 +857,7 @@ export default {
         // NS&I is always individual ownership
         this.formData.ownership_type = 'individual';
         this.formData.joint_owner_id = null;
+        this.formData.joint_owner_name = '';
         this.formData.trust_id = null;
       }
     },
@@ -1056,7 +1061,7 @@ export default {
         'contribution_frequency', 'planned_lump_sum_amount', 'planned_lump_sum_date',
         'platform_fee_percent', 'platform_fee_amount', 'platform_fee_type', 'platform_fee_frequency', 'advisor_fee_percent',
         'isa_type', 'isa_subscription_current_year',
-        'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id',
+        'ownership_type', 'ownership_percentage', 'joint_owner_id', 'joint_owner_name', 'trust_id',
         'risk_preference',
         // Bond fields
         'bond_purchase_date', 'bond_withdrawal_taken',
@@ -1299,6 +1304,7 @@ export default {
         isa_subscription_current_year: null,
         ownership_type: 'individual',
         joint_owner_id: null,
+        joint_owner_name: '',
         trust_id: null,
         risk_preference: null,
         // Inline holdings

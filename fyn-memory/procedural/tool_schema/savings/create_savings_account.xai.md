@@ -93,6 +93,13 @@ effective_from: 2026-06-11
                 "enum": ["individual", "joint", "tenants_in_common", "trust"],
                 "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual — but when the user's own words state ownership (e.g. \"owned individually\", \"just me\", \"only mine\", \"individual ownership\", \"joint with my wife\"), that IS explicit confirmation: set the matching enum value. ISAs must be individual."
             },
+            "joint_owner_name": {
+                "type": [
+                    "string",
+                    "null"
+                ],
+                "description": "Name of a joint owner who is NOT on the platform, when no joint_owner_id applies. Only if joint or tenants_in_common. Use the name the user gave."
+            },
             "joint_owner_id": {
                 "type": ["integer", "null"],
                 "description": "User ID of the confirmed joint owner. Required when ownership is joint or tenants_in_common; otherwise null."
@@ -117,6 +124,7 @@ effective_from: 2026-06-11
             "regular_contribution_amount",
             "isa_subscription_amount",
             "ownership_type",
+            "joint_owner_name",
             "joint_owner_id",
             "trust_id",
             "ownership_percentage"

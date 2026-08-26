@@ -58,9 +58,13 @@ class SavingsStore
      *
      * For consumers that render the co-owner's name (e.g. the AI
      * existing-records prompt) and must not trip
-     * Model::preventLazyLoading on staging — savings_accounts has no
-     * joint_owner_name column, so the co-owner can only resolve via the
-     * relation.
+     * Model::preventLazyLoading on staging.
+     *
+     * W-0042 added `joint_owner_name`, so a co-owner now resolves two ways: the
+     * relation when the account names a LINKED user, and the column when it names
+     * someone off the platform. A reader wanting "who is the other half" must
+     * consider both — the relation alone is now an incomplete answer, which it was
+     * not when this method was written.
      */
     public function forUserWithJointOwner(User $user): Collection
     {
@@ -316,6 +320,9 @@ class SavingsStore
             'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
             'trust_id' => 'sometimes|nullable|integer|exists:trusts,id',
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
+            // W-0042 — a shared record may name an off-platform co-owner, the same
+            // way properties, mortgages and chattels already can (W-0025).
+            'joint_owner_name' => 'sometimes|nullable|string|max:255',
             'country' => 'sometimes|nullable|string|max:255',
             'include_in_retirement' => 'sometimes|boolean',
         ];

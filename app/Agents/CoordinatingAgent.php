@@ -3010,6 +3010,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {
@@ -3092,6 +3093,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
         ]);
         if ($validationError) {
             return $validationError;
@@ -3559,6 +3561,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
             'tenure_type' => ['nullable', Rule::in(['freehold', 'leasehold'])],
             'lease_remaining_years' => 'nullable|integer|min:0|max:999',
@@ -4110,6 +4113,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {
