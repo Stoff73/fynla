@@ -225,7 +225,12 @@ export default {
       if (this.runwayMonths == null) return 'Runway unavailable';
       const m = this.runwayMonths;
       const rounded = m >= 10 ? Math.round(m) : Math.round(m * 10) / 10;
-      return `${rounded} ${rounded === 1 ? 'month' : 'months'} of cover`;
+      // "from cash savings", not "of cover". Runway divides ALL cash by monthly
+      // spend, including money in notice and fixed-term accounts that cannot be
+      // reached on the day it is needed. Naming the basis is the agreed answer to
+      // W-0276 — the figure is deliberately unchanged, the wording stops implying
+      // the money is to hand. One wording on every surface (Rule 20).
+      return `${rounded} ${rounded === 1 ? 'month' : 'months'} from cash savings`;
     },
     runwayCovered() {
       if (this.emergencyTarget <= 0) return '';

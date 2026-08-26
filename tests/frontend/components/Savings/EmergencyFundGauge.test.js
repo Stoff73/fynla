@@ -129,7 +129,10 @@ describe('EmergencyFundGauge', () => {
       },
     });
 
-    expect(wrapper.vm.chartOptions.labels).toContain('Months Runway');
+    // "Months from cash savings", not "Months Runway": the figure counts ALL cash,
+    // including notice and fixed-term accounts, so the label names its basis rather
+    // than implying the money is to hand (W-0276).
+    expect(wrapper.vm.chartOptions.labels).toContain('Months from cash savings');
   });
 
   it('calculates gauge percentage correctly', () => {

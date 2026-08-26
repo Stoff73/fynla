@@ -592,7 +592,7 @@
   border: none;
   border-left: 1px solid var(--light-pink-100);
   background: transparent;
-  color: var(--neutral-400);
+  color: var(--neutral-500);
   cursor: pointer;
   transition: color 0.15s ease;
 }
@@ -776,7 +776,7 @@
   align-items: center;
 }
 .md-rec__lead svg { display: block; }
-.md-rec.is-unlock .md-rec__lead { color: var(--neutral-400); }
+.md-rec.is-unlock .md-rec__lead { color: var(--neutral-500); }
 .md-rec:not(.is-unlock) .md-rec__lead { color: var(--raspberry-500); }
 
 .md-rec__text {
@@ -1195,7 +1195,7 @@
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--neutral-400);
+  color: var(--neutral-500);
   margin: 0.75rem 0.75rem 0.25rem;
 }
 .md-drawer__link {
@@ -1584,7 +1584,7 @@
 .md-rec__skip {
   border: none !important;
   background: transparent !important;
-  color: var(--neutral-400) !important;
+  color: var(--neutral-500) !important;
   text-transform: none !important;
   letter-spacing: normal !important;
   font-size: 0.75rem !important;
@@ -1685,7 +1685,7 @@
   opacity: 1;
 }
 .md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg path {
-  stroke: var(--neutral-400);
+  stroke: var(--neutral-500);
 }
 
 /* v43b — ensure hover tick scales up (base svg is scale(0.4)) */
@@ -1694,7 +1694,7 @@
   transform: scale(1) !important;
 }
 .md-rec:not(.is-done) .md-rec__check-btn:hover .md-rec__check svg path {
-  stroke: var(--neutral-400) !important;
+  stroke: var(--neutral-500) !important;
 }
 
 /* ===================================================================

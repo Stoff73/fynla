@@ -94,11 +94,13 @@ describe('mobile bank accounts', () => {
     const wrapper = mountSavings();
     await flushPromises();
 
-    // 12,280 / 1,000. Under the defect this read 26 months of cover — and the
-    // bar and "% of target" were wrong by the same money.
+    // 12,280 / 1,000. Under the defect this read 26 months — and the bar and
+    // "% of target" were wrong by the same money.
     // The label rounds to whole months above ten, so 12.28 renders as "12".
+    // Wording is "from cash savings" rather than "of cover" since W-0276; the
+    // number is what this case is about and is unchanged.
     expect(wrapper.vm.runwayMonths).toBeCloseTo(12.28, 2);
-    expect(wrapper.text()).toContain('12 months of cover');
+    expect(wrapper.text()).toContain('12 months from cash savings');
     expect(wrapper.vm.runwayCovered).toBe('100% of target');
   });
 

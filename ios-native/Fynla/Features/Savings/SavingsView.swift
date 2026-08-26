@@ -389,7 +389,12 @@ struct SavingsView: View {
         guard monthly > 0 else { return "Runway unavailable" }
         let months = NSDecimalNumber(decimal: snapshot.totalCash / monthly).doubleValue
         let rounded = months >= 10 ? months.rounded() : (months * 10).rounded() / 10
-        return "\(rounded.formatted()) \(rounded == 1 ? "month" : "months") of cover"
+        // "from cash savings", not "of cover". Runway divides ALL cash by monthly
+        // spend, including money in notice and fixed-term accounts that cannot be
+        // reached on the day it is needed. Naming the basis is the agreed answer to
+        // W-0276 — the figure is deliberately unchanged, the wording stops implying
+        // the money is to hand. One wording on every surface (Rule 20).
+        return "\(rounded.formatted()) \(rounded == 1 ? "month" : "months") from cash savings"
     }
 
     private func runwayCovered(_ snapshot: SavingsSnapshot) -> String {

@@ -217,7 +217,7 @@ export default {
                 const lastName = this.personaName.split(' ').pop();
                 return `the ${lastName}s`;
             }
-            // Handle single names like "Margaret Thompson" -> "Margaret"
+            // Handle single names like "Alex Chen" -> "Alex"
             return this.personaName.split(' ')[0];
         },
 

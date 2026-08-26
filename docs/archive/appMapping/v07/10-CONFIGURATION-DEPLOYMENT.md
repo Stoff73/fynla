@@ -437,7 +437,7 @@ Seeds UK Office for National Statistics mortality data. Used by the retirement m
 |-------------|-------|-------------|
 | `young_family` | James & Emily Carter | Mortgage, workplace pensions, young children |
 | `peak_earners` | David & Sarah Mitchell | Multiple properties, SIPP + NHS pension, higher-rate tax |
-| `widow` | Margaret Thompson | Transferred NRB, estate planning, single income |
+| `student` | Janice Taylor | Student loan, Cash ISA + Lifetime ISA, early career |
 | `entrepreneur` | Alex Chen | SIPP, business interests, variable income |
 | `young_saver` | John Morgan | Emergency fund, first-time savings, no dependants |
 | `retired_couple` | Robert & Patricia Williams | Decumulation, annuities, estate planning |

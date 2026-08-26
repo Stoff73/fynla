@@ -1015,7 +1015,7 @@ Seeds 6 preview personas with pre-populated profile data:
 |---------|-------|------------------|
 | young_family | James & Emily Carter | Married, children, workplace pensions, mortgage |
 | peak_earners | David & Sarah Mitchell | Married, multiple properties, SIPP + NHS pension |
-| widow | Margaret Thompson | Widowed, estate planning focus |
+| student | Janice Taylor | Single, student loan, Cash ISA + Lifetime ISA |
 | entrepreneur | Alex Chen | Self-employed, SIPP, business interests |
 | young_saver | John Morgan | Single, emergency fund, first-time savings |
 | retired_couple | Robert & Patricia Williams | Retired, decumulation, estate planning |

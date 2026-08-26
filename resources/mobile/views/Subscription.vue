@@ -168,7 +168,7 @@ export default {
 .subscription-price { margin: 0; color: var(--horizon-500); font-size: 13px; font-weight: 800; text-align: right; }
 .subscription-features { display: grid; gap: 9px; margin: 16px 0 0; padding: 0; list-style: none; }
 .subscription-features li { display: flex; gap: 8px; color: var(--neutral-600); font-size: 13px; }
-.subscription-features li.is-unavailable { color: var(--neutral-400); }
+.subscription-features li.is-unavailable { color: var(--neutral-500); }
 .subscription-feature-icon { display: inline-flex; width: 14px; min-width: 14px; align-items: center; justify-content: center; }
 .subscription-upgrade { width: 100%; }
 </style>
