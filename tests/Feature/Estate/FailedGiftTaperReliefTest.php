@@ -249,3 +249,81 @@ it('reduces the estate band by the VALUE of in-window transfers, not the band th
 
     expect($r['total_nrb_used'])->toBe(300_000.0);
 });
+
+/**
+ * W-0468 — two transfers on the same day.
+ *
+ * `cumulationBefore()` selected transfers with `gap > 0` — STRICTLY earlier than
+ * the subject. `gifts.gift_date` is a DATE, so two transfers made on the same day
+ * have an identical `years` and a gap of exactly zero: each was excluded from the
+ * other's cumulation and measured against the whole band. Two £300,000 gifts
+ * against a £325,000 band produced NIL tax and reported £600,000 of a £325,000
+ * band as used — more band consumed than exists.
+ */
+it('makes two same-day transfers share one nil rate band', function () {
+    gift($this->user, 'pet', 300_000, 1);
+    gift($this->user, 'pet', 300_000, 1);
+
+    $r = $this->calc->forMember($this->user, $this->nrb);
+
+    // £600,000 given, £325,000 of band, so £275,000 is chargeable. One year, so no
+    // taper: £275,000 at the full 40% death rate.
+    expect($r['total_nrb_used'])->toBe(325_000.0)
+        ->and($r['failed_gift_tax'])->toBe(110_000.0);
+});
+
+it('splits the shared band in proportion to value, not equally', function () {
+    // Unequal on purpose: at 50/50 a proportional split and a fixed tie-break give
+    // the same answer, so the test could not tell them apart (tests/CLAUDE.md §4).
+    gift($this->user, 'pet', 450_000, 1);
+    gift($this->user, 'pet', 150_000, 1);
+
+    $r = $this->calc->forMember($this->user, $this->nrb);
+
+    $byValue = collect($r['failed_gifts'])->keyBy('gift_value');
+
+    // £325,000 of band split 75/25: £243,750 and £81,250, leaving £206,250 and
+    // £68,750 chargeable at the full rate.
+    expect($byValue[450_000.0]['covered_by_allowance'])->toBe(243_750.0)
+        ->and($byValue[450_000.0]['tax_due'])->toBe(82_500.0)
+        ->and($byValue[150_000.0]['covered_by_allowance'])->toBe(81_250.0)
+        ->and($byValue[150_000.0]['tax_due'])->toBe(27_500.0);
+});
+
+it('charges the same total however the same-day gifts are sized', function () {
+    // The split is a presentational choice; the TOTAL is the part that is not in
+    // doubt, and it must not move with the shape of the cohort. Both of these are
+    // £600,000 given on one day against a £325,000 band.
+    gift($this->user, 'pet', 450_000, 1);
+    gift($this->user, 'pet', 150_000, 1);
+    $uneven = $this->calc->forMember($this->user, $this->nrb);
+
+    Gift::query()->delete();
+
+    gift($this->user, 'pet', 300_000, 1);
+    gift($this->user, 'pet', 300_000, 1);
+    $even = $this->calc->forMember($this->user, $this->nrb);
+
+    expect($uneven['failed_gift_tax'])->toBe($even['failed_gift_tax'])
+        ->and($uneven['failed_gift_tax'])->toBe(110_000.0)
+        ->and($uneven['total_nrb_used'])->toBe($even['total_nrb_used']);
+});
+
+it('shares the band across same-day chargeable lifetime transfers too', function () {
+    // The lifetime basis cumulates immediately chargeable transfers only, so the
+    // same-day cohort on that basis must exclude potentially exempt transfers.
+    // A same-day PET must not shrink the band a CLT is measured against for its
+    // lifetime credit.
+    gift($this->user, 'clt', 300_000, 1);
+    gift($this->user, 'pet', 300_000, 1);
+
+    $r = $this->calc->forMember($this->user, $this->nrb);
+
+    $clt = collect($r['failed_gifts'])->firstWhere('gift_type', 'clt');
+
+    // On the DEATH basis both transfers share the band, so the chargeable lifetime
+    // transfer is measured against £162,500. On the LIFETIME basis it is alone, so
+    // the whole £325,000 covers it and no lifetime charge arises to credit.
+    expect($clt['covered_by_allowance'])->toBe(162_500.0)
+        ->and($clt['lifetime_tax_credited'])->toBe(0.0);
+});
