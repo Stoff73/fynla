@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\AI\AiToolDefinitions;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -13,7 +15,7 @@ beforeEach(function () {
     // GoalStore consults the tier gate on create, which resolves a TierConfiguration
     // row; without it the store throws ModelNotFoundException and the controller
     // turns that into a bare 500.
-    $this->seed(\Database\Seeders\TierConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 /**
@@ -95,7 +97,7 @@ it('lets Fyn set essential and shared ownership, which is the only goal write pa
     // (Goals.vue and GoalDetail.vue are read surfaces), so /m and native create
     // goals through Fyn. If the tool cannot carry these fields the capability is
     // web-only, whatever the form does.
-    $tool = collect(app(App\Services\AI\AiToolDefinitions::class)->getTools())
+    $tool = collect(app(AiToolDefinitions::class)->getTools())
         ->first(fn (array $t) => ($t['function']['name'] ?? $t['name'] ?? '') === 'create_goal');
 
     $props = $tool['function']['parameters']['properties'] ?? $tool['input_schema']['properties'] ?? [];
