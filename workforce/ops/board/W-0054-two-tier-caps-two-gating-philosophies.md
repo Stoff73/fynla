@@ -170,3 +170,71 @@ have **not** been audited here.
 - **Acceptance 5** — W-0011, untouched.
 - **Acceptance 6** — `/m` and iOS not examined.
 - **Acceptance 7** — no live browser verification.
+
+## Acceptance 4 — the capability-gate family, done 2026-08-26
+
+The second family, and the one `expenditure_detailed` belongs to. Free tier declares
+six `limited` (the count caps above), one `teaser` and **twelve `none`** — more than
+the six this item names.
+
+### The architecture is coherent, which the item does not credit
+
+`resources/js/constants/tierAccess.js` states the design in its own docblock:
+
+> `limited` → usable, but count-capped (the cap is surfaced separately by the
+> limit-reached modal — **NOT a nav gate**)
+> `teaser` / `none` → reachable, shows the teaser/upgrade page
+
+So there are two mechanisms **on purpose**, and both gate before entry:
+
+- **`limited`** → the limit-reached modal at the Add control (`isAtTierCap`).
+- **`teaser` / `none`** → `ROUTE_CAPABILITY` maps the destination to a capability and
+  `isRouteGated()` shows the upgrade page instead of the module. The user never
+  reaches a form.
+
+That covers `estate`, `what_if`, `holistic_plan`, `letter_to_spouse` (a query-param
+route, handled specially) and `investment_cost_analysis`.
+
+### The item's headline example was fixed the day after it was raised
+
+`expenditure_detailed` is the awkward case — a capability **inside** a page rather
+than a destination, so no route can gate it. It now gates before entry anyway:
+`ExpenditureForm.vue:1373-1376` computes `canUseDetailedExpenditure` from
+`auth/hasCapability` and forces Simple View without it, and `:400` withholds the
+detailed toggle entirely.
+
+`git log -S` dates that to **`d5fe9f9f7`, 2026-08-22** — the day after this item was
+written. **The "Actual" table above no longer reproduces**, and W-0011 with it.
+
+### What IS still the W-0011 shape
+
+**`document_upload` and `statement_upload`.** Enforced by route middleware
+(`CheckSubscription:47` → `api/documents/upload-only`) and `DocumentAllowanceGate`,
+with **no frontend awareness whatsoever** — `grep` across `resources/js` finds
+neither key outside the admin `TierConfiguration.vue`. So a free user at the
+allowance chooses a file, uploads it, and is refused afterwards.
+
+These are **actions, not destinations**, so `tierAccess.js` structurally cannot cover
+them — which is why they were missed. They need the third pattern: a before-entry
+check on the control itself, the same shape `expenditure_detailed` just got.
+
+### And one that is not a gating problem at all
+
+**`investments_exotic` is advertised in the pricing comparison and enforced
+nowhere.** Raised separately as **W-0499** — it is a missing gate on something sold
+to customers, not an inconsistent one.
+
+### Revised picture
+
+| Family | Mechanism | State |
+|---|---|---|
+| `limited` (7 count caps) | limit-reached modal | 6 correct; `mortgage` outlier, effectively unreachable |
+| `teaser` / `none` **destinations** | route → teaser page | correct |
+| capability **within a page** | in-page check | `expenditure_detailed` fixed 2026-08-22 |
+| capability **as an action** | none | **`document_upload`, `statement_upload` — still after-submit** |
+| advertised, ungated | none | **`investments_exotic` → W-0499** |
+
+The item's premise — two philosophies, one module against another — is not what the
+estate looks like. There is one philosophy, gate before entry, implemented by three
+mechanisms for three shapes of thing, with **uploads the one shape that never got
+one**.
