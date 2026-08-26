@@ -73,7 +73,7 @@ table: deleting it would break two live services.
 
 The model docblock and `HouseholdPlanningService` agree with each other — separate
 concepts, summed as separate asset classes. The console command contradicts both.
-That contradiction is raised separately as **W-0489**, because it is worth more
+That contradiction is raised separately as **W-0498**, because it is worth more
 than this item: the command is registered, has no idempotency guard, never removes
 its source rows, and would therefore **double-count every household's cash**.
 
@@ -138,4 +138,4 @@ knowing for the next sweep that consults it.
 - **No functional verification is possible.** The table has no writer reachable from
   the application, no rows, and no UI. There is nothing to exercise; the change is
   verified at the schema level only, which is the whole of it.
-- **The double-count in W-0489 is not fixed here**, only raised.
+- **The double-count in W-0498 is not fixed here**, only raised.

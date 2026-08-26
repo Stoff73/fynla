@@ -51,7 +51,7 @@ use Illuminate\Support\Facades\DB;
  * This migration does NOT address what the table is for. `cash_accounts` is read
  * by live code, described by its own model as current accounts rather than
  * savings, and described by that console command as the replacement for savings —
- * three answers at once. See W-0489.
+ * three answers at once. See W-0498.
  */
 return new class extends Migration
 {
