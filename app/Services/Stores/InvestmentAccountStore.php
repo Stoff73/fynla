@@ -251,7 +251,18 @@ class InvestmentAccountStore
             'user_id' => $req.'integer|exists:users,id',
             'account_name' => 'sometimes|nullable|string|max:255',
             'account_type' => $req.'in:isa,gia,nsi,onshore_bond,offshore_bond,vct,eis,private_company,crowdfunding,saye,csop,emi,unapproved_options,rsu,other',
-            'ownership_type' => $req.'in:individual,joint',
+            // `trust` added 2026-08-26 (W-0329). The column stores it, both
+            // Store/UpdateInvestmentAccountRequest permit it, and the two sibling
+            // Stores on the same un-normalised Fyn update path — SavingsStore:315
+            // and LiabilityStore:135 — allow the full set. This Store was the only
+            // layer refusing it, so a trust-owned account could be recorded through
+            // the web request and not through Fyn.
+            //
+            // `tenants_in_common` stays out: investment_accounts genuinely has no
+            // such enum value, and InvestmentAccountNormaliser coerces TIC to joint
+            // at the boundary. That exclusion is the documented decision; `trust`
+            // was collateral from the same catch-all.
+            'ownership_type' => $req.'in:individual,joint,trust',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
             'current_value' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'provider' => 'sometimes|nullable|string|max:255',
@@ -260,6 +271,25 @@ class InvestmentAccountStore
             'contributions_ytd' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'monthly_contribution_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
+
+            // The sixth axis (W-0329): bounds the form enforces and this Store did
+            // not. All nine are columns on `investment_accounts` and all nine are
+            // bounded by Store/UpdateInvestmentAccountRequest, but this ruleset had
+            // no rule for any of them — and `validateCanonical` runs
+            // `Validator::make()` without `validated()`, so an unruled key is not
+            // dropped, it is written. Fyn and `/m` write through here and through
+            // nothing else, so a 12% platform fee was a 422 on the web form and a
+            // successful save through Fyn. Mirrors the request exactly rather than
+            // inventing a bound.
+            'platform_fee_percent' => 'sometimes|nullable|numeric|min:0|max:10',
+            'advisor_fee_percent' => 'sometimes|nullable|numeric|min:0|max:10',
+            'interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
+            'current_ownership_percent' => 'sometimes|nullable|numeric|min:0|max:100',
+            'cliff_percentage' => 'sometimes|nullable|integer|min:0|max:100',
+            'performance_vesting_min_percent' => 'sometimes|nullable|integer|min:0|max:100',
+            'performance_vesting_max_percent' => 'sometimes|nullable|integer|min:0|max:100',
+            'saye_monthly_savings' => 'sometimes|nullable|numeric|min:0|max:500',
+            'saye_option_discount_percent' => 'sometimes|nullable|numeric|min:0|max:20',
         ];
 
         $validator = Validator::make($canonical, $rules);

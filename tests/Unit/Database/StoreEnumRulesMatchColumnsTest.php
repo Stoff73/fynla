@@ -34,9 +34,22 @@ use Illuminate\Support\Facades\DB;
  */
 
 /**
- * Store class => the table it writes.
+ * Store class => the table it writes, or, for a Store that writes several, the
+ * validation method for each table => that table.
  *
  * Resolved by reading each Store, not by guessing from the class name.
+ *
+ * **PensionStore writes three**, which is why it sat unmapped while this map was
+ * one-to-one (W-0329). `DCPension`, `DBPension` and `StatePension` are all created
+ * from the one class, each behind its own ruleset.
+ *
+ * **Resolving a field by "whichever of the Store's tables has that column" is WRONG,
+ * and this Store is the proof.** `scheme_type` exists on both `dc_pensions`
+ * (`workplace, sipp, personal`) and `db_pensions`
+ * (`final_salary, career_average, public_sector`) — same column name, disjoint
+ * enums. A first-match-wins lookup checks the DB ruleset against the DC column and
+ * reports a defect in BOTH directions at once, on a rule that is entirely correct.
+ * Only the enclosing method says which table a rule is about.
  */
 const STORE_TABLE = [
     'MortgageStore' => 'mortgages',
@@ -49,6 +62,11 @@ const STORE_TABLE = [
     'CurrencyRateStore' => 'currency_rates',
     'ActuarialLifeTableStore' => 'actuarial_life_tables',
     'SavingsMarketRateStore' => 'savings_market_rates',
+    'PensionStore' => [
+        'validateDcCanonical' => 'dc_pensions',
+        'validateDbCanonical' => 'db_pensions',
+        'validateStateCanonical' => 'state_pensions',
+    ],
 ];
 
 /**
@@ -69,19 +87,6 @@ const DELIBERATELY_NARROWER = [
     // mortgage.
     'MortgageStore::ownership_type' => ['tenants_in_common', 'trust'],
 
-    // NOT deliberate as far as anything in the codebase records, and reported
-    // rather than changed (W-0329): `investment_accounts.ownership_type` stores
-    // `trust`, and Store/UpdateInvestmentAccountRequest BOTH permit it via
-    // `Rule::in(['individual', 'joint', 'trust'])` — but InvestmentAccountStore
-    // refuses it, with no normaliser coercion of the kind that makes the mortgage
-    // case legitimate.
-    //
-    // It is listed here to keep this test honest about the CURRENT state rather
-    // than red on a defect it is not this test's job to fix. It is latent, not
-    // live: no form offers trust ownership on an investment account today. The
-    // moment one does — or Fyn's tool schema offers it — it becomes W-0326 in a
-    // second place. Remove this line when W-0329 resolves it.
-    'InvestmentAccountStore::ownership_type' => ['trust'],
 ];
 
 /**
@@ -91,7 +96,11 @@ const DELIBERATELY_NARROWER = [
  * inside protected methods that take a partial-update flag and a user, so
  * instantiating them here would test the harness rather than the rules.
  *
- * @return array<int, array{0: string, 1: string, 2: array<int, string>}>
+ * The enclosing method is captured alongside each rule, because in a Store that
+ * writes more than one table it is the only thing identifying which table the rule
+ * governs.
+ *
+ * @return array<int, array{0: string, 1: string, 2: array<int, string>, 3: string}>
  */
 function storeEnumRules(): array
 {
@@ -102,18 +111,55 @@ function storeEnumRules(): array
         $source = file_get_contents($file);
 
         preg_match_all(
+            '/function\s+([a-zA-Z0-9_]+)\s*\(/',
+            $source,
+            $methods,
+            PREG_OFFSET_CAPTURE | PREG_SET_ORDER
+        );
+
+        preg_match_all(
             "/'([a-z0-9_]+)'\s*=>\s*[^\n]*?\bin:([a-z0-9_,]+)/i",
             $source,
             $matches,
-            PREG_SET_ORDER
+            PREG_OFFSET_CAPTURE | PREG_SET_ORDER
         );
 
-        foreach ($matches as [, $field, $list]) {
-            $found[] = [$store, $field, explode(',', $list)];
+        foreach ($matches as $match) {
+            $offset = $match[0][1];
+            $method = '';
+
+            foreach ($methods as $declaration) {
+                if ($declaration[0][1] > $offset) {
+                    break;
+                }
+
+                $method = $declaration[1][0];
+            }
+
+            $found[] = [$store, $match[1][0], explode(',', $match[2][0]), $method];
         }
     }
 
     return $found;
+}
+
+/**
+ * The table a rule governs, or null when the Store is unmapped.
+ *
+ * A single-table Store ignores the method. A multi-table Store resolves through it,
+ * and returns null for a rule outside the mapped rulesets rather than guessing — an
+ * unattributable rule is skipped, not checked against an arbitrary one of its
+ * tables, which is the mistake described on STORE_TABLE.
+ */
+function tableFor(string $store, string $method): ?string
+{
+    $mapped = STORE_TABLE[$store] ?? null;
+
+    if ($mapped === null || is_string($mapped)) {
+        return $mapped;
+    }
+
+    return $mapped[$method] ?? null;
 }
 
 /** The enum values a column accepts, or null when it is not an enum. */
@@ -138,8 +184,8 @@ describe('a Store never permits a value its column cannot store', function () {
     it('has no rule allowing a value outside the column enum', function () {
         $offenders = [];
 
-        foreach (storeEnumRules() as [$store, $field, $allowed]) {
-            $table = STORE_TABLE[$store] ?? null;
+        foreach (storeEnumRules() as [$store, $field, $allowed, $method]) {
+            $table = tableFor($store, $method);
 
             if ($table === null) {
                 continue;
@@ -174,8 +220,8 @@ describe('a Store never permits a value its column cannot store', function () {
     it('refuses a value the column stores only where that is a recorded decision', function () {
         $offenders = [];
 
-        foreach (storeEnumRules() as [$store, $field, $allowed]) {
-            $table = STORE_TABLE[$store] ?? null;
+        foreach (storeEnumRules() as [$store, $field, $allowed, $method]) {
+            $table = tableFor($store, $method);
 
             if ($table === null) {
                 continue;
