@@ -179,6 +179,17 @@ class ChrisUserSeeder extends Seeder
             'remaining_term_months' => 300,
             'ownership_type' => 'joint',
             'ownership_percentage' => 50.00,
+            // W-0043 — name the SAME counterparty the property above names. This row
+            // was the orphan that item was raised against: marked joint at 50% with
+            // neither `joint_owner_id` nor `joint_owner_name`, so half a real
+            // liability was attributed to nobody and the owner's net worth was wrong
+            // by half a mortgage. It is seeded, so it came back on every reseed and a
+            // one-off sweep could never settle it.
+            //
+            // A mortgage's share follows the property securing it (W-0228), and that
+            // property is joint with 'wife' — so the debt has the same counterparty
+            // as the asset, and saying so is the correction rather than a new fact.
+            'joint_owner_name' => 'wife',
         ], $chris);
         app(MortgageStore::class)->updateOrCreate($btlMortgageCanonical, $chris, IngestSource::SEEDER);
 
