@@ -312,7 +312,23 @@ class Goal extends Model
     }
 
     /**
-     * Check if goal is jointly owned.
+     * Is this goal shared with a spouse?
+     *
+     * **`ownership_type` and `show_in_household_view` are different questions and
+     * the form offers both** (W-0038 acceptance 4, decided by CSJ 2026-08-26):
+     *
+     * - `ownership_type = 'joint'` — WHOSE goal it is. A shared goal belongs to
+     *   both spouses, so `Goal::forUserOrJoint()` returns it to either of them.
+     * - `show_in_household_view` — whether a goal appears in the COMBINED household
+     *   projection. An individual goal can be shown there; a shared goal can be
+     *   kept out of it.
+     *
+     * **A shared goal is ONE goal, seen whole by both.** Not two halves. A couple
+     * saving £50,000 for a deposit have a single £50,000 target, and showing them
+     * £25,000 each would describe a household saving twice and reaching neither
+     * figure. This is deliberately unlike a jointly-owned ASSET, where each spouse
+     * genuinely owns half the value — which is why `ownership_percentage` carries
+     * no meaning on a goal and no surface asks for one.
      */
     public function isJoint(): bool
     {

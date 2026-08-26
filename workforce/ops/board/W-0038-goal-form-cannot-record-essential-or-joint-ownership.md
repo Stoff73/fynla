@@ -4,11 +4,11 @@ title: Goal form cannot record "essential" or joint ownership — a joint goal c
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: review
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T12:40:00Z
-claimed: null
+claimed: 2026-08-26
 blocked_by: []
 gate: null
 handoff_to: null
@@ -117,3 +117,46 @@ building.
 - [ ] Household goal roll-ups do not double-count a joint goal across both spouses.
 - [ ] `/m` and iOS goal entry carry the same fields (Rule 19).
 - [ ] Re-verified live in the browser by the persona run, both accounts.
+
+---
+
+## Built 2026-08-26 — and the item overstated the gap
+
+**The backend was never the problem.** `StoreGoalRequest` has always validated
+`is_essential`, `ownership_type`, `joint_owner_id` and `ownership_percentage`; `Goal`
+already uses `HasJointOwnership`; and `GoalsController:64` already reads
+`Goal::forUserOrJoint()`. A joint goal created directly was already visible to both
+spouses. The gap was the form, and one piece of behaviour behind it.
+
+**What was genuinely missing beyond the controls:** `Goal::isJoint()` had **zero
+callers**, so nothing anywhere acted on a goal being shared.
+
+### CSJ decision 2026-08-26 — a shared goal is ONE goal
+
+Put with both answers costed. A couple saving £50,000 for a deposit have a single
+£50,000 target; showing them £25,000 each would describe a household saving twice and
+reaching neither figure. **Deliberately unlike a jointly-owned asset**, where each
+spouse genuinely owns half the value.
+
+So `ownership_percentage` carries no meaning on a goal, no surface asks for one, and
+the Fyn tool deliberately does not expose one — a test asserts its absence, because
+offering it would invite Fyn to halve a target nobody halved.
+
+### Acceptance
+
+| # | State |
+|---|---|
+| 1. Essential flag persists, detail view says so | **Done** — control added; `GoalDetailInline:180` had always displayed a field nothing could set |
+| 2. Joint ownership via the shared mechanism | **Done** — no fourth copy; the form writes the same columns every other joint record uses, and the spouse is offered only where reciprocally linked |
+| 3. Both spouses see it from ONE row | **Already true**, now pinned by test rather than assumed |
+| 4. `show_in_household_view` vs `ownership_type` decided and documented | **Done** — in `Goal::isJoint()`'s docblock. Ownership is WHOSE goal it is; household view is whether it appears in the COMBINED projection. They are independent, and the form offers both |
+| 5. Roll-ups do not double-count | **Verified, no change needed** — `GoalsProjectionService:551` is ONE query with `orWhere`, so a row matching several conditions returns once |
+| 6. `/m` and iOS carry the same fields | **Done via Fyn.** `resources/mobile` has no goal form and no goal write call at all — `Goals.vue` and `GoalDetail.vue` are read surfaces — so those surfaces create goals through Fyn. Both `create_goal` schemas and `CoordinatingAgent`'s handler now carry the three fields, pinned by a test against the LIVE catalogue |
+| 7. Re-verified live in the browser by the persona run | **NOT DONE** — see below |
+
+### Not done
+
+**Acceptance 7 is outstanding.** These changes are covered by test at the API, store,
+model and tool-catalogue level, and the frontend suite is green, but nobody has
+clicked through `/goals` as both spouses and watched a shared goal appear on each
+side. That is the persona run's job and it has not been done.
