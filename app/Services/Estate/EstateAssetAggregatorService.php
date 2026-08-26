@@ -32,9 +32,32 @@ use Illuminate\Support\Collection;
  * - Query pattern: where('user_id', $id)->orWhere('joint_owner_id', $id)
  * - User's share calculated from full value * ownership_percentage
  *
- * IHT Considerations:
- * - Joint tenancy: Passes to survivor (may exclude from first death estate)
- * - Tenants in common: User's share included in estate
+ * **What this computes: a SECOND-DEATH estate.** Both members pooled, every record
+ * counted once, at each member's own share. Both of `IHTCalculationService::calculate()`'s
+ * columns — current and projected — are "both gone" estates. There is no first-death
+ * figure anywhere on this path.
+ *
+ * **Survivorship is therefore not applied, and that is correct rather than missing.**
+ * Ownership type decides the SIZE of a member's share (and, for an undivided share
+ * held with a non-spouse, its valuation — see `UndividedShareDiscount`). It does not
+ * decide whether the share is in the estate at all, because on a second death there
+ * is no survivor left for a joint tenancy to pass to.
+ *
+ * **DO NOT "fix" this to exclude joint-tenancy property.** This docblock used to say
+ * "Joint tenancy: Passes to survivor (may exclude from first death estate)", which
+ * described a first-death treatment the service has never implemented, and W-0375 was
+ * raised because the obvious response to that sentence is to make the code match it.
+ * Excluding joint tenancy from a second-death estate would delete roughly HALF the
+ * household estate and understate Inheritance Tax by the same.
+ *
+ * The trap is well stocked: `TaxConfigService::hasSurvivorshipRights()`,
+ * `allowsWillOverride()` and `getPropertyOwnership()` all exist, all read live
+ * configuration (`joint_tenancy.survivorship = true`), and all have ZERO callers.
+ * They look like the missing wiring. They are not — nothing on this path should
+ * consult them.
+ *
+ * If a first-death figure is ever wanted it is a NEW figure with its own name, not a
+ * reinterpretation of this one (W-0375 acceptance 2).
  */
 class EstateAssetAggregatorService
 {
