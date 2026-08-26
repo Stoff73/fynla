@@ -4,11 +4,11 @@ title: Two tier caps, two gating philosophies — life events block before entry
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: in-progress
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T14:15:00Z
-claimed: null
+claimed: 2026-08-26
 blocked_by: []
 gate: null
 handoff_to: design-lead
@@ -107,3 +107,66 @@ work.
 Surfaced while establishing a baseline for the cap-lift test, not while looking for it.
 The lift test itself passed cleanly (see R-15) — this is a separate observation about
 what a capped user experiences before any upgrade happens.
+
+---
+
+## Acceptance 4 — the audit, done 2026-08-26
+
+**Done by measurement, not by reading.** A first pass by grep gave the wrong answer
+twice and both corrections matter, so the method is recorded with the result.
+
+### The count-cap family
+
+| Capability | Free cap | Gate BEFORE entry | Server enforcement |
+|---|---|---|---|
+| `goal` | 2 | ✔ `GoalsDashboard.vue` | ✔ `GoalStore` |
+| `property` | 1 | ✔ `PropertyList.vue` | ✔ `PropertyStore` |
+| `investment` | 2 | ✔ `InvestmentList.vue` | ✔ `InvestmentAccountStore` |
+| `life_event` | 1 | ✔ `EventsTab.vue` | ✔ `LifeEventStore` |
+| `pension_account` | 2 | ✔ `PensionList.vue` | ✔ `PensionStore` |
+| `savings_account` | 2 | ✔ `CashOverview.vue` | ✔ `SavingsStore` |
+| `mortgage` | 10 | ✘ **none** | ✔ `MortgageStore` |
+
+**Six of seven already use the good shape.** The before-entry mechanism is
+`tierLimitMixin`'s `isAtTierCap()` / `tierCountCap()`, and every list surface with an
+Add control calls it.
+
+### Two corrections to a grep-first reading
+
+1. **`enforceTierCap` is not the mechanism.** Grepping for it found four stores and
+   suggested `goal`, `life_event` and `savings_account` had no server enforcement at
+   all. They do — `tierGate->canCreate()` is the real call, and those three make it
+   directly rather than through a private wrapper. Proven by driving `SavingsStore`
+   past its cap in a test: refused on attempt 3 of 2. **The inconsistency is in the
+   helper's name, not in the enforcement.**
+2. **`mortgage`'s outlier status is real but almost certainly cannot bite.** There is
+   no mortgage list surface to gate — mortgages are added inside
+   `PropertyDetailInline` / `PropertyForm`. And the free tier permits **1 property
+   and 10 mortgages**, so reaching the mortgage cap needs ten mortgages secured on a
+   single permitted property. It is the one count cap that would produce the
+   after-submit shape, and the one a user is least likely ever to meet.
+
+### This reframes the item
+
+The item reads as though the estate is broadly inconsistent. On the count-cap family
+it is not: six of seven gate before entry and the seventh is effectively unreachable.
+
+**The loud example is a different mechanism.** `expenditure_detailed` is a
+**capability** gate (`TeaserGate`, full/teaser/none), not a count cap — which is why
+it behaves nothing like the seven above and why fixing the count-cap family would not
+have touched it. The remaining capability gates named in acceptance 4 —
+`letter_to_spouse`, `estate`, `holistic_plan`, `document_upload`,
+`investments_exotic`, `joint_household_view` — belong to that same second family and
+have **not** been audited here.
+
+## Not done
+
+- **Acceptance 1, 2, 3** — the convergence itself, and the shared message and upgrade
+  affordance. Acceptance 2 assigns that copy and pattern to `design-lead`, and this
+  item's `handoff_to` says the same, so it is not build-lead's to invent.
+- **The capability-gate half of acceptance 4** — the six teaser-gated capabilities
+  above. That is the family `expenditure_detailed` belongs to and where the real
+  inconsistency is likely to live.
+- **Acceptance 5** — W-0011, untouched.
+- **Acceptance 6** — `/m` and iOS not examined.
+- **Acceptance 7** — no live browser verification.
