@@ -2766,11 +2766,19 @@ class IHTCalculationService
     /**
      * Calculate the 2027 pension Inheritance Tax amendment dual-scenario projection.
      *
-     * From April 2027, unused defined contribution pension pots will be included
-     * in the taxable estate for Inheritance Tax purposes (Autumn Budget 2024).
+     * From the configured effective date, unused defined contribution pension pots
+     * will be included in the taxable estate for Inheritance Tax purposes (Autumn
+     * Budget 2024). The date lives in
+     * `inheritance_tax.pension_iht_inclusion.effective_date` and is 2027-04-06
+     * today — do not restate it as a literal anywhere below, which is what W-0372
+     * was raised for.
      *
-     * Returns both the current rules scenario and the post-2027 scenario,
+     * Returns both the current rules scenario and the post-amendment scenario,
      * allowing users to understand the potential impact.
+     *
+     * The `post_2027_rules` key is deliberately NOT renamed: it is a published API
+     * key that web, `/m` and native all read, so it is an identifier rather than
+     * copy. Only the prose the user reads follows the configured date.
      *
      * @param  User  $user  The primary user
      * @param  User|null  $spouse  The spouse
@@ -2869,11 +2877,15 @@ class IHTCalculationService
                 'iht_liability' => round($postAmendmentIHTLiability, 2),
                 'additional_iht' => round($additionalIHT, 2),
                 'pensions_included' => true,
-                'description' => 'From April 2027, unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
+                // W-0372 — from the configured date, not a literal. `$effectiveDate`
+                // is read at the top of this method and published as its own field
+                // four lines above; restating it here meant a Budget that moved the
+                // date moved every figure and left the sentence behind.
+                'description' => 'From '.$effectiveDate->format('F Y').', unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
             ],
             'impact_summary' => $additionalIHT > 0
-                ? 'The 2027 pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
-                : 'The 2027 pension amendment would not increase your Inheritance Tax liability based on current pension values.',
+                ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
+                : 'The '.$effectiveDate->format('Y').' pension amendment would not increase your Inheritance Tax liability based on current pension values.',
         ];
     }
 
