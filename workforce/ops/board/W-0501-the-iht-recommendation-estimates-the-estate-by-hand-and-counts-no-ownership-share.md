@@ -1,5 +1,5 @@
 ---
-id: W-0489
+id: W-0501
 title: The "estate exceeds the nil-rate band" recommendation estimates the estate by hand, counts no ownership share, and drops the non-primary side of every joint asset entirely
 mission: w-0368-undivided-share-discount
 branch: null
@@ -130,7 +130,7 @@ unconditional RNRB together, and removes the divergence permanently.
 - **W-0368** — parent. The re-gate that found this site. C1–C3 discharged, C2 fixed in
   `7476ac5b8`; PR #719 awaiting re-gate. This item is the C5 "fifth site", promoted and
   re-scoped after measurement.
-- **W-0488** — the other W-0368 follow-on: `/m` and native cannot answer the spouse
+- **W-0500** — the other W-0368 follow-on: `/m` and native cannot answer the spouse
   question the discount turns on.
 - **W-0015** — joint share computed three ways, surfaces disagree. Same disease, and
   the reason the fix here is deletion rather than a fourth implementation.
