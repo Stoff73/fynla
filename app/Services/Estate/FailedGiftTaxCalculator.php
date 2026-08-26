@@ -155,7 +155,15 @@ final class FailedGiftTaxCalculator
             // thirteen years back and a £300,000 gift last year against a £325,000
             // band, it produced £110,000 where the law produces nil.
             $deathCumulation = $this->cumulationBefore($gifts, $gift, $deathWindow, includePets: true, petWindow: $petWindow);
-            $bandAtDeath = max(0.0, $nrbSingle - $deathCumulation);
+            // W-0468 — what strictly-earlier transfers leave, then shared with any
+            // transfer made on the SAME DAY, which no inequality can order.
+            $bandAtDeath = $this->apportionSameDay(
+                max(0.0, $nrbSingle - $deathCumulation),
+                $gifts,
+                $gift,
+                includePets: true,
+                petWindow: $petWindow,
+            );
             $chargeableDeath = max(0.0, $gift['value'] - $bandAtDeath);
             $bandUsed = min($gift['value'], $bandAtDeath);
 
@@ -197,7 +205,17 @@ final class FailedGiftTaxCalculator
             $lifetimeCharge = 0.0;
             if ($gift['type'] === 'clt') {
                 $lifetimeCumulation = $this->cumulationBefore($gifts, $gift, $lifetimeLookback, includePets: false, petWindow: $petWindow);
-                $chargeableLifetime = max(0.0, $gift['value'] - max(0.0, $nrbSingle - $lifetimeCumulation));
+                // Same-day sharing applies to the lifetime basis too, and on that
+                // basis only immediately chargeable transfers are in the cohort —
+                // `includePets: false`, matching the cumulation above it.
+                $lifetimeBand = $this->apportionSameDay(
+                    max(0.0, $nrbSingle - $lifetimeCumulation),
+                    $gifts,
+                    $gift,
+                    includePets: false,
+                    petWindow: $petWindow,
+                );
+                $chargeableLifetime = max(0.0, $gift['value'] - $lifetimeBand);
                 $lifetimeCharge = $chargeableLifetime * $lifetimeRate;
             }
 
@@ -272,39 +290,126 @@ final class FailedGiftTaxCalculator
     {
         return (float) $gifts
             ->filter(function (array $other) use ($subject, $window, $includePets, $petWindow): bool {
-                if ($other['model']->id === $subject['model']->id) {
+                if (! $this->cumulates($other, $subject, $includePets, $petWindow)) {
                     return false;
                 }
 
-                if ($other['type'] !== 'clt') {
-                    if (! $includePets) {
-                        return false;
-                    }
-
-                    // R1 — a potentially exempt transfer that survived its window is
-                    // EXEMPT and cumulates against nothing. s3A(4): such a transfer
-                    // "IS AN EXEMPT TRANSFER"; IHTM14513 on its worked example — "the
-                    // transfer ... is a successful PET. It is omitted from
-                    // cumulation."
-                    //
-                    // The collection this filters spans the whole fourteen-year search
-                    // bound, and the main loop's out-of-window guard only skips such a
-                    // gift for CHARGING. Without this it was counted here, inventing
-                    // £110,000 on a survived £300,000 gift — the same magnitude as the
-                    // running-band defect it replaced, on the sibling case. THE
-                    // PET/CLT ASYMMETRY IS THE FOURTEEN-YEAR RULE: a chargeable
-                    // lifetime transfer reaches back further because it was chargeable
-                    // when made; a survived potentially exempt transfer reaches nowhere.
-                    if ($other['years'] >= $petWindow) {
-                        return false;
-                    }
-                }
                 // Strictly earlier, and within `$window` years of the subject.
+                // Same-day transfers (gap exactly zero) are handled by
+                // `apportionSameDay()` rather than here — see its docblock.
                 $gap = $other['years'] - $subject['years'];
 
                 return $gap > 0 && $gap < $window;
             })
             ->sum('value');
+    }
+
+    /**
+     * Is `$other` a transfer that cumulates against `$subject` at all, leaving
+     * WHEN it was made to the caller?
+     *
+     * One predicate, two callers (Rule 20): `cumulationBefore()` adds the
+     * strictly-earlier window test, `sameDayCohortValue()` adds the same-day test.
+     * Duplicating it would let the potentially-exempt-transfer rules below drift
+     * between the two, and those rules are the ones that invented £110,000 once
+     * already.
+     *
+     * @param  array<string, mixed>  $other
+     * @param  array<string, mixed>  $subject
+     */
+    private function cumulates(array $other, array $subject, bool $includePets, int $petWindow): bool
+    {
+        if ($other['model']->id === $subject['model']->id) {
+            return false;
+        }
+
+        if ($other['type'] !== 'clt') {
+            if (! $includePets) {
+                return false;
+            }
+
+            // R1 — a potentially exempt transfer that survived its window is
+            // EXEMPT and cumulates against nothing. s3A(4): such a transfer
+            // "IS AN EXEMPT TRANSFER"; IHTM14513 on its worked example — "the
+            // transfer ... is a successful PET. It is omitted from
+            // cumulation."
+            //
+            // The collection this filters spans the whole fourteen-year search
+            // bound, and the main loop's out-of-window guard only skips such a
+            // gift for CHARGING. Without this it was counted here, inventing
+            // £110,000 on a survived £300,000 gift — the same magnitude as the
+            // running-band defect it replaced, on the sibling case. THE
+            // PET/CLT ASYMMETRY IS THE FOURTEEN-YEAR RULE: a chargeable
+            // lifetime transfer reaches back further because it was chargeable
+            // when made; a survived potentially exempt transfer reaches nowhere.
+            if ($other['years'] >= $petWindow) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The band `$subject` may use, after sharing it with any transfer made on the
+     * SAME DAY.
+     *
+     * `gifts.gift_date` is a DATE. Two transfers made on the same day are therefore
+     * indistinguishable by time and there is no ordering to fall back on, so the
+     * strict inequality in `cumulationBefore()` excluded each from the other's
+     * cumulation and measured BOTH against the whole band: two £300,000 gifts
+     * against a £325,000 band produced nil tax where £275,000 is chargeable.
+     * Understated tax, which is the direction that matters (W-0468).
+     *
+     * **The rule applied here: same-day transfers share one band in proportion to
+     * their values.** It has to be stated because it cannot be inferred from the
+     * data — the alternative, cumulating them mutually, DOUBLE-counts: each would
+     * be measured against a band the other had already consumed, turning £275,000
+     * chargeable into £550,000 and overstating tax by as much as the bug understated
+     * it.
+     *
+     * Apportionment and a deterministic tie-break give the SAME TOTAL; they differ
+     * only in how the charge is split between the two gifts, which is visible in the
+     * per-gift `failed_gifts` breakdown. Proportional splitting is chosen because a
+     * tie-break on `id` would show two identical same-day gifts bearing wildly
+     * different charges for no reason a user could see.
+     *
+     * **The authority for the split is an open question for `tax-compliance-reviewer`
+     * (W-0468 acceptance 4)** — IHTA 1984 s124D(5) carries an explicit same-day
+     * apportionment rule, but for the relief allowance rather than for cumulation
+     * generally, so it is evidence that Parliament treats same-day as a live case,
+     * NOT authority for this particular split. The total is not in doubt; the split
+     * is.
+     *
+     * @param  Collection<int, array<string, mixed>>  $gifts
+     * @param  array<string, mixed>  $subject
+     */
+    private function apportionSameDay(float $band, $gifts, array $subject, bool $includePets, int $petWindow): float
+    {
+        $cohort = $this->sameDayCohortValue($gifts, $subject, $includePets, $petWindow);
+
+        if ($cohort <= $subject['value']) {
+            return $band;
+        }
+
+        return $band * ($subject['value'] / $cohort);
+    }
+
+    /**
+     * The combined value of `$subject` and every transfer sharing its date that
+     * cumulates on the same basis.
+     *
+     * @param  Collection<int, array<string, mixed>>  $gifts
+     * @param  array<string, mixed>  $subject
+     */
+    private function sameDayCohortValue($gifts, array $subject, bool $includePets, int $petWindow): float
+    {
+        $siblings = (float) $gifts
+            ->filter(fn (array $other): bool => $this->cumulates($other, $subject, $includePets, $petWindow)
+                && $other['model']->gift_date?->isSameDay($subject['model']->gift_date))
+            ->sum('value');
+
+        return $subject['value'] + $siblings;
     }
 
     /**
