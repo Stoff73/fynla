@@ -4,22 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
-use App\Constants\TaxDefaults;
-use App\Models\CashAccount;
-use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
-use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\EstateActionDefinition;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
-use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
@@ -42,6 +36,7 @@ class EstateActionDefinitionService
         private readonly TaxConfigService $taxConfig,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        private readonly IHTCalculationService $ihtCalculator,
     ) {}
 
     /**
@@ -151,32 +146,63 @@ class EstateActionDefinitionService
     }
 
     /**
-     * IHT exceeds NRB: checks total estate value vs nil-rate band.
+     * IHT exceeds the nil-rate band — asked of the Inheritance Tax engine.
+     *
+     * **W-0501. This used to estimate the estate by hand and got it wrong in both
+     * directions.** `estimateEstateValue()` summed each asset's FULL value with no
+     * `ownership_percentage`, then scoped on `user_id` — which drops every asset
+     * where the user is the `joint_owner_id` rather than the primary owner. On a
+     * £295,000 property held 40/60 it reported £295,000 to the primary owner whose
+     * share is £118,000, and **£0** to the joint owner whose share is £177,000.
+     *
+     * The zero is the half that mattered: this evaluator gates on the figure, so a
+     * user whose exposure sits in a co-owned asset they do not hold as primary
+     * owner was told **nothing at all** about a liability they have. A suppressed
+     * warning, not a conservative estimate.
+     *
+     * It also granted the residence band unconditionally — no qualifying residence,
+     * no direct descendants, no £2,000,000 taper — which inflated the band and made
+     * the warning less likely to fire. Same suppressing direction.
+     *
+     * Reading `IHTCalculationService` fixes all of it at once, because that engine
+     * already applies ownership shares, the undivided-share discount (W-0368), the
+     * residence-band conditions and the taper. It is also the figure the Estate
+     * module shows this same user, so the recommendation can no longer contradict
+     * the page it sits beside — which the hand-rolled sum did by construction.
      */
     private function evaluateIhtExceedsNrb(
         EstateActionDefinition $definition,
         User $user,
         int $priority
     ): array {
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
-        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
+        // The spouse is passed only where their estate is actually pooled; the
+        // engine owns that rule, and asking it the same way the Estate module does
+        // is the point of the change.
+        // Derived exactly as IHTController, TrustController and
+        // ComprehensiveEstatePlanService derive it — a live reciprocal link AND an
+        // accepted permission. There is no `data_sharing_enabled` column; inventing
+        // one here would have been a fifth answer to a question already settled.
+        $spouse = $user->liveSpouse();
+        $dataSharingEnabled = $spouse !== null && $user->hasAcceptedSpousePermission();
 
-        // Estimate total estate value from properties, assets, savings, investments
-        $estateValue = $this->estimateEstateValue($user);
-        $availableBand = $nrb + $rnrb;
+        $iht = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
 
-        if ($estateValue <= $availableBand) {
+        $ihtLiability = (float) ($iht['iht_liability'] ?? 0.0);
+
+        // Nothing chargeable means nothing to warn about. Gating on the liability
+        // rather than on a re-derived comparison keeps this evaluator from forming
+        // a second opinion about the same estate.
+        if ($ihtLiability <= 0.0) {
             return [];
         }
 
-        $excess = $estateValue - $availableBand;
-        $ihtLiability = $excess * (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $netEstate = (float) ($iht['total_net_estate'] ?? 0.0);
+        $allowances = (float) ($iht['total_allowances'] ?? 0.0);
 
         $vars = [
-            'estate_value' => '£'.number_format($estateValue, 0),
-            'nrb' => '£'.number_format($availableBand, 0),
-            'excess_amount' => '£'.number_format($excess, 0),
+            'estate_value' => '£'.number_format($netEstate, 0),
+            'nrb' => '£'.number_format($allowances, 0),
+            'excess_amount' => '£'.number_format(max(0.0, $netEstate - $allowances), 0),
             'iht_liability' => '£'.number_format($ihtLiability, 0),
         ];
 
@@ -332,48 +358,5 @@ class EstateActionDefinitionService
             'scope' => $definition->scope,
             'definition_key' => $definition->key,
         ];
-    }
-
-    /**
-     * Estimate total estate value from all user assets.
-     */
-    private function estimateEstateValue(User $user): float
-    {
-        $total = 0.0;
-
-        // Properties — primary-owner-only (filter the joint-aware Collection), matching
-        // the Savings line below and the pre-PR-5a behaviour. PropertyStore::forUser returns
-        // user_id = ? OR joint_owner_id = ?; appending where('user_id', $user->id) restores
-        // single-count semantics for joint properties.
-        $total += (float) $this->propertyStore->forUser($user)
-            ->where('user_id', $user->id)
-            ->sum('current_value');
-
-        // Investment accounts
-        $total += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
-
-        // Savings accounts
-        $savingsCollection = app(SavingsStore::class)->forUser($user);
-        $total += (float) $savingsCollection->where('user_id', $user->id)->sum('current_balance');
-
-        // Cash accounts
-        $total += (float) CashAccount::where('user_id', $user->id)->sum('current_balance');
-
-        // Estate assets
-        $total += (float) Asset::where('user_id', $user->id)->sum('current_value');
-
-        // DC Pensions (death benefit)
-        $total += (float) app(PensionStore::class)->forUserByType($user, 'dc')->sum('current_fund_value');
-
-        // Life insurance (death benefit adds to estate if not in trust)
-        $total += (float) LifeInsurancePolicy::where('user_id', $user->id)
-            ->where('in_trust', false)
-            ->sum('sum_assured');
-
-        // Subtract liabilities (mortgages primary-only via MortgageStore — matches pre-PR-5a $user_id semantics)
-        $total -= (float) $this->mortgageStore->forUserPrimaryOnly($user)->sum('outstanding_balance');
-        $total -= (float) Liability::where('user_id', $user->id)->sum('current_balance');
-
-        return max(0.0, $total);
     }
 }

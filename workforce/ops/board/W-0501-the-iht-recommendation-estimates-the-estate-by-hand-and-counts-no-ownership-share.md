@@ -4,11 +4,11 @@ title: The "estate exceeds the nil-rate band" recommendation estimates the estat
 mission: w-0368-undivided-share-discount
 branch: null
 owner: build-lead
-status: open
+status: review
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-26T00:00:00Z
-claimed: null
+claimed: 2026-08-26
 blocked_by: []
 gate: tax-compliance-reviewer
 handoff_to: quality-lead
@@ -139,3 +139,46 @@ unconditional RNRB together, and removes the divergence permanently.
   share**, so it quotes a sale price that is neither the property's value nor the
   user's share of it. Adjacent, separately owned, and worth checking in the same sweep
   of user-facing estate figures.
+
+---
+
+## Fixed 2026-08-26
+
+`evaluateIhtExceedsNrb()` now asks `IHTCalculationService` and
+`estimateEstateValue()` is **deleted**, per acceptance 2 — corrected in place it
+would have remained a second opinion about the same estate.
+
+| Acceptance | State |
+|---|---|
+| 1. Sources estate and band from the engine | Done |
+| 2. `estimateEstateValue()` deleted, not corrected | Done — 42 lines, plus six imports it alone used |
+| 3. Both directions pinned by test | Done — a joint owner whose £1,000,000 share was reported as £0 and warned about nothing; and a primary owner at 40% of £700,000 who was warned about the whole £700,000 |
+| 4. The suppressed-warning case fires | Done — that is the first test |
+| 5. RNRB respects its conditions and the taper | Done, by construction — the engine owns them |
+| 6. Figures reconcile with the Estate module | Done, by construction — same engine, same call shape |
+| 7. Verified on web, `/m` and native | **NOT DONE** — no browser verification |
+
+**The sharing flag has no column.** `data_sharing_enabled` does not exist on `users`;
+it is derived — a live reciprocal link AND an accepted permission — and this now
+derives it exactly as `IHTController`, `TrustController` and
+`ComprehensiveEstatePlanService` do. Inventing a fifth answer here is how the
+original defect happened.
+
+### One existing test asserted the defect
+
+`SavingsReadConsumerParityTest:323` expected `estimated_impact` of **£40,000** and
+encoded two defects at once — its own comment admitted the first: *"full balance
+also included (matches pre-refactor `where('user_id')` semantics)"*.
+
+- **Ownership:** it charged the user with the whole £200,000 joint balance rather
+  than their £100,000 half.
+- **Residence band:** the fixture has no property, yet £175,000 of residence band was
+  granted.
+
+Corrected to **£70,000**, with the arithmetic written into the test so the next
+reader can check it. **Both corrections move the figure UP**, so the old expectation
+understated a tax liability — which is why this is a correction rather than a
+re-baseline.
+
+**Worth a tax-compliance eye**, since it changes a published Inheritance Tax figure:
+1,298 passed across Estate, Estate services, Agents, AI and Stores; 177 Architecture.

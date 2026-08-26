@@ -332,7 +332,7 @@ it('EstateActionDefinitionService::evaluateActions surfaces iht_exceeds_nrb with
         'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
-    // £200k joint-as-primary — full balance also included (matches pre-refactor where('user_id') semantics)
+    // £200k held jointly, this user the primary owner at 50%.
     SavingsAccount::factory()->create([
         'user_id' => $user->id,
         'joint_owner_id' => User::factory()->create(['is_preview_user' => false])->id,
@@ -341,10 +341,23 @@ it('EstateActionDefinitionService::evaluateActions surfaces iht_exceeds_nrb with
         'ownership_percentage' => 50,
     ]);
 
-    // Savings line of estimateEstateValue = 400000 + 200000 = 600000
-    // No properties, investments, cash, estate assets, DC pensions, life insurance, mortgages or liabilities
-    // → estate value = 600000; NRB+RNRB defaults = 325000 + 175000 = 500000
-    // → excess = 100000; IHT @ 40% = 40000
+    // W-0501 — this expectation was £40,000 and encoded TWO defects at once. It is
+    // corrected, not re-baselined, and the arithmetic is stated so the next reader
+    // can check it rather than trust it:
+    //
+    //   estate      £400,000 individual + £100,000 (this user's HALF of the joint
+    //               account) = £500,000. The old hand-rolled estimate took the joint
+    //               balance whole — its own comment said so, "matches pre-refactor
+    //               where('user_id') semantics" — charging this user with £100,000
+    //               belonging to the co-owner.
+    //   allowances  £325,000. There is no property in this fixture, so no residence
+    //               band arises. The old code added £175,000 unconditionally, with no
+    //               qualifying residence, no direct descendants and no taper.
+    //   chargeable  £175,000 at 40% = £70,000.
+    //
+    // Both corrections move the figure UP, so the old number understated a tax
+    // liability. Verified against IHTCalculationService directly, which is now the
+    // one place this answer comes from.
 
     $result = app(EstateActionDefinitionService::class)->evaluateActions($user);
 
@@ -352,7 +365,7 @@ it('EstateActionDefinitionService::evaluateActions surfaces iht_exceeds_nrb with
         ->firstWhere('definition_key', 'iht_exceeds_nrb');
 
     expect($ihtRec)->not->toBeNull();
-    expect($ihtRec['estimated_impact'])->toBe(40000.0);
+    expect($ihtRec['estimated_impact'])->toBe(70000.0);
 });
 
 // PR 5c-1 parity tests — Plans cluster
