@@ -31,7 +31,20 @@ beforeEach(function () {
  * for one. What "joint" buys is that both spouses see the whole thing, from one row
  * (Rule 6's single-record half), and that a household roll-up counts it once.
  */
-function linkedSpouses(): array
+/**
+ * Named for this file's subject, not for what it does.
+ *
+ * Pest test files are included into ONE process per testsuite, so a top-level
+ * `function` here shares a global namespace with every other test file in that
+ * suite. This helper was originally `linkedSpouses()`, which collides with
+ * `tests/Unit/Services/Estate/WillTypePolicyTest.php:15` — fatal, and it takes the
+ * whole run down at collection rather than failing one test.
+ *
+ * CI never saw it: `quality.yml` shards on `--testsuite=`, so Unit and Feature are
+ * separate processes and the two names never met. Plain `./vendor/bin/pest` locally
+ * does meet them. Keep helper names specific.
+ */
+function spousesLinkedForSharedGoal(): array
 {
     $a = User::factory()->create(['marital_status' => 'married']);
     $b = User::factory()->create(['marital_status' => 'married']);
@@ -42,7 +55,7 @@ function linkedSpouses(): array
 }
 
 it('shows a shared goal whole to both spouses, from one row', function () {
-    [$owner, $spouse] = linkedSpouses();
+    [$owner, $spouse] = spousesLinkedForSharedGoal();
 
     $goal = Goal::factory()->create([
         'user_id' => $owner->id,
@@ -69,7 +82,7 @@ it('shows a shared goal whole to both spouses, from one row', function () {
 });
 
 it('persists essential and shared ownership through the goals endpoint', function () {
-    [$owner, $spouse] = linkedSpouses();
+    [$owner, $spouse] = spousesLinkedForSharedGoal();
     Sanctum::actingAs($owner);
 
     // The form could bind neither field before W-0038, though the request has always
