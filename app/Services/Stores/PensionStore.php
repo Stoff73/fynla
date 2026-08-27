@@ -574,7 +574,7 @@ class PensionStore
             // gate. DC pensions are allowed to start with minimal data.
             'scheme_name' => 'sometimes|nullable|string|max:255',
             'pension_type' => 'sometimes|nullable|in:occupational,sipp,personal,stakeholder',
-            // W-0501. dc_pensions.scheme_type is a DIFFERENT column from
+            // W-0505. dc_pensions.scheme_type is a DIFFERENT column from
             // db_pensions.scheme_type with a disjoint enum, which is why it must
             // be listed in this ruleset and not shared with validateDbCanonical.
             'scheme_type' => 'sometimes|nullable|in:workplace,sipp,personal',

@@ -1,5 +1,5 @@
 ---
-id: W-0501
+id: W-0505
 title: The seventh axis — nineteen enum columns have no accepted-value list in their Store at all, and two Stores validate nothing whatsoever
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md

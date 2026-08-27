@@ -580,7 +580,7 @@ export default {
           // (7eaa085cb), not a derived figure, and it is left as it was found —
           // changing what the ring shows is a design decision, not part of
           // consolidating the derivation. `f.netWorth.equityPct` is available when
-          // that decision is taken. Raised as W-0500.
+          // that decision is taken. Raised as W-0504.
           progress: 72, vizNum: (trend >= 0 ? '+' : '') + trend + '%', vizCap: 'Trend',
           caption: this.fmt(f.netWorth.totalAssets) + ' assets',
         },

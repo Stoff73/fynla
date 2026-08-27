@@ -47,7 +47,7 @@ class GoalStore
     }
 
     /**
-     * Canonical-shape sanity check on the accepted-value columns (W-0501).
+     * Canonical-shape sanity check on the accepted-value columns (W-0505).
      *
      * Deliberately a sanity check and NOT a stricter gate, following the
      * philosophy already stated at PensionStore::validateDcCanonical: each list

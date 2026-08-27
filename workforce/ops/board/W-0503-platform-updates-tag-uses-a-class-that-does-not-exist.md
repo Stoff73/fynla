@@ -1,5 +1,5 @@
 ---
-id: W-0499
+id: W-0503
 title: The 'Platform updates' insight tag uses text-light-blue-700, a class Tailwind never emits, so the text takes whatever colour it inherits
 mission: M-0002-persona-fidelity
 owner: design-lead

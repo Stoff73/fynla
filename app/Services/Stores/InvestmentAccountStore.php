@@ -275,7 +275,7 @@ class InvestmentAccountStore
             // way properties, mortgages and chattels already can (W-0025).
             'joint_owner_name' => 'sometimes|nullable|string|max:255',
 
-            // W-0501: enum columns this ruleset never listed. Each list is the
+            // W-0505: enum columns this ruleset never listed. Each list is the
             // column's own enum, so nothing the table would have stored is now
             // refused — the change is that an impossible value is caught here,
             // named, instead of arriving at MySQL as an unattributable error.

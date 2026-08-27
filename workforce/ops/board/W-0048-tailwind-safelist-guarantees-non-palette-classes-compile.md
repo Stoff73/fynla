@@ -211,7 +211,7 @@ forward-only.
 
 **2. The broken tag — RAISED, NOT FIXED.** `text-light-blue-700` at
 `InsightsHubPage.vue:324` emits nothing and the tag inherits its colour. Written up
-with the browser evidence as **W-0499**. `fynlaDesignGuide.md:797` and `:822`
+with the browser evidence as **W-0503**. `fynlaDesignGuide.md:797` and `:822`
 specify the same unbuildable pair and are likewise left alone.
 
 **Nothing in this item has edited a colour, a class, the safelist or the guide.**

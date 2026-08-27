@@ -1,5 +1,5 @@
 ---
-id: W-0500
+id: W-0504
 title: Three of the /m dashboard's donut rings are filled to hardcoded constants, so the arc means nothing
 mission: persona-run-peak_earners-2026-08-20
 owner: design-lead

@@ -1,5 +1,5 @@
 ---
-id: W-0497
+id: W-0488
 title: peak_earners resolves to £1,250 a month and so reports 59.8 months of emergency runway
 mission: persona-run-peak_earners-2026-08-20
 owner: build-lead

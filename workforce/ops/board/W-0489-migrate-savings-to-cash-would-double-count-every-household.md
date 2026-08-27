@@ -1,5 +1,5 @@
 ---
-id: W-0498
+id: W-0489
 title: migrate:savings-to-cash is registered and would double-count every household's cash if anyone ran it
 mission: persona-run-peak_earners-2026-08-20
 owner: build-lead

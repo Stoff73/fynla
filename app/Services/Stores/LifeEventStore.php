@@ -47,7 +47,7 @@ class LifeEventStore
     }
 
     /**
-     * Canonical-shape sanity check on the accepted-value columns (W-0501).
+     * Canonical-shape sanity check on the accepted-value columns (W-0505).
      *
      * Same footing as GoalStore::validateCanonical — the enum columns only, as a
      * sanity check rather than a stricter gate. See that docblock for why.

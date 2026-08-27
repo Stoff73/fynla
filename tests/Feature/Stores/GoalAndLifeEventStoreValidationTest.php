@@ -14,7 +14,7 @@ use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 
 /**
- * W-0501 — GoalStore and LifeEventStore validate their accepted-value columns.
+ * W-0505 — GoalStore and LifeEventStore validate their accepted-value columns.
  *
  * Both Stores contained no `Validator::make` at all before this: `create` merged
  * `user_id` into the caller's array and handed it to `Model::create` unexamined.

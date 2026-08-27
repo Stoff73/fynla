@@ -226,7 +226,7 @@ would not have, since the naive version was also green on the unmutated source.
 
 ## Raised, not fixed
 
-**W-0501 — the seventh axis: eighteen enum columns with no accepted-value list in
+**W-0505 — the seventh axis: eighteen enum columns with no accepted-value list in
 their Store at all**, thirteen of them bounded in full by the matching request.
 `GoalStore` and `LifeEventStore` contain no `Validator::make` at all;
 `GoalStore::create` passes `$canonical` straight to `Goal::create`, and Fyn is one

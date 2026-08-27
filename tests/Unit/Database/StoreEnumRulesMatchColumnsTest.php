@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  *     and dies at the write. `capped` and `offset` were this.
  *   - **Column stores what the rule rejects** → a legitimate value is refused.
  *     `mixed` was this.
- *   - **A column has no rule at all** (W-0501) → nothing to diverge from, so the
+ *   - **A column has no rule at all** (W-0505) → nothing to diverge from, so the
  *     two checks above pass by saying nothing. Nineteen columns sat like this.
  *   - **A rule exists but this guard cannot read it** → the same silence, and the
  *     worse kind, because the rule LOOKS covered. See `resolveInList`.
@@ -92,7 +92,7 @@ const DELIBERATELY_NARROWER = [
     'MortgageStore::ownership_type' => ['tenants_in_common', 'trust'],
 
     // `life_events.event_type` stores 21 values; the application creates 16.
-    // The five here are **dead enum values with no creator anywhere** (W-0501):
+    // The five here are **dead enum values with no creator anywhere** (W-0505):
     // absent from LifeEvent::INCOME_EVENT_TYPES and ::EXPENSE_EVENT_TYPES, from
     // StoreLifeEventRequest:26, and from CoordinatingAgent::handleCreateLifeEvent
     // — i.e. from the form, from Fyn, and from the only vocabulary the code
@@ -468,7 +468,7 @@ describe('a Store never permits a value its column cannot store', function () {
         expect($missing)->toBe([], implode("\n", array_merge(
             ['An enum column has NO accepted-value list in the Store that writes it,'],
             ['so the two checks above pass by having nothing to compare. Nineteen'],
-            ['columns sat exactly here (W-0501), including every enum on goals and'],
+            ['columns sat exactly here (W-0505), including every enum on goals and'],
             ['life_events — whose Stores contained no Validator::make at all.'],
             [''],
             ['An unruled key is NOT a dropped key: every Store validates with'],

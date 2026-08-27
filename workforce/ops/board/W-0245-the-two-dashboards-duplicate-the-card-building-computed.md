@@ -137,7 +137,7 @@ Existing suites unchanged and green: `views/Dashboard.test.js`,
 
 ### Raised, not fixed
 
-**W-0500** — three of `/m`'s five donut rings are filled to constants (`72`, `85`,
+**W-0504** — three of `/m`'s five donut rings are filled to constants (`72`, `85`,
 `72`) from the 2026 redesign commit, not to derived figures. The net worth ring
 renders at 72% beside a printed `+0%`, and the investment ring at 72% where
 investments are 11% of that household's assets. Left as found: a constant is not a
