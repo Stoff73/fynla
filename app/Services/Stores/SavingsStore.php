@@ -310,6 +310,9 @@ class SavingsStore
             'isa_subscription_amount' => 'sometimes|nullable|numeric|min:0',
             'regular_contribution_amount' => 'sometimes|nullable|numeric|min:0',
             'contribution_frequency' => 'sometimes|nullable|in:monthly,quarterly,annually',
+            // W-0501. NOT NULL with a default of 'immediate', so an impossible
+            // value here was a raw SQL error rather than a named field.
+            'access_type' => 'sometimes|nullable|in:immediate,notice,fixed',
             'is_isa' => 'sometimes|boolean',
             'is_emergency_fund' => 'sometimes|boolean',
             'ownership_type' => 'sometimes|in:individual,joint,tenants_in_common,trust',

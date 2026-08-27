@@ -272,6 +272,17 @@ class InvestmentAccountStore
             'monthly_contribution_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
 
+            // W-0501: enum columns this ruleset never listed. Each list is the
+            // column's own enum, so nothing the table would have stored is now
+            // refused — the change is that an impossible value is caught here,
+            // named, instead of arriving at MySQL as an unattributable error.
+            // The first three are NOT NULL with defaults, and their nulls are
+            // already dropped by InvestmentAccountNormaliser::NOT_NULL_WITH_DEFAULT.
+            'contribution_frequency' => 'sometimes|nullable|in:monthly,quarterly,annually',
+            'platform_fee_type' => 'sometimes|nullable|in:percentage,fixed',
+            'platform_fee_frequency' => 'sometimes|nullable|in:monthly,quarterly,annually',
+            'risk_preference' => 'sometimes|nullable|in:low,lower_medium,medium,upper_medium,high',
+
             // The sixth axis (W-0329): bounds the form enforces and this Store did
             // not. All nine are columns on `investment_accounts` and all nine are
             // bounded by Store/UpdateInvestmentAccountRequest, but this ruleset had
