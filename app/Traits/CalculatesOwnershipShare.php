@@ -122,11 +122,48 @@ trait CalculatesOwnershipShare
         $collection = $assets instanceof Collection ? $assets : collect($assets);
 
         return $collection->map(function (object $asset) use ($userId): object {
+            // W-0425 — same refusal as `userShareFraction`. This reads the ownership
+            // columns ON the record via `calculateUserShare`, and a mortgage's share
+            // follows the property securing it, so a mortgage here returns the
+            // pre-W-0228 answer with nothing to indicate it.
+            $this->refuseRecordWhoseShareFollowsAnother($asset);
+
             $view = clone $asset;
             $view->{$this->userShareColumn($asset)} = $this->calculateUserShare($asset, $userId);
 
             return $view;
         });
+    }
+
+    /**
+     * Refuse a record whose share is NOT a function of its own ownership columns.
+     *
+     * One home for the rule, called by `atUserShare` and `userShareFraction`
+     * (Rule 20). Both answer from the columns on the record handed to them, and
+     * CSJ's W-0228 ruling makes a mortgage's share follow the PROPERTY securing
+     * it — so both are wrong about a mortgage, in the same way, for the same
+     * reason. The guard lived in only one of them until W-0425.
+     *
+     * It throws rather than falling through because a silent wrong share is the
+     * failure mode this whole family of defects is made of: on the household
+     * W-0425 was found against, a mortgage row saying joint 50% against a property
+     * held tenants-in-common 40% returns £60,000 where £48,000 is correct, and
+     * nothing about the number says so.
+     *
+     * @throws FinancialCalculationException when asked about a record whose share
+     *                                       depends on a related record
+     */
+    private function refuseRecordWhoseShareFollowsAnother(object $asset): void
+    {
+        if (isset($asset->property_id) || $asset instanceof Mortgage) {
+            throw FinancialCalculationException::invalidInput(
+                'asset',
+                $asset::class,
+                'A mortgage share follows the property securing it (W-0228), not the '
+                .'ownership columns on the mortgage row. Use calculateUserMortgageShare, '
+                .'which resolves the property.'
+            );
+        }
     }
 
     /**
@@ -153,15 +190,7 @@ trait CalculatesOwnershipShare
      */
     protected function userShareFraction(object $asset, int $userId): float
     {
-        if (isset($asset->property_id) || $asset instanceof Mortgage) {
-            throw FinancialCalculationException::invalidInput(
-                'asset',
-                $asset::class,
-                'A mortgage share follows the property securing it (W-0228), not the '
-                .'ownership columns on the mortgage row, so it cannot be answered from '
-                .'a probe. Use calculateUserMortgageShare, which resolves the property.'
-            );
-        }
+        $this->refuseRecordWhoseShareFollowsAnother($asset);
 
         $probe = (object) [
             'user_id' => $asset->user_id ?? null,

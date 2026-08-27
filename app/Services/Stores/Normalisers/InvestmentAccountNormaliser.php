@@ -102,6 +102,7 @@ final class InvestmentAccountNormaliser
             'ownership_type' => $data['ownership_type'] ?? $data['ownership'] ?? 'individual',
             'ownership_percentage' => $data['ownership_percentage'] ?? null,
             'joint_owner_id' => $data['joint_owner_id'] ?? null,
+            'joint_owner_name' => $data['joint_owner_name'] ?? null,
             'country' => $data['country'] ?? null,
             'include_in_retirement' => $data['include_in_retirement'] ?? null,
         ];

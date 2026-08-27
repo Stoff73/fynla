@@ -982,8 +982,6 @@ class IHTCalculationService
             $this->projectMainResidenceNetValue(
                 $user,
                 $assessment['spouse'],
-                $currentAge,
-                $retirementAge,
                 $yearsUntilDeath,
                 $assumptions
             ),
@@ -1244,18 +1242,22 @@ class IHTCalculationService
     private function projectMainResidenceNetValue(
         User $user,
         ?User $spouse,
-        int $currentAge,
-        int $retirementAge,
         int $yearsToProject,
         array $assumptions
     ): float {
         $growthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
         $currentYear = now()->year;
 
-        $projectFor = function (User $member) use ($growthRate, $currentAge, $retirementAge, $yearsToProject, $currentYear): float {
+        $projectFor = function (User $member) use ($growthRate, $yearsToProject, $currentYear): float {
+            // W-0374 — the member's OWN frame. This closure runs for the spouse too,
+            // and it used to carry the viewer's ages in with it, so a spouse's
+            // undated mortgage on the family home amortised on their partner's
+            // timetable. `$yearsToProject` stays as passed: the horizon is shared.
+            [$memberAge, $memberRetirementAge] = $this->ageFrameFor($member);
+
             return (float) $this->propertyStore
                 ->forUserByType($member, 'main_residence')
-                ->sum(function ($property) use ($member, $growthRate, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
+                ->sum(function ($property) use ($member, $growthRate, $memberAge, $memberRetirementAge, $yearsToProject, $currentYear) {
                     // W-0368 — the PROJECTED residence band cap, the twin of
                     // `sumMainResidenceNetShare()`. Grow the value the estate is
                     // actually taxed on, not the undiscounted fraction, or the
@@ -1268,14 +1270,14 @@ class IHTCalculationService
                         $yearsToProject
                     );
 
-                    $mortgageShare = (float) $property->mortgages->sum(function ($mortgage) use ($member, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
+                    $mortgageShare = (float) $property->mortgages->sum(function ($mortgage) use ($member, $memberAge, $memberRetirementAge, $yearsToProject, $currentYear) {
                         $endDate = $mortgage->maturity_date;
 
                         return $this->projectSingleLiability(
                             (float) $this->calculateUserMortgageShare($mortgage, $member->id),
                             $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
-                            $currentAge,
-                            $retirementAge,
+                            $memberAge,
+                            $memberRetirementAge,
                             $yearsToProject,
                             $currentYear
                         );
@@ -1524,16 +1526,24 @@ class IHTCalculationService
         int $deathAge,
         bool $dataSharingEnabled
     ): float {
+        // ONE horizon for the household, viewer-framed (W-0188), computed here so
+        // that neither member's own ages can move it.
+        $yearsToProject = $deathAge - $currentAge;
+
         $projectedLiabilities = $this->projectMemberLiabilities(
-            $user, $currentAge, $retirementAge, $deathAge
+            $user, $yearsToProject, $currentAge, $retirementAge
         );
 
         // Include spouse liabilities if data sharing enabled. Each member's debts
         // are already at that member's own share, so a debt they hold together is
         // discharged once, not twice.
+        //
+        // W-0374 — in the SPOUSE's age frame. An undated debt is assumed cleared at
+        // its owner's retirement, and the spouse retires on their own timetable.
         if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
+            [$spouseAge, $spouseRetirementAge] = $this->ageFrameFor($spouse);
             $projectedLiabilities += $this->projectMemberLiabilities(
-                $spouse, $currentAge, $retirementAge, $deathAge
+                $spouse, $yearsToProject, $spouseAge, $spouseRetirementAge
             );
         }
 
@@ -1581,12 +1591,11 @@ class IHTCalculationService
      */
     private function projectMemberLiabilities(
         User $member,
+        int $yearsToProject,
         int $currentAge,
-        int $retirementAge,
-        int $deathAge
+        int $retirementAge
     ): float {
         $currentYear = now()->year;
-        $yearsToProject = $deathAge - $currentAge;
         $projected = 0.0;
 
         foreach ($this->crossModuleAggregator->getMortgages($member->id) as $mortgage) {
@@ -1614,6 +1623,34 @@ class IHTCalculationService
         }
 
         return $projected;
+    }
+
+    /**
+     * A member's OWN age frame — their current age and their retirement age.
+     *
+     * W-0374. The undated-debt fallback in `projectSingleLiability()` is
+     * `$retirementAge - $currentAge`, which is only meaningful in the frame of the
+     * person who owes the debt. Both projection paths used to pass the signed-in
+     * user's pair for BOTH members, so a spouse's undated debt was discharged on
+     * their partner's timetable — and where the viewer's own retirement age was
+     * already behind them the term came out as zero and the debt vanished entirely.
+     *
+     * One home, two callers (Rule 20): `projectLiabilities()` and
+     * `projectMainResidenceNetValue()`.
+     *
+     * **The household HORIZON is deliberately not derived from this.** That stays
+     * shared and viewer-framed — W-0188 settled it, and W-0374 acceptance 2 says it
+     * must not regress. The two are now separate parameters precisely so the next
+     * reader cannot conflate them again.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function ageFrameFor(User $member): array
+    {
+        return [
+            $member->date_of_birth ? Carbon::parse($member->date_of_birth)->age : 50,
+            $this->cashFlowProjector->retirementAgeFor($member),
+        ];
     }
 
     /**
@@ -2729,11 +2766,19 @@ class IHTCalculationService
     /**
      * Calculate the 2027 pension Inheritance Tax amendment dual-scenario projection.
      *
-     * From April 2027, unused defined contribution pension pots will be included
-     * in the taxable estate for Inheritance Tax purposes (Autumn Budget 2024).
+     * From the configured effective date, unused defined contribution pension pots
+     * will be included in the taxable estate for Inheritance Tax purposes (Autumn
+     * Budget 2024). The date lives in
+     * `inheritance_tax.pension_iht_inclusion.effective_date` and is 2027-04-06
+     * today — do not restate it as a literal anywhere below, which is what W-0372
+     * was raised for.
      *
-     * Returns both the current rules scenario and the post-2027 scenario,
+     * Returns both the current rules scenario and the post-amendment scenario,
      * allowing users to understand the potential impact.
+     *
+     * The `post_2027_rules` key is deliberately NOT renamed: it is a published API
+     * key that web, `/m` and native all read, so it is an identifier rather than
+     * copy. Only the prose the user reads follows the configured date.
      *
      * @param  User  $user  The primary user
      * @param  User|null  $spouse  The spouse
@@ -2832,11 +2877,15 @@ class IHTCalculationService
                 'iht_liability' => round($postAmendmentIHTLiability, 2),
                 'additional_iht' => round($additionalIHT, 2),
                 'pensions_included' => true,
-                'description' => 'From April 2027, unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
+                // W-0372 — from the configured date, not a literal. `$effectiveDate`
+                // is read at the top of this method and published as its own field
+                // four lines above; restating it here meant a Budget that moved the
+                // date moved every figure and left the sentence behind.
+                'description' => 'From '.$effectiveDate->format('F Y').', unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
             ],
             'impact_summary' => $additionalIHT > 0
-                ? 'The 2027 pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
-                : 'The 2027 pension amendment would not increase your Inheritance Tax liability based on current pension values.',
+                ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
+                : 'The '.$effectiveDate->format('Y').' pension amendment would not increase your Inheritance Tax liability based on current pension values.',
         ];
     }
 

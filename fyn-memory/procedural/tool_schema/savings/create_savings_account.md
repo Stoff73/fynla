@@ -66,6 +66,10 @@ effective_from: 2026-06-11
                 "enum": ["individual", "joint", "tenants_in_common", "trust"],
                 "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual. ISAs must be individual."
             },
+            "joint_owner_name": {
+                "type": "string",
+                "description": "Name of a joint owner who is NOT on the platform, when no joint_owner_id applies. Only if joint or tenants_in_common. Use the name the user gave."
+            },
             "joint_owner_id": {
                 "type": "integer",
                 "description": "User ID of the confirmed joint owner. Required for joint or tenants_in_common ownership."

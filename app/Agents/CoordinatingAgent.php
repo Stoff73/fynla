@@ -2781,6 +2781,11 @@ class CoordinatingAgent extends BaseAgent
             // event handler below has always accepted any date.
             'target_date' => 'required|date',
             'priority' => ['required', Rule::in(['critical', 'high', 'medium', 'low'])],
+            // W-0038 — /m and native have no goal form of their own, so if this
+            // tool cannot carry the fields the capability is web-only.
+            'is_essential' => ['nullable', 'boolean'],
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint'])],
+            'joint_owner_id' => ['nullable', 'required_if:ownership_type,joint', 'integer', 'exists:users,id'],
             'goal_type' => ['required', Rule::in(['emergency_fund', 'home_deposit', 'property_purchase', 'holiday', 'education', 'wedding', 'car_purchase', 'retirement', 'wealth_accumulation', 'debt_repayment', 'custom'])],
             'monthly_contribution' => 'nullable|numeric|min:0|max:999999.99',
         ]);
@@ -2794,6 +2799,11 @@ class CoordinatingAgent extends BaseAgent
             'target_amount' => (float) $input['target_amount'],
             'target_date' => $input['target_date'],
             'priority' => $input['priority'],
+            'is_essential' => $input['is_essential'] ?? false,
+            'ownership_type' => $input['ownership_type'] ?? 'individual',
+            'joint_owner_id' => ($input['ownership_type'] ?? 'individual') === 'joint'
+                ? ($input['joint_owner_id'] ?? null)
+                : null,
         ];
 
         // Custom goals require custom_goal_type_name; reuse the goal name
@@ -3010,6 +3020,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {
@@ -3092,6 +3103,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
         ]);
         if ($validationError) {
             return $validationError;
@@ -3559,6 +3571,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
             'tenure_type' => ['nullable', Rule::in(['freehold', 'leasehold'])],
             'lease_remaining_years' => 'nullable|integer|min:0|max:999',
@@ -4110,6 +4123,7 @@ class CoordinatingAgent extends BaseAgent
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|integer|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'nullable|integer|exists:trusts,id',
         ]);
         if ($validationError) {

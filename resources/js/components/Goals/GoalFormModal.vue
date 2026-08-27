@@ -139,6 +139,58 @@
               </div>
             </div>
 
+            <!-- Essential (W-0038) -->
+            <div class="mb-4">
+              <label class="flex items-center">
+                <input
+                  v-model="form.is_essential"
+                  type="checkbox"
+                  class="h-4 w-4 text-raspberry-600 focus:ring-violet-500 border-horizon-300 rounded"
+                />
+                <span class="ml-2 text-sm text-neutral-500">This goal is essential</span>
+              </label>
+              <p class="text-xs text-neutral-500 ml-6 mt-1">
+                Something the household cannot go without, as opposed to a goal you would
+                defer if money were short.
+              </p>
+            </div>
+
+            <!-- Ownership (W-0038) -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">Ownership</label>
+              <select
+                v-model="form.ownership_type"
+                @change="handleOwnershipChange"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
+              >
+                <option value="individual">Just me</option>
+                <option value="joint">Shared with my spouse</option>
+              </select>
+
+              <div v-if="form.ownership_type === 'joint'" class="mt-3">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">Shared with</label>
+                <select
+                  v-model="form.joint_owner_id"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  <option :value="null">Select who this is shared with</option>
+                  <option v-if="spouse && spouse.id" :value="spouse.id">{{ spouse.name }}</option>
+                </select>
+                <p v-if="!spouse || !spouse.id" class="text-xs text-neutral-500 mt-1">
+                  Link your spouse's account in Family Members to share a goal with them.
+                </p>
+                <!-- CSJ direction 2026-08-26: a shared goal is ONE target, not two
+                     halves. A couple saving GBP 50,000 for a deposit have a single
+                     GBP 50,000 goal, so there is no share to state here — which is
+                     why this differs from a jointly-owned asset, where each half is
+                     genuinely a separate holding. -->
+                <p v-else class="text-xs text-neutral-500 mt-1">
+                  You will both see the whole goal — the same target and the same progress,
+                  not half each.
+                </p>
+              </div>
+            </div>
+
             <!-- Module Assignment Info -->
             <div v-if="assignedModule" class="mb-4 p-3 bg-savannah-100 rounded-lg">
               <p class="text-sm text-neutral-500">
@@ -390,6 +442,14 @@ export default {
   },
 
   computed: {
+    // W-0038 — a goal can only be shared with a linked spouse, the same rule that
+    // governs every other joint record: an attached id grants that account sight of
+    // the row, so only a reciprocally linked spouse qualifies.
+    //
+    // Through mapGetters, which this file already imported and did not use, rather
+    // than reaching into $store.getters by string.
+    ...mapGetters('userProfile', ['spouse']),
+
     ...mapState('goals', ['goalTypes', 'goals']),
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
 
@@ -509,6 +569,17 @@ export default {
   },
 
   methods: {
+    // Switching back to individual must drop the co-owner with it, or a goal the
+    // user has just said is theirs alone keeps a spouse attached and stays visible
+    // to them through Goal::forUserOrJoint.
+    handleOwnershipChange() {
+      if (this.form.ownership_type !== 'joint') {
+        this.form.joint_owner_id = null;
+      } else if (!this.form.joint_owner_id && this.spouse && this.spouse.id) {
+        this.form.joint_owner_id = this.spouse.id;
+      }
+    },
+
     ...mapActions('goals', ['fetchGoalTypes', 'calculatePropertyCosts', 'fetchDependencies']),
 
     getDefaultForm() {
@@ -527,6 +598,9 @@ export default {
         is_first_time_buyer: false,
         show_in_projection: true,
         show_in_household_view: true,
+        is_essential: false,
+        ownership_type: 'individual',
+        joint_owner_id: null,
       };
     },
 
@@ -547,6 +621,9 @@ export default {
           is_first_time_buyer: this.goal.is_first_time_buyer || false,
           show_in_projection: this.goal.show_in_projection ?? true,
           show_in_household_view: this.goal.show_in_household_view ?? true,
+          is_essential: this.goal.is_essential ?? false,
+          ownership_type: this.goal.ownership_type || 'individual',
+          joint_owner_id: this.goal.joint_owner_id || null,
         };
       } else {
         this.form = this.getDefaultForm();

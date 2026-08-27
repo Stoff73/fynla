@@ -34,6 +34,11 @@ class SavingsAccountResource extends JsonResource
             'access_type' => $this->access_type,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            // W-0042 — the off-platform co-owner. Published unwrapped beside the
+            // linked-account relation because a shared account now names its
+            // counterparty one way or the other, and a reader wanting "who is the
+            // other half" has to see both.
+            'joint_owner_name' => $this->joint_owner_name,
             'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'country' => $this->country,
             'is_emergency_fund' => $this->is_emergency_fund,

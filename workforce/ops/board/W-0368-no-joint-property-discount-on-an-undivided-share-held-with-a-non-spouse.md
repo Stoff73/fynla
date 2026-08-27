@@ -4,12 +4,12 @@ title: No joint-property discount is applied to an undivided share held with a n
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: blocked
+status: review
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
 claimed: 2026-08-25T18:00:00Z
-blocked_by: [tax-compliance-reviewer-c2]
+blocked_by: []
 gate: tax-compliance-reviewer
 handoff_to: quality-lead
 prior_art_checked: 2026-08-23
@@ -263,3 +263,41 @@ refinement rather than a blocker.
   4. Re-run Estate + Stores + Architecture
 
   C1 and C3 will not be re-opened.
+
+---
+
+## 2026-08-26 — C2 fixed and merged; awaiting re-gate, NOT discharged
+
+Status moved from `blocked` to `review` and `blocked_by` cleared, because the item
+read as though C2 were still an outstanding defect. It is not: the work is done and
+on `dev`. **What is outstanding is the verdict, which is the reviewer's and not
+mine to record.**
+
+C2's three routes, all merged in PR #719 (`7476ac5b8`):
+
+- **(a)** `populateForm()` never copied `joint_owner_is_spouse` onto the form, so the
+  read added in `0f4273c6e` could never be satisfied and every edit-and-save wrote
+  the untouched `null` over the stored answer.
+- **(b)** The answer outlived the co-owner it described — `PropertyStore::update()`
+  now forgets it when the co-owner changes and the write does not state a new one.
+- **(c)** A deleted spouse account switched the discount ON over a spouse's share;
+  `applies()` now asks the relationship question, not `liveSpouseId()`.
+
+Also merged: C6's citations (`5a34bf535`), and `User::spouseIdRegardlessOfAccountState()`
+with a guard (`243922925`) — because `hasReciprocalSpouseLink()` looks like the
+obvious consolidation and would silently reinstate (c), being soft-delete scoped.
+
+**One correction to the re-gate is waiting to be challenged.** The re-check said
+route (b) was reachable because "every Fyn write leaves the old answer standing —
+Fyn is the only write path on `/m` and native". That does not hold for updates: there
+is no `update_property` tool anywhere in the app, `PropertyStore::update()` has one
+caller behind a single PUT, `/m` issues no PUT, and the web form always sends the
+field. (b) is a guard at the boundary, not the closure of a live hole. That is stated
+in the docblock and in the tests.
+
+**The handoff has not been read.** `workforce/ops/handoffs/W-0368/build-lead-c2-fix-2026-08-26.md`
+carries the evidence and that correction. PR #719 merged before the re-gate ran, so
+the correction is on `dev` unchallenged — which is the opposite of what was wanted.
+
+Carried forward and untouched: **C4**, **C5** (raised as W-0501, fixed 2026-08-26),
+**C7**.

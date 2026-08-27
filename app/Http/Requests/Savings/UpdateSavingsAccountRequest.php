@@ -57,6 +57,7 @@ class UpdateSavingsAccountRequest extends FormRequest
             'ownership_type' => ['sometimes', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
             'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'sometimes|nullable|exists:users,id',
+            'joint_owner_name' => 'nullable|string|max:255',
             'trust_id' => 'sometimes|nullable|exists:trusts,id',
             'country' => 'sometimes|nullable|string|max:255',
             'isa_type' => 'nullable|in:cash,stocks_shares,LISA',

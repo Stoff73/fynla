@@ -271,6 +271,9 @@ class InvestmentAccountStore
             'contributions_ytd' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'monthly_contribution_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
+            // W-0042 — a shared record may name an off-platform co-owner, the same
+            // way properties, mortgages and chattels already can (W-0025).
+            'joint_owner_name' => 'sometimes|nullable|string|max:255',
 
             // W-0501: enum columns this ruleset never listed. Each list is the
             // column's own enum, so nothing the table would have stored is now

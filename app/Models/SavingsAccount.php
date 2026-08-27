@@ -52,6 +52,7 @@ class SavingsAccount extends Model
         'ownership_type',
         'ownership_percentage',
         'joint_owner_id',
+        'joint_owner_name',
         'trust_id',
         // Junior ISA beneficiary fields
         'beneficiary_id',

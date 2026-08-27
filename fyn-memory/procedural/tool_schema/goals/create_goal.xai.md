@@ -27,6 +27,19 @@ effective_from: 2026-06-02
                 "type": "string",
                 "description": "Target date in YYYY-MM-DD format. Must be in the future."
             },
+            "is_essential": {
+                "type": ["boolean", "null"],
+                "description": "Whether the household cannot go without this goal, as opposed to one they would defer if money were short. Only when the user says so."
+            },
+            "ownership_type": {
+                "type": ["string", "null"],
+                "enum": ["individual", "joint", null],
+                "description": "Whether the goal belongs to the user alone or is shared with their linked spouse. Only when the user says so."
+            },
+            "joint_owner_id": {
+                "type": ["integer", "null"],
+                "description": "User ID of the linked spouse the goal is shared with. Required when ownership_type is joint. A shared goal is ONE goal both see whole, not two halves, so there is no share to state."
+            },
             "priority": {
                 "type": "string",
                 "enum": [
@@ -66,6 +79,9 @@ effective_from: 2026-06-02
             "name",
             "target_amount",
             "target_date",
+            "is_essential",
+            "ownership_type",
+            "joint_owner_id",
             "priority",
             "goal_type",
             "monthly_contribution"

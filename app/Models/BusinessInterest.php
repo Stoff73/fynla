@@ -20,6 +20,7 @@ class BusinessInterest extends Model
     protected $fillable = [
         'user_id',
         'joint_owner_id',
+        'joint_owner_name',
         'household_id',
         'trust_id',
         'business_name',

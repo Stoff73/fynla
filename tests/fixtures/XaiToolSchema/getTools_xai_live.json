@@ -325,6 +325,32 @@
                         "type": "string",
                         "description": "Target date in YYYY-MM-DD format. Must be in the future."
                     },
+                    "is_essential": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "description": "Whether the household cannot go without this goal, as opposed to one they would defer if money were short. Only when the user says so."
+                    },
+                    "ownership_type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "individual",
+                            "joint",
+                            null
+                        ],
+                        "description": "Whether the goal belongs to the user alone or is shared with their linked spouse. Only when the user says so."
+                    },
+                    "joint_owner_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "description": "User ID of the linked spouse the goal is shared with. Required when ownership_type is joint. A shared goal is ONE goal both see whole, not two halves, so there is no share to state."
+                    },
                     "priority": {
                         "type": "string",
                         "enum": [
@@ -364,6 +390,9 @@
                     "name",
                     "target_amount",
                     "target_date",
+                    "is_essential",
+                    "ownership_type",
+                    "joint_owner_id",
                     "priority",
                     "goal_type",
                     "monthly_contribution"
@@ -544,6 +573,13 @@
                         ],
                         "description": "Ownership explicitly confirmed by the user. Never default a missing answer to individual — but when the user's own words state ownership (e.g. \"owned individually\", \"just me\", \"only mine\", \"individual ownership\", \"joint with my wife\"), that IS explicit confirmation: set the matching enum value. ISAs must be individual."
                     },
+                    "joint_owner_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Name of a joint owner who is NOT on the platform, when no joint_owner_id applies. Only if joint or tenants_in_common. Use the name the user gave."
+                    },
                     "joint_owner_id": {
                         "type": [
                             "integer",
@@ -577,6 +613,7 @@
                     "regular_contribution_amount",
                     "isa_subscription_amount",
                     "ownership_type",
+                    "joint_owner_name",
                     "joint_owner_id",
                     "trust_id",
                     "ownership_percentage"
@@ -638,6 +675,13 @@
                             "joint"
                         ],
                         "description": "Ownership explicitly confirmed by the user. Investment accounts support individual or joint ownership; ISAs must be individual."
+                    },
+                    "joint_owner_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Name of a joint owner who is NOT on the platform, when no joint_owner_id applies. Only if joint or tenants_in_common. Use the name the user gave."
                     },
                     "joint_owner_id": {
                         "type": [
@@ -1020,6 +1064,7 @@
                     "provider",
                     "current_value",
                     "ownership_type",
+                    "joint_owner_name",
                     "joint_owner_id",
                     "ownership_percentage",
                     "monthly_contribution_amount",
