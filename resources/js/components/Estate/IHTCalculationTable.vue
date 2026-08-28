@@ -273,13 +273,13 @@
       it. `/plans/estate` printed an unqualified Inheritance Tax figure because the
       caveat markup lived in the other parent (tax-compliance-reviewer round five, G2).
     -->
-    <div v-if="unmodelledReliefCaveat || projectedPensionExclusionCaveat" class="bg-eggshell-500 rounded-lg p-4 mt-6">
+    <div v-if="unmodelledReliefCaveat || projectedPensionInclusionCaveat" class="bg-eggshell-500 rounded-lg p-4 mt-6">
       <h3 class="text-sm font-semibold text-violet-800">What this figure does not include</h3>
       <p v-if="unmodelledReliefCaveat" class="mt-2 text-sm text-violet-800">{{ unmodelledReliefCaveat }}</p>
-      <!-- W-0363 — the projected column omits defined contribution pensions, which
-           form part of the estate from the configured date. Stated at the point the
-           affected figure is shown, not left silent. Sentence from the engine. -->
-      <p v-if="projectedPensionExclusionCaveat" class="mt-2 text-sm text-violet-800">{{ projectedPensionExclusionCaveat }}</p>
+      <!-- W-0482 — the projected column now INCLUDES the unused defined contribution
+           fund, and these are what it still leaves out. Sentence from the engine, so
+           both surfaces render one copy of it. -->
+      <p v-if="projectedPensionInclusionCaveat" class="mt-2 text-sm text-violet-800">{{ projectedPensionInclusionCaveat }}</p>
     </div>
   </div>
 </template>
@@ -365,9 +365,9 @@ export default {
       default: null,
     },
 
-    // W-0363 — same contract as the caveat above: the engine owns the sentence, this
+    // W-0482 — same contract as the caveat above: the engine owns the sentence, this
     // only decides where it appears.
-    projectedPensionExclusionCaveat: {
+    projectedPensionInclusionCaveat: {
       type: String,
       default: null,
     },

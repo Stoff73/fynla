@@ -12,6 +12,7 @@ use App\Models\Estate\Will;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Investment\InvestmentProjectionService;
+use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Settings\AssumptionsService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
@@ -110,6 +111,10 @@ class IHTCalculationService
         private readonly CrossModuleAssetAggregator $crossModuleAggregator,
         private readonly UndividedShareDiscount $undividedShareDiscount,
         private readonly FailedGiftTaxCalculator $failedGiftTax,
+        // W-0482 — the estate needs the UNUSED fund at death, and the drawdown that
+        // decides it is modelled here, once. Reading it is what stops the estate
+        // modelling drawdown a second time (Rule 20).
+        private readonly RetirementProjectionService $retirementProjection,
     ) {}
 
     /**
@@ -260,16 +265,6 @@ class IHTCalculationService
         // Agricultural Property Relief itself needs; when that lands this goes.
         $holdsAgriculturalAsset = $userAssets->contains($this->looksAgricultural(...))
             || $spouseAssets->contains($this->looksAgricultural(...));
-
-        // W-0363 — does this household hold a defined contribution pot that the
-        // projected column leaves out? The date comes from configuration (Rule 2);
-        // `effective_date` exists precisely so this is decided by date.
-        $pensionInclusion = $this->taxConfig->get('inheritance_tax.pension_iht_inclusion');
-        $pensionInclusionDate = isset($pensionInclusion['effective_date'])
-            ? Carbon::parse($pensionInclusion['effective_date'])
-            : null;
-        $unusedPensionValue = (float) $userAssets->where('asset_type', 'dc_pension')->sum('current_value')
-            + (float) $spouseAssets->where('asset_type', 'dc_pension')->sum('current_value');
 
         $unmodelledReliefCaveat = ($holdsBusinessInterest || $holdsAgriculturalAsset)
             // Wording revised 2026-08-24 on `compliance-lead`'s findings A and B.
@@ -461,13 +456,6 @@ class IHTCalculationService
         $effectiveRate = $totalNetEstate > 0 ? ($ihtLiability / $totalNetEstate * 100) : 0;
 
         // 9. Calculate PROJECTED values at death using asset-specific methods
-        // W-0363 — one sentence, from the engine, for both surfaces (Rule 20). Shown
-        // only when it is true of THIS household: they hold a defined contribution pot
-        // and the projection's death date falls on or after the configured inclusion
-        // date. A household with no pension is told nothing, and neither is one whose
-        // modelled death precedes the change.
-        $projectedPensionExclusionCaveat = null;
-
         $projectedData = $this->calculateProjectedValues(
             $user,
             $spouse,
@@ -475,21 +463,6 @@ class IHTCalculationService
             $assessment,
             $dataSharingEnabled
         );
-
-        if ($unusedPensionValue > 0 && $pensionInclusionDate !== null) {
-            $modelledDeath = today()->addYears(max(0, (int) ($projectedData['years_to_death'] ?? 0)));
-
-            if ($modelledDeath->gte($pensionInclusionDate)) {
-                $projectedPensionExclusionCaveat = sprintf(
-                    'The projected figure does not include your defined contribution pension. '
-                    .'From %s unused pension funds form part of the estate for Inheritance Tax, '
-                    .'so your actual liability at that point could be higher than shown — how much '
-                    .'higher depends on how much of the fund is left, which this projection does not '
-                    .'yet model. It is worth discussing with a regulated financial adviser.',
-                    $pensionInclusionDate->format('j F Y')
-                );
-            }
-        }
 
         // 10. Build result array with CURRENT and PROJECTED values
         $result = [
@@ -545,23 +518,6 @@ class IHTCalculationService
             // A copy of this sentence in each bundle is a Rule 20 violation waiting
             // to drift, so both surfaces render what this publishes.
             'unmodelled_relief_caveat' => $unmodelledReliefCaveat,
-            // W-0363 — the projected column models a death decades away, and from the
-            // configured effective date unused defined contribution pensions form part
-            // of the estate. This projection does NOT include them, so its figure is
-            // understated for any household holding one.
-            //
-            // **Stated rather than silently excluded** (W-0363 acceptance 3, and
-            // `05-perimeter.md` §4: where Fynla knows its picture is incomplete it says
-            // so at the point the affected figure is shown). Including them properly
-            // means the UNUSED fund at death, which is the pot after drawdown —
-            // `RetirementProjectionService::projectIncomeDrawdown()` computes it
-            // per-year as `remaining_fund`, and wiring that in is its own item
-            // (**W-0482**) because adding the pot at today's value would DOUBLE COUNT:
-            // the cash-flow projector already turns that pension into income and
-            // carries it in `projected_cash`.
-            //
-            // Published from the engine so both surfaces render one sentence (Rule 20).
-            'projected_pension_exclusion_caveat' => $projectedPensionExclusionCaveat,
             // Tax on gifts the seven-year window did not save, after taper relief.
             //
             // Deliberately NOT added to `iht_liability`. That figure is the ESTATE's
@@ -633,6 +589,15 @@ class IHTCalculationService
             'projected_cash' => $projectedData['projected_cash'],
             'projected_cash_shortfall' => $projectedData['projected_cash_shortfall'],
             'projected_cash_assumptions' => $projectedData['projected_cash_assumptions'],
+            // W-0482 — the unused defined contribution fund at the modelled death date,
+            // published beside the other projected terms so a surface can show the row.
+            'projected_unused_pension' => $projectedData['projected_unused_pension'],
+            'projected_unused_pension_basis' => $projectedData['projected_unused_pension_basis'],
+            // W-0482 — the W-0363 caveat went with its cause, and these arrived with the
+            // fix. `05-perimeter.md` §4: where the picture is incomplete, it is said at
+            // the point the affected figure is shown. One sentence, from the engine, for
+            // both surfaces (Rule 20).
+            'projected_pension_inclusion_caveat' => $projectedData['projected_pension_inclusion_caveat'],
             'projected_investments' => $projectedData['projected_investments'],
             'projected_properties' => $projectedData['projected_properties'],
             'projected_gross_assets' => $projectedData['projected_gross_assets'],
@@ -723,6 +688,87 @@ class IHTCalculationService
      *
      * @param  array  $assessment  The assessment context built in `calculate()`.
      */
+    /**
+     * The household's unused defined contribution fund at the modelled date of death.
+     *
+     * W-0482. Three things decide it, and each is deliberate:
+     *
+     * **The date.** From `inheritance_tax.pension_iht_inclusion.effective_date` an unused
+     * fund forms part of the estate — IHTA 1984 s150A, inserted by Finance Act 2026 ss66-71
+     * for deaths on or after the configured date. The date is read from configuration,
+     * never restated (Rule 2, W-0372). A household modelled to die before it adds nothing.
+     *
+     * **Whose fund.** The same pooling question the rest of the projection asks. A
+     * partner's pot is in this estate exactly when their savings and property are.
+     *
+     * **Which age.** Each member is asked about THEIR OWN age at the household horizon,
+     * not the viewer's. The horizon is a number of years from now (W-0188); two people of
+     * different ages reach it at different ages, and a fund drawn to 95 is not the fund
+     * drawn to 88.
+     *
+     * @return array{amount: float, basis: string}
+     */
+    private function projectedUnusedPensionFund(
+        User $user,
+        ?User $spouse,
+        int $yearsUntilDeath,
+        bool $poolsSpouse,
+        float $inflationRate
+    ): array {
+        $inclusion = $this->taxConfig->get('inheritance_tax.pension_iht_inclusion');
+
+        if (! isset($inclusion['effective_date'])) {
+            return ['amount' => 0.0, 'basis' => 'not_configured', 'caveat' => null];
+        }
+
+        if (today()->addYears(max(0, $yearsUntilDeath))->lt(Carbon::parse($inclusion['effective_date']))) {
+            return ['amount' => 0.0, 'basis' => 'before_effective_date', 'caveat' => null];
+        }
+
+        $members = [$user];
+        if ($poolsSpouse && $spouse !== null) {
+            $members[] = $spouse;
+        }
+
+        $total = 0.0;
+        $bases = [];
+
+        foreach ($members as $member) {
+            if (! $member->date_of_birth) {
+                $bases[] = 'no_date_of_birth';
+
+                continue;
+            }
+
+            $residual = $this->retirementProjection->unusedDcFundAtAge(
+                $member,
+                Carbon::parse($member->date_of_birth)->age + max(0, $yearsUntilDeath),
+                $inflationRate
+            );
+
+            $total += $residual['amount'];
+            $bases[] = $residual['basis'];
+        }
+
+        return [
+            'amount' => $total,
+            'basis' => implode('+', array_unique($bases)),
+            // What this figure still does not model, said where it is shown rather than
+            // left silent (`05-perimeter.md` §4). Shown only to a household the figure
+            // is actually about: they hold a defined contribution pot and their modelled
+            // death falls on or after the configured date.
+            'caveat' => $total > 0.0
+                ? 'This includes what is left of your defined contribution pension at the '
+                    .'projected date of death. It does not include lump sum death benefits '
+                    .'from a defined benefit scheme, and it does not model the income tax '
+                    .'that may also be due if you die at or after 75, so the total your '
+                    .'family pays could be higher than shown. Inheritance Tax on a pension '
+                    .'is paid by whoever receives the pension, not out of the rest of your '
+                    .'estate. It is worth discussing with a regulated financial adviser.'
+                : null,
+        ];
+    }
+
     private function calculateProjectedValues(
         User $user,
         ?User $spouse,
@@ -906,8 +952,31 @@ class IHTCalculationService
 
         $projectedBusinessRelief = $businessRelief($userAssets) + $businessRelief($spouseAssets);
 
+        // W-0482 — the unused defined contribution fund at the modelled death date.
+        //
+        // **Not the pot, and not today's value.** `HouseholdCashFlowProjector` already
+        // turns this pension into income and carries it in `$projectedCash`; adding the
+        // fund on top would count the same money twice, once as the income it becomes
+        // and once as the fund it came from. What belongs here is what is LEFT after
+        // that drawdown, which `RetirementProjectionService::unusedDcFundAtAge()`
+        // models — the one place drawdown is modelled at all.
+        //
+        // Gated on the date, from configuration (Rule 2): the pot forms part of the
+        // estate only for a death on or after `pension_iht_inclusion.effective_date`.
+        // A household modelled to die before it adds nothing, and is told nothing.
+        $projectedUnusedPension = $this->projectedUnusedPensionFund(
+            $user,
+            $spouse,
+            $yearsUntilDeath,
+            $this->poolsSpouse($user, $spouse, $dataSharingEnabled),
+            // The SAME rate the cash flow above was projected at. The residual is the
+            // complement of the income that projection credited, so a second rate here
+            // would make the two halves fail to reconcile.
+            $inflationRate
+        );
+
         // Calculate totals (include chattels and business at current value)
-        $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness + $projectedOtherAssets;
+        $projectedGrossAssets = $projectedCash + $projectedInvestments + $projectedProperties + $projectedChattels + $projectedBusiness + $projectedOtherAssets + $projectedUnusedPension['amount'];
         // Relief reduces the CHARGEABLE estate, in the projected column for the same
         // reason and in the same place as the current one (see `$totalNetEstate`).
         $projectedNetEstate = $projectedGrossAssets - $projectedLiabilities - $projectedBusinessRelief;
@@ -1016,6 +1085,11 @@ class IHTCalculationService
             // Pension forecast is a gap in the record, not an entitlement of nothing.
             'projected_cash_assumptions' => $cashFlow['assumptions'],
 
+            // W-0482 — published rather than folded silently into the gross figure, so
+            // both surfaces can show the row and say which basis it was modelled on.
+            'projected_unused_pension' => round($projectedUnusedPension['amount'], 2),
+            'projected_unused_pension_basis' => $projectedUnusedPension['basis'],
+            'projected_pension_inclusion_caveat' => $projectedUnusedPension['caveat'],
             'projected_investments' => round($projectedInvestments, 2),
             'projected_properties' => round($projectedProperties, 2),
             'projected_gross_assets' => round($projectedGrossAssets, 2),

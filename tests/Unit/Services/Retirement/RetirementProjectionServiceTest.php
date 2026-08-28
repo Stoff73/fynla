@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
+use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Risk\RiskPreferenceService;
@@ -91,7 +92,11 @@ beforeEach(function () {
         $this->mockTaxConfig,
         $this->mockLifeEventCashFlowService,
         app(CacheInvalidationService::class),
-        $this->mockRequiredCapitalCalculator
+        $this->mockRequiredCapitalCalculator,
+        // W-0482 — `unusedDcFundAtAge()` reads the same annual income the household cash
+        // flow credits. Nothing in this file exercises that path, so the real service is
+        // fine here; it is a constructor argument, not a behaviour under test.
+        app(PensionProjector::class)
     );
 });
 

@@ -1,123 +1,88 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-08-28 session 1 — hygiene only, no board defect fixed. Six PRs
-merged (#730–#735), branches 117 → 12 remote, `main` diagnosed and salvaged. `dev` clean
-at `5f07bad7a`. Handover: handover/August/28/handover-2026-08-28-session-1.md*
+*Last updated: 2026-08-28 session 2 — board work. Four PRs merged (#736-#739), two open
+and gated (#740, #741), nine board items filed. Handover:
+handover/August/28/handover-2026-08-28-session-2.md*
 
-## 2026-08-28 — session open: tree, branches and board
+## 2026-08-28 — board work, and two tax gates
 
-Six PRs merged (#730-#735), 106 merged branches pruned, `main` diagnosed and salvaged.
-The full record is in `handover/August/28/handover-2026-08-28-session-1.md` — this file
-keeps only what is still outstanding.
+Session 1 was hygiene and is finished: six PRs merged, 106 branches pruned, `main`
+diagnosed. **All of it is now closed out** — `main` was reconciled and the branch guard
+built, both on CSJ's instruction. Only what is still outstanding is kept below.
 
-### Board, as it actually stands
+### Merged
 
-**302 items, 230 open** (67 done, 3 invalid, 2 duplicate).
-By status: 115 `gated`, 82 `queued`, 19 `review`, 5 `open`, 4 `blocked`, 3 `handoff`,
-1 `in-progress`, 1 `claimed`.
-By severity, across the open items: **5 critical, 92 high, 104 medium, 17 low** — and
-12 open items carry no `severity` field at all.
+- **#736** — `main` reconciled with `dev`. `main` carries dev's tree. **No workflow
+  deploys on a `main` push**, so production is untouched until CSJ deploys.
+- **#737** — **`dev` had been red since #734 landed on 27 August.** The salvaged
+  `PremiumTestPersonaSeeder` writes models directly and reddened seven store-boundary
+  architecture tests. Allowlisted at the five guards.
+- **#738** — the `main` branch guard. `pull_request_target`, failing any PR into `main`
+  whose head is not `dev` or `release/*`.
+- **#739 / W-0480** — a civil partnership is a marriage in the four sibling services, plus
+  the two the tax gate pulled forward.
 
-No duplicate ids, no malformed items, every filename matches its `id`.
+### Open, and what each needs
 
-**`gated` does not mean fixed-and-waiting.** Most are `CANNOT CERTIFY` for missing
-evidence rather than wrong code — see
-`workforce/ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md`.
+- [ ] **#740 — W-0482** (unused pension fund in the projected estate). Reworked after the
+      tax gate rejected the first implementation. **The combined estate + feature suite has
+      not been re-run since the last fix, and the gate has not seen the rework.**
+- [ ] **#741 — W-0485** (Blind Person's Allowance is not a s58 deduction). **Blocked on
+      CSJ** — see below. Two gate findings also unfixed: both new docblocks cite
+      `AdjustedNetIncomeAgreesAcrossServicesTest`, **which does not exist**; and the test
+      named for the cross-service agreement never constructs `UKTaxCalculator`, asserting
+      against a hand-written literal instead.
 
 ### Next, in order
 
-- [ ] **Queued high, tax-moving first:** `W-0480` (four services still read `married`
-      alone, so a civil partnership gets the wrong answer), `W-0482` (the projected
-      estate needs the unused pension fund, not the pot), `W-0485` (blind person's
-      allowance subtracted from adjusted net income), `W-0489` (migrating savings to
-      cash would double-count every household), `W-0204` (salary sacrifice not added
-      back to threshold income).
+- [ ] Finish #740 and #741 as above.
+- [ ] **Queued high, tax-moving:** `W-0489` (migrating savings to cash would double-count
+      every household), `W-0204` (salary sacrifice not added back to threshold income).
+- [ ] **The nine items filed today**, in severity order: `W-0509` (critical), `W-0512`,
+      `W-0513`, `W-0514`, `W-0508`, `W-0511`, `W-0515`, `W-0510`, `W-0516`.
 - [ ] **Then the rest of the queued high:** `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
-      W-0155 W-0171 W-0222 W-0226 W-0227 W-0462 W-0486 W-0490 W-0495`, then medium,
-      then low.
-- [ ] **One full-suite run, alone, as a consolidation point.** The last handover said the
-      suite had not completed since `19bd1c83f`; that claim now predates 100 commits and
-      a dozen merged PRs, so it is worth re-establishing rather than repeating.
+      W-0155 W-0171 W-0222 W-0226 W-0227 W-0462 W-0486 W-0490 W-0495`, then medium, then
+      low.
+- [ ] **One full-suite run, alone, as a consolidation point.** Still not re-established.
       **One Pest process at a time** — two share `laravel_testing` and deadlock into
-      0-assertion failures that look exactly like real breakage.
+      failures indistinguishable from real breakage. A dispatched reviewer agent counts as
+      a second process.
 
 ### For CSJ
 
-- [ ] **PR #736 is open against `main` and deliberately unmerged.** It reconciles the
-      divergence — a `-s ours` merge keeping dev's tree whole and recording `main` as a
-      parent, so the next release replays a shared history. **Merging it makes main's
-      tree equal dev's, which is a release**; timing is CSJ's and the normal gates
-      (csjones deploy, browser verification) still apply. **Do not merge it to tidy up.**
-- [ ] **Branch protection on `main`.** `enforce_admins: false`,
-      `required_approving_review_count: 0`. Enforce-admins would have stopped the
-      `git add -A` that caused most of the drift. Stopping the second cause — PR #715
-      going straight to `main` — needs a **workflow**, because GitHub cannot restrict a
-      PR's source branch natively: fail any PR into `main` whose head is not `dev` or
-      `release/*`. Offered, **not built** — awaiting CSJ.
-- [ ] **W-0490 acceptance 3 — I COULD NOT TEST THIS.** It wants a clean clone plus
-      `git reset` on Windows and there is no Windows machine here. The item stays
-      `gated` for that reason alone.
+- [ ] **W-0511 — the decision #741 is waiting on.** The Blind Person's Allowance is
+      **never granted anywhere**: `is_registered_blind` was read in exactly one place, the
+      line #741 removes. So #741 alone moves a registered-blind user's computed tax UP —
+      they lose the unearned Personal Allowance uplift (about £650 at £110,000) and get no
+      allowance in its place. **Ship W-0511 alongside, or merge #741 on its own?**
+- [ ] **The branch guard is not yet biting.** Two steps remain: the workflow file has to
+      reach `main`, and `main-source-branch` must be added as a required status check
+      alongside `enforce_admins`.
+- [ ] **`test-and-build` (the iOS native job) sits `pending` at 0s on every PR and never
+      starts** — since at least #736. Everything else green has meant green; merges used
+      `--merge --admin`. Stuck runner, or a required context with no workflow behind it?
+- [ ] **W-0490 acceptance 3 — I COULD NOT TEST THIS.** Needs a clean clone plus `git reset`
+      on Windows; there is no Windows machine here.
 - [ ] **W-0490 acceptance 4 is carried, not discharged.** Nobody has audited past merges
       for earlier silent drops. The query is
-      `git diff --diff-filter=D --name-only origin/dev...HEAD` — an unrestricted
-      `git status` reports clean over exactly this failure.
+      `git diff --diff-filter=D --name-only origin/dev...HEAD`.
 - [ ] **12 open board items have no `severity`.** Mostly `W-0001`–`W-0023`, which predate
-      the field, plus `W-0176` and `W-0177`. Assigning one is triage, not cleanup, so
-      they are left alone.
+      the field. Assigning one is triage, not cleanup — do not add a guard, it would redden
+      on grandfathered items.
 - [ ] **Two local branches survive with no remote and unmerged work:**
-      `codex/fynla-org-repository-migration` (3 commits ahead of `dev`) and
-      `pr674-ci-green` (0 ahead, held by a worktree). Neither was deleted.
+      `codex/fynla-org-repository-migration` (3 commits ahead of `dev`) and `pr674-ci-green`
+      (0 ahead, held by a worktree).
 
-### `main` reconciliation — 2026-08-28
+### Settled today — do not re-litigate
 
-**`main` held one thing `dev` wanted, and it is now salvaged:**
-`database/seeders/PremiumTestPersonaSeeder.php`, written on 2026-08-25 in `b7a775581`
-and never merged to `dev` because that commit went to `main` directly. Verified by
-running it against dev's schema, 81 commits past the one it was written for.
-
-**Two other candidates inverted on inspection — do not "restore" them:**
-- `SpouseNRBTrackerService.php` was deleted here **deliberately**, under W-0146.
-- `main`'s copy of W-0279 is the item *before* the work: it reverts a `done` +
-  `CERTIFIED 2026-08-25` back to `queued` and deletes the whole working-notes section.
-- `main`'s `tests/E2E/fixtures/app.js` is superseded by W-0492, which consolidated
-  consent onto the cookie the app actually reads. `main` still writes both.
-
-**Most of the divergence is one bad commit.** `75aa0d4f6` "manual merging all files" —
-356 files, 113,323 insertions, **zero deletions**, on 2026-08-25. Someone commented out
-`.gitignore` rules (`/April/` → `# /April/`, `.superpowers/` → `# .superpowers/`, and
-deleted `workforce/ops/log/*.log`) and ran `git add -A`. That is where main's 250 April
-docs, 105 `.superpowers/` files and a 2.6 MB `myrtle-listen.log` came from. It is the
-ignore rules failing, not history being recovered.
-
-**The 268 April/June docs are in the vault, per CSJ's direction.** 203 were already
-there byte-identical; 3 vault copies are longer than main's and were left alone; 62 were
-copied across. `/April/` stays gitignored in the repo — that rule is deliberate and says
-"Planning/review docs (local only)".
-
-### Known gaps, carried from 2026-08-24
-
-All three are on the board as `gated`, so they are tracked — listed here because each
-is a *verification* gap rather than a code one, and gates do not discharge themselves.
-
-- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on **both** accounts of a linked
-      household. Only a web profile-form save was ever verified.
-- [ ] **W-0470, second half** — the per-liability detail rows still come from the
-      non-projecting breakdown, so the panel can show −£3,500 above a £0 total.
-- [ ] **W-0012, Rule 19** — `/m` and native have no property form, and Fyn's
-      `handleCreateProperty` accepts five mortgage fields where the web form has nine.
-- [ ] **iOS has not been built, launched or looked at since 2026-08-24**, and `/m` has
-      been verified only on localhost, never on csjones.
-
-**W-0008 is done** — it was carried as untouched in the last handover and has since
-closed.
-
-### Answered since the last handover — do not re-raise
-
-- **W-0347's forged consent rows.** CSJ ruled 2026-08-24 18:19: dev only, database
-  restarted, so G4/G5/G6 are closed rather than deferred. There are no data subjects.
-  The re-ask migration stays as written. `CSJTODO` listed this as waiting on CSJ for
-  four days after it was decided.
-- **The Rule 9 "(AIM)" question** appears settled via W-0454 → W-0497.
+- **W-0482's double count is fixed as an accounting complement**, not by rewiring
+  `HouseholdCashFlowProjector`. CSJ chose it over the larger rewire and over parking.
+- **The pension enlarges the taper base** (IHTA 1984 s8D(5)(d), IHTM46023) and **enters the
+  Schedule 1A general component**, so a household can correctly fall off the 36% rate.
+  **No residence band is claimed against it** — s8H needs a qualifying residential interest.
+- **W-0508's nil-rate-band defaults must NOT be fixed by parity.** The `married` branch is
+  itself wrong law: s8A brought-forward band requires the first partner to have died.
+  Copying it to civil partnerships spreads an over-claim of up to £325,000 of band.
 
 ## 2026-08-17 — catch-up and clean-up
 
