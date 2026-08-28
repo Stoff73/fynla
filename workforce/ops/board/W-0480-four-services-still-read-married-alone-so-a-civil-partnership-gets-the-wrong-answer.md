@@ -2,10 +2,10 @@
 id: W-0480
 title: Four Estate and Tax services still read ['married'] alone, so a civil partnership gets the wrong answer on adjacent screens
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: fix/w-0480-civil-partnership-parity
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: review
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -61,3 +61,59 @@ holds the list and the predicate, so these four have something to read.
 - 2026-08-24 — Check `LifeCoverCalculator` first: it has two sites, and life cover is
   the figure most likely to be read as a protection recommendation rather than a tax
   one, so a wrong answer there reaches a different kind of decision.
+
+## Resolution — 2026-08-28
+
+**Acceptance 1 — done.** All four read `HouseholdPooling::hasSpousalStatus()`. None
+needed a narrower list; each was asking the pooling question and answering it with half
+the statuses.
+
+- `LifeCoverCalculator.php:59` (`$isJointPolicy`) and `:455` (`$isMarried`)
+- `ComprehensiveEstatePlanService.php:72` (the spouse lookup)
+- `TaxOptimisationService.php:385` (`buildSpousalStrategy`)
+- `TaxActionDefinitionService.php:171` (`evaluateSpousalTransfer`)
+
+**Acceptance 2 — done**, `tests/Unit/Services/CivilPartnershipHouseholdParityTest.php`.
+Each household is built twice, `married` and `civil_partnership`, and required to give
+the same answer, then `single` is required to still give the other one. **Verified by
+mutation:** with the four service edits stashed, all five tests fail and produce exactly
+the `single` answer; restored, all five pass. The figures that move, per service:
+
+- Life cover — `is_joint_policy` flips, and the annual premium falls: a joint life second
+  death policy carries a 25% discount (`LifeCoverCalculator.php:328`) and is priced on the
+  average of two ages, so the test asserts the civil partnership's premium equals the
+  marriage's and is strictly less than the single person's.
+- Life cover, existing policies — the `single_life_married` warning now raised.
+- Estate plan — `user_profile.spouse` is a block rather than `null`.
+- `TaxOptimisationService` — `spousal_optimisation` strategy present, same
+  `estimated_annual_saving` as the marriage.
+- `TaxActionDefinitionService` — `spousal_transfer_beneficial` fires.
+
+**Acceptance 3 — done**, `tests/Architecture/MaritalStatusLiteralsArchitectureTest.php`.
+Grep-based, as the item allowed. It has both directions: a NEW literal list reddens it,
+and so does a baselined site whose line has changed — including one that has been fixed,
+so the entry gets pruned instead of rotting. **Both were mutation-tested** (a probe class
+under `app/Support/`, and fixing `LifeStageService` and running without pruning). Its
+blind spot is stated in the docblock: it reads one line at a time, so an `in_array` split
+across lines slips past.
+
+**The sweep found fourteen more sites — filed as W-0508**, not fixed here. The Estate API
+(`WillController`, `LifePolicyController`, `GiftingController` x2, `TrustController` x2,
+`EstateController`), three services (`LifeStageService`, `CoverageGapAnalyzer`,
+`ProtectionDataReadinessService`) and four agents. **This item's premise — that four
+siblings carried the defect — was itself an undercount**, which is the argument for the
+sweep rather than another review.
+
+**Acceptance 4 — `tax-compliance-reviewer` dispatched on the change.** See the working
+note below for its verdict.
+
+### Verification
+
+- `tests/Unit/Services/Tax` + `tests/Unit/Services/Estate` + the new parity test —
+  **587 passed, 1,812 assertions.**
+- `tests/Feature/Tax` + `LifeCoverReachSpouseLinkStatesTest` +
+  `DeletedSpouseVisibilityTest` + `RecommendationsAggregatorServiceTest` +
+  `EstateAgentGoalsTest` + the new sweep guard — **59 passed, 193 assertions.**
+- Pint clean.
+- **NOT verified in a browser.** These are service-layer branches with no template change;
+  the user-visible movement is asserted at the figures above rather than on screen.
