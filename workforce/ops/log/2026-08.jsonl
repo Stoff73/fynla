@@ -153,3 +153,4 @@
 {"ts":"2026-08-23T06:50:00Z","agent":"build-lead","item":"W-0452","event":"handoff","to":"quality-lead","note":"workforce/ops/handoffs/W-0452/build-lead-to-quality-lead-2026-08-23.md"}
 {"ts":"2026-08-24T16:32:13Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-24.md"}
 {"ts":"2026-08-24T16:32:15Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}
+{"ts":"2026-08-28T09:53:36Z","agent":"build-lead","item":"W-0490","event":"gated","note":"acceptances 1 and 2 done; 3 needs a Windows machine"}

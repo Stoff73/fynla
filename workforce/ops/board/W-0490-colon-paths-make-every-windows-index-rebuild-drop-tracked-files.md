@@ -4,7 +4,7 @@ title: Two tracked PNGs contain a colon, so every index rebuild on Windows abort
 mission: M-0001-state-truth
 owner: build-lead
 reviewers: [quality-lead]
-status: queued
+status: gated
 severity: high
 surfaces: [web, m, ios]
 source: found when a dev merge dropped CLAUDE.md, 2026-08-25
@@ -85,3 +85,36 @@ The rename is deliberately left for its own change. Renaming tracked files that
 cannot be checked out on this platform needs doing from a machine that can hold
 them, or with `git mv` driven purely through the index, and getting that wrong on
 the very paths that break the index is how this item gets worse rather than better.
+
+## Resolution — 2026-08-28
+
+**Acceptance 1 — done.** `August/bugs/ios:17August/` renamed to
+`August/bugs/ios-17August/` via `git mv`, matching the sibling folders. Both
+screenshots kept. The one prose reference to the old path
+(`August/August17Updates/iOSBugs/BUG-02-pension-capture-and-projections.md:8`)
+was updated; the two quotations inside this item are left as they were, because
+they are transcripts of the failure and changing them would make the evidence
+describe a path that never broke anything. `git ls-files | grep ':'` now returns
+nothing.
+
+**Acceptance 2 — done.** `tests/Feature/Workforce/RepositoryPathsSurviveAWindowsCheckoutTest.php`
+greps `git ls-files` for `< > : " | ? *`. It is a pattern, not anything clever,
+exactly as this item asked. **Mutation-tested rather than trusted for going
+green:** a tracked `probe:colon.txt` was staged and the guard failed; with it
+removed the guard passes. A guard written against a repository that is already
+clean proves nothing until it has been shown to redden.
+
+**Acceptance 3 — I COULD NOT TEST THIS.** It requires a clean clone plus
+`git reset` on Windows, and there is no Windows machine in this environment. The
+rename is verified only insofar as no forbidden character remains in the index.
+This is the sole reason the item is `gated` rather than `done`.
+
+**Acceptance 4 — carried, not discharged.** Nobody has audited past merges for
+earlier silent drops. The reliable query, for anyone who has merged into a
+Windows worktree, is a path-scoped one:
+
+    git diff --diff-filter=D --name-only origin/dev...HEAD
+
+An unrestricted `git status` reports clean over exactly this failure, so the
+check used after the first occurrence — file on disk and tracked — is a false
+negative.
