@@ -133,3 +133,94 @@ change and the sentence that used to explain the omission is gone.
 - Pint clean.
 - **NOT verified in a browser.** The frontend change is a removal on both surfaces; the
   figure change is asserted at the engine.
+
+## Gate — tax-compliance-reviewer, 2026-08-28: NOT CLEARED, then fixed
+
+**The law moved and the review caught it.** Finance Act 2026 (c. 11) ss66-71 received
+Royal Assent on **18 March 2026**, inserting **IHTA 1984 s150A** ("notional pension
+property") for deaths on or after 6 April 2027. This is enacted law, not a proposal; the
+configured `effective_date` of `2027-04-06` is correct.
+
+**What the gate confirmed correct and should not be changed:**
+
+- **The taper base.** The pension enlarges `$projectedEstateForTaper` — right under
+  IHTA 1984 s8D(5)(d) and IHTM46023 ("the value of the estate after liabilities, but
+  before taking into account any exemptions or reliefs"), and consistent with
+  `calculatePensionAmendmentScenario()`. **No business or agricultural relief is available
+  against notional pension property** (Technical note 11.2.3), so `$whollyRelieved`
+  correctly never sees it.
+- **The charitable baseline.** HMRC Technical note 11.1 puts notional pension property in
+  the **general component**, so it enters the Schedule 1A para 5 baseline. A household on
+  36% can correctly fall to 40%.
+- **The measure.** s150A(2) Step 1(A) charges the value of property held in the pot
+  immediately before death — the residual, not the pot. And s150A draws **no distinction
+  between a crystallised drawdown pot and an uncrystallised one** (FA 2026 s69 omits
+  IHTA s12A and s152), so the model's indifference to crystallisation is right rather than
+  a simplification.
+- **The spouse shape.** New **s18(3A)** exempts the fund on the first death, but it does
+  not vanish — as a beneficiary's drawdown fund it is caught again on the survivor's death
+  by s150A(1), and as a lump sum it becomes ordinary estate. Pooling into one modelled
+  death is a defensible representation.
+
+**F1 — the blocker. The double count was still live, and the test could not fail.**
+
+The first implementation read `projectTargetIncomeDrawdown()`'s `remaining_fund`. But
+`HouseholdCashFlowProjector:367` does not use that method — it reads
+`PensionProjector::projectTotalRetirementIncome()`, and `PensionProjector:219` is a
+**perpetuity**: `pot × safe withdrawal rate`, credited every retired year, fund never
+reduced. Two models disagreeing about whether the money was spent, both feeding one estate
+figure. Worst case — a defined benefit pension and the State Pension already meeting the
+target — the drawdown draws nothing, the residual is the **whole grown pot**, and cash has
+separately been credited 4% of it for thirty years.
+
+And the guard was an identity: the estate is built as `cash + ... + residual`, so
+`grossMovement - cashMovement === residual` holds for **any** residual, including today's
+whole pot.
+
+**Fixed, on CSJ's decision (2026-08-28), as an accounting complement:**
+
+    residual = max(0, grown fund at death − pension income already credited to cash)
+
+Drawdown is now modelled **zero** times here rather than twice — the cash projector's
+income IS the drawdown and this is its complement. The pension cannot contribute more than
+the fund holds whatever either model does. The inflation rate is passed in from the estate
+so both halves reconcile on one rate rather than two.
+
+The replacement tests are the ones the old implementation **fails**: the residual is
+strictly less than the grown fund once income has been credited, and zero once that income
+has exhausted it.
+
+**F9 — the second blocker, also fixed.** Acceptance 6 removed the W-0363 caveat correctly,
+but the fix brought new incompletenesses with it and `05-perimeter.md` §4 is ratified.
+`projected_pension_inclusion_caveat` is published from the engine and rendered on both
+surfaces where the old one was: defined benefit lump sum death benefits are not modelled,
+the income tax due on a death at or after 75 is not modelled (**52% / 64% / 67% combined
+effective rates**, ITEPA 2003 s567B as inserted by FA 2026 s70), and the charge falls on
+**whoever receives the pension, not the rest of the estate** — FA 2026 amends IHTA s211 so
+personal representatives may recover from the beneficiary. **The wording is new copy and
+is flagged for CSJ.**
+
+**Filed rather than fixed — five items, all from this gate:**
+
+- **W-0512** (F1 residue, high) — the perpetuity itself. It over-credits `projected_cash`
+  for every household with a pension, whether or not the estate includes the fund. The
+  complement stops the pension term double counting; it cannot un-credit the cash.
+- **W-0513** (F2, high) — s150A(2) Step 2 brings in defined benefit lump sum death
+  benefits, continuation payments and annuity protection lump sums. A defined-benefit-only
+  household contributes **nothing**. The seeder's own `applies_to` says `death_benefits`
+  and the code ignores it.
+- **W-0514** (F3, high) — the first death's s8G(5) residence-band taper. A £700,000 pension
+  can cross £2,000,000 on a first death with **no tax arising**, destroy the brought-forward
+  allowance, and cost the second estate up to £350,000 of band.
+- **W-0515** (F10, high) — `calculatePensionAmendmentScenario()` still says pensions "pass
+  outside the estate" and quotes **today's pot**, which is exactly the figure this item
+  rejects. Two pension-in-estate numbers, both visible to one household.
+- **W-0516** (F8, medium) — the State Pension age is `?? 67` here and a configured `66`
+  in the cash projector.
+
+**Not filed, recorded here:** F5's asymmetry (a percentage charitable gift scales with the
+enlarged estate and a fixed legacy does not, so the pension can only ever push a household
+OFF the 36% rate, never onto it) and F6 (`beyond_horizon` is gone with the rewrite — the
+complement extends to any age). F11's cache fingerprint gap is real but the complement
+narrows it: the residual now depends on the pot and the credited income, both of which
+derive from `dc_pensions` rows the fingerprint already covers.

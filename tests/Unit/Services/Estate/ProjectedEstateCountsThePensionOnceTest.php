@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Models\DBPension;
 use App\Models\DCPension;
-use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Settings\AssumptionsService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -23,12 +24,20 @@ uses(RefreshDatabase::class);
  * **The trap this guards.** `HouseholdCashFlowProjector` already turns the pension into
  * income and carries it in `projected_cash`. The obvious implementation — add the pot at
  * today's value — is wrong in a way no error surfaces: the same money appears once as
- * the income it becomes and once as the fund it came from. What belongs in the estate is
- * the UNUSED fund at the modelled death date.
+ * the income it becomes and once as the fund it came from.
  *
- * The two ends of the range are what make this falsifiable. A household that has drawn
- * its fund to nothing must add nothing; a household that draws none of it must add the
- * grown fund. A single mid-range assertion would pass against a double count.
+ * **The first version of this suite could not fail.** It asserted
+ * `grossMovement - cashMovement === residual`, which is an identity: the estate is built
+ * as `cash + ... + residual`, so it holds for ANY residual, including today's whole pot.
+ * The `tax-compliance-reviewer` gate found it, and found the double count still live —
+ * the residual came from a DEPLETING drawdown model while the cash projector pays a
+ * PERPETUITY, so the pension was counted roughly twice for a household whose guaranteed
+ * income already meets its target.
+ *
+ * What replaces it is the accounting complement: the estate adds the grown fund LESS the
+ * income already credited to cash. The assertions below are the ones the old
+ * implementation fails — that the residual is strictly less than the grown fund once
+ * income has been credited, and zero once that income has exhausted it.
  */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
@@ -59,20 +68,82 @@ function pensionHolder(int $fundValue): User
     return $user->fresh();
 }
 
-it('adds the unused fund the retirement engine models, not the pot', function () {
+it('adds the grown fund less the income the cash projection already credited', function () {
+    // The assertion the old implementation fails. A household whose guaranteed income
+    // covers its target draws nothing in the drawdown model, so the previous version
+    // returned the WHOLE grown pot — while `projected_cash` had separately been credited
+    // 4% of that same pot every year since retirement. Here the credited income is
+    // subtracted, so the residual is strictly less than the fund.
+    $user = pensionHolder(500_000);
+
+    // A defined benefit pension large enough that the drawdown model would draw nothing.
+    DBPension::factory()->create([
+        'user_id' => $user->id,
+        'accrued_annual_pension' => 60_000,
+    ]);
+
+    $projection = app(RetirementProjectionService::class);
+    $inflation = (float) app(AssumptionsService::class)->getEstateAssumptions($user)['inflation_rate'] / 100;
+    $pot = $projection->projectPensionPot($user->fresh());
+
+    $residual = $projection->unusedDcFundAtAge($user->fresh(), (int) $pot['retirement_age'] + 15, $inflation);
+
+    expect($residual['credited'])->toBeGreaterThan(0.0)
+        ->and($residual['grown_fund'])->toBeGreaterThan(0.0)
+        ->and($residual['amount'])->toBeLessThan($residual['grown_fund'])
+        // A delta, not an identity: these are floats off a compounding loop, and an exact
+        // comparison fails by one unit in the last place depending on what ran before it.
+        // A penny is the resolution that matters for money.
+        ->and($residual['amount'])
+        ->toEqualWithDelta(max(0.0, $residual['grown_fund'] - $residual['credited']), 0.01);
+});
+
+it('adds nothing once the credited income has exhausted the fund', function () {
+    // Far enough past retirement that the income already counted in cash exceeds the
+    // fund it came from. The estate adds nothing rather than a negative, and says so.
+    $user = pensionHolder(400_000);
+    $projection = app(RetirementProjectionService::class);
+    $inflation = (float) app(AssumptionsService::class)->getEstateAssumptions($user)['inflation_rate'] / 100;
+    $pot = $projection->projectPensionPot($user);
+
+    $residual = $projection->unusedDcFundAtAge($user, (int) $pot['retirement_age'] + 45, $inflation);
+
+    expect($residual['credited'])->toBeGreaterThan($residual['grown_fund'])
+        ->and($residual['amount'])->toBe(0.0)
+        ->and($residual['basis'])->toBe('exhausted');
+});
+
+it('adds the whole projected pot for a death before any income is credited', function () {
+    // Before retirement the cash projection has credited nothing, so there is nothing to
+    // subtract and the whole projected fund is unused.
+    $user = pensionHolder(400_000);
+    $projection = app(RetirementProjectionService::class);
+    $inflation = (float) app(AssumptionsService::class)->getEstateAssumptions($user)['inflation_rate'] / 100;
+    $pot = $projection->projectPensionPot($user);
+    $ageBeforeRetirement = (int) $pot['retirement_age'] - 1;
+
+    $residual = $projection->unusedDcFundAtAge($user, $ageBeforeRetirement, $inflation);
+    $row = $pot['year_by_year'][$ageBeforeRetirement - (int) $pot['current_age']];
+
+    expect($residual['basis'])->toBe('pre_retirement_growth')
+        ->and($residual['credited'])->toBe(0.0)
+        ->and($residual['amount'])->toBe((float) $row['percentile_20']);
+});
+
+it('publishes in the estate exactly what the complement computes', function () {
     $user = pensionHolder(400_000);
 
     $result = app(IHTCalculationService::class)->calculate($user, null, false);
 
+    $inflation = (float) app(AssumptionsService::class)->getEstateAssumptions($user)['inflation_rate'] / 100;
     $ageAtDeath = Carbon\Carbon::parse($user->date_of_birth)->age + (int) $result['years_to_death'];
-    $residual = app(RetirementProjectionService::class)->unusedDcFundAtAge($user, $ageAtDeath);
+    $residual = app(RetirementProjectionService::class)->unusedDcFundAtAge($user, $ageAtDeath, $inflation);
 
-    // The one mechanism, read rather than re-modelled (Rule 20).
-    expect($result['projected_unused_pension'])->toBe(round($residual['amount'], 2));
-
-    // And it is NOT the pot. A pot of £400,000 that has funded a retirement is not
-    // £400,000 at death; if these were equal the estate would be adding today's value.
-    expect($result['projected_unused_pension'])->not->toBe(400000.00);
+    // One mechanism, read rather than re-derived (Rule 20).
+    expect($result['projected_unused_pension'])->toBe(round($residual['amount'], 2))
+        // And never the pot: a fund that has been paying an income for decades is not
+        // its own starting value at death.
+        ->and($result['projected_unused_pension'])->not->toBe(400000.00);
 });
 
 it('adds nothing for a household with no defined contribution pension', function () {
@@ -80,75 +151,6 @@ it('adds nothing for a household with no defined contribution pension', function
 
     expect($result['projected_unused_pension'])->toBe(0.0)
         ->and($result['projected_unused_pension_basis'])->toBe('no_pension');
-});
-
-it('adds effectively nothing once the fund has been drawn out', function () {
-    // Acceptance 3, the first end of the range: a household whose pot is spent adds
-    // nothing to its estate.
-    //
-    // **Why this asserts "under £1" rather than exactly zero.** The engine's drawdown is
-    // `remaining * (1 + growth) - min(needed, remaining)`, so once the need exceeds the
-    // fund the balance is multiplied by the growth rate each year — 2% of what is left,
-    // for ever. It approaches zero and never arrives, so `fund_depletion_age` is never
-    // set and `fund_depleted` is never true. That is a defect in the retirement engine's
-    // own reporting (W-0510), not in this figure: £2.31 left of a £20,000 pot is spent
-    // money by any reading, and what matters here is that the ESTATE is not carrying the
-    // pot. Pinning the exact pennies would pin the growth rate instead.
-    $user = pensionHolder(20_000);
-
-    // A target income is what makes drawdown happen at all: the engine draws what the
-    // household needs and nothing more, so a household that has recorded no target
-    // draws nothing and its fund is never touched. Recorded here explicitly rather
-    // than relying on a factory default (tests/CLAUDE.md §4, Fixture).
-    RetirementProfile::factory()->create([
-        'user_id' => $user->id,
-        'target_retirement_income' => 45_000,
-    ]);
-
-    $projection = app(RetirementProjectionService::class);
-    $pot = $projection->projectPensionPot($user);
-
-    $residual = $projection->unusedDcFundAtAge($user, (int) $pot['retirement_age'] + 20);
-
-    expect($residual['amount'])->toBeLessThan(1.0)
-        ->and($residual['basis'])->toBe('drawdown_residual');
-
-    // And the estate agrees — this household's projected estate carries no pension.
-    $result = app(IHTCalculationService::class)->calculate($user->fresh(), null, false);
-    expect($result['projected_unused_pension'])->toBeLessThan(1.0);
-});
-
-it('is the grown fund for a death before any of it has been drawn', function () {
-    // The other end: a household that draws NONE of it adds the grown fund. Death a
-    // year before retirement, so no drawdown has happened and the whole projected pot
-    // is unused.
-    $user = pensionHolder(400_000);
-    $projection = app(RetirementProjectionService::class);
-
-    $pot = $projection->projectPensionPot($user);
-    $ageBeforeRetirement = (int) $pot['retirement_age'] - 1;
-
-    $residual = $projection->unusedDcFundAtAge($user, $ageBeforeRetirement);
-    $row = $pot['year_by_year'][$ageBeforeRetirement - (int) $pot['current_age']];
-
-    expect($residual['basis'])->toBe('pre_retirement_growth')
-        ->and($residual['amount'])->toBe((float) $row['percentile_20'])
-        ->and($residual['amount'])->toBeGreaterThan(0.0);
-});
-
-it('counts the pension money once, not once as income and again as a fund', function () {
-    // The double count made measurable. A larger pension raises BOTH the projected cash
-    // (it becomes income) and the unused fund (what income did not spend). Take the cash
-    // movement out and what is left must be exactly the residual — no more, which is
-    // what adding the pot at today's value would have produced.
-    $withFund = app(IHTCalculationService::class)->calculate(pensionHolder(2_000_000), null, false);
-    $withNoFund = app(IHTCalculationService::class)->calculate(pensionHolder(0), null, false);
-
-    $grossMovement = $withFund['projected_gross_assets'] - $withNoFund['projected_gross_assets'];
-    $cashMovement = $withFund['projected_cash'] - $withNoFund['projected_cash'];
-
-    expect($withFund['projected_unused_pension'])->toBeGreaterThan(0.0)
-        ->and(round($grossMovement - $cashMovement, 2))->toBe($withFund['projected_unused_pension']);
 });
 
 it('adds nothing when the modelled death falls before the configured effective date', function () {
@@ -169,6 +171,27 @@ it('adds nothing when the modelled death falls before the configured effective d
 
     expect($result['projected_unused_pension'])->toBe(0.0)
         ->and($result['projected_unused_pension_basis'])->toBe('before_effective_date');
+});
+
+it('says what the figure still does not include', function () {
+    // `05-perimeter.md` §4 — the W-0363 caveat went with its cause, and the fix brought
+    // new incompletenesses with it: defined benefit lump sum death benefits are not
+    // modelled, the income tax due on a death at or after 75 is not modelled, and the
+    // charge falls on whoever receives the pension rather than on the rest of the estate.
+    // Raised by the tax-compliance-reviewer gate. One sentence, from the engine.
+    $result = app(IHTCalculationService::class)->calculate(pensionHolder(400_000), null, false);
+
+    expect($result['projected_pension_inclusion_caveat'])->toBeString()
+        ->and($result['projected_pension_inclusion_caveat'])->toContain('defined benefit')
+        ->and($result['projected_pension_inclusion_caveat'])->toContain('75')
+        ->and($result['projected_pension_inclusion_caveat'])->toContain('whoever receives the pension');
+});
+
+it('says nothing to a household the figure is not about', function () {
+    // A caveat shown to everyone is noise, and noise is what makes real ones ignored.
+    $result = app(IHTCalculationService::class)->calculate(pensionHolder(0), null, false);
+
+    expect($result['projected_pension_inclusion_caveat'])->toBeNull();
 });
 
 it('no longer publishes the interim exclusion caveat', function () {

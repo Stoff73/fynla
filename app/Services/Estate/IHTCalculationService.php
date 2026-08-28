@@ -593,6 +593,11 @@ class IHTCalculationService
             // published beside the other projected terms so a surface can show the row.
             'projected_unused_pension' => $projectedData['projected_unused_pension'],
             'projected_unused_pension_basis' => $projectedData['projected_unused_pension_basis'],
+            // W-0482 — the W-0363 caveat went with its cause, and these arrived with the
+            // fix. `05-perimeter.md` §4: where the picture is incomplete, it is said at
+            // the point the affected figure is shown. One sentence, from the engine, for
+            // both surfaces (Rule 20).
+            'projected_pension_inclusion_caveat' => $projectedData['projected_pension_inclusion_caveat'],
             'projected_investments' => $projectedData['projected_investments'],
             'projected_properties' => $projectedData['projected_properties'],
             'projected_gross_assets' => $projectedData['projected_gross_assets'],
@@ -689,9 +694,9 @@ class IHTCalculationService
      * W-0482. Three things decide it, and each is deliberate:
      *
      * **The date.** From `inheritance_tax.pension_iht_inclusion.effective_date` an unused
-     * fund forms part of the estate (Autumn Budget 2024). A household modelled to die
-     * before that date adds nothing — the money passes outside the estate as it does
-     * today. The date is read from configuration, never restated (Rule 2, W-0372).
+     * fund forms part of the estate — IHTA 1984 s150A, inserted by Finance Act 2026 ss66-71
+     * for deaths on or after the configured date. The date is read from configuration,
+     * never restated (Rule 2, W-0372). A household modelled to die before it adds nothing.
      *
      * **Whose fund.** The same pooling question the rest of the projection asks. A
      * partner's pot is in this estate exactly when their savings and property are.
@@ -707,16 +712,17 @@ class IHTCalculationService
         User $user,
         ?User $spouse,
         int $yearsUntilDeath,
-        bool $poolsSpouse
+        bool $poolsSpouse,
+        float $inflationRate
     ): array {
         $inclusion = $this->taxConfig->get('inheritance_tax.pension_iht_inclusion');
 
         if (! isset($inclusion['effective_date'])) {
-            return ['amount' => 0.0, 'basis' => 'not_configured'];
+            return ['amount' => 0.0, 'basis' => 'not_configured', 'caveat' => null];
         }
 
         if (today()->addYears(max(0, $yearsUntilDeath))->lt(Carbon::parse($inclusion['effective_date']))) {
-            return ['amount' => 0.0, 'basis' => 'before_effective_date'];
+            return ['amount' => 0.0, 'basis' => 'before_effective_date', 'caveat' => null];
         }
 
         $members = [$user];
@@ -736,14 +742,31 @@ class IHTCalculationService
 
             $residual = $this->retirementProjection->unusedDcFundAtAge(
                 $member,
-                Carbon::parse($member->date_of_birth)->age + max(0, $yearsUntilDeath)
+                Carbon::parse($member->date_of_birth)->age + max(0, $yearsUntilDeath),
+                $inflationRate
             );
 
             $total += $residual['amount'];
             $bases[] = $residual['basis'];
         }
 
-        return ['amount' => $total, 'basis' => implode('+', array_unique($bases))];
+        return [
+            'amount' => $total,
+            'basis' => implode('+', array_unique($bases)),
+            // What this figure still does not model, said where it is shown rather than
+            // left silent (`05-perimeter.md` §4). Shown only to a household the figure
+            // is actually about: they hold a defined contribution pot and their modelled
+            // death falls on or after the configured date.
+            'caveat' => $total > 0.0
+                ? 'This includes what is left of your defined contribution pension at the '
+                    .'projected date of death. It does not include lump sum death benefits '
+                    .'from a defined benefit scheme, and it does not model the income tax '
+                    .'that may also be due if you die at or after 75, so the total your '
+                    .'family pays could be higher than shown. Inheritance Tax on a pension '
+                    .'is paid by whoever receives the pension, not out of the rest of your '
+                    .'estate. It is worth discussing with a regulated financial adviser.'
+                : null,
+        ];
     }
 
     private function calculateProjectedValues(
@@ -945,7 +968,11 @@ class IHTCalculationService
             $user,
             $spouse,
             $yearsUntilDeath,
-            $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
+            $this->poolsSpouse($user, $spouse, $dataSharingEnabled),
+            // The SAME rate the cash flow above was projected at. The residual is the
+            // complement of the income that projection credited, so a second rate here
+            // would make the two halves fail to reconcile.
+            $inflationRate
         );
 
         // Calculate totals (include chattels and business at current value)
@@ -1062,6 +1089,7 @@ class IHTCalculationService
             // both surfaces can show the row and say which basis it was modelled on.
             'projected_unused_pension' => round($projectedUnusedPension['amount'], 2),
             'projected_unused_pension_basis' => $projectedUnusedPension['basis'],
+            'projected_pension_inclusion_caveat' => $projectedUnusedPension['caveat'],
             'projected_investments' => round($projectedInvestments, 2),
             'projected_properties' => round($projectedProperties, 2),
             'projected_gross_assets' => round($projectedGrossAssets, 2),
