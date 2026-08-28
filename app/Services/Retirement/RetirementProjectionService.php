@@ -28,7 +28,12 @@ class RetirementProjectionService
         private readonly TaxConfigService $taxConfig,
         private readonly LifeEventCashFlowService $lifeEventCashFlowService,
         private readonly CacheInvalidationService $cacheInvalidation,
-        private readonly RequiredCapitalCalculator $requiredCapitalCalculator
+        private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
+        // W-0482 — `unusedDcFundAtAge()` subtracts exactly what
+        // `HouseholdCashFlowProjector` credits, and this is where that figure comes
+        // from. Reading the same source is what makes it a complement rather than a
+        // third opinion about the same pension.
+        private readonly PensionProjector $pensionProjector
     ) {}
 
     /**
@@ -356,6 +361,122 @@ class RetirementProjectionService
                 'total' => round($dbAnnualIncome + $statePensionIncome, 2),
             ],
             'yearly_income' => $yearlyIncome,
+        ];
+    }
+
+    /**
+     * What is LEFT of the defined contribution fund at a given age — W-0482.
+     *
+     * The estate needs this and cannot get it from the pot value. From the configured
+     * effective date an **unused** pension fund forms part of the estate for Inheritance
+     * Tax, and "unused" is the whole of the question.
+     *
+     * **This is an accounting complement, not a second drawdown model, and that is the
+     * point.** `HouseholdCashFlowProjector` already turns this pension into income and
+     * carries it in `projected_cash`, so the estate has ALREADY counted part of the fund.
+     * What is left to count is the rest of it:
+     *
+     *     residual = max(0, grown fund at death − pension income already credited)
+     *
+     * The first version of this read `projectTargetIncomeDrawdown()`'s `remaining_fund`
+     * and the `tax-compliance-reviewer` gate rejected it, correctly. That model depletes;
+     * `HouseholdCashFlowProjector` reads `PensionProjector::projectTotalRetirementIncome()`,
+     * which is a **perpetuity** — `pot × safe withdrawal rate`, credited every retired
+     * year, with the fund never reduced. Two models that disagree about whether the money
+     * was spent, both feeding one estate figure. Worst case, where a defined benefit
+     * pension and the State Pension already meet the target, the drawdown model draws
+     * nothing, the residual is the WHOLE grown pot, and cash has separately been credited
+     * 4% of it for thirty years. The estate carried the pension roughly twice.
+     *
+     * Subtracting what the estate has already counted cannot do that, whatever either
+     * model does: the pension contributes the grown fund and no more. **Drawdown is now
+     * modelled zero times here rather than twice** — the cash projector's income IS the
+     * drawdown, and this is its complement.
+     *
+     * What it does NOT fix: the perpetuity itself over-credits `projected_cash` for a
+     * fund that never shrinks. That is W-0512, and it inflates cash rather than the
+     * pension term — this method floors at zero and adds nothing once the credited income
+     * has exhausted the fund.
+     *
+     * Three regimes, named in `basis` rather than collapsed into a number the caller has
+     * to interpret:
+     *
+     *  - **before retirement** — nothing has been credited, so the whole projected pot is
+     *    unused. Read from the accumulation path at the 20th percentile.
+     *  - **after retirement** — the grown fund less the credited income.
+     *  - **exhausted** — the credited income has already met or exceeded the fund, so the
+     *    estate adds nothing.
+     *
+     * @param  float  $inflationRate  the rate `HouseholdCashFlowProjector` inflates its
+     *                                credited income by. Passed in rather than read here,
+     *                                because the two figures must use ONE rate or the
+     *                                complement does not reconcile.
+     * @return array{amount: float, basis: string, credited: float, grown_fund: float}
+     */
+    public function unusedDcFundAtAge(User $user, int $ageAtDeath, float $inflationRate): array
+    {
+        $user->loadMissing(['dcPensions', 'dbPensions', 'statePension', 'retirementProfile']);
+
+        $pot = $this->projectPensionPot($user);
+
+        if (($pot['dc_pension_count'] ?? 0) === 0) {
+            return ['amount' => 0.0, 'basis' => 'no_pension', 'credited' => 0.0, 'grown_fund' => 0.0];
+        }
+
+        $currentAge = (int) $pot['current_age'];
+        $retirementAge = (int) $pot['retirement_age'];
+
+        if ($ageAtDeath <= $currentAge) {
+            return [
+                'amount' => (float) $pot['current_value'],
+                'basis' => 'today',
+                'credited' => 0.0,
+                'grown_fund' => (float) $pot['current_value'],
+            ];
+        }
+
+        if ($ageAtDeath < $retirementAge) {
+            // `year_by_year[0]` is today, so the row for an age is its distance from now.
+            // Nothing has been credited to cash yet: the projector pays retirement income
+            // only from the retirement age.
+            $row = $pot['year_by_year'][$ageAtDeath - $currentAge] ?? null;
+            $fund = (float) ($row['percentile_20'] ?? $pot['percentile_20_at_retirement']);
+
+            return [
+                'amount' => $fund,
+                'basis' => 'pre_retirement_growth',
+                'credited' => 0.0,
+                'grown_fund' => $fund,
+            ];
+        }
+
+        // The fund keeps growing through retirement at the conservative rate the drawdown
+        // uses, so the two halves of this subtraction are struck on the same basis.
+        $riskParams = $this->riskService->getReturnParameters($pot['risk_level']);
+        $growthRate = (float) $riskParams['expected_return_min'] / 100;
+        $yearsRetired = $ageAtDeath - $retirementAge;
+
+        $grownFund = (float) $pot['percentile_20_at_retirement'] * pow(1 + $growthRate, $yearsRetired);
+
+        // Exactly what `HouseholdCashFlowProjector` credits, and no more: it deflates the
+        // projected annual income to today's money and re-inflates it year by year, so at
+        // the retirement age the credited amount is the nominal figure and it grows with
+        // inflation from there. Summing the same series is what makes this a complement
+        // rather than a third opinion.
+        $annualIncome = (float) $this->pensionProjector->projectTotalRetirementIncome($user->id)['dc_annual_income'];
+
+        $credited = 0.0;
+        for ($year = 0; $year <= $yearsRetired; $year++) {
+            $credited += $annualIncome * pow(1 + $inflationRate, $year);
+        }
+
+        $residual = max(0.0, $grownFund - $credited);
+
+        return [
+            'amount' => $residual,
+            'basis' => $residual > 0.0 ? 'grown_fund_less_income_credited' : 'exhausted',
+            'credited' => $credited,
+            'grown_fund' => $grownFund,
         ];
     }
 
