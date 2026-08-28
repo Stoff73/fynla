@@ -6,15 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Fynla** is a UK financial planning application (Laravel 10 + Vue.js 3 + MySQL 8) covering seven modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination.
 
-| Metric | Count |
-|--------|-------|
-| Vue Components | 677 |
-| PHP Services | 427 |
-| Controllers | 124 |
-| Models | 130 |
-| Vuex Stores | 35 |
-| Agents | 9 |
-
 **Production**: https://fynla.org | **Version**: v1.0
 
 ## Commands
