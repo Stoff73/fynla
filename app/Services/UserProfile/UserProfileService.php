@@ -24,6 +24,7 @@ use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
@@ -42,6 +43,8 @@ class UserProfileService
         private readonly MortgageStore $mortgageStore,
         private readonly IncomeDefinitionsService $incomeDefinitions,
         private readonly WillAnalysisService $willAnalysis,
+        // W-0511 — the Blind Person's Allowance entitlement is answered in one place.
+        private readonly TaxConfigService $taxConfig,
     ) {}
 
     /**
@@ -558,7 +561,10 @@ class UserProfileService
             $dividendIncome,
             $trustType,
             $pensionContributions,
-            $section24Credit
+            $section24Credit,
+            // W-0511 — given at s23 Step 3, so it belongs to the tax calculation and
+            // to nothing upstream of it.
+            $this->taxConfig->blindPersonsAllowanceFor($user)
         );
 
         // Get simple calculation for backwards compatibility. Pension contributions
@@ -575,7 +581,9 @@ class UserProfileService
             $interestIncome,
             $trustIncome + $pensionIncome + $otherIncome,
             $pensionContributions,
-            $giftAidGross
+            $giftAidGross,
+            // W-0511 — the simple path must reach the same figure as the detailed one.
+            $this->taxConfig->blindPersonsAllowanceFor($user)
         );
 
         // Calculate expenditure once (includes financial commitments to match Expenditure tab)

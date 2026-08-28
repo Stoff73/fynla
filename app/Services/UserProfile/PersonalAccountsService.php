@@ -12,6 +12,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
+use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
@@ -26,6 +27,8 @@ class PersonalAccountsService
         private readonly UKTaxCalculator $taxCalculator,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
+        // W-0511 — the Blind Person's Allowance entitlement is answered in one place.
+        private readonly TaxConfigService $taxConfig,
     ) {}
 
     /**
@@ -145,7 +148,10 @@ class PersonalAccountsService
             (float) ($user->annual_interest_income ?? 0),
             (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0) + $pensionIncome,
             $pensionContributions,
-            $giftAidGross
+            $giftAidGross,
+            // W-0511 — the allowance is given at s23 Step 3, so it belongs to the tax
+            // calculation and not to any figure upstream of it.
+            $this->taxConfig->blindPersonsAllowanceFor($user)
         );
 
         return [

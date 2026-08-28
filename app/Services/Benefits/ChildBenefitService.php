@@ -212,7 +212,7 @@ class ChildBenefitService
      * **The Blind Person's Allowance is not among them** (W-0485). This docblock used
      * to list it, and to assert that this figure matched `UKTaxCalculator`'s — an
      * agreement that did not exist, because that service never deducted the BPA. It
-     * does now, and `AdjustedNetIncomeAgreesAcrossServicesTest` holds them to it.
+     * does now, and `BlindPersonsAllowanceIsNotASection58DeductionTest` holds them to it.
      */
     private function calculateAdjustedNetIncome(User $user): float
     {

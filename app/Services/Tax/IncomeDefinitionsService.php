@@ -62,13 +62,16 @@ class IncomeDefinitionsService
         // **`UKTaxCalculator` has always computed this without the BPA** (see
         // `calculateIncomeTaxWithDividends()`), so the application held two
         // contradictory answers to one statutory question and `ChildBenefitService`'s
-        // docblock asserted they agreed. `AdjustedNetIncomeAgreesAcrossServicesTest`
-        // now requires the agreement rather than claiming it.
+        // docblock asserted they agreed. `BlindPersonsAllowanceIsNotASection58DeductionTest`
+        // now requires the agreement rather than claiming it, by constructing the
+        // calculator and reading the Personal Allowance it publishes.
         //
         // It survived because the persona suite has no registered-blind household, so
         // every test built on the personas is blind to this axis. There is a fixture
         // now.
-        $bpa = $user->is_registered_blind ? $this->taxConfig->getBlindPersonsAllowance() : 0.0;
+        // W-0511 — one place answers the entitlement question, and the tax calculator
+        // reads the same one. The panel below shows this figure; the calculator gives it.
+        $bpa = $this->taxConfig->blindPersonsAllowanceFor($user);
         $adjustedNetIncome = $netIncome - $giftAidGross;
 
         // 4. Threshold Income (FA 2004 s228ZA) — total income less net-pay

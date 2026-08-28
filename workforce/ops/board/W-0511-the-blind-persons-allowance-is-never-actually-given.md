@@ -2,10 +2,10 @@
 id: W-0511
 title: The Blind Person's Allowance is configured, editable and displayed — and never applied to anybody's tax
 mission: M-0002-persona-fidelity
-branch: null
+branch: fix/w-0485-blind-persons-allowance-not-in-adjusted-net-income
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: in_review
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -75,3 +75,60 @@ was raised for — but it is not the whole answer and should not be read as one.
   allowance is no longer deducted at s58, where IS it given? The answer was nowhere.
 - 2026-08-28 — `TaxConfigService::getBlindPersonsAllowance()` has **no caller** once
   W-0485 lands. Do not delete it as dead code; it is the seam this item needs.
+
+## Resolution — 2026-08-28
+
+**Shipped alongside W-0485 on CSJ's decision**, so no registered-blind user's tax moves the
+wrong way in between. W-0485 alone removed the unearned Personal Allowance uplift and left
+nothing in its place; the two land together.
+
+**The allowance is given in one place, and both calculator paths reach it.**
+`IncomeTaxBands::withBlindPersonsAllowance()` raises the Personal Allowance and carries the
+basic-rate and additional-rate limits up with it by the same amount. The band width does
+not change — it starts higher, because taxable income is lower by the allowance. The
+additional-rate threshold moves too: ITA 2007 s10 states it against **taxable** income, and
+the class comment that holds it still only holds while the Personal Allowance is fully
+withdrawn, which the Blind Person's Allowance never is.
+
+It is applied strictly **after** the taper, so it cannot leak into adjusted net income —
+that was W-0485, and doing it there produced relief nobody was entitled to instead of the
+relief they were. `UKTaxCalculatorTaperedBandTest` and a dedicated case both hold the
+Personal Allowance at £7,570 for a registered-blind user on £110,000.
+
+**Entitlement is answered once.** `TaxConfigService::blindPersonsAllowanceFor(?User)` is the
+only place `is_registered_blind` is turned into a figure. The five production callers pass
+it: `UserProfileService` (both the detailed and the simple path), `PersonalAccountsService`,
+`CoverageGapAnalyzer` (the user's own entitlement and the spouse's, separately), and
+`ResolvesIncome`. `IncomeDefinitionsService` reads the same seam, so the figure the panel
+prints is the figure the calculator gave.
+
+**Acceptance 2 — the fallback.** `?? 2870` is gone. It was a stale year's figure, so an
+unconfigured year granted the wrong allowance silently, and it was a hardcoded tax value
+(Rule 2). Zero replaces it: an unconfigured year under-grants visibly rather than
+over-granting invisibly, and every seeded year sets the key. A test asserts the returned
+figure IS the configured one.
+
+**Acceptance 3 — transferable surplus: NOT modelled, deliberately.** ITA 2007 s39 allows a
+registered-blind person to transfer unused allowance to a spouse or civil partner. The
+decision not to model it is stated at the line in `blindPersonsAllowanceFor()`. It
+under-relieves only a household whose registered-blind member has income below the
+allowance, and modelling it needs a spouse's computation the seam has no access to.
+
+**Acceptance 4 — before and after, income tax, all three rates.** Each is a test asserting
+the size of the movement, not merely its direction:
+
+| Income | Relief | Why that figure |
+|---|---|---|
+| £30,000 | allowance × 20% | the allowance leaves the basic-rate slice untaxed |
+| £70,000 | allowance × 40% | allowance and both limits move together, so relief is at the marginal rate rather than 20% |
+| £200,000 | allowance × 45% | the additional-rate threshold moves too, so none is clawed back at the band edge |
+
+At the 2026/27 figure of £3,250 that is £650, £1,300 and £1,462.50 a year. The figure moves
+**down** in every case.
+
+**Acceptance 5 — a registered-blind fixture reaching the calculator**, not only the
+definitions service. `registeredBlindUser()` now feeds `UKTaxCalculator` directly.
+
+**Rule 19.** The tax engine is shared by architecture, so every surface gets the corrected
+figure. The income-definitions panel is web-only — there is no `/m` counterpart to update
+(no match for `blind` or `IncomeDefinitions` under `resources/mobile/`).

@@ -163,3 +163,31 @@ lose the unearned Personal Allowance uplift (about £650 at £110,000) and still
 allowance. That is a defensible interim — the Personal Allowance and the Child Benefit
 charge become correct, which is what this item was raised for — but it is not the whole
 answer, and CSJ may want the two to ship together.
+
+## Gate findings closed — 2026-08-28
+
+The three findings the tax-compliance gate left open on PR #741, and the decision that
+unblocked it.
+
+**F4 — both docblocks cited a test that does not exist.** `IncomeDefinitionsService:65` and
+`ChildBenefitService:215` named `AdjustedNetIncomeAgreesAcrossServicesTest`. Acceptance 3
+existed because a docblock asserted something untrue, and its replacement asserted a
+different untrue thing. Both now name
+`BlindPersonsAllowanceIsNotASection58DeductionTest`, which is the file that holds them.
+
+**F2 — the cross-service test never constructed the calculator.** It asserted against
+`$calculatorBase = 110000.00`, a hand-written literal, which agrees just as happily with a
+service that has stopped running. `calculateDetailedNetIncome()` now publishes
+`personal_allowance` and `blind_persons_allowance` in its summary, and the test constructs
+`UKTaxCalculator`, reads them, and holds the two services to the same two figures. Neither
+side of the comparison is a literal.
+
+**F1(b) — the panel copy resolved itself.** "Blind Person's Allowance (applied to taxable
+income)" was statutorily true and false about this application, because nothing applied it.
+The gate said not to soften it: the copy was right and the behaviour was missing. W-0511
+supplies the behaviour, so the copy is now true of the app as well as the statute.
+
+**The blocker — CSJ decided W-0511 ships alongside** (2026-08-28). Merging this alone moved
+a registered-blind user's computed tax UP: they lost the unearned Personal Allowance uplift,
+worth about £650 at £110,000, and got no allowance in its place. The two land together, so
+no household passes through that state. See [[W-0511-the-blind-persons-allowance-is-never-actually-given]].

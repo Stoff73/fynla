@@ -143,6 +143,40 @@ final class IncomeTaxBands
     }
 
     /**
+     * The Personal Allowance raised by the Blind Person's Allowance — W-0511.
+     *
+     * ITA 2007 s38 gives the allowance, and s23 **Step 3** deducts it from net income
+     * alongside the Personal Allowance. It is not tapered and it is not a deduction on
+     * the way to adjusted net income (W-0485), so it can only be applied here — after
+     * the taper has been struck.
+     *
+     * **All three figures move by the same amount, and that is the whole of it.** The
+     * £37,700 band width does not change; it simply starts higher, because taxable
+     * income is lower by the allowance. The additional-rate threshold moves too: ITA
+     * 2007 s10 states it against TAXABLE income, and the class comment above only holds
+     * it still because at that level the Personal Allowance is already fully withdrawn —
+     * the Blind Person's Allowance is not, so it keeps shifting the threshold up.
+     *
+     * Composes with `extendedBy()` in either order: Gift Aid moves the two limits, this
+     * moves all three, and the shifts are additive.
+     */
+    public function withBlindPersonsAllowance(float $amount): self
+    {
+        if ($amount <= 0) {
+            return $this;
+        }
+
+        return new self(
+            $this->personalAllowance + $amount,
+            $this->basicRateLimit + $amount,
+            $this->higherRateLimit + $amount,
+            $this->basicRate,
+            $this->higherRate,
+            $this->additionalRate,
+        );
+    }
+
+    /**
      * The seeder stores two different things under similar names on each band:
      * `upper_limit` is the display threshold (£50,270) and `max` is the
      * calculator-facing band width (£37,700). The width is what this needs.

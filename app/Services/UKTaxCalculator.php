@@ -41,7 +41,8 @@ class UKTaxCalculator
         float $dividendIncome = 0,
         ?string $trustType = null,
         float $pensionContributions = 0,
-        float $section24Credit = 0
+        float $section24Credit = 0,
+        float $blindPersonsAllowance = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
 
@@ -56,7 +57,13 @@ class UKTaxCalculator
         // and left the 20% band at £50,270 wide (W-0174).
         $personalAllowance = IncomeTaxBands::taperedPersonalAllowance($incomeTaxConfig, $taxableIncomePreRelief);
 
-        $tracker = new TaxBandTracker($incomeTaxConfig, $personalAllowance);
+        // W-0511 — the Blind Person's Allowance is added AFTER the taper and never
+        // before it. ITA 2007 s38 gives it and s23 Step 3 deducts it; s58 does not
+        // (W-0485), so the taper base above must not see it. The tracker takes the
+        // total to deduct, and its band width is derived from the config's full
+        // allowance, so handing it the sum shifts the bands up rather than widening
+        // them — which is exactly what a larger allowance does.
+        $tracker = new TaxBandTracker($incomeTaxConfig, $personalAllowance + max(0.0, $blindPersonsAllowance));
 
         $incomeBreakdowns = [];
         $totalGross = 0;
@@ -243,6 +250,13 @@ class UKTaxCalculator
                 'net_income' => round($netIncome, 2),
                 'effective_tax_rate' => $totalGross > 0 ? round(($totalDeductions / $totalGross) * 100, 2) : 0,
                 'monthly_net_income' => round($netIncome / 12, 2),
+                // The tapered Personal Allowance this calculation actually used, and
+                // the Blind Person's Allowance given on top of it. Published because
+                // `IncomeDefinitionsService` shows the user a Personal Allowance and
+                // the two services must be holdable to the same figure — asserting
+                // agreement against a hand-written literal proves nothing (W-0485).
+                'personal_allowance' => round($personalAllowance, 2),
+                'blind_persons_allowance' => round(max(0.0, $blindPersonsAllowance), 2),
             ],
             'tax_year' => $this->taxConfig->getTaxYear(),
         ];
@@ -644,7 +658,8 @@ class UKTaxCalculator
         float $interestIncome = 0,
         float $otherIncome = 0,
         float $pensionContributions = 0,
-        float $giftAidGross = 0
+        float $giftAidGross = 0,
+        float $blindPersonsAllowance = 0
     ): array {
         $grossIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $dividendIncome + $interestIncome + $otherIncome;
 
@@ -657,7 +672,8 @@ class UKTaxCalculator
             $interestIncome,
             $dividendIncome,
             $pensionContributions,
-            $giftAidGross
+            $giftAidGross,
+            $blindPersonsAllowance
         );
 
         // Calculate National Insurance
@@ -684,6 +700,9 @@ class UKTaxCalculator
                 'other_income' => round($otherIncome, 2),
                 'class_1_ni' => round($class1NI, 2),
                 'class_4_ni' => round($class4NI, 2),
+                // W-0511 — published so a caller can show that the allowance was
+                // actually given, rather than inferring it from a tax figure.
+                'blind_persons_allowance' => round($blindPersonsAllowance, 2),
             ],
         ];
     }
@@ -701,7 +720,8 @@ class UKTaxCalculator
         float $interestIncome,
         float $dividendIncome,
         float $pensionContributions = 0,
-        float $giftAidGross = 0
+        float $giftAidGross = 0,
+        float $blindPersonsAllowance = 0
     ): float {
         // Get tax configuration from service
         $incomeTax = $this->taxConfig->getIncomeTax();
@@ -727,8 +747,14 @@ class UKTaxCalculator
         // additional-rate relief — more income falls in a lower band. Basic-rate
         // relief already went to the charity at source, so Gift Aid does NOT reduce
         // taxable income (mirrors SaveTaxEstimateService::incomeTax).
+        // W-0511 — the Blind Person's Allowance is given HERE and nowhere else. ITA 2007
+        // s38 grants it and s23 Step 3 deducts it, downstream of the taper, so it raises
+        // the allowance and carries both limits with it. It must not reach the adjusted
+        // net income above: that was W-0485, and it produced relief nobody was entitled
+        // to instead of the relief they were.
         $taxBands = IncomeTaxBands::forAdjustedNetIncome($incomeTax, $adjustedNetIncome)
-            ->extendedBy($giftAidGross);
+            ->extendedBy($giftAidGross)
+            ->withBlindPersonsAllowance($blindPersonsAllowance);
 
         $personalAllowance = $taxBands->personalAllowance;
         $basicRateLimit = $taxBands->basicRateLimit;
