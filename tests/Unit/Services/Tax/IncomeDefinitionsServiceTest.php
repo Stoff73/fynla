@@ -108,15 +108,20 @@ describe('Net Income', function () {
 });
 
 describe('Adjusted Net Income', function () {
-    it('deducts BPA when registered blind', function () {
+    it('publishes the BPA for a registered-blind user without deducting it', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 60000,
             'is_registered_blind' => true,
         ]);
 
         $result = $this->service->calculate($user->id);
+
+        // W-0485 — this used to assert £56,750, the figure the defect produced. The
+        // allowance is real and is published so the panel can name it; it is an ITA
+        // 2007 s38 allowance given at s23 Step 3, downstream of net income, so it
+        // cannot reduce adjusted net income by construction.
         expect($result['deductions']['blind_persons_allowance'])->toBe(3250.00);
-        expect($result['adjusted_net_income'])->toBe(56750.00);
+        expect($result['adjusted_net_income'])->toBe(60000.00);
     });
 
     it('does not deduct BPA when not registered blind', function () {
@@ -390,8 +395,8 @@ describe('W-0189 — which base each definition is built from', function () {
  * lists. **Gift Aid is not one of them.** A Gift Aid donation extends the basic rate
  * band; it does not reduce net income. The grossed-up donation is deducted one
  * definition further down, at adjusted net income (s58). (The Blind Person's
- * Allowance is NOT a s58 deduction — see W-0485; it is an s38 allowance at s23
- * Step 3, and this service wrongly subtracts it from ANI.)
+ * Allowance is NOT a s58 deduction — it is an s38 allowance at s23 Step 3. The
+ * service used to subtract it from ANI anyway; W-0485 corrected the arithmetic.)
  *
  * The service deducted it at net income, so for a donor the figure under that label
  * was net income less the grossed-up donation — part of the way to adjusted net
@@ -435,7 +440,7 @@ describe('W-0205 — Gift Aid is deducted at adjusted net income, not at net inc
             ->and($result['adjusted_net_income'])->toBe(round($result['net_income'] - $grossUp, 2));
     });
 
-    it('subtracts both Gift Aid and the Blind Person\'s Allowance before adjusted net income', function () {
+    it('deducts Gift Aid but not the Blind Person\'s Allowance before adjusted net income', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 80000,
             'annual_charitable_donations' => 2000,
@@ -447,16 +452,13 @@ describe('W-0205 — Gift Aid is deducted at adjusted net income, not at net inc
         $grossUp = $result['deductions']['gift_aid_gross'];
         $bpa = $result['deductions']['blind_persons_allowance'];
 
-        // Gift Aid IS a s58 deduction. The Blind Person's Allowance is NOT — it is
-        // an s38 allowance deducted at s23 Step 3, downstream of net income, so it
-        // cannot reduce adjusted net income by construction (tax-compliance-reviewer,
-        // 2026-08-25). The service subtracts it anyway; that is a live defect tracked
-        // as W-0485, deliberately left alone here because W-0205's acceptance 3
-        // requires adjusted net income not to move. This case pins CURRENT behaviour
-        // and the figures below change when W-0485 lands.
+        // Gift Aid IS a s58 deduction; the Blind Person's Allowance is NOT. Both are
+        // present on this user, so the assertion distinguishes them: the donation
+        // moves adjusted net income and the allowance does not, however large it is.
+        // W-0485 — this case previously pinned the defect's arithmetic.
         expect($bpa)->toBeGreaterThan(0.0)
             ->and($result['net_income'])->toBe(80000.00)
-            ->and($result['adjusted_net_income'])->toBe(round(80000.00 - $grossUp - $bpa, 2));
+            ->and($result['adjusted_net_income'])->toBe(round(80000.00 - $grossUp, 2));
     });
 
     it('leaves threshold income and adjusted income untouched by a donation', function () {

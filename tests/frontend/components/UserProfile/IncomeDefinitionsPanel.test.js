@@ -251,3 +251,39 @@ describe('IncomeDefinitionsPanel — the printed working reaches the printed fig
     expect(mountPanel(SARAH).text()).not.toContain('Less Gift Aid');
   });
 });
+
+describe('W-0485 — the Blind Person\'s Allowance sits below Adjusted Net Income', () => {
+  /**
+   * It is an ITA 2007 s38 allowance given at s23 Step 3, so it reduces the income that
+   * is taxed — not the adjusted net income that decides the Personal Allowance taper
+   * and the High Income Child Benefit Charge. The panel used to print it as a deduction
+   * inside the adjusted-net-income block, above the line, which is where the service
+   * was wrongly subtracting it from.
+   *
+   * The position is the assertion. A test that only checked the row renders would pass
+   * just as well with it back above the line.
+   */
+  const blindUser = {
+    ...SARAH,
+    deductions: { ...SARAH.deductions, blind_persons_allowance: 3250 },
+  };
+
+  it('renders the allowance after the Adjusted Net Income line, not before it', () => {
+    const text = mountPanel(blindUser).text();
+
+    const adjustedNetIncomeAt = text.indexOf('Adjusted Net Income');
+    const blindAt = text.indexOf("Blind Person's Allowance");
+
+    expect(blindAt).toBeGreaterThan(-1);
+    expect(blindAt).toBeGreaterThan(adjustedNetIncomeAt);
+  });
+
+  it('does not present it as a deduction', () => {
+    // "Less ..." is the panel's word for a deduction, and this is not one.
+    expect(mountPanel(blindUser).text()).not.toContain("Less Blind Person's Allowance");
+  });
+
+  it('shows nothing for a user who is not registered blind', () => {
+    expect(mountPanel(SARAH).text()).not.toContain("Blind Person's Allowance");
+  });
+});

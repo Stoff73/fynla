@@ -3,7 +3,7 @@ id: W-0485
 title: The Blind Person's Allowance is subtracted from adjusted net income, which ITA 2007 s58 does not do — and the app holds two contradictory answers
 mission: M-0002-persona-fidelity
 owner: null
-status: queued
+status: review
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-25T16:00:00Z
@@ -83,3 +83,60 @@ pointed here.
   claim that the BPA is a s58 deduction appears **five times** in the codebase; W-0205
   added three of them, including a test comment reading "Both are s58 deductions."
   Those three are corrected; the arithmetic and the two pre-existing claims are not.
+
+## Resolution — 2026-08-28
+
+**Acceptance 1 — done.** `IncomeDefinitionsService:75` —
+`$adjustedNetIncome = $netIncome - $giftAidGross;`. The Blind Person's Allowance is still
+computed and still published under `deductions.blind_persons_allowance`, because the
+allowance is real and the panel names it; it is simply not deducted on the way to s58.
+
+**Acceptance 2 — done.** `UKTaxCalculator::calculateDetailedNetIncome()` tapers from total
+income less net-pay pension relief through `IncomeTaxBands::taperedPersonalAllowance()`,
+and has never deducted the allowance. `BlindPersonsAllowanceIsNotASection58DeductionTest`
+asserts the definitions service lands on the same adjusted net income AND that the shared
+taper helper turns it into the same Personal Allowance — the agreement is now required
+rather than asserted in prose.
+
+**Acceptance 3 — done.** `ChildBenefitService::calculateAdjustedNetIncome()`'s docblock
+listed the allowance among the s58 deductions and claimed the two services matched. Both
+statements are replaced with what is now true, and with a pointer to the test that holds
+them to it.
+
+**Acceptance 4 — done, both figures re-measured:**
+
+| Case | Was | Now |
+|---|---|---|
+| Registered-blind, £110,000 | Personal Allowance **£9,195** (ANI pulled to £106,750) | **£7,570** |
+| Registered-blind, £63,000, one child on Child Benefit | no charge (ANI pulled to £59,750) | charge applies |
+
+**Verified by mutation:** with only `IncomeDefinitionsService` reverted, all four tests
+fail; restored, all four pass.
+
+**Acceptance 5 — done.** `registeredBlindUser()` in the new suite is the fixture, kept
+deliberately plain — one income source, no donations, no pension — so the only thing
+distinguishing it from any other user is the axis under test. The item's diagnosis was
+right: the defect survived because no persona has this axis.
+
+**Acceptance 6 — done.** `IncomeDefinitionsPanel.vue` no longer prints the allowance as a
+deduction inside the adjusted-net-income block. It sits below the Adjusted Net Income line
+with the note "An allowance against the income you are taxed on. It does not change your
+Adjusted Net Income." **The position is what the new component tests assert** — a test
+that only checked the row renders would pass just as well with it back above the line.
+
+**Acceptance 7 — `tax-compliance-reviewer` still to run.**
+
+### Rule 19
+
+The item lists `[web, m, ios]`. **There is no `/m` or native counterpart to this panel** —
+`resources/mobile/` contains no reference to `blind_persons_allowance` or the income
+definitions. The arithmetic is shared by architecture, so both surfaces get the corrected
+figure; only the desktop panel has a row to move.
+
+### Verification
+
+- `tests/Unit/Services/Tax` + `tests/Feature/Tax` + `tests/Unit/Services/Benefits` —
+  **236 passed, 680 assertions.**
+- Vitest on `IncomeDefinitionsPanel` — **13 passed**, including three new position tests.
+- Pint clean.
+- **NOT verified in a browser.**
