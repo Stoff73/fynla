@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import PropertyForm from '@/components/NetWorth/Property/PropertyForm.vue';
 
-const mountForm = () => {
+const mountForm = ({ property = null, spouse = null } = {}) => {
   const store = createStore({
     modules: {
       aiFormFill: {
@@ -12,12 +12,13 @@ const mountForm = () => {
       },
       userProfile: {
         namespaced: true,
-        getters: { spouse: () => null },
+        getters: { spouse: () => spouse },
       },
     },
   });
 
   return mount(PropertyForm, {
+    props: { property },
     global: {
       plugins: [store],
       stubs: { CountrySelector: true },
@@ -123,5 +124,65 @@ describe('PropertyForm states a share only where it lets one be set (W-0040)', (
     await wrapper.vm.handleSubmit();
 
     expect(emittedProperty(wrapper)?.ownership_percentage).toBe(60);
+  });
+});
+
+// W-0368 C2 route (a). `joint_owner_is_spouse` decides an Inheritance Tax
+// valuation (IHTA 1984 s160/s161). It was read back in `populateForm()`'s
+// selection logic but never copied onto the form, so the read could not be
+// satisfied and — because `handleSubmit()` spreads the whole form — every edit
+// wrote the untouched `null` default over the stored answer.
+//
+// `??` and never `||`: a stored `false` is the answer that turns the discount ON,
+// and `||` would map it to `null` and silently disable the feature.
+describe('PropertyForm carries the co-owner spouse answer round trip (W-0368)', () => {
+  const baseProperty = {
+    property_type: 'main_residence',
+    ownership_type: 'tenants_in_common',
+    ownership_percentage: 50,
+    current_value: 360000,
+    address_line_1: '1 Test Street',
+    city: 'Manchester',
+    postcode: 'M1 1AA',
+  };
+
+  it('reads a stored "not my spouse" back onto the form', () => {
+    const wrapper = mountForm({
+      property: { ...baseProperty, joint_owner_name: 'Ruth Alderton', joint_owner_is_spouse: false },
+    });
+
+    expect(wrapper.vm.form.joint_owner_is_spouse).toBe(false);
+    expect(wrapper.vm.jointOwnerSelection).toBe('other');
+  });
+
+  it('reconstructs a spouse recorded by name as the spouse option, not "Other"', () => {
+    const wrapper = mountForm({
+      property: { ...baseProperty, joint_owner_name: 'Jane Isley', joint_owner_is_spouse: true },
+      spouse: { id: null, name: 'Jane Isley' },
+    });
+
+    // Landing on "Other" here is the unsafe branch: touching the select would then
+    // write `false` and discount a share held with a spouse.
+    expect(wrapper.vm.form.joint_owner_is_spouse).toBe(true);
+    expect(wrapper.vm.jointOwnerSelection).toBe('spouse_name');
+  });
+
+  it('keeps a never-asked property unanswered rather than answering it "no"', () => {
+    const wrapper = mountForm({
+      property: { ...baseProperty, joint_owner_name: 'Ruth Alderton', joint_owner_is_spouse: null },
+    });
+
+    expect(wrapper.vm.form.joint_owner_is_spouse).toBeNull();
+  });
+
+  it('submits the stored answer rather than wiping it', async () => {
+    const wrapper = mountForm({
+      property: { ...baseProperty, id: 7, joint_owner_name: 'Ruth Alderton', joint_owner_is_spouse: false },
+    });
+
+    wrapper.vm.currentStep = wrapper.vm.totalSteps;
+    await wrapper.vm.handleSubmit();
+
+    expect(wrapper.emitted('save')?.at(-1)?.[0]?.property?.joint_owner_is_spouse).toBe(false);
   });
 });

@@ -210,7 +210,7 @@
 <script>
 import api from '@/services/api';
 import logger from '@/utils/logger';
-import { retirementHeadline } from '@/utils/retirementHeadline';
+import { dashboardFigures } from '@/utils/dashboardCards';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -308,53 +308,20 @@ export default {
       const assets = Number((this.data && this.data.net_worth && this.data.net_worth.breakdown && this.data.net_worth.breakdown.total_assets) || 0);
       return this.actionsTotal === 0 && net === 0 && assets === 0;
     },
+    // Figures come from the shared derivation (utils/dashboardCards.js) so this and
+    // /m cannot answer the same question differently — the W-0238 retirement-headline
+    // precedent applied to the other four cards (W-0245). Everything below the call
+    // is this surface's own presentation: web labels, web SPA routes, and the
+    // visualisation each card uses.
     finances() {
-      const d = this.data || {};
-      const modsRaw = d.modules || {};
-      const find = (k) => (Array.isArray(modsRaw) ? (modsRaw.find((m) => m.key === k) || {}) : (modsRaw[k] || {}));
-      const num = (v) => Number(v) || 0;
-      const clampPct = (v) => Math.max(0, Math.min(100, Math.round(v)));
-
-      // Net worth — payload is { total, breakdown: { total_assets, total_liabilities, ... } }.
-      const nw = d.net_worth || {};
-      const bd = nw.breakdown || {};
-      const net = num(nw.total);
-      const totalAssets = num(bd.total_assets);
-      // Equity ratio = share of your assets owned outright (net of liabilities). 0 with no assets.
-      const equityPct = totalAssets > 0 ? clampPct((net / totalAssets) * 100) : 0;
-
-      // Protection — total_coverage drives a covered / not-covered ring.
-      const prot = find('protection');
-      const protVal = num(prot.value != null ? prot.value : prot.total_coverage);
-      const covered = protVal > 0;
-
-      // Savings — emergency-fund runway out of a 6-month target.
-      const sav = find('savings');
-      const efMonths = num(sav.emergency_fund_months);
-      const efTarget = 6;
-      const savValue = sav.total_savings != null ? sav.total_savings : sav.value;
-
-      // Retirement — headline from the shared rule (retirementHeadline.js), so this
-      // and /m cannot answer differently; bar tracks projected income vs target.
-      const ret = find('retirement');
-      const projected = num(ret.projected_income);
-      const target = num(ret.target_income);
-      const retPct = target > 0 ? clampPct((projected / target) * 100) : 0;
-      const retHeadline = retirementHeadline(ret);
-
-      // Investment — value + how much of total assets it represents.
-      const inv = find('investment');
-      const invValue = num(inv.portfolio_value != null ? inv.portfolio_value : inv.value);
-      const invAccounts = num(inv.accounts_count);
-      const invHoldings = num(inv.holdings_count);
-      const invPct = totalAssets > 0 ? clampPct((invValue / totalAssets) * 100) : (invValue > 0 ? 100 : 0);
+      const f = dashboardFigures(this.data);
 
       return [
-        { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, value: this.fmt(net), route: '/net-worth/wealth-summary', viz: 'donut', progress: equityPct, vizNum: equityPct + '%', vizCap: 'Equity', caption: this.fmt(totalAssets) + ' assets' },
-        { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, value: covered ? this.fmt(protVal) : '£0', route: '/protection', viz: 'donut', progress: covered ? 100 : 0, vizNum: covered ? 'Active' : 'None', vizCap: 'Cover', caption: covered ? 'Cover in place' : 'Add your cover' },
-        { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, value: this.fmt(savValue), route: '/net-worth/cash', viz: 'bar', barFill: efTarget > 0 ? clampPct((efMonths / efTarget) * 100) : 0, barValue: efMonths ? (Math.round(efMonths * 10) / 10) : '0', barUnit: '/ ' + efTarget + ' months', caption: efMonths >= efTarget ? 'Emergency fund on track' : (efMonths > 0 ? 'Building your fund' : 'Start your emergency fund') },
-        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(retHeadline.value) + (retHeadline.isAnnualIncome ? '/year' : ''), route: '/net-worth/retirement', viz: 'bar', barFill: retPct, barValue: retPct + '%', barUnit: 'of target', caption: retHeadline.caption },
-        { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, value: this.fmt(invValue), route: '/net-worth/investments', viz: 'donut', progress: invPct, vizNum: invValue > 0 ? String(invAccounts) : '0', vizCap: invAccounts === 1 ? 'Account' : 'Accounts', caption: invValue > 0 ? `${invHoldings} ${invHoldings === 1 ? 'holding' : 'holdings'}` : 'Add your investments' },
+        { key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth, value: this.fmt(f.netWorth.total), route: '/net-worth/wealth-summary', viz: 'donut', progress: f.netWorth.equityPct, vizNum: f.netWorth.equityPct + '%', vizCap: 'Equity', caption: this.fmt(f.netWorth.totalAssets) + ' assets' },
+        { key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield, value: f.protection.covered ? this.fmt(f.protection.value) : '£0', route: '/protection', viz: 'donut', progress: f.protection.covered ? 100 : 0, vizNum: f.protection.vizNum, vizCap: 'Cover', caption: f.protection.caption },
+        { key: 'savings', label: 'Savings', tone: 'spring', icon: ICON.card, value: this.fmt(f.savings.value), route: '/net-worth/cash', viz: 'bar', barFill: f.savings.barFill, barValue: f.savings.barValue, barUnit: f.savings.barUnit, caption: f.savings.caption },
+        { key: 'retirement', label: 'Retirement', tone: 'violet', icon: ICON.clock, value: this.fmt(f.retirement.value) + (f.retirement.isAnnualIncome ? '/year' : ''), route: '/net-worth/retirement', viz: 'bar', barFill: f.retirement.pct, barValue: f.retirement.pct + '%', barUnit: 'of target', caption: f.retirement.caption },
+        { key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true, value: this.fmt(f.investment.value), route: '/net-worth/investments', viz: 'donut', progress: f.investment.sharePct, vizNum: f.investment.vizNum, vizCap: f.investment.vizCap, caption: f.investment.caption },
       ];
     },
   },

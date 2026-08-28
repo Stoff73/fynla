@@ -95,18 +95,39 @@ change — the workforce proposes, a founder ratifies.
 
 ### 3.3 Outstanding cleanup
 
-`widow` residue survives on the current branch, `origin/dev` **and** `origin/main`.
-Unreachable, but it misleads anyone who greps.
+**Repo residue cleared 2026-08-25 (W-0001).** `widow` no longer appears anywhere in
+the working tree as a persona id or as "Margaret Thompson", except the three
+deliberate exclusions below. Verified by full-tree sweep.
 
-**Code:** `PreviewUserSeeder.php` (~lines 1493, 1715, 1819, 1929, 2585) ·
-`AdvisorClientSeeder.php:62` · `PersonaSelector.vue` · `PersonaSelectionModal.vue` ·
-`PersonaIntroModal.vue` · `public/mockup-persona-modal.html`.
+**Code — clear.** `PreviewUserSeeder.php` and `AdvisorClientSeeder.php` carry no
+persona residue (their only remaining `widow` hits are two comments about
+transferred allowances for widows, which are legitimate). `PersonaSelector.vue`,
+`PersonaSelectionModal.vue` and `PersonaIntroModal.vue` are clear;
+`public/mockup-persona-modal.html` is deleted. Cleared by `5a3baab7e`, re-verified
+2026-08-25.
 
-**Docs:** `docs/reference/Persona Data.md:13` · `docs/archive/appMapping/personaData/widow.{md,pdf}` ·
-`docs/archive/appMapping/v083/05-FRONTEND-ARCHITECTURE.md:242` (*"Seven personas"* — the
-document that caused this error) · `docs/archive/appMapping/v07/05-FRONTEND-ARCHITECTURE.md:204`
-(says "six", lists widow, omits student — doubly wrong) · several
-`docs/archive/appMapping/currentState/` files · vault `Personas/widow.md` and `Personas Index.md`.
+**Docs — clear.** `docs/reference/Persona Data.md` and `CLAUDE.md` were already
+clear; `docs/archive/appMapping/personaData/widow.{md,pdf}` are deleted;
+`docs/archive/appMapping/v07/05-FRONTEND-ARCHITECTURE.md:204` now says six and lists
+`student`. Cleared 2026-08-25, missed by `5a3baab7e`:
+`docs/archive/appMapping/currentState/UserProfile.md` ·
+`docs/archive/appMapping/fynlaFeature.md` ·
+`docs/archive/appMapping/v07/10-CONFIGURATION-DEPLOYMENT.md` ·
+`docs/archive/seedMigration.md` · `fynlaDesignGuide.md` (three persona tables) ·
+`resources/js/components/Preview/KeepDataOrFreshModal.vue` (a worked example in a
+comment).
+
+**Deliberately left.** Two dated plan records predating or contemporaneous with the
+removal — `docs/plans/2026-03-06-mobile-app-exploration.md:89` and
+`docs/superpowers/plans/2026-03-17-advisor-dashboard.md:435`. Editing a dated plan
+falsifies the record of what was planned at the time. The guardrail mentions in
+`.claude/agents/`, `registry/capabilities.md` and `ops/interviews/S03-mission.md`
+are the record of the error and are correct to keep.
+
+**Not verified — the vault.** `Personas/widow.md`, `Personas Index.md` and
+`v083/05-FRONTEND-ARCHITECTURE.md` are vault paths, not repo paths (no `v083`
+directory exists in the tree). The vault is not present on the machine this sweep
+ran on, so **I COULD NOT VERIFY** those three. They remain outstanding.
 
 **Never touch:** `widowed` as a marital status, or "Scottish Widows" as a provider.
 Both are legitimate and unrelated — `OnboardingStateMachine.php`,

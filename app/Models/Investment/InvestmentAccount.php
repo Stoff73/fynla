@@ -38,6 +38,7 @@ class InvestmentAccount extends Model
         'user_id',
         'account_name',
         'joint_owner_id',
+        'joint_owner_name',
         'household_id',
         'trust_id',
         'ownership_type',

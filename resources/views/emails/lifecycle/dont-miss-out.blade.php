@@ -66,7 +66,7 @@
                 </table>
             @endforeach
             <div style="text-align:center;">
-                <a href="{{ $addInformationUrl }}" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;">Add my information</a>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="{{ $addInformationUrl }}" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none;">Add my information</a></td></tr></table>
             </div>
         </td>
     </tr>

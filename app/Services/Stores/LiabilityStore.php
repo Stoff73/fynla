@@ -135,6 +135,9 @@ class LiabilityStore
             'ownership_type' => 'sometimes|in:individual,joint,tenants_in_common,trust',
             'ownership_percentage' => 'sometimes|'.ValidationLimits::percentageRules(false),
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
+            // W-0042 — a shared record may name an off-platform co-owner, the same
+            // way properties, mortgages and chattels already can (W-0025).
+            'joint_owner_name' => 'sometimes|nullable|string|max:255',
             'trust_id' => 'sometimes|nullable|integer|exists:trusts,id',
             'maturity_date' => 'sometimes|nullable|date',
             'fixed_until' => 'sometimes|nullable|date',

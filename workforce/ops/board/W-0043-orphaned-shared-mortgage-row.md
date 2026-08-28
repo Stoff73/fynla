@@ -3,8 +3,8 @@ id: W-0043
 title: One shared mortgage names no counterparty — half a real liability belongs to nobody
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: queued
-claimed: null
+status: review
+claimed: 2026-08-26
 claimed_by: null
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
 severity: medium
@@ -114,3 +114,71 @@ orphans.
   **Not done, and not mine:** acceptance 1 (the repair/flag/convert decision, CSJ's) and
   acceptance 3 (any repair migration). No data was read beyond the counts above and no
   row was written.
+
+---
+
+## 2026-08-26 — the orphan is SEEDED, and the item's premise needs correcting
+
+**`mortgages.id = 7, user_id = 14` is not stray user data. `ChrisUserSeeder`
+manufactures it on every reseed.** Reproduced exactly, in a clean test database:
+zero mortgage orphans before that seeder runs, one after — `id=7`,
+`user=chris@fynla.org`, on property `19 Worth Court`.
+
+`ChrisUserSeeder` creates that buy-to-let property joint with
+`'joint_owner_name' => 'wife'` and then creates the mortgage secured on it joint at
+50% with **neither** counterparty field. The same household, the same counterparty,
+named on the asset and missing from the debt.
+
+**Fixed** by naming the same counterparty on the mortgage. A mortgage's share follows
+the property securing it (W-0228), and that property is joint with 'wife', so this
+states a fact the row already implied rather than inventing one. Reseeding locally
+repaired the existing row in place via `updateOrCreate`; mortgage orphans across the
+local database are now **0**.
+
+### What this changes about acceptance 1
+
+Acceptance 1 asks CSJ to decide what happens to *a pre-existing orphan*, on the
+grounds that "their net worth changes either way". **On the evidence, the known
+orphan has no such user behind it** — it is a seeded fixture on developer and
+staging databases, reproduced deterministically.
+
+That does not answer the question for **production**, which was never swept and which
+this session has no business reading. **The decision that is actually needed is
+narrower than the one recorded:** whether prod carries any orphaned shared rows at
+all, and that is a read of prod data before it is a policy choice.
+
+### Acceptance 2 re-run today, and it was NOT still clean
+
+The 2026-08-21 sweep found one orphan and was described as clean thereafter. Re-run
+2026-08-26 on the local database it found a different one — `id=53, user_id=101`,
+the same seeded row under different ids. **A one-off sweep cannot stay true while a
+seeder manufactures the shape**, which is the more useful half of this finding.
+
+| Table | Shared | Orphans |
+|---|---|---|
+| `mortgages` | 6 | **1** (now 0) |
+| `properties` | 9 | 0 |
+| `chattels` | 4 | 0 |
+| `savings_accounts` | 6 | 0 |
+| `investment_accounts` | 2 | 0 |
+
+### A standing guard was attempted and deliberately abandoned
+
+A test seeding the dev stack and asserting zero orphans **broke 25 unrelated tests**,
+then 7 after flushing the cache the stores populate. Several `Feature/Stores` tests
+assume they are the only writer — an audit-log lookup returns null, a holdings PUT
+404s — and making them robust to a co-seeding test is a test-infrastructure project,
+not this item. **A guard that breaks seven passing tests is worse than no guard**, so
+it was removed rather than shipped or weakened until it passed.
+
+The durable guard belongs to **W-0142** and is strictly better: validating the write
+path refuses an orphan from *any* source rather than detecting one after the fact.
+`SharedOwnership::namesCounterparty()` is still wired to chattels alone — verified
+today, `StoreChattelRequest:91` and `UpdateChattelRequest:109` and nowhere else — so
+mortgages, properties and Fyn's create path can all still orphan a row.
+
+### Not done
+
+Acceptance 1 (CSJ's, and now narrower — see above) and acceptance 3 (a repair
+migration, which is unnecessary for seeded data and premature for prod until it is
+swept).

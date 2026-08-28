@@ -1,4 +1,4 @@
-# /.phpunit.cache
+/.phpunit.cache
 /node_modules
 /public/build
 /public/hot
@@ -63,10 +63,10 @@ yarn-error.log
 /docs/archive/revolut/*.pdf
 
 # Planning/review docs (local only)
-# /March2Update/
-# /April/
-# /brett/
-# /email-mockups.html
+/March2Update/
+/April/
+/brett/
+/email-mockups.html
 /docs/archive/revolut/
 
 # build files
@@ -81,11 +81,17 @@ ios/App/App/public/
 # iOS native — personal signing overrides (DEVELOPMENT_TEAM etc.), never committed
 ios-native/Configurations/Local.xcconfig
 
-# .superpowers/
-# .worktrees/
+.superpowers/
+.worktrees/
 
 # Local dev script
 dev.sh
+
+# Reference images, mockups, screenshots (design assets, not app code)
+public/images/References/
+public/images/screenshots/
+public/mockups/
+public/images/Fyn/Fyn-Brain-Animation.mov
 
 # Temp files (snapshots, prompts, uploads, test artifacts)
 docs/archive/scenario1-before-submit.md
@@ -100,6 +106,8 @@ mcp-servers/
 fynlaBrain/
 .smoke-evidence/
 
+# Workforce runtime logs (append-only, machine-local)
+workforce/ops/log/*.log
 
 # Xcode archives and export artifacts (56 MB of DWARF per build)
 ios-native/build/
@@ -107,4 +115,3 @@ ios-native/build/
 # Playwright run artifacts
 /test-results/
 /playwright-report/
-

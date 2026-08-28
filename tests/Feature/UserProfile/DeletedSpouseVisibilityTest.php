@@ -233,3 +233,64 @@ it('refuses to let the survivor edit the deleted partner\'s expenditure', functi
 
     expect((float) User::withTrashed()->find($spouse->id)->monthly_expenditure)->not->toBe(999.0);
 });
+
+// ─── The counterpart: where reading the raw column is CORRECT (W-0368 C2c) ───
+//
+// Everything above exists because reading raw `spouse_id` bypassed the
+// soft-delete filter and leaked a deleted partner's data. That makes this file
+// the right home for the one question that must read it: **are these two
+// married**, which is not the same question as **may I show their data**.
+//
+// IHTA 1984 s161 values a spouse's related property on a substituted basis, so
+// an undivided share held with a spouse takes no marketability discount. Asking
+// that through `liveSpouseId()` meant a deleted account switched the discount ON
+// over a spouse's share and understated Inheritance Tax — measured on W-0368.
+// Deleting an account is not a divorce. The link ends when it is genuinely
+// broken, and `FamilyMembersController` nulls `spouse_id` on both sides then.
+
+it('keeps naming the spouse for a relationship question after the account is deleted', function (): void {
+    [$user, $spouse] = linkedCouple();
+    $spouse->delete();
+
+    $survivor = $user->fresh();
+
+    // The two questions diverge here, and that divergence is the whole point.
+    expect($survivor->spouseIdRegardlessOfAccountState())->toBe($spouse->id)
+        ->and($survivor->liveSpouseId())->toBeNull();
+});
+
+it('names the spouse while the account is live too', function (): void {
+    [$user, $spouse] = linkedCouple();
+
+    expect($user->fresh()->spouseIdRegardlessOfAccountState())->toBe($spouse->id);
+});
+
+it('stops naming them once the link is genuinely broken', function (): void {
+    [$user, $spouse] = linkedCouple();
+
+    // What an unlink does — both sides, as FamilyMembersController writes it.
+    $user->update(['spouse_id' => null]);
+    $spouse->update(['spouse_id' => null]);
+
+    expect($user->fresh()->spouseIdRegardlessOfAccountState())->toBeNull();
+});
+
+it('names nobody where there was never a link', function (): void {
+    expect(User::factory()->create()->spouseIdRegardlessOfAccountState())->toBeNull();
+});
+
+it('is not the authorization check, which is soft-delete scoped', function (): void {
+    // The trap this test exists to spring. `hasReciprocalSpouseLink()` is the
+    // named home for "may I attach a joint_owner_id", and it looks like the
+    // obvious thing to consolidate onto — but its existence check runs under
+    // User's SoftDeletes global scope, so it goes false on deletion. Routing the
+    // relationship question through it reinstates the W-0368 understatement in
+    // silence. If someone does, this reddens.
+    [$user, $spouse] = linkedCouple();
+    $spouse->delete();
+
+    $survivor = $user->fresh();
+
+    expect($survivor->hasReciprocalSpouseLink($spouse->id))->toBeFalse()
+        ->and($survivor->spouseIdRegardlessOfAccountState())->toBe($spouse->id);
+});

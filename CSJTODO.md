@@ -1,56 +1,141 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-08-24 session 1 — five rejections fixed, three review gates run,
-board NOT cleared (215 open). Branch `estate-copy-and-m-handoff`, 20 commits, nothing
-deployed. Handover: handover/August/24/handover-2026-08-24-session-1.md*
+*Last updated: 2026-08-28 session 1 — session-open hygiene. Three PRs merged
+(#730, #731, #732), 106 merged branches pruned, W-0490's colon paths renamed.
+Branch `dev` at the merge of #732. Handover: handover/August/24/handover-2026-08-24-session-1.md
+(four days and 100 commits stale — verify before trusting it).*
 
-## 2026-08-24 — CLEAR THE BOARD. ALONE. NO AGENTS.
+## 2026-08-28 — session open: tree, branches and board
 
-**CSJ standing instruction, 2026-08-24: no agents are to be spawned for these fixes.
-One item at a time, quickly, without shortcuts, until the board is clear.** Three fix
-agents were dispatched and killed the same hour; all agents were terminated at 11:53 BST.
-The hard reason: agents share one `laravel_testing` database, and two Pest processes
-produce deadlocks and 0-assertion failures indistinguishable from real breakage.
+Done this morning, before any board work started:
 
-**215 board items open** — 3 critical, 80 high, 109 medium, 23 low.
-(105 `queued`, 104 `gated`, 4 `blocked`, 3 `handoff`.)
+- [x] **CLAUDE.md / AGENTS.md consolidation committed and merged** (#732). 37 files,
+      10,573 deletions, no doctrine lost — the 22 rules and their cross-references are
+      intact. Three new project skills hold the essays that were inlined:
+      `data-integrity-traps`, `fyn-architecture`, `test-failure-forensics`.
+      `.agents/skills` is now a symlink to `.claude/skills` so Codex and Claude read one
+      tree instead of two that drift.
+- [x] **#730 merged** — the suite could not run at all; `linkedSpouses()` was declared twice.
+- [x] **#731 merged** — W-0329/W-0505 Store validation, W-0245 dashboard derivation,
+      W-0141 life-cover premium.
+- [x] **Branches pruned: 117 remote → 11, 103 local → 8.** Every deleted branch was fully
+      merged into `dev`. `marketing` was kept though merged (it is live), and the 11
+      survivors are genuinely unmerged, including #249's parked python-agent-sidecar.
+- [x] **W-0490 acceptances 1 and 2** — `August/bugs/ios:17August/` renamed to
+      `ios-17August`, and `RepositoryPathsSurviveAWindowsCheckoutTest` now greps
+      `git ls-files` for the characters NTFS forbids. This is the bug that silently ate
+      `CLAUDE.md` and `CSJTODO.md` from two `dev` merges.
+- [x] **Duplicate board ids are now a test failure** — the existing guard pinned each id
+      to its own filename, which two files claiming `W-0489` both satisfy. Three
+      collisions happened in one session; this is #731's second question answered.
+- [x] **`wf.sh move` works again.** It built a literal `W-NNNN.md` path, so it answered
+      "no such item" for 297 of the 302 items. It globs on the id now.
+
+**Both guards were mutation-tested**, not trusted for going green — a staged
+`probe:colon.txt` and a duplicated id each redden their own guard.
+
+### Board, as it actually stands
+
+**302 items, 230 open** (67 done, 3 invalid, 2 duplicate).
+By status: 115 `gated`, 82 `queued`, 19 `review`, 5 `open`, 4 `blocked`, 3 `handoff`,
+1 `in-progress`, 1 `claimed`.
+By severity, across the open items: **5 critical, 92 high, 104 medium, 17 low** — and
+12 open items carry no `severity` field at all.
+
+No duplicate ids, no malformed items, every filename matches its `id`.
+
+**`gated` does not mean fixed-and-waiting.** Most are `CANNOT CERTIFY` for missing
+evidence rather than wrong code — see
+`workforce/ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md`.
 
 ### Next, in order
 
-- [ ] **W-0473** — the whole `/m` Insights feature is dead; all six readers look one level
-      above the agent's payload. Unwrap ONCE at the call site. Keep the caveat line.
-- [ ] **W-0474** — a civil partnership pools two estates against one person's allowances.
-      HIGH, overstates tax, fully specified.
-- [ ] **W-0475** — projected gross estate omits `asset_type = other` entirely; understates.
-- [ ] **W-0476** — the enumeration oracle moved to `GET /api/spouse-permission/status`.
-      Closes with **W-0472**.
-- [ ] **W-0477** — a deleted spouse leaves expenditure stored as halves nothing halves.
-- [ ] Then the remaining queued critical/high: `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
-      W-0155 W-0171 W-0216 W-0222 W-0226 W-0227 W-0361 W-0363 W-0364 W-0365 W-0462`,
-      then medium, then low.
-- [ ] **The full suite has not completed since `19bd1c83f`.** Run it once, alone, as a
-      consolidation point.
+- [ ] **Queued high, tax-moving first:** `W-0480` (four services still read `married`
+      alone, so a civil partnership gets the wrong answer), `W-0482` (the projected
+      estate needs the unused pension fund, not the pot), `W-0485` (blind person's
+      allowance subtracted from adjusted net income), `W-0489` (migrating savings to
+      cash would double-count every household), `W-0204` (salary sacrifice not added
+      back to threshold income).
+- [ ] **Then the rest of the queued high:** `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
+      W-0155 W-0171 W-0222 W-0226 W-0227 W-0462 W-0486 W-0490 W-0495`, then medium,
+      then low.
+- [ ] **One full-suite run, alone, as a consolidation point.** The last handover said the
+      suite had not completed since `19bd1c83f`; that claim now predates 100 commits and
+      a dozen merged PRs, so it is worth re-establishing rather than repeating.
+      **One Pest process at a time** — two share `laravel_testing` and deadlock into
+      0-assertion failures that look exactly like real breakage.
 
-### Waiting on CSJ
+### For CSJ
 
-- [ ] **W-0347 (CRITICAL) — FLAGGED by `compliance-lead` on five findings**, acceptances 3
-      and 4 unmet. **What happens to the 10 historically forged `spouse_permissions` rows
-      on dev?** A migration backfilled them as `accepted`; is that acceptable, or must
-      those households be re-asked?
-- [ ] **Rule 9 amendment** — the caveat spells out "the Alternative Investment Market" and
-      a test pins the acronym's absence. "(AIM)" for recognisability is CSJ's call alone.
+- [ ] **`main` and `dev` have diverged and neither contains the other.** `dev` is 81
+      commits ahead; `main` carries 36 `dev` does not, including PR #715
+      (`estate-copy-and-m-handoff`) merged straight to `main`. Releases assume
+      `dev → main` fast-forwards over a shared history, and this no longer does.
+      **Needs a decision before the next release**, not a quiet merge.
+- [ ] **W-0490 acceptance 3 — I COULD NOT TEST THIS.** It wants a clean clone plus
+      `git reset` on Windows and there is no Windows machine here. The item stays
+      `gated` for that reason alone.
+- [ ] **W-0490 acceptance 4 is carried, not discharged.** Nobody has audited past merges
+      for earlier silent drops. The query is
+      `git diff --diff-filter=D --name-only origin/dev...HEAD` — an unrestricted
+      `git status` reports clean over exactly this failure.
+- [ ] **12 open board items have no `severity`.** Mostly `W-0001`–`W-0023`, which predate
+      the field, plus `W-0176` and `W-0177`. Assigning one is triage, not cleanup, so
+      they are left alone.
+- [ ] **Two local branches survive with no remote and unmerged work:**
+      `codex/fynla-org-repository-migration` (3 commits ahead of `dev`) and
+      `pr674-ci-green` (0 ahead, held by a worktree). Neither was deleted.
 
-### Known gaps, carried
+### `main` reconciliation — 2026-08-28
 
-- [ ] **W-0008** — the adviser fee is enterable and has never been shown to reach the
-      projection it is entered for. Untouched.
-- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on BOTH accounts of a linked household.
-      Only a web profile-form save was ever verified.
-- [ ] **W-0470 second half** — per-liability detail rows still come from the non-projecting
-      breakdown, so the panel can show −£3,500 above a £0 total.
-- [ ] **W-0012 Rule 19** — `/m` and native have no property form; Fyn's create accepts five
-      mortgage fields, not nine.
-- [ ] iOS not built, launched or looked at. `/m` verified only on localhost, never csjones.
+**`main` held one thing `dev` wanted, and it is now salvaged:**
+`database/seeders/PremiumTestPersonaSeeder.php`, written on 2026-08-25 in `b7a775581`
+and never merged to `dev` because that commit went to `main` directly. Verified by
+running it against dev's schema, 81 commits past the one it was written for.
+
+**Two other candidates inverted on inspection — do not "restore" them:**
+- `SpouseNRBTrackerService.php` was deleted here **deliberately**, under W-0146.
+- `main`'s copy of W-0279 is the item *before* the work: it reverts a `done` +
+  `CERTIFIED 2026-08-25` back to `queued` and deletes the whole working-notes section.
+- `main`'s `tests/E2E/fixtures/app.js` is superseded by W-0492, which consolidated
+  consent onto the cookie the app actually reads. `main` still writes both.
+
+**Most of the divergence is one bad commit.** `75aa0d4f6` "manual merging all files" —
+356 files, 113,323 insertions, **zero deletions**, on 2026-08-25. Someone commented out
+`.gitignore` rules (`/April/` → `# /April/`, `.superpowers/` → `# .superpowers/`, and
+deleted `workforce/ops/log/*.log`) and ran `git add -A`. That is where main's 250 April
+docs, 105 `.superpowers/` files and a 2.6 MB `myrtle-listen.log` came from. It is the
+ignore rules failing, not history being recovered.
+
+**The 268 April/June docs are in the vault, per CSJ's direction.** 203 were already
+there byte-identical; 3 vault copies are longer than main's and were left alone; 62 were
+copied across. `/April/` stays gitignored in the repo — that rule is deliberate and says
+"Planning/review docs (local only)".
+
+### Known gaps, carried from 2026-08-24
+
+All three are on the board as `gated`, so they are tracked — listed here because each
+is a *verification* gap rather than a code one, and gates do not discharge themselves.
+
+- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on **both** accounts of a linked
+      household. Only a web profile-form save was ever verified.
+- [ ] **W-0470, second half** — the per-liability detail rows still come from the
+      non-projecting breakdown, so the panel can show −£3,500 above a £0 total.
+- [ ] **W-0012, Rule 19** — `/m` and native have no property form, and Fyn's
+      `handleCreateProperty` accepts five mortgage fields where the web form has nine.
+- [ ] **iOS has not been built, launched or looked at since 2026-08-24**, and `/m` has
+      been verified only on localhost, never on csjones.
+
+**W-0008 is done** — it was carried as untouched in the last handover and has since
+closed.
+
+### Answered since the last handover — do not re-raise
+
+- **W-0347's forged consent rows.** CSJ ruled 2026-08-24 18:19: dev only, database
+  restarted, so G4/G5/G6 are closed rather than deferred. There are no data subjects.
+  The re-ask migration stays as written. `CSJTODO` listed this as waiting on CSJ for
+  four days after it was decided.
+- **The Rule 9 "(AIM)" question** appears settled via W-0454 → W-0497.
 
 ## 2026-08-17 — catch-up and clean-up
 
@@ -170,180 +255,13 @@ July/July25Updates/handover-2026-07-25-session-1.md.*
 - [ ] Package 2 SwiftUI — blocked until Package 1 is fully green.
 - [ ] Deferred tech debt — centralise ownership-share calculation; simplify balance-history orchestration; split adviser-pack collection responsibilities.
 - Worktree boundary — programme tasks use isolated `/private/tmp/fynla-freemium-*` worktrees; `/Users/CSJ/Desktop/fynla` remains on the Save Tax branch.
-*Last updated: 2026-07-07 — session 2. **#613 + #614 + #615 ALL MERGED to dev (`e16ea5f`) + DEPLOYED to csjones + live-browser-verified** (dashboard £26k Retirement card, allocation tab + regenerate, /m advice Fyn parity). #10 decision made (yes — wizard completion flags onboarding complete; gates own the data gaps → PR #615, memory `project_onboarding_completion_scoped_per_flow.md`). Prod UNTOUCHED. One NEW bug found live (Fyn advice repetition — see open items).*
-
-## 2026-07-07 — session 2b: Fyn/AI blindspot pass → spec + plan for Opus (NOT implemented)
-
-Six-agent read-only audit of the whole AI surface (prompts/corpus/evals, advice loop, gating/KYC, write-states/campaigns, recs/actions, compliance/memory). All docs in `July/July7Updates/` (repo + vault): `fyn-ai-blindspot-map.md` (~60 findings, file:line), `fyn-ai-prompting-playbook.md`, `fyn-ai-remediation-spec.md`, `fyn-ai-remediation-plan.md` (11 PRs, for Opus).
-- [x] **×80 repetition bug fully root-caused** — 5 layers: goals-pattern cross-contamination → KYC all-modules block → navigate_to_page contradiction (tool stripped from catalogue) → xAI accumulated-history amplifier (`HasAiChat.php:556-558`) → log-only validator (authored a1/a2 overlay fix exists, `active: false`).
-- [x] **CSJ rulings:** goals NEVER gate advice — only data needed for the question gates (D1, also resolves D7); loop guards one PR (D3); **grok-4.3 canonical** (D4, memory updated); **NEW: wire OpenAI gpt-5-nano as selectable provider** (spec WS-F2.2, plan PR-5); D9 #615-follow-up required.
-- [ ] **OPEN — ⚠ CONFIRM list for Opus** (one line each, before the marked task): T1.4 signpost default, T3.1 overlay flip, T5.2 nano routing, T6.5 tier gate on Fyn holistic, T9.4 dashboard TTL, T9.5 retirement engine canon (D12), T10.3 score strip (D16), all of PR-11 compliance/erasure (D14/D15).
-- [ ] **OPEN — hand plan to Opus**: PR-1..3 = P0 repetition family (GREEN = 19079 repro clean on web AND /m, live csjones).
-- Note: sibling whole-app docs (`blindspot-audit/spec/plan-2026-07-07.md`, other session) committed alongside; GDPR/queue/monitoring workstreams coordinate between the two plans (AI-store erasure = PR-11 here, user-row purge = sibling plan).
-
-## 2026-07-07 — session 2: #10 decision → PR #615, merges, csjones deploy + verify
-
-- [x] **CSJ decision #10:** completing ANY onboarding flow (wizard/quick/campaign) → `onboarding_completed=true` + `onboarding_fyn_step=null`; per-module data gaps belong to `PrerequisiteGateService` gates (which already exist + are wired). Saved to memory.
-- [x] **#615 onboarding-complete fix** — life-stage wizard finish never called `POST /onboarding/complete` (root cause of audit #9/#10); wired it + 3 completion endpoints now null `onboarding_fyn_step`. 3 new tests; suite 5,510/30. Live-verified locally: full wizard walk → flags flip → advice Fyn on web + wire-level /m parity.
-- [x] **Merged #613, #614, #615** to dev (`e16ea5f`, admin-merge) + **deployed csjones** (git pull + build.sh SPA/m-build + preserve-old-chunks + cache clears; no migrations).
-- [x] **Live-verified on csjones (julycsj3):** dashboard Retirement card £26,000 (was £0 — audit #1/#2 now live-proven); life-event allocation tab generates £15k ISA/£35k pension for a £50k inheritance + Regenerate works (#614); /m new m-build boots, Fyn = advice state, no onboarding bubbles (#615/#9).
-- [ ] **NEW BUG — Fyn advice repetition loop (csjones, live):** /m advice reply to "Am I on track for retirement?" (goal-less user) stored ONE message with the same gate-refusal paragraph **×80** (`ai_messages` id 19079, len 21,122; metadata shows 3 identical `get_tax_information(pension_allowances)` calls = factual cap). Model degeneration on repeated identical tool results (temp 0); 0/300 pre-deploy messages show it; none of #613–#615 touched the advice loop. Proposed fix: dedupe identical tool call+args within a turn (skip re-execution, tell the model) + repetition-collapse guard in `StructuredResponseValidator::sanitise`. NOT fixed — awaiting CSJ green-light.
-- [ ] **OPEN — dev→prod release** now covers **#581–#615** (one migration `users.active_campaign`; CSJ's call).
-- [ ] **Deferred:** Estate decimal casts (#11, reverted); CurrencyDisplayService dead-code; `build:mobile` safety hook false-positive for local-default-base verification builds (consider whitelisting); pre-existing `AssetsStep.vue` scrollTo TypeError during wizard.
-- [x] Worktrees `fynla-audit-fix`/`fynla-le`/`fynla-onb`/`fynla-deploy` removed (branches merged). `fynla-fixes` (dirty Pint churn, now behind dev) + `fynla-coala` untouched.
-- Test artefacts: csjones julycsj3 now has a "Parents' Estate" £50k life event + generated allocations (left in place, useful data); local user `wizard.fix.jul7@example.com` (id 1079).
-
-## 2026-07-06 — audit maps, audit fixes (#611/#612), new campaign specs
-
-All on dev (`9c9e7d2`) + csjones-deployed + live-browser-verified. Docs on main (`4ba6ba1`) + vault-mirrored.
-- [x] **#611 tooling overhaul** — 4 safety hooks (design-lint/prod-guard/env-guard/m-parity), guard extensions (db:wipe/route:cache/optimize), release + verify-m skills, hygiene (contributor memory, settings prune, dupes). 16/16 payload tests.
-- [x] **Campaign maps & audits** — `July/July6Updates/saveTax.md` + `pensionCampaign.md`: full funnel→registration→decision-tree→eventualities maps, file inventories, per-flag audit statuses.
-- [x] **#612 audit fixes** — all 15 actionable flags (P1–P8, P10, S1–S3, S5–S7) + 3 live-found follow-ups (UserResource active_campaign, mid-walk bare-start 409, /m store mirror). 15+3 new tests; suite 5,506; live Playwright pass on csjones (P1/P2/P3/P4/P6/S3/S5/S6 + integrity). Skipped by design: S4/S8/P9.
-- [x] **Investment + estate campaign specs & plans** — `investment-campaign-{spec,plan}.md` (campaign3/`investmentcheck`) + `estate-campaign-{spec,plan}.md` (campaign4/`inheritancecheck`): research-grounded, 4 slices, 30-item trap tables, Gates 0–7 testing ladder. Names/URLs DRAFT — CSJ confirms at funnel-build time.
-- [ ] **OPEN — dev→prod release** now covers **#581–#612** (one migration `users.active_campaign`; full rsync reconcile + corpus + build + m-build — CSJ's call).
-- [ ] **OPEN — green-light campaign #3/#4 build** — start from the plan docs; land one fully before the other.
-- [ ] **Optional:** retrospective `/code-review` on #612 (shipped on tests + live E2E only); frontend Prettier stack (deferred dependency decision); julycsj3 pension £26,000 drift (P2 live edit — revert only if wanted).
-
-## 2026-07-04 — pension campaign (/pensioncheck) built, verified, shipped to dev (#607–#610)
-
-## 2026-07-04 — pension campaign (/pensioncheck) built, verified, shipped to dev (#607–#610)
-
-All merged to dev (`6f965f1`) + deployed csjones + live-browser-verified (fresh-user walk, existing-user delta walk, savetax regression walk). Design: `July/July3Updates/pension-campaign-map.md` + `pension-campaign-plan.md` (CSJ-approved: re-entry option (a), projected-pot hook, pension-lean walk, land on /retirement; URL /pensioncheck).
-- [x] **#607** re-entry substrate: `users.active_campaign` + 3-seam dispatch helper + start re-entry + exits + canonical amendment (`00-canonical.md`) + funnel campaign stamp + /m from-forwarding + affinity map.
-- [x] **#608** public surfaces: PensionEstimateService (taper-note Critical fixed in review), /pensioncheck funnel + plan pages (anonymous, six questions, values carry to registration), routes, homepage CTA card.
-- [x] **#609** the walk: per-campaign sections, delta skips (income-signal Critical fixed in review), 9 campaign2 states + corpus lockstep, 2 new capture tools (WRITE_TOOLS-listed), retirement advice + campaign-aware synthesis, carry-forward restored pensioncheck-only w/ higher-rate gate, config ON, PensionStore boundary.
-- [x] **#610** live fix wave (5 rounds, all E2E-re-verified): pensioncheck tool-catalogue arm (root cause), cache bust + users.target_retirement_age sync, web /retirement redirect + State-Pension hallucination hardening + leak fix + synthesis degrade, dc update allowlist + F5 honest ack, contribution record-context.
-- [x] **Slice D gate** D1–D5 all GREEN; test users purged (0 orphans); julycsj3 kept (now with pension data).
-- [ ] **OPEN — dev→prod release** now covers **#581–#610** (one new migration `users.active_campaign`; corpus + build + m-build + changed PHP + drift reconcile — CSJ's call).
-- [ ] **OPEN — campaign polish before marketing /pensioncheck:** DRAFT copy (funnel/plan/homepage/Fyn voice), OG images missing (`og/pensioncheck*.jpg`), carry-forward re-inclusion blessing (vs #586), post-terminal affinity durability (re-entrants revert to tax-first), `proposed-fyn-refusal-carveout.patch` (unreviewed prompt hardening — optional, walks green without it).
-- [ ] **Deferred (recorded in patch notes):** pension access age 55 hardcode (57 in 2028 — TaxConfigService effective-from), web `**` literal in verify bubbles (pre-existing), %-only pensions show £0 monthly on retirement page, savings-only "bank accounts" verify label (pre-existing), fynla-fixes worktree ~85-file Pint import-churn (uncommitted, decide reset-or-commit).
-
-## 2026-07-03 — session 2: WP-5c milestones programme + campaign playbook (#603–#606, dev, live-verified)
-
-All merged to dev (`c836fb9`) + deployed csjones (code + fresh /m bundle) + browser-verified; full suite green at every slice (5,256 → 5,264 → 5,271). Prod UNTOUCHED. Spec: `July/July3Updates/wp5c-milestones-spec.md` (CSJ-approved: yearly repeats yes, push flag-gated yes).
-- [x] **#603 WP-5c-i** — milestone catalogue 5 → 18 families (tax actioned/ISA/pension Annual Allowance yearly, strategy firsts, emergency fund, first ISA, pension pot, on-track, will, registered Lasting Power of Attorney, protection adequate, estate start, mortgage paydown, module profiles, anniversaries, household). Build catches: `has_will=false` rows don't mint; draft LPAs don't count; savings reads via `SavingsStore` (locked boundary). Includes the Fyn prompt snapshot regen #585 missed (dev test red since `fa068a7`).
-- [x] **#606 (= #604, auto-closed by GitHub on base-branch delete) WP-5c-ii** — pages uncapped: grouped next-per-family upcoming with £ distances, Done 25/page load-more, activity feed cursor pagination + infinite scroll.
-- [x] **#605 WP-5c-iii** — nudge layer: `MilestoneCollector`, Fyn speaks mints in capture turns ("That's a milestone: …"), flag-gated push (`GAMIFICATION_PUSH_ENABLED` OFF), deep-link routes on upcoming steps, dashboard hero nudge (`next_milestone`), tax-savings detection on the dashboard read via scoped `ComposedTaxPlanService` memo. Live bug found+fixed: level wheel SVG spill swallowed nudge taps (z-index 3).
-- [x] **Campaign playbook** — `July/July3Updates/campaign-playbook.md`: end-to-end SaveTax template (funnel → onboarding → verify → synthesis → landing → gamification) incl. the Fyn formatting standard F1–F15 + screens inventory + per-campaign checklist + fit notes (retirement/investment/savings/property/IHT). All six module strategy sources already exist; property has none.
-- [x] **System maps** — `savetax-recs-gamification-map.md` (current-state recs→actions→gamification→nudges, integration gaps).
-- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#606 (CSJ's call; no new migrations in WP-5c).
-- [ ] **OPEN — campaign #2 pre-work** (when green-lit): existing-user re-entry decision (blueprint §existing-users) + 6 generalisation points (playbook §6).
-- [ ] **Deferred (spec-recorded):** `pa_restored` milestone (needs adjusted net income from the tax engine); desktop achievements/milestones/history parity; milestone email loop; `campaign_verify_more` orphan cleanup.
-- [ ] **CONFIRM where #593 was tested** (csjones vs prod) — carried; moot if the prod release ships.
-
-## 2026-07-03 — session 1: savetax issues batch + gamification overhaul (#594–#602, dev, live-verified)
-
-All merged to dev (`a6d0009`) + deployed csjones + browser-verified; 5,235 tests green. Prod UNTOUCHED. System map: `July/July3Updates/gamification-recs-tasks-map.md`; blueprint: `July/July3Updates/campaign-blueprint.md`.
-- [x] **#594** July3 `issues.md` batch (8 user-reported savetax /m onboarding issues: error colour, reg-form flash, DOB short-format confirm-back, edit-flow return, actions-logged notices, bold Fyn questions, tax-strategy Continue button) + 2 pre-existing recap/ack dedup bugs. **#595** savetax-plan-v4.js cache-buster v12.
-- [x] **#596 WP-1 capture integrity (P0):** no phantom records from intent-only messages; failed captures surface to the user (kills D1/D2). **#597 WP-2** one actions model across every surface (D8/D9). **#598 WP-3** activity history feed from `point_awards` (D4). **#599 WP-4** achievements = earned things, not live counters (D6/D7). **#600 WP-5** journey milestones + self-healing detection (D5). **#601 WP-6** SaveTax graduates land on tax actions first (D10). **#602 WP-5b** upcoming milestones with the steps to reach them.
-- [x] **Worktree cleanup** — 7 merged feature worktrees removed (kept `fynla-coala`; `fynla-fixes` on `dev` is the working worktree).
-- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#602 (CSJ's call).
-- [ ] **CONFIRM where #593 was tested** (csjones vs prod) — carried from 2026-06-30; if CSJ saw the spouse-PA bug on prod, prod still has it until the release.
-
-## 2026-06-30 — session 3: savetax web/m fixes (#592 + #593, dev, live-verified)
-
-Both merged to dev (`03b851f`) + deployed csjones + **browser-verified**. Prod UNTOUCHED.
-- [x] **#592** savetax `/m` final synthesis recap now mirrors the `/tax-strategy` dashboard `composed_plan.items` as bullets (`buildSynthesisAdvice`): dropped numbering, conflict notes, and the "tell me about your GIA holdings" locked-tease; fresh-user recompute. Verified live on /m (7-item £24,834 plan == dashboard).
-- [x] **#593** removed inaccurate "Automatically used against your income." subtext from the **spouse** Personal Allowance card on the unregistered savetax-plan page (`SaveTaxEstimateService`, `isSpouse` flag). Reproduced + verified gone on csjones.
-- [ ] **CONFIRM where #593 was tested** (csjones vs prod). If prod, it needs the prod release.
-- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#593 (CSJ's call).
-- [x] **Worktree cleanup**: DONE 2026-07-03 — all 7 removed (kept `fynla-coala`).
-
-## 2026-06-30 — session 2: SaveTax onboarding / ISA / gamification / pension push (#583–#591, dev)
-
-All merged to dev (`0a42695`) + deployed to csjones /m, browser-verified. Prod UNTOUCHED.
-- [x] **#583** spouse-or-partner → spouse on the two spouse-only sites (clears 2 of 5 stragglers). **#584** PA-taper 60%-trap advice personalised into two figures (£100–125k). **#585** Cash vs S&S ISA routing + this-year subscription capture. **#586** drop pension carry-forward question. **#587** show spouse's income on spouse verify screen.
-- [x] **#588** gamification hero card — dynamic actions-to-next-level (0%→4…75%→1; NOT a banned score, CSJ-approved). **#589** pension cards under hero (retirement /m). **#590** present ISAs as ISAs (root: `OnboardingStateMachine:1076` sectionLabel) + split mobile Savings grouping. **#591** "Cash ISA Accounts" wording (no pluralised acronym — CSJ pushback).
-- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581–#591 (CSJ's call; no new migrations; corpus + m-build + build + changed PHP).
-- [ ] **Deferred:** 3 remaining "spouse or partner" stragglers (`JourneyFieldResolver:287`, `public/pages/savetax-v2.php:210,237`); Anthropic `create_savings_account.md` current_account parity.
-
-## 2026-06-29 — SaveTax onboarding (#581) + bank accounts (#582) shipped to dev (end-of-day)
-
-Both features merged to dev (`5e2e21b`) + verified live on csjones /m. Prod UNTOUCHED.
-- [x] **PR #581 — SaveTax onboarding:** spouse income band in the Fyn welcome recap; DOB question no longer announces "pensions and retirement" to non-pension users; savings question scoped to the ticked cash type (bank-only → "Now your bank accounts").
-- [x] **PR #582 — Bank accounts / current-account default:** captured accounts default to `current_account`, not a savings product — **load-bearing fix = the live xAI `create_savings_account` schema description** (data-layer defaults are a backstop); golden master regenerated byte-identical. `/m` "Bank accounts & cash" screen (rename + accounts-under-total reorder). Full savings→bank consistency sweep (create ack, `sectionLabel('savings')` verify narration, every screen label). Halifax walk GREEN — `current_account` stored, zero "savings" leakage.
-- [x] **Housekeeping:** committed June session docs + gitignored python bytecode; tracked `designer-brief.pdf`; kept security review local-only; purged 13 csjones test users (no orphans).
-- [ ] **OPEN — dev→prod release** now covers Batches 1–7 + #581 + #582 (CSJ's call; no new migrations; corpus + m-build + build + changed PHP).
-- [ ] **Deferred (offered, not actioned):** 5 "spouse or partner" stragglers (`ProtectionActionDefinitionService:1933`, `ModuleDataRequirementsService:533`, `JourneyFieldResolver:287`, `public/pages/savetax-v2.php:210,237`); Anthropic `create_savings_account.md` current_account parity.
-- [ ] **Local `main`** is 2 doc commits ahead of `origin/main` — push or PR.
-
-## 2026-06-27 — /m fixes programme COMPLETE: Batches 5–7 shipped to dev (end-of-day)
-
-Batches 5/6/7 landed today; the 7-batch programme is finished. All on dev (`267f35f`) + csjones-verified. Prod UNTOUCHED.
-- [x] **Batch 5 — Freemium (#578):** account caps + Upgrade on Savings/Investment/Pension (Protection dropped — no tier cap, CSJ); Holistic Plan → Tier 2+ gate (`EnsureFullHolisticAccess`); Fyn at-cap fix (savings catch was missing) + accounts-left note. Live-verified on /m (caps 1/3·0/2·0/5, Holistic gate, Upgrade→settings). New `FreemiumCapsTest`.
-- [x] **Batch 6 — Bugs (#579):** 6.1 reg continuity (`PendingRegistration` preserves `funnel_answers`); 6.2 bank→`current_account` (un-coerced); 6.4 Goals Add/Edit buttons. 6.1/6.2 unit-verified; 6.4 buttons render live.
-- [x] **Batch 7 — Sweep (#580):** partner→spouse (funnel + ~34 SPA; KEPT 8 non-spouse traps per CSJ + "civil partner"); 7-D page/data-specific edit-details opener (`editPrompt`/`buildEditPrompt`). Funnel + SPA-bundle + 7-D all live-verified.
-- [ ] **OPEN — dev→prod release of Batches 1–7** (CSJ's call; no migrations added, copy/middleware/view only). Reconcile prod drift on release.
-- [ ] **Cleanup:** remove Goal id=291 ("House deposit") from `savetaxb2test`/Hawkeye on csjones (test data; needs DB delete — CSJ to OK).
-
-### Superseded (done)
-
-## 2026-06-26 — /m fixes programme: Batches 1–4 shipped to dev (end-of-day)
-
-CSJ's ~30-item `/m` fix list → 7 build batches (1 PR/surface, verify each on csjones). **Batches 1–4 DONE + verified on dev; Batches 5–7 remain.** Worktree `fynla-m-funnel` on `m-freemium` (ready for Batch 5). Read `June/June25Updates/m-fixes-plan.md` first.
-- [x] **Batch 1 — Funnel (#574):** collapsible, top "Find out how" CTA, white reg error, lean calc copy.
-- [x] **Batch 2 — Onboarding (#575):** income-first 2-bubbles + bold + bracket, 5-min, no Gift Aid, recap-split + bold renderer, spouse line + figure, terminal tax-strategy button. Core live-verified on /m w/ real xAI.
-- [x] **Batch 3 — Actions single-source (#576):** running-tally count (0/4→1/5), replace-on-done, per-item unlock labels, Tax Strategy = `composed_plan.items`. API-verified on csjones.
-- [x] **Batch 4 — Tax Strategy page (#577):** Available-in-green, personalised intro (gated on onboarding_completed), lean copy, back-CTA. Live-DOM-verified.
-- [x] **Batch 5 — Freemium (#578):** DONE 2026-06-27 (see section above).
-- [x] **Batch 6 — Bugs (#579):** DONE 2026-06-27 (see section above).
-- [x] **Batch 7 — Sweep (#580):** DONE 2026-06-27 (see section above).
-- [ ] **Decision (still open):** 3.3 nuance (Tax Strategy shows completed actions dashboard hides — also exclude, or keep overview?). Desktop-web Tax Strategy parity (Rule 19) flagged. dev→prod release now covers B1–7 (CSJ's call).
-
-## 2026-06-24 — Session 1: PR #572 SEO + news bar + SPA nav handoff shipped to dev + prod (end-of-day)
-
-main @ `cc8d677` = origin/main = prod (0/0). **PR #572 complete and live on both environments — nothing mandated next.**
-- [x] **Merged + deployed PR #572** (Phailanx) — SEO mojibake fixes (24 pages), `/public/`→clean 301, sitemap tidy (drop `/version`, link `/help`), consumer titles, homepage Latest-news bar (from `/api/news`), SPA→PHP marketing nav handoff, fresh-checkout `.gitignore` fix. logic-guard protected-file gate approved via `logic-change-approved` label + admin-merge.
-- [x] **Fixed news-bar `FYNLA_BASE` bug** (`3e9e7cb`) — supporting cards hardcoded `/insights/<slug>`, 404'd on the `/fynla` subdirectory; `+80aa2aa` asset version bump 114→115. Prod-neutral (FYNLA_BASE='' on root).
-- [x] **Released dev→main (#573) + deployed BOTH** csjones (dev) and fynla.org (prod). Manifest md5 local↔prod identical (`d6526fff…`); prod log 0 errors; SPA→PHP handoff + news bar browser-verified on both envs.
-- [x] **Session-start housekeeping** — removed stale `deadcode-cleanup` worktree + branch + `/tmp/fynla-main-planning-backup/`; spot-confirmed both `currentAccessToken()->id` sites guarded (`AdminController:128`, `SessionService:58`) — TransientToken family clean.
-- [ ] **Optional:** device / fresh-eyes check of Latest-news bar + SPA→PHP handoff on prod.
-
-## 2026-06-23 — Session 1: cleanup tier-2 shipped to dev + prod (end-of-day)
-
-main @ `7389d7d` = origin/main = prod (0/0). **Cleanup programme complete and live on prod — nothing mandated next.**
-- [x] **Tested + pushed `deadcode-cleanup` → #569 → merged to dev + main + prod** (static dangling-ref sweep + Retirement/Savings suites 154 pass + architecture 117 pass).
-- [x] **sanitizeHtml → DOMPurify** (#570) — closes latent XSS; same export, 3 callers unchanged; browser-verified (function + render-path + Fyn chat surface).
-- [x] **7 dead Notification classes removed** (#570) — push path via `PushNotificationService` confirmed intended/active; 8 active classes kept.
-- [x] **4 unused frontend exports removed** (#570) — `PLAN_LABELS`, `tierAccess.MODULE_LABELS`, `ALLOWED_SIGNUP_SOURCES`, `awinTracking.isEnabled`.
-- [x] **draw.io diagrams committed** (#570) — `docs/diagrams/fynla-service-layers.*` + generator.
-- [x] **Released dev→main (#571) + deployed prod** — non-git manual upload (rm 16 dead files + rsync 8 modified PHP + dump-autoload + build upload + config:cache).
-- [ ] **taxConfig Vuex getters — LEFT IN (CSJ-confirmed).** "~18 dead" estimate was unreliable; store heavily used; Rule #2 API; negligible payoff. Not a TODO — recorded as a decision.
-- [ ] **Optional:** tier-2-account eyeball of the 2 Estate sanitizeHtml surfaces (LPA, Will review) on prod — not clickable locally (tier gate).
-- [ ] **Housekeeping:** remove stale worktree `/Users/CSJ/Desktop/fynla-deadcode-cleanup` (`rm -rf` + `git worktree prune` + `git branch -D deadcode-cleanup` — this git lacks `worktree remove`).
-
-### Deferred audit tiers NOT actioned (still open, CSJ decision)
-- [ ] `composed_module_plans` rollback flag (~200 lines) — deliberate live-rollback safety net; CSJ's call.
-- [ ] Stylistic shrinks: `titleCase()` dedup (49 inline idioms), a few `foreach`→`collect()->map()`.
-- [ ] `PolicyCRUDTrait` inline-into-`ProtectionController` (~143 lines).
-- [ ] Future code pass: confirm no un-guarded `currentAccessToken()->id` remains (`TransientToken::$id` family, ~117 historical prod-log hits, last 2026-05-11).
-
-## 2026-06-18 — Session 2: ponytail audit + zero-risk dead-code removal (end-of-day; committed-not-pushed)
-
-Branch `deadcode-cleanup` (worktree `/Users/CSJ/Desktop/fynla-deadcode-cleanup`, off `origin/dev`), commit `bf92123`. **Next session: test + push + PR to dev.**
-- [x] **Repo-wide ponytail audit** — 5 parallel hunters (deps / PHP abstractions / PHP stdlib / frontend / dead flags). Deps lean, routes clean, abstractions lean, `formatCurrency`/mixins/dup-API clean. Full ranked report delivered in chat (~1,450 high-confidence recoverable lines).
-- [x] **draw.io service-layers diagram** — `docs/diagrams/fynla-service-layers.{drawio,svg,png,drawio.png}` + `gen_service_layers.py`. **Untracked in main dir** (not committed — branch-gate).
-- [x] **Zero-risk dead-code tier committed** (`bf92123`, −971 lines): 7 orphan commands, `initializeFundBalances()`/`calculateTotalPensionPot()`, 4 Savings goal methods + 2 Request classes, 8 unread config keys, 2 stale-ref fixes. `php -l` clean, 0 dangling refs, 214 targeted tests green.
-- [x] **test + push `deadcode-cleanup` + open PR to `dev`** — DONE 2026-06-23 (#569 → dev → main → prod).
-- [x] **Deferred audit tiers** — DONE/decided 2026-06-23: notifications ✓ (#570), `sanitizeHtml`→DOMPurify ✓ (#570), frontend dead exports (4) ✓ (#570). taxConfig getters LEFT IN (CSJ). Still open (see new section above): `composed_module_plans` flag, stylistic shrinks, `PolicyCRUDTrait` inline.
-- [x] **Decide diagrams** — DONE 2026-06-23: committed via #570.
-
-## 2026-06-17 — Session 2: SaveTax verify-after-capture DONE + on PROD (clear)
-
-- [x] **Option B landed** — resume the persisted onboarding conversation in the dock (`onboardingChat.js` mixin + `loadTranscript`); `handleCampaignVerifyEdit` (update-only, honesty-gated); 3 fixes (`Investment\InvestmentAccount` ns, store-boundary reads, honest verify-edit ack). PRs #563→#564, on prod.
-- [x] **Time-estimate greeting** (3-5 min base + 1 min/asset beyond first), **de-jank** (suppress premature confirm + defer close), **"Tap the chat below to continue with Fyn" nudge**.
-- [x] **Cookie consent at the landing/funnel + `/m` Fyn auto-open** — vanilla `public/pages/js/cookie-consent.js` on `index/savetax/savetax-plan.php` (persists, same `localStorage['cookie_consent']`); `Dashboard.vue mounted()` auto-opens Fyn for onboarding arrivals. PRs #565→#566, on prod.
-- [x] **Verify FLOW correction → CSJ's exact spec** — one existing gate → navigate+confirm (with nudge) → "Yes" → THEN section advice → next section; verify BEFORE advice; `/income` shows employer·role·amount; full chat transcript persists across navigation. `campaign_verify_more` now orphaned (golden-master parity only). PRs #567→#568, on prod, income E2E-verified live.
-- [ ] **Optional parity confirmation** — walk the remaining sections on prod (savings → investments → pensions → giving → spouse → expenditure); same generic verify mechanics, screens already list records. Confirmation, not new work.
-- [ ] **Cleanup (future):** remove orphaned `campaign_verify_more` state (code + corpus + flow tests).
-- [ ] **Untested:** iOS Safari iframe-localStorage partitioning for the `/m` cookie banner on a real device.
 
 ## 2026-06-16 — Session 2: composer Phases 5–6 + PROD DEPLOY + SaveTax verify (clear)
 
 - [x] **Composer Phase 5** — `RecommendationsAggregatorService` wire-through (`COMPOSED_MODULE_PLANS` flag, default ON), `/holistic-plan` web composite view + `GET /api/holistic/composite-plan`, net-new `/m` holistic screen. PR #561, browser-verified.
 - [x] **Composer Phase 6** — full suite green (5110), golden masters, web + `/m` E2E.
 - [x] **Merged #558→#559→#560→#561 to dev; #562 dev→main; FULL PROD DEPLOY** (CoALA Phases 1–6 + composer Phases 1–5, 11 migrations, corpus reindex, strategy seeders). `/m` holistic browser-verified on fynla.org. Also deployed dev→csjones. `FYN_LEARNING_ENABLED` OFF on prod; `COMPOSED_MODULE_PLANS` ON.
-- [x] **SaveTax verify-after-capture — DONE + on PROD (2026-06-17).** Option B landed, flow corrected, income E2E-verified on prod. See the 2026-06-17 section above.
+- [ ] **SaveTax verify-after-capture — NEXT: land Option B + E2E.** Backend + screens done + green on `savetax-verify-capture`. Option B = resume the persisted onboarding conversation in `MobileChrome`'s dock (Dashboard-scoped chat unmounts on nav). See plan §"Task 10 (REVISED)". Then `/m` E2E (csjones) + dev PR.
 - [ ] **Composer Task 3.3 — house_view narratives (DEFERRED, CSJ domain)** — still open; composer works without them.
 - [ ] **Composer Task 4.4 — episodic recall de-ranking (DEFERRED)** — still open.
 

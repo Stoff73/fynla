@@ -33,6 +33,7 @@ class Property extends Model
         'joint_ownership_type',
         'joint_owner_id',
         'joint_owner_name',
+        'joint_owner_is_spouse',
         'trust_name',
         'tenure_type',
         'lease_remaining_years',
@@ -80,6 +81,10 @@ class Property extends Model
     ];
 
     protected $casts = [
+        // W-0368 — NULL must survive as NULL. `boolean` casts null to null (unlike a
+        // NOT NULL default), so "never asked" stays distinguishable from "no", which
+        // is the whole point of the column.
+        'joint_owner_is_spouse' => 'boolean',
         'purchase_date' => 'date',
         'valuation_date' => 'date',
         'lease_start_date' => 'date',

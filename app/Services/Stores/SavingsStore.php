@@ -58,9 +58,13 @@ class SavingsStore
      *
      * For consumers that render the co-owner's name (e.g. the AI
      * existing-records prompt) and must not trip
-     * Model::preventLazyLoading on staging — savings_accounts has no
-     * joint_owner_name column, so the co-owner can only resolve via the
-     * relation.
+     * Model::preventLazyLoading on staging.
+     *
+     * W-0042 added `joint_owner_name`, so a co-owner now resolves two ways: the
+     * relation when the account names a LINKED user, and the column when it names
+     * someone off the platform. A reader wanting "who is the other half" must
+     * consider both — the relation alone is now an incomplete answer, which it was
+     * not when this method was written.
      */
     public function forUserWithJointOwner(User $user): Collection
     {
@@ -310,12 +314,18 @@ class SavingsStore
             'isa_subscription_amount' => 'sometimes|nullable|numeric|min:0',
             'regular_contribution_amount' => 'sometimes|nullable|numeric|min:0',
             'contribution_frequency' => 'sometimes|nullable|in:monthly,quarterly,annually',
+            // W-0505. NOT NULL with a default of 'immediate', so an impossible
+            // value here was a raw SQL error rather than a named field.
+            'access_type' => 'sometimes|nullable|in:immediate,notice,fixed',
             'is_isa' => 'sometimes|boolean',
             'is_emergency_fund' => 'sometimes|boolean',
             'ownership_type' => 'sometimes|in:individual,joint,tenants_in_common,trust',
             'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
             'trust_id' => 'sometimes|nullable|integer|exists:trusts,id',
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
+            // W-0042 — a shared record may name an off-platform co-owner, the same
+            // way properties, mortgages and chattels already can (W-0025).
+            'joint_owner_name' => 'sometimes|nullable|string|max:255',
             'country' => 'sometimes|nullable|string|max:255',
             'include_in_retirement' => 'sometimes|boolean',
         ];

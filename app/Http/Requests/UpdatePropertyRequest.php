@@ -46,6 +46,8 @@ class UpdatePropertyRequest extends FormRequest
             'ownership_percentage' => ['sometimes', 'numeric', 'min:0', 'max:100'],
             'joint_owner_id' => ['sometimes', 'nullable', 'exists:users,id'],
             'joint_owner_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            // W-0368 — see StorePropertyRequest. NULL is a meaningful third state.
+            'joint_owner_is_spouse' => ['sometimes', 'nullable', 'boolean'],
             'household_id' => ['sometimes', 'nullable', 'exists:households,id'],
             'trust_name' => ['sometimes', 'nullable', 'string', 'max:255'],
 

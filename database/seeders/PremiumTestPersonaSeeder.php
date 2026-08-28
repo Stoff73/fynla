@@ -12,6 +12,7 @@ use App\Models\Estate\Bequest;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
+use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
@@ -122,17 +123,17 @@ class PremiumTestPersonaSeeder extends Seeder
         $ids = [$david->id, $sarah->id];
 
         foreach ([
-            \App\Models\Estate\Bequest::class,
-            \App\Models\Estate\Will::class,
-            \App\Models\Estate\Trust::class,
-            \App\Models\Chattel::class,
-            \App\Models\LifeInsurancePolicy::class,
-            \App\Models\CriticalIllnessPolicy::class,
-            \App\Models\IncomeProtectionPolicy::class,
-            \App\Models\DBPension::class,
-            \App\Models\StatePension::class,
-            \App\Models\SavingsAccount::class,
-            \App\Models\FamilyMember::class,
+            Bequest::class,
+            Will::class,
+            Trust::class,
+            Chattel::class,
+            LifeInsurancePolicy::class,
+            CriticalIllnessPolicy::class,
+            IncomeProtectionPolicy::class,
+            DBPension::class,
+            StatePension::class,
+            SavingsAccount::class,
+            FamilyMember::class,
         ] as $model) {
             $model::whereIn('user_id', $ids)->forceDelete();
         }

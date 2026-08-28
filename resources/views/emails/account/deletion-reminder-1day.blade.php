@@ -41,7 +41,7 @@
         <td bgcolor="#fce4ec" style="background:#fce4ec;padding:24px 36px;text-align:center;">
             <h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:#1F2A44;text-align:left;">Last chance to keep your account</h3>
             <p style="margin:0 0 18px;font-size:14px;color:#1F2A44;line-height:1.6;text-align:left;">If you want to keep your Fynla account, you must cancel before the deletion runs &mdash; sign in now and head to <strong>Settings &rarr; Privacy</strong>.</p>
-            <a href="https://fynla.org/settings/privacy" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;font-family:'Segoe UI',Inter,Arial,sans-serif;">Cancel deletion</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="https://fynla.org/settings/privacy" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none; font-family:'Segoe UI',Inter,Arial,sans-serif;">Cancel deletion</a></td></tr></table>
         </td>
     </tr>
 @endsection

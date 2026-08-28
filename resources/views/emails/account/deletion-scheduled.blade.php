@@ -42,7 +42,7 @@
             <h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:#1F2A44;text-align:left;">What happens next</h3>
             <p style="margin:0 0 10px;font-size:14px;color:#1F2A44;line-height:1.6;text-align:left;">On the scheduled date, your account will be closed and you will be signed out of any active sessions. Your records are then retained for the period required by Financial Conduct Authority rules, after which they are permanently removed.</p>
             <p style="margin:0 0 18px;font-size:14px;color:#1F2A44;line-height:1.6;text-align:left;">If this was not what you intended, sign in and cancel the deletion in <strong>Settings &rarr; Privacy</strong>.</p>
-            <a href="https://fynla.org/settings/privacy" style="display:inline-block;padding:14px 40px;background:#e74c6f;color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px #d9a0b0;font-family:'Segoe UI',Inter,Arial,sans-serif;">Cancel deletion</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#e74c6f" style="padding:14px 40px; background:#e74c6f; border-radius:12px; box-shadow:0 4px 14px #d9a0b0;"><a href="https://fynla.org/settings/privacy" style="color:#ffffff; font-size:16px; font-weight:700; text-decoration:none; font-family:'Segoe UI',Inter,Arial,sans-serif;">Cancel deletion</a></td></tr></table>
         </td>
     </tr>
 @endsection

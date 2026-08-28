@@ -57,6 +57,9 @@ class StorePropertyRequest extends FormRequest
             'ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'joint_owner_id' => ['nullable', 'exists:users,id'],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
+            // W-0368 — nullable with NO default: absent means "never asked", which the
+            // Inheritance Tax valuation treats differently from an explicit false.
+            'joint_owner_is_spouse' => ['nullable', 'boolean'],
             'household_id' => ['nullable', 'exists:households,id'],
             'trust_name' => ['nullable', 'string', 'max:255'],
 
@@ -95,7 +98,7 @@ class StorePropertyRequest extends FormRequest
             'mortgage_interest_only_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_monthly_payment' => ['nullable', 'numeric', 'min:0'],
             'mortgage_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'mortgage_rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
+            'mortgage_rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed', 'capped', 'offset'])],
             'mortgage_fixed_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_variable_rate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'mortgage_fixed_interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],

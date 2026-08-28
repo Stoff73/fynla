@@ -19,7 +19,12 @@ LOG="$OPS/log/$(date -u +%Y-%m).jsonl"
 mkdir -p "$OPS/log"
 
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
-item() { echo "$OPS/board/$1.md"; }
+# Board filenames carry a slug after the id — `W-0490-colon-paths-....md`. Only
+# five of the 302 items are bare `W-NNNN.md`, so the literal path this used to
+# build missed every item raised since, and `wf move` answered "no such item"
+# for all of them. Glob on the id and take the first match; ids are unique
+# (guarded by tests/Feature/Workforce/BoardItemsAreWellFormedTest.php).
+item() { local m; m=$(ls "$OPS/board/$1".md "$OPS/board/$1"-*.md 2>/dev/null | head -1); echo "${m:-$OPS/board/$1.md}"; }
 fm()  { awk -v k="$2" '/^---$/{n++;next} n==1 && $0 ~ "^"k":" {sub("^"k":[[:space:]]*","");print;exit}' "$1"; }
 setfm() { # file key value
   awk -v k="$2" -v v="$3" '/^---$/{n++} n==1 && $0 ~ "^"k":" {print k": "v; next} {print}' "$1" > "$1.t" && mv "$1.t" "$1"

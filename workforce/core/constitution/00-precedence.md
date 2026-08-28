@@ -121,7 +121,6 @@ exception affects only published marketing, which is gated regardless.
 | Amendment | From | Status |
 |---|---|---|
 | **Rule 9** — permit acronyms on discovery surfaces (search keywords, meta, headlines answering an acronym query); expand on first use in body copy; unchanged everywhere else | Session 5, `04-voice.md` §4 | Queued |
-| **Preview personas: six → seven** (add `widow`) | Session 3, `01-mission.md` §3.1 | Queued |
 | **`release` skill** — remove the "wait for CSJ's explicit go-ahead" / "never self-trigger" requirement, superseded by the evidence gate. **All verification steps and prohibitions unchanged.** | Session 9, `08-process.md` §6.1 | Queued |
 | **`.github/CODEOWNERS` removal + `CLAUDE.md` branch-protection text.** Ratified session 1 Q2; **CODEOWNERS still exists and CLAUDE.md still says `dev`/`main` are protected.** Until applied, CLAUDE.md governs under §1 and merging remains CSJ's. | Session 1 Q2, `08-process.md` §1 | **Queued — highest priority.** The trunk's core merge doctrine is inert without it. |
 | **Service count** in `CLAUDE.md` — 446→462 (verified 2026-08-13). **Persona count needs no change — six is correct.** | Session 9 | Queued |

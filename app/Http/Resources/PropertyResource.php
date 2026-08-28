@@ -37,6 +37,18 @@ class PropertyResource extends JsonResource
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
             'joint_ownership_type' => $this->joint_ownership_type,
+            // W-0368. Published here rather than merged in the controller, which
+            // hand-builds extra keys on top of this resource in four places
+            // (PropertyController :79, :179, :215, :300) — one home, four readers.
+            //
+            // The edit form NEEDS this back: without it `populateForm()` cannot tell
+            // a named spouse from a third party and re-selects "Other", so re-saving
+            // would silently flip the answer and change an Inheritance Tax valuation.
+            // A field that is stored, correct and cannot reach the user is the
+            // W-0351 shape (app/Http/CLAUDE.md, axis 7).
+            //
+            // NOT `?? false` — NULL is "never asked" and must arrive as null.
+            'joint_owner_is_spouse' => $this->joint_owner_is_spouse,
             'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'equity' => $this->equity,
             'outstanding_mortgage' => $this->outstanding_mortgage,

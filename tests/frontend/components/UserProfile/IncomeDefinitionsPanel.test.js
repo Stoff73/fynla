@@ -216,4 +216,38 @@ describe('IncomeDefinitionsPanel — the printed working reaches the printed fig
     expect(rowFigure(wrapper, 'Threshold Income')).toBe(SARAH.total_income);
     expect(rowFigure(wrapper, 'Adjusted Income')).toBe(SARAH.total_income);
   });
+
+  /**
+   * W-0205 — the Gift Aid row sat above Net Income, so for a donor the figure under
+   * that label was net income less the grossed-up donation. Gift Aid is not one of
+   * the reliefs ITA 2007 s24 lists; it belongs at s58, with the Blind Person's
+   * Allowance. This pins the POSITION, because the figures were never the defect.
+   */
+  it('prints the Gift Aid deduction below Net Income, with the other adjusted-net-income step', () => {
+    const donor = {
+      ...SARAH,
+      net_income: 128880,
+      adjusted_net_income: 126380,
+      deductions: { ...SARAH.deductions, gift_aid_gross: 2500 },
+    };
+
+    const wrapper = mountPanel(donor);
+    const text = wrapper.text();
+
+    const giftAidAt = text.indexOf('Less Gift Aid (grossed up)');
+    const netIncomeAt = text.indexOf('Net Income');
+    const adjustedNetIncomeAt = text.indexOf('Adjusted Net Income');
+
+    expect(giftAidAt).toBeGreaterThan(-1);
+    expect(giftAidAt).toBeGreaterThan(netIncomeAt);
+    expect(giftAidAt).toBeLessThan(adjustedNetIncomeAt);
+
+    // And the deduction lands on the figure it is printed above.
+    expect(rowFigure(wrapper, 'Net Income')).toBe(128880);
+    expect(rowFigure(wrapper, 'Adjusted Net Income')).toBe(126380);
+  });
+
+  it('shows no Gift Aid row for a non-donor', () => {
+    expect(mountPanel(SARAH).text()).not.toContain('Less Gift Aid');
+  });
 });

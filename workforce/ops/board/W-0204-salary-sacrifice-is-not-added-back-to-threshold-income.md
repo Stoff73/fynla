@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0020-cycle2-auditability-figures-the-user-cannot-check.md
 owner: null
 status: queued
-severity: medium
+severity: high
 surfaces: [web]
 created: 2026-08-22T07:25:00Z
 claimed: null
@@ -109,3 +109,39 @@ is an under-stated tax charge, not a cosmetic one.
   arithmetic is genuinely undecidable from the data**, which is why this is an item
   and not a line in W-0189. W-0189 shipped the honest interim: name the arrangement,
   claim nothing that was not applied. See `F-0020` §6.
+
+## Working notes
+
+- 2026-08-25 tax-compliance-reviewer, via Brett — **measured, and severity raised
+  medium → high.** Reached independently while gating W-0205, written up as W-0487
+  before that item was found to duplicate this one; W-0487 is closed and its evidence
+  moved here.
+
+  **The figures.** Measured through `AnnualAllowanceChecker`, not argued: a sacrificing
+  earner is told their Annual Allowance is **£60,000** where FA 2004 s228ZA gives
+  **£56,750**.
+
+  **The proof the branch does not exist.** The runs are **byte-identical with the
+  salary-sacrifice flag set and unset.** That is stronger than inferring the add-back is
+  missing — the flag has no effect on the output at all, and the service already
+  publishes `arrangement: 'salary_sacrifice'`, so the information is present and the
+  arithmetic simply does not read it.
+
+  **This item's central argument is narrower than it reads, and that matters.** The
+  Intent says the deduction is "wrong either way, and which way cannot be determined
+  from the data" — the pre/post-sacrifice ambiguity. True in general. But **in the
+  measured fixture both readings clear the £200,000 threshold**, so the taper could be
+  applied without resolving the ambiguity at all.
+
+  So the ambiguity defence holds only in the band immediately around the threshold, and
+  it is currently being applied **generally**. That converts this from "blocked on an
+  unanswerable data question" to "answerable for most affected users, with a stated
+  assumption for the rest" — which is why the severity moves.
+
+  Direction of harm is the bad one: an overstated Annual Allowance invites a pension
+  contribution that triggers an unexpected annual allowance charge.
+
+  **Recorded so nobody re-derives it:** the reviewer nearly filed an adjacent false
+  defect, reasoning from policy that net-pay contributions must also be added back to
+  threshold income. They are added back to **adjusted** income under s228ZA(4), not to
+  threshold. legislation.gov.uk and PTM057100 agree against that reading.

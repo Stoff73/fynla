@@ -304,6 +304,21 @@ class MortgageStore
             'ownership_type' => ($partial ? 'sometimes|' : 'required|').'in:individual,joint',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
             'interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
+
+            // The sixth axis (W-0329): a bound the form enforces and this Store did
+            // not. These six are columns on `mortgages`, Store/UpdateMortgageRequest
+            // bound every one at 0–100, and this ruleset had no rule for any of
+            // them — and `validateCanonical` runs `Validator::make()` without
+            // `validated()`, so an unruled key is not dropped, it is written. Fyn
+            // and `/m` write through here and through nothing else, so the two
+            // surfaces disagreed about what a user may say. Mirrors the request
+            // exactly rather than inventing a bound.
+            'repayment_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
+            'interest_only_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
+            'fixed_rate_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
+            'variable_rate_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
+            'fixed_interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
+            'variable_interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
             // Was `in:fixed,variable,tracker,discount,capped,offset` — wrong in both
             // directions at once, and the only one of four layers that disagreed
             // (W-0326).
@@ -328,7 +343,7 @@ class MortgageStore
             // before it ever reaches here, on purpose. A column wider than its
             // rule is only a defect when it refuses something a user can
             // legitimately do — which is why this line changed and that one did not.
-            'rate_type' => 'sometimes|nullable|in:fixed,variable,tracker,discount,mixed',
+            'rate_type' => 'sometimes|nullable|in:fixed,variable,tracker,discount,mixed,capped,offset',
             'original_loan_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'remaining_term_months' => 'sometimes|nullable|integer|min:0|max:600',
             'start_date' => 'sometimes|nullable|date',

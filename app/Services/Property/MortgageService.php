@@ -120,16 +120,25 @@ class MortgageService
      * APPLICATION would not. `MortgageStore::validateCanonical:304` rejects
      * anything but `individual|joint`, and at least seven consumers decide
      * whether a mortgage is shared by testing `ownership_type === 'joint'`
-     * exactly (`UserProfileService:931`, `PropertyCard:153`,
+     * exactly (`UserProfileService:967`, `PropertyCard:153`,
      * `PropertyDetailInline:382,388,814`, `PropertyFinancials:443`,
-     * `LetterToSpouse:482`). Storing TIC would make every one of them read the
+     * `LetterToSpouse:1101` — line numbers re-verified 2026-08-25; the first and
+     * last had drifted from :931 and :482). Storing TIC would make every one of them read the
      * mortgage as individual and charge the user 100% of the debt — a worse
      * defect than the one W-0172 fixes, on more surfaces.
      *
-     * So the coercion stays and only its justification changes: it is not that
-     * the column cannot hold TIC, it is that nothing downstream understands it.
-     * Making mortgages genuinely TIC-capable is a change across those consumers
-     * and the store's validator — raised as W-0162, deliberately not done here.
+     * **W-0162 decided it, 2026-08-25: mortgages do not hold TIC, and the
+     * coercion is correct modelling rather than a shortfall.** Tenants in common
+     * describes how a title is held, not how a debt is held — co-owners of a
+     * tenants-in-common property still borrow jointly. And since CSJ's W-0228
+     * ruling a mortgage's share follows the property securing it, so ownership is
+     * expressed on the property; the type here is a borrower label that no
+     * calculation reads. Widening it would add expressiveness to a column the
+     * ruling deliberately demoted, and would break the seven consumers above.
+     *
+     * The column is not narrowed back — the January migration's `down()` keeps
+     * `trust`, so reverting would not resolve the mismatch. The constraint is
+     * recorded on the column itself instead; see its COMMENT.
      *
      * The share is NOT flattened with the type: a tenants-in-common property's
      * 40% is carried onto its mortgage by the caller above.

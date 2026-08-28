@@ -30,7 +30,7 @@
     <tr>
         <td bgcolor="#EAF3DE" style="background:#EAF3DE;padding:20px 36px;">
             <p style="margin:0 0 12px;font-size:14px;color:#173404;font-weight:700;">Happy with all of them?</p>
-            <a href="{{ $approveAllUrl }}" style="display:inline-block;padding:12px 28px;background:#3B6D11;color:#ffffff;font-size:14px;font-weight:700;border-radius:10px;text-decoration:none;">Approve all →</a>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#3B6D11" style="padding:12px 28px; background:#3B6D11; border-radius:10px;"><a href="{{ $approveAllUrl }}" style="color:#ffffff; font-size:14px; font-weight:700; text-decoration:none;">Approve all →</a></td></tr></table>
         </td>
     </tr>
 
@@ -55,10 +55,10 @@
                     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 0;">
                         <tr>
                             <td style="padding-right:8px;">
-                                <a href="{{ $clip['approve_url'] }}" style="display:inline-block;padding:8px 18px;background:#3B6D11;color:#ffffff;font-size:13px;font-weight:700;border-radius:8px;text-decoration:none;">Approve</a>
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#3B6D11" style="padding:8px 18px; background:#3B6D11; border-radius:8px;"><a href="{{ $clip['approve_url'] }}" style="color:#ffffff; font-size:13px; font-weight:700; text-decoration:none;">Approve</a></td></tr></table>
                             </td>
                             <td>
-                                <a href="{{ $clip['reject_url'] }}" style="display:inline-block;padding:8px 18px;background:transparent;color:#A32D2D;border:1px solid #A32D2D;font-size:13px;font-weight:700;border-radius:8px;text-decoration:none;">Reject</a>
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" style="padding:8px 18px; border:1px solid #A32D2D; border-radius:8px;"><a href="{{ $clip['reject_url'] }}" style="color:#A32D2D; font-size:13px; font-weight:700; text-decoration:none;">Reject</a></td></tr></table>
                             </td>
                         </tr>
                     </table>

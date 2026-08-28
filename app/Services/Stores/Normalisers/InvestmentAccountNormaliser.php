@@ -102,6 +102,7 @@ final class InvestmentAccountNormaliser
             'ownership_type' => $data['ownership_type'] ?? $data['ownership'] ?? 'individual',
             'ownership_percentage' => $data['ownership_percentage'] ?? null,
             'joint_owner_id' => $data['joint_owner_id'] ?? null,
+            'joint_owner_name' => $data['joint_owner_name'] ?? null,
             'country' => $data['country'] ?? null,
             'include_in_retirement' => $data['include_in_retirement'] ?? null,
         ];
@@ -146,7 +147,14 @@ final class InvestmentAccountNormaliser
         if ($ownership === 'tenants_in_common') {
             $ownership = 'joint';
         }
-        if (! in_array($ownership, ['individual', 'joint'], true)) {
+        // The fallback keeps junk out, but it used to list only individual and
+        // joint — so `trust`, which the column stores and both requests permit, was
+        // silently rewritten to `individual`. A caller saying an account is held in
+        // trust was told it saved and recorded as solely owned, with no error
+        // (W-0329). Only the TIC coercion above was ever a decision; this was
+        // collateral. SharedOwnership treats trust as unshared, so the percentage
+        // still resolves to 100 for the owner, as it does on savings and liabilities.
+        if (! in_array($ownership, ['individual', 'joint', 'trust'], true)) {
             $ownership = 'individual';
         }
         $data['ownership_type'] = $ownership;

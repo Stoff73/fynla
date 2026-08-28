@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { devices } from '@playwright/test';
-import { test, expect } from '../fixtures/app.js';
+import { test, expect, seedCookieConsent } from '../fixtures/app.js';
 import { enterVerificationCode, fetchVerificationCode } from '../helpers/auth.js';
 
 async function completeSaveTaxQuestions(surface) {
@@ -125,8 +125,8 @@ async function openMobileScenario(browser, request, scenario) {
   expect(setup.ok()).toBeTruthy();
   const { token } = await setup.json();
   const context = await browser.newContext({ ...devices['Pixel 7'] });
+  await seedCookieConsent(context);
   await context.addInitScript((authToken) => {
-    window.localStorage.setItem('cookie_consent', 'accepted');
     window.localStorage.setItem('m_scaffold_token', authToken);
   }, token);
   const page = await context.newPage();
@@ -209,7 +209,7 @@ test('fresh Save Tax registration survives unavailable answer storage and opens 
 
 test('phone Save Tax registration hands the verified token into the /m app', async ({ browser, request }) => {
   const context = await browser.newContext({ ...devices['Pixel 7'] });
-  await context.addInitScript(() => window.localStorage.setItem('cookie_consent', 'accepted'));
+  await seedCookieConsent(context);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -269,7 +269,7 @@ test('phone existing-account response comes from the real registration boundary 
   expect(setup.ok()).toBeTruthy();
 
   const context = await browser.newContext({ ...devices['Pixel 7'] });
-  await context.addInitScript(() => window.localStorage.setItem('cookie_consent', 'accepted'));
+  await seedCookieConsent(context);
   const page = await context.newPage();
   await page.goto('/savetax');
   const surface = page.frameLocator('iframe');
@@ -397,7 +397,7 @@ test('restorable Save Tax registration keeps the campaign destination without re
 
 test('phone restoration enters the /m app with the Save Tax journey intact', async ({ browser, request }) => {
   const context = await browser.newContext({ ...devices['Pixel 7'] });
-  await context.addInitScript(() => window.localStorage.setItem('cookie_consent', 'accepted'));
+  await seedCookieConsent(context);
   const page = await context.newPage();
   const email = `savetax.mobile.restore.${Date.now()}@example.com`;
   const password = `${randomBytes(12).toString('hex')}aA1!`;
@@ -446,7 +446,7 @@ test('phone Save Tax journey captures an explicit ISA and £10,000 expenditure b
   test.setTimeout(300_000);
   expect((await request.post('/__e2e/registration-throttle/reset')).ok()).toBeTruthy();
   const context = await browser.newContext({ ...devices['Pixel 7'] });
-  await context.addInitScript(() => window.localStorage.setItem('cookie_consent', 'accepted'));
+  await seedCookieConsent(context);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -523,9 +523,9 @@ test('phone Save Tax journey captures an explicit ISA and £10,000 expenditure b
   const authToken = await page.evaluate(() => sessionStorage.getItem('auth_token'));
   expect(authToken).toBeTruthy();
   const desktopContext = await browser.newContext();
+  await seedCookieConsent(desktopContext);
   await desktopContext.addInitScript((token) => {
     sessionStorage.setItem('auth_token', token);
-    localStorage.setItem('cookie_consent', 'accepted');
   }, authToken);
   const desktopPage = await desktopContext.newPage();
   await desktopPage.goto('/valuable-info?section=expenditure');

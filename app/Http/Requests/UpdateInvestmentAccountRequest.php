@@ -85,6 +85,7 @@ class UpdateInvestmentAccountRequest extends FormRequest
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'nullable|exists:users,id',
 
+            'joint_owner_name' => 'nullable|string|max:255',
             // ISA specific
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
             'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.TaxDefaults::ISA_ALLOWANCE,

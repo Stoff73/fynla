@@ -4,11 +4,11 @@ title: A spouse's undated debts are amortised against the signed-in user's age a
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: queued
+status: review
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
-claimed: null
+claimed: 2026-08-26
 blocked_by: []
 gate: null
 handoff_to: null
@@ -44,3 +44,41 @@ Same family as W-0188, which fixed the equivalent age-frame error for the projec
 1. Each member's debts are amortised in that member's own age frame.
 2. The household horizon (`$yearsToProject`) stays shared — W-0188 settled that and it
    must not regress.
+
+---
+
+## Fixed 2026-08-26 — commit `073d904e8`, merged in PR #722
+
+`projectSingleLiability()` falls back to "cleared at retirement age" for an undated
+debt, computed as `$retirementAge - $currentAge` — both the **viewer's**, for both
+members. Where the viewer's retirement age is already behind them that is
+`max(0, 60 - 70) = 0`, and the spouse's debt vanished from the projection entirely.
+
+**TWO sites, where this item names one.** Said plainly because this file has a
+history of "I found every site" turning out wrong:
+
+1. `projectLiabilities()` passed the viewer's pair for the spouse — the one described
+   above.
+2. `projectMainResidenceNetValue()` builds ONE closure and applies it to both members,
+   capturing the viewer's ages on the way in. It feeds the projected residence-band
+   cap rather than the estate total, so it is invisible in `projected_liabilities`
+   and needed its own test.
+
+Both now read `ageFrameFor($member)` — one home, two callers (Rule 20).
+
+**The trap in the fix, and acceptance 2.** `projectMemberLiabilities()` DERIVED the
+horizon from the same `$currentAge` it used for the fallback, so handing it the
+spouse's age would have moved the horizon too and regressed **W-0188**.
+`$yearsToProject` is now computed once by the caller and passed in, so the shared
+household horizon and the per-member fallback are separate parameters that cannot be
+conflated again. That has its own test.
+
+`projectMainResidenceNetValue()`'s now-unused age parameters were removed rather than
+left — passing them looks like it means something, which is how this bug worked.
+
+The residence-path test is **differential** and was verified to FAIL with the defect
+reinstated. A differential test that passes for the wrong reason is worth nothing,
+and this one initially passed for the wrong reason twice.
+
+*Closed late: the code merged in PR #722 while this item stayed `queued`. Recorded
+2026-08-26 on noticing.*

@@ -32,9 +32,32 @@ use Illuminate\Support\Collection;
  * - Query pattern: where('user_id', $id)->orWhere('joint_owner_id', $id)
  * - User's share calculated from full value * ownership_percentage
  *
- * IHT Considerations:
- * - Joint tenancy: Passes to survivor (may exclude from first death estate)
- * - Tenants in common: User's share included in estate
+ * **What this computes: a SECOND-DEATH estate.** Both members pooled, every record
+ * counted once, at each member's own share. Both of `IHTCalculationService::calculate()`'s
+ * columns — current and projected — are "both gone" estates. There is no first-death
+ * figure anywhere on this path.
+ *
+ * **Survivorship is therefore not applied, and that is correct rather than missing.**
+ * Ownership type decides the SIZE of a member's share (and, for an undivided share
+ * held with a non-spouse, its valuation — see `UndividedShareDiscount`). It does not
+ * decide whether the share is in the estate at all, because on a second death there
+ * is no survivor left for a joint tenancy to pass to.
+ *
+ * **DO NOT "fix" this to exclude joint-tenancy property.** This docblock used to say
+ * "Joint tenancy: Passes to survivor (may exclude from first death estate)", which
+ * described a first-death treatment the service has never implemented, and W-0375 was
+ * raised because the obvious response to that sentence is to make the code match it.
+ * Excluding joint tenancy from a second-death estate would delete roughly HALF the
+ * household estate and understate Inheritance Tax by the same.
+ *
+ * The trap is well stocked: `TaxConfigService::hasSurvivorshipRights()`,
+ * `allowsWillOverride()` and `getPropertyOwnership()` all exist, all read live
+ * configuration (`joint_tenancy.survivorship = true`), and all have ZERO callers.
+ * They look like the missing wiring. They are not — nothing on this path should
+ * consult them.
+ *
+ * If a first-death figure is ever wanted it is a NEW figure with its own name, not a
+ * reinterpretation of this one (W-0375 acceptance 2).
  */
 class EstateAssetAggregatorService
 {
@@ -45,6 +68,7 @@ class EstateAssetAggregatorService
         private readonly MortgageStore $mortgageStore,
         private readonly LifeCoverReach $lifeCoverReach,
         private readonly TaxConfigService $taxConfig,
+        private readonly UndividedShareDiscount $undividedShareDiscount,
     ) {}
 
     /**
@@ -81,7 +105,23 @@ class EstateAssetAggregatorService
                 'user_id' => $user->id,
                 'asset_type' => 'property',
                 'asset_name' => $property->address_line_1 ?: 'Property',
-                'current_value' => $this->calculateUserShare($property, $user->id),
+                // W-0368 — an undivided share co-owned with a NON-spouse is valued
+                // for Inheritance Tax at a discount for restricted marketability.
+                // **IHTA 1984 s160** is the authority — the price the property would
+                // fetch on the open market — and IHTM15071 / SVM113040 are HMRC
+                // guidance on applying it, not the source of it.
+                //
+                // **s161 does not deny the discount between spouses.** It SUBSTITUTES
+                // a valuation basis, valuing related property as a proportion of the
+                // combined whole, and that basis leaves no restriction for a discount
+                // to price. `UndividedShareDiscount` is the one home for the rule.
+                //
+                // This is the Inheritance Tax path, so the discount belongs here and
+                // NOT in `calculateUserShare`, which net worth and every other module
+                // read.
+                'current_value' => $this->undividedShareDiscount->shareValue($property, $user),
+                'undiscounted_share' => $this->calculateUserShare($property, $user->id),
+                'undivided_share_discount' => $this->undividedShareDiscount->discountAmount($property, $user),
                 'full_value' => (float) $property->current_value,
                 'ownership_type' => $property->ownership_type ?? 'individual',
                 'ownership_percentage' => $property->ownership_percentage ?? 100,

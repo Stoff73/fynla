@@ -10,8 +10,8 @@ FILES=()
 DIFF_FILE="$(mktemp)"
 trap 'rm -f "$DIFF_FILE"' EXIT
 
-if ! git diff --name-only --diff-filter=ACM -z "$BASE" "$HEAD_REF" -- '*.php' > "$DIFF_FILE"; then
-  echo "Unable to resolve changed PHP files for $BASE..$HEAD_REF" >&2
+if ! git diff --name-only --diff-filter=ACM -z "$BASE...$HEAD_REF" -- '*.php' > "$DIFF_FILE"; then
+  echo "Unable to resolve changed PHP files for $BASE...$HEAD_REF" >&2
   exit 1
 fi
 

@@ -27,16 +27,39 @@ class IncomeDefinitionsService
         $components = $this->getIncomeComponents($user);
         $totalIncome = array_sum($components);
 
-        // 2. Net Income — taxable income after net-pay pension relief and the
-        // Gift Aid gross-up. Feeds Adjusted Net Income (with the Blind Person's
-        // Allowance) for the Personal Allowance taper only.
+        // 2. Net Income (ITA 2007 s23 Step 2) — total income less the reliefs
+        // listed in s24.
+        //
+        // W-0205: this used to deduct the Gift Aid gross-up as well, so for a
+        // donor the figure labelled "Net Income" was net income less the
+        // grossed-up donation — part of the way to adjusted net income, and not a
+        // figure with a name. **Gift Aid is not a s24 relief.** A Gift Aid
+        // donation extends the basic rate band; it does not reduce net income.
+        // It comes off one definition further down, at s58. The end figures were
+        // already right; only this intermediate carried a statute's name for
+        // another statute's number.
+        //
+        // **The Blind Person's Allowance is NOT a s58 deduction** — corrected by
+        // tax-compliance-reviewer, 2026-08-25. s58 has four steps and none of them
+        // is the BPA: it is an s38 allowance deducted at s23 **Step 3**, downstream
+        // of net income, so it cannot reduce adjusted net income by construction.
+        // This service nonetheless subtracts it below, which is a live money defect
+        // (see W-0485) — `UKTaxCalculator:720` computes ANI without it and gets the
+        // right answer, so the application currently holds two contradictory
+        // answers. It is deliberately NOT corrected here: W-0205's acceptance 3
+        // requires adjusted net income to be unchanged by that item, so the
+        // arithmetic fix belongs to its own item with its own figures.
         $pensionRelief = $pensionContributions['employee'];
         $giftAidGross = $this->calculateGiftAidGrossUp($user);
-        $netIncome = $totalIncome - $pensionRelief - $giftAidGross;
+        $netIncome = $totalIncome - $pensionRelief;
 
-        // 3. Adjusted Net Income (ITA 2007 s58) — drives the Personal Allowance taper.
+        // 3. Adjusted Net Income (ITA 2007 s58) — drives the Personal Allowance
+        // taper. Net income less the grossed-up Gift Aid donation and the Blind
+        // Person's Allowance. Its value is unchanged by W-0205: the donation was
+        // always deducted exactly once on the way here, and still is — what moved
+        // is which step it is attributed to.
         $bpa = $user->is_registered_blind ? $this->taxConfig->getBlindPersonsAllowance() : 0.0;
-        $adjustedNetIncome = $netIncome - $bpa;
+        $adjustedNetIncome = $netIncome - $giftAidGross - $bpa;
 
         // 4. Threshold Income (FA 2004 s228ZA) — total income less net-pay
         // employee contributions only, deducted once. Gift Aid and the Blind
@@ -48,6 +71,15 @@ class IncomeDefinitionsService
         // twice. The panel presented these five figures as a single running column,
         // so the deduction appeared to be applied a second time and produce an
         // unchanged total. The figures were right; the chain was the lie.
+        //
+        // W-0205 consequence, stated so it is not read as a bug: net income and
+        // threshold income are now the SAME number for a net-pay contributor,
+        // because the Gift Aid gross-up was the only thing separating them and it
+        // has moved to adjusted net income where it belongs. That coincidence is
+        // correct — for someone with no salary sacrifice and no relief-at-source
+        // contributions, the two definitions genuinely land on the same figure.
+        // What still distinguishes a Gift Aid donor's definitions is adjusted net
+        // income against threshold income, not net income against it.
         $thresholdIncome = $totalIncome - $pensionContributions['employee'];
 
         // 5. Adjusted Income (FA 2004 s228ZA) — total income plus employer

@@ -1,8 +1,0 @@
-{"type":"server-started","port":62303,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:62303","screen_dir":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/99695-1774970184/content","state_dir":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/99695-1774970184/state"}
-{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/99695-1774970184/content/tier-mapping.html"}
-{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/99695-1774970184/content/hover-interaction.html"}
-{"source":"user-event","type":"click","text":"A\n    \n      Tooltip Only\n      Simple tooltip appears on hover showing the required tier and a text link to upgrade.\n      \n        \n          🔒 Estate Planning\n        \n        \n          Available on Pro plan\n          Upgrade now →\n        \n      \n      \n        Pros: Minimal, non-intrusive, fast\n        Cons: Easy to miss, small click target","choice":"a","id":null,"timestamp":1774970487532}
-{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/99695-1774970184/content/full-design.html"}
-{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/99695-1774970184/content/full-design-v2.html"}
-{"type":"screen-added","file":"/Users/CSJ/Desktop/fynla/.superpowers/brainstorm/99695-1774970184/content/waiting.html"}
-{"type":"server-stopped","reason":"idle timeout"}

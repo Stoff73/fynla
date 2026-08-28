@@ -513,7 +513,12 @@ PROMPT;
                     $lines[] = '- Total savings: £'.number_format($s['total_savings'], 2);
                 }
                 if (isset($s['emergency_fund_months'])) {
-                    $lines[] = "- Emergency fund: {$s['emergency_fund_months']} months of cover";
+                    // Same wording Fyn sees as the user sees on every screen
+                    // (Rule 20). The figure counts ALL cash, including notice and
+                    // fixed-term accounts, so it is described by its basis rather
+                    // than as "cover" — which would imply the money is to hand
+                    // (W-0276).
+                    $lines[] = "- Emergency fund: {$s['emergency_fund_months']} months from cash savings";
                 }
             }
 

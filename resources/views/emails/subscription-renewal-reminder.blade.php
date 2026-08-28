@@ -67,7 +67,7 @@
                 {{-- CTA Block: Light Blue --}}
                 <tr><td style="background: #dbeafe; padding: 28px 36px; text-align: center;">
                     <p style="color: #1F2A44; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Manage your subscription settings</p>
-                    <a href="https://fynla.org/profile#subscription" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #1F2A44; color: #ffffff; box-shadow: 0 4px 14px #d9d3cc;">Manage subscription</a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto; border-collapse: separate;"><tr><td align="center" bgcolor="#1F2A44" style="padding: 14px 40px; border-radius: 12px; background: #1F2A44; box-shadow: 0 4px 14px #d9d3cc;"><a href="https://fynla.org/profile#subscription" style="font-size: 16px; font-weight: 700; color: #ffffff;">Manage subscription</a></td></tr></table>
                 </td></tr>
 
                 {{-- Footer --}}

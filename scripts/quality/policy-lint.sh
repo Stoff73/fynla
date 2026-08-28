@@ -6,7 +6,7 @@ cd "$ROOT"
 
 BASE="${QUALITY_BASE:-HEAD^}"
 HEAD_REF="${QUALITY_HEAD:-HEAD}"
-FILES="$(git diff --name-only "$BASE" "$HEAD_REF" -- \
+FILES="$(git diff --name-only "$BASE...$HEAD_REF" -- \
   'resources/**/*.vue' 'resources/**/*.js' 'resources/**/*.css')"
 violations=0
 
@@ -17,7 +17,7 @@ for file in $FILES; do
     resources/js/constants/designSystem.js) continue ;;
   esac
 
-  ADDED="$(git diff --unified=0 "$BASE" "$HEAD_REF" -- "$file" \
+  ADDED="$(git diff --unified=0 "$BASE...$HEAD_REF" -- "$file" \
     | sed -n '/^+++ /d; s/^+//p')"
 
   if HITS="$(printf '%s\n' "$ADDED" \

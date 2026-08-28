@@ -50,7 +50,7 @@ class StoreMortgageRequest extends FormRequest
 
             // Interest - optional, default to 0 if not provided
             'interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
+            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed', 'capped', 'offset'])],
             'rate_fix_end_date' => ['nullable', 'date'],
 
             // Mixed rate type fields (fixed vs variable split)

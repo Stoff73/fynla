@@ -64,7 +64,11 @@ it('every preview write-block site checks the bypass-preview-mode token ability'
             if (! $file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
-            $relative = substr($file->getPathname(), strlen($root) + 1);
+            // Compare in forward-slash form: the ignore list below is authored that
+            // way, but getPathname() returns native separators. On Windows no entry
+            // ever matched, so all five deliberately-exempt files were reported as
+            // failures and the suite was red for a defect that did not exist. W-0494.
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($root) + 1));
             if (in_array($relative, $ignore, true)) {
                 continue;
             }

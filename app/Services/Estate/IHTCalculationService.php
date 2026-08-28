@@ -108,6 +108,7 @@ class IHTCalculationService
         private readonly WillAnalysisService $willAnalysis,
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
         private readonly CrossModuleAssetAggregator $crossModuleAggregator,
+        private readonly UndividedShareDiscount $undividedShareDiscount,
         private readonly FailedGiftTaxCalculator $failedGiftTax,
     ) {}
 
@@ -380,11 +381,13 @@ class IHTCalculationService
         // 6b. Deduct each pooled member's gifts, capped at their OWN band.
         //
         // The comment that used to sit here said spouse nil rate band was "handled
-        // separately by SpouseNRBTrackerService". **That service has never had a
-        // caller** — verified repo-wide; the only hits were this comment, its twin
-        // above the deduction method, and the class declaration. It described work
-        // nothing did, and it is why the gap went unexamined. The service is left in
-        // place, unwired, for a separate decision (W-0146); the claim is removed.
+        // separately by SpouseNRBTrackerService". **That service never had a caller**
+        // — verified repo-wide; the only hits were this comment, its twin above the
+        // deduction method, and the class declaration. It described work nothing did,
+        // and it is why the gap went unexamined. **W-0146 deleted the class**, so the
+        // deduction below is the only answer to this question and cannot acquire a
+        // second one. Every pooled member's gifts are deducted here, capped at their
+        // own band; nothing is handled elsewhere.
         $nrbDeduction = $this->calculateNRBDeductionForGifts($pooledMembers, $nrbSingle);
         $nrbAvailable = max(0, $nrbGross - $nrbDeduction['total_nrb_used']);
 
@@ -979,8 +982,6 @@ class IHTCalculationService
             $this->projectMainResidenceNetValue(
                 $user,
                 $assessment['spouse'],
-                $currentAge,
-                $retirementAge,
                 $yearsUntilDeath,
                 $assumptions
             ),
@@ -1241,32 +1242,42 @@ class IHTCalculationService
     private function projectMainResidenceNetValue(
         User $user,
         ?User $spouse,
-        int $currentAge,
-        int $retirementAge,
         int $yearsToProject,
         array $assumptions
     ): float {
         $growthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
         $currentYear = now()->year;
 
-        $projectFor = function (User $member) use ($growthRate, $currentAge, $retirementAge, $yearsToProject, $currentYear): float {
+        $projectFor = function (User $member) use ($growthRate, $yearsToProject, $currentYear): float {
+            // W-0374 — the member's OWN frame. This closure runs for the spouse too,
+            // and it used to carry the viewer's ages in with it, so a spouse's
+            // undated mortgage on the family home amortised on their partner's
+            // timetable. `$yearsToProject` stays as passed: the horizon is shared.
+            [$memberAge, $memberRetirementAge] = $this->ageFrameFor($member);
+
             return (float) $this->propertyStore
                 ->forUserByType($member, 'main_residence')
-                ->sum(function ($property) use ($member, $growthRate, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
+                ->sum(function ($property) use ($member, $growthRate, $memberAge, $memberRetirementAge, $yearsToProject, $currentYear) {
+                    // W-0368 — the PROJECTED residence band cap, the twin of
+                    // `sumMainResidenceNetShare()`. Grow the value the estate is
+                    // actually taxed on, not the undiscounted fraction, or the
+                    // projected column repeats the current column's mismatch:
+                    // estate taxed at the discounted share, allowance capped
+                    // against the undiscounted one.
                     $valueShare = $this->futureValueCalculator->calculateFutureValue(
-                        $this->calculateUserShare($property, $member->id),
+                        $this->undividedShareDiscount->shareValue($property, $member),
                         $growthRate,
                         $yearsToProject
                     );
 
-                    $mortgageShare = (float) $property->mortgages->sum(function ($mortgage) use ($member, $currentAge, $retirementAge, $yearsToProject, $currentYear) {
+                    $mortgageShare = (float) $property->mortgages->sum(function ($mortgage) use ($member, $memberAge, $memberRetirementAge, $yearsToProject, $currentYear) {
                         $endDate = $mortgage->maturity_date;
 
                         return $this->projectSingleLiability(
                             (float) $this->calculateUserMortgageShare($mortgage, $member->id),
                             $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
-                            $currentAge,
-                            $retirementAge,
+                            $memberAge,
+                            $memberRetirementAge,
                             $yearsToProject,
                             $currentYear
                         );
@@ -1472,13 +1483,27 @@ class IHTCalculationService
     ): float {
         $propertyGrowthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
 
-        $currentPropertyValue = $this->crossModuleAggregator->calculatePropertyTotal($user->id);
+        // W-0368 — the projected column values undivided shares the same way the
+        // current one does. It used to read `calculatePropertyTotal()`, which is
+        // shared with net worth and the Letter to Spouse and is therefore
+        // UNDISCOUNTED by design; reading it here would have left the two Inheritance
+        // Tax columns valuing one property two ways. **F-0026 §1 records those columns
+        // diverging once already**, which is why acceptance 3 of W-0368 asks for them
+        // explicitly. `UndividedShareDiscount` is the one home for the rule and both
+        // columns now read it.
+        $currentPropertyValue = $this->undividedShareDiscount->propertyTotal(
+            $user,
+            $this->propertyStore->forUserWithJointOwner($user)
+        );
 
         // Include spouse properties if data sharing enabled. Each member's figure
         // is already at that member's own share, so a property they hold together
         // contributes its whole value exactly once.
         if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
-            $currentPropertyValue += $this->crossModuleAggregator->calculatePropertyTotal($spouse->id);
+            $currentPropertyValue += $this->undividedShareDiscount->propertyTotal(
+                $spouse,
+                $this->propertyStore->forUserWithJointOwner($spouse)
+            );
         }
 
         if ($yearsToProject <= 0) {
@@ -1501,16 +1526,24 @@ class IHTCalculationService
         int $deathAge,
         bool $dataSharingEnabled
     ): float {
+        // ONE horizon for the household, viewer-framed (W-0188), computed here so
+        // that neither member's own ages can move it.
+        $yearsToProject = $deathAge - $currentAge;
+
         $projectedLiabilities = $this->projectMemberLiabilities(
-            $user, $currentAge, $retirementAge, $deathAge
+            $user, $yearsToProject, $currentAge, $retirementAge
         );
 
         // Include spouse liabilities if data sharing enabled. Each member's debts
         // are already at that member's own share, so a debt they hold together is
         // discharged once, not twice.
+        //
+        // W-0374 — in the SPOUSE's age frame. An undated debt is assumed cleared at
+        // its owner's retirement, and the spouse retires on their own timetable.
         if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
+            [$spouseAge, $spouseRetirementAge] = $this->ageFrameFor($spouse);
             $projectedLiabilities += $this->projectMemberLiabilities(
-                $spouse, $currentAge, $retirementAge, $deathAge
+                $spouse, $yearsToProject, $spouseAge, $spouseRetirementAge
             );
         }
 
@@ -1558,12 +1591,11 @@ class IHTCalculationService
      */
     private function projectMemberLiabilities(
         User $member,
+        int $yearsToProject,
         int $currentAge,
-        int $retirementAge,
-        int $deathAge
+        int $retirementAge
     ): float {
         $currentYear = now()->year;
-        $yearsToProject = $deathAge - $currentAge;
         $projected = 0.0;
 
         foreach ($this->crossModuleAggregator->getMortgages($member->id) as $mortgage) {
@@ -1591,6 +1623,34 @@ class IHTCalculationService
         }
 
         return $projected;
+    }
+
+    /**
+     * A member's OWN age frame — their current age and their retirement age.
+     *
+     * W-0374. The undated-debt fallback in `projectSingleLiability()` is
+     * `$retirementAge - $currentAge`, which is only meaningful in the frame of the
+     * person who owes the debt. Both projection paths used to pass the signed-in
+     * user's pair for BOTH members, so a spouse's undated debt was discharged on
+     * their partner's timetable — and where the viewer's own retirement age was
+     * already behind them the term came out as zero and the debt vanished entirely.
+     *
+     * One home, two callers (Rule 20): `projectLiabilities()` and
+     * `projectMainResidenceNetValue()`.
+     *
+     * **The household HORIZON is deliberately not derived from this.** That stays
+     * shared and viewer-framed — W-0188 settled it, and W-0374 acceptance 2 says it
+     * must not regress. The two are now separate parameters precisely so the next
+     * reader cannot conflate them again.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function ageFrameFor(User $member): array
+    {
+        return [
+            $member->date_of_birth ? Carbon::parse($member->date_of_birth)->age : 50,
+            $this->cashFlowProjector->retirementAgeFor($member),
+        ];
     }
 
     /**
@@ -2217,16 +2277,29 @@ class IHTCalculationService
 
     /**
      * Sum a single user's net share of their main residence(s): their ownership
-     * share of the value less their share of any mortgage secured on it. Uses the
-     * shared CalculatesOwnershipShare logic so the figure matches the property and
+     * share of the value less their share of any mortgage secured on it, valued the
+     * way the estate itself is valued so the figure matches the property and
      * mortgage values that feed total_net_estate.
+     *
+     * **W-0368 — this is the residence band cap, and it is the THIRD valuation site.**
+     * It read raw `calculateUserShare()` while the estate had begun taxing the share
+     * at its undivided-share value, so the estate was taxed on the discounted figure
+     * while the s8E(2) cap was measured against the undiscounted one. Measured on a
+     * £360,000 residence held 50% with an unlinked co-owner plus £500,000 cash, that
+     * reported an Inheritance Tax liability of £64,800 against £70,000 —
+     * **£5,200 understated, and it scales.**
+     *
+     * One property, two valuations, in one calculation is exactly what W-0368's
+     * acceptance 3 forbids, and finding only two of the three sites is how it
+     * happened. `UndividedShareDiscount` is the one home; every site that values a
+     * share for Inheritance Tax reads it.
      */
     private function sumMainResidenceNetShare(User $user): float
     {
         return (float) $this->propertyStore
             ->forUserByType($user, 'main_residence')
             ->sum(function ($property) use ($user) {
-                $valueShare = $this->calculateUserShare($property, $user->id);
+                $valueShare = $this->undividedShareDiscount->shareValue($property, $user);
                 $mortgageShare = (float) $property->mortgages->sum(
                     fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id)
                 );
@@ -2500,10 +2573,16 @@ class IHTCalculationService
      *
      * **W-0154.** This read the primary user only, and its docblock said spouse nil
      * rate band was "tracked separately by SpouseNRBTrackerService". **That service
-     * has no callers** — verified repo-wide, twice. So one spouse's gifts reduced the
+     * had no callers** — verified repo-wide, twice. So one spouse's gifts reduced the
      * household band when they logged in and did nothing when the other did, and the
-     * comment is why nobody looked. The claim is removed rather than reworded; see
-     * W-0146 for whether the service is wired up or deleted.
+     * comment is why nobody looked.
+     *
+     * **W-0146 deleted that class.** It modelled a transferable band from a LIVING
+     * spouse's gift history as though they had died today, which is the model this
+     * service rejects on the law: IHTA 1984 s8A creates the claim on the survivor's
+     * death and not before. Wiring it up would have produced a second, contradictory
+     * answer to a question this method already answers (Rule 20). This is now the
+     * only place household gifts are deducted from the band.
      *
      * @param  list<User>  $members  The people whose records this calculation covers
      * @param  float  $nrbSingle  The individual NRB amount
@@ -2687,11 +2766,19 @@ class IHTCalculationService
     /**
      * Calculate the 2027 pension Inheritance Tax amendment dual-scenario projection.
      *
-     * From April 2027, unused defined contribution pension pots will be included
-     * in the taxable estate for Inheritance Tax purposes (Autumn Budget 2024).
+     * From the configured effective date, unused defined contribution pension pots
+     * will be included in the taxable estate for Inheritance Tax purposes (Autumn
+     * Budget 2024). The date lives in
+     * `inheritance_tax.pension_iht_inclusion.effective_date` and is 2027-04-06
+     * today — do not restate it as a literal anywhere below, which is what W-0372
+     * was raised for.
      *
-     * Returns both the current rules scenario and the post-2027 scenario,
+     * Returns both the current rules scenario and the post-amendment scenario,
      * allowing users to understand the potential impact.
+     *
+     * The `post_2027_rules` key is deliberately NOT renamed: it is a published API
+     * key that web, `/m` and native all read, so it is an identifier rather than
+     * copy. Only the prose the user reads follows the configured date.
      *
      * @param  User  $user  The primary user
      * @param  User|null  $spouse  The spouse
@@ -2790,11 +2877,15 @@ class IHTCalculationService
                 'iht_liability' => round($postAmendmentIHTLiability, 2),
                 'additional_iht' => round($additionalIHT, 2),
                 'pensions_included' => true,
-                'description' => 'From April 2027, unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
+                // W-0372 — from the configured date, not a literal. `$effectiveDate`
+                // is read at the top of this method and published as its own field
+                // four lines above; restating it here meant a Budget that moved the
+                // date moved every figure and left the sentence behind.
+                'description' => 'From '.$effectiveDate->format('F Y').', unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
             ],
             'impact_summary' => $additionalIHT > 0
-                ? 'The 2027 pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
-                : 'The 2027 pension amendment would not increase your Inheritance Tax liability based on current pension values.',
+                ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
+                : 'The '.$effectiveDate->format('Y').' pension amendment would not increase your Inheritance Tax liability based on current pension values.',
         ];
     }
 
