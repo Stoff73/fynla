@@ -1,0 +1,38 @@
+name: Main Branch Guard
+
+# `pull_request_target` on purpose: it runs THIS file as it exists on `main`, the base
+# branch. A plain `pull_request` would read the workflow from the PR's head branch —
+# exactly the branch this guard does not trust, so a branch that simply omits the file
+# would skip the check. Nothing is checked out here, so running base-branch code
+# against an untrusted head is safe: the job reads one ref name and nothing else.
+#
+# Why a workflow rather than a setting: GitHub branch protection cannot restrict which
+# branch a pull request comes FROM. PR #715 went straight into `main` from a feature
+# branch on 2026-08-25 and that, with a `git add -A` over commented-out .gitignore
+# rules, is how `main` and `dev` diverged with no shared tip.
+"on":
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  main-source-branch:
+    name: main-source-branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR into main must come from dev or release/*
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          case "$HEAD_REF" in
+            dev|release/*)
+              echo "Source branch '$HEAD_REF' is allowed."
+              ;;
+            *)
+              echo "::error::PRs into main must come from 'dev' or 'release/*'. This one is from '$HEAD_REF'. Merge it to dev first, then release dev to main."
+              exit 1
+              ;;
+          esac
