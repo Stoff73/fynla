@@ -4,11 +4,11 @@ title: The fifth axis — sweep every Store's accepted-value lists against BOTH 
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: queued
+status: review
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-23T00:10:00Z
-claimed: null
+claimed: 2026-08-26T00:00:00Z
 blocked_by: []
 gate: null
 handoff_to: null
@@ -104,3 +104,136 @@ defect** — see the mortgage row above.
 - 2026-08-23 build-lead (`fix-cycle4-columns`): raised on team-lead's instruction.
   The measured half is done and the guard is in place; the open half is the
   numeric bounds and the unmapped Stores.
+- 2026-08-26 (branch `Bug-fixes-2`): all three open pieces closed. Detail below.
+
+## Resolution — 2026-08-26
+
+### 1. `InvestmentAccountStore::ownership_type` (open piece 1)
+
+`trust` added to the Store rule and to `InvestmentAccountNormaliser`, and the
+`DELIBERATELY_NARROWER` entry removed.
+
+**The normaliser was the live half, and it was worse than the Store rule.** Its
+fallback listed only `individual` and `joint`, so `trust` did not hit the Store's
+`in:` and 422 — it was **silently rewritten to `individual`** before the Store ever
+saw it. A caller saying an account is held in trust was told it saved, and it was
+recorded as solely owned. Only the tenants-in-common coercion above it was ever a
+decision; `trust` was collateral from the same catch-all.
+
+Grounds for widening rather than recording the narrowing as deliberate: the column
+stores `trust`, both requests permit it, and `SavingsStore:315` and
+`LiabilityStore:135` — the two sibling Stores on the same un-normalised Fyn update
+path at `CoordinatingAgent:6265` — both allow the full set. `tenants_in_common`
+stays excluded and stays in the exception list, because that one has the coercion
+that legitimises it.
+
+### 2. The sixth axis, numeric bounds (open piece 2)
+
+**15 genuine divergences**, all in the "request bounds it, Store does not"
+direction. All 15 closed by mirroring the request rule exactly rather than
+inventing a bound:
+
+| Store | Fields | Added |
+|---|---|---|
+| `MortgageStore` | `repayment_percentage`, `interest_only_percentage`, `fixed_rate_percentage`, `variable_rate_percentage`, `fixed_interest_rate`, `variable_interest_rate` | `min:0\|max:100` |
+| `InvestmentAccountStore` | `platform_fee_percent`, `advisor_fee_percent` | `max:10` |
+| | `interest_rate`, `current_ownership_percent`, `cliff_percentage`, `performance_vesting_min_percent`, `performance_vesting_max_percent` | `max:100` |
+| | `saye_monthly_savings` | `max:500` |
+| | `saye_option_discount_percent` | `max:20` |
+
+**The count moved three times before it was right, and each correction removed a
+false positive rather than finding more:**
+
+- The first sweep reported **0**, which was a false negative. The parser read only
+  string-syntax rules and skipped any field absent from the Store — i.e. precisely
+  the case the axis is about. Rewritten to start from the request's bounds and look
+  for the Store's, which is the direction that can see an absence.
+- Then **25**, which included `ownership_percentage` — not a finding.
+  `ValidationLimits::percentageRules()` carries `max:100` without the literal
+  appearing in the source.
+- Then 25 minus **nine** `mortgage_*` fields that `StorePropertyRequest` bounds but
+  which are **not columns on `properties`**. Request-only, handed to the mortgage
+  path. Reporting them would have tripled the count with noise.
+
+**Why an absent rule is a defect and not a no-op**, which is the fact the whole
+axis rests on: every Store validates with `Validator::make($canonical, $rules)` and
+throws on failure — **none calls `validated()`**, and the write persists
+`$canonical`. Laravel ignores keys with no rule, so a field absent from a ruleset
+is not filtered out of the payload. It is written unchecked.
+
+`platform_fee_percent` is the concrete case: a 12% platform fee was a 422 on the
+web form and a successful save through Fyn.
+
+### 3. The unmapped Stores (open piece 3)
+
+`PensionStore` mapped, and it is the only unmapped file that had an `in:` rule.
+`CurrencyDisplayService`, `TierGate` and `IngestSource` are not Stores;
+`RetirementProfileStore`, `TaxConfigStore` and `TierConfigurationStore` have no
+`in:` rules to check.
+
+**Mapping it required changing how the guard resolves a rule to a table, and the
+obvious approach was wrong.** `PensionStore` writes three tables — `dc_pensions`,
+`db_pensions`, `state_pensions` — from one class. The first implementation let a
+Store map to several tables and checked each field against whichever of them had
+that column.
+
+That is unsound, and this Store is the proof: **`scheme_type` exists on both
+`dc_pensions` (`workplace, sipp, personal`) and `db_pensions` (`final_salary,
+career_average, public_sector`) — same column name, disjoint enums.**
+First-match-wins checked the DB ruleset against the DC column and reported a defect
+in *both* directions at once, on a rule that is entirely correct.
+
+Fixed by attributing each rule to its enclosing method and mapping
+method → table (`validateDcCanonical` → `dc_pensions`, and so on). A rule outside a
+mapped ruleset is skipped rather than checked against an arbitrary table.
+
+With that in place both directions pass — the DC and DB rulesets each match their
+own column exactly.
+
+## Guards
+
+| File | Tests | Proven to fail |
+|---|---|---|
+| `tests/Unit/Database/StoreEnumRulesMatchColumnsTest.php` | 2 | Yes — see below |
+| `tests/Unit/Database/StoreNumericBoundsMatchRequestsTest.php` (new) | 2 | Yes — see below |
+
+**Both guards were mutation-tested rather than trusted because they went green.**
+
+The numeric guard, by removing `platform_fee_percent`'s bound and setting
+`advisor_fee_percent` to `max:99`:
+
+```
+InvestmentAccountStore::platform_fee_percent has no ceiling;
+  UpdateInvestmentAccountRequest bounds investment_accounts.platform_fee_percent at max:10
+InvestmentAccountStore::advisor_fee_percent allows max:99;
+  UpdateInvestmentAccountRequest allows max:10
+```
+
+The enum guard, by mutating `PensionStore`'s DB ruleset to drop `career_average`
+and add `workplace`:
+
+```
+PensionStore::scheme_type permits [workplace], which db_pensions.scheme_type
+  cannot store (enum: final_salary, career_average, public_sector)
+PensionStore::scheme_type refuses [career_average], which db_pensions.scheme_type stores
+```
+
+**That second mutation is the one that matters**, and it was chosen for it:
+`workplace` is a legitimate value on `dc_pensions`, so a resolver that picked the
+wrong table would have accepted it. Catching it, attributed to `db_pensions`, is
+what demonstrates the method-based attribution actually works — a green run alone
+would not have, since the naive version was also green on the unmutated source.
+
+## Raised, not fixed
+
+**W-0505 — the seventh axis: eighteen enum columns with no accepted-value list in
+their Store at all**, thirteen of them bounded in full by the matching request.
+`GoalStore` and `LifeEventStore` contain no `Validator::make` at all;
+`GoalStore::create` passes `$canonical` straight to `Goal::create`, and Fyn is one
+of its callers.
+
+**This guard cannot see that class**, by construction — it checks lists that exist,
+and an absent list has nothing to diverge from. Left out of this item deliberately:
+writing thirteen new rules and two new rulesets is introducing validation where
+there was none, which can break callers currently sending something sloppy, and
+needs its own verification rather than a footnote in this evidence pack.

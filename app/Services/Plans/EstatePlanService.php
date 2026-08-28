@@ -125,14 +125,16 @@ class EstatePlanService extends BasePlanService
     }
 
     /**
-     * Enrich recommendations with funding sources, affordability checks, and detailed guidance.
+     * Enrich recommendations with funding sources and detailed guidance.
+     *
+     * Affordability checks were removed with the life-cover premium estimate they
+     * were computed from (W-0141).
      */
     private function enrichRecommendations(array $recommendations, User $user, array $data): array
     {
         // Add personalised context before enrichment
         $recommendations = $this->personaliser->personaliseRecommendations($recommendations, $user);
 
-        $monthlyDisposable = $this->disposableIncome->getMonthlyForUser($user);
         $liquidAssets = (float) ($data['asset_breakdown']['liquid'] ?? 0);
 
         foreach ($recommendations as &$rec) {
@@ -143,29 +145,18 @@ class EstatePlanService extends BasePlanService
                 $rec['funding_source'] = $this->identifyFundingSource($category, $rec, $liquidAssets);
             }
 
-            // Add affordability check for life cover recommendations
-            if (in_array($category, ['new_life_cover'])) {
-                $estimatedPremium = (float) ($rec['estimated_premium'] ?? 0);
-                $monthlyPremium = $estimatedPremium > 0 ? $estimatedPremium / 12 : 0;
-                $isAffordable = $monthlyDisposable > 0 && $monthlyPremium <= ($monthlyDisposable * 0.15);
-
-                $rec['affordability'] = [
-                    'monthly_premium_estimate' => $this->roundToPenny($monthlyPremium),
-                    'monthly_disposable_income' => $this->roundToPenny($monthlyDisposable),
-                    'is_affordable' => $isAffordable,
-                    'affordability_ratio' => $monthlyDisposable > 0
-                        ? round($monthlyPremium / $monthlyDisposable * 100, 1)
-                        : 0,
-                ];
-
-                if (! $isAffordable && $monthlyPremium > 0) {
-                    $rec['affordability_warning'] = sprintf(
-                        'The estimated monthly premium of %s represents %.0f%% of your disposable income. Consider a lower cover amount or alternative strategies.',
-                        $this->formatCurrency($monthlyPremium),
-                        $monthlyDisposable > 0 ? ($monthlyPremium / $monthlyDisposable * 100) : 0
-                    );
-                }
-            }
+            // No affordability check on life cover. The whole block was computed from
+            // an estimated premium, and Fynla does not have one to compute from: what
+            // a policy costs is set by an insurer after underwriting, which
+            // ComplianceRules rule 3 names as something to signpost rather than
+            // perform. Leaving the block in place with the estimate gone would be
+            // worse than removing it — every premium would read £0, every plan would
+            // be declared affordable, and the warning would never fire. W-0141.
+            //
+            // `monthly_disposable_income` is not preserved here either. On its own it
+            // is a fact about the user Fynla does know, but it only appeared as the
+            // denominator of this ratio; a surface wanting it should read it from
+            // expenditure rather than from a life-cover recommendation.
 
             // Add detailed "what to do" guidance for each recommendation
             $rec['guidance'] = $this->buildActionGuidance($category, $rec);

@@ -251,7 +251,18 @@ class InvestmentAccountStore
             'user_id' => $req.'integer|exists:users,id',
             'account_name' => 'sometimes|nullable|string|max:255',
             'account_type' => $req.'in:isa,gia,nsi,onshore_bond,offshore_bond,vct,eis,private_company,crowdfunding,saye,csop,emi,unapproved_options,rsu,other',
-            'ownership_type' => $req.'in:individual,joint',
+            // `trust` added 2026-08-26 (W-0329). The column stores it, both
+            // Store/UpdateInvestmentAccountRequest permit it, and the two sibling
+            // Stores on the same un-normalised Fyn update path — SavingsStore:315
+            // and LiabilityStore:135 — allow the full set. This Store was the only
+            // layer refusing it, so a trust-owned account could be recorded through
+            // the web request and not through Fyn.
+            //
+            // `tenants_in_common` stays out: investment_accounts genuinely has no
+            // such enum value, and InvestmentAccountNormaliser coerces TIC to joint
+            // at the boundary. That exclusion is the documented decision; `trust`
+            // was collateral from the same catch-all.
+            'ownership_type' => $req.'in:individual,joint,trust',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
             'current_value' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'provider' => 'sometimes|nullable|string|max:255',
@@ -263,6 +274,36 @@ class InvestmentAccountStore
             // W-0042 — a shared record may name an off-platform co-owner, the same
             // way properties, mortgages and chattels already can (W-0025).
             'joint_owner_name' => 'sometimes|nullable|string|max:255',
+
+            // W-0505: enum columns this ruleset never listed. Each list is the
+            // column's own enum, so nothing the table would have stored is now
+            // refused — the change is that an impossible value is caught here,
+            // named, instead of arriving at MySQL as an unattributable error.
+            // The first three are NOT NULL with defaults, and their nulls are
+            // already dropped by InvestmentAccountNormaliser::NOT_NULL_WITH_DEFAULT.
+            'contribution_frequency' => 'sometimes|nullable|in:monthly,quarterly,annually',
+            'platform_fee_type' => 'sometimes|nullable|in:percentage,fixed',
+            'platform_fee_frequency' => 'sometimes|nullable|in:monthly,quarterly,annually',
+            'risk_preference' => 'sometimes|nullable|in:low,lower_medium,medium,upper_medium,high',
+
+            // The sixth axis (W-0329): bounds the form enforces and this Store did
+            // not. All nine are columns on `investment_accounts` and all nine are
+            // bounded by Store/UpdateInvestmentAccountRequest, but this ruleset had
+            // no rule for any of them — and `validateCanonical` runs
+            // `Validator::make()` without `validated()`, so an unruled key is not
+            // dropped, it is written. Fyn and `/m` write through here and through
+            // nothing else, so a 12% platform fee was a 422 on the web form and a
+            // successful save through Fyn. Mirrors the request exactly rather than
+            // inventing a bound.
+            'platform_fee_percent' => 'sometimes|nullable|numeric|min:0|max:10',
+            'advisor_fee_percent' => 'sometimes|nullable|numeric|min:0|max:10',
+            'interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
+            'current_ownership_percent' => 'sometimes|nullable|numeric|min:0|max:100',
+            'cliff_percentage' => 'sometimes|nullable|integer|min:0|max:100',
+            'performance_vesting_min_percent' => 'sometimes|nullable|integer|min:0|max:100',
+            'performance_vesting_max_percent' => 'sometimes|nullable|integer|min:0|max:100',
+            'saye_monthly_savings' => 'sometimes|nullable|numeric|min:0|max:500',
+            'saye_option_discount_percent' => 'sometimes|nullable|numeric|min:0|max:20',
         ];
 
         $validator = Validator::make($canonical, $rules);

@@ -1158,16 +1158,19 @@ class EstateAgent extends BaseAgent
     {
         $trace = $this->buildEstateContextTrace($ctx);
 
-        // Estimate whole of life premium (simplified calculation)
-        $estimatedAnnualPremium = $remainingLiability * 0.02; // ~2% of cover per year
-
+        // No premium estimate. What a policy costs is set by an insurer after
+        // underwriting the individual, and Fynla cannot know it. ComplianceRules
+        // rule 3 names protection underwriting as something to signpost rather than
+        // perform, and rule 7 forbids stating product details from memory; since
+        // 2026-08-13 (05-perimeter.md §3) those rules bind all outbound content, not
+        // only Fyn's chat. Recommend the cover; point at a quote for the cost. W-0141.
         $trace[] = [
             'question' => 'Is there a remaining Inheritance Tax liability that life cover could address for '.$ctx['first_name'].'?',
             'data_field' => 'Remaining liability after steps 1-4',
             'data_value' => '£'.number_format($remainingLiability, 0),
             'threshold' => '£0 (no remaining liability)',
             'passed' => $remainingLiability <= 0,
-            'explanation' => 'A whole of life policy for £'.number_format($remainingLiability, 0).' written in trust could cover '.$ctx['first_name'].'\'s remaining Inheritance Tax liability, providing funds outside of the estate. At age '.$ctx['current_age'].', premiums are still affordable (estimated £'.number_format($estimatedAnnualPremium, 0).'/year at approximately 2% of cover).',
+            'explanation' => 'A whole of life policy for £'.number_format($remainingLiability, 0).' written in trust could cover '.$ctx['first_name'].'\'s remaining Inheritance Tax liability, providing funds outside of the estate. What such a policy costs depends on underwriting, so an insurer or a regulated adviser is the right place to get a figure.',
         ];
 
         $hasLiquidityIssue = $liquidityData['has_issue'] ?? false;
@@ -1194,11 +1197,9 @@ class EstateAgent extends BaseAgent
             'description' => "A whole of life policy for {$this->formatCurrency($remainingLiability)} could cover {$ctx['first_name']}'s remaining Inheritance Tax liability.",
             'actions' => [
                 "Consider whole of life cover for {$this->formatCurrency($remainingLiability)}",
-                'Estimated annual premium: '.$this->formatCurrency($estimatedAnnualPremium).' (approximately 2% of cover at age '.$ctx['current_age'].')',
                 'CRITICAL: Policy must be written in trust to bypass the estate',
-                'Get quotes from multiple providers',
+                'The cost depends on underwriting — get quotes from multiple providers, or speak to a regulated adviser',
             ],
-            'estimated_premium' => $estimatedAnnualPremium,
             'cover_amount' => $remainingLiability,
             'decision_trace' => $trace,
         ];
