@@ -140,3 +140,26 @@ figure; only the desktop panel has a row to move.
 - Vitest on `IncomeDefinitionsPanel` — **13 passed**, including three new position tests.
 - Pint clean.
 - **NOT verified in a browser.**
+
+### The question this change raised, and its answer — W-0511
+
+If the allowance is no longer deducted at s58, **where is it given?** Sweeping every
+consumer of `is_registered_blind` and `blind_persons_allowance`:
+
+- a cast, a resource field, a validation rule, an onboarding capture
+- `TaxConfigService::getBlindPersonsAllowance()`, whose only caller was the line removed here
+- an admin screen that lets the rate be edited
+- the income panel, which prints the amount
+
+**Nothing computes tax with it.** `UKTaxCalculator` has never heard of it. The app asks
+whether the user is registered blind, stores it, publishes it, maintains the rate and
+prints it — then taxes them as though they had no allowance. Filed as **W-0511**, high:
+the under-relief is £650 at the basic rate, £1,300 at higher and £1,462.50 at additional,
+every year.
+
+**This item did not cause that and does not fix it**, but the two interact and it should
+be said plainly: **W-0485 alone moves a registered-blind user's computed tax UP.** They
+lose the unearned Personal Allowance uplift (about £650 at £110,000) and still get no
+allowance. That is a defensible interim — the Personal Allowance and the Child Benefit
+charge become correct, which is what this item was raised for — but it is not the whole
+answer, and CSJ may want the two to ship together.
