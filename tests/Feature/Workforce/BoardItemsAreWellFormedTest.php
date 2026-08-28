@@ -98,3 +98,41 @@ it('keeps every board item parseable as a work item', function () {
         .'recover with `git show <commit>:<path>`, do not rewrite from memory.'
     );
 });
+
+/**
+ * Two items must never share an id.
+ *
+ * The sibling test above pins each `id` to its own filename, which is a different
+ * property: two files can each match their own name and still both claim `W-0489`.
+ * That is what kept happening — three collisions in the 2026-08-26 session alone,
+ * because ids are assigned concurrently on `dev` and on working branches with
+ * nothing reserving them. The merge then discards one side's rename while both
+ * copies sit unchanged at their old paths, and a gate stamped against "W-0489"
+ * lands on whichever file the reader opened.
+ *
+ * Checked here rather than solved with a reservation mechanism: the collisions are
+ * cheap to fix and expensive only when they survive a merge unnoticed, so what is
+ * missing is the noticing.
+ */
+it('gives every board item a unique id', function () {
+    $files = glob(base_path('workforce/ops/board').'/W-*.md');
+
+    expect($files)->not->toBeEmpty();
+
+    $seen = [];
+
+    foreach ($files as $file) {
+        if (preg_match('/^id:\s*(\S+)/m', (string) file_get_contents($file), $m) === 1) {
+            $seen[$m[1]][] = basename($file);
+        }
+    }
+
+    $collisions = array_filter($seen, fn (array $names): bool => count($names) > 1);
+
+    expect($collisions)->toBe(
+        [],
+        'Two board items claim the same id. Renumber the newer one to the next free '
+        .'id and update its cross-references one at a time — a sweep will rewrite '
+        .'legitimate citations of the older item.'
+    );
+});

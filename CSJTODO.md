@@ -1,56 +1,115 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-08-24 session 1 — five rejections fixed, three review gates run,
-board NOT cleared (215 open). Branch `estate-copy-and-m-handoff`, 20 commits, nothing
-deployed. Handover: handover/August/24/handover-2026-08-24-session-1.md*
+*Last updated: 2026-08-28 session 1 — session-open hygiene. Three PRs merged
+(#730, #731, #732), 106 merged branches pruned, W-0490's colon paths renamed.
+Branch `dev` at the merge of #732. Handover: handover/August/24/handover-2026-08-24-session-1.md
+(four days and 100 commits stale — verify before trusting it).*
 
-## 2026-08-24 — CLEAR THE BOARD. ALONE. NO AGENTS.
+## 2026-08-28 — session open: tree, branches and board
 
-**CSJ standing instruction, 2026-08-24: no agents are to be spawned for these fixes.
-One item at a time, quickly, without shortcuts, until the board is clear.** Three fix
-agents were dispatched and killed the same hour; all agents were terminated at 11:53 BST.
-The hard reason: agents share one `laravel_testing` database, and two Pest processes
-produce deadlocks and 0-assertion failures indistinguishable from real breakage.
+Done this morning, before any board work started:
 
-**215 board items open** — 3 critical, 80 high, 109 medium, 23 low.
-(105 `queued`, 104 `gated`, 4 `blocked`, 3 `handoff`.)
+- [x] **CLAUDE.md / AGENTS.md consolidation committed and merged** (#732). 37 files,
+      10,573 deletions, no doctrine lost — the 22 rules and their cross-references are
+      intact. Three new project skills hold the essays that were inlined:
+      `data-integrity-traps`, `fyn-architecture`, `test-failure-forensics`.
+      `.agents/skills` is now a symlink to `.claude/skills` so Codex and Claude read one
+      tree instead of two that drift.
+- [x] **#730 merged** — the suite could not run at all; `linkedSpouses()` was declared twice.
+- [x] **#731 merged** — W-0329/W-0505 Store validation, W-0245 dashboard derivation,
+      W-0141 life-cover premium.
+- [x] **Branches pruned: 117 remote → 11, 103 local → 8.** Every deleted branch was fully
+      merged into `dev`. `marketing` was kept though merged (it is live), and the 11
+      survivors are genuinely unmerged, including #249's parked python-agent-sidecar.
+- [x] **W-0490 acceptances 1 and 2** — `August/bugs/ios:17August/` renamed to
+      `ios-17August`, and `RepositoryPathsSurviveAWindowsCheckoutTest` now greps
+      `git ls-files` for the characters NTFS forbids. This is the bug that silently ate
+      `CLAUDE.md` and `CSJTODO.md` from two `dev` merges.
+- [x] **Duplicate board ids are now a test failure** — the existing guard pinned each id
+      to its own filename, which two files claiming `W-0489` both satisfy. Three
+      collisions happened in one session; this is #731's second question answered.
+- [x] **`wf.sh move` works again.** It built a literal `W-NNNN.md` path, so it answered
+      "no such item" for 297 of the 302 items. It globs on the id now.
+
+**Both guards were mutation-tested**, not trusted for going green — a staged
+`probe:colon.txt` and a duplicated id each redden their own guard.
+
+### Board, as it actually stands
+
+**302 items, 230 open** (67 done, 3 invalid, 2 duplicate).
+By status: 115 `gated`, 82 `queued`, 19 `review`, 5 `open`, 4 `blocked`, 3 `handoff`,
+1 `in-progress`, 1 `claimed`.
+By severity, across the open items: **5 critical, 92 high, 104 medium, 17 low** — and
+12 open items carry no `severity` field at all.
+
+No duplicate ids, no malformed items, every filename matches its `id`.
+
+**`gated` does not mean fixed-and-waiting.** Most are `CANNOT CERTIFY` for missing
+evidence rather than wrong code — see
+`workforce/ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md`.
 
 ### Next, in order
 
-- [ ] **W-0473** — the whole `/m` Insights feature is dead; all six readers look one level
-      above the agent's payload. Unwrap ONCE at the call site. Keep the caveat line.
-- [ ] **W-0474** — a civil partnership pools two estates against one person's allowances.
-      HIGH, overstates tax, fully specified.
-- [ ] **W-0475** — projected gross estate omits `asset_type = other` entirely; understates.
-- [ ] **W-0476** — the enumeration oracle moved to `GET /api/spouse-permission/status`.
-      Closes with **W-0472**.
-- [ ] **W-0477** — a deleted spouse leaves expenditure stored as halves nothing halves.
-- [ ] Then the remaining queued critical/high: `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
-      W-0155 W-0171 W-0216 W-0222 W-0226 W-0227 W-0361 W-0363 W-0364 W-0365 W-0462`,
-      then medium, then low.
-- [ ] **The full suite has not completed since `19bd1c83f`.** Run it once, alone, as a
-      consolidation point.
+- [ ] **Queued high, tax-moving first:** `W-0480` (four services still read `married`
+      alone, so a civil partnership gets the wrong answer), `W-0482` (the projected
+      estate needs the unused pension fund, not the pot), `W-0485` (blind person's
+      allowance subtracted from adjusted net income), `W-0489` (migrating savings to
+      cash would double-count every household), `W-0204` (salary sacrifice not added
+      back to threshold income).
+- [ ] **Then the rest of the queued high:** `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144
+      W-0155 W-0171 W-0222 W-0226 W-0227 W-0462 W-0486 W-0490 W-0495`, then medium,
+      then low.
+- [ ] **One full-suite run, alone, as a consolidation point.** The last handover said the
+      suite had not completed since `19bd1c83f`; that claim now predates 100 commits and
+      a dozen merged PRs, so it is worth re-establishing rather than repeating.
+      **One Pest process at a time** — two share `laravel_testing` and deadlock into
+      0-assertion failures that look exactly like real breakage.
 
-### Waiting on CSJ
+### For CSJ
 
-- [ ] **W-0347 (CRITICAL) — FLAGGED by `compliance-lead` on five findings**, acceptances 3
-      and 4 unmet. **What happens to the 10 historically forged `spouse_permissions` rows
-      on dev?** A migration backfilled them as `accepted`; is that acceptable, or must
-      those households be re-asked?
-- [ ] **Rule 9 amendment** — the caveat spells out "the Alternative Investment Market" and
-      a test pins the acronym's absence. "(AIM)" for recognisability is CSJ's call alone.
+- [ ] **`main` and `dev` have diverged and neither contains the other.** `dev` is 81
+      commits ahead; `main` carries 36 `dev` does not, including PR #715
+      (`estate-copy-and-m-handoff`) merged straight to `main`. Releases assume
+      `dev → main` fast-forwards over a shared history, and this no longer does.
+      **Needs a decision before the next release**, not a quiet merge.
+- [ ] **W-0490 acceptance 3 — I COULD NOT TEST THIS.** It wants a clean clone plus
+      `git reset` on Windows and there is no Windows machine here. The item stays
+      `gated` for that reason alone.
+- [ ] **W-0490 acceptance 4 is carried, not discharged.** Nobody has audited past merges
+      for earlier silent drops. The query is
+      `git diff --diff-filter=D --name-only origin/dev...HEAD` — an unrestricted
+      `git status` reports clean over exactly this failure.
+- [ ] **12 open board items have no `severity`.** Mostly `W-0001`–`W-0023`, which predate
+      the field, plus `W-0176` and `W-0177`. Assigning one is triage, not cleanup, so
+      they are left alone.
+- [ ] **Two local branches survive with no remote and unmerged work:**
+      `codex/fynla-org-repository-migration` (3 commits ahead of `dev`) and
+      `pr674-ci-green` (0 ahead, held by a worktree). Neither was deleted.
 
-### Known gaps, carried
+### Known gaps, carried from 2026-08-24
 
-- [ ] **W-0008** — the adviser fee is enterable and has never been shown to reach the
-      projection it is entered for. Untouched.
-- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on BOTH accounts of a linked household.
-      Only a web profile-form save was ever verified.
-- [ ] **W-0470 second half** — per-liability detail rows still come from the non-projecting
-      breakdown, so the panel can show −£3,500 above a £0 total.
-- [ ] **W-0012 Rule 19** — `/m` and native have no property form; Fyn's create accepts five
-      mortgage fields, not nine.
-- [ ] iOS not built, launched or looked at. `/m` verified only on localhost, never csjones.
+All three are on the board as `gated`, so they are tracked — listed here because each
+is a *verification* gap rather than a code one, and gates do not discharge themselves.
+
+- [ ] **W-0202 acceptance 4** — needs Fyn on `/m`, on **both** accounts of a linked
+      household. Only a web profile-form save was ever verified.
+- [ ] **W-0470, second half** — the per-liability detail rows still come from the
+      non-projecting breakdown, so the panel can show −£3,500 above a £0 total.
+- [ ] **W-0012, Rule 19** — `/m` and native have no property form, and Fyn's
+      `handleCreateProperty` accepts five mortgage fields where the web form has nine.
+- [ ] **iOS has not been built, launched or looked at since 2026-08-24**, and `/m` has
+      been verified only on localhost, never on csjones.
+
+**W-0008 is done** — it was carried as untouched in the last handover and has since
+closed.
+
+### Answered since the last handover — do not re-raise
+
+- **W-0347's forged consent rows.** CSJ ruled 2026-08-24 18:19: dev only, database
+  restarted, so G4/G5/G6 are closed rather than deferred. There are no data subjects.
+  The re-ask migration stays as written. `CSJTODO` listed this as waiting on CSJ for
+  four days after it was decided.
+- **The Rule 9 "(AIM)" question** appears settled via W-0454 → W-0497.
 
 ## 2026-08-17 — catch-up and clean-up
 

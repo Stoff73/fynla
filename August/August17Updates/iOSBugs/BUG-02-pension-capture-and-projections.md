@@ -5,7 +5,7 @@ surface: all — the £0 projection is a shared-endpoint 500; capture defects ar
 severity: blocker
 status: root causes confirmed and reproduced — no fix applied
 fixed_in: null
-evidence: August/bugs/ios:17August/img1.png (Fyn chat), img2.png (Retirement screen)
+evidence: August/bugs/ios-17August/img1.png (Fyn chat), img2.png (Retirement screen)
 ---
 
 # BUG-02 — pension captured wrongly, twice, and the projection reads £0
