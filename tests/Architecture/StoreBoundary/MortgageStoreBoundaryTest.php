@@ -37,6 +37,14 @@ it('enforces MortgageStore as the only write path for Mortgage', function () {
         // mortgage per persona) and would require a new bulk-cleanup store
         // method out of scope for PR 8. Mirroring the Property precedent:
         // kept allowlisted, documented here permanently.
+        // PremiumTestPersonaSeeder (W-0480 session, salvaged 2026-08-28) — the
+        // `peak_earners` premium household fixture. Writes with direct
+        // `updateOrCreate` so a reseed is idempotent against the same rows, and
+        // force-deletes them on reset. A §14.2 seeder, run by hand against local and
+        // staging only; it is never a runtime write path. Unlike PreviewUserSeeder it
+        // does not route creates through the store — updateOrCreate has no store
+        // equivalent, and a persona fixture gains nothing from an audit row per asset.
+        'database/seeders/PremiumTestPersonaSeeder.php',
         'database/seeders/PreviewUserSeeder.php',
     ];
 
