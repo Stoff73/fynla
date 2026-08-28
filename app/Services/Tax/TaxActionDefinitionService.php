@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
 
@@ -167,7 +168,7 @@ class TaxActionDefinitionService
         User $user,
         int $priority
     ): array {
-        if ($user->marital_status !== 'married' || ! $user->liveSpouseId()) {
+        if (! HouseholdPooling::hasSpousalStatus($user) || ! $user->liveSpouseId()) {
             return [];
         }
 
