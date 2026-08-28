@@ -86,6 +86,32 @@ evidence rather than wrong code — see
       `codex/fynla-org-repository-migration` (3 commits ahead of `dev`) and
       `pr674-ci-green` (0 ahead, held by a worktree). Neither was deleted.
 
+### `main` reconciliation — 2026-08-28
+
+**`main` held one thing `dev` wanted, and it is now salvaged:**
+`database/seeders/PremiumTestPersonaSeeder.php`, written on 2026-08-25 in `b7a775581`
+and never merged to `dev` because that commit went to `main` directly. Verified by
+running it against dev's schema, 81 commits past the one it was written for.
+
+**Two other candidates inverted on inspection — do not "restore" them:**
+- `SpouseNRBTrackerService.php` was deleted here **deliberately**, under W-0146.
+- `main`'s copy of W-0279 is the item *before* the work: it reverts a `done` +
+  `CERTIFIED 2026-08-25` back to `queued` and deletes the whole working-notes section.
+- `main`'s `tests/E2E/fixtures/app.js` is superseded by W-0492, which consolidated
+  consent onto the cookie the app actually reads. `main` still writes both.
+
+**Most of the divergence is one bad commit.** `75aa0d4f6` "manual merging all files" —
+356 files, 113,323 insertions, **zero deletions**, on 2026-08-25. Someone commented out
+`.gitignore` rules (`/April/` → `# /April/`, `.superpowers/` → `# .superpowers/`, and
+deleted `workforce/ops/log/*.log`) and ran `git add -A`. That is where main's 250 April
+docs, 105 `.superpowers/` files and a 2.6 MB `myrtle-listen.log` came from. It is the
+ignore rules failing, not history being recovered.
+
+**The 268 April/June docs are in the vault, per CSJ's direction.** 203 were already
+there byte-identical; 3 vault copies are longer than main's and were left alone; 62 were
+copied across. `/April/` stays gitignored in the repo — that rule is deliberate and says
+"Planning/review docs (local only)".
+
 ### Known gaps, carried from 2026-08-24
 
 All three are on the board as `gated`, so they are tracked — listed here because each
