@@ -1,38 +1,14 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-08-28 session 1 — session-open hygiene. Three PRs merged
-(#730, #731, #732), 106 merged branches pruned, W-0490's colon paths renamed.
-Branch `dev` at the merge of #732. Handover: handover/August/24/handover-2026-08-24-session-1.md
-(four days and 100 commits stale — verify before trusting it).*
+*Last updated: 2026-08-28 session 1 — hygiene only, no board defect fixed. Six PRs
+merged (#730–#735), branches 117 → 12 remote, `main` diagnosed and salvaged. `dev` clean
+at `5f07bad7a`. Handover: handover/August/28/handover-2026-08-28-session-1.md*
 
 ## 2026-08-28 — session open: tree, branches and board
 
-Done this morning, before any board work started:
-
-- [x] **CLAUDE.md / AGENTS.md consolidation committed and merged** (#732). 37 files,
-      10,573 deletions, no doctrine lost — the 22 rules and their cross-references are
-      intact. Three new project skills hold the essays that were inlined:
-      `data-integrity-traps`, `fyn-architecture`, `test-failure-forensics`.
-      `.agents/skills` is now a symlink to `.claude/skills` so Codex and Claude read one
-      tree instead of two that drift.
-- [x] **#730 merged** — the suite could not run at all; `linkedSpouses()` was declared twice.
-- [x] **#731 merged** — W-0329/W-0505 Store validation, W-0245 dashboard derivation,
-      W-0141 life-cover premium.
-- [x] **Branches pruned: 117 remote → 11, 103 local → 8.** Every deleted branch was fully
-      merged into `dev`. `marketing` was kept though merged (it is live), and the 11
-      survivors are genuinely unmerged, including #249's parked python-agent-sidecar.
-- [x] **W-0490 acceptances 1 and 2** — `August/bugs/ios:17August/` renamed to
-      `ios-17August`, and `RepositoryPathsSurviveAWindowsCheckoutTest` now greps
-      `git ls-files` for the characters NTFS forbids. This is the bug that silently ate
-      `CLAUDE.md` and `CSJTODO.md` from two `dev` merges.
-- [x] **Duplicate board ids are now a test failure** — the existing guard pinned each id
-      to its own filename, which two files claiming `W-0489` both satisfy. Three
-      collisions happened in one session; this is #731's second question answered.
-- [x] **`wf.sh move` works again.** It built a literal `W-NNNN.md` path, so it answered
-      "no such item" for 297 of the 302 items. It globs on the id now.
-
-**Both guards were mutation-tested**, not trusted for going green — a staged
-`probe:colon.txt` and a duplicated id each redden their own guard.
+Six PRs merged (#730-#735), 106 merged branches pruned, `main` diagnosed and salvaged.
+The full record is in `handover/August/28/handover-2026-08-28-session-1.md` — this file
+keeps only what is still outstanding.
 
 ### Board, as it actually stands
 
@@ -67,11 +43,17 @@ evidence rather than wrong code — see
 
 ### For CSJ
 
-- [ ] **`main` and `dev` have diverged and neither contains the other.** `dev` is 81
-      commits ahead; `main` carries 36 `dev` does not, including PR #715
-      (`estate-copy-and-m-handoff`) merged straight to `main`. Releases assume
-      `dev → main` fast-forwards over a shared history, and this no longer does.
-      **Needs a decision before the next release**, not a quiet merge.
+- [ ] **PR #736 is open against `main` and deliberately unmerged.** It reconciles the
+      divergence — a `-s ours` merge keeping dev's tree whole and recording `main` as a
+      parent, so the next release replays a shared history. **Merging it makes main's
+      tree equal dev's, which is a release**; timing is CSJ's and the normal gates
+      (csjones deploy, browser verification) still apply. **Do not merge it to tidy up.**
+- [ ] **Branch protection on `main`.** `enforce_admins: false`,
+      `required_approving_review_count: 0`. Enforce-admins would have stopped the
+      `git add -A` that caused most of the drift. Stopping the second cause — PR #715
+      going straight to `main` — needs a **workflow**, because GitHub cannot restrict a
+      PR's source branch natively: fail any PR into `main` whose head is not `dev` or
+      `release/*`. Offered, **not built** — awaiting CSJ.
 - [ ] **W-0490 acceptance 3 — I COULD NOT TEST THIS.** It wants a clean clone plus
       `git reset` on Windows and there is no Windows machine here. The item stays
       `gated` for that reason alone.
