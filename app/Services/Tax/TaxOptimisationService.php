@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
 use App\Traits\ResolvesIncome;
 
 /**
@@ -381,7 +382,7 @@ class TaxOptimisationService
 
     private function buildSpousalStrategy(User $user, float $grossIncome, string $taxBand): ?array
     {
-        if ($user->marital_status !== 'married' || ! $user->liveSpouseId()) {
+        if (! HouseholdPooling::hasSpousalStatus($user) || ! $user->liveSpouseId()) {
             return null;
         }
 
@@ -413,7 +414,15 @@ class TaxOptimisationService
 
         $lowerEarnerIncome = $grossIncome >= $spouseIncome ? $spouseIncome : $grossIncome;
         if ($lowerEarnerIncome < $personalAllowance && $higherBand === 'basic') {
-            $marriageAllowanceSaving = round($personalAllowance * 0.10 * 0.20, 2); // 10% of PA at 20%
+            // The transferable amount is NOT 10% of the personal allowance: ITA 2007
+            // s55C(2) rounds it UP to the nearest £10, so 2025/26 is £1,260 against a
+            // £12,570 allowance, not £1,257. Both the amount and the rate it saves at
+            // come from configuration (Rule 2) — `income_tax.marriage_allowance.amount`
+            // is the same figure the public allowances page publishes.
+            $marriageAllowanceAmount = (float) ($incomeTaxConfig['marriage_allowance']['amount']
+                ?? round($personalAllowance * 0.10 / 10) * 10);
+            $basicRate = (float) ($incomeTaxConfig['bands'][0]['rate'] ?? 0.20);
+            $marriageAllowanceSaving = round($marriageAllowanceAmount * $basicRate, 2);
             $estimatedSaving += $marriageAllowanceSaving;
             $actions[] = 'Apply for Marriage Allowance to transfer unused personal allowance';
         }

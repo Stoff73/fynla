@@ -19,6 +19,7 @@ use App\Services\Estate\TrustService;
 use App\Services\TaxConfigService;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
 use App\Services\Trust\TrustAssetAggregatorService;
+use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -198,7 +199,11 @@ class TrustController extends Controller
         }
 
         // Use the simplified IHT calculation service
-        $spouse = ($user->marital_status === 'married' && $user->spouse_id) ? User::find($user->spouse_id) : null;
+        // W-0480 F2 — the same line as `ComprehensiveEstatePlanService`, feeding the same
+        // `calculate()`. Left reading `['married']` alone, it handed a civil partnership a
+        // null spouse and so a single-person Inheritance Tax liability on this screen,
+        // beside the corrected one on the next.
+        $spouse = (HouseholdPooling::hasSpousalStatus($user) && $user->spouse_id) ? User::find($user->spouse_id) : null;
         $dataSharingEnabled = $spouse && $user->hasAcceptedSpousePermission();
 
         $ihtCalculation = $this->ihtCalculationService->calculate($user, $spouse, $dataSharingEnabled);

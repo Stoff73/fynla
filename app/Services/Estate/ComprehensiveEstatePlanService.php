@@ -14,6 +14,7 @@ use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\ProfileCompletenessChecker;
+use App\Support\HouseholdPooling;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -68,7 +69,7 @@ class ComprehensiveEstatePlanService
         }
 
         // Calculate current IHT position using simplified service
-        $spouse = ($user->marital_status === 'married' && $user->spouse_id) ? User::find($user->spouse_id) : null;
+        $spouse = (HouseholdPooling::hasSpousalStatus($user) && $user->spouse_id) ? User::find($user->spouse_id) : null;
         $dataSharingEnabled = $spouse && $user->hasAcceptedSpousePermission();
 
         // Gather user assets
