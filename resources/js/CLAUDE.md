@@ -1,46 +1,22 @@
 # Frontend Conventions
 
-This file supplements the root `CLAUDE.md` with frontend-specific patterns.
-
-> **GOLDEN RULE #20 (CSJ, NEVER IGNORE):** every Fyn change — prompt, vocabulary, behaviour, rendering — is made ONCE, in ONE place, for ALL surfaces and paths. If more than one mechanism implements the behaviour, consolidating to one source is PART of the fix. Full text: root `CLAUDE.md` Rule 20.
-
-## Entry Points
-
-- `app.js` - Bootstraps Vue app with Router, Vuex, VueApexCharts, `v-preview-disabled` directive
-- `App.vue` - Root component, renders `<router-view />`, fetches user data on mount
-- `router/index.js` - All routes with lazy loading (`() => import(...)`)
-- `store/index.js` - namespaced Vuex modules
+Supplements the root `CLAUDE.md`.
 
 ## Router
 
-**Route meta flags:**
-- `meta: { requiresAuth: true }` - Protected routes (dashboard, modules)
-- `meta: { public: true }` - Public pages (landing, calculators)
-- `meta: { requiresGuest: true }` - Auth pages (login, register)
-- `meta: { previewMode: true }` - Preview persona routes
+Meta flags: `requiresAuth` (protected), `public`, `requiresGuest` (auth pages), `previewMode`. All routes lazy-loaded. Base path from `VITE_ROUTER_BASE`.
 
-**Base path:** Configurable via `VITE_ROUTER_BASE` (development: `/`, production: `/` or `/fynla/`)
+**Every routed view wraps in `<AppLayout>` or `<PublicLayout>`** (Rule 13). `AppLayout` gives navbar, preview banner, `max-w-7xl` content slot, footer and info panel.
 
-## Vuex Store Pattern
+## Vuex
 
-All modules are `namespaced: true` and follow this structure:
+All modules `namespaced: true`. State is `{ items, loading, error }`; mutations are `set*` / `add*` / `update*` / `remove*`; actions are async, commit mutations, and rethrow after committing the error.
 
-```javascript
-// State: data + loading + error
-const state = { items: [], loading: false, error: null };
-
-// Mutations: set* (setters), add*/update*/remove* (CRUD)
-setItems(state, items) { state.items = items; }
-addItem(state, item) { state.items.push(item); }
-updateItem(state, item) { /* find by id, splice */ }
-removeItem(state, id) { /* find by id, splice */ }
-
-// Actions: async, commit mutations, dispatch cross-module
+```js
 async fetchItems({ commit }) {
   commit('setLoading', true);
   try {
-    const response = await myService.getItems();
-    commit('setItems', response.data.items);
+    commit('setItems', (await myService.getItems()).data.items);
   } catch (error) {
     commit('setError', error.message);
     throw error;
@@ -48,109 +24,52 @@ async fetchItems({ commit }) {
     commit('setLoading', false);
   }
 }
-
-// Cross-module dispatch
-dispatch('netWorth/refreshNetWorth', null, { root: true });
+dispatch('netWorth/refreshNetWorth', null, { root: true });   // cross-module
 ```
 
-**Naming:** Actions use British English spelling: `analyse` not `analyze`, `optimise` not `optimize`.
+**Action names use British spelling:** `analyse`, `optimise`.
 
-## Mixins
+## Mixins — use these, never local equivalents
 
-**currencyMixin** - Always use this, never define local `formatCurrency()`:
-```javascript
-import { currencyMixin } from '@/mixins/currencyMixin';
-// Provides: formatCurrency(), formatCurrencyWithPence(), formatCurrencyCompact(),
-//   parseCurrency(), formatPercentage(), formatAccountType(), formatOwnershipType(),
-//   formatNumber(), formatLiability()
+- **`currencyMixin`** (Rule 5): `formatCurrency()`, `formatCurrencyWithPence()`, `formatCurrencyCompact()`, `parseCurrency()`, `formatPercentage()`, `formatAccountType()`, `formatOwnershipType()`, `formatNumber()`, `formatLiability()`.
+- **`previewModeMixin`**: `isPreviewMode`, `previewGuard(action)`, `getPreviewButtonProps(type)`, `handlePreviewAction()`, `canOpenModal()`.
+
+## Utilities and constants
+
+| File | Key exports |
+|---|---|
+| `utils/currency.js` | `formatCurrency`, `formatCurrencyWithPence`, `formatCurrencyCompact`, `parseCurrency` |
+| `utils/dateFormatter.js` | `formatDate` (DD/MM/YYYY), `formatDateForInput` (YYYY-MM-DD), `calculateAge`, `getTaxYearStart/End` |
+| `utils/ownership.js` | `calculateUserShare`, `isSharedOwnership`, `OWNERSHIP_TYPES`, `getOwnershipLabel` |
+| `utils/poller.js` | `poll`, `pollMonteCarloJob` — long-running async operations |
+| `utils/logger.js` | `logger.info/warn/error/debug` — development only |
+| `constants/designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, and the palette constants. **All chart colour comes from here** (Rule 11) |
+| `constants/taxConfig.js` | Frontend tax references. Prefer the backend `TaxConfigService` for anything calculated (Rule 2) |
+
+## API services
+
+Pure wrappers in `services/`, no state:
+
+```js
+async getData() { return (await api.get('/endpoint')).data; }
 ```
 
-**previewModeMixin** - Use for preview mode checks:
-```javascript
-import { previewModeMixin } from '@/mixins/previewModeMixin';
-// Provides: isPreviewMode (computed), previewGuard(action), getPreviewButtonProps(type),
-//   handlePreviewAction(action, type), canOpenModal()
-```
+`api.js` provides CSRF injection, auth token from `tokenStorage` (async-ready over sessionStorage/native storage), retry with exponential backoff on 5xx and 429, and preview-mode detection.
 
-## Utilities (`utils/`)
+## Components
 
-| Utility | Key Exports |
-|---------|-------------|
-| `currency.js` | `formatCurrency`, `formatCurrencyWithPence`, `formatCurrencyCompact`, `parseCurrency` |
-| `dateFormatter.js` | `formatDate` (DD/MM/YYYY), `formatDateForInput` (YYYY-MM-DD), `formatDateLong`, `calculateAge`, `getRelativeTime`, `getTaxYearStart`, `getTaxYearEnd` |
-| `ownership.js` | `calculateUserShare`, `isSharedOwnership`, `OWNERSHIP_TYPES`, `getOwnershipLabel` |
-| `poller.js` | `poll`, `pollMonteCarloJob` - for long-running async operations |
-| `logger.js` | `logger.info/warn/error/debug` - development-only structured logging |
+**Views** (`views/`) are route-level: module init and data fetching, wrapped in a layout. **Components** (`components/{Module}/`) are reusable parts organised by module.
 
-## Constants (`constants/`)
+PascalCase filenames, multi-word, `name` matching the filename. Suffixes: `*Modal`, `*Chart`, `*List`, `*Card`.
 
-| File | Purpose |
-|------|---------|
-| `designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, `PRIMARY_COLORS` (Raspberry), `SECONDARY_COLORS` (Horizon), `SUCCESS_COLORS` (Spring), `WARNING_COLORS` (Violet) — aligned with `fynlaDesignGuide.md` v1.3.1 palette |
-| `eventIcons.js` | `LIFE_EVENT_ICONS` - maps event types to icon names |
-| `eventIconSvgs.js` | `EVENT_ICON_SVGS` - inline SVG components for life event icons |
-| `goalIcons.js` | `GOAL_TYPE_ICONS`, `getGoalIcon()` - maps goal types to emoji icons |
-| `taxConfig.js` | Frontend tax references (prefer backend `TaxConfigService` for calculations) |
+Standard order: `mixins: [currencyMixin, previewModeMixin]`, typed `props`, `data()` returning `{ formData, errors, loading }`, `computed` with `mapGetters`, `methods` with `mapActions`.
 
-## API Services Pattern
+**Form modals emit `save`, not `submit`** (Rule 3) — `<form @submit.prevent="handleSubmit">` then `this.$emit('save', formData)`. The parent makes the API call, closes on success and **keeps the modal open on error**.
 
-All services in `services/` are pure API wrappers with no state management:
-```javascript
-const myService = {
-  async getData() { return (await api.get('/endpoint')).data; },
-  async create(data) { return (await api.post('/endpoint', data)).data; },
-  async update(id, data) { return (await api.put(`/endpoint/${id}`, data)).data; },
-  async delete(id) { return (await api.delete(`/endpoint/${id}`)).data; },
-};
-```
+**`v-preview-disabled`** blocks interaction in preview mode: `<button v-preview-disabled="'delete'">`.
 
-The base `api.js` provides: CSRF injection, auth token from `tokenStorage` (async-ready abstraction over sessionStorage/native storage), automatic retry with exponential backoff (5xx, 429), and preview mode detection.
+## Mobile is not in this directory
 
-## Component Conventions
+`/m` is **`resources/mobile/`**, an isolated bundle with its own router, store and API client — **nothing here is shared with it, so a fix here does not reach `/m`** (Rule 19). Native iOS is `ios-native/`.
 
-**Views** (`views/`): Page-level route components. Handle module initialisation, data fetching. Use layouts.
-
-**Components** (`components/{Module}/`): Reusable sub-page parts. Organised by module.
-
-**Naming:**
-- PascalCase filenames: `TrustFormModal.vue`
-- Multi-word required (not single word)
-- Suffix patterns: `*Modal` (forms in modals), `*Chart` (charts), `*List` (lists), `*Card` (cards)
-
-**Standard component structure:**
-```vue
-<script>
-import { mapGetters, mapActions } from 'vuex';
-import { currencyMixin } from '@/mixins/currencyMixin';
-import { previewModeMixin } from '@/mixins/previewModeMixin';
-
-export default {
-  name: 'MyComponentName',  // Must match filename
-  mixins: [currencyMixin, previewModeMixin],
-  props: { /* typed, required/default */ },
-  data() { return { formData: {}, errors: {}, loading: false }; },
-  computed: { ...mapGetters('module', ['items']) },
-  methods: { ...mapActions('module', ['fetchItems']) },
-};
-</script>
-```
-
-## Directive: `v-preview-disabled`
-
-Blocks element interaction in preview mode. Adds disabled state, tooltip, and click prevention.
-```vue
-<button v-preview-disabled>Edit</button>
-<button v-preview-disabled="'add'">Add Item</button>
-<button v-preview-disabled="'delete'">Delete</button>
-```
-
-## Layouts
-
-- **AppLayout** - Authenticated pages: Navbar, PreviewBanner, content slot (`max-w-7xl`), Footer, InfoGuidePanel
-- **PublicLayout** - Public pages: navigation, login/register buttons, footer
-
-## Mobile — not in this directory
-
-The `/m` mobile SPA is **`resources/mobile/`**, an isolated bundle with its own router, store and API client. Nothing under `resources/js/` is shared with it — a fix here does not reach `/m`. The native iOS app is **`ios-native/`** (SwiftUI, see `ios-native/CLAUDE.md`). Both are covered in root `CLAUDE.md` → Mobile Clients.
-
-The only `resources/js/` file the mobile clients touch is `store/modules/auth.js` — `auth/mobileLogout` clears local state without revoking the server token. **Never call `auth/logout` from a mobile client**; it revokes the token and breaks Face ID.
+The one exception is `store/modules/auth.js`: mobile logout calls `auth/mobileLogout`, which clears local state only. **Never call `auth/logout` from a mobile client** — it revokes the server token and breaks Face ID.
