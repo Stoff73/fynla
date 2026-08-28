@@ -361,7 +361,6 @@
           v-bind="secondDeathTableProps"
           :iht-rate-label="ihtRateLabel"
           :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
-          :projected-pension-exclusion-caveat="ihtData?.projected_pension_exclusion_caveat ?? null"
           :has-spouse-linked="hasSpouseLinked"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -385,7 +384,6 @@
           v-bind="standardTableProps"
           :iht-rate-label="ihtRateLabel"
           :unmodelled-relief-caveat="ihtData?.unmodelled_relief_caveat ?? null"
-          :projected-pension-exclusion-caveat="ihtData?.projected_pension_exclusion_caveat ?? null"
           :has-spouse-linked="false"
           :show-minus-5-years="showMinus5Years"
           :show-plus-5-years="showPlus5Years"
@@ -1749,7 +1747,6 @@ export default {
               // screen no matter what the server publishes — the same defect shape
               // as W-0134 and W-0399 above.
               unmodelled_relief_caveat: response.iht_summary.current.unmodelled_relief_caveat ?? null,
-              projected_pension_exclusion_caveat: response.iht_summary.current.projected_pension_exclusion_caveat ?? null,
               rnrb_spouse_modelled: response.iht_summary.current.rnrb_spouse_modelled || 0,
               rnrb_residence_cap_reduction: response.iht_summary.current.rnrb_residence_cap_reduction || 0,
               rnrb_taper_reduction: response.iht_summary.current.rnrb_taper_reduction || 0,

@@ -360,6 +360,107 @@ class RetirementProjectionService
     }
 
     /**
+     * What is LEFT of the defined contribution fund at a given age — W-0482.
+     *
+     * The estate needs this and cannot get it from the pot value. From the configured
+     * effective date an **unused** pension fund forms part of the estate for Inheritance
+     * Tax, and "unused" is the whole of the question: the pot grown to retirement, less
+     * whatever drawdown has taken out by the modelled death date.
+     *
+     * **Why this lives here rather than in the estate engine (Rule 20).** The drawdown is
+     * already modelled, once, by `projectIncomeDrawdown()`. An estate service modelling it
+     * a second time would be two answers to one question, free to disagree — and adding
+     * the pot at today's value instead would DOUBLE COUNT, because
+     * `HouseholdCashFlowProjector` already turns that same pension into income and carries
+     * it in `projected_cash`.
+     *
+     * Three regimes, each named in the returned `basis` rather than collapsed into a
+     * number the caller has to interpret:
+     *
+     *  - **before retirement** — nothing has been drawn, so the whole projected pot is
+     *    unused. Read from the accumulation path at the 20th percentile, the same
+     *    conservative basis `projectIncomeDrawdown()` starts from.
+     *  - **inside the drawdown horizon** — the modelled `remaining_fund` at that age.
+     *  - **beyond the horizon** — the projection stops at
+     *    `retirement.projection_end_age`. A household modelled to die after it gets the
+     *    fund at the LAST modelled age, and `modelled_to_age` says so. That can only
+     *    OVERSTATE the residual, never understate it, because further drawdown would
+     *    reduce it — and overstating an Inheritance Tax liability is the safer direction:
+     *    nobody is told they owe less than they do.
+     *
+     * @return array{amount: float, basis: string, modelled_to_age: int}
+     */
+    public function unusedDcFundAtAge(User $user, int $ageAtDeath): array
+    {
+        $user->loadMissing(['dcPensions', 'dbPensions', 'statePension', 'retirementProfile']);
+
+        $pot = $this->projectPensionPot($user);
+
+        if (($pot['dc_pension_count'] ?? 0) === 0) {
+            return ['amount' => 0.0, 'basis' => 'no_pension', 'modelled_to_age' => $ageAtDeath];
+        }
+
+        $currentAge = (int) $pot['current_age'];
+        $retirementAge = (int) $pot['retirement_age'];
+
+        if ($ageAtDeath <= $currentAge) {
+            return [
+                'amount' => (float) $pot['current_value'],
+                'basis' => 'today',
+                'modelled_to_age' => $currentAge,
+            ];
+        }
+
+        if ($ageAtDeath < $retirementAge) {
+            // `year_by_year[0]` is today, so the row for an age is its distance from now.
+            $row = $pot['year_by_year'][$ageAtDeath - $currentAge] ?? null;
+
+            return [
+                'amount' => (float) ($row['percentile_20'] ?? $pot['percentile_20_at_retirement']),
+                'basis' => 'pre_retirement_growth',
+                'modelled_to_age' => $row === null ? $retirementAge : $ageAtDeath,
+            ];
+        }
+
+        // **`projectTargetIncomeDrawdown()`, not `projectIncomeDrawdown()`** — a
+        // decision, so it is stated. The latter withdraws a sustainable PERCENTAGE of
+        // whatever remains, so by construction the fund is never exhausted: every
+        // household would leave a residual in their estate, however modest their pot.
+        // The former draws what the household actually needs and stops when there is
+        // nothing left, which is the same question `HouseholdCashFlowProjector` asks of
+        // expenditure — and the two figures sit in one estate, so they must agree about
+        // whether the money was spent.
+        $drawdown = $this->projectTargetIncomeDrawdown($user, $pot);
+        $years = $drawdown['yearly_income'] ?? [];
+
+        if ($years === []) {
+            return [
+                'amount' => (float) $pot['percentile_20_at_retirement'],
+                'basis' => 'no_drawdown_modelled',
+                'modelled_to_age' => $retirementAge,
+            ];
+        }
+
+        foreach ($years as $year) {
+            if ((int) $year['age'] === $ageAtDeath) {
+                return [
+                    'amount' => (float) $year['remaining_fund'],
+                    'basis' => 'drawdown_residual',
+                    'modelled_to_age' => $ageAtDeath,
+                ];
+            }
+        }
+
+        $last = $years[count($years) - 1];
+
+        return [
+            'amount' => (float) $last['remaining_fund'],
+            'basis' => 'beyond_horizon',
+            'modelled_to_age' => (int) $last['age'],
+        ];
+    }
+
+    /**
      * Project target income drawdown - draws full target income until fund depletes.
      */
     public function projectTargetIncomeDrawdown(User $user, array $potProjection): array

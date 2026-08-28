@@ -2,10 +2,10 @@
 id: W-0482
 title: Including defined contribution pensions in the projected estate needs the unused fund at death, not today's pot
 mission: persona-run-peak_earners-2026-08-20
-branch: null
+branch: fix/w-0482-unused-pension-fund-in-projected-estate
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: review
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -57,3 +57,79 @@ horizon is not guaranteed to reach the estate projection's death age.
   exclusion as a stated assumption, which is honest but does not correct the figure.
   **The understatement is live** — roughly 40% of whatever the unused fund turns out to
   be, for every household holding a defined contribution pension.
+
+## Resolution — 2026-08-28
+
+**Acceptance 1 — done.** `IHTCalculationService::calculateProjectedValues()` adds
+`$projectedUnusedPension['amount']` to `$projectedGrossAssets`, which carries into
+`$projectedEstateForTaper` as well — the pension enlarges the taper base exactly as it
+enlarges the estate (IHTA 1984 s8D(5)(d)), the same treatment
+`calculatePensionAmendmentScenario()` already gives it. Gated on the modelled death date
+against `inheritance_tax.pension_iht_inclusion.effective_date`; a household modelled to
+die before it adds nothing.
+
+**Acceptance 2 — done, and it required a choice worth recording.**
+`RetirementProjectionService::unusedDcFundAtAge()` is the one place asked. It reads
+**`projectTargetIncomeDrawdown()`, not `projectIncomeDrawdown()`** — the item cited both
+loops (`:318` and `:436`) and they are not interchangeable:
+
+- `projectIncomeDrawdown()` withdraws a sustainable PERCENTAGE of whatever remains, so by
+  construction the fund is never exhausted. Every household would leave a residual in
+  their estate however modest their pot, and acceptance 3's "fully drawn adds nothing"
+  could not be satisfied at all.
+- `projectTargetIncomeDrawdown()` draws what the household actually needs and stops when
+  there is nothing left. That is the same question `HouseholdCashFlowProjector` asks of
+  expenditure, and the two figures sit in one estate, so they must agree about whether
+  the money was spent.
+
+**Acceptance 3 — done**, `tests/Unit/Services/Estate/ProjectedEstateCountsThePensionOnceTest.php`,
+7 tests. The double count is measured rather than asserted away: a larger pension raises
+BOTH the projected cash (it becomes income) and the unused fund (what income did not
+spend), so the test takes the cash movement out and requires what remains to equal the
+residual exactly. Adding the pot at today's value fails that. Both ends of the range are
+covered — a spent fund adds under £1 of a £20,000 pot, an undrawn one adds the whole
+grown fund at the same 20th percentile the drawdown starts from.
+
+**Acceptance 4 — done.** Three regimes are named in the returned `basis` rather than
+collapsed into a number: `pre_retirement_growth`, `drawdown_residual`, `beyond_horizon`,
+plus `no_pension`, `today`, `before_effective_date` and `not_configured`. A death modelled
+beyond `retirement.projection_end_age` takes the fund at the last modelled age and says
+so in `modelled_to_age`. **That can only overstate the residual, never understate it** —
+further drawdown would reduce it — and overstating an Inheritance Tax liability is the
+safer direction: nobody is told they owe less than they do. Stated in the docblock, not
+left to `?? 0`.
+
+**Acceptance 5 — `tax-compliance-reviewer` still to run.**
+
+**Acceptance 6 — done.** The W-0363 caveat is gone from the engine, `IHTController`,
+`IHTCalculationTable.vue` (markup and prop), `IHTPlanning.vue` (both bindings and the
+mapping) and `resources/mobile/views/ModuleDetail.vue` — Rule 19, both surfaces in the
+same change. `ProjectedPensionExclusionIsStatedTest` is replaced rather than deleted, and
+the new suite asserts the key is no longer published at all.
+
+### Found on the way — filed, not fixed here
+
+**W-0510** — the drawdown's fund never reports as depleted. `$dcDrawdown = min($dcNeeded,
+$remainingFund)` means that once need exceeds fund the balance becomes
+`$remainingFund * $growthRate` — it approaches zero and never arrives, so
+`fund_depletion_age` is always `null`, `fund_depleted` always `false`, and `years_funded`
+always the full horizon. A household is told its money lasts to 100 when the engine's own
+figures say it is spent at 64. **It does not affect this change** — the estate reads
+`remaining_fund` directly and £2.31 is correctly nothing — but it is why the test here
+asserts "under £1" rather than exactly zero.
+
+### For CSJ — a design decision, not taken here
+
+The projected estate now includes the unused fund, and **no surface shows it as its own
+row.** `projected_unused_pension` and `projected_unused_pension_basis` are published so
+one can, but adding a row to the Inheritance Tax table is a design decision and Rule 16
+says not to invent one. Worth deciding: a household's projected estate grows with this
+change and the sentence that used to explain the omission is gone.
+
+### Verification
+
+- `tests/Unit/Services/Estate` + `tests/Unit/Services/Retirement` + `tests/Feature/Estate`
+  — **620 passed, 1,971 assertions.**
+- Pint clean.
+- **NOT verified in a browser.** The frontend change is a removal on both surfaces; the
+  figure change is asserted at the engine.
