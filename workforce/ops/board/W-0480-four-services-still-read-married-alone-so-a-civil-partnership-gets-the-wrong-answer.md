@@ -117,3 +117,84 @@ note below for its verdict.
 - Pint clean.
 - **NOT verified in a browser.** These are service-layer branches with no template change;
   the user-visible movement is asserted at the figures above rather than on screen.
+
+## Gate — tax-compliance-reviewer, 2026-08-28
+
+**All four sites confirmed correct HMRC-wise, with the provisions cited**, and no
+hardcoded tax value introduced by the change. The predicate is right at each; none needs
+a narrower or wider list. Beyond the Inheritance Tax citations already in
+`HouseholdPooling`, the reviewer established the income-tax and CGT side, which this
+change also widens to civil partnerships:
+
+- Marriage Allowance — **ITA 2007 s55A(1)(a)**, "married to, **or in a civil partnership
+  with**, the other individual", in the primary Act, no SI needed.
+- Transferring income-producing assets — **ITTOIA 2005 s626(1)** (outright-gift exemption
+  from the s624 settlements charge) and **ITA 2007 s836/s837**, both expressed as
+  "civil partners of each other".
+- The CGT rationale behind that transfer — **TCGA 1992 s58**, headed "Spouses and civil
+  partners" since SI 2005/3229.
+
+`widowed` is correctly excluded from all four: there is no second life for a joint
+policy, and Marriage Allowance requires a living partner. The two tax guards are not
+redundant with `liveSpouseId()` — a widow's partner's `users` row is retained, so
+`liveSpouseId()` alone would let her through.
+
+**The gate did not pass clean. Two findings were fixed in this change rather than
+deferred:**
+
+- **F1/F5 — `LifeCoverCalculator::calculateLifeCoverRecommendations()` has NO production
+  caller.** Verified: the only references are its own definition and the new test. The
+  live life-cover path is `LifePolicyController:45`, which selects the second-death
+  Inheritance Tax basis and whether the partner's age and gender reach the premium
+  calculation. **Fixing the service alone moved no user's figure**, so this item's own
+  working note — "check `LifeCoverCalculator` first, life cover is the figure most likely
+  to be read as a protection recommendation" — was not satisfied by it. Now fixed at the
+  controller.
+- **F2 — `TrustController:201`** held the byte-identical line to the one fixed in
+  `ComprehensiveEstatePlanService`, feeding the same `calculate()` and returning
+  `iht_liability` to the client. Deferring it would have left exactly the
+  correct-figure-beside-incorrect-figure this item exists to close.
+
+Both are covered by `tests/Feature/Estate/CivilPartnershipReachesTheEstateApiTest.php`,
+which drives the HTTP endpoints — **a unit test on either service would have passed while
+the controller above it still handed down `null`**. Verified by mutation: both fail with
+the two controllers reverted.
+
+**Two more were fixed because they are in a file this change touches and the change
+widens who reaches them:**
+
+- **F10 (Rule 2)** — the Marriage Allowance saving was `$personalAllowance * 0.10 * 0.20`,
+  with the basic rate as a literal.
+- **F12** — and 10% of the personal allowance is the wrong amount: **ITA 2007 s55C(2)**
+  rounds the transferable sum UP to the nearest £10, so it is £1,260 rather than £1,257.
+  Both now come from `income_tax.marriage_allowance.amount` and `income_tax.bands.0.rate`
+  — the same configured figure the public allowances page already publishes. Covered by a
+  test that derives the expectation from config rather than pinning a year's number.
+
+**Deferred, with the reasoning recorded on the items rather than lost:**
+
+- **F3** — `WillController:80` persists `spouse_bequest_percentage = 0` for a civil
+  partnership, so closing it needs a **data remediation**, not only a code change. On
+  W-0508.
+- **F4** — the three `nrb_transferred_from_spouse` defaults. **Not to be fixed by blind
+  parity**: the `married` branch is itself wrong law (s8A brought-forward band requires
+  the first partner to have died), so copying it to civil partnerships would propagate an
+  over-claim. On W-0508 with that stated.
+- **F6** — a civil partnership **cannot be persisted to `iht_profiles` at all**: the
+  column enum and the `IHTController` validation rule both predate the status. Filed as
+  **W-0509, critical**. No grep guard finds this class of defect, which is the point.
+- **F7/F8** — the sweep's blind spots (frontend, `in:` rules, DB enums, and the fact that
+  it blesses 22 hand-written correct-today copies). Recorded on W-0508.
+- **F13** — "living together" (ITA 2007 s1011, TCGA 1992 s288(3)) is not modellable:
+  `users.marital_status` has no `separated` value, so a separated couple is still offered
+  both strategies. **Not a regression** — identical under `=== 'married'` — and IHT has no
+  living-together condition. A data-model question, not this change's.
+- **F11, F14, F15** — inline threshold fallbacks bypassing `TaxDefaults`;
+  `assessExistingPolicies` firing without a partner; the two spousal evaluators reading
+  different definitions of income. All pre-existing and direction-neutral here.
+
+**F16 — the reviewer reported the new tests failing locally with
+`Unknown table 'laravel_testing.liabilities'` and 81 failures in an untouched suite. That
+was contention, not breakage:** it ran its suites concurrently with this session's, and
+the two share `laravel_testing`. Every suite was re-run alone afterwards and is green —
+the figures under Verification above are those runs.
