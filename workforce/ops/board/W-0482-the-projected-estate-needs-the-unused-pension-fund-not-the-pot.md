@@ -224,3 +224,57 @@ OFF the 36% rate, never onto it) and F6 (`beyond_horizon` is gone with the rewri
 complement extends to any age). F11's cache fingerprint gap is real but the complement
 narrows it: the residual now depends on the pot and the credited income, both of which
 derive from `dc_pensions` rows the fingerprint already covers.
+
+## Gate — re-review of the rework, 2026-08-28: CLEARED, one item filed
+
+The `tax-compliance-reviewer` agent was dispatched and went idle twice without returning a
+verdict, so the re-review was run inline. **Verification first:** the affected suites were
+re-run alone before the review — `tests/Unit/Services/Estate tests/Feature/Estate
+tests/Unit/Services/Retirement` in ONE process, **622 passed, 1,978 assertions**. That was
+the gap the handover named.
+
+**F1 is answered — the double count is gone, including in the case F1 named.** The
+complement's series was checked against the source rather than the docblock:
+`HouseholdCashFlowProjector::pensionIncomeInTodaysMoney()` deflates `dc_annual_income` by
+`(1+i)^yearsToRetirement` and the yearly loop re-inflates by `(1+i)^year` from today, which
+is exactly `income × (1+i)^t` for `t` years since retirement. That is the series
+`unusedDcFundAtAge()` sums, term for term, off the same
+`PensionProjector::projectTotalRetirementIncome()` call. Every pound the projector credits
+to cash is subtracted exactly once. The worst case — a defined benefit pension and the
+State Pension already meeting the target, so the drawdown draws nothing — no longer
+returns the whole pot, because the subtraction does not depend on the drawdown model at
+all.
+
+**The tests can now fail.** The old identity is gone. `amount < grown_fund` and
+`credited > 0` fail the previous implementation directly, and the exhaustion case asserts
+`credited > grown_fund` with `amount === 0.0` and `basis === 'exhausted'`. *Minor, not
+blocking:* the final assertion in the first test —
+`amount ≈ max(0, grown_fund - credited)` — is still a restatement of the implementation
+and carries no independent information. The `<` assertion above it is what does the work.
+
+**Rule 2:** clean. The effective date comes from
+`taxConfig->get('inheritance_tax.pension_iht_inclusion')`, the growth rate from
+`riskService->getReturnParameters()`, the inflation rate is passed in from the estate. No
+literal is introduced.
+
+**Rule 19:** both surfaces carry the new caveat —
+`resources/js/components/Estate/IHTCalculationTable.vue`, `IHTPlanning.vue` and
+`resources/mobile/views/ModuleDetail.vue` — rendering one sentence owned by the engine
+(Rule 20). Rule 8 respected: `violet-800`. Rule 9 respected: "defined contribution" and
+"defined benefit" are spelled out, no acronym is introduced.
+
+**Caveat copy:** accurate. Death at or after 75 leaves the beneficiary paying income tax
+at their marginal rate on what they draw, and FA 2026 s70 (ITEPA 2003 s567B) is the
+enacting provision; the Inheritance Tax charge falling on the recipient rather than the
+rest of the estate is the s211 amendment. The copy is new and remains flagged for CSJ.
+
+**Filed, not blocking — W-0517.** `$grownFund` is the future value of the pot left
+untouched, so it carries the growth earned by pounds that were withdrawn; `$credited`
+removes those pounds at nominal value only. `HouseholdCashFlowProjector:171` is
+`$balance += $surplus` with no return applied, so in cash they earn nothing — the estate
+keeps growth that happened nowhere. The pound is still counted once, so this is not the
+W-0482 defect returning, but on a £500,000 pot over 20 years the residual is roughly
+double what it should be (£360,000 against £180,000, about £72,000 of Inheritance Tax).
+**It is blocked by W-0512 and must be fixed with it:** the credited series is itself a
+perpetuity struck against a fund that never shrinks, so future-valuing one half while the
+other is wrong buys false precision, not accuracy.
