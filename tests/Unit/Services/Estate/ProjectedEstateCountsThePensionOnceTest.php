@@ -68,15 +68,23 @@ function pensionHolder(int $fundValue): User
     return $user->fresh();
 }
 
-it('adds the grown fund less the income the cash projection already credited', function () {
-    // The assertion the old implementation fails. A household whose guaranteed income
-    // covers its target draws nothing in the drawdown model, so the previous version
-    // returned the WHOLE grown pot — while `projected_cash` had separately been credited
-    // 4% of that same pot every year since retirement. Here the credited income is
-    // subtracted, so the residual is strictly less than the fund.
+it('keeps no growth on the pounds the drawdown already withdrew', function () {
+    // W-0517, and the assertion the NOMINAL SUBTRACTION fails.
+    //
+    // The residual used to be `grown fund − Σ withdrawals at nominal value`. That grows
+    // the fund as though nothing had been taken out of it and then removes the
+    // withdrawals without their growth, so the estate keeps the return on pounds that
+    // were withdrawn — pounds which, once in cash, earn nothing at all
+    // (`HouseholdCashFlowProjector:171` is `$balance += $surplus`, no return applied).
+    //
+    // Carrying the fund forward year by year removes that growth with the pound, so the
+    // residual must come out STRICTLY BELOW the nominal subtraction. Anything equal to it
+    // is the old arithmetic; anything above it is worse than the old arithmetic.
     $user = pensionHolder(500_000);
 
-    // A defined benefit pension large enough that the drawdown model would draw nothing.
+    // A defined benefit pension large enough that a target-income model would draw
+    // nothing from the pot — the shape that made the first version of this figure carry
+    // the whole grown fund.
     DBPension::factory()->create([
         'user_id' => $user->id,
         'accrued_annual_pension' => 60_000,
@@ -88,19 +96,25 @@ it('adds the grown fund less the income the cash projection already credited', f
 
     $residual = $projection->unusedDcFundAtAge($user->fresh(), (int) $pot['retirement_age'] + 15, $inflation);
 
+    $nominalSubtraction = max(0.0, $residual['grown_fund'] - $residual['credited']);
+
     expect($residual['credited'])->toBeGreaterThan(0.0)
         ->and($residual['grown_fund'])->toBeGreaterThan(0.0)
+        // Still less than the untouched fund — the W-0482 property, which must not regress.
         ->and($residual['amount'])->toBeLessThan($residual['grown_fund'])
-        // A delta, not an identity: these are floats off a compounding loop, and an exact
-        // comparison fails by one unit in the last place depending on what ran before it.
-        // A penny is the resolution that matters for money.
-        ->and($residual['amount'])
-        ->toEqualWithDelta(max(0.0, $residual['grown_fund'] - $residual['credited']), 0.01);
+        // And less than the old subtraction, which is the W-0517 property.
+        ->and($residual['amount'])->toBeLessThan($nominalSubtraction)
+        ->and($residual['basis'])->toBe('fund_remaining_after_drawdown');
 });
 
-it('adds nothing once the credited income has exhausted the fund', function () {
-    // Far enough past retirement that the income already counted in cash exceeds the
-    // fund it came from. The estate adds nothing rather than a negative, and says so.
+it('adds nothing once the drawdown has emptied the fund', function () {
+    // Far enough past retirement that the withdrawals have exhausted the pot. The estate
+    // adds nothing rather than a negative, and says so.
+    //
+    // W-0512 — `credited` is no longer allowed to exceed what the fund could pay. Under
+    // the perpetuity it could, and did: the cash flow was credited an income the pension
+    // did not hold. Here it is capped by the fund, so the meaningful assertion is that
+    // the withdrawals stopped, not that they overran.
     $user = pensionHolder(400_000);
     $projection = app(RetirementProjectionService::class);
     $inflation = (float) app(AssumptionsService::class)->getEstateAssumptions($user)['inflation_rate'] / 100;
@@ -108,9 +122,21 @@ it('adds nothing once the credited income has exhausted the fund', function () {
 
     $residual = $projection->unusedDcFundAtAge($user, (int) $pot['retirement_age'] + 45, $inflation);
 
-    expect($residual['credited'])->toBeGreaterThan($residual['grown_fund'])
-        ->and($residual['amount'])->toBe(0.0)
-        ->and($residual['basis'])->toBe('exhausted');
+    $drawdown = $projection->projectSafeWithdrawalDrawdown(
+        $user,
+        $pot,
+        $inflation,
+        (int) $pot['retirement_age'] + 45,
+    );
+
+    expect($residual['amount'])->toBe(0.0)
+        ->and($residual['basis'])->toBe('exhausted')
+        // The fund ran out at a modelled age rather than paying on for ever.
+        ->and($drawdown['depletion_age'])->not->toBeNull()
+        ->and($drawdown['depletion_age'])->toBeLessThanOrEqual((int) $pot['retirement_age'] + 45)
+        // And the perpetuity is gone: the household was never credited more than the
+        // pension held.
+        ->and($residual['credited'])->toBeLessThanOrEqual($residual['grown_fund']);
 });
 
 it('adds the whole projected pot for a death before any income is credited', function () {
