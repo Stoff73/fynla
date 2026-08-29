@@ -229,6 +229,49 @@
                   placeholder="0.00"
                 />
               </div>
+
+              <!--
+                W-0204 — asked only of a user who sacrifices, because only then does
+                the answer change a figure. FA 2004 s228ZA(3) adds the pay given up
+                back to Threshold Income, and that is what decides whether the Annual
+                Allowance tapers. Without knowing which figure was entered, the
+                arithmetic had to assume, and assuming moves someone's taper position
+                on a guess. `pension_arrangement` is published by the same service
+                that needs the answer, so nothing new is plumbed to ask this.
+              -->
+              <div v-if="incomeDefinitions?.pension_arrangement === 'salary_sacrifice'" class="mt-3">
+                <p class="text-body-sm font-medium text-neutral-500 mb-1">
+                  Is that figure before or after the pay you give up?
+                </p>
+                <p class="text-xs text-neutral-500 mb-2">
+                  You use salary sacrifice, so we need to know which figure you entered.
+                  It decides whether your Annual Allowance is reduced.
+                </p>
+                <div class="space-y-1">
+                  <label class="flex items-center">
+                    <input
+                      v-model="form.employment_income_basis"
+                      type="radio"
+                      value="gross"
+                      class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300"
+                    />
+                    <span class="ml-2 text-body-sm text-neutral-500">
+                      Before &mdash; my full salary, including the pay I give up
+                    </span>
+                  </label>
+                  <label class="flex items-center">
+                    <input
+                      v-model="form.employment_income_basis"
+                      type="radio"
+                      value="post_sacrifice"
+                      class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300"
+                    />
+                    <span class="ml-2 text-body-sm text-neutral-500">
+                      After &mdash; what actually reaches my payslip
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <!-- Annual Self-Employment Income -->
@@ -617,6 +660,8 @@ export default {
           annual_trust_income: Number(incomeOccupation.value.annual_trust_income) || 0,
           annual_other_income: Number(incomeOccupation.value.annual_other_income) || 0,
           is_registered_blind: incomeOccupation.value.is_registered_blind || false,
+          // W-0204 — null until asked, and null is not the same as either answer.
+          employment_income_basis: incomeOccupation.value.employment_income_basis || null,
         };
       }
     };
@@ -652,6 +697,9 @@ export default {
           annual_other_income: form.value.annual_other_income || 0,
           // Registered blind
           is_registered_blind: form.value.is_registered_blind || false,
+          // W-0204 — sent as null when unanswered rather than defaulted, so the
+          // service can say it assumed rather than pretend it was told.
+          employment_income_basis: form.value.employment_income_basis || null,
           // Clear the income needs update flag since user is updating their income
           income_needs_update: false,
           previous_employment_status: null,

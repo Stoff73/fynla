@@ -2,9 +2,9 @@
 id: W-0204
 title: Salary sacrifice is not added back to threshold income, and nothing records whether the entered employment income is the pre- or post-sacrifice figure — so the deduction is wrong either way, and which way cannot be determined from the data
 mission: persona-run-peak_earners-2026-08-20
-branch: branches/fixes/F-0020-cycle2-auditability-figures-the-user-cannot-check.md
+branch: fix/w-0204-salary-sacrifice-add-back-to-threshold-income
 owner: null
-status: queued
+status: in_review
 severity: high
 surfaces: [web]
 created: 2026-08-22T07:25:00Z
@@ -145,3 +145,64 @@ is an under-stated tax charge, not a cosmetic one.
   defect, reasoning from policy that net-pay contributions must also be added back to
   threshold income. They are added back to **adjusted** income under s228ZA(4), not to
   threshold. legislation.gov.uk and PTM057100 agree against that reading.
+
+## Resolution — 2026-08-29
+
+**Acceptance 1 — CSJ decided on 2026-08-28: ask, do not assume.**
+`users.employment_income_basis` is `enum('gross','post_sacrifice')`, nullable, and null
+means *not asked* rather than a default. It is put to a sacrificing user under the
+Employment Income field itself, keyed off `pension_arrangement` — already published by the
+service that needs the answer, so nothing new is plumbed to ask it. There was no legacy
+data to migrate: `dc_pensions.salary_sacrifice` was null on every row, so no user's figures
+move on the day this lands.
+
+Where the question is unanswered the stated assumption is `gross`, published as
+`assumed_gross` so it can be named rather than applied silently. The panel says so and asks.
+
+**The ambiguity turns out to move net income, not the taper decision — and that is the
+important finding.** The basis is applied *before* any definition is struck: if the recorded
+figure is the pre-sacrifice one, the sacrificed pay comes out to reach what the user
+actually earns; if it is the post-sacrifice figure it was never in. Either way the same
+threshold income comes out the other side. `it reaches the same threshold income whichever
+basis the user recorded` pins that with one person described two ways — £210,000 gross and
+£193,200 post-sacrifice, landing on £210,000 of threshold income both times. **So the taper
+decision never turns on the guess**, which is what the 2026-08-25 note suspected and this
+now demonstrates.
+
+**Acceptance 2 — the arithmetic.**
+
+- **s228ZA(3) add-back applied.** `$thresholdIncome = $totalIncome − netPayEmployee +
+  $sacrificed`.
+- **Sacrificed pay is the employer's contribution, not the employee's.** It is removed from
+  the employee total entirely — it was never a s24 relief, because the pay was given up
+  before it was earned — and added to the employer figure, so it reaches adjusted income
+  where the statute counts it.
+- `getPensionContributions()` returns `sacrificed` as its own figure, and the deductions
+  block publishes `salary_sacrificed` separately from the employer total it now sits inside,
+  because it is the figure added back and the reader has to be able to find it.
+
+**Acceptance 3 — the panel copy.** The old sentence ("the pay you give up is not added back
+here") was written to be truthful about a gap. It now describes the treatment applied, and
+takes a second form when the basis was assumed, which asks for the answer.
+
+**Acceptance 4 — the tests.** Six, in
+`tests/Unit/Services/Tax/SalarySacrificeReachesThresholdIncomeTest`, including the taper
+DECISION at the £200,000 / £260,000 gates rather than only the figure, and a net-pay
+control. **Mutation-verified:** removing the add-back turns three of the six red.
+
+`IncomeDefinitionsServiceTest`'s `names salary sacrifice where a workplace pension uses it`
+pinned the W-0189 interim — "naming it does NOT change the figures". It now asserts the
+opposite, deliberately, and says why at the line.
+
+**Acceptance 5 — Rule 19.** Confirmed rather than assumed. There is no Income Definitions
+panel on `/m` or native, but **every consumer of the service is shared**
+(`AnnualAllowanceChecker`, `TaxStrategyMath`, `TaperedAnnualAllowanceStrategy`,
+`ChildBenefitService`), so the Annual Allowance figures those surfaces show are corrected by
+the same change. The question itself is only asked on web, which is the only surface with an
+Employment Income field to ask it beside.
+
+## Not fixed here
+
+The question is asked on the web profile form. **Fyn's `capture_salary_sacrifice` tool does
+not yet ask it**, so a user who declares sacrifice through Fyn gets `assumed_gross` until
+they visit the profile. Filed as W-0518 rather than carried silently.

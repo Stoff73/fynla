@@ -51,6 +51,22 @@ class IncomeDefinitionsService
         // arithmetic fix belongs to its own item with its own figures.
         $pensionRelief = $pensionContributions['employee'];
         $giftAidGross = $this->calculateGiftAidGrossUp($user);
+
+        // W-0204 — resolve what the recorded employment income actually is before any
+        // definition is struck on it. Sacrificed pay is never the employee's income, so
+        // if the recorded figure is the PRE-sacrifice one it has to come out here; if it
+        // is the post-sacrifice figure it was never in. `null` means the user has not
+        // been asked, and `gross` is the stated assumption for that case — named in
+        // `employment_income_basis` below rather than applied silently.
+        $sacrificed = $pensionContributions['sacrificed'];
+        $basis = $sacrificed > 0
+            ? ($user->employment_income_basis ?? 'gross')
+            : null;
+
+        if ($basis === 'gross') {
+            $totalIncome = max(0.0, $totalIncome - $sacrificed);
+        }
+
         $netIncome = $totalIncome - $pensionRelief;
 
         // 3. Adjusted Net Income (ITA 2007 s58) — drives the Personal Allowance
@@ -80,7 +96,20 @@ class IncomeDefinitionsService
         // contributions, the two definitions genuinely land on the same figure.
         // What still distinguishes a Gift Aid donor's definitions is adjusted net
         // income against threshold income, not net income against it.
-        $thresholdIncome = $totalIncome - $pensionContributions['employee'];
+        //
+        // **W-0204 — the salary sacrifice add-back, FA 2004 s228ZA(3).** Pay given up
+        // under an arrangement made on or after 9 July 2015 goes back on, and the
+        // add-back exists precisely so sacrifice cannot be used to duck the tapered
+        // Annual Allowance. Without it a sacrificing earner was told their Annual
+        // Allowance was £60,000 where the statute gives £56,750 — an overstated
+        // allowance invites a contribution that triggers an unexpected charge, which is
+        // the bad direction to be wrong in.
+        //
+        // `$totalIncome` is now the post-sacrifice figure whichever way the user
+        // recorded it (see the basis resolution above), so the two readings converge
+        // here rather than giving two different thresholds. That is what made the
+        // ambiguity survivable: it changes net income, not this.
+        $thresholdIncome = $totalIncome - $pensionContributions['employee'] + $sacrificed;
 
         // 5. Adjusted Income (FA 2004 s228ZA) — total income plus employer
         // contributions (equivalently threshold income plus both the employee
@@ -107,12 +136,25 @@ class IncomeDefinitionsService
             // so the panel can name it instead of the reader having to guess why
             // £11,600 is deducted once rather than at both steps that mention it.
             'pension_arrangement' => $pensionContributions['arrangement'],
+            // W-0204 — which reading of `annual_employment_income` was applied, so the
+            // panel can say it and ask for it. Null when the user does not sacrifice and
+            // the question does not arise; `assumed_gross` when they do and have not
+            // answered it.
+            'employment_income_basis' => match (true) {
+                $basis === null => null,
+                $user->employment_income_basis === null => 'assumed_gross',
+                default => $basis,
+            },
             'deductions' => [
                 'pension_relief' => round($pensionRelief, 2),
                 'gift_aid_gross' => round($giftAidGross, 2),
                 'blind_persons_allowance' => round($bpa, 2),
                 'employee_pension_contributions' => round($pensionContributions['employee'], 2),
                 'employer_pension_contributions' => round($pensionContributions['employer'], 2),
+                // W-0204 — named separately from the employer total it now sits inside,
+                // because it is the figure added back at s228ZA(3) and the reader has to
+                // be able to find it.
+                'salary_sacrificed' => $sacrificed,
             ],
             'adjusted_allowances' => $adjustedAllowances,
         ];
@@ -175,40 +217,58 @@ class IncomeDefinitionsService
      *                 pension is flagged as salary sacrifice, and the application
      *                 has no relief-at-source flag, so net pay is the treatment.
      *   * `salary_sacrifice` — at least one workplace pension is flagged as salary
-     *                 sacrifice. The deduction is UNCHANGED: the sacrificed pay is
-     *                 not added back to threshold income under FA 2004 s228ZA(3),
-     *                 because nothing records whether `annual_employment_income` is
-     *                 the pre- or post-sacrifice figure, and assuming one would move
-     *                 a user's taper position on a guess. The panel names the
-     *                 arrangement rather than claiming a treatment that was applied.
+     *                 sacrifice. **W-0204: the sacrificed pay is now added back to
+     *                 threshold income under FA 2004 s228ZA(3), and counted as an
+     *                 employer contribution rather than an employee one**, which is
+     *                 what it legally is — the pay was given up before it was earned.
+     *                 It is not deducted as employee relief at all.
      *
-     * @return array{employee: float, employer: float, arrangement: string}
+     *                 The pre/post-sacrifice ambiguity that blocked this is resolved by
+     *                 `users.employment_income_basis`, asked of a sacrificing user. Where
+     *                 it is unanswered the stated assumption is `gross`, published as
+     *                 `assumed_gross` so the panel can say so. **The assumption changes
+     *                 net income, not threshold income**: the basis is applied before any
+     *                 definition is struck, so both readings converge on one threshold
+     *                 figure and the taper decision does not turn on the guess.
+     *
+     * @return array{employee: float, employer: float, sacrificed: float, arrangement: string}
      */
     private function getPensionContributions(User $user): array
     {
         $employee = 0.0;
         $employer = 0.0;
-        $sacrifices = false;
+        $sacrificed = 0.0;
 
         foreach ($user->dcPensions as $pension) {
             $salary = (float) ($pension->annual_salary ?? 0);
             $contribution = $salary * ((float) ($pension->employee_contribution_percent ?? 0) / 100);
-            $employee += $contribution;
             $employer += $salary * ((float) ($pension->employer_contribution_percent ?? 0) / 100);
 
+            // W-0204 — under salary sacrifice the pay is given up before it is ever
+            // earned, so the contribution is legally the EMPLOYER'S. Keeping it in the
+            // employee total made it a s24 relief against income the user never
+            // received, and left nothing to add back at s228ZA(3).
             if ($contribution > 0 && $pension->salary_sacrifice) {
-                $sacrifices = true;
+                $sacrificed += $contribution;
+
+                continue;
             }
+
+            $employee += $contribution;
         }
 
         $employee = round($employee, 2);
+        $sacrificed = round($sacrificed, 2);
 
         return [
             'employee' => $employee,
-            'employer' => round($employer, 2),
+            // The sacrificed pay is an employer contribution for every purpose that
+            // counts one, adjusted income included.
+            'employer' => round($employer + $sacrificed, 2),
+            'sacrificed' => $sacrificed,
             'arrangement' => match (true) {
+                $sacrificed > 0 => 'salary_sacrifice',
                 $employee <= 0 => 'none',
-                $sacrifices => 'salary_sacrifice',
                 default => 'net_pay',
             },
         ];

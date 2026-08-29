@@ -30,6 +30,10 @@ class UpdateIncomeOccupationRequest extends FormRequest
             'target_retirement_age' => ['sometimes', 'nullable', 'integer', 'min:30', 'max:100'],
             'retirement_date' => ['sometimes', 'nullable', 'date'],
             'annual_employment_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            // W-0204 — is the figure above before or after pay given up under salary
+            // sacrifice? Asked only of a sacrificing user; null means not asked, which
+            // is not the same as either answer.
+            'employment_income_basis' => ['sometimes', 'nullable', Rule::in(['gross', 'post_sacrifice'])],
             'annual_self_employment_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'annual_rental_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'annual_dividend_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
