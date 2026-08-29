@@ -717,14 +717,14 @@ export default {
         try {
           const response = await api.get('/tax/income-definitions');
           incomeDefinitions.value = response.data.data;
-        } catch (defError) {
+        } catch {
           // Silently fail - income definitions are supplementary
         }
 
         // Trigger protection analysis refresh if user has protection module data
         try {
           await store.dispatch('protection/fetchProtectionData');
-        } catch (protectionError) {
+        } catch {
           // Silently fail - user might not have protection module set up yet
         }
 
