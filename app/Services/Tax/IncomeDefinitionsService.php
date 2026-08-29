@@ -39,16 +39,12 @@ class IncomeDefinitionsService
         // already right; only this intermediate carried a statute's name for
         // another statute's number.
         //
-        // **The Blind Person's Allowance is NOT a s58 deduction** — corrected by
-        // tax-compliance-reviewer, 2026-08-25. s58 has four steps and none of them
-        // is the BPA: it is an s38 allowance deducted at s23 **Step 3**, downstream
-        // of net income, so it cannot reduce adjusted net income by construction.
-        // This service nonetheless subtracts it below, which is a live money defect
-        // (see W-0485) — `UKTaxCalculator:720` computes ANI without it and gets the
-        // right answer, so the application currently holds two contradictory
-        // answers. It is deliberately NOT corrected here: W-0205's acceptance 3
-        // requires adjusted net income to be unchanged by that item, so the
-        // arithmetic fix belongs to its own item with its own figures.
+        // **The Blind Person's Allowance is NOT a s58 deduction** — corrected in the
+        // arithmetic by W-0485, having been corrected in the words by W-0205. s58 has
+        // four steps and none of them is the BPA: it is an s38 allowance deducted at
+        // s23 **Step 3**, downstream of net income, so it cannot reduce adjusted net
+        // income by construction. It is still computed here, because the allowance is
+        // real and the panel names it — it simply is not deducted on the way to s58.
         $pensionRelief = $pensionContributions['employee'];
         $giftAidGross = $this->calculateGiftAidGrossUp($user);
 
@@ -70,12 +66,29 @@ class IncomeDefinitionsService
         $netIncome = $totalIncome - $pensionRelief;
 
         // 3. Adjusted Net Income (ITA 2007 s58) — drives the Personal Allowance
-        // taper. Net income less the grossed-up Gift Aid donation and the Blind
-        // Person's Allowance. Its value is unchanged by W-0205: the donation was
-        // always deducted exactly once on the way here, and still is — what moved
-        // is which step it is attributed to.
-        $bpa = $user->is_registered_blind ? $this->taxConfig->getBlindPersonsAllowance() : 0.0;
-        $adjustedNetIncome = $netIncome - $giftAidGross - $bpa;
+        // taper and the High Income Child Benefit Charge. Net income less the
+        // grossed-up Gift Aid donation, and **nothing else**.
+        //
+        // W-0485. This used to subtract the Blind Person's Allowance too, and it was
+        // two live money errors, not a presentational one. A registered-blind user on
+        // £110,000 was shown a Personal Allowance of £9,195 where £7,570 is correct;
+        // one on £63,000 had their adjusted net income pushed to £59,750 and the High
+        // Income Child Benefit Charge suppressed entirely.
+        //
+        // **`UKTaxCalculator` has always computed this without the BPA** (see
+        // `calculateIncomeTaxWithDividends()`), so the application held two
+        // contradictory answers to one statutory question and `ChildBenefitService`'s
+        // docblock asserted they agreed. `BlindPersonsAllowanceIsNotASection58DeductionTest`
+        // now requires the agreement rather than claiming it, by constructing the
+        // calculator and reading the Personal Allowance it publishes.
+        //
+        // It survived because the persona suite has no registered-blind household, so
+        // every test built on the personas is blind to this axis. There is a fixture
+        // now.
+        // W-0511 — one place answers the entitlement question, and the tax calculator
+        // reads the same one. The panel below shows this figure; the calculator gives it.
+        $bpa = $this->taxConfig->blindPersonsAllowanceFor($user);
+        $adjustedNetIncome = $netIncome - $giftAidGross;
 
         // 4. Threshold Income (FA 2004 s228ZA) — total income less net-pay
         // employee contributions only, deducted once. Gift Aid and the Blind
@@ -148,6 +161,10 @@ class IncomeDefinitionsService
             'deductions' => [
                 'pension_relief' => round($pensionRelief, 2),
                 'gift_aid_gross' => round($giftAidGross, 2),
+                // W-0485 — published beside the s58 deductions but NOT one of them.
+                // It is an s38 allowance applied at s23 Step 3, after adjusted net
+                // income has already been struck. The panel renders it outside the
+                // adjusted-net-income block for that reason.
                 'blind_persons_allowance' => round($bpa, 2),
                 'employee_pension_contributions' => round($pensionContributions['employee'], 2),
                 'employer_pension_contributions' => round($pensionContributions['employer'], 2),

@@ -320,7 +320,10 @@ class CoverageGapAnalyzer
             (float) ($user->annual_self_employment_income ?? 0),
             0, // Rental income calculated separately
             0, // Dividend income calculated separately
-            (float) ($user->annual_other_income ?? 0)
+            (float) ($user->annual_other_income ?? 0),
+            // W-0511 — the allowance the household is entitled to, from the one place
+            // that answers the entitlement question.
+            blindPersonsAllowance: $this->taxConfig->blindPersonsAllowanceFor($user)
         );
 
         $userGrossIncome = $userTaxCalculation['gross_income'];
@@ -357,7 +360,9 @@ class CoverageGapAnalyzer
                         $spouseSelfEmploymentIncome,
                         0, // Rental income calculated separately
                         0, // Dividend income calculated separately
-                        $spouseOtherIncome
+                        $spouseOtherIncome,
+                        // W-0511 — the spouse's own entitlement, not the user's.
+                        blindPersonsAllowance: $this->taxConfig->blindPersonsAllowanceFor($spouse)
                     );
 
                     $spouseGrossIncome = $spouseTaxCalc['gross_income'];

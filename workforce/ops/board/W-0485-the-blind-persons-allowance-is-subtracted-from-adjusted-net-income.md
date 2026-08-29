@@ -3,7 +3,7 @@ id: W-0485
 title: The Blind Person's Allowance is subtracted from adjusted net income, which ITA 2007 s58 does not do — and the app holds two contradictory answers
 mission: M-0002-persona-fidelity
 owner: null
-status: queued
+status: review
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-25T16:00:00Z
@@ -83,3 +83,111 @@ pointed here.
   claim that the BPA is a s58 deduction appears **five times** in the codebase; W-0205
   added three of them, including a test comment reading "Both are s58 deductions."
   Those three are corrected; the arithmetic and the two pre-existing claims are not.
+
+## Resolution — 2026-08-28
+
+**Acceptance 1 — done.** `IncomeDefinitionsService:75` —
+`$adjustedNetIncome = $netIncome - $giftAidGross;`. The Blind Person's Allowance is still
+computed and still published under `deductions.blind_persons_allowance`, because the
+allowance is real and the panel names it; it is simply not deducted on the way to s58.
+
+**Acceptance 2 — done.** `UKTaxCalculator::calculateDetailedNetIncome()` tapers from total
+income less net-pay pension relief through `IncomeTaxBands::taperedPersonalAllowance()`,
+and has never deducted the allowance. `BlindPersonsAllowanceIsNotASection58DeductionTest`
+asserts the definitions service lands on the same adjusted net income AND that the shared
+taper helper turns it into the same Personal Allowance — the agreement is now required
+rather than asserted in prose.
+
+**Acceptance 3 — done.** `ChildBenefitService::calculateAdjustedNetIncome()`'s docblock
+listed the allowance among the s58 deductions and claimed the two services matched. Both
+statements are replaced with what is now true, and with a pointer to the test that holds
+them to it.
+
+**Acceptance 4 — done, both figures re-measured:**
+
+| Case | Was | Now |
+|---|---|---|
+| Registered-blind, £110,000 | Personal Allowance **£9,195** (ANI pulled to £106,750) | **£7,570** |
+| Registered-blind, £63,000, one child on Child Benefit | no charge (ANI pulled to £59,750) | charge applies |
+
+**Verified by mutation:** with only `IncomeDefinitionsService` reverted, all four tests
+fail; restored, all four pass.
+
+**Acceptance 5 — done.** `registeredBlindUser()` in the new suite is the fixture, kept
+deliberately plain — one income source, no donations, no pension — so the only thing
+distinguishing it from any other user is the axis under test. The item's diagnosis was
+right: the defect survived because no persona has this axis.
+
+**Acceptance 6 — done.** `IncomeDefinitionsPanel.vue` no longer prints the allowance as a
+deduction inside the adjusted-net-income block. It sits below the Adjusted Net Income line
+with the note "An allowance against the income you are taxed on. It does not change your
+Adjusted Net Income." **The position is what the new component tests assert** — a test
+that only checked the row renders would pass just as well with it back above the line.
+
+**Acceptance 7 — `tax-compliance-reviewer` still to run.**
+
+### Rule 19
+
+The item lists `[web, m, ios]`. **There is no `/m` or native counterpart to this panel** —
+`resources/mobile/` contains no reference to `blind_persons_allowance` or the income
+definitions. The arithmetic is shared by architecture, so both surfaces get the corrected
+figure; only the desktop panel has a row to move.
+
+### Verification
+
+- `tests/Unit/Services/Tax` + `tests/Feature/Tax` + `tests/Unit/Services/Benefits` —
+  **236 passed, 680 assertions.**
+- Vitest on `IncomeDefinitionsPanel` — **13 passed**, including three new position tests.
+- Pint clean.
+- **NOT verified in a browser.**
+
+### The question this change raised, and its answer — W-0511
+
+If the allowance is no longer deducted at s58, **where is it given?** Sweeping every
+consumer of `is_registered_blind` and `blind_persons_allowance`:
+
+- a cast, a resource field, a validation rule, an onboarding capture
+- `TaxConfigService::getBlindPersonsAllowance()`, whose only caller was the line removed here
+- an admin screen that lets the rate be edited
+- the income panel, which prints the amount
+
+**Nothing computes tax with it.** `UKTaxCalculator` has never heard of it. The app asks
+whether the user is registered blind, stores it, publishes it, maintains the rate and
+prints it — then taxes them as though they had no allowance. Filed as **W-0511**, high:
+the under-relief is £650 at the basic rate, £1,300 at higher and £1,462.50 at additional,
+every year.
+
+**This item did not cause that and does not fix it**, but the two interact and it should
+be said plainly: **W-0485 alone moves a registered-blind user's computed tax UP.** They
+lose the unearned Personal Allowance uplift (about £650 at £110,000) and still get no
+allowance. That is a defensible interim — the Personal Allowance and the Child Benefit
+charge become correct, which is what this item was raised for — but it is not the whole
+answer, and CSJ may want the two to ship together.
+
+## Gate findings closed — 2026-08-28
+
+The three findings the tax-compliance gate left open on PR #741, and the decision that
+unblocked it.
+
+**F4 — both docblocks cited a test that does not exist.** `IncomeDefinitionsService:65` and
+`ChildBenefitService:215` named `AdjustedNetIncomeAgreesAcrossServicesTest`. Acceptance 3
+existed because a docblock asserted something untrue, and its replacement asserted a
+different untrue thing. Both now name
+`BlindPersonsAllowanceIsNotASection58DeductionTest`, which is the file that holds them.
+
+**F2 — the cross-service test never constructed the calculator.** It asserted against
+`$calculatorBase = 110000.00`, a hand-written literal, which agrees just as happily with a
+service that has stopped running. `calculateDetailedNetIncome()` now publishes
+`personal_allowance` and `blind_persons_allowance` in its summary, and the test constructs
+`UKTaxCalculator`, reads them, and holds the two services to the same two figures. Neither
+side of the comparison is a literal.
+
+**F1(b) — the panel copy resolved itself.** "Blind Person's Allowance (applied to taxable
+income)" was statutorily true and false about this application, because nothing applied it.
+The gate said not to soften it: the copy was right and the behaviour was missing. W-0511
+supplies the behaviour, so the copy is now true of the app as well as the statute.
+
+**The blocker — CSJ decided W-0511 ships alongside** (2026-08-28). Merging this alone moved
+a registered-blind user's computed tax UP: they lost the unearned Personal Allowance uplift,
+worth about £650 at £110,000, and got no allowance in its place. The two land together, so
+no household passes through that state. See [[W-0511-the-blind-persons-allowance-is-never-actually-given]].

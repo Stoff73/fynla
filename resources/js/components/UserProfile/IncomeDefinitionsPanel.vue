@@ -41,23 +41,19 @@
       of the reliefs ITA 2007 s24 lists, so it does not reduce net income — a
       donation extends the basic rate band instead. It belongs here, at s58.
 
-      The Blind Person's Allowance is rendered in the same block but is NOT a s58
-      deduction (corrected 2026-08-25): it is an s38 allowance deducted at s23
-      Step 3, downstream of net income. The service subtracts it from adjusted net
-      income anyway, which is a live defect tracked as W-0485 — this panel prints
-      what the service computes, and the row moves when that is fixed.
-
       The donation is deducted exactly once either
       way; what changed is which line it is deducted at, and therefore what the
       Net Income figure above is.
+
+      W-0485. The Blind Person's Allowance used to be rendered in this block, and
+      subtracted here, and it is neither a s58 deduction nor deducted any more. It
+      is an s38 allowance applied at s23 Step 3 — AFTER adjusted net income has
+      been struck — so it now sits below the Adjusted Net Income line, where the
+      order on the page matches the order in the statute.
     -->
     <div v-if="definitions.deductions.gift_aid_gross > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
       <span>Less Gift Aid (grossed up)</span>
       <span>-{{ formatCurrency(definitions.deductions.gift_aid_gross) }}</span>
-    </div>
-    <div v-if="definitions.deductions.blind_persons_allowance > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
-      <span>Less Blind Person's Allowance</span>
-      <span>-{{ formatCurrency(definitions.deductions.blind_persons_allowance) }}</span>
     </div>
 
     <!-- Adjusted Net Income -->
@@ -68,7 +64,22 @@
       </div>
     </div>
 
-    <p class="text-xs text-neutral-500 mb-6">Used to work out your Personal Allowance.</p>
+    <p class="text-xs text-neutral-500 mb-2">Used to work out your Personal Allowance.</p>
+
+    <!--
+      W-0485 — below the line, not above it. The Blind Person's Allowance is an
+      ITA 2007 s38 allowance given at s23 Step 3, so it reduces the income that is
+      taxed, not the adjusted net income that decides the Personal Allowance taper
+      and the High Income Child Benefit Charge.
+    -->
+    <div v-if="definitions.deductions.blind_persons_allowance > 0" class="flex justify-between text-body-sm text-neutral-500 mb-1">
+      <span>Blind Person's Allowance (applied to taxable income)</span>
+      <span>{{ formatCurrency(definitions.deductions.blind_persons_allowance) }}</span>
+    </div>
+    <p v-if="definitions.deductions.blind_persons_allowance > 0" class="text-xs text-neutral-500 mb-6">
+      An allowance against the income you are taxed on. It does not change your Adjusted Net Income.
+    </p>
+    <div v-else class="mb-4"></div>
 
     <!--
       W-0189. Threshold Income and Adjusted Income are NOT the next two steps of the

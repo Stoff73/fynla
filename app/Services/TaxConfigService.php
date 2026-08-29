@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Constants\TaxDefaults;
+use App\Models\User;
 use App\Services\Stores\TaxConfigStore;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
@@ -524,10 +525,36 @@ class TaxConfigService
 
     /**
      * Get the Blind Person's Allowance for the active tax year.
+     *
+     * W-0511 — the `?? 2870` fallback that used to sit here was a stale year's figure,
+     * so an unconfigured year silently granted the wrong allowance rather than showing
+     * a gap. It was also a hardcoded tax value (Rule 2). Zero is the honest answer to
+     * "this year does not configure one": it under-grants visibly instead of
+     * over-granting invisibly, and every seeded year sets the key.
      */
     public function getBlindPersonsAllowance(): float
     {
-        return (float) ($this->get('income_tax.blind_persons_allowance') ?? 2870);
+        return (float) ($this->get('income_tax.blind_persons_allowance') ?? 0);
+    }
+
+    /**
+     * The Blind Person's Allowance this user is entitled to — W-0511.
+     *
+     * The one place the entitlement question is answered, so the five services that
+     * compute somebody's income tax cannot drift apart on it. ITA 2007 s38 gives the
+     * allowance to a person registered as severely sight impaired; `is_registered_blind`
+     * is what the app records, captured at onboarding and editable on the profile.
+     *
+     * **Surplus is not transferred to a spouse or civil partner.** ITA 2007 s39 allows
+     * it where the claimant's own income cannot absorb the allowance, and this does not
+     * model it — a deliberate omission stated at the line rather than left to be
+     * discovered. It under-relieves only the household whose registered-blind member has
+     * income below the allowance, and modelling it needs a spouse's computation this
+     * method has no access to.
+     */
+    public function blindPersonsAllowanceFor(?User $user): float
+    {
+        return $user?->is_registered_blind ? $this->getBlindPersonsAllowance() : 0.0;
     }
 
     /**

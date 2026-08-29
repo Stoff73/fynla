@@ -207,9 +207,12 @@ class ChildBenefitService
      * Calculate adjusted net income for HICBC purposes.
      *
      * Delegates to IncomeDefinitionsService which computes ANI per HMRC ITA 2007 s58:
-     * total income − gross employee pension contributions − grossed-up Gift Aid
-     * − Blind Person's Allowance. This is the same ANI value used by the PA-taper
-     * calculation in UKTaxCalculator, ensuring consistency across the engine.
+     * total income − gross employee pension contributions − grossed-up Gift Aid.
+     *
+     * **The Blind Person's Allowance is not among them** (W-0485). This docblock used
+     * to list it, and to assert that this figure matched `UKTaxCalculator`'s — an
+     * agreement that did not exist, because that service never deducted the BPA. It
+     * does now, and `BlindPersonsAllowanceIsNotASection58DeductionTest` holds them to it.
      */
     private function calculateAdjustedNetIncome(User $user): float
     {
