@@ -56,12 +56,22 @@ function pensionHolder(int $fundValue): User
         // Contributions are switched OFF deliberately. The factory's defaults would
         // grow a deliberately small pot into a large one and the depletion case below
         // could not be built at all (tests/CLAUDE.md §4, Fixture).
+        //
+        // `retirement_age` and `investment_strategy` are pinned for the same reason, found
+        // when this file went intermittently red: `DCPensionFactory` randomises the
+        // retirement age across 60–68 and the strategy across five risk profiles, so the
+        // LENGTH of retirement and the GROWTH RATE both moved between runs. With a
+        // depleting drawdown that decides whether the fund is exhausted by the modelled
+        // death — and therefore whether the caveat below is published at all. A fixture
+        // that re-rolls the variable under test cannot hold a contract.
         DCPension::factory()->create([
             'user_id' => $user->id,
             'current_fund_value' => $fundValue,
             'monthly_contribution_amount' => 0,
             'employee_contribution_percent' => 0,
             'employer_contribution_percent' => 0,
+            'retirement_age' => 65,
+            'investment_strategy' => 'Balanced Growth',
         ]);
     }
 
