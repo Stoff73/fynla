@@ -331,3 +331,20 @@ Still zero-caller, unchanged and un-triaged: `getAll`, `getEstateConfig`,
 **One new observation:** `getBlindPersonsAllowance()` now has zero callers too. It is not a
 regression — W-0511 wired the allowance through `blindPersonsAllowanceFor()` instead — but
 it means two accessors answer one question and only one is used.
+
+## CSJ's ruling — 2026-08-29
+
+> *"the four reliefs are work, and need to be done."*
+
+Broken out so each can be claimed, gated and verified on its own rather than sitting inside
+this structural item:
+
+| relief | item | severity |
+|---|---|---|
+| Agricultural Property Relief | **W-0524** | high — an estate holding farmland gets none, and `cap_shared_with_bpr` means it cannot be a parallel copy of the Business Property Relief allocator |
+| Normal Expenditure Out of Income | **W-0525** | medium |
+| The 14-year rule | **W-0526** | medium |
+| Quick succession relief | **W-0527** | low |
+
+**W-0463 stays `gated` until all four land.** It is the umbrella; the four are the work.
+

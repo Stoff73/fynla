@@ -366,9 +366,25 @@ class PersonalizedTrustStrategyService
             // under-three-year case (the full rate) and the seven-year case (zero),
             // which is why the `< 7` and `>= 3` branches go with the table.
             //
-            // Behaviour-preserving, verified band for band against the old ladder:
+            // **`clt`, not `pet` — CSJ, 2026-08-29.** A transfer into a trust is a
+            // CHARGEABLE LIFETIME TRANSFER; anything above the nil rate band carries an
+            // immediate 20% charge when it is made. The schedules happen to return the
+            // same effective rate today, because `chargeable_lifetime_transfers` has no
+            // `death_rate` of its own and falls back to the standard rate — so this
+            // moves no figure now. It is still the correct type, and the day that key
+            // is configured the `pet` reading would silently have been wrong.
+            //
+            // Verified band for band against the ladder this replaced:
             // 0.4000, 0.3200, 0.2400, 0.1600, 0.0800, 0.0000 at years 0, 3, 4, 5, 6, 7.
-            $totalCharge += $cycle['amount'] * $this->taxConfig->getGiftTaxRate($yearsFromTransfer, 'pet');
+            //
+            // **What this line still does NOT do — W-0523.** It charges the GROSS
+            // `amount` with no nil rate band applied and no credit for the 20% paid on
+            // the way in, while `buildImmediateCLTStrategy()` four hundred lines above
+            // charges `(amount − availableNRB) × rate` and then subtracts the lifetime
+            // charge. Two paths, one question, two answers. Correcting it needs a
+            // decision on how the band cumulates across seven-year cycles, so it is
+            // filed rather than guessed.
+            $totalCharge += $cycle['amount'] * $this->taxConfig->getGiftTaxRate($yearsFromTransfer, 'clt');
         }
 
         return $totalCharge;

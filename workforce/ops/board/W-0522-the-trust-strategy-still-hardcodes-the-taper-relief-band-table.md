@@ -66,14 +66,19 @@ accessor answers both ends itself.
 **Verification.** 723 passed across `tests/Unit/Services/Estate`, `tests/Feature/Estate`
 and `tests/Architecture`.
 
-## Open question for CSJ — NOT decided here
+## Decided — CSJ, 2026-08-29
 
-**A transfer into a trust is a chargeable lifetime transfer, and this code rates it as a
-potentially exempt transfer.** `getGiftTaxRate()` takes a type, and `'clt'` reads a
-different schedule — `tax_percent` of a `chargeable_lifetime_transfers.death_rate` — where
-`'pet'` reads `tax_rate` off the standard rate.
+> *"transfer to a trust is a clt, it is not a pet, anything over 325k has an immediate 20%
+> iht charge."*
 
-`'pet'` is used here **because it reproduces the existing behaviour exactly**, and changing
-the type would move a published figure. Whether it *should* be `'clt'` is a tax question,
-not a refactoring one, so it is asked rather than answered (Rule 16). If the answer is
-`'clt'`, that is a one-word change and a new before/after.
+Changed to `'clt'`. **It moves no figure today** — `chargeable_lifetime_transfers` carries
+no `death_rate` of its own, so `getGiftTaxRate()` falls back to the standard rate and both
+schedules return 0.4000 / 0.3200 / 0.2400 / 0.1600 / 0.0800 / 0.0000 identically. It is
+still the correct type, and the day that key is configured the `'pet'` reading would have
+been silently wrong.
+
+The immediate 20% charge itself **is** modelled, and from configuration:
+`buildImmediateCLTStrategy()` reads `getCLTLifetimeRate()` (0.20) and the grossed-up
+settlor rate, and charges it on `max(0, amountToTrust − availableNRB)`.
+
+**But the multi-cycle path does not agree with it — raised as W-0523.**
