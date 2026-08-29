@@ -367,12 +367,23 @@ describe('W-0189 — which base each definition is built from', function () {
 
         $result = $this->service->calculate($user->id);
 
-        // Naming it does NOT change the figures. The sacrificed pay is not added
-        // back under FA 2004 s228ZA(3) because nothing records whether the entered
-        // employment income is the pre- or post-sacrifice figure; the screen states
-        // the arrangement rather than claiming a treatment that was never applied.
+        // **W-0204 changed what this asserts, deliberately.** It used to pin the
+        // interim W-0189 shipped: name the arrangement, apply nothing, because nothing
+        // recorded whether the entered employment income was the pre- or
+        // post-sacrifice figure and assuming moves a user's taper position on a guess.
+        //
+        // `users.employment_income_basis` now records it, and the sacrificed £11,600 is
+        // added back to threshold income under FA 2004 s228ZA(3) and counted as the
+        // employer's contribution rather than the employee's — which is what it legally
+        // is. This user has not answered the question, so `gross` is assumed and said so.
+        //
+        // Threshold income is the full £145,000: the £11,600 comes out of total income
+        // to reach what the user actually earns, and goes straight back on at s228ZA(3).
         expect($result['pension_arrangement'])->toBe('salary_sacrifice')
-            ->and($result['threshold_income'])->toBe(round($result['total_income'] - 11600.00, 2));
+            ->and($result['employment_income_basis'])->toBe('assumed_gross')
+            ->and($result['deductions']['salary_sacrificed'])->toBe(11600.00)
+            ->and($result['deductions']['employee_pension_contributions'])->toBe(0.00)
+            ->and($result['threshold_income'])->toBe(145000.00);
     });
 
     it('names no arrangement for a user with nothing to deduct', function () {

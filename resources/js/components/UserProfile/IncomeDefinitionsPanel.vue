@@ -228,7 +228,13 @@ export default {
         case 'net_pay':
           return 'Your contributions are taken from your pay before tax, so they come out of your Total Income once. The same amount is not deducted again here.';
         case 'salary_sacrifice':
-          return 'One of your workplace pensions uses salary sacrifice. Your contributions come out of your Total Income once, and the pay you give up is not added back here.';
+          // W-0204 — states the treatment that IS applied. The wording it replaces
+          // was written to be truthful about a gap, and the gap is closed: the pay
+          // given up is added back to Threshold Income under FA 2004 s228ZA(3), and
+          // the contribution counts as your employer's because that is what it is.
+          return this.definitions.employment_income_basis === 'assumed_gross'
+            ? 'One of your workplace pensions uses salary sacrifice, so the pay you give up counts as your employer\'s contribution, not yours, and it is added back to your Threshold Income. Tell us whether the Employment Income you recorded is before or after the pay you give up, and we can be exact about the rest of your figures.'
+            : 'One of your workplace pensions uses salary sacrifice. The pay you give up counts as your employer\'s contribution rather than yours, and it is added back to your Threshold Income — that is what decides whether your Annual Allowance is reduced.';
         default:
           return null;
       }

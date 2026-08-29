@@ -91,6 +91,9 @@ class UserResource extends JsonResource
             'other_expenditure' => $this->when($canViewDetailedExpenditure, $this->other_expenditure),
             // Income fields (needed by IncomeOccupation and tax calculations)
             'annual_employment_income' => $this->annual_employment_income,
+            // W-0204 — the basis of the figure above, so the panel can ask for it and
+            // the arithmetic can stop guessing.
+            'employment_income_basis' => $this->employment_income_basis,
             'annual_self_employment_income' => $this->annual_self_employment_income,
             'annual_rental_income' => $this->annual_rental_income,
             'annual_dividend_income' => $this->annual_dividend_income,
