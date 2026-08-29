@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
-use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
 use Carbon\Carbon;
@@ -33,7 +32,6 @@ class EstateActionDefinitionService
     use StructuredLogging;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
         private readonly IHTCalculationService $ihtCalculator,

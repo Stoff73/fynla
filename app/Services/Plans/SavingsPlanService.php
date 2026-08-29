@@ -10,7 +10,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Savings\SavingsActionDefinitionService;
 use App\Services\Stores\SavingsStore;
-use App\Services\TaxConfigService;
 
 class SavingsPlanService extends BasePlanService
 {
@@ -18,7 +17,6 @@ class SavingsPlanService extends BasePlanService
         private readonly SavingsAgent $savingsAgent,
         private readonly InvestmentAgent $investmentAgent,
         private readonly SavingsActionDefinitionService $actionDefinitionService,
-        private readonly TaxConfigService $taxConfig
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array

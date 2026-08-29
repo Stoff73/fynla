@@ -15,7 +15,6 @@ use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
-use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
 class RetirementPlanService extends BasePlanService
@@ -23,7 +22,6 @@ class RetirementPlanService extends BasePlanService
     public function __construct(
         private readonly RetirementAgent $retirementAgent,
         private readonly PensionProjector $projector,
-        private readonly TaxConfigService $taxConfig,
         private readonly PlanConfigService $planConfig,
         private readonly DisposableIncomeAccessor $incomeAccessor,
         private readonly RetirementActionDefinitionService $actionDefinitionService

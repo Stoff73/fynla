@@ -6,7 +6,6 @@ namespace App\Services\Goals;
 
 use App\Models\Goal;
 use App\Services\Property\PropertyTaxService;
-use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
 /**
@@ -19,7 +18,6 @@ class GoalAssignmentService
     private const INVESTMENT_MIN_AMOUNT = 5000;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig,
         private readonly PropertyTaxService $propertyTax,
     ) {}
 
