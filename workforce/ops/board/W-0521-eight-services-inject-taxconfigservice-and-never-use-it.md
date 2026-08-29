@@ -5,7 +5,8 @@ mission: null
 branch: chore/w-0521-remove-dead-taxconfig-injections
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: in_progress
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: low
 surfaces: [web, m, ios]
@@ -98,3 +99,16 @@ one expression in a test file.
   `EstateProjectionService::getFallbackGrowthRate()`, `LifeCoverCalculator`, and
   `LifePolicyStrategyService::FALLBACK_INVESTMENT_RETURN_RATE`. Not a tax value, so not
   Rule 2, but it is one assumption with three homes.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`in_progress`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #748; commit `7924c8eea` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

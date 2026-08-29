@@ -4,7 +4,8 @@ title: CRITICAL — spouse linking writes the other person's account, and forges
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: main-inference
-status: gated
+status: done
+closed: 2026-08-29
 severity: critical
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -379,3 +380,16 @@ there are no existing links to review and no consent to sign off, because there 
 data subjects. Recorded plainly so a later reader does not mistake this for a compliance
 clearance — if this application ever holds real households in this state, G4 to G6 come
 back exactly as `compliance-lead` wrote them.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Icecube-acc/Stoff73
+- **Evidence:** merged in #714,#717; commit `c7ba6b658` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

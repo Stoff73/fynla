@@ -4,7 +4,8 @@ title: The native protection screens never decode joint_life, so iOS cannot show
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: medium
 surfaces: [ios]
 created: 2026-08-22T02:30:00Z
@@ -138,3 +139,16 @@ no memberwise initialiser.
   because the new fields are optional. A joint-life case asserting both rows and
   the absent Edit pill would be the real test — deliberately not added, because I
   cannot run it and an unrunnable test is worse than a named gap.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Icecube-acc/Phailanx
+- **Evidence:** merged in #718,#720; commit `58b44c236` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

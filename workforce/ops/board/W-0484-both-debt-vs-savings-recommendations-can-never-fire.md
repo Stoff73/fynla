@@ -3,7 +3,8 @@ id: W-0484
 title: Both Debt vs Savings recommendations can never fire — the seeded condition strings match no dispatcher arm
 mission: M-0002-persona-fidelity
 owner: null
-status: queued
+status: done
+closed: 2026-08-29
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-25T14:10:00Z
@@ -100,3 +101,16 @@ than the execution path.
   it is a separate defect in a different module, and acceptance 3 and 4 make it larger
   than a two-string correction. Raised so the two-string version is not mistaken for
   the whole job.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`queued`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #734,#736; commit `71c858cfe` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

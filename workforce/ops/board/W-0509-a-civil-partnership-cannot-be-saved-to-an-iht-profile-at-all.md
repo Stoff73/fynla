@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 branch: fix/w-0509-civil-partnership-cannot-be-saved-to-iht-profile
 owner: null
 reviewers: [tax-compliance-reviewer, security-reviewer]
-status: in_review
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: critical
 surfaces: [web, m]
@@ -114,3 +115,16 @@ own marital-status option list for this form.
 partnership can now save the profile and still read a single person's framing above it.
 Already in scope on [[W-0508-fourteen-more-sites-read-married-alone-so-a-civil-partnership-is-still-treated-as-single]],
 whose §1 names `IHTPlanning.vue:1657` explicitly. Left there rather than fixed in passing.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`in_review`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #742; commit `1a6312d6d` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

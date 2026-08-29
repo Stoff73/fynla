@@ -4,7 +4,8 @@ title: A spouse's undated debts are amortised against the signed-in user's age a
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -82,3 +83,16 @@ and this one initially passed for the wrong reason twice.
 
 *Closed late: the code merged in PR #722 while this item stayed `queued`. Recorded
 2026-08-26 on noticing.*
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Icecube-acc
+- **Evidence:** merged in #722,#729; commit `073d904e8` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

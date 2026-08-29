@@ -5,7 +5,8 @@ mission: null
 branch: fix/w-0520-unused-injections-and-uncalled-projection
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: in_progress
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -126,3 +127,16 @@ Highest-signal clusters for a follow-up item: `RetirementAgent` (6 unused),
 **Also not fixed:** `database/schema/mysql-schema.sql` still carries the stale enum. The new
 migration corrects any database built from it, so the dump is wrong rather than harmful;
 regenerating it is a separate, wider change.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`in_progress`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #747; commit `125b0ce33` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

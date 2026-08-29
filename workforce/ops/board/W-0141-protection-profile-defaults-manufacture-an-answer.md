@@ -4,7 +4,8 @@ title: A user who was never asked whether they smoke is recorded as a non-smoker
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead, product-lead]
-status: queued
+status: done
+closed: 2026-08-29
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T19:05:00Z
@@ -412,3 +413,16 @@ headline stat and a comparison-table column**.
 which Fynla can legitimately state. The two share a display slot, so this is a UI
 restructure rather than a deletion, and deleting the slot would take a legitimate
 figure with it.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`queued`.
+
+- **Delivered by:** Phailanx
+- **Evidence:** merged in #731
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

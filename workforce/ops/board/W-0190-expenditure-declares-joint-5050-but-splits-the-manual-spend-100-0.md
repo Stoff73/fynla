@@ -4,7 +4,8 @@ title: The expenditure table declares "Joint (50/50) expenditure" and then split
 mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: build-lead
-status: gated
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T00:40:00Z
@@ -348,3 +349,16 @@ which is the substance of **W-0202**.
   that has never declared is **asked**, and one that has declared is divided through the
   same `HouseholdExpenditureWriter` the profile path uses. One rule, one writer, three
   entrances. Full detail on W-0202.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `a8fa14e21` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

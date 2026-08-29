@@ -3,7 +3,8 @@ id: W-0485
 title: The Blind Person's Allowance is subtracted from adjusted net income, which ITA 2007 s58 does not do — and the app holds two contradictory answers
 mission: M-0002-persona-fidelity
 owner: null
-status: review
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-25T16:00:00Z
@@ -191,3 +192,16 @@ supplies the behaviour, so the copy is now true of the app as well as the statut
 a registered-blind user's computed tax UP: they lost the unearned Personal Allowance uplift,
 worth about £650 at £110,000, and got no allowance in its place. The two land together, so
 no household passes through that state. See [[W-0511-the-blind-persons-allowance-is-never-actually-given]].
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #741; commit `9e304da01` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

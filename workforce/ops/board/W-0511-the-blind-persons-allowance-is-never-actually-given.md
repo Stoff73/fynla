@@ -5,7 +5,8 @@ mission: M-0002-persona-fidelity
 branch: fix/w-0485-blind-persons-allowance-not-in-adjusted-net-income
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: in_review
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -132,3 +133,16 @@ definitions service. `registeredBlindUser()` now feeds `UKTaxCalculator` directl
 **Rule 19.** The tax engine is shared by architecture, so every surface gets the corrected
 figure. The income-definitions panel is web-only — there is no `/m` counterpart to update
 (no match for `blind` or `IncomeDefinitions` under `resources/mobile/`).
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`in_review`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `9e304da01` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

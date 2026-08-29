@@ -4,7 +4,8 @@ title: Two tracked PNGs contain a colon, so every index rebuild on Windows abort
 mission: M-0001-state-truth
 owner: build-lead
 reviewers: [quality-lead]
-status: gated
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 source: found when a dev merge dropped CLAUDE.md, 2026-08-25
@@ -118,3 +119,16 @@ Windows worktree, is a path-scoped one:
 An unrestricted `git status` reports clean over exactly this failure, so the
 check used after the first occurrence — file on disk and tracked — is a false
 negative.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Phailanx/Stoff73
+- **Evidence:** merged in #718,#733; commit `9cee8a3b9` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**
