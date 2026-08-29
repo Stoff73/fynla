@@ -77,7 +77,12 @@ and that near-miss is recorded in the working notes below.
   `getCompleteProfile()`. Recorded by `fix-batch-C` in `F-0001` as "noticed, not fixed,
   worth its own item". It is fired by the estate path too.
 
-## Acceptance
+## Acceptance (SUPERSEDED — see the second Acceptance block below)
+
+**2026-08-29 build-lead: this block is the ORIGINAL statement of the criteria and is kept
+for the record. It was never ticked off because the second block below replaced it, and
+counting the two together is what made the 2026-08-29 gated triage read this item as
+"7 of 16 ticked". The live checklist is the second one.**
 
 - [ ] One household produces **one** answer. Whichever spouse is logged in, the
       combined-estate liability is the same number, or the difference is explained on
@@ -882,11 +887,8 @@ where the halving used to be. Found by looking at the screen, not by the tests.
       now reads from `TaxConfigService` rather than a hardcoded `subYears(7)` (W-0463).
 - [x] A negative projected estate — no longer reproducible; the projection floors at
       zero and both personas return positive figures.
-- [ ] **Every figure hand-checked against `tests/Persona/peak_earners.md`.** NOT DONE.
-      The internal arithmetic reconciles and both spouses agree, but the figures have
-      not been checked against the persona source. **This is the acceptance that
-      distinguishes "adds up" from "correct", and it is exactly the check whose absence
-      this item was raised to record.**
+- [x] **Every figure hand-checked against `tests/Persona/peak_earners.md`** — done
+      2026-08-29, and it found a live regression. See the working note below.
 - [x] `/m` checked rather than assumed (Rule 19) — see below.
 
 ### `/m` and iOS
@@ -905,3 +907,58 @@ fixed here, because consolidating it changes what a whole pricing tier is shown.
 `workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md` — two rounds,
 26 findings, with legislation and HMRC manual citations. Recorded there because the
 reviewer wrote nothing to disk; without that file both reviews would have been lost.
+
+- 2026-08-29 build-lead: **the last criterion is closed, and doing it found a £70,000
+  defect.** Every figure was derived by hand from `tests/Persona/peak_earners.md` and
+  compared against `IHTCalculationService::calculate()` driven the way `IHTController`
+  drives it — `liveSpouse()` plus `hasAcceptedSpousePermission()`, per the near-miss
+  recorded above.
+
+  | Figure | Hand-computed from the persona file | Engine |
+  |---|---|---|
+  | `total_gross_assets` | 1,393,000 property + 130,780 savings + 305,000 investments + 193,000 chattels = **2,021,780** | 2,021,780 |
+  | `total_liabilities` | 65,000 + 180,000 + 48,000 (40% of the Manchester mortgage) = **293,000** | 293,000 |
+  | `total_net_estate` | **1,728,780** | 1,728,780 |
+  | `user_net_estate` David | **989,500** | 989,500 |
+  | `user_net_estate` Sarah | **739,280** | 739,280 |
+  | `nrb_gift_deduction` | the 2020 settlement, **150,000** | 150,000 |
+  | `nrb_available` | 325,000 + 325,000 − 150,000 = **500,000** | 500,000 |
+  | `rnrb_available` | 175,000 + 175,000 = **350,000** | 350,000 |
+  | `total_allowances` | **850,000** | 850,000 |
+  | `taxable_estate` | 1,728,780 − 850,000 − 20,000 charitable = **858,780** | 858,780 |
+  | `iht_liability` | **343,512** | 343,512 |
+  | `iht_rate_percent` | 20,000 given against a Schedule 1A baseline of 1,228,780, so under the 10% test — **40** | 40 |
+
+  **The split reconciles because the persona file's own note says so.** David's share is
+  £250,220 larger than Sarah's, and £50,000 of that is the Premium Bonds: NS&I bonds
+  cannot be held jointly, the application correctly refuses it, and the persona file
+  records them as David's individual holding (note added 2026-08-21). Reading the
+  headline "Ownership: Joint" instead would have produced a £25,000 discrepancy and a
+  defect report against correct behaviour.
+
+  **Pensions are correctly absent.** The £180,000 workplace pot, the £320,000 SIPP and
+  Sarah's defined benefit scheme are outside the estate for 2026/27.
+
+- 2026-08-29 build-lead: **the regression this check caught.** The household was
+  measured at `iht_liability` **413,512**, not 343,512 — **£70,000 too much** — because
+  the development database held **four identical £150,000 chargeable lifetime transfers**
+  for one trust, written on four separate seeder runs (21, 24, 24 and 28 August). Four
+  transfers capped the gift deduction at the whole £325,000 band instead of £150,000.
+  `PremiumTestPersonaSeeder::purgeHouseholdData()` force-deleted `Trust` and never
+  listed `Gift`, and a query-builder delete fires no model events, so `TrustObserver`
+  never cleaned up and the next `Trust::updateOrCreate()` wrote another settlement.
+  Fixed under **W-0528**; the `gifts.trust_id` foreign key is what actually prevents it,
+  the purge-list entry being belt-and-braces.
+
+  **£343,512 is the figure this item's own earlier verification recorded**, which
+  confirms the household was right when it was checked and drifted afterwards — the
+  exact failure mode a one-off verification cannot catch and a test can.
+
+- 2026-08-29 build-lead: **locked** by `tests/Feature/Estate/PeakEarnersPersonaFiguresTest.php`
+  — seven tests, every expectation derived in the docblock from the persona source so a
+  reader can check the derivation rather than trust the number.
+
+- 2026-08-29 build-lead: **still open — iOS.** Not built, not launched, not checked, as
+  the note above says. `/m` remains as recorded: no allowance breakdown to reconcile,
+  and its only inheritance tax figure is the Free-tier teaser computed by a second
+  implementation, filed as W-0464.

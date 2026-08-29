@@ -47,6 +47,10 @@ return new class extends Migration
             ->where('gifts.gift_type', 'clt')
             ->where('gifts.notes', 'like', 'Chargeable Lifetime Transfer%Auto-recorded.')
             ->whereNull('gifts.trust_id')
+            // Live trusts only. A soft-deleted trust is one whose settlement no longer
+            // stands, and binding a surviving gift to it would hand the sync a row it
+            // would then keep in step with a trust the user has deleted.
+            ->whereNull('trusts.deleted_at')
             ->update(['gifts.trust_id' => DB::raw('trusts.id')]);
     }
 
