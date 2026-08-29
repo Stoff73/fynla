@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\FamilyMembersController;
 use App\Http\Controllers\Api\PersonalAccountsController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Controller;
+use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\PersonalAccountsService;
 use App\Services\UserProfile\UserProfileService;
 
@@ -183,9 +184,22 @@ describe('Phase 02 Architecture Tests', function () {
             $reflection = new ReflectionClass(PersonalAccountsService::class);
             $constructor = $reflection->getConstructor();
 
-            // PersonalAccountsService depends on UKTaxCalculator for proper tax calculation
+            // PersonalAccountsService depends on UKTaxCalculator for proper tax calculation.
+            //
+            // Asserted by TYPE rather than by parameter count. The count was `toBe(3)`,
+            // which is not what this test is named for: it went red the moment
+            // TaxConfigService was injected to answer the Blind Person's Allowance
+            // entitlement (W-0511), a change that has nothing to do with whether the
+            // service uses the tax calculator. A count breaks on every legitimate
+            // injection and says nothing about the dependency it claims to guard.
             expect($constructor)->not->toBeNull();
-            expect($constructor->getNumberOfParameters())->toBe(3); // UKTaxCalculator + PropertyStore + MortgageStore (SP1 Pass 5 PR 5c)
+
+            $types = array_map(
+                fn (ReflectionParameter $p) => $p->getType()?->getName(),
+                $constructor->getParameters()
+            );
+
+            expect($types)->toContain(UKTaxCalculator::class);
         });
 
         it('UserProfileService uses dependency injection for cross-module services', function () {
