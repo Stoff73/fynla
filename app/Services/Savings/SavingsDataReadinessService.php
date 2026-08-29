@@ -7,7 +7,6 @@ namespace App\Services\Savings;
 use App\Events\Eval\GateChecked;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
-use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
 
@@ -15,10 +14,6 @@ class SavingsDataReadinessService
 {
     use ResolvesExpenditure;
     use ResolvesIncome;
-
-    public function __construct(
-        private readonly TaxConfigService $taxConfig
-    ) {}
 
     /**
      * Assess data readiness for the Savings module.

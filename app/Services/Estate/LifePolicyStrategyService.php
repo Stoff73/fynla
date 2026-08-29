@@ -6,7 +6,6 @@ namespace App\Services\Estate;
 
 use App\Models\User;
 use App\Services\Settings\AssumptionsService;
-use App\Services\TaxConfigService;
 
 /**
  * Calculate Whole of Life Insurance Strategy vs. Self-Insurance
@@ -63,7 +62,6 @@ class LifePolicyStrategyService
 
     public function __construct(
         private readonly AssumptionsService $assumptionsService,
-        private readonly TaxConfigService $taxConfig,
         private readonly FutureValueCalculator $futureValueCalculator
     ) {}
 

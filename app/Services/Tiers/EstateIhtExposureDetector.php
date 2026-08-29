@@ -7,7 +7,6 @@ namespace App\Services\Tiers;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\NetWorth\NetWorthService;
-use App\Services\TaxConfigService;
 
 /**
  * The Inheritance Tax exposure signal behind the Free Estate teaser.
@@ -32,7 +31,6 @@ use App\Services\TaxConfigService;
 class EstateIhtExposureDetector
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig,
         private readonly NetWorthService $netWorthService,
         private readonly IHTCalculationService $ihtCalculation,
     ) {}
