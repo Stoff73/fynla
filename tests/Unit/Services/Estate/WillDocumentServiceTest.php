@@ -356,6 +356,9 @@ describe('WillDocumentService', function () {
                 'surname' => 'Carter',
                 'spouse_id' => $spouse->id,
             ]);
+            // W-0350 — reciprocal. A mirror will is written INTO the spouse's account,
+            // so it now needs a link both parties made, not one this account claimed.
+            $spouse->update(['spouse_id' => $user->id]);
 
             $primary = WillDocument::factory()->create([
                 'user_id' => $user->id,
@@ -386,7 +389,7 @@ describe('WillDocumentService', function () {
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             expect(fn () => $this->service->generateMirrorWill($doc))
-                ->toThrow(RuntimeException::class, 'no spouse found');
+                ->toThrow(RuntimeException::class, 'no reciprocally linked spouse');
         });
     });
 

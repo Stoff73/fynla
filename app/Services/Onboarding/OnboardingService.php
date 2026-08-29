@@ -468,31 +468,32 @@ class OnboardingService
             ]);
 
             // Update spouse with spouseData
-            if ($user->spouse_id && $user->spouse) {
-                $spouse = $user->spouse;
-                if ($spouse) {
-                    $spouseData = $data['spouseData'];
-                    $spouse->update([
-                        'food_groceries' => $spouseData['food_groceries'] ?? 0,
-                        'transport_fuel' => $spouseData['transport_fuel'] ?? 0,
-                        'healthcare_medical' => $spouseData['healthcare_medical'] ?? 0,
-                        'insurance' => $spouseData['insurance'] ?? 0,
-                        'mobile_phones' => $spouseData['mobile_phones'] ?? 0,
-                        'internet_tv' => $spouseData['internet_tv'] ?? 0,
-                        'subscriptions' => $spouseData['subscriptions'] ?? 0,
-                        'clothing_personal_care' => $spouseData['clothing_personal_care'] ?? 0,
-                        'entertainment_dining' => $spouseData['entertainment_dining'] ?? 0,
-                        'holidays_travel' => $spouseData['holidays_travel'] ?? 0,
-                        'pets' => $spouseData['pets'] ?? 0,
-                        'childcare' => $spouseData['childcare'] ?? 0,
-                        'school_fees' => $spouseData['school_fees'] ?? 0,
-                        'children_activities' => $spouseData['children_activities'] ?? 0,
-                        'other_expenditure' => $spouseData['other_expenditure'] ?? 0,
-                        'monthly_expenditure' => $spouseData['monthly_expenditure'] ?? 0,
-                        'annual_expenditure' => $spouseData['annual_expenditure'] ?? 0,
-                        'expenditure_entry_mode' => $spouseData['expenditure_entry_mode'] ?? 'category',
-                    ]);
-                }
+            // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED,
+            // and writing their expenditure on that basis alone is a cross-account
+            // write authorised by the writer.
+            $spouse = $user->reciprocalLiveSpouse();
+            if ($spouse !== null) {
+                $spouseData = $data['spouseData'];
+                $spouse->update([
+                    'food_groceries' => $spouseData['food_groceries'] ?? 0,
+                    'transport_fuel' => $spouseData['transport_fuel'] ?? 0,
+                    'healthcare_medical' => $spouseData['healthcare_medical'] ?? 0,
+                    'insurance' => $spouseData['insurance'] ?? 0,
+                    'mobile_phones' => $spouseData['mobile_phones'] ?? 0,
+                    'internet_tv' => $spouseData['internet_tv'] ?? 0,
+                    'subscriptions' => $spouseData['subscriptions'] ?? 0,
+                    'clothing_personal_care' => $spouseData['clothing_personal_care'] ?? 0,
+                    'entertainment_dining' => $spouseData['entertainment_dining'] ?? 0,
+                    'holidays_travel' => $spouseData['holidays_travel'] ?? 0,
+                    'pets' => $spouseData['pets'] ?? 0,
+                    'childcare' => $spouseData['childcare'] ?? 0,
+                    'school_fees' => $spouseData['school_fees'] ?? 0,
+                    'children_activities' => $spouseData['children_activities'] ?? 0,
+                    'other_expenditure' => $spouseData['other_expenditure'] ?? 0,
+                    'monthly_expenditure' => $spouseData['monthly_expenditure'] ?? 0,
+                    'annual_expenditure' => $spouseData['annual_expenditure'] ?? 0,
+                    'expenditure_entry_mode' => $spouseData['expenditure_entry_mode'] ?? 'category',
+                ]);
             }
         } else {
             // Joint mode or single user.
@@ -537,8 +538,9 @@ class OnboardingService
 
             // For joint/50/50 mode, also update spouse with the same halved expenses
             // Each account now stores their 50% share of the household total
-            if ($isJointMode && $user->spouse) {
-                $user->spouse->update($expenditureData);
+            // W-0350 — reciprocal only, as above.
+            if ($isJointMode && ($jointSpouse = $user->reciprocalLiveSpouse()) !== null) {
+                $jointSpouse->update($expenditureData);
             }
         }
     }

@@ -219,6 +219,8 @@ describe('Will Builder API', function () {
                 'spouse_id' => $spouse->id,
                 'tier' => 'premium',
             ]);
+            // W-0350 — reciprocal, as the mirror will is written into that account.
+            $spouse->update(['spouse_id' => $user->id]);
 
             $doc = WillDocument::factory()->mirror()->create([
                 'user_id' => $user->id,

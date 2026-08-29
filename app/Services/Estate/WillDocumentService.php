@@ -361,10 +361,15 @@ class WillDocumentService
         }
 
         $user = $primary->user;
-        $spouse = $user->spouse_id ? User::find($user->spouse_id) : null;
+
+        // W-0350 — a mirror will is a document CREATED INSIDE the other person's
+        // account, carrying this caller's executors and guardians. `User::find($user
+        // ->spouse_id)` authorised that on the strength of the caller having named
+        // them. Reciprocal only.
+        $spouse = $user->reciprocalLiveSpouse();
 
         if (! $spouse) {
-            throw new \RuntimeException('Cannot generate mirror will: no spouse found.');
+            throw new \RuntimeException('Cannot generate mirror will: no reciprocally linked spouse.');
         }
 
         $spouseFullName = trim(implode(' ', array_filter([
