@@ -184,7 +184,13 @@ class PersonalizedTrustStrategyService
         $lifetimeCharge = $excessOverNRB * $cltLifetimeRate;
         $lifetimeChargeIfSettlorPays = $excessOverNRB * $cltSettlorRate;
 
-        // Potential additional charge if death within 7 years
+        // W-0523 — the EXCESS only, and the band consumption is not charged here.
+        //
+        // **CSJ, 2026-08-29: "it would cost the excess, don't double count the nrb".**
+        // A transfer within the band bears no tax of its own. It does consume the band,
+        // and that consumption is a real cost — but it is charged in the ESTATE, where
+        // the transferor's nil rate band is withheld for seven years, not a second time
+        // here. Charging it in both places bills one band twice.
         $potentialDeathCharge = ($excessOverNRB * $ihtRate) - $lifetimeCharge; // 40% less 20% already paid
 
         $implementation = [
@@ -297,8 +303,11 @@ class PersonalizedTrustStrategyService
             'description' => 'Use multiple 7-year cycles to maximize NRB usage for larger estates',
             'amount' => $totalOverLifetime,
             'iht_saving_potential' => $ihtSaving,
-            'lifetime_tax_charge' => 0, // Assuming each cycle stays within NRB
-            'potential_death_charge' => $this->calculateMultiCycleDeathCharge($schedule, $yearsUntilDeath),
+            // W-0523 — summed from the schedule rather than assumed nil. Each cycle
+            // stays within its band on the seven-year cadence, so this is still 0 there;
+            // it stops being 0 the moment a cycle is priced against a cumulated band.
+            'lifetime_tax_charge' => array_sum(array_column($schedule, 'immediate_charge')),
+            'potential_death_charge' => $this->calculateMultiCycleDeathCharge($schedule),
             'time_frame' => (($cyclesNeeded - 1) * 7).' years ('.$cyclesNeeded.' cycles)',
             'risk_level' => 'Medium',
             'suitable_for' => 'Large estates exceeding £'.number_format($availableNRB, 0),
@@ -326,16 +335,39 @@ class PersonalizedTrustStrategyService
      */
     private function buildCLTCycleSchedule(float $amountPerCycle, int $cycles, float $nrb): array
     {
+        $cltLifetimeRate = $this->taxConfig->getCLTLifetimeRate();
         $schedule = [];
 
         for ($i = 0; $i < $cycles; $i++) {
             $year = $i * 7;
+
+            // W-0523 — IHTA 1984 s7(1). The band available to a transfer is the nil
+            // rate band less the chargeable transfers made in the seven years ENDING
+            // WITH it, so a cycle's band depends on the cycles before it. On the
+            // seven-year cadence every earlier cycle has just aged out and each gets a
+            // full band — which is what the old flat `$nrb` happened to produce — but
+            // it was an assumption, not a calculation, and a schedule spaced any
+            // tighter was priced as though the band replenished anyway.
+            //
+            // **Rolling cumulation, CSJ 2026-08-29**, chosen over a fresh band per
+            // cycle and over one band for the whole schedule.
+            $cumulated = 0.0;
+            foreach ($schedule as $prior) {
+                if ($year - $prior['year'] < 7) {
+                    $cumulated += $prior['amount'];
+                }
+            }
+
+            $bandAvailable = max(0.0, $nrb - $cumulated);
+            $chargeable = max(0.0, $amountPerCycle - $bandAvailable);
+
             $schedule[] = [
                 'cycle' => $i + 1,
                 'year' => $year,
                 'amount' => (float) $amountPerCycle,
-                'nrb_available' => (float) $nrb,
-                'immediate_charge' => 0.0, // Within NRB
+                'nrb_available' => $bandAvailable,
+                'chargeable_amount' => $chargeable,
+                'immediate_charge' => $chargeable * $cltLifetimeRate,
                 'description' => 'Transfer £'.number_format($amountPerCycle, 0)." in year $year",
             ];
         }
@@ -344,47 +376,48 @@ class PersonalizedTrustStrategyService
     }
 
     /**
-     * Calculate potential death charge for multi-cycle strategy
+     * Calculate potential death charge for the multi-cycle strategy, on a death-now
+     * basis worked from the date the user is calculating.
      */
-    private function calculateMultiCycleDeathCharge(array $schedule, int $yearsUntilDeath): float
+    private function calculateMultiCycleDeathCharge(array $schedule): float
     {
-        $totalCharge = 0;
+        // W-0523 — three things were wrong here, and every one of them ran the same way,
+        // so the cost of a strategy the app RECOMMENDS was overstated and the
+        // overstatements compounded.
+        //
+        // 1. It charged the GROSS amount, with no nil rate band, while
+        //    `buildImmediateCLTStrategy()` four hundred lines above charged only the
+        //    excess over it. Two paths, one question, two answers.
+        // 2. No credit for the 20% paid on the way in.
+        // 3. It was worked at PROJECTED LIFE EXPECTANCY. With death twenty years out
+        //    every cycle had aged past seven years, the tapered rate came back nil, and
+        //    the user was shown a £0 risk — for a transfer they are being told to make
+        //    today, that they could fail by dying tomorrow.
+        //
+        // **CSJ, 2026-08-29: the excess, and death NOW.** The band consumed by a
+        // transfer is not charged here — it is charged in the ESTATE, whose nil rate
+        // band is withheld for seven years by `FailedGiftTaxCalculator`. Charging it in
+        // both places would bill one band twice. And "potential" is worked from the date
+        // the user is calculating, not from projected death, which is the basis the
+        // estate module already answers on: `current` beside `projected`.
+        //
+        // On the seven-year cadence every cycle sits inside its own replenished band, so
+        // this is nil and the whole cost of dying early shows up as a smaller nil rate
+        // band in the estate. It stops being nil the moment a cycle is priced against a
+        // cumulated band.
+        //
+        // Only transfers ALREADY MADE are at risk; a cycle scheduled for year 7 cannot
+        // fail if death is now, because it has not happened.
+        $deathNowRate = $this->taxConfig->getGiftTaxRate(0, 'clt');
+        $totalCharge = 0.0;
 
         foreach ($schedule as $cycle) {
-            $yearsFromTransfer = $yearsUntilDeath - $cycle['year'];
+            if ($cycle['year'] !== 0) {
+                continue;
+            }
 
-            // W-0522 — the graduated schedule comes from configuration, not from a
-            // table written here.
-            //
-            // This multiplied the death rate by a HARDCODED 100/80/60/40/20 ladder in
-            // `getTaperReliefRate()` while `inheritance_tax.taper_relief` carried the
-            // same schedule, configured and unread — the exact shape W-0463 exists to
-            // remove, and the last copy of it in the estate services.
-            //
-            // `getGiftTaxRate()` returns the EFFECTIVE rate, death rate already
-            // applied, so there is nothing left to multiply. It also answers the
-            // under-three-year case (the full rate) and the seven-year case (zero),
-            // which is why the `< 7` and `>= 3` branches go with the table.
-            //
-            // **`clt`, not `pet` — CSJ, 2026-08-29.** A transfer into a trust is a
-            // CHARGEABLE LIFETIME TRANSFER; anything above the nil rate band carries an
-            // immediate 20% charge when it is made. The schedules happen to return the
-            // same effective rate today, because `chargeable_lifetime_transfers` has no
-            // `death_rate` of its own and falls back to the standard rate — so this
-            // moves no figure now. It is still the correct type, and the day that key
-            // is configured the `pet` reading would silently have been wrong.
-            //
-            // Verified band for band against the ladder this replaced:
-            // 0.4000, 0.3200, 0.2400, 0.1600, 0.0800, 0.0000 at years 0, 3, 4, 5, 6, 7.
-            //
-            // **What this line still does NOT do — W-0523.** It charges the GROSS
-            // `amount` with no nil rate band applied and no credit for the 20% paid on
-            // the way in, while `buildImmediateCLTStrategy()` four hundred lines above
-            // charges `(amount − availableNRB) × rate` and then subtracts the lifetime
-            // charge. Two paths, one question, two answers. Correcting it needs a
-            // decision on how the band cumulates across seven-year cycles, so it is
-            // filed rather than guessed.
-            $totalCharge += $cycle['amount'] * $this->taxConfig->getGiftTaxRate($yearsFromTransfer, 'clt');
+            // Floored at zero — s7 gives no refund of the lifetime charge.
+            $totalCharge += max(0.0, ((float) $cycle['chargeable_amount'] * $deathNowRate) - (float) $cycle['immediate_charge']);
         }
 
         return $totalCharge;

@@ -240,8 +240,69 @@ describe('PersonalizedTrustStrategyService', function () {
 
         $strategy2 = $result['strategies'][1]; // Multi-Cycle CLT Strategy
 
-        // Death at year 5 means taper relief applies (60% of 40% charge)
-        expect($strategy2['potential_death_charge'])->toBeGreaterThan(0);
+        // W-0523 — nil, not "greater than zero". This asserted the gross charge that
+        // double-counted the band; the double-count test below carries the reasoning.
+        expect($strategy2['potential_death_charge'])->toBe(0.0);
+    });
+
+    it('does not charge a within-band trust transfer twice for the same nil rate band', function () {
+        // W-0523. Death five years out, one £325,000 cycle sitting inside the band.
+        // This charged the GROSS £325,000 at the tapered rate — £130,000 — while the
+        // estate's own nil rate band is ALREADY withheld for that transfer. One band,
+        // billed twice.
+        //
+        // **CSJ, 2026-08-29: "it would cost the excess, don't double count the nrb".**
+        // Nothing is chargeable on the transfer, so the strategy charge is nil and the
+        // whole cost of dying early is the smaller band in the estate.
+        $assets = collect([
+            new Asset([
+                'asset_type' => 'cash',
+                'asset_name' => 'Cash Portfolio',
+                'current_value' => 650000,
+            ]),
+        ]);
+
+        $strategy2 = $this->service->generatePersonalizedTrustStrategy(
+            assets: $assets,
+            currentIHTLiability: 260000,
+            profile: $this->profile,
+            user: $this->user,
+            yearsUntilDeath: 5
+        )['strategies'][1];
+
+        expect($strategy2['potential_death_charge'])->toBe(0.0)
+            ->and($strategy2['lifetime_tax_charge'])->toBe(0.0);
+    });
+
+    it('gives each seven-year cycle a replenished band under s7(1)', function () {
+        // W-0523. The band available to a transfer is the nil rate band less the
+        // chargeable transfers in the seven years ending with it. On this cadence every
+        // earlier cycle has just aged out, so each gets a full band and nothing is
+        // chargeable — which is what the old flat value happened to produce, but as an
+        // assumption rather than a calculation.
+        $assets = collect([
+            new Asset([
+                'asset_type' => 'cash',
+                'asset_name' => 'Large Cash Holdings',
+                'current_value' => 1000000,
+            ]),
+        ]);
+
+        $strategy2 = $this->service->generatePersonalizedTrustStrategy(
+            assets: $assets,
+            currentIHTLiability: 400000,
+            profile: $this->profile,
+            user: $this->user,
+            yearsUntilDeath: 20
+        )['strategies'][1];
+
+        expect($strategy2['lifetime_tax_charge'])->toBe(0.0);
+
+        foreach ($strategy2['clt_schedule'] as $cycle) {
+            expect($cycle['nrb_available'])->toBe(325000.0)
+                ->and($cycle['chargeable_amount'])->toBe(0.0)
+                ->and($cycle['immediate_charge'])->toBe(0.0);
+        }
     });
 
     it('calculates overall strategy impact correctly', function () {
