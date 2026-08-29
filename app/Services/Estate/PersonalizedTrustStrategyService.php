@@ -348,52 +348,46 @@ class PersonalizedTrustStrategyService
      */
     private function calculateMultiCycleDeathCharge(array $schedule, int $yearsUntilDeath): float
     {
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $totalCharge = 0;
 
         foreach ($schedule as $cycle) {
             $yearsFromTransfer = $yearsUntilDeath - $cycle['year'];
 
-            // If death occurs within 7 years of this transfer
-            if ($yearsFromTransfer < 7) {
-                $charge = $cycle['amount'] * $ihtRate;
-
-                // Apply taper relief if 3-7 years
-                if ($yearsFromTransfer >= 3) {
-                    $taperRate = $this->getTaperReliefRate($yearsFromTransfer);
-                    $charge = $charge * ($taperRate / 100);
-                }
-
-                $totalCharge += $charge;
-            }
+            // W-0522 — the graduated schedule comes from configuration, not from a
+            // table written here.
+            //
+            // This multiplied the death rate by a HARDCODED 100/80/60/40/20 ladder in
+            // `getTaperReliefRate()` while `inheritance_tax.taper_relief` carried the
+            // same schedule, configured and unread — the exact shape W-0463 exists to
+            // remove, and the last copy of it in the estate services.
+            //
+            // `getGiftTaxRate()` returns the EFFECTIVE rate, death rate already
+            // applied, so there is nothing left to multiply. It also answers the
+            // under-three-year case (the full rate) and the seven-year case (zero),
+            // which is why the `< 7` and `>= 3` branches go with the table.
+            //
+            // **`clt`, not `pet` — CSJ, 2026-08-29.** A transfer into a trust is a
+            // CHARGEABLE LIFETIME TRANSFER; anything above the nil rate band carries an
+            // immediate 20% charge when it is made. The schedules happen to return the
+            // same effective rate today, because `chargeable_lifetime_transfers` has no
+            // `death_rate` of its own and falls back to the standard rate — so this
+            // moves no figure now. It is still the correct type, and the day that key
+            // is configured the `pet` reading would silently have been wrong.
+            //
+            // Verified band for band against the ladder this replaced:
+            // 0.4000, 0.3200, 0.2400, 0.1600, 0.0800, 0.0000 at years 0, 3, 4, 5, 6, 7.
+            //
+            // **What this line still does NOT do — W-0523.** It charges the GROSS
+            // `amount` with no nil rate band applied and no credit for the 20% paid on
+            // the way in, while `buildImmediateCLTStrategy()` four hundred lines above
+            // charges `(amount − availableNRB) × rate` and then subtracts the lifetime
+            // charge. Two paths, one question, two answers. Correcting it needs a
+            // decision on how the band cumulates across seven-year cycles, so it is
+            // filed rather than guessed.
+            $totalCharge += $cycle['amount'] * $this->taxConfig->getGiftTaxRate($yearsFromTransfer, 'clt');
         }
 
         return $totalCharge;
-    }
-
-    /**
-     * Get taper relief rate based on years since transfer
-     */
-    private function getTaperReliefRate(int $years): int
-    {
-        if ($years < 3) {
-            return 100;
-        } // Full 40%
-        if ($years < 4) {
-            return 80;
-        }  // 32%
-        if ($years < 5) {
-            return 60;
-        }  // 24%
-        if ($years < 6) {
-            return 40;
-        }  // 16%
-        if ($years < 7) {
-            return 20;
-        }  // 8%
-
-        return 0;                // 0% (fully exempt)
     }
 
     /**

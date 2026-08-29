@@ -300,3 +300,51 @@ docblock. **Needs a data-model decision before it can be modelled.**
 `workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md` — two rounds,
 26 findings, with legislation and HMRC manual citations. Recorded there because the
 reviewer wrote nothing to disk; without that file both reviews would have been lost.
+
+## Independent verification — 2026-08-29
+
+**Re-measured against `dev` by an agent that did not write any of the fixes.** This is the
+first independent check this item has had; the `CANNOT CERTIFY` stamp of 2026-08-23 stands
+for everything not listed as closed below.
+
+**Zero-caller accessors: 20 → 16.** Four have gained real callers.
+
+| rule | 2026-08-23 | 2026-08-29 |
+|---|---|---|
+| Business Property Relief cap | "a boolean, 100% or nothing" | **CLOSED** — `EstateAssetAggregatorService:340-342` applies `allowance_cap`, `relief_above_cap` and `allowance_cap_effective_date`, dated rather than hardcoded (W-0465) |
+| Chargeable lifetime transfers | `getCLTRules()` zero callers | **CLOSED** — read at `FailedGiftTaxCalculator:93`, `PersonalizedTrustStrategyService:173,474` |
+| Taper relief (gifting) | "a boolean; the percentages are applied to nothing" | **CLOSED** — `GiftingStrategy:75` reads `getGiftTaxRate()` |
+| Taper relief (trusts) | not separately traced | **WAS STILL A HARDCODED LADDER** — found by this pass, fixed as **W-0522** |
+| Agricultural Property Relief | "nothing at all" | **STILL OPEN** — `getAgriculturalRelief()` still has zero callers |
+| Normal Expenditure Out of Income | "a label, never computed" | **STILL OPEN** — `getNormalExpenditureFromIncome()` zero callers |
+| 14-year rule | zero mentions | **STILL OPEN** — `getFourteenYearRule()` zero callers |
+| Quick succession relief | zero mentions | **STILL OPEN** — `getQuickSuccessionRelief()` zero callers |
+
+**The item stays `gated`.** Four configured reliefs are still implemented by nothing, which
+is the substance of CSJ's instruction and is not met.
+
+Still zero-caller, unchanged and un-triaged: `getAll`, `getEstateConfig`,
+`getInvestmentConfig`, `getPropertyOwnership`, `getJointOwnershipType`,
+`hasSurvivorshipRights`, `getLeaseholdReform`, `getLeaseholdValuationWarnings`,
+`getEarlyYearsFunding`, `getTaxFreeChildcare`, `isInCurrentTaxYear`.
+
+**One new observation:** `getBlindPersonsAllowance()` now has zero callers too. It is not a
+regression — W-0511 wired the allowance through `blindPersonsAllowanceFor()` instead — but
+it means two accessors answer one question and only one is used.
+
+## CSJ's ruling — 2026-08-29
+
+> *"the four reliefs are work, and need to be done."*
+
+Broken out so each can be claimed, gated and verified on its own rather than sitting inside
+this structural item:
+
+| relief | item | severity |
+|---|---|---|
+| Agricultural Property Relief | **W-0524** | high — an estate holding farmland gets none, and `cap_shared_with_bpr` means it cannot be a parallel copy of the Business Property Relief allocator |
+| Normal Expenditure Out of Income | **W-0525** | medium |
+| The 14-year rule | **W-0526** | medium |
+| Quick succession relief | **W-0527** | low |
+
+**W-0463 stays `gated` until all four land.** It is the umbrella; the four are the work.
+
