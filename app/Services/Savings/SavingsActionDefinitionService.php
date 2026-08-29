@@ -2986,8 +2986,8 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $user = User::find($userId);
-        // W-0350 — reciprocal only.
-        if (! $user || $user->reciprocalLiveSpouse() === null) {
+        // W-0350/W-0530 — reciprocal AND consented; this reads the spouse's savings.
+        if (! $user || $user->financiallySharedSpouse() === null) {
             return [];
         }
 
@@ -3058,8 +3058,8 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $user = User::find($userId);
-        // W-0350 — reciprocal only.
-        if (! $user || $user->reciprocalLiveSpouse() === null) {
+        // W-0350/W-0530 — reciprocal AND consented; this reads the spouse's savings.
+        if (! $user || $user->financiallySharedSpouse() === null) {
             return [];
         }
 

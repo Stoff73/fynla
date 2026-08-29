@@ -285,9 +285,13 @@ class UserProfileController extends Controller
         //
         // W-0350 — and RECIPROCAL. `User` soft-deletes, so the live test was already
         // most of what `liveSpouseId()` bought here; what it never answered is whether
-        // the named account named this one back. This returns their entire
-        // `UserResource`.
-        $reciprocalSpouse = $currentUser->reciprocalLiveSpouse();
+        // the named account named this one back.
+        //
+        // W-0530 — and CONSENTED. `UserResource` carries `annual_employment_income`,
+        // `annual_rental_income`, `annual_dividend_income`, the expenditure columns and
+        // the rest, so "their entire profile" is a financial disclosure however it reads
+        // from the method name.
+        $reciprocalSpouse = $currentUser->financiallySharedSpouse();
 
         if ($reciprocalSpouse === null || $reciprocalSpouse->id !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
@@ -344,9 +348,9 @@ class UserProfileController extends Controller
     public function getSpouseFinancialCommitments(Request $request): JsonResponse
     {
         $user = $request->user();
-        // W-0350 — reciprocal only; this endpoint returns the OTHER account's
-        // financial commitments.
-        $spouse = $user->reciprocalLiveSpouse();
+        // W-0350/W-0530 — reciprocal AND consented; this endpoint returns the OTHER
+        // account's financial commitments.
+        $spouse = $user->financiallySharedSpouse();
 
         if (! $spouse) {
             return response()->json([

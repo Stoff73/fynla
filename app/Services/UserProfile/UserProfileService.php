@@ -447,8 +447,9 @@ class UserProfileService
      */
     private function spouseIncomeSources(User $user): ?array
     {
-        // W-0350 — reciprocal only; this returns the other account's income sources.
-        if ($spouse = $user->reciprocalLiveSpouse()) {
+        // W-0350/W-0530 — reciprocal AND consented; this returns the other account's
+        // income sources.
+        if ($spouse = $user->financiallySharedSpouse()) {
             return $this->incomeSources($spouse, 'spouse');
         }
 
