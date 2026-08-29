@@ -84,6 +84,13 @@ beforeEach(function () {
         ->with('protection.dis_reliance_percent', Mockery::any())
         ->andReturn(0.50);
 
+    // W-0511 — the analyzer asks the config service what allowance each person is
+    // entitled to. None of these fixtures is registered blind, so the real answer is
+    // zero and the mock gives the same one rather than a stub that would hide a
+    // change in the entitlement rule.
+    $mockTaxConfig->shouldReceive('blindPersonsAllowanceFor')
+        ->andReturnUsing(fn (?User $person) => $person?->is_registered_blind ? 3250.0 : 0.0);
+
     // Create UKTaxCalculator with mocked TaxConfigService
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
 
