@@ -48,6 +48,24 @@ final class HouseholdPooling
      */
     public const POOLING_MARITAL_STATUSES = ['married', 'civil_partnership'];
 
+    /**
+     * Every marital status the application accepts — W-0509.
+     *
+     * Distinct from the pooling list above: this is the whole vocabulary, and it is
+     * what a validation rule needs. `IHTController` restated it as the literal
+     * `in:single,married,widowed,divorced` and so rejected a civil partnership's
+     * Inheritance Tax profile with a 422 — for four months after the users column had
+     * been widened to accept the status.
+     *
+     * Neither that rule nor the stale column enum contained a quoted `'married'`, which
+     * is exactly why the W-0480 sweep guard could not see either of them. A shared list
+     * is the fix; another regex is not.
+     *
+     * Mirrors `users.marital_status` and `iht_profiles.marital_status`. Adding a status
+     * means widening both columns as well as this line.
+     */
+    public const ALL_MARITAL_STATUSES = ['single', 'married', 'civil_partnership', 'divorced', 'widowed'];
+
     public static function hasSpousalStatus(?User $user): bool
     {
         return $user !== null

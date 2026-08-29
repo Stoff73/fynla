@@ -15,8 +15,10 @@ use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class IHTController extends Controller
 {
@@ -287,7 +289,9 @@ class IHTController extends Controller
         $this->requireFullEstate($user);
 
         $validated = $request->validate([
-            'marital_status' => ['nullable', 'string', 'in:single,married,widowed,divorced'],
+            // W-0509 — read from the one list rather than restated here. The literal
+            // this replaces predated civil partnerships and 422'd them.
+            'marital_status' => ['nullable', 'string', Rule::in(HouseholdPooling::ALL_MARITAL_STATUSES)],
             'has_spouse' => ['nullable', 'boolean'],
             'own_home' => ['nullable', 'boolean'],
             'home_value' => ['nullable', 'numeric', 'min:0'],
