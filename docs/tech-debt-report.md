@@ -1,76 +1,81 @@
-# Tech Debt Report — Session 2026-07-24 (evening wrap)
+# Tech Debt Report — Session 2026-08-29
 
-**Files analysed:** 12 (all changed today, merged to dev via PRs #670/#671/#672)
-**Issues found:** 9
-**Severity breakdown:** 0 critical, 5 warnings, 4 suggestions
+**Files analysed:** 31 changed across five work items (W-0482 re-gate, W-0485 + W-0511, W-0509, W-0489, W-0204)
+**Issues found:** 5
+**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
 
-Sources: direct implementation knowledge from today's work, the tax-compliance
-reviewer's pass on #672 (debt-class findings carried here), and spot-checks.
-Supersedes the 2026-07-23 report; its two still-open items are carried below
-(items 5 and 7).
+## Clean on the mechanical checks
 
-## Critical Issues
+Run against every changed PHP and Vue file, all clear:
 
-None — no convention violations (strict_types present, no hardcoded tax values,
-no banned colours/icons/scores introduced; the /m change reuses existing bubble
-patterns).
+- `declare(strict_types=1);` present in all 17 changed PHP files
+- No `console.log`, `dd()`, `dump()` or `var_dump()` left behind
+- No hardcoded tax values in any added line (Rule 2) — every figure comes from
+  `TaxConfigService` or the income-tax config array, and the `?? 2870` literal that DID
+  exist was removed under W-0511
+- No `amber-*`, `orange-*`, `primary-*`, `secondary-*` or `gray-*` in the changed Vue
+  (Rules 8 and 11)
+- No new acronyms in user-facing copy and no scores (Rules 9 and 12) — the new salary
+  sacrifice and pension caveat strings spell everything out
+- No new icons on any surface (Rule 15)
 
 ## Warnings
 
-1. **`app/Services/Onboarding/CaptureAccuracyGate.php` (854 lines, was 792)** —
-   Category 4. Today added the argument-repair channel and the latest-turn
-   binding; `evidenceForEntity` now carries FIVE interacting walk rules
-   (anchor, anaphoric continuation, inert-detail step-over, group-clarification
-   turns, latest-turn pure-answer binding). Yesterday's W1 (`EvidenceWalk`
-   extraction) is now overdue — next touch of this file should do the
-   extraction first.
+### 1. `app/Services/Estate/IHTCalculationService.php` — 2,973 lines
+**Category:** Complexity & maintainability
+**What's wrong:** Comfortably the largest service in the changed set and roughly six times
+the 500-line split threshold. W-0482 added ~174 lines to it this session. Pre-existing, but
+growing, and it is the file every estate item lands in.
+**Suggested fix:** Not an end-of-day job. Worth its own item to extract the projection
+terms — `projectedUnusedPensionFund()` and its siblings are already cohesive enough to move
+to a collaborator without changing behaviour.
 
-2. **Rate-normalisation duplication** — Category 1 / Rule 20-class (reviewer
-   finding 11). `TaxStrategyMath::normalisedInterestRate()` (private) plus four
-   inline `> 1 ? /100` copies: `IsaTopUpStrategy.php:80,86`,
-   `JointSavingsStrategy.php:82`, `AssetShiftingBundleStrategy.php:73`.
-   Fix: make the helper public (or a small trait) and delete the copies.
-
-3. **Section→model mapping duplicated in the verify-edit machinery** —
-   Category 1. `OnboardingChatDirector::verifyEditRecordScope` and
-   `::verifyEditSnapshot` each hold a parallel section→models map (grown today
-   by protection/goals/estate). One config array (section → [entity type,
-   model/store, label fields, amount field]) could drive both plus the
-   read-back.
-
-4. **`estimateAnnualInterest` unmemoised, called repeatedly per calculation**
-   — Category 4 (reviewer finding 14). Twice in `buildUserAllowanceGrid`
-   (`TaxStrategyCalculator.php:151,159` — the second call can reuse the local),
-   again via `taxableIncomeFor` and `IsaTopUpStrategy`;
-   `estimateSpouseJointInterest` adds one more SavingsAccount query per
-   couple-mode calculation against the documented 50ms budget.
-
-5. **Completion/negative declarations still round-trip the LLM** — carried
-   from yesterday (W2, still open). "That's all my savings" costs ~£0.04 +
-   refusal risk before the zero-output guard rescues; a deterministic pre-LLM
-   short-circuit in `handleAssetCaptureTurn` remains the cheap win.
+### 2. `app/Services/TaxConfigService.php:528` — an unconfigured year now silently grants nothing
+**Category:** Convention / silent failure
+**What's wrong:** `getBlindPersonsAllowance()` returned `?? 2870` — a stale year's figure,
+so an unconfigured year granted the WRONG allowance invisibly. W-0511 replaced it with
+`?? 0`, which under-grants visibly rather than over-granting invisibly, and every seeded
+year sets the key. That is the better of the two, but it is still a silent answer to a
+missing configuration.
+**Suggested fix:** Deliberate and documented at the line. Revisit only if a broader
+decision is taken on how `TaxConfigService` should behave when a year lacks a key — several
+getters have the same shape (`$psa[$taxBand] ?? 0`), so it is a family, not a one-off.
 
 ## Suggestions
 
-6. **`resources/mobile/mixins/onboardingChat.js:377-420`** — Category 1.
-   `entity_created` and `capture_complete` now share the same
-   confirmation-bubble-splitting dance (deliberately mirrored today). Extract
-   a `resolveConfirmationBubble(cursor)` helper next /m touch.
+### 3. `app/Traits/ResolvesIncome.php` — `app()` resolution in a constructor-injection codebase
+**Category:** Inconsistency with existing patterns
+**What's wrong:** `getTaxConfig()` resolves `TaxConfigService` from the container rather
+than taking it by injection.
+**Suggested fix:** None available — a trait has no constructor of its own, and this mirrors
+the trait's existing `getIncomeTaxCalculator()` seam, which consumers override. Noted so it
+is not read as an oversight.
 
-7. **Entity-noun vocabularies** — carried from yesterday (S4, still open).
-   `CaptureAccuracyGate::mentionsEntityNoun` and `entityGroupNouns` hold
-   overlapping noun alternations; derive both from one `ENTITY_NOUNS` constant.
+### 4. `tests/Unit/Console/Commands/` is not bound in `tests/Pest.php`
+**Category:** Convention drift (test bootstrap)
+**What's wrong:** Every file in that directory declares
+`uses(TestCase::class, RefreshDatabase::class)` for itself, because `Pest.php` binds per
+directory by name and does not bind this one. A new file without the declaration throws "A
+facade root has not been set" with 0 assertions — which is what
+`NoCommandCopiesSavingsIntoCashTest` did on its first run.
+**Suggested fix:** Bind the directory in `Pest.php` once and drop the per-file declarations.
+`tests/CLAUDE.md` currently advises working around this rather than fixing it, so changing
+it means changing that guidance too.
 
-8. **`OnboardingStateMachine::journeySectionHasData` estate check** —
-   Category 1 (documented, deliberate). Narrower than
-   `PrerequisiteGateService::REQUIREMENT_ESTATE` on purpose (that requirement
-   counts cash/pensions); if a third consumer of "estate-specific records
-   exist" appears, promote it into the gate service as a named requirement.
+### 5. `docs/archive/appMapping/` still documents `migrate:savings-to-cash`
+**Category:** Dead documentation
+**What's wrong:** Four references to a command deleted under W-0489.
+**Suggested fix:** Leave them. It is archive, and rewriting history there makes the archive
+less useful rather than more. Recorded so a future sweep does not read them as live.
 
-9. **`OnboardingChatDirector.php` at 7,228 lines** — Category 4, pre-existing
-   trend. Today +~180 lines. The verify-edit family (~700 lines) and the
-   asset-capture turn (~530 lines) are coherent extraction candidates when the
-   file is next restructured.
+## Reported, not fixed — already tracked
+
+- `EstateOverviewCard.vue:116`, `IHTPlanning.vue:1657`, `WillPlanning.vue:519` branch on
+  `marital_status === 'married'` alone, so a civil partnership reads a single person's
+  framing. In scope on **W-0508**, which names `IHTPlanning.vue:1657` explicitly.
+- The pension residual keeps growth on withdrawn pounds — filed as **W-0517**, blocked on
+  W-0512.
+- Fyn's `capture_salary_sacrifice` does not ask the income basis — filed as **W-0518**.
 
 ---
 *Generated by tech-debt-session skill*
