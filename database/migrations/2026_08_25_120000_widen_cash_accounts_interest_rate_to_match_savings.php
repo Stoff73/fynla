@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\DB;
  * The units are now determined, without guessing, from the writer the sweep did
  * not look for. It searched form requests; the writer is a console command.
  *
- * `App\Console\Commands\MigrateSavingsToCash:159` sets
+ * `App\Console\Commands\MigrateSavingsToCash:159` — deleted under W-0489, quoted here
+ * because it is where the units were established — set
  * `'interest_rate' => $account->interest_rate`, copied verbatim from
  * `savings_accounts`. So whatever that column holds, this one would hold.
  *
