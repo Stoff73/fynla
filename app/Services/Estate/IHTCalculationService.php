@@ -10,7 +10,6 @@ use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
 use App\Models\User;
-use App\Services\Goals\LifeEventService;
 use App\Services\Settings\AssumptionsService;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -98,8 +97,8 @@ class IHTCalculationService
         private readonly TaxConfigService $taxConfig,
         private readonly AssumptionsService $assumptionsService,
         private readonly FutureValueCalculator $futureValueCalculator,
-        private readonly LifeEventService $lifeEventService,
         private readonly PropertyStore $propertyStore,
+        private readonly PensionStore $pensionStore,
         private readonly WillAnalysisService $willAnalysis,
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
         private readonly UndividedShareDiscount $undividedShareDiscount,
@@ -741,12 +740,25 @@ class IHTCalculationService
         $assumptions = $this->assumptionsService->getEstateAssumptions($user);
         $inflationRate = ($assumptions['inflation_rate'] ?? 2.0) / 100;
 
-        // Project investments using Monte Carlo p20 directly at death age
-        // No rate extraction or recompounding — use the simulation result as-is
-        $projectedInvestments = $this->estateProjection->projectInvestmentsMonteCarlo(
+        // W-0520 — the user's CONFIGURED growth method, not Monte Carlo regardless.
+        //
+        // This called `projectInvestmentsMonteCarlo()` directly, straight past
+        // `projectInvestments()`, which is the method that reads
+        // `estate_planning.investment_growth_method` and branches on it. So a user who
+        // set "custom" in Settings → Assumptions and typed their own rate had it ignored
+        // by the projected estate, and therefore by their projected Inheritance Tax. The
+        // dispatcher was written in `37b9b7b1` and never called; `LifeCoverCalculator`
+        // honours the same setting, so the estate was the one place that did not.
+        //
+        // The custom rate was not entirely ignored, which is what made this hard to see:
+        // `getFallbackGrowthRate()` reads it, but only as the fallback for when the
+        // simulation FAILS. A user's explicit choice was reachable solely by the
+        // simulation erroring — exactly backwards.
+        $projectedInvestments = $this->estateProjection->projectInvestments(
             $user,
             $spouse,
             $yearsUntilDeath,
+            $assumptions,
             $dataSharingEnabled
         );
 
@@ -2297,7 +2309,7 @@ class IHTCalculationService
         $effectiveDate = Carbon::parse($pensionInclusion['effective_date']);
 
         // Get total DC pension values
-        $store = app(PensionStore::class);
+        $store = $this->pensionStore;
         $userPensionValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
         $spousePensionValue = 0;
         if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {

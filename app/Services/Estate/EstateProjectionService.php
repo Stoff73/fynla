@@ -220,9 +220,19 @@ class EstateProjectionService
     }
 
     /**
-     * Project investments using Monte Carlo (80% confidence) or custom rate
+     * Project investments using the household's CONFIGURED growth method.
+     *
+     * W-0520 — the entry point the estate must use, and for two and a half years did not.
+     * `IHTCalculationService` called `projectInvestmentsMonteCarlo()` directly, so
+     * `estate_planning.investment_growth_method` was read by nothing on this path: a user
+     * who chose "custom" in Settings → Assumptions and typed a rate got Monte Carlo
+     * anyway, in the figure that decides their projected Inheritance Tax.
+     *
+     * The zero-year guard matters too, and only exists here: at the horizon `0` the
+     * simulation is asked to project nothing, where what the caller wants is today's
+     * value.
      */
-    private function projectInvestments(
+    public function projectInvestments(
         User $user,
         ?User $spouse,
         int $yearsToProject,
@@ -286,7 +296,7 @@ class EstateProjectionService
     /**
      * Project investments using Monte Carlo simulation (80% confidence / p20)
      */
-    public function projectInvestmentsMonteCarlo(
+    private function projectInvestmentsMonteCarlo(
         User $user,
         ?User $spouse,
         int $yearsToProject,
