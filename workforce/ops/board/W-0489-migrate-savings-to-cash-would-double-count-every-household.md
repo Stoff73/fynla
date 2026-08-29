@@ -3,8 +3,9 @@ id: W-0489
 title: migrate:savings-to-cash is registered and would double-count every household's cash if anyone ran it
 mission: persona-run-peak_earners-2026-08-20
 owner: build-lead
+branch: fix/w-0489-delete-the-savings-to-cash-migration-command
 reviewers: [quality-lead]
-status: queued
+status: in_review
 severity: high
 surfaces: [web, m, ios]
 source: found while establishing what cash_accounts is for, W-0323, 2026-08-25
@@ -89,3 +90,47 @@ The column-width half of this discovery is W-0323 and is fixed —
 `cash_accounts.interest_rate` is `decimal(8,4)` with a corrected comment. The
 units were determined from this very command, which is how the contradiction came
 to light.
+
+## Resolution — 2026-08-28
+
+**Acceptance 1 — CSJ decided: `cash_accounts` holds current accounts, distinct from
+savings.** Two of the three voices already said so — the `CashAccount` docblock and
+`HouseholdPlanningService`, which sums the two tables as separate asset classes and is only
+correct if they ARE separate things. The command was the odd voice out.
+
+**Acceptance 2 — the command is deleted**, not guarded.
+`app/Console/Commands/MigrateSavingsToCash.php` is gone, so there is nothing left to make
+idempotent and no source rows left to mark. Nothing in the application copies a row between
+the two tables.
+
+The one live reference to it was the docblock on
+`2026_08_25_120000_widen_cash_accounts_interest_rate_to_match_savings`, which quotes the
+command as the evidence for what units `cash_accounts.interest_rate` holds. That reasoning
+is still sound and is kept, now marked as a citation of something deleted rather than a
+pointer to live code. The remaining mentions are in `docs/archive/`, which is archive.
+
+**Acceptance 3 — the stated answer, at both sites.** The decision is recorded on the
+`CashAccount` docblock (what the table is for, and that the command was the disagreement)
+and at the summing site in `HouseholdPlanningService`, which now says why adding both
+totals is correct rather than a double count — and that it was one
+`php artisan migrate:savings-to-cash` away from being wrong for every household.
+
+**Acceptance 4 — the guard, and an honest note about what it can be.** Once the two tables
+are distinct by design, *"the same money in both tables"* is not a state the application can
+reach: there is no marker a test could use to recognise a duplicate, because duplicates are
+not supposed to be producible. A test asserting "these two rows are the same money" would
+have to invent the very concept the decision removes.
+
+So `tests/Unit/Console/Commands/NoCommandCopiesSavingsIntoCashTest` guards the thing that
+would actually have caught this:
+
+1. **No registered command copies between them.** `migrate:savings-to-cash` is absent from
+   `Artisan::all()`, and so is any command whose name mentions both `savings` and `cash`.
+   The gun stays out of `artisan list`.
+2. **The totals stay additive.** A household with £40,000 of savings and £6,000 of cash
+   totals **£46,000** — not the £86,000 one run of the deleted command produced.
+
+## Not fixed here
+
+The `docs/archive/appMapping/` files still document the command. They are archive, and
+rewriting history there would make the archive less useful rather than more.

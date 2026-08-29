@@ -501,7 +501,14 @@ class HouseholdPlanningService
             ->get();
         $businessValue = $businesses->sum(fn ($b) => $this->calculateUserShare($b, $userId));
 
-        // Cash accounts
+        // Cash accounts — current/transactional balances, added ALONGSIDE savings above
+        // and never overlapping them. W-0489: `migrate:savings-to-cash` used to copy
+        // every `savings_accounts` row into `cash_accounts` without an idempotency
+        // guard and without marking the source, so one run of a command that read like
+        // routine maintenance would have doubled this total for every household, and a
+        // second run would have tripled it. CSJ settled the contradiction on
+        // 2026-08-28 — the two tables are separate asset classes — and the command is
+        // deleted. Nothing copies between them, which is what makes this sum correct.
         $cashAccounts = CashAccount::forUserOrJoint($userId)
             ->get();
         $cashValue = $cashAccounts->sum(fn ($c) => $this->calculateUserShare($c, $userId));
