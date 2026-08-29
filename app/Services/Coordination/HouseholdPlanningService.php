@@ -138,7 +138,9 @@ class HouseholdPlanningService
     public function calculateHouseholdNetWorth(User $user): array
     {
         $spouse = $this->getLinkedSpouse($user);
-        $dataSharingEnabled = $user->hasAcceptedSpousePermission();
+        // W-0529 — this asked for consent without checking a spouse was there to give
+        // it, which is the mirror of `EstateAgent` asking for a spouse without consent.
+        $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
 
         // Gather assets for user
         $userAssets = $this->gatherAssetsForUser($user);
@@ -242,7 +244,9 @@ class HouseholdPlanningService
     public function generateSpousalOptimisations(User $user): array
     {
         $spouse = $this->getLinkedSpouse($user);
-        $dataSharingEnabled = $user->hasAcceptedSpousePermission();
+        // W-0529 — this asked for consent without checking a spouse was there to give
+        // it, which is the mirror of `EstateAgent` asking for a spouse without consent.
+        $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
 
         if (! $spouse || ! $dataSharingEnabled) {
             return [];
@@ -324,7 +328,9 @@ class HouseholdPlanningService
     public function modelDeathOfSpouseScenario(User $user, string $whichSpouse = 'primary'): array
     {
         $spouse = $this->getLinkedSpouse($user);
-        $dataSharingEnabled = $user->hasAcceptedSpousePermission();
+        // W-0529 — this asked for consent without checking a spouse was there to give
+        // it, which is the mirror of `EstateAgent` asking for a spouse without consent.
+        $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
 
         if (! $spouse || ! $dataSharingEnabled) {
             return $this->singlePersonScenario($user);

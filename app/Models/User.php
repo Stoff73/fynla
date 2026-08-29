@@ -562,6 +562,34 @@ class User extends Authenticatable
     }
 
     /**
+     * May this account's figures be pooled with its spouse's? — **W-0529, CSJ 2026-08-29.**
+     *
+     * ONE derivation of `$dataSharingEnabled`, because there were **eight**, in six
+     * shapes, for one question:
+     *
+     * - `$spouse !== null` alone (`EstateAgent`, twice) — no consent at all, so Fyn
+     *   pooled an estate the screen would not have pooled and quoted a different figure
+     *   from the one the user was looking at. **This is the one CSJ ruled on.**
+     * - `hasAcceptedSpousePermission()` alone (`HouseholdPlanningService`, three times)
+     *   — consent with no check that a spouse is there to consent.
+     * - Four more spellings of "a spouse, and permission", each correct and each
+     *   written out again.
+     *
+     * Reciprocity is folded in because the two questions are one decision at the point
+     * of use: pooling reads the other account's financial records, so it needs both a
+     * link they made too and their consent to share.
+     *
+     * **This answers whether to POOL, not whether they are married.** Callers must keep
+     * resolving the spouse separately and pass it even when this is false — the estate
+     * engine reads `$spouse` for `$isMarried`, and handing it null makes a couple report
+     * as single, which is the misleading artefact W-0154 recorded as a near-miss.
+     */
+    public function sharesFinancialDataWithSpouse(): bool
+    {
+        return $this->reciprocalLiveSpouse() !== null && $this->hasAcceptedSpousePermission();
+    }
+
+    /**
      * Get the user's active sessions.
      */
     public function sessions(): HasMany

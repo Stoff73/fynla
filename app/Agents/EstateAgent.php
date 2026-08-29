@@ -159,7 +159,7 @@ class EstateAgent extends BaseAgent
                     // 8 of 12 reciprocal couples with no permission row, which is a
                     // visible tax change and CSJ's call, not a side effect of this fix.
                     $spouse = $user->reciprocalLiveSpouse();
-                    $dataSharingEnabled = $spouse !== null;
+                    $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
                     $ihtCalculation = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
                     $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
                     $effectiveTaxRate = $ihtCalculation['effective_rate'] ?? 0;
@@ -1718,8 +1718,10 @@ class EstateAgent extends BaseAgent
 
         $ihtLiability = 0;
         try {
-            $spouse = $user->spouse;
-            $dataSharingEnabled = $spouse !== null;
+            // W-0529 — one derivation. This pooled on the link alone, so Fyn quoted a
+            // different estate figure from the one on the screen.
+            $spouse = $user->reciprocalLiveSpouse();
+            $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
             $result = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
             $ihtLiability = $result['iht_liability'] ?? 0;
         } catch (\Exception $e) {

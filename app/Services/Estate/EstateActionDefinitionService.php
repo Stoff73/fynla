@@ -181,7 +181,7 @@ class EstateActionDefinitionService
         // accepted permission. There is no `data_sharing_enabled` column; inventing
         // one here would have been a fifth answer to a question already settled.
         $spouse = $user->liveSpouse();
-        $dataSharingEnabled = $spouse !== null && $user->hasAcceptedSpousePermission();
+        $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
 
         $iht = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
 
