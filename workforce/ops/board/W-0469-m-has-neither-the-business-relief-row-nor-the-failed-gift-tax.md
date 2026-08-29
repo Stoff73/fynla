@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [quality-lead]
-status: gated
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: medium
 surfaces: [m]
@@ -75,3 +76,16 @@ what the `/m` estate screen is for, and that has not been settled.
 
 - 2026-08-23 — Acceptance 4 holds by construction: `/m` computes nothing here. There is
   no arithmetic on this card at all now — it renders a sentence and a button.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `88494e0fd` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

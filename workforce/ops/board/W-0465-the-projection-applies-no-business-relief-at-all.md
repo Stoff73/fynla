@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: gated
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -124,3 +125,16 @@ same change.
   allowances — `8f09eaddc` newly routed the relief and taper base through that predicate)
   and **W-0475** (the projected gross estate omits whole asset types, so the taper base
   mirrors the current column in form but not in substance).
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `8f09eaddc` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

@@ -5,7 +5,8 @@ mission: null
 branch: fix/w-0519-split-iht-calculation-service
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: in_progress
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: medium
 surfaces: [web, m, ios]
@@ -84,3 +85,16 @@ Found during the move, left alone deliberately (working style: report, do not si
 - **`PensionStore` is imported but resolved from the container** at
   `IHTCalculationService:2300` (`app(PensionStore::class)`) rather than injected, in a
   class whose other ten collaborators are constructor-injected.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`in_progress`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #745; commit `f23f4f8df` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

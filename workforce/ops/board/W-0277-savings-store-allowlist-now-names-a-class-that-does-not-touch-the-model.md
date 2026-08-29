@@ -4,7 +4,8 @@ title: The SavingsStore boundary allowlist names a class that no longer touches 
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: quality-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-22T22:10:00Z
@@ -116,3 +117,16 @@ for the model directly will be stopped.
   had its backslashes eaten by `sed`, and both produced a green run that would have
   been reported as proof had it not been checked. Recorded because "the test passed"
   after a probe that never landed is exactly the false confidence this item is about.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Phailanx
+- **Evidence:** merged in #718; commit `3583fd01c` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

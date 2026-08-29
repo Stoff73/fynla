@@ -4,7 +4,8 @@ title: Salary sacrifice is not added back to threshold income, and nothing recor
 mission: persona-run-peak_earners-2026-08-20
 branch: fix/w-0204-salary-sacrifice-add-back-to-threshold-income
 owner: null
-status: in_review
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web]
 created: 2026-08-22T07:25:00Z
@@ -206,3 +207,16 @@ Employment Income field to ask it beside.
 The question is asked on the web profile form. **Fyn's `capture_salary_sacrifice` tool does
 not yet ask it**, so a user who declares sacrifice through Fyn gets `assumed_gross` until
 they visit the profile. Filed as W-0518 rather than carried silently.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`in_review`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #744; commit `0cf8a78af` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

@@ -3,7 +3,8 @@ id: W-0486
 title: Monte Carlo projections are not monotonic in their own inputs — adding contributions lowers the projection half the time, and the fee signal is smaller than the sampling noise
 mission: M-0002-persona-fidelity
 owner: null
-status: queued
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-25T16:05:00Z
@@ -92,3 +93,16 @@ noise without adding iterations.
 - 2026-08-25 tax-compliance-reviewer: *"it doesn't undermine the projections' level,
   only every comparison drawn across them — including the exact comparison W-0008
   exists to make."* Raise-today instruction, given W-0008 ships in PR #716.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`queued`.
+
+- **Delivered by:** Icecube-acc
+- **Evidence:** commit `f66152547` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

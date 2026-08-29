@@ -4,7 +4,8 @@ title: Fyn's expenditure capture writes one account at 100% regardless of the ho
 mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: build-lead
-status: gated
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T03:10:00Z
@@ -226,3 +227,16 @@ behaviour; it does not endorse it, and the docblock says so.**
   - **Browser-verified** on `david.jones@example.com`: saved the expenditure form and
     `expenditure_sharing_mode_declared_at` was stamped `2026-08-24 07:58:44`, with the
     225/225 halves untouched. Restored to NULL afterwards, since that save was a test.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `a8fa14e21` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

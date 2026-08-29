@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [tax-compliance-reviewer, compliance-lead]
-status: gated
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -236,3 +237,16 @@ no user.
     thing that made it a Rule 9 breach.
   - `UnmodelledAimNotice.vue` carried a comment restating the old rule; corrected. The
     notice itself names the market in full and never abbreviates, so it needs nothing.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `ff72d3a49` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

@@ -4,7 +4,8 @@ title: cash_accounts.interest_rate is decimal(5,4) with no writer and no rows �
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-22T22:50:00Z
@@ -139,3 +140,16 @@ knowing for the next sweep that consults it.
   the application, no rows, and no UI. There is nothing to exercise; the change is
   verified at the schema level only, which is the whole of it.
 - **The double-count in W-0489 is not fixed here**, only raised.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Phailanx
+- **Evidence:** merged in #718; commit `775e2d9a1` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

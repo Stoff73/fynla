@@ -4,7 +4,8 @@ title: Goal form cannot record "essential" or joint ownership — a joint goal c
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T12:40:00Z
@@ -160,3 +161,16 @@ offering it would invite Fyn to halve a target nobody halved.
 model and tool-catalogue level, and the frontend suite is green, but nobody has
 clicked through `/goals` as both spouses and watched a shared goal appear on each
 side. That is the persona run's job and it has not been done.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Icecube-acc
+- **Evidence:** merged in #727; commit `dcfefc330` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

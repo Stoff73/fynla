@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 owner: build-lead
 branch: fix/w-0489-delete-the-savings-to-cash-migration-command
 reviewers: [quality-lead]
-status: in_review
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 source: found while establishing what cash_accounts is for, W-0323, 2026-08-25
@@ -134,3 +135,16 @@ would actually have caught this:
 
 The `docs/archive/appMapping/` files still document the command. They are archive, and
 rewriting history there would make the archive less useful rather than more.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`in_review`.
+
+- **Delivered by:** Phailanx/Stoff73
+- **Evidence:** merged in #718,#743; commit `ce36afca6` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

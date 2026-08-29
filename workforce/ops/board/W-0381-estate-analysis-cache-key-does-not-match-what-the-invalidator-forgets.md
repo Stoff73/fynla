@@ -4,7 +4,8 @@ title: URGENT for anyone verifying estate figures — the estate analysis cache 
 mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: null
-status: handoff
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T00:40:00Z
@@ -82,3 +83,15 @@ cleared; this one is about *what* — and it is invisible to both earlier sweeps
 - 2026-08-24 — 580 tests pass across `tests/Unit/Agents`, `tests/Feature/Estate` and
   `tests/Unit/Services/Estate`.
 
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`handoff`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `04ecb0ee5` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

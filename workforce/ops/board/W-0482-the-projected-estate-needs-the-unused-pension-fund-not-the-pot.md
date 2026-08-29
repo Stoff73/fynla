@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 branch: fix/w-0482-unused-pension-fund-in-projected-estate
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: review
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -278,3 +279,16 @@ double what it should be (£360,000 against £180,000, about £72,000 of Inherit
 **It is blocked by W-0512 and must be fixed with it:** the credited series is itself a
 perpetuity struck against a fund that never shrinks, so future-valuing one half while the
 other is wrong buys false precision, not accuracy.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #714,#740; commit `eed8e28f4` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**
