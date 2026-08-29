@@ -348,52 +348,30 @@ class PersonalizedTrustStrategyService
      */
     private function calculateMultiCycleDeathCharge(array $schedule, int $yearsUntilDeath): float
     {
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $totalCharge = 0;
 
         foreach ($schedule as $cycle) {
             $yearsFromTransfer = $yearsUntilDeath - $cycle['year'];
 
-            // If death occurs within 7 years of this transfer
-            if ($yearsFromTransfer < 7) {
-                $charge = $cycle['amount'] * $ihtRate;
-
-                // Apply taper relief if 3-7 years
-                if ($yearsFromTransfer >= 3) {
-                    $taperRate = $this->getTaperReliefRate($yearsFromTransfer);
-                    $charge = $charge * ($taperRate / 100);
-                }
-
-                $totalCharge += $charge;
-            }
+            // W-0522 — the graduated schedule comes from configuration, not from a
+            // table written here.
+            //
+            // This multiplied the death rate by a HARDCODED 100/80/60/40/20 ladder in
+            // `getTaperReliefRate()` while `inheritance_tax.taper_relief` carried the
+            // same schedule, configured and unread — the exact shape W-0463 exists to
+            // remove, and the last copy of it in the estate services.
+            //
+            // `getGiftTaxRate()` returns the EFFECTIVE rate, death rate already
+            // applied, so there is nothing left to multiply. It also answers the
+            // under-three-year case (the full rate) and the seven-year case (zero),
+            // which is why the `< 7` and `>= 3` branches go with the table.
+            //
+            // Behaviour-preserving, verified band for band against the old ladder:
+            // 0.4000, 0.3200, 0.2400, 0.1600, 0.0800, 0.0000 at years 0, 3, 4, 5, 6, 7.
+            $totalCharge += $cycle['amount'] * $this->taxConfig->getGiftTaxRate($yearsFromTransfer, 'pet');
         }
 
         return $totalCharge;
-    }
-
-    /**
-     * Get taper relief rate based on years since transfer
-     */
-    private function getTaperReliefRate(int $years): int
-    {
-        if ($years < 3) {
-            return 100;
-        } // Full 40%
-        if ($years < 4) {
-            return 80;
-        }  // 32%
-        if ($years < 5) {
-            return 60;
-        }  // 24%
-        if ($years < 6) {
-            return 40;
-        }  // 16%
-        if ($years < 7) {
-            return 20;
-        }  // 8%
-
-        return 0;                // 0% (fully exempt)
     }
 
     /**
