@@ -168,8 +168,36 @@ which resolves the account **that row** links to rather than whoever sits in
 `linked_user_id` account should ALSO require reciprocity is a real question and a separate
 one; it is not the defect this census described, and it is recorded rather than guessed at.
 
-**Acceptance 3 — Tier 1 and Tier 3 READS. NOT STARTED.** `NetWorthController:74-82` first,
-as the item says. Everything in the ranked list above stands.
+**Acceptance 3 — Tier 1 READS. DONE for the financial surfaces.** Lifted to reciprocity:
+
+| Site | Was | What a one-sided link disclosed |
+|---|---|---|
+| `NetWorthController::getOverview` | raw `$user->spouse_id` | total assets, total liabilities, net worth, the full breakdown across pensions, property, investments, cash, business and chattels, plus mortgages, loans and credit cards |
+| `RetirementIncomeService` ×2 | `User::find($userId)?->spouse`, on a plain request boolean | the whole retirement register |
+| `UserProfileController::getSpouseFinancialCommitments` | raw `$user->spouse` | the other account's financial commitments |
+| `UserProfileService::incomeSources` | raw `$user->spouse` | their income sources |
+| `AdvicePromptBuilder` ×3 | raw `$user->spouse` | their expenditure and family detail, into Fyn's system prompt, recitable every turn |
+| `RecommendationPersonaliser` ×2 | raw `$user->spouse` | drives their figures into recommendations |
+| `LetterToSpouseController::showSpouse` | `liveSpouseId()` | the named account |
+| `EstateAgent` | raw `$user->spouse` | the pooled estate |
+
+**Reciprocity, NOT consent — and that is a measurement, not a preference.** On the
+development database: **12 reciprocal users, 1 one-sided (13 → 14), and 8 of the 12
+reciprocal accounts have NO accepted permission row.** Gating these reads on
+`hasAcceptedSpousePermission()` would take the spouse panel away from two-thirds of real
+couples, so it is not a change to make as a side effect of an authorization fix.
+
+**Raised, not fixed — the two mechanisms behind `$dataSharingEnabled`.** `EstateAgent`
+derives it from the link's existence; `IHTController` derives it from
+`hasAcceptedSpousePermission()`. One question, two answers, so **Fyn can quote a
+different estate figure from the one on the screen**. Aligning them moves the pooled
+figure for those 8 couples, which is a visible tax change and a CSJ decision.
+
+**Still open — Tier 3 (gate (b)) and the rest of Tier 1.** `UserProfileController:300`,
+`UserProfileService:866-897` (children's names, dates of birth and National Insurance
+numbers — minors), `UserContextBuilder`, `SavingsActionDefinitionService`,
+`DependantsReach`, `WillDocumentService:62`, `SpousePermissionController` (which gates
+the consent flow itself and must be assessed rather than lifted blind).
 
 ### Verification
 
@@ -183,6 +211,11 @@ as the item says. Everything in the ranked list above stands.
   403 from `guardDetailedExpenditure`, a TIER gate, not the link gate — it would have
   passed with the fix reverted. Both users are premium now, so the 403 is the one under
   test.
+- Tier 1: `tests/Feature/Api/OneSidedSpouseLinkCannotReadTest.php`, 4 tests,
+  **mutation-verified** — every disclosure refusal fails against the pre-fix code, checked
+  one controller at a time so no test passes on another's gate. 2,444 further tests pass
+  across Feature Api, Feature UserProfile, Unit Retirement, Unit Agents, Unit
+  Coordination, Unit AI, Feature AI, Unit UserProfile, Feature Estate and Unit Estate.
 - **Three existing tests changed, and they were fixtures rather than behaviour.** The
   mirror-will tests set a one-sided link because that was all the old code needed. A
   mirror will is written into the other account, so the fixture is now a reciprocal

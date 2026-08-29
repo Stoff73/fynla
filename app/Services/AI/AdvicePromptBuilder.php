@@ -391,7 +391,9 @@ PROMPT;
             $lines[] = "- Monthly expenditure: £{$formatted}";
         }
 
-        $spouse = $user->spouse;
+        // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED;
+        // it is not evidence that they named back, and this reads their financial data.
+        $spouse = $user->reciprocalLiveSpouse();
         if ($spouse) {
             $spouseExpenditure = $this->calculateTotalExpenditure($spouse);
             if ($spouseExpenditure > 0) {
@@ -413,7 +415,9 @@ PROMPT;
         // Family members — names and ages so Fyn can reference them naturally
         $familyLines = [];
 
-        $spouse = $user->spouse;
+        // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED;
+        // it is not evidence that they named back, and this reads their financial data.
+        $spouse = $user->reciprocalLiveSpouse();
         if ($spouse) {
             // S0.10 — spouse name is user-controlled free text; wrap before
             // interpolation so injection payloads in the spouse name field
@@ -992,7 +996,8 @@ PROMPT;
             // Family Members
             if ($include('family_member')) {
                 $family = FamilyMember::where('user_id', $userId)->get();
-                $spouse = $user->spouse;
+                // W-0350 — reciprocal only.
+                $spouse = $user->reciprocalLiveSpouse();
                 $familyParts = [];
                 if ($spouse) {
                     // S0.10 — family names are user-controlled free text.

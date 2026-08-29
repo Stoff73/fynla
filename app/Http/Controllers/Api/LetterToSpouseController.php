@@ -113,14 +113,15 @@ class LetterToSpouseController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->liveSpouseId()) {
+        // W-0350 — reciprocal only, and resolved once rather than re-found by id.
+        $spouse = $user->reciprocalLiveSpouse();
+
+        if ($spouse === null) {
             return response()->json([
                 'success' => false,
                 'message' => 'No spouse linked to your account',
             ], 404);
         }
-
-        $spouse = User::find($user->spouse_id);
 
         if (! $spouse) {
             return response()->json([

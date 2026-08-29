@@ -447,8 +447,9 @@ class UserProfileService
      */
     private function spouseIncomeSources(User $user): ?array
     {
-        if ($user->spouse) {
-            return $this->incomeSources($user->spouse, 'spouse');
+        // W-0350 — reciprocal only; this returns the other account's income sources.
+        if ($spouse = $user->reciprocalLiveSpouse()) {
+            return $this->incomeSources($spouse, 'spouse');
         }
 
         $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)

@@ -337,7 +337,9 @@ class UserProfileController extends Controller
     public function getSpouseFinancialCommitments(Request $request): JsonResponse
     {
         $user = $request->user();
-        $spouse = $user->spouse;
+        // W-0350 — reciprocal only; this endpoint returns the OTHER account's
+        // financial commitments.
+        $spouse = $user->reciprocalLiveSpouse();
 
         if (! $spouse) {
             return response()->json([
