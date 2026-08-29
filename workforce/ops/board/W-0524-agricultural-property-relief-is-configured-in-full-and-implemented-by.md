@@ -5,7 +5,7 @@ mission: null
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: deferred
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -43,3 +43,32 @@ W-0465 built exactly this shape for Business Property Relief in `EstateAssetAggr
    estate shows no movement.
 4. Tests that fail with the relief removed, not just tests that pass with it present.
 5. `tax-compliance-reviewer` — it moves Inheritance Tax for every qualifying household.
+
+## Working notes
+
+(append-only)
+
+- 2026-08-29 build-lead: **DEFERRED by CSJ.** *"Agriculture is a property type but it is
+  an edge case as most of our initial clients will not have this asset type, so let's
+  mark it as deferred for now, we have more important things to fix."*
+
+  **The design decision is TAKEN, not open** — when this is picked up, agricultural land
+  is a **property type**, not a new `assets.asset_type` and not a flag on
+  `business_interests`. Do not re-open that question; it cost a round to settle.
+
+  **What was established before deferring**, so the next session does not repeat it:
+  - There is genuinely nowhere to record farmland today. Verified directly against the
+    schema rather than taken from the code comment: `assets.asset_type` is
+    `enum('property','pension','investment','business','other')`,
+    `properties.property_type` carries only the three canonical residences, and
+    `business_interests` has `bpr_eligible` with no agricultural equivalent.
+  - So this is a **schema and form change first**, service work second. Adding the type
+    to `properties.property_type` touches CLAUDE.md Rule 4's canonical enum, and needs
+    the form on web AND `/m` (Rule 19).
+  - The relief itself then joins `EstateAssetAggregatorService::applyBusinessPropertyRelief()`
+    rather than getting its own pass. `cap_shared_with_bpr: true` means one £2,500,000
+    allowance covers both, so a parallel copy would give a household holding farmland and
+    a trading company **£5,000,000 of relief where the law gives £2,500,000**.
+  - Nothing is silently wrong in the meantime: `IHTCalculationService` already shows a
+    caveat to estates whose asset names read as agricultural (W-0466), so an affected
+    household is told the figure excludes this relief.
