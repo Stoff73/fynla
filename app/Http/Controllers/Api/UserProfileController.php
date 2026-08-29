@@ -282,7 +282,14 @@ class UserProfileController extends Controller
         // Only allow access to a LIVE spouse's data. The link survives the
         // partner deleting their account — retention — but this endpoint returns
         // their profile, so it must stop answering once they are gone (D5).
-        if ($currentUser->liveSpouseId() !== $userId) {
+        //
+        // W-0350 — and RECIPROCAL. `User` soft-deletes, so the live test was already
+        // most of what `liveSpouseId()` bought here; what it never answered is whether
+        // the named account named this one back. This returns their entire
+        // `UserResource`.
+        $reciprocalSpouse = $currentUser->reciprocalLiveSpouse();
+
+        if ($reciprocalSpouse === null || $reciprocalSpouse->id !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,
@@ -337,7 +344,9 @@ class UserProfileController extends Controller
     public function getSpouseFinancialCommitments(Request $request): JsonResponse
     {
         $user = $request->user();
-        $spouse = $user->spouse;
+        // W-0350 — reciprocal only; this endpoint returns the OTHER account's
+        // financial commitments.
+        $spouse = $user->reciprocalLiveSpouse();
 
         if (! $spouse) {
             return response()->json([
@@ -396,7 +405,16 @@ class UserProfileController extends Controller
 
         // Only allow updating a LIVE spouse's expenditure. A retained record
         // must not stay writable by someone who can no longer see it (D5).
-        if ($currentUser->liveSpouseId() !== $userId) {
+        //
+        // **W-0350 — RECIPROCAL, not merely live.** `liveSpouseId()` answers "is the
+        // account I named still there?", which `User`'s soft deletes largely answer
+        // anyway. It does not answer "did they name me back". Naming someone as your
+        // spouse was enough to overwrite twenty-one expenditure columns in their
+        // account — a write into someone else's records, which the census ranks above
+        // any read of them.
+        $reciprocalSpouse = $currentUser->reciprocalLiveSpouse();
+
+        if ($reciprocalSpouse === null || $reciprocalSpouse->id !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,
@@ -409,7 +427,7 @@ class UserProfileController extends Controller
             ], 403);
         }
 
-        $spouse = User::findOrFail($userId);
+        $spouse = $reciprocalSpouse;
 
         $validated = $request->validate([
             'monthly_expenditure' => 'nullable|numeric|min:0',

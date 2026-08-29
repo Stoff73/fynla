@@ -444,7 +444,8 @@ class UserContextBuilder
             return null;
         }
 
-        if (! $user->liveSpouseId()) {
+        // W-0350 — reciprocal only.
+        if ($user->reciprocalLiveSpouse() === null) {
             return null;
         }
 

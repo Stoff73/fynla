@@ -73,22 +73,34 @@ class NetWorthController extends Controller
 
             $netWorth = $this->netWorthService->getCachedNetWorth($user);
 
-            // Add spouse net worth data if spouse exists and data sharing is enabled
+            // W-0350 — the gate this comment described was never installed.
+            //
+            // It read "if spouse exists and data sharing is enabled", and the line
+            // under it said "you can add permission checks here". Neither check was
+            // there. What shipped on the strength of `$user->spouse_id` alone —
+            // a column this account writes about itself — is the named account's
+            // `total_assets`, `total_liabilities`, `net_worth` and the full breakdown
+            // across pensions, property, investments, cash, business and chattels,
+            // plus their mortgages, loans and credit cards.
+            //
+            // Lifted to RECIPROCITY, per the census's ranked acceptance. **Not to
+            // `hasAcceptedSpousePermission()`, deliberately**: measured on the
+            // development database, 8 of the 12 reciprocally linked accounts have no
+            // accepted permission row, so requiring consent here would take the spouse
+            // panel away from two-thirds of real couples. The Inheritance Tax path DOES
+            // require it for the same class of data, and that inconsistency is a
+            // decision to be taken openly rather than smuggled in as part of this fix.
             $spouseData = null;
-            if ($user->spouse_id) {
-                $spouse = $user->spouse;
-                if ($spouse) {
-                    // Check if data sharing is enabled (you can add permission checks here)
-                    $spouseNetWorth = $this->netWorthService->getCachedNetWorth($spouse);
-                    $spouseData = [
-                        'totalAssets' => $spouseNetWorth['total_assets'],
-                        'totalLiabilities' => $spouseNetWorth['total_liabilities'],
-                        'netWorth' => $spouseNetWorth['net_worth'],
-                        'breakdown' => $spouseNetWorth['breakdown'],
-                        'liabilitiesBreakdown' => $spouseNetWorth['liabilities_breakdown'],
-                        'hasDbPensions' => $spouseNetWorth['has_db_pensions'] ?? false,
-                    ];
-                }
+            if ($spouse = $user->reciprocalLiveSpouse()) {
+                $spouseNetWorth = $this->netWorthService->getCachedNetWorth($spouse);
+                $spouseData = [
+                    'totalAssets' => $spouseNetWorth['total_assets'],
+                    'totalLiabilities' => $spouseNetWorth['total_liabilities'],
+                    'netWorth' => $spouseNetWorth['net_worth'],
+                    'breakdown' => $spouseNetWorth['breakdown'],
+                    'liabilitiesBreakdown' => $spouseNetWorth['liabilities_breakdown'],
+                    'hasDbPensions' => $spouseNetWorth['has_db_pensions'] ?? false,
+                ];
             }
 
             $response = [

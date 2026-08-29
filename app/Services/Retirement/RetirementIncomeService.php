@@ -234,7 +234,9 @@ class RetirementIncomeService
         // Get user IDs to query
         $userIds = [$userId];
         if ($includeSpouse) {
-            $spouse = User::find($userId)?->spouse;
+            // W-0350 — reciprocal only. `$includeSpouse` is a plain request boolean,
+            // so the caller chose it; the link must be one both parties made.
+            $spouse = User::find($userId)?->reciprocalLiveSpouse();
             if ($spouse) {
                 $userIds[] = $spouse->id;
             }
@@ -553,7 +555,9 @@ class RetirementIncomeService
     {
         $userIds = [$userId];
         if ($includeSpouse) {
-            $spouse = User::find($userId)?->spouse;
+            // W-0350 — reciprocal only. `$includeSpouse` is a plain request boolean,
+            // so the caller chose it; the link must be one both parties made.
+            $spouse = User::find($userId)?->reciprocalLiveSpouse();
             if ($spouse) {
                 $userIds[] = $spouse->id;
             }

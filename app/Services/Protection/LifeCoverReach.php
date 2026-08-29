@@ -98,16 +98,6 @@ class LifeCoverReach
      * plus the target's email plus the target being unlinked". It is not closure,
      * and it cannot become closure from inside this class.
      */
-    private function coveringSpouse(User $user): ?User
-    {
-        $spouse = $user->liveSpouse();
-
-        if ($spouse === null || ! $user->hasReciprocalSpouseLink($spouse->id)) {
-            return null;
-        }
-
-        return $spouse;
-    }
 
     /**
      * The life policies covering this user's life: their own, plus any joint-life
@@ -127,7 +117,7 @@ class LifeCoverReach
             ? $user->lifeInsurancePolicies
             : $user->lifeInsurancePolicies()->get();
 
-        $spouse = $this->coveringSpouse($user);
+        $spouse = $user->reciprocalLiveSpouse();
 
         if ($spouse === null) {
             return collect($own->all());
@@ -163,7 +153,7 @@ class LifeCoverReach
      *
      * Once the link is dead or one-sided the policy stays joint-life — it is still
      * the contract the owner bought — but there is nobody this application may name
-     * as the second life, so it names nobody. The gate is `coveringSpouse()`, which
+     * as the second life, so it names nobody. The gate is `User::reciprocalLiveSpouse()`, which
      * also resolves the relation without lazy loading: `preventLazyLoading()` is on
      * outside production, and reaching for `$viewer->spouse` on a model loaded as
      * part of a collection throws.
@@ -181,7 +171,7 @@ class LifeCoverReach
             return null;
         }
 
-        $spouse = $this->coveringSpouse($viewer);
+        $spouse = $viewer->reciprocalLiveSpouse();
 
         $other = $this->isOwnedBy($policy, $viewer)
             ? $spouse
@@ -222,7 +212,7 @@ class LifeCoverReach
             ->where('in_trust', true)
             ->get();
 
-        $spouse = $this->coveringSpouse($user);
+        $spouse = $user->reciprocalLiveSpouse();
 
         $spousePolicies = $spouse === null
             ? collect()

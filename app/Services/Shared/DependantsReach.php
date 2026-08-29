@@ -96,7 +96,12 @@ class DependantsReach
      */
     public function dependantsOf(User $user): Collection
     {
-        $spouseId = $user->liveSpouseId();
+        // W-0350 — reciprocal only. The docblock above defends this on the CONSENT
+        // axis: the permission gate governs financial data, and children are not that.
+        // True, and a different question from whether the couple exist. Rule 3 above
+        // already concedes `spouse_id` is untrustworthy on the deletion axis; this is
+        // the unilateral-write axis it did not consider.
+        $spouseId = $user->reciprocalLiveSpouse()?->id;
 
         $rows = FamilyMember::query()
             ->whereIn('user_id', $spouseId === null ? [$user->id] : [$user->id, $spouseId])

@@ -74,7 +74,12 @@ final class HouseholdExpenditureWriter
         // doubling a household's spending in one write. Flagged by quality-lead
         // 2026-08-24 as "one line away from firing".
         $mode = $household['expenditure_sharing_mode'] ?? $user->expenditure_sharing_mode;
-        $spouse = $user->liveSpouse();
+        // W-0350 — RECIPROCAL, not merely live. This writes the other half of the
+        // household into the SPOUSE'S ROW, so it is a cross-account write and needs the
+        // link both parties made rather than the one this account claimed. A one-sided
+        // link now falls to the unshared branch below, which is the same treatment an
+        // unlinked user gets: the whole share stays on the account that submitted it.
+        $spouse = $user->reciprocalLiveSpouse();
         $isShared = $spouse !== null && SharedExpenditure::isShared($mode);
 
         $share = SharedExpenditure::shareOf($household, $isShared);

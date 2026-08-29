@@ -81,7 +81,9 @@ class RecommendationPersonaliser
             ->whereNotNull('date_of_birth')
             ->get();
 
-        $spouse = $user->spouse;
+        // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED;
+        // it is not evidence that they named back, and this reads their financial data.
+        $spouse = $user->reciprocalLiveSpouse();
 
         // Life insurance / life cover recommendations
         if ($this->isLifeCoverRecommendation($category, $action)) {
@@ -131,7 +133,9 @@ class RecommendationPersonaliser
         $nrb = (float) $ihtConfig['nil_rate_band'];
         $rnrb = (float) $ihtConfig['residence_nil_rate_band'];
 
-        $spouse = $user->spouse;
+        // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED;
+        // it is not evidence that they named back, and this reads their financial data.
+        $spouse = $user->reciprocalLiveSpouse();
         $children = $user->familyMembers()
             ->where('relationship', 'child')
             ->get();

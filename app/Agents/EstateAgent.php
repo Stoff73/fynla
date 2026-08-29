@@ -149,7 +149,16 @@ class EstateAgent extends BaseAgent
                 $effectiveTaxRate = 0;
 
                 try {
-                    $spouse = $user->spouse;
+                    // W-0350 — reciprocal only.
+                    //
+                    // NOTE, not fixed here: `$dataSharingEnabled` is derived from the
+                    // link's existence, while `IHTController` derives the same flag
+                    // from `hasAcceptedSpousePermission()`. Two mechanisms, one
+                    // question — so Fyn can quote a different estate figure from the
+                    // one on screen. Aligning them changes the pooled figure for the
+                    // 8 of 12 reciprocal couples with no permission row, which is a
+                    // visible tax change and CSJ's call, not a side effect of this fix.
+                    $spouse = $user->reciprocalLiveSpouse();
                     $dataSharingEnabled = $spouse !== null;
                     $ihtCalculation = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
                     $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;

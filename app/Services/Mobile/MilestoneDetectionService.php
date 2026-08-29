@@ -709,9 +709,9 @@ class MilestoneDetectionService
         }
 
         // WP-5c — household: a mutual spouse link.
+        // W-0350 — asked through the canonical helper rather than hand-rolled here.
         if ($user->spouse_id) {
-            $spouse = User::find($user->spouse_id);
-            if ($spouse && (int) $spouse->spouse_id === (int) $user->id) {
+            if ($user->reciprocalLiveSpouse() !== null) {
                 $new = array_merge($new, $this->recordOnce(
                     $user,
                     'household',

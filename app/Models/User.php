@@ -528,6 +528,40 @@ class User extends Authenticatable
     }
 
     /**
+     * The spouse's account when the link is live AND reciprocal — the only spouse
+     * a caller may read financial records from, or write records into.
+     *
+     * **W-0350 — one helper, because five idioms for one question is why the census
+     * that found this needed four agents rather than one grep.** `spouse_id` is a
+     * column written ABOUT the account holder: "I say N is my spouse" is not "N's
+     * records are mine". Reading it raw, or through `liveSpouse()`, answers a
+     * different question — `User` soft-deletes, so `liveSpouse()` already excludes a
+     * deleted partner and buys almost nothing over the raw column for authorization.
+     * **The live hole is the one-sided link, and only reciprocity closes it.**
+     *
+     * Promoted from `LifeCoverReach::coveringSpouse()`, which was the only reader in
+     * the application that got this right first time, and hand-rolled in
+     * `MilestoneDetectionService`, which got it right and wrote it out again.
+     *
+     * **Not for `hasAcceptedSpousePermission()`'s job.** That asks whether the couple
+     * have agreed to share financial data; this asks whether the couple exist. A
+     * reader of financial data wants both, and they are separate questions.
+     *
+     * **Not for `spouseIdRegardlessOfAccountState()`'s job either** — see its docblock
+     * for why "are these two married?" must survive a deleted account.
+     */
+    public function reciprocalLiveSpouse(): ?self
+    {
+        $spouse = $this->liveSpouse();
+
+        if ($spouse === null || ! $this->hasReciprocalSpouseLink($spouse->id)) {
+            return null;
+        }
+
+        return $spouse;
+    }
+
+    /**
      * Get the user's active sessions.
      */
     public function sessions(): HasMany
