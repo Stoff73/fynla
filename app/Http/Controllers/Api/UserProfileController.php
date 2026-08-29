@@ -282,7 +282,14 @@ class UserProfileController extends Controller
         // Only allow access to a LIVE spouse's data. The link survives the
         // partner deleting their account — retention — but this endpoint returns
         // their profile, so it must stop answering once they are gone (D5).
-        if ($currentUser->liveSpouseId() !== $userId) {
+        //
+        // W-0350 — and RECIPROCAL. `User` soft-deletes, so the live test was already
+        // most of what `liveSpouseId()` bought here; what it never answered is whether
+        // the named account named this one back. This returns their entire
+        // `UserResource`.
+        $reciprocalSpouse = $currentUser->reciprocalLiveSpouse();
+
+        if ($reciprocalSpouse === null || $reciprocalSpouse->id !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,

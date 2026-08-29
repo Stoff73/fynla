@@ -73,3 +73,19 @@ it('does not disclose the named account through the letter to spouse', function 
         ->getJson('/api/user/letter-to-spouse/spouse')
         ->assertStatus(404);
 });
+
+describe('Tier 3 — reads that were gated on the link being LIVE but not RETURNED', function () {
+    it('does not hand over the named account\'s whole profile', function () {
+        // `User` soft-deletes, so `liveSpouseId()` was already most of what the live
+        // test bought. What it never answered is whether they named this account back.
+        $this->actingAs($this->viewer)
+            ->getJson("/api/users/{$this->target->id}")
+            ->assertStatus(403);
+
+        ($this->returnTheLink)();
+
+        $this->actingAs($this->viewer->fresh())
+            ->getJson("/api/users/{$this->target->id}")
+            ->assertOk();
+    });
+});

@@ -193,11 +193,30 @@ derives it from the link's existence; `IHTController` derives it from
 different estate figure from the one on the screen**. Aligning them moves the pooled
 figure for those 8 couples, which is a visible tax change and a CSJ decision.
 
-**Still open — Tier 3 (gate (b)) and the rest of Tier 1.** `UserProfileController:300`,
-`UserProfileService:866-897` (children's names, dates of birth and National Insurance
-numbers — minors), `UserContextBuilder`, `SavingsActionDefinitionService`,
-`DependantsReach`, `WillDocumentService:62`, `SpousePermissionController` (which gates
-the consent flow itself and must be assessed rather than lifted blind).
+**Acceptance 3 — Tier 3, gate (b). DONE.** `User` soft-deletes, so the live test was
+already most of what `liveSpouseId()` bought at these sites; what it never answered is
+whether the named account named this one back.
+
+| Site | What a one-sided link reached |
+|---|---|
+| `UserProfileController::getUserById` | the named account's entire `UserResource` |
+| `UserProfileService` | **the spouse's children — names, dates of birth and National Insurance numbers, of minors** |
+| `UserContextBuilder` | their investment context |
+| `SavingsActionDefinitionService` ×2 | their savings actions |
+| `DependantsReach` | their dependants |
+
+**On `DependantsReach`, whose docblock argues against exactly this:** it says the
+permission gate governs *financial* data and children are not that. That is an argument
+about CONSENT, and this is a different axis. Its own Rule 3 already concedes `spouse_id`
+is untrustworthy on the deletion axis; it never considered the unilateral one.
+Reciprocity does not make children financial data and does not hide a real parent's
+children. Lifted, as the census recommended.
+
+**Still open, deliberately:** `WillDocumentService:62` (`has_spouse` and the household id
+list — a boolean and a scope rather than a disclosure, so it needs its own look) and
+`SpousePermissionController`, which gates the CONSENT FLOW ITSELF — requiring an accepted
+link to establish an accepted link would break the flow, so it must be assessed rather
+than lifted blind.
 
 ### Verification
 

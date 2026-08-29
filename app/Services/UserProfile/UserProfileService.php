@@ -881,7 +881,14 @@ class UserProfileService
         // for regulatory purposes but must stop being visible to their partner,
         // and this payload was still handing them over — tagged owner: 'spouse'
         // alongside a spouse field the same payload had already nulled out.
-        $liveSpouseId = $user->liveSpouseId();
+        //
+        // W-0350 — and RECIPROCAL. These are the spouse's CHILDREN: names, dates of
+        // birth and National Insurance numbers, of minors. `DependantsReach`'s docblock
+        // argues the permission gate governs financial data and children are not that —
+        // which is an argument about CONSENT, a different axis from whether the link is
+        // genuine. Reciprocity does not make children financial data and does not hide
+        // a real parent's children.
+        $liveSpouseId = $user->reciprocalLiveSpouse()?->id;
         if ($liveSpouseId) {
             $spouseFamilyMembers = FamilyMember::where('user_id', $liveSpouseId)
                 ->where('relationship', 'child')  // Only children, not spouse record

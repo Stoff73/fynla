@@ -2986,7 +2986,8 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $user = User::find($userId);
-        if (! $user || ! $user->liveSpouseId()) {
+        // W-0350 — reciprocal only.
+        if (! $user || $user->reciprocalLiveSpouse() === null) {
             return [];
         }
 
@@ -3057,7 +3058,8 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $user = User::find($userId);
-        if (! $user || ! $user->liveSpouseId()) {
+        // W-0350 — reciprocal only.
+        if (! $user || $user->reciprocalLiveSpouse() === null) {
             return [];
         }
 
