@@ -4,13 +4,25 @@
 open (#742, #744), four board items filed. Handover:
 handover/August/29/handover-2026-08-29-session-1.md*
 
+## Next session starts here
+
+- [ ] **Split `app/Services/Estate/IHTCalculationService.php` — 2,973 lines.** CSJ's call,
+      2026-08-29. Six times the 500-line threshold, W-0482 added ~174 more lines this
+      session, and it is the file **every** estate item lands in — so everything after it
+      is cheaper once it is done. **Behaviour-preserving extraction, not a rewrite:**
+      `projectedUnusedPensionFund()` and its siblings are the first seam. It is a gated
+      service (`tax-compliance-reviewer`), and a refactor's gate question is narrow — *did
+      any published figure change?* The answer must be no. Pin
+      `tests/Unit/Services/Estate` + `tests/Feature/Estate` first, record the numbers, hold
+      the same figures after. Neither open PR touches this file, so it can start
+      immediately.
+
 ## Open, and what each needs
 
 - [ ] **#742 — W-0509** (a civil partnership could not save an Inheritance Tax profile at
-      all — critical). **Every check green except `test-and-build`**, the iOS native job,
-      which failed once on a 3-second `waitForExistence` in a UI journey and was re-run.
-      That test is unrelated to the change (a validation rule and a DB enum). Check the
-      re-run, then merge.
+      all — critical). **Every check that gates a merge is green.** The only outstanding
+      one is `test-and-build`, the iOS native job — **which does not gate a backend change**
+      (see iOS below). Merge with `--merge --admin`.
 - [ ] **#744 — W-0204** (salary sacrifice not added back to threshold income). Full CI was
       running on `9122bf348` at session close. Already green locally: 358 passed, 23 vitest.
 
@@ -45,8 +57,6 @@ handover/August/29/handover-2026-08-29-session-1.md*
 
 Full pass in `docs/tech-debt-report.md` — five findings, none critical.
 
-- [ ] **`IHTCalculationService.php` is 2,973 lines**, six times the split threshold, and
-      every estate item lands in it. Deserves its own extraction item.
 - [ ] **`tests/Unit/Console/Commands/` is unbound in `Pest.php`**, so every file there
       declares its own base case. Fixing it means changing `tests/CLAUDE.md`, which
       currently advises the workaround.
@@ -65,5 +75,9 @@ Full pass in `docs/tech-debt-report.md` — five findings, none critical.
   sweeps into your commit.
 - **Architecture tests that count constructor parameters** break on any legitimate
   injection. Check for them before adding a constructor argument.
-- **The iOS `test-and-build` job runs now** (~40 min) and flakes on 3-second
-  `waitForExistence` timeouts. One failure is a flake unless the diff touches native.
+- **iOS is VIEW ONLY and is checked separately (CSJ, 2026-08-29).** The native app
+  presents data; it does not own the arithmetic. **`test-and-build` does not gate a merge
+  on a backend or web change** — it takes ~40 minutes and flakes on 3-second
+  `waitForExistence` timeouts. Do not chase it, do not re-run it hoping, do not hold a
+  green PR behind it. **The exception is a diff that touches `ios-native/`** — then it is
+  the signal and must be green.

@@ -23,30 +23,44 @@ its final commit.
 
 ## Priorities for the next session
 
-1. **Land #742 and #744.** Both were green on everything that matters when the session
-   ended.
-   - **#742 (W-0509)** — every check green except `test-and-build`, the iOS native job. It
-     failed once on `FynlaUITests.swift:153`, a `waitForExistence(timeout: 3)` on a CI
-     simulator, and was re-run; the re-run was still pending at close. **That test is
-     unrelated to the change** (a validation rule and a DB enum on the Estate profile),
-     so if it fails again it is the flake, not the diff — check, then `--merge --admin`.
-   - **#744 (W-0204)** — full CI running on `9122bf348`. It had already gone green
-     locally: 358 passed on the post-merge state, 23 vitest.
+1. **Split `app/Services/Estate/IHTCalculationService.php` — 2,973 lines.** CSJ's call,
+   2026-08-29: this goes first. It is six times the 500-line threshold, W-0482 added ~174
+   more lines to it this session, and it is the file **every** estate item lands in — so
+   every item after this one is cheaper once it is done, and more expensive if it is not.
+   - **Behaviour-preserving extraction, not a rewrite.** The projection terms are already
+     cohesive enough to move to a collaborator without changing a figure:
+     `projectedUnusedPensionFund()` and its siblings are the obvious first seam.
+   - **This service is gated.** It moves Inheritance Tax for every household, so
+     `tax-compliance-reviewer` sees the diff before merge — and a refactor's gate question
+     is narrow: *did any published figure change?* The answer must be no.
+   - **Pin it before touching it.** `tests/Unit/Services/Estate` and `tests/Feature/Estate`
+     are the safety net (622 passed alongside Retirement this session). Run them alone,
+     record the numbers, and hold the same figures after.
+   - Note the two open PRs below do **not** touch this file, so it can start immediately
+     without waiting on them.
 
-2. **W-0512 — the perpetuity that over-credits `projected_cash`.** Next on the board and
-   the one that unblocks **W-0517**, filed this session. `PensionProjector:219` credits
-   `pot × safe withdrawal rate` every retired year from a fund it never reduces, so
-   `HouseholdCashFlowProjector` inflates cash for every household with a pension. Fix it
-   **with** W-0517, not before: W-0517's residual subtracts that same series, and
-   future-valuing one half while the other is still a perpetuity buys false precision.
+2. **Land #742 and #744.** Both were green on everything that gates a merge when the
+   session ended.
+   - **#742 (W-0509)** — every check green except `test-and-build`, the iOS native job.
+     See the iOS note below: **that job does not gate this merge.** Merge with
+     `--merge --admin`.
+   - **#744 (W-0204)** — full CI running on `9122bf348`. Already green locally: 358 passed
+     on the post-merge state, 23 vitest.
 
-3. **The rest of the filed items, in severity order:** `W-0513`, `W-0514`, `W-0508`,
-   `W-0515`, `W-0510`, `W-0516`, then the new `W-0517` and `W-0518`.
+3. **W-0512 — the perpetuity that over-credits `projected_cash`.** The one that unblocks
+   **W-0517**, filed this session. `PensionProjector:219` credits `pot × safe withdrawal
+   rate` every retired year from a fund it never reduces, so `HouseholdCashFlowProjector`
+   inflates cash for every household with a pension. Fix it **with** W-0517, not before:
+   W-0517's residual subtracts that same series, and future-valuing one half while the
+   other is still a perpetuity buys false precision.
 
-4. **Then the queued high:** `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144 W-0155 W-0171
+4. **The rest of the filed items, in severity order:** `W-0513`, `W-0514`, `W-0508`,
+   `W-0515`, `W-0510`, `W-0516`, `W-0518`.
+
+5. **Then the queued high:** `W-0037 W-0050 W-0133 W-0138 W-0139 W-0144 W-0155 W-0171
    W-0222 W-0226 W-0227 W-0462 W-0486 W-0490 W-0495`, then medium, then low.
 
-5. **A full-suite run, alone, as a consolidation point.** Still not re-established — it has
+6. **A full-suite run, alone, as a consolidation point.** Still not re-established — it has
    been outstanding for three sessions. **One Pest process at a time**; two share
    `laravel_testing` and deadlock into failures indistinguishable from real breakage.
 
@@ -168,9 +182,14 @@ W-0489, W-0509, W-0511 and W-0204.
 - **zsh does not word-split an unquoted variable.** A file list in a shell variable is
   passed as ONE argument; `grep` then reports no matches and the check silently passes. Use
   an array (`set -A`).
-- **The iOS `test-and-build` job now runs** (it used to sit pending at 0s forever) and takes
-  ~40 minutes. It fails on 3-second `waitForExistence` timeouts in UI journeys. Treat a
-  single failure as a flake unless the diff touches native.
+- **iOS is VIEW ONLY, and is checked separately — CSJ, 2026-08-29.** The native app
+  presents data; it does not own the arithmetic. **`test-and-build` does not gate a merge
+  on a backend or web change.** It now runs (it used to sit pending at 0s forever), takes
+  ~40 minutes, and fails on 3-second `waitForExistence` timeouts in UI journeys — do not
+  spend a session chasing it, do not re-run it hoping, and do not hold a green PR behind
+  it. Merge with `--merge --admin` and let the native pass pick it up on its own schedule.
+  **The exception is a diff that actually touches `ios-native/`** — then the job is the
+  signal and must be green.
 
 ## Tech debt deferred
 
@@ -179,8 +198,8 @@ checks all clean: `declare(strict_types=1)` everywhere, no debug leftovers, no h
 values in any added line, no banned colours, no new acronyms, scores or icons.
 
 - **`app/Services/Estate/IHTCalculationService.php` — 2,973 lines**, six times the split
-  threshold, and W-0482 added ~174 more. Every estate item lands in it. Deserves its own
-  extraction item.
+  threshold, and W-0482 added ~174 more. Every estate item lands in it. **No longer
+  deferred — CSJ made it priority 1 for the next session.** See above.
 - **`app/Services/TaxConfigService.php:528`** — `getBlindPersonsAllowance()` now returns `0`
   for an unconfigured year rather than a stale `2870`. Better of the two, still a silent
   answer to missing configuration, and several sibling getters share the shape.
@@ -201,6 +220,8 @@ values in any added line, no banned colours, no new acronyms, scores or icons.
   `2026_08_29_090000_record_whether_employment_income_is_before_or_after_salary_sacrifice`
   (#744). Both are `ALTER TABLE`, both preserve existing rows.
 - **Deploy: nothing deployed this session.** csjones and production untouched.
+- **iOS:** view only, verified on its own schedule rather than per-PR (CSJ, 2026-08-29).
+  Nothing this session touched `ios-native/`.
 - **The branch guard follow-ups from the previous session are still outstanding, both
   CSJ's:** get `.github/workflows` branch guard onto `main`, and add `main-source-branch`
   as a required check alongside `enforce_admins`.
