@@ -91,7 +91,8 @@ class NetWorthController extends Controller
             // require it for the same class of data, and that inconsistency is a
             // decision to be taken openly rather than smuggled in as part of this fix.
             $spouseData = null;
-            if ($spouse = $user->reciprocalLiveSpouse()) {
+            // W-0530 — CONSENT, not only reciprocity. This is the whole net worth.
+            if ($spouse = $user->financiallySharedSpouse()) {
                 $spouseNetWorth = $this->netWorthService->getCachedNetWorth($spouse);
                 $spouseData = [
                     'totalAssets' => $spouseNetWorth['total_assets'],

@@ -393,7 +393,10 @@ PROMPT;
 
         // W-0350 — reciprocal only. `$user->spouse` is whoever this account NAMED;
         // it is not evidence that they named back, and this reads their financial data.
-        $spouse = $user->reciprocalLiveSpouse();
+        // W-0530 — CONSENT, not only reciprocity. This reads the other account's
+        // financial records, and a link they returned is not the same as agreeing to
+        // share money.
+        $spouse = $user->financiallySharedSpouse();
         if ($spouse) {
             $spouseExpenditure = $this->calculateTotalExpenditure($spouse);
             if ($spouseExpenditure > 0) {

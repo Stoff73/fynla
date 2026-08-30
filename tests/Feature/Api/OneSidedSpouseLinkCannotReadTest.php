@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\SpousePermission;
 use App\Models\User;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -87,5 +88,55 @@ describe('Tier 3 — reads that were gated on the link being LIVE but not RETURN
         $this->actingAs($this->viewer->fresh())
             ->getJson("/api/users/{$this->target->id}")
             ->assertOk();
+    });
+});
+
+describe('W-0530 — consent, not only a returned link', function () {
+    /**
+     * CSJ, 2026-08-29. Reciprocity says the couple exist; consent says they agreed to
+     * share money. A financial read wants both.
+     *
+     * This is the live population: on the development database 8 of the 12 reciprocal
+     * couples sit at `pending` — asked and unanswered — and every one of them was having
+     * the other's figures disclosed.
+     */
+    beforeEach(function () {
+        ($this->returnTheLink)();
+
+        SpousePermission::create([
+            'user_id' => $this->viewer->id,
+            'spouse_id' => $this->target->id,
+            'status' => 'pending',
+            'requested_at' => now(),
+        ]);
+    });
+
+    it('withholds the net worth while the invitation is unanswered', function () {
+        $body = $this->actingAs($this->viewer->fresh())->getJson('/api/net-worth/overview')
+            ->assertOk()
+            ->json();
+
+        expect($body)->not->toHaveKey('spouse_data');
+    });
+
+    it('withholds the whole profile while the invitation is unanswered', function () {
+        // `UserResource` carries income and expenditure, so this is a financial
+        // disclosure whatever the endpoint is called.
+        $this->actingAs($this->viewer->fresh())
+            ->getJson("/api/users/{$this->target->id}")
+            ->assertStatus(403);
+    });
+
+    it('discloses once the invitation is accepted', function () {
+        SpousePermission::where('user_id', $this->viewer->id)->update([
+            'status' => 'accepted',
+            'responded_at' => now(),
+        ]);
+
+        $body = $this->actingAs($this->viewer->fresh())->getJson('/api/net-worth/overview')
+            ->assertOk()
+            ->json();
+
+        expect($body)->toHaveKey('spouse_data');
     });
 });

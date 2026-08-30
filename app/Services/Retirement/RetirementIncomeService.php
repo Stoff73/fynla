@@ -236,7 +236,8 @@ class RetirementIncomeService
         if ($includeSpouse) {
             // W-0350 — reciprocal only. `$includeSpouse` is a plain request boolean,
             // so the caller chose it; the link must be one both parties made.
-            $spouse = User::find($userId)?->reciprocalLiveSpouse();
+            // W-0530 — consent; this is the other account's retirement register.
+            $spouse = User::find($userId)?->financiallySharedSpouse();
             if ($spouse) {
                 $userIds[] = $spouse->id;
             }
@@ -557,7 +558,8 @@ class RetirementIncomeService
         if ($includeSpouse) {
             // W-0350 — reciprocal only. `$includeSpouse` is a plain request boolean,
             // so the caller chose it; the link must be one both parties made.
-            $spouse = User::find($userId)?->reciprocalLiveSpouse();
+            // W-0530 — consent; this is the other account's retirement register.
+            $spouse = User::find($userId)?->financiallySharedSpouse();
             if ($spouse) {
                 $userIds[] = $spouse->id;
             }

@@ -586,7 +586,32 @@ class User extends Authenticatable
      */
     public function sharesFinancialDataWithSpouse(): bool
     {
-        return $this->reciprocalLiveSpouse() !== null && $this->hasAcceptedSpousePermission();
+        return $this->financiallySharedSpouse() !== null;
+    }
+
+    /**
+     * The spouse whose financial records this account may read — **W-0530**.
+     *
+     * The same rule as `sharesFinancialDataWithSpouse()` in the shape most callers want,
+     * so a reader asks once instead of resolving the spouse and then asking whether it
+     * may look at them. The boolean is expressed in terms of THIS rather than the other
+     * way round, so there is still one derivation.
+     *
+     * **Financial reads only.** Identity and family reads — who the spouse is, the
+     * couple's children — stop at `reciprocalLiveSpouse()`. `DependantsReach`'s docblock
+     * makes the argument and it is right: the permission gate governs financial data,
+     * and a child is not that. Consent decides what may be READ ABOUT MONEY; reciprocity
+     * decides whether the couple exist at all.
+     */
+    public function financiallySharedSpouse(): ?self
+    {
+        $spouse = $this->reciprocalLiveSpouse();
+
+        if ($spouse === null || ! $this->hasAcceptedSpousePermission()) {
+            return null;
+        }
+
+        return $spouse;
     }
 
     /**
