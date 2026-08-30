@@ -37,7 +37,26 @@ exists to correct: measuring one channel and quoting the number.
 | never named in a commit, in code, or in a test | **37** — 4 high, 33 medium |
 | named somewhere | **165** — 3 critical, 77 high, 64 medium, 11 low, 10 unrated |
 
-### The 165 touched, by their own acceptance checklist
+### What is actually still broken
+
+The useful question for a board of bug reports is not whether an item has a checklist. It
+is whether the defect is still there. The nearest objective proxy:
+
+| | count |
+|---|---|
+| a **test** names the id — fixed and pinned against regression | 125 |
+| only application code names it — touched, no guard | 14 |
+| nothing names it anywhere | 61 |
+
+**Sampled and it holds up.** All three of the "no-trace high" items the 2026-08-29
+handover ranked as most likely genuinely untouched — W-0203, W-0255, W-0344 — were
+verified against the code on 2026-08-30 and **all three were already fixed**, one of them
+twice. Closed with the evidence on each item.
+
+**So the outstanding count is inflated, and materially.** The board's real problem is not
+unfinished work; it is finished work nobody restamped.
+
+### Superseded — the 165 touched, by their own acceptance checklist
 
 | | count |
 |---|---|
@@ -46,9 +65,11 @@ exists to correct: measuring one channel and quoting the number.
 | criteria written, none ticked | 31 |
 | **no acceptance checklist at all** | **118** |
 
-**118 of 202 outstanding items cannot be finished as written**, because nothing states
-what finishing means. That is the single biggest obstacle on this board — larger than any
-individual defect on it.
+**Struck, 2026-08-30 — this was a useless measure and CSJ was right to say so.** These
+are BUG reports. The acceptance on a bug is that the bug is gone and the thing works as
+the application intends; a missing checkbox list is a formatting difference, not an
+obstacle. Counting checkboxes described the paperwork, not the work. Replaced by the split
+below.
 
 ### The four HIGH items nothing has touched
 
