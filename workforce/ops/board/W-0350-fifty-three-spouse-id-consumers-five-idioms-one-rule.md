@@ -4,7 +4,7 @@ title: 53 spouse_id consumers, five idioms, and only three use the rule the mode
 mission: persona-run-peak_earners-2026-08-20
 branch: fix/w-0350-spouse-link-authorization-one-helper
 owner: build-lead
-status: in_progress
+status: gated
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -239,3 +239,17 @@ than lifted blind.
   mirror-will tests set a one-sided link because that was all the old code needed. A
   mirror will is written into the other account, so the fixture is now a reciprocal
   couple — which is what those tests always meant.
+
+- 2026-08-29 build-lead: **merged to `dev` as PR #753.** All three acceptance criteria
+  delivered — one helper, Tier 2 writes, Tier 1 and Tier 3 reads. Twelve backend CI checks
+  green; the iOS `test-and-build` job is red and this branch touches **zero** files under
+  `ios-native/`, so it is not from this work (it is red on #752 as well, which also
+  touched no iOS).
+
+  **Status set to `gated`, not `done`**, because two sites are deliberately unfixed and
+  named above (`WillDocumentService:62`, `SpousePermissionController`) and one decision is
+  outstanding: the two mechanisms behind `$dataSharingEnabled`.
+
+  **This item's own history is the argument for keeping the status honest.** It sat at
+  `blocked / blocked_by: [csj-decision]` for six days after W-0347 had lifted the block, so
+  a high-severity authorization item read as waiting on CSJ when it was waiting on nobody.
