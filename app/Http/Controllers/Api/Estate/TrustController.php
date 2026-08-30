@@ -204,7 +204,7 @@ class TrustController extends Controller
         // null spouse and so a single-person Inheritance Tax liability on this screen,
         // beside the corrected one on the next.
         $spouse = (HouseholdPooling::hasSpousalStatus($user) && $user->spouse_id) ? User::find($user->spouse_id) : null;
-        $dataSharingEnabled = $spouse && $user->hasAcceptedSpousePermission();
+        $dataSharingEnabled = $spouse !== null && $user->sharesFinancialDataWithSpouse();
 
         $ihtCalculation = $this->ihtCalculationService->calculate($user, $spouse, $dataSharingEnabled);
 

@@ -70,7 +70,7 @@ class ComprehensiveEstatePlanService
 
         // Calculate current IHT position using simplified service
         $spouse = (HouseholdPooling::hasSpousalStatus($user) && $user->spouse_id) ? User::find($user->spouse_id) : null;
-        $dataSharingEnabled = $spouse && $user->hasAcceptedSpousePermission();
+        $dataSharingEnabled = $spouse !== null && $user->sharesFinancialDataWithSpouse();
 
         // Gather user assets
         $aggregatedAssets = $this->assetAggregator->gatherUserAssets($user);
