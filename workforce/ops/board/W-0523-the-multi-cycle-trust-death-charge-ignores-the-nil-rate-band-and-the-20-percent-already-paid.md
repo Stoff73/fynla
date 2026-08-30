@@ -135,3 +135,7 @@ strategy the app is recommending.
   trust leaves the gift behind — so the withheld band can drift from the trust that caused
   it. Adjacent to this item rather than in it; needs its own board item and a decision on
   whether a user-edited gift should be overwritten.
+
+- 2026-08-30 build-lead: **merged to `dev` as PR #751** — the excess basis and the lifetime credit on the trust death charge. Left `gated` rather than
+  `done` because the reviewer gate named above has not run; `done` here would mean the
+  change is on `dev`, which is true, and would hide that nobody has certified it.
