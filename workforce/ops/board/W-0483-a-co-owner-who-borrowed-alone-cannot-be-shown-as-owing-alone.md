@@ -3,12 +3,12 @@ id: W-0483
 title: A co-owner who borrowed alone cannot be shown as owing alone, and only CSJ can change that
 mission: M-0002-persona-fidelity
 owner: null
-status: blocked
+status: queued
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-25T12:00:00Z
 claimed: null
-blocked_by: [csj-decision]
+blocked_by: []
 gate: null
 handoff_to: null
 prior_art_checked: 2026-08-25
@@ -95,3 +95,19 @@ to someone who owes nothing.
   deliberately not filed as a defect** — W-0228 forbids both, and that ruling is CSJ's
   to amend. Flagged as `blocked_by: [csj-decision]` so it surfaces at the top of the
   next session rather than sitting in the queue where an agent might "fix" it.
+
+- 2026-08-30 build-lead: **UNBLOCKED — CSJ amended W-0228 on 2026-08-30:** *"W-0228 can
+  allow mortgage share that is not the same as ownership share."* The capability this item
+  asked for is granted. Recorded on W-0228 in full.
+
+  **What remains is engineering, not a decision.** Three things:
+  1. `CalculatesOwnershipShare::refuseRecordWhoseShareFollowsAnother()` throws for every
+     mortgage. It has to permit an explicitly-declared share while still refusing an
+     accidental one.
+  2. There must be a way for the user to SAY a co-owner borrowed alone. The existing
+     `mortgages.ownership_percentage` cannot just be believed: the persona carries
+     `joint 50%` on a mortgage secured on a `tenants_in_common 40%` property, which is the
+     unreviewed value the original ruling existed to stop trusting. Reading it as
+     authoritative would move that household's liabilities £293,000 → £305,000 and break a
+     verified figure.
+  3. Rule 19 — the form change lands on web AND `/m`.
