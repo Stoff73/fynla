@@ -1590,7 +1590,23 @@ class IHTCalculationService
         // it comes from the survivor rather than from whoever happens to be logged in.
         $charitablePercent = $profiles->get($survivor->id)?->charitable_giving_percent ?? 0;
 
-        // Calculate baseline: Net Estate - NRB (RNRB is excluded from baseline calculation)
+        // The Schedule 1A baseline amount: net estate LESS THE NIL RATE BAND ONLY.
+        //
+        // **W-0369 — the residence band is excluded, and that is correct.**
+        // Sch 1A para 3 deducts "the available nil-rate band", and IHTM45031's
+        // worked examples deduct the NRB alone: the residence nil-rate band is
+        // an allowance against the taxable estate, not a component of the
+        // baseline the 10% test is measured against.
+        //
+        // Cited rather than asserted, because the line previously read "(RNRB is
+        // excluded from baseline calculation)" with no authority — a bare claim
+        // about a statutory denominator that a reader could neither check nor
+        // safely change. Deducting the residence band here would SHRINK the
+        // baseline and so shrink the 10% threshold, qualifying households for
+        // the reduced rate that do not meet it.
+        //
+        // `$nrbAvailable` is the pooled band including any transferred from a
+        // predeceased spouse, which is what "available" means in para 3.
         $baseline = max(0, $netEstate - $nrbAvailable);
 
         // Threshold for reduced rate: 10% of baseline
