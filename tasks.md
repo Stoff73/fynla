@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 90**  ·  closed 2026-08-31: 42
+**Outstanding: 87**  ·  closed 2026-08-31: 45
 
 ---
 
@@ -49,9 +49,9 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 
 ## Medium (95)
 
-- [ ] **W-0025** `gated` — A joint chattel saves with no joint owner and no error — 50% of the asset belongs to nobody
-- [ ] **W-0031** `gated` — education_level validation accepts three values the column enum cannot hold — latent 500 for Fyn and any API client
-- [ ] **W-0032** `gated` — scheme_status is collected by both pension forms and silently discarded on every save — no such column exists
+- [x] **W-0025** `done` (already fixed) — A joint chattel saves with no joint owner and no error — 50% of the asset belongs to nobody
+- [x] **W-0031** `done` (already fixed, guarded) — education_level validation accepts three values the column enum cannot hold — latent 500 for Fyn and any API client
+- [x] **W-0032** `done` (already fixed) — scheme_status is collected by both pension forms and silently discarded on every save — no such column exists
 - [ ] **W-0034** `gated` — /m has no Health & Lifestyle section at all — the data source is fixed but no mobile screen renders it
 - [ ] **W-0040** `gated` — A deliberate 100/0 joint split is unexpressible, and three acceptance criteria contradict each other on whether it should be
 - [ ] **W-0044** `gated` — The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
