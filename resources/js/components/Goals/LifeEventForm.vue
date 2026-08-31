@@ -66,6 +66,36 @@
               </div>
             </div>
 
+            <!--
+              W-0527 — quick succession relief (IHTA 1984 s141). Shown only for an
+              inheritance, because it is the only event where the question means
+              anything, and OPTIONAL because most estates bear no tax at all.
+
+              Left blank means "not stated", which is not the same as zero: a
+              blank contributes no relief, while a stated 0 is a real answer. That
+              is why the column is nullable and the field carries no default.
+            -->
+            <div v-if="form.event_type === 'inheritance'" class="mb-4">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
+                Inheritance Tax paid on the estate you inherited from (optional)
+              </label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-neutral-500">£</span>
+                <input
+                  v-model.number="form.iht_paid_on_prior_death"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="w-full pl-7 pr-3 py-2 border border-horizon-300 rounded-md shadow-sm focus:ring-violet-500 focus:border-raspberry-500"
+                  placeholder="Leave blank if you do not know"
+                />
+              </div>
+              <p class="text-xs text-neutral-500 mt-1">
+                If tax was paid on that estate within five years of now, some of it can
+                reduce your own estate's Inheritance Tax bill.
+              </p>
+            </div>
+
             <!-- Expected Date -->
             <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'expected_date' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Expected Date</label>
@@ -290,6 +320,9 @@ export default {
         event_type: '',
         description: '',
         amount: null,
+        // W-0527. Null, never 0 — blank is "not stated", which the server reads
+        // as no relief rather than as "no tax was paid".
+        iht_paid_on_prior_death: null,
         expected_date: '',
         certainty: 'likely',
         show_in_projection: true,
@@ -304,6 +337,9 @@ export default {
           event_type: this.event.event_type || '',
           description: this.event.description || '',
           amount: parseFloat(this.event.amount) || null,
+          iht_paid_on_prior_death: this.event.iht_paid_on_prior_death !== null && this.event.iht_paid_on_prior_death !== undefined
+            ? parseFloat(this.event.iht_paid_on_prior_death)
+            : null,
           expected_date: this.event.expected_date ? this.event.expected_date.split('T')[0] : '',
           certainty: this.event.certainty || 'likely',
           show_in_projection: this.event.show_in_projection ?? true,

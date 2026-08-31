@@ -9,6 +9,7 @@ use App\Models\Estate\Bequest;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
+use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\Settings\AssumptionsService;
 use App\Services\Stores\PensionStore;
@@ -103,6 +104,11 @@ class IHTCalculationService
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
         private readonly UndividedShareDiscount $undividedShareDiscount,
         private readonly FailedGiftTaxCalculator $failedGiftTax,
+        // W-0527 — IHTA 1984 s141. The relief reaches BOTH columns because
+        // `assessTaxPosition()` is the one mechanism that produces a liability
+        // (:435 current, :973 projected), so it cannot be applied to one and not
+        // the other — the disagreement W-0465 records.
+        private readonly QuickSuccessionReliefCalculator $quickSuccessionRelief,
         // What the household owns and owes at the modelled date of death. The five
         // projected terms are asked for here and never re-derived; the growth,
         // amortisation and drawdown that decide them all live in one place (Rule 20).
@@ -575,6 +581,11 @@ class IHTCalculationService
             'charitable_tax_at_reduced_rate' => round($current['charitable_tax_at_reduced_rate'], 2),
             'charitable_rate_saving' => round($current['charitable_rate_saving'], 2),
             'iht_liability' => round($ihtLiability, 2),
+            // W-0527 — published beside the bill it reduced. A relief that moves
+            // a figure without appearing next to it is the audit gap W-0171 names:
+            // the reader cannot reconcile the taxable estate and the rate against
+            // a liability that is quietly lower than their product.
+            'quick_succession_relief' => round((float) ($current['quick_succession_relief'] ?? 0.0), 2),
             'effective_rate' => round($effectiveRate, 2),
 
             // Projected values at death (asset-specific)
@@ -1156,6 +1167,12 @@ class IHTCalculationService
         $taxAtStandardRate = $taxableEstate * $standardRate;
         $taxAtReducedRate = $taxableEstateIfQualifying * $reducedRate;
 
+        // W-0527 — IHTA 1984 s141. Never negative and never larger than the tax
+        // borne on the earlier death, both guarded in the calculator. A household
+        // with no inheritance life event, or one that has not stated that tax,
+        // gets 0.0 and is completely unaffected.
+        $quickSuccession = $this->quickSuccessionReliefFor($ctx['pooled_members'] ?? []);
+
         return $this->suppressRateOnNilLiability([
             'rnrb' => $rnrbData,
             'rate' => $rateData,
@@ -1177,7 +1194,12 @@ class IHTCalculationService
             'charitable_rate_test_amount' => (float) ($rateData['charitable_rate_test_amount'] ?? $charitableDeduction),
             'total_allowances' => $totalAllowances,
             'taxable_estate' => $taxableEstate,
-            'iht_liability' => $taxableEstate * $rateData['rate'],
+            // W-0527 — s141 reduces the TAX, not the estate, so it is subtracted
+            // here and not from `$taxableEstate`. Floored at zero: the relief can
+            // never exceed the tax borne on the earlier death, but the bill it is
+            // being set against can be smaller than that.
+            'iht_liability' => max(0.0, ($taxableEstate * $rateData['rate']) - $quickSuccession),
+            'quick_succession_relief' => round($quickSuccession, 2),
         ]);
     }
 
@@ -2100,6 +2122,70 @@ class IHTCalculationService
      * @param  float  $nrbSingle  The individual NRB amount
      * @return array NRB deduction breakdown, summed across members
      */
+    /**
+     * Quick succession relief for the household — IHTA 1984 s141.
+     *
+     * **W-0527.** Sums the relief over every `inheritance` life event whose donor
+     * death falls inside the configured window and whose Inheritance Tax borne on
+     * that earlier death the user has actually stated. Everything the formula
+     * needs but that figure was already recorded: the amount received and the
+     * date it happened.
+     *
+     * **`iht_paid_on_prior_death` is NULL for almost every inheritance, and that
+     * is not zero.** Most estates bear no tax, and a user who has not answered has
+     * not said there was none. A NULL contributes nothing and the household is
+     * unaffected — which is why criterion 3 holds by construction rather than by
+     * a guard somewhere downstream.
+     *
+     * The years are measured to today, matching the modelled date of death that
+     * the rest of the current column is struck at.
+     *
+     * @param  list<User>  $members  The people whose records this calculation covers
+     */
+    private function quickSuccessionReliefFor(array $members): float
+    {
+        if ($members === []) {
+            return 0.0;
+        }
+
+        $relief = 0.0;
+
+        // Per member, because `forUserOrJoint()` scopes one user at a time and a
+        // jointly-recorded inheritance would otherwise be counted once for each
+        // of them. `unique('id')` collapses the overlap.
+        $events = collect($members)
+            ->flatMap(fn (User $member) => LifeEvent::forUserOrJoint($member->id)
+                ->where('event_type', 'inheritance')
+                ->whereNotNull('iht_paid_on_prior_death')
+                ->get()
+                ->all())
+            ->unique('id');
+
+        foreach ($events as $event) {
+            $receivedOn = $event->occurred_at ?? $event->expected_date;
+
+            if ($receivedOn === null) {
+                continue;
+            }
+
+            $taxPaid = (float) $event->iht_paid_on_prior_death;
+            $netReceived = (float) $event->amount;
+
+            $relief += $this->quickSuccessionRelief->reliefFor(
+                taxPaidOnFirstDeath: $taxPaid,
+                netValueReceived: $netReceived,
+                // The gross transfer is the net the beneficiary received plus the
+                // tax borne on it. Derived rather than asked for: a user who knows
+                // both of the other two knows this by arithmetic, and a third
+                // field they could contradict is a worse question than none.
+                grossTransfer: $netReceived + $taxPaid,
+                yearsBetweenDeaths: Carbon::parse($receivedOn)->floatDiffInYears(today()),
+            );
+        }
+
+        return $relief;
+    }
+
     private function calculateNRBDeductionForGifts(array $members, float $nrbSingle, ?Carbon $deathDate = null): array
     {
         $totals = [

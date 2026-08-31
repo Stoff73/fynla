@@ -56,6 +56,8 @@ class LifeEvent extends Model
         'event_type',
         'description',
         'amount',
+        // W-0527 — IHTA 1984 s141. Only ever set on an `inheritance` event.
+        'iht_paid_on_prior_death',
         'impact_type',
         'expected_date',
         'certainty',
@@ -71,6 +73,7 @@ class LifeEvent extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'iht_paid_on_prior_death' => 'decimal:2',
         'expected_date' => 'date',
         'ownership_percentage' => 'decimal:2',
         'show_in_projection' => 'boolean',

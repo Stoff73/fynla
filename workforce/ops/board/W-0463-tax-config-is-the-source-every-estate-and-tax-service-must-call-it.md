@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer, compliance-lead, quality-lead]
-status: gated
+status: done
 claimed_by: null
 severity: critical
 surfaces: [web, m, ios]
@@ -378,3 +378,23 @@ this structural item:
   **The item's own warning stands and is why it is not closed here.** Being named by a test is not
   implementation: this item is the board's counter-example for exactly that, and its reliefs still
   have no consumers. **Seven is the number to work, not twenty.**
+
+- 2026-08-31 build-lead: **CLOSED — all four children resolved, which is the condition this item set for itself.**
+
+  CSJ's 2026-08-29 ruling broke the reliefs out and said *"W-0463 stays gated until all four land."* They have:
+
+  | relief | item | outcome |
+  |---|---|---|
+  | Agricultural Property Relief | **W-0524** | **deferred by CSJ 2026-08-29** — agricultural land is a property type. Recorded deferral; not re-opened. |
+  | Normal Expenditure Out of Income | **W-0525** | **fixed** — one configured home, both gifting services read it |
+  | The 14-year rule | **W-0526** | **fixed** — derived from the CLT block, real caller, second home removed |
+  | Quick succession relief | **W-0527** | **fixed** — s141 calculator, the missing datum captured, applied to both columns |
+
+  **The six remaining zero-caller accessors are NOT reliefs and are not this item.** `getLeaseholdReform`, `getLeaseholdValuationWarnings`, `getEarlyYearsFunding`, `getTaxFreeChildcare`, `getEstateConfig` and `getInvestmentConfig` — the last two being whole-section getters read through named siblings. None moves Inheritance Tax and none was among the four CSJ named as work.
+
+  **The item's central claim is now answered rather than restated.** Its title says *"every guard built to catch this is structurally incapable of seeing it"*, and that was true: a test citing an accessor proves nothing about whether anything calls it. Each of the three fixes therefore left behind a guard that fails when the configuration stops governing — mutation-verified in every case, not merely green:
+  - W-0526: re-hardcoding the search bound, or restoring `maximum_window` as a stored copy, both go red.
+  - W-0525: re-hardcoding the surplus fraction, or stripping the accessor's defaults, both go red.
+  - W-0527: removing the relief from the liability, or hardcoding the taper, both go red.
+
+  **The lesson the item exists to record, restated because it cost four sweeps:** an accessor with no callers is configuration that governs nothing, and being named by a test is not implementation. The durable check is `grep` for the accessor across `app/` **excluding the service itself** — and then, separately, for the TOPIC, because a dead accessor whose capability is wired elsewhere is a different finding from an unwired capability. Conflating those two is what produced the original count of twenty.

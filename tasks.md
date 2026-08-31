@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 116**  ·  closed 2026-08-31: 16
+**Outstanding: 114**  ·  closed 2026-08-31: 18
 
 ---
 
@@ -31,7 +31,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 
 ## Critical (1)
 
-- [ ] **W-0463** `gated` — TaxConfigService is the source or it is nothing — 20 configured rules have zero consumers, and every guard built to catch this is structurally incapable of seeing it
+- [x] **W-0463** `done` — TaxConfigService is the source or it is nothing — 20 configured rules have zero consumers, and every guard built to catch this is structurally incapable of seeing it
 
 ## High (11)
 
@@ -157,4 +157,4 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0503** `queued` — The 'Platform updates' insight tag uses text-light-blue-700, a class Tailwind never emits, so the text takes whatever colour it inherits
 - [ ] **W-0504** `queued` — Three of the /m dashboard's donut rings are filled to hardcoded constants, so the arc means nothing
 - [ ] **W-0506** `queued` — The consistency sweep reports 91 findings and nothing has been reading it
-- [ ] **W-0527** `queued` — Quick succession relief is configured and implemented by nothing
+- [x] **W-0527** `done` — Quick succession relief is configured and implemented by nothing
