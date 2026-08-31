@@ -4,7 +4,7 @@ title: The generated will revokes every earlier will and imposes a 28-day surviv
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead, product-lead]
-status: queued
+status: closed_invalid
 severity: high
 surfaces: [web]
 created: 2026-08-21T20:00:00Z
@@ -217,3 +217,13 @@ limb 2 is the right one.
   `app/Services/Estate/WillDocumentService.php` still returns nothing — there is no field behind
   the clause and the wizard still never mentions it. Limb 2 fails exactly as filed: a performative
   disposition generated from a value the user never supplied. Unchanged since 2026-08-21.
+
+- 2026-08-31 build-lead: **CLOSED BY CSJ'S RULING 2026-08-31 — not a defect.**
+
+  > *"it is revoked that is the law, there is a 28 day period"*
+
+  Both clauses are correct and both stay as they are. A new will revoking all former wills is standard practice and the effect the testator intends; a 28-day survivorship period is a standard clause. The item treated settled drafting as a missing question. It is not one, and the defaults are not to be changed.
+
+  `survivorship_days` remains on the document and is carried to a mirror will (`WillDocumentService:439`), so the pair cannot drift apart.
+
+  **Do not re-raise this.** The absence of a prompt asking the user to confirm revocation or to set a survivorship period is deliberate, not an omission.
