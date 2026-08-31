@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -73,3 +73,17 @@ indeterminate**, which is worse than a known-conservative bias.
   before exemptions (IHTM46023), so a pension passing exempt to a spouse still counts toward that
   threshold — and W-0482 is what makes this bite, because a pension is the asset large enough to
   cross £2,000,000 where nothing else would.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed. The mechanism turned out to be simpler and worse than the item described.**
+
+  The item asked for the model to be able to SHOW that a pension on the first death can destroy the second death's residence band. Tracing it found the reason it could not: **the second death's residence band was never tapered at all.**
+
+  `HouseholdPlanningService:407` read `$combinedRnrb = $rnrb + $rnrbTransferred` — added and never reduced — while `secondDeathIhtFor()` at `:1052-1055` in the SAME service tapers correctly. **Two mechanisms for one allowance, and the one producing the second-death figure had forgotten the rule.** A survivor whose estate had been swollen past the threshold by everything they inherited kept the full £350,000.
+
+  That is the effect the item names, and it is not specific to pensions: the first death moves the deceased's estate onto the survivor, and the taper is measured against the SURVIVOR's combined estate (IHTM46023). **A household comfortably below the threshold twice over can be above it once** — and was shown both bands in full regardless.
+
+  **The fix** computes `$survivorEstateForTaper` as its own value and withdraws £1 of band per £2 above `rnrb_taper_threshold`, at the configured `rnrb_taper_rate`, capped at the band so it cannot go negative. It is measured on the estate BEFORE allowances — the taper base is the estate, not the taxable remainder — and computed separately rather than reused from the taxable figure precisely because pensions leave the base today and rejoin it from the configured 2027 date (W-0515). Published as `rnrb_taper_reduction_on_second_death` and `survivor_estate_for_taper` so a household can see why its band is smaller than the two it was told it had.
+
+  **Tested:** `tests/Unit/Services/Coordination/SecondDeathRnrbTaperTest.php` — 4 passed, covering below-threshold, the £1-per-£2 withdrawal, full extinguishment without going negative, and a MOVED taper rate (a hardcoded `/ 2` fails). 23 household and second-death tests pass. Pint clean.
+
+  **NOT DONE.** No `tax-compliance-reviewer` pass, and this moves the second-death bill for any household above the threshold. Not browser-verified.
