@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 99**  ·  closed 2026-08-31: 33
+**Outstanding: 98**  ·  closed 2026-08-31: 34
 
 ---
 
@@ -100,7 +100,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0324** `queued` — holdings.*.dividend_yield has no rule in any nested holdings array, so a yield entered through the account or pension form is silently discarded
 - [ ] **W-0330** `queued` — A joint owner is shown Edit and Delete buttons on a shared investment account that can only ever return 404
 - [ ] **W-0334** `queued` — The estate projection silently ignores a user's chosen investment growth method, because the code that honours it is unreachable
-- [ ] **W-0335** `gated` — /api/savings returns 'analysis' => null as a placeholder, nothing dispatches the analyze action, and the store then reads a key that does not exist
+- [x] **W-0335** `done` (2 fixed already; 3rd is correct behaviour) — /api/savings returns 'analysis' => null as a placeholder, nothing dispatches the analyze action, and the store then reads a key that does not exist
 - [ ] **W-0337** `queued` — W-0280 §1 and F-0024 §10 state a double-count mechanism that cannot occur, and a 59-site sweep is queued behind it
 - [ ] **W-0338** `queued` — The headline estate's liability reader can drop a co-owner's share of a mortgage the row does not name, inflating the estate and the tax
 - [ ] **W-0346** `queued` — A granted spouse permission cannot be withdrawn — the status enum has no revoked value
