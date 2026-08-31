@@ -4,7 +4,7 @@ title: Projected cash goes to minus £1.8m — a Cash ISA projects to −£854,1
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0018
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-21T20:25:00Z
@@ -89,3 +89,10 @@ obviously wrong — a user sees "assets fall by two thirds" and has no way to se
    projected estate is the same figure from either spouse's login.
 4. Fixed before or alongside W-0135 and W-0136, since both read these totals.
 5. Verified in a browser on both persona accounts with the table expanded.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `IHTCalculationService:998-1005`
+  publishes `projected_cash_shortfall` as a **positive amount** alongside `projected_cash`, and
+  the docblock records the reasoning: the unmet expenditure used to be folded into
+  `projected_cash` as a negative balance — the Cash ISA at minus £854,179 — and then subtracted
+  from the estate. A shortfall is a planning output; a negative deposit account is not a value
+  the asset can hold.

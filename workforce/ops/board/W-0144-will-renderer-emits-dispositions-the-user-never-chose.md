@@ -209,3 +209,11 @@ limb 2 is the right one.
   - Whether Fynla should generate a will at all for a user who already holds one. **Product.**
   - The wording of any solicitor referral — **`WillTypePolicy` holds it and it was approved
     verbatim under W-0019.** Do not write a second copy.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.**
+  `resources/js/utils/willDocumentRenderer.js:73-77` still emits
+  `HEREBY REVOKE all former wills and testamentary dispositions made by me` **unconditionally**,
+  and `grep -rni 'revoke|revocation'` across `resources/js/components/Estate/WillBuilder/` and
+  `app/Services/Estate/WillDocumentService.php` still returns nothing — there is no field behind
+  the clause and the wizard still never mentions it. Limb 2 fails exactly as filed: a performative
+  disposition generated from a value the user never supplied. Unchanged since 2026-08-21.

@@ -132,3 +132,13 @@ on `F-0033`. Whoever picks this item up should **re-word criterion 1 before clai
 and treat criterion 4 as advanced rather than open.
 
 *Recorded by team-lead after the agent working F-0033 declined to edit an item it did not own.*
+
+- 2026-08-31 build-lead: **VERIFIED PARTIAL against `dev`, and criterion 1 is still worded
+  against a target the statute contradicts.**
+  The half this item shares with W-0399 — one figure reaching the card under a label claiming it
+  was the other — is fixed. Criterion 4 (the percentage on `/plans/estate` and
+  `charitable_giving_percent` becoming one number) belongs to **W-0452, still `gated`**, so this
+  item cannot close ahead of it.
+  **Re-stated for whoever picks it up:** "one number everywhere" is the WRONG target. The s23(1)
+  exemption pools across both wills (£20,000); the Schedule 1A 10% rate test is the survivor's
+  will alone (£10,000). Two figures answering two statutory questions is correct.

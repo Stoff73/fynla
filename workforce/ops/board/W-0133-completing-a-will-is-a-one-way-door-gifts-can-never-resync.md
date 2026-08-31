@@ -170,3 +170,17 @@ the first edit afterwards.
 - Related but distinct: `will_documents.15` is the mirror generated from
   `will_documents.14` under W-0053's fix, which worked correctly — see
   `tests/Persona/20-08-2026_run/reports/R-16-batch-b-regression.md`.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`, and the two obvious re-entry routes
+  were both checked rather than assumed.**
+  1. `WillBuilderReviewStep.vue:99` gates the "Complete & Finalise" button on `v-if="!isComplete"`,
+     so the control disappears the moment the document completes — W-0053's `?view=document` route
+     reaches Review, but Review no longer offers the action.
+  2. `WillDocumentService::syncBequestsForDocument()` (:754) is public and would do the job, but
+     `grep` across `app/` and `routes/` finds exactly one caller:
+     `app/Console/Commands/BackfillWillBequests.php:98`. There is no HTTP route to it.
+
+  So the batch-B prediction remains right about the service and wrong about the user: the sync is
+  reachable from a console command and from nothing a user can press. A completed will and the
+  bequests the application says it holds can still disagree with no route to reconcile them.
+  Unchanged since 2026-08-22.

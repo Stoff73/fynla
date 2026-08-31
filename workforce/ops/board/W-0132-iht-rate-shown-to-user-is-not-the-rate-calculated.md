@@ -4,7 +4,7 @@ title: The Inheritance Tax rate shown to the user is not the rate the calculatio
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0020-cycle2-auditability-figures-the-user-cannot-check.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-21T19:05:00Z
@@ -356,3 +356,9 @@ Three mechanisms currently answer "does the reduced rate apply":
   nothing to verify against:** neither renders an Inheritance Tax rate or figure —
   zero hits for `iht_rate` in `resources/mobile` and `ios-native`, consistent with
   W-0138.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `IHTPlanning.vue:1013` reads
+  `iht_rate_type === 'reduced'` — the server's answer to the 10% test it actually ran — and
+  `:1075-1076` take the displayed percentages from `iht_rate_percent` /
+  `projected_iht_rate_percent`, never from the component. The label and the figure beside it now
+  come from the same calculation, on `/estate` and on the `:table-only` drill-down alike.

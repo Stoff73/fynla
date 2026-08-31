@@ -88,3 +88,15 @@ it stands on its own.
   **before anything is committed**, because a row written today is free and the same row
   later means fabricating records. That is a different item's work but the same fix
   window — sequence them together.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`, and the withdrawal capability now
+  provably exists server-side while remaining unreachable.**
+  `app/Http/Controllers/Api/CookieConsentController.php` exposes exactly one public method,
+  `store()`, and `routes/api.php:145` exposes exactly one route to it. `grep` for a
+  cookie-settings or withdrawal control across `resources/js`, `resources/mobile` and
+  `public/pages` finds none — the banner remains the only control and still renders only when no
+  decision exists.
+  **Sharper than when filed, because W-0049 closed in between:** consent is now recorded and
+  enforced server-side, so a recorded acceptance is a durable, demonstrable state the user has no
+  interface to change. "Visible and irreversible is worse than invisible" applies more strongly
+  now, not less.

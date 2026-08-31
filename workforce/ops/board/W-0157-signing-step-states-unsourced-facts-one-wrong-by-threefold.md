@@ -133,3 +133,14 @@ the whole of the finding.
 
   **Registry:** row C3 already existed — compliance registered it when it ruled. No new
   row was needed and none was added.
+
+- 2026-08-31 build-lead: **VERIFIED PARTIAL against `dev` — two of the three resolved, one
+  deliberately deferred, so this is not closeable and not untouched either.**
+  1. **Storage fee — FIXED.** `WillBuilderSigningStep.vue:139` holds `WILL_STORAGE_FEE = '£24'`,
+     with the HMCTS wording and the source date recorded in the docblock at :126-131.
+  2. **Witness age — FIXED.** The component now says the Wills Act 1837 sets no age for
+     witnesses and that suggesting adults is "Fynla's guidance, not a legal requirement" — the
+     "says less" resolution the acceptance asked for.
+  3. **"Automatically void" — STILL LIVE at :69**, verbatim and unqualified. Correctly so: the
+     acceptance requires it be resolved **under W-0153's answer**, not independently, and
+     **W-0153 is still `queued`**. This item cannot close before that one.
