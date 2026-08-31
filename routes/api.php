@@ -969,6 +969,8 @@ Route::middleware(['auth:sanctum', 'estate.full'])->prefix('estate')->group(func
             Route::get('/{id}', [WillDocumentController::class, 'show']);
             Route::put('/{id}', [WillDocumentController::class, 'update']);
             Route::post('/{id}/complete', [WillDocumentController::class, 'complete']);
+            // W-0133 — completion was a one-way door.
+            Route::post('/{id}/reopen', [WillDocumentController::class, 'reopen']);
             Route::post('/{id}/mirror', [WillDocumentController::class, 'generateMirror']);
             Route::get('/{id}/validate', [WillDocumentController::class, 'validateDocument']);
             Route::delete('/{id}', [WillDocumentController::class, 'destroy']);

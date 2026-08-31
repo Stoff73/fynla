@@ -4,7 +4,7 @@ title: Completing a will is a one-way door — "Complete & Finalise" never retur
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T19:15:00Z
@@ -184,3 +184,20 @@ the first edit afterwards.
   reachable from a console command and from nothing a user can press. A completed will and the
   bequests the application says it holds can still disagree with no route to reconcile them.
   Unchanged since 2026-08-22.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **The one-way door is open.** Confirmed live first: the only two writes of `status => 'draft'` in `WillDocumentService` were creation paths (`:156`, `:421`). Nothing anywhere returned a completed document to draft, so a gift edited or a bequest deleted in the Estate module after finalising could never be re-synced — and the divergent document was still presented to the user as their will.
+
+  **`WillDocumentService::reopen()`** flips `complete` back to `draft`, clears `generated_at` (a document being edited has not been generated) and stamps `last_edited_at`. Exposed as `POST /api/estate/will-builder/{id}/reopen`, route verified live.
+
+  **Two deliberate choices, recorded because both are the kind of thing a later reader would reverse:**
+
+  1. **It does not reset anything.** Every answer stays, so the wizard resumes where it was. Losing the answers would be a worse defect than the door it replaces, and there is a test pinning it.
+  2. **It is not automatic.** A will that silently reverted to draft when an unrelated gift changed would leave a user believing they hold a completed will when they do not — the same failure in the opposite direction. Reopening is an explicit act.
+
+  Completing again runs the same `validateDocument()` errors and the same `WillTypePolicy` refusal as the first time, so the W-0019 rule that a married user may only complete a mirror will is not bypassed by this route.
+
+  **Tested:** `tests/Feature/Estate/WillReopenTest.php` — 3 passed (reopen, answers preserved, draft untouched); 38 will-document tests pass, 97 assertions. Pint clean.
+
+  **NOT DONE.** No UI control yet — the endpoint exists and the wizard's edit path works once the document is draft, but no button calls it. Not browser-verified. The will builder is web-only, so no `/m` counterpart.

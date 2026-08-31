@@ -447,6 +447,40 @@ class WillDocumentService
     }
 
     /**
+     * Put a completed will back into draft so it can be corrected.
+     *
+     * **W-0133.** Completion was a one-way door: nothing anywhere set `status`
+     * back to `draft`, so a gift edited or a bequest deleted in the Estate module
+     * after finalising could never be re-synced, and the will document and the
+     * module diverged permanently — with the document still presented as the
+     * user's will.
+     *
+     * Reopening does NOT rewrite anything. It clears `generated_at`, because a
+     * document being edited has not been generated, and leaves every answer in
+     * place so the wizard resumes where it was. Completing again runs the same
+     * validation and the same `WillTypePolicy` refusal as the first time.
+     *
+     * Deliberately not automatic. A will that silently reverted to draft when an
+     * unrelated gift changed would leave a user believing they had a completed
+     * will when they did not — the failure this fix exists to remove, in the
+     * opposite direction.
+     */
+    public function reopen(WillDocument $doc): WillDocument
+    {
+        if ($doc->status !== 'complete') {
+            return $doc;
+        }
+
+        $doc->update([
+            'status' => 'draft',
+            'generated_at' => null,
+            'last_edited_at' => now(),
+        ]);
+
+        return $doc->fresh();
+    }
+
+    /**
      * Mark a will document as complete.
      */
     public function markComplete(WillDocument $doc): WillDocument
