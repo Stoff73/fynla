@@ -4,7 +4,7 @@ title: REGRESSION — creating any investment account returns 500, "Column 'advi
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: handoff
+status: done
 severity: critical
 surfaces: [web, m, ios]
 created: 2026-08-21T15:35:00Z
@@ -230,3 +230,15 @@ frontend guarantee — this is a silent class and W-0026 was the same shape in r
   default**, and any of them sent as null would have failed identically. The schema-drift test
   reddens if a column is added or a validation rule newly exposes one.
 
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and fixed at the class level
+  rather than the instance.** `InvestmentAccountNormaliser::NOT_NULL_WITH_DEFAULT`
+  (app/Services/Stores/Normalisers/InvestmentAccountNormaliser.php:44) drops a null for
+  every one of the 28 `investment_accounts` columns that are NOT NULL, carry a default,
+  and are reachable from a client payload — `advisor_fee_percent` among them. One rule
+  serves the form, Fyn and upload paths. Pinned by
+  `tests/Feature/Investment/InvestmentAccountNotNullColumnsTest.php`, which fails if a
+  column is added or a validation rule newly exposes one, and by
+  `tests/Unit/Database/ValidationMaxFitsColumnPrecisionTest.php`. The `nullable` rule at
+  `StoreInvestmentAccountRequest:68` deliberately stands — the null is dropped at the
+  normaliser, which is the "decide ONE way" the acceptance asked for.

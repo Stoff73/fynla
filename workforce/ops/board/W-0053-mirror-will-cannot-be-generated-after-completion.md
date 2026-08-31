@@ -4,7 +4,7 @@ title: Completing a mirror will strands the user — "Generate Spouse's Will" ex
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0003-batch-b-estate-wills.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T13:50:00Z
@@ -193,3 +193,8 @@ actions, both orders need walking.
   warns while unpaired and stops once paired; does not warn on a simple will;
   **generates the counterpart after completion** (the rescue); returns the
   existing counterpart instead of creating a second.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `WillPlanning.vue:92` renders the
+  "View Will" block whenever `will.will_document_id` is set, and `WillBuilderView.vue:63/75-76`
+  honours `?view=document` — the watcher on `$route.query.view` plus the short-circuit skip. The
+  route back from a completed will exists and works.

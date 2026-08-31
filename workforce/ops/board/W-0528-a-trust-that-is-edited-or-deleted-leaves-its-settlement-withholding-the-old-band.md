@@ -5,7 +5,7 @@ mission: null
 branch: fix/w-0528-trust-edit-delete-leaves-the-settlement-gift-behind
 owner: build-lead
 reviewers: [tax-compliance-reviewer]
-status: gated
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -106,3 +106,8 @@ fought and the estate answered differently depending on which had been touched l
 - 2026-08-30 build-lead: **merged to `dev` as PR #752** — the settlement gift tracking its trust for life. Left `gated` rather than
   `done` because the reviewer gate named above has not run; `done` here would mean the
   change is on `dev`, which is true, and would hide that nobody has certified it.
+
+- 2026-08-31 build-lead: **CLOSED — merged as PR #752, verified against `dev`.**
+  `gifts.trust_id` exists (2026_08_29_160000), is fillable on `App\\Models\\Estate\\Gift`,
+  is written by `TrustController` and `WillController`, and `EstateController:529` refuses
+  to edit or delete a trust-owned gift.

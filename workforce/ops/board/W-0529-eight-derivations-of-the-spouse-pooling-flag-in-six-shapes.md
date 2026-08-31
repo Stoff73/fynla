@@ -5,7 +5,7 @@ mission: null
 branch: fix/w-0529-one-rule-for-pooling-a-spouse-estate
 owner: build-lead
 reviewers: [tax-compliance-reviewer]
-status: gated
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -113,3 +113,7 @@ Following it out found the flag derived in **eight places, in six shapes**:
 - 2026-08-30 build-lead: **merged to `dev` as PR #755** — one derivation of the spouse pooling flag. Left `gated` rather than
   `done` because the reviewer gate named above has not run; `done` here would mean the
   change is on `dev`, which is true, and would hide that nobody has certified it.
+
+- 2026-08-31 build-lead: **CLOSED — merged as PR #755, verified against `dev`.**
+  `User::sharesFinancialDataWithSpouse()` (app/Models/User.php:587) is the single
+  derivation, with an architecture test that fails if a ninth appears.

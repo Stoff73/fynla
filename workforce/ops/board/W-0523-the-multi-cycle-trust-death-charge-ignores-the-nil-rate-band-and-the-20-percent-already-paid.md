@@ -5,7 +5,7 @@ mission: null
 branch: fix/w-0523-multi-cycle-clt-death-charge
 owner: build-lead
 reviewers: [tax-compliance-reviewer]
-status: gated
+status: done
 claimed_by: null
 severity: high
 surfaces: [web]
@@ -139,3 +139,8 @@ strategy the app is recommending.
 - 2026-08-30 build-lead: **merged to `dev` as PR #751** — the excess basis and the lifetime credit on the trust death charge. Left `gated` rather than
   `done` because the reviewer gate named above has not run; `done` here would mean the
   change is on `dev`, which is true, and would hide that nobody has certified it.
+
+- 2026-08-31 build-lead: **CLOSED — merged as PR #750, verified against `dev`.**
+  `PersonalizedTrustStrategyService:194` charges `($excessOverNRB * $ihtRate) - $lifetimeCharge`
+  — the excess only, with the 20% lifetime charge credited — per CSJ's 2026-08-29 ruling
+  recorded at :187. The band consumption is charged in the estate, not a second time here.

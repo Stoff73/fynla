@@ -962,3 +962,18 @@ reviewer wrote nothing to disk; without that file both reviews would have been l
   the note above says. `/m` remains as recorded: no allowance breakdown to reconcile,
   and its only inheritance tax figure is the Free-tier teaser computed by a second
   implementation, filed as W-0464.
+
+- 2026-08-31 build-lead: **VERIFIED against `dev` — F1, F2 and F3 are all fixed on web,
+  and the residual is iOS verification only.** `IHTCalculationService:153` holds the
+  single decision about whose records the calculation covers (F1/F3); `:329` doubles the
+  allowances on `$poolsSpouse` rather than `$isMarried`, and `:474`/`:490` publish the
+  five components that now reconcile (F2); `IHTController:123-135` carries them into the
+  summary. Every figure is locked by
+  `tests/Feature/Estate/PeakEarnersPersonaFiguresTest.php` — household £1,728,780,
+  bill £343,512.
+
+  **Left open deliberately, and it is no longer a critical calculation defect.** What
+  remains is the iOS surface, never built or launched against this, plus `/m`'s missing
+  allowance breakdown — which is filed separately as **W-0464** and should not be counted
+  twice. On the evidence the severity now describes a surface-coverage gap, not two
+  different tax bills for one household.
