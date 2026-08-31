@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 57**  ·  closed 2026-08-31: 75
+**Outstanding: 56**  ·  closed 2026-08-31: 76
 
 ---
 
@@ -70,7 +70,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0113** `done` (already fixed) — Two Fyn tools write a spouse and only one can link — `create_family_member` has no email parameter, so it can only ever produce an unlinked household
 - [x] **W-0115** `done` — Two more relationship formatters survive outside the family surfaces, and one of them can still tell a user their partner is a dependent
 - [x] **W-0126** `done` (already fixed; 13 call sites) — Seven more holding-valuation copies sat outside the one home, and three were in one controller
-- [ ] **W-0127** `queued` — An imported holding can store units and a value that contradict each other, and reconciling silently overwrites one of them
+- [x] **W-0127** `done` — An imported holding can store units and a value that contradict each other, and reconciling silently overwrites one of them
 - [x] **W-0131** `done` (read gated; write left for a real mutation point) — The Inheritance Tax calculation cache is never written — `persist` is never passed true, so `iht_calculations` is empty for every user and every estate view recomputes in full
 - [x] **W-0140** `done` (already fixed) — /plans/estate states an Annual Expenditure neither user entered — £39,420 against a recorded £29,400, and £7,500 for a user with no expenditure recorded at all — and it drives Disposable Income
 - [x] **W-0142** `done` (create paths; update guarded separately) — The shared-asset counterparty rule guards chattels only — properties and mortgages can still be orphaned today, through the forms and through Fyn

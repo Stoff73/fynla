@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Investment;
 
 use App\Constants\HoldingSubTypes;
+use App\Http\Traits\ValidatesHoldingValuation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Validator;
  */
 class UpdateHoldingRequest extends FormRequest
 {
+    use ValidatesHoldingValuation;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -60,6 +63,9 @@ class UpdateHoldingRequest extends FormRequest
             if (count(array_intersect_key($this->all(), $this->rules())) === 0) {
                 $v->errors()->add('holding', 'No holding fields were supplied to update.');
             }
+
+            // W-0127 — the same rule as the create path; see the trait.
+            $this->validateHoldingValuationAgrees($v);
         });
     }
 
