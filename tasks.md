@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 61**  ·  closed 2026-08-31: 71
+**Outstanding: 59**  ·  closed 2026-08-31: 73
 
 ---
 
@@ -65,8 +65,8 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0108** `done` — The health and welfare Lasting Power of Attorney document is silent on when attorneys may act — the one restriction that is statutory for that type
 - [x] **W-0109** `done` (4 copies; timescale 8→20 weeks) — The Lasting Power of Attorney registration fee and timescale are stated in three places with no single home, and the timescale looks stale
 - [ ] **W-0110** `queued` — There is no Lasting Power of Attorney surface on /m or iOS, yet Fyn can create one from both — a record the user can never see again
-- [ ] **W-0111** `gated` — Adding a Partner asks for an email address "to create or link their account", then silently discards it — no account, no link, no error
-- [ ] **W-0112** `gated` — Editing a linked spouse's name never reaches their account — `users.name` is an appended accessor with no column, so the sync is silently discarded
+- [x] **W-0111** `done` (already fixed) — Adding a Partner asks for an email address "to create or link their account", then silently discards it — no account, no link, no error
+- [x] **W-0112** `done` (already fixed) — Editing a linked spouse's name never reaches their account — `users.name` is an appended accessor with no column, so the sync is silently discarded
 - [ ] **W-0113** `gated` — Two Fyn tools write a spouse and only one can link — `create_family_member` has no email parameter, so it can only ever produce an unlinked household
 - [ ] **W-0115** `gated` — Two more relationship formatters survive outside the family surfaces, and one of them can still tell a user their partner is a dependent
 - [x] **W-0126** `done` (already fixed; 13 call sites) — Seven more holding-valuation copies sat outside the one home, and three were in one controller
