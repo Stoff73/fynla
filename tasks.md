@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 68**  ·  closed 2026-08-31: 64
+**Outstanding: 67**  ·  closed 2026-08-31: 65
 
 ---
 
@@ -113,7 +113,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0373** `done` (found in the same method) — Liability institution names and balances are written to the application log at INFO on every Inheritance Tax calculation
 - [x] **W-0376** `done` (3 resolved elsewhere; dead card deleted) — Four dead sites found in one day, and the dead code carries its own copies of live rules
 - [ ] **W-0383** `gated` — Product call — how much of someone else's contract should the other life assured see
-- [ ] **W-0385** `queued` — fynla-state.auth.user can name a different user than the token authenticates as, and it is our documented way of checking identity
+- [x] **W-0385** `done` (playbook fixed; login path verified sound) — fynla-state.auth.user can name a different user than the token authenticates as, and it is our documented way of checking identity
 - [ ] **W-0392** `queued` — The estate a will screen states omits Business Property Relief assets, which do pass under the will
 - [ ] **W-0394** `gated` — Every bequest is stored as a gift to a person — both charitable legacies included, because beneficiary_type reaches no request class
 - [ ] **W-0398** `queued` — A residuary substitution beneficiary is invisible to every consumer of the bequests table — which is why this household reads as though its children are unprovided for
