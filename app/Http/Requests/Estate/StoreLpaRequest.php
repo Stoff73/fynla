@@ -47,6 +47,9 @@ class StoreLpaRequest extends FormRequest
             'attorneys.*.attorney_type' => 'sometimes|in:primary,replacement',
             'attorneys.*.full_name' => 'sometimes|string|max:255',
             'attorneys.*.date_of_birth' => 'nullable|date|before:today',
+            // W-0105 — MCA 2005 s13(8). Nullable so an unanswered question stays
+            // unanswered; a default of false would be a declaration nobody made.
+            'attorneys.*.is_bankrupt' => 'sometimes|nullable|boolean',
             'attorneys.*.address_line_1' => 'nullable|string|max:255',
             'attorneys.*.address_line_2' => 'nullable|string|max:255',
             'attorneys.*.address_city' => 'nullable|string|max:255',

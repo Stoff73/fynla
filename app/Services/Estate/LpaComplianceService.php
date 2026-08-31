@@ -55,6 +55,7 @@ class LpaComplianceService
         $checks = [
             $this->checkDonorAge($lpa),
             $this->checkAttorneyAges($lpa),
+            $this->checkAttorneyBankruptcy($lpa),
             $this->checkAtLeastOneAttorney($lpa),
             $this->checkDecisionType($lpa),
             $this->checkCertificateProvider($lpa),
@@ -184,6 +185,81 @@ class LpaComplianceService
             'pass',
             'Every attorney is 18 or older',
             'All '.$attorneys->count().' appointed attorneys meet the minimum age requirement.'
+        );
+    }
+
+    /**
+     * A bankrupt attorney cannot act on a property and financial affairs LPA.
+     *
+     * **W-0105.** Mental Capacity Act 2005 s13(8)-(9). The question was never
+     * asked at all: there was no column, no field and no check, so an instrument
+     * naming a bankrupt attorney was presented as compliant and would have been
+     * refused registration by the Office of the Public Guardian.
+     *
+     * **Type-dependent, which is why a blanket bar would have been wrong.** The
+     * disqualification applies to PROPERTY AND FINANCIAL AFFAIRS only — a
+     * bankrupt person may perfectly well act as attorney for health and welfare,
+     * and refusing them there would invent a restriction the statute does not
+     * impose.
+     *
+     * An unanswered question is reported as a WARNING, not a failure. The donor
+     * may simply not have been asked yet, and the application has only just begun
+     * asking; treating silence as a breach would fail every instrument created
+     * before this field existed.
+     */
+    private function checkAttorneyBankruptcy(LastingPowerOfAttorney $lpa): array
+    {
+        if ($lpa->lpa_type !== 'property_financial') {
+            return $this->result(
+                'attorney_bankruptcy',
+                'pass',
+                'Bankruptcy does not disqualify a health and welfare attorney',
+                'The bankruptcy restriction in s13(8) applies to property and financial affairs only.'
+            );
+        }
+
+        $attorneys = $lpa->attorneys;
+
+        if ($attorneys->isEmpty()) {
+            return $this->result(
+                'attorney_bankruptcy',
+                'pass',
+                'No attorneys to check',
+                'Bankruptcy will be checked once an attorney is appointed.'
+            );
+        }
+
+        $bankrupt = $attorneys->filter(fn ($attorney): bool => $attorney->is_bankrupt === true);
+
+        if ($bankrupt->isNotEmpty()) {
+            return $this->result(
+                'attorney_bankruptcy',
+                'fail',
+                'A bankrupt attorney cannot manage property and financial affairs',
+                $bankrupt->pluck('full_name')->filter()->implode(', ')
+                    .' is recorded as bankrupt. Under the Mental Capacity Act 2005 they cannot act as attorney '
+                    .'for property and financial affairs, and this Lasting Power of Attorney cannot be registered '
+                    .'while they are named.'
+            );
+        }
+
+        $unanswered = $attorneys->filter(fn ($attorney): bool => $attorney->is_bankrupt === null);
+
+        if ($unanswered->isNotEmpty()) {
+            return $this->result(
+                'attorney_bankruptcy',
+                'warning',
+                'Bankruptcy has not been confirmed for every attorney',
+                'Confirm whether '.$unanswered->pluck('full_name')->filter()->implode(', ')
+                    .' has been made bankrupt. A bankrupt attorney cannot act for property and financial affairs.'
+            );
+        }
+
+        return $this->result(
+            'attorney_bankruptcy',
+            'pass',
+            'No attorney is bankrupt',
+            'Every appointed attorney is confirmed as not bankrupt.'
         );
     }
 

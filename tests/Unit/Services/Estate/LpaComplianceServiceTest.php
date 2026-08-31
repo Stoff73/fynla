@@ -198,12 +198,18 @@ describe('checkCompliance', function () {
                 'certificate_provider_known_years' => 5,
                 'when_attorneys_can_act' => 'only_when_lost_capacity',
             ]);
+        // W-0105 — a COMPLETE property and financial affairs instrument now
+        // answers the bankruptcy question. Leaving it null is a real warning
+        // (s13(8) disqualifies a bankrupt attorney), so a fixture describing a
+        // finished LPA has to state it rather than inherit silence.
         LpaAttorney::factory()->create([
             'lasting_power_of_attorney_id' => $lpa->id,
             'attorney_type' => 'primary',
+            'is_bankrupt' => false,
         ]);
         LpaAttorney::factory()->replacement()->create([
             'lasting_power_of_attorney_id' => $lpa->id,
+            'is_bankrupt' => false,
         ]);
         LpaNotificationPerson::factory()->create([
             'lasting_power_of_attorney_id' => $lpa->id,
@@ -584,5 +590,86 @@ describe('attorney ages (W-0104)', function () {
         ]);
 
         expect($ageCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('fail');
+    });
+});
+
+/**
+ * W-0105 — a bankrupt attorney cannot act for property and financial affairs.
+ *
+ * Mental Capacity Act 2005 s13(8)-(9). The question was never asked: no column,
+ * no field, no check — so an instrument naming a bankrupt attorney was presented
+ * as compliant and would have been refused registration by the Office of the
+ * Public Guardian.
+ *
+ * The restriction is TYPE-DEPENDENT, which is why a blanket bar would be wrong:
+ * a bankrupt person may act as attorney for health and welfare.
+ */
+describe('attorney bankruptcy (W-0105)', function () {
+    $bankruptcyCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'attorney_bankruptcy') ?? [];
+
+    it('fails a property and financial affairs LPA naming a bankrupt attorney', function () use ($bankruptcyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Marcus Webb',
+            'is_bankrupt' => true,
+        ]);
+
+        $check = $bankruptcyCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('fail')
+            ->and($check['description'])->toContain('Marcus Webb');
+    });
+
+    it('does NOT disqualify a bankrupt attorney on a health and welfare LPA', function () use ($bankruptcyCheck) {
+        // s13(8) applies to property and financial affairs only. Refusing them
+        // here would invent a restriction the statute does not impose.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->healthWelfare()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'is_bankrupt' => true,
+        ]);
+
+        expect($bankruptcyCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
+    });
+
+    it('warns rather than fails when the question has not been answered', function () use ($bankruptcyCheck) {
+        // The donor may simply not have been asked, and the application has only
+        // just begun asking. Treating silence as a breach would fail every
+        // instrument created before the field existed.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'is_bankrupt' => null,
+        ]);
+
+        expect($bankruptcyCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('warning');
+    });
+
+    it('passes when every attorney is confirmed not bankrupt', function () use ($bankruptcyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'is_bankrupt' => false,
+        ]);
+
+        expect($bankruptcyCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
     });
 });

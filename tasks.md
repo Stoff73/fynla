@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 66**  ·  closed 2026-08-31: 66
+**Outstanding: 65**  ·  closed 2026-08-31: 67
 
 ---
 
@@ -59,7 +59,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0090** `queued` — Native never says a retirement target was inferred — it shows nothing at all, where web and /m now show the derived figure and label it
 - [ ] **W-0100** `gated` — The Lasting Power of Attorney document generator and its compliance service have never been reviewed — the will builder's sibling, unexamined
 - [x] **W-0104** `done` — An attorney's age is never checked — a child can be appointed attorney on a Lasting Power of Attorney
-- [ ] **W-0105** `queued` — No bankruptcy question exists for a property and financial affairs Lasting Power of Attorney
+- [x] **W-0105** `done` (column, validation, check; no UI field yet) — No bankruptcy question exists for a property and financial affairs Lasting Power of Attorney
 - [ ] **W-0106** `queued` — A professional certificate provider is failed by the two-year rule, despite the field for the professional route already existing
 - [ ] **W-0107** `queued` — The replacement-attorney check states a legal consequence that is wrong for the commonest appointment type
 - [ ] **W-0108** `queued` — The health and welfare Lasting Power of Attorney document is silent on when attorneys may act — the one restriction that is statutory for that type
