@@ -16,6 +16,7 @@ use App\Models\Estate\Will;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\IntestacyCalculator;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
+use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -77,7 +78,11 @@ class WillController extends Controller
 
         // If no will exists, create default
         if (! $will) {
-            $isMarried = in_array($user->marital_status, ['married']) && $user->spouse_id !== null;
+            // W-0508 — a civil partnership is spousal for every Inheritance Tax
+            // purpose (IHTA 1984 s18 as extended by the Civil Partnership Act
+            // 2004). Reading `['married']` alone showed a civil partner a
+            // single-person will position.
+            $isMarried = HouseholdPooling::hasSpousalStatus($user) && $user->spouse_id !== null;
             $will = Will::create([
                 'user_id' => $user->id,
                 'spouse_primary_beneficiary' => $isMarried,

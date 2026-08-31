@@ -36,14 +36,9 @@ it('has no new consumer branching on marital_status with its own literal list', 
         'app/Agents/ProtectionAgent.php: if ($user->marital_status === \'married\' && $user->spouse === null) {',
         'app/Agents/RetirementAgent.php: if ($user?->marital_status === \'married\' && $profile?->spouse_life_expectancy === null) {',
         'app/Agents/SavingsAgent.php: if ($user && $user->marital_status === \'married\' && $user->spouse === null) {',
-        'app/Http/Controllers/Api/Estate/GiftingController.php: $isMarried = in_array($user->marital_status, [\'married\']);',
-        'app/Http/Controllers/Api/Estate/GiftingController.php: $isMarried = in_array($user->marital_status, [\'married\']);',
-        'app/Http/Controllers/Api/Estate/TrustController.php: $isMarried = in_array($user->marital_status, [\'married\']);',
-        'app/Http/Controllers/Api/Estate/WillController.php: $isMarried = in_array($user->marital_status, [\'married\']) && $user->spouse_id !== null;',
         'app/Http/Controllers/Api/EstateController.php: $spouse = $user->marital_status === \'married\' ? $user->liveSpouse() : null;',
         'app/Services/LifeStage/LifeStageService.php: return $user->marital_status === \'married\';',
         'app/Services/Protection/CoverageGapAnalyzer.php: if ($user->liveSpouseId() && $user->marital_status === \'married\') {',
-        'app/Services/Protection/ProtectionDataReadinessService.php: if (! in_array($user->marital_status, [\'married\'], true)) {',
     ];
 
     $found = [];
