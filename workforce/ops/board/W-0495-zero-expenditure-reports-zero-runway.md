@@ -68,3 +68,8 @@ different answers to the same missing input.
    recommendations today. **Establish whether it is before fixing anything.**
 4. Verified in a browser on web and `/m` with a persona that has cash and no
    expenditure.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.**
+  `app/Services/Savings/EmergencyFundCalculator.php:14-16` is unchanged: `$monthlyExpenditure <= 0`
+  returns `0.0`, indistinguishable from a genuine zero runway. A household with cash and no
+  recorded expenditure is still told it has 0 months, and the error runs in the alarming direction.

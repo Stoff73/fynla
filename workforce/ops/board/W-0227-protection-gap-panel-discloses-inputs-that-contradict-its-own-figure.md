@@ -105,3 +105,22 @@ nothing on the page says so.
 3. Whichever survives, the panel names the source. A figure whose provenance is
    invisible cannot be checked by the person it is being sold to.
 4. Verified in a browser on both accounts, with and without a profile override set.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.** `CoverageGapAnalyzer::calculateDebtProtectionNeed():67-73`
+  still reads the `ProtectionProfile` summary fields first and **returns early** on them:
+
+      $mortgageBalance = (float) ($profile->mortgage_balance ?? 0);
+      $otherDebts      = (float) ($profile->other_debts ?? 0);
+      if ($mortgageBalance > 0 || $otherDebts > 0) {
+          return $mortgageBalance + $otherDebts;
+      }
+
+  so a once-typed override still outranks every mortgage record, invisibly and permanently.
+  **The records branch below it is now correct** — `:76` returns
+  `CrossModuleAssetAggregator::calculateLiabilityTotals()['total']`, at the user's share — which
+  is W-0187, verified closed today. So the £182,500 figure is right; the disclosure beside it,
+  and the silent override, are what remain.
+
+  **Acceptance 2 is a PRODUCT CALL and it is the blocker.** Remove the override, keep it but label
+  it ("you entered this; it overrides your records"), or keep it only where no records exist.
+  Raised for CSJ 2026-08-31.

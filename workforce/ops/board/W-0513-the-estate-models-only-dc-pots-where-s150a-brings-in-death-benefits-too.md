@@ -76,3 +76,11 @@ the implementation does not deliver.
 - 2026-08-28 — The death-in-service exclusion was **not** in the October 2024 announcement.
   It arrived in the 21 July 2025 consultation response and is the largest scope change
   between announcement and Act. Older summaries will mislead.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.**
+  `RetirementProjectionService:427-428` still returns `['amount' => 0.0, 'basis' => 'no_pension', …]`
+  the moment `dc_pension_count === 0`, so a defined-benefit-only household contributes nothing to
+  the s150A notional pension property at all. Step 2's lump sum death benefits, annuity protection
+  and guaranteed-period continuation payments are unmodelled. `db_pensions.lump_sum_entitlement`
+  exists and is read at `CoordinatingAgent:2166`, so the data is there and the code does not ask
+  for it.

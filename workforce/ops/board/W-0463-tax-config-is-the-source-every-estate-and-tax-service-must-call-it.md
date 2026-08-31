@@ -348,3 +348,33 @@ this structural item:
 
 **W-0463 stays `gated` until all four land.** It is the umbrella; the four are the work.
 
+
+- 2026-08-31 build-lead: **RE-MEASURED against `dev`. Twenty at filing; TWELVE accessors now have
+  zero callers, and only SEVEN of those are genuinely unwired capabilities. The number moved, so
+  it is restated with its method rather than repeated.**
+
+  **Method.** Every `public function get*()` on `TaxConfigService` (44 of them), grepped across
+  `app/` excluding the service itself; then, for each with no caller, the underlying TOPIC grepped
+  separately — because a dead ACCESSOR is not the same finding as an unwired CAPABILITY, and the
+  original count did not separate them.
+
+  **Wired, through a different accessor — dead getter, live capability (3):**
+  - `getBlindPersonsAllowance` — the allowance IS applied, via
+    `blindPersonsAllowanceFor($user)` at `app/Traits/ResolvesIncome.php:107` (W-0485/W-0511).
+  - `getFourteenYearRule` — the two-window cumulation IS implemented in `FailedGiftTaxCalculator`,
+    derived from the CLT block. This is **W-0526**: one rule with two configured homes, behaviour
+    correct. A consolidation, not a gap.
+  - `getJointOwnershipType` — seven other consumers of the topic.
+
+  **Genuinely unwired — zero callers AND zero topic hits (9), of which 2 are section getters
+  reached through named siblings and 1 is a recorded CSJ deferral:**
+  - `getAgriculturalRelief` — **deferred by CSJ 2026-08-29 (W-0524): agricultural land is a
+    PROPERTY TYPE. Do not count this as an open gap and do not re-open the design decision.**
+  - `getEstateConfig`, `getInvestmentConfig` — whole-section getters, read through named siblings.
+  - **The seven that are open:** `getQuickSuccessionRelief`, `getNormalExpenditureFromIncome`,
+    `getLeaseholdReform`, `getLeaseholdValuationWarnings`, `getEarlyYearsFunding`,
+    `getTaxFreeChildcare` — six reliefs and allowances configured and read by nothing.
+
+  **The item's own warning stands and is why it is not closed here.** Being named by a test is not
+  implementation: this item is the board's counter-example for exactly that, and its reliefs still
+  have no consumers. **Seven is the number to work, not twenty.**

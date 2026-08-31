@@ -60,3 +60,12 @@ It reaches the user through `EstateAgent:272` and `:380`.
 - 2026-08-28 — Raised as F10 by the gate on W-0482. The `post_2027_rules` API key is
   deliberately NOT renamed (see the method's own docblock) — it is an identifier read by
   three clients. Only the prose changes.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`** (the line numbers have moved; the
+  code has not). `IHTCalculationService::calculatePensionAmendmentScenario()` still publishes at
+  **:2382** *"Under current rules, defined contribution pensions pass outside the estate and are
+  not subject to Inheritance Tax"* and at **:2386** `'pension_value_included' => round($totalPensionValue, 2)`
+  — today's pot. Both still reach the user through `EstateAgent`.
+  So one household still carries two different pension-in-estate figures: the residual inside
+  `projected_gross_assets` (W-0482) and today's pot labelled here — **which is precisely the
+  figure W-0482 exists to reject.**

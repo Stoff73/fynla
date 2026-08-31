@@ -64,3 +64,12 @@ indeterminate**, which is worse than a known-conservative bias.
   and notional pension property is neither. FA 2026 amends nothing in ss8E-8H.
 - 2026-08-28 — Also unmodelled, low severity: the s18(2) cap (£325,000) where the
   transferee spouse is not a long-term UK resident and the deceased was.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.**
+  `IHTCalculationService:1249-1250` applies **one** `rnrb_taper_threshold` test, to the combined
+  household on the second death. There is no first-death test anywhere: `grep` finds
+  `rnrb_taper_reduction` published at :499, :625 and :1036, all from the single assessment. IHTA
+  1984 s8G(5) tapers the brought-forward allowance on the FIRST-dying person's estate, struck
+  before exemptions (IHTM46023), so a pension passing exempt to a spouse still counts toward that
+  threshold — and W-0482 is what makes this bite, because a pension is the asset large enough to
+  cross £2,000,000 where nothing else would.

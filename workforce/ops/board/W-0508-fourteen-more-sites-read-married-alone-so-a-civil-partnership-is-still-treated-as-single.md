@@ -126,3 +126,16 @@ And a fifth worth more thought than a regex: the guard **skips any line containi
 across 17 files pass. It blocks the narrow copy and blesses the correct-today copy. If
 the canonical list ever gains a member the guard stays green while 22 sites diverge.
 Asserting on `HouseholdPooling` usage would be the stronger shape.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev` on the Estate API — and the shape is
+  now the half-fixed one the board keeps being caught by.**
+  Still reading `in_array($user->marital_status, ['married'])` alone:
+  `WillController:80`, `GiftingController:81` and `:272`, `TrustController:187`.
+  **`TrustController` is the sharp case: two lines apart, one fixed and one not.** `:207` resolves
+  the spouse through `HouseholdPooling::hasSpousalStatus($user)` — W-0480 F2, with the reasoning
+  in the comment at :203 — while `:187`, twenty lines above it in the same method, still uses
+  `['married']` to decide the default `nrb_transferred_from_spouse`. So a civil partner gets the
+  corrected calculation and a default profile built as a single person, in one request.
+  A reader checking "does this file use the canonical rule?" answers **yes**.
+  The canonical rule is `HouseholdPooling::hasSpousalStatus()`; IHTA 1984 s18, s8A and s8G each
+  read "spouse or civil partner" (SI 2005/3229 reg 7).
