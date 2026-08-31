@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0032-cycle4-rate-literals-and-the-charitable-denominator.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: gated
+status: done
 claimed_by: build-lead
 severity: high
 surfaces: [web, m]
@@ -341,3 +341,23 @@ figure inside a Rule 2 fix. Reviewer's Q2.
   - **`TaxSettingsController:330`** — `sprintf('%g%% (if 10%%+ to charity)', ((float) ($iht['reduced_rate'] ?? 0.36)) * 100)`.
     Two literals in one line, inside the admin screen that displays the tax settings themselves.
     **`grep -rn '?? 0.36' app/` now returns exactly one non-comment hit, and this is it.**
+
+- 2026-08-31 build-lead: **CLOSED — both surviving instances fixed.**
+
+  Six of eight were already fixed when re-measured this morning. The two survivors were both
+  W-0461's, and both are now done:
+
+  - `IHTPlanning.vue:621` — the `£175,000` Home Allowance literal, named by two verdicts and
+    survived four batches. Now `{{ formatCurrency(ihtResidenceNilRateBand) }}`.
+  - `TaxSettingsController:330` — the `?? 0.36` fallback and the hardcoded `10%+` threshold.
+    Both configured now, and the wrong array key (`reduced_rate` where the config seeds
+    `reduced_rate_charity`) corrected — that key mismatch meant the literal was the only thing
+    producing the figure on the admin screen.
+
+  The structural blind spot this item recorded — that every guard drives PHP and asserts on
+  service output — is closed by W-0461's new
+  `tests/frontend/components/Estate/RateLiteralsInRenderedTemplates.test.js`, which moves a
+  configured rate and asserts on a mounted template. Mutation-verified.
+
+  Commit `ad048def1`. **The charitable rate family is now closed with a guard behind it**, which
+  is the thing the two previous closures lacked.

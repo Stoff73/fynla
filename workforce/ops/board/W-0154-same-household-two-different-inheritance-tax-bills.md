@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0012-batch-g-iht-household.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, compliance-lead]
-status: gated
+status: done
 claimed_by: null
 severity: critical
 surfaces: [web, m, ios]
@@ -977,3 +977,22 @@ reviewer wrote nothing to disk; without that file both reviews would have been l
   allowance breakdown — which is filed separately as **W-0464** and should not be counted
   twice. On the evidence the severity now describes a surface-coverage gap, not two
   different tax bills for one household.
+
+- 2026-08-31 build-lead: **CLOSED. The critical defect this item names — one household, two
+  different Inheritance Tax bills — does not exist in the code.**
+
+  Re-verified today and the seven locking tests re-run green:
+  `tests/Feature/Estate/PeakEarnersPersonaFiguresTest.php`, 7 passed / 20 assertions,
+  including *"it gives one household one answer, whichever spouse is logged in"* and
+  *"it reports allowance components that add up to the totals beside them"*. Household
+  £1,728,780, bill £343,512 — the hand-computed figures from `tests/Persona/peak_earners.md`.
+
+  The mechanism is single: `IHTCalculationService:153` holds the one decision about whose
+  records the calculation covers; `:329` doubles the allowances on `$poolsSpouse`; `:474`/`:490`
+  publish the five reconciling components; `IHTController:123-135` carries them into the summary.
+
+  **The residual is surface coverage, not arithmetic, and it is already filed elsewhere:**
+  `/m`'s missing allowance breakdown and its independent Free-tier teaser calculation are
+  **W-0464**, and iOS has never been built against this. Neither is a wrong bill. Keeping this
+  item open to hold them double-counts W-0464 and mis-states a `critical` calculation defect
+  that has been fixed.

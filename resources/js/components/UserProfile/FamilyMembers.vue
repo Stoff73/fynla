@@ -125,9 +125,16 @@
             <p class="text-body-sm text-horizon-500 capitalize">{{ member.gender }}</p>
           </div>
 
-          <div v-if="member.annual_income">
+          <!--
+            W-0176. `resolved_annual_income` is the linked account's own figure
+            where there is one, and the stored snapshot otherwise. The old guard
+            read the raw column, whose `decimal:2` cast makes a stale zero the
+            truthy string "0.00" — so a linked spouse earning £120,000 was shown
+            "Annual Income £0". Numeric guard, so a real zero hides too.
+          -->
+          <div v-if="Number(member.resolved_annual_income) > 0">
             <p class="text-body-xs text-neutral-500">Annual Income</p>
-            <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.annual_income) }}</p>
+            <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.resolved_annual_income) }}</p>
           </div>
         </div>
 
