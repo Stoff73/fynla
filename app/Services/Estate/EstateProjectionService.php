@@ -573,7 +573,13 @@ class EstateProjectionService
     /**
      * Project a single liability using linear amortisation
      */
-    private function projectSingleLiability(
+    /**
+     * W-0470 — public so the DISPLAY breakdown projects a liability exactly as
+     * the engine does. `IHTFormattingService` had its own rules: a binary cliff
+     * at age 70 for mortgages and no amortisation at all for anything else, so
+     * the rows printed beside a projected total were not projected.
+     */
+    public function projectSingleLiability(
         float $currentBalance,
         ?string $endDate,
         int $currentAge,
@@ -613,7 +619,8 @@ class EstateProjectionService
     /**
      * Estimate payoff date from balance, monthly payment, and interest rate.
      */
-    private function estimatePayoffDate($liability): ?string
+    /** W-0470 — public for the same reason as {@see projectSingleLiability()}. */
+    public function estimatePayoffDate($liability): ?string
     {
         $balance = (float) ($liability->current_balance ?? 0);
         $monthly = (float) ($liability->monthly_payment ?? 0);
