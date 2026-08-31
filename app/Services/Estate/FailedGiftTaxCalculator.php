@@ -56,6 +56,9 @@ final class FailedGiftTaxCalculator
 {
     public function __construct(
         private readonly TaxConfigService $taxConfig,
+        // W-0367 — IHTA 1984 s19. A chargeable transfer is net of the exemption
+        // that applies to it; this used to take `gift_value` gross.
+        private readonly GiftAnnualExemption $annualExemption,
     ) {}
 
     /**
@@ -118,9 +121,25 @@ final class FailedGiftTaxCalculator
             ->map(fn (Gift $gift): array => [
                 'model' => $gift,
                 'value' => (float) $gift->gift_value,
+                'gift_date' => $gift->gift_date instanceof \DateTimeInterface
+                    ? $gift->gift_date->format('Y-m-d')
+                    : (string) $gift->gift_date,
                 'type' => $gift->gift_type === 'clt' ? 'clt' : 'pet',
                 'years' => $this->yearsSince($gift->gift_date, $deathDate),
             ])
+            ->values()
+            ->all();
+
+        // W-0367 — s19 BEFORE the window filter and before any cumulation,
+        // because the exemption decides what a transfer's chargeable value IS.
+        // Relieving afterwards would cumulate a gross figure and then reduce a
+        // number nothing had used.
+        //
+        // Run over every gift the search bound returned, not only those inside
+        // the death window: an out-of-window gift still CONSUMED its year's
+        // allowance, so excluding it would hand that allowance to a later gift a
+        // second time.
+        $gifts = collect($this->annualExemption->applyTo($gifts))
             ->filter(fn (array $g): bool => $g['value'] > 0)
             ->values();
 
@@ -258,7 +277,13 @@ final class FailedGiftTaxCalculator
                 'gift_type' => $gift['type'],
                 'recipient' => $gift['model']->recipient,
                 'gift_date' => $gift['model']->gift_date?->format('Y-m-d'),
-                'gift_value' => round($gift['value'], 2),
+                // W-0367 — the GROSS figure the user actually gave. `$gift['value']`
+                // is now net of the s19 annual exemption, and publishing that here
+                // would tell a donor they made a £294,000 gift when they made a
+                // £300,000 one. The relief is its own term beside it, and the net
+                // figure is already published as `chargeable_amount`.
+                'gift_value' => round((float) $gift['model']->gift_value, 2),
+                'annual_exemption_applied' => round((float) ($gift['exempt'] ?? 0), 2),
                 'years_survived' => round($gift['years'], 2),
                 'covered_by_allowance' => round($bandUsed, 2),
                 'chargeable_amount' => round($chargeableDeath, 2),

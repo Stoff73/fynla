@@ -37,6 +37,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  *
  *   Pensions are outside the estate (2026/27), so the £180,000 workplace pot, the
  *   £320,000 SIPP and Sarah's defined benefit scheme are all correctly absent.
+ *
+ * **W-0367 moved the bill from £343,512 to £341,112, and the reason is the point
+ * of that item.** The 2020 trust settlement is a chargeable transfer of £150,000,
+ * and IHTA 1984 s19 relieves £6,000 of it — £3,000 for 2020/21 plus £3,000
+ * carried forward from an unused 2019/20. Until s19 was applied the whole
+ * £150,000 was cumulated gross, so this household's nil rate band was £6,000
+ * smaller than the law allows and its bill £2,400 larger.
+ *
+ *   nrb_gift_deduction   150,000 − 6,000                        =   144,000
+ *   nrb_available        325,000 + 325,000 − 144,000            =   506,000
+ *   total_allowances     506,000 + 350,000                      =   856,000
+ *   taxable_estate       1,728,780 − 856,000 − 20,000 charitable =   852,780
+ *   iht_liability        852,780 × 40%                          =   341,112
  */
 uses(RefreshDatabase::class);
 
@@ -79,7 +92,7 @@ it('gives one household one answer, whichever spouse is logged in', function () 
     $hers = ($this->figures)($this->sarah);
 
     expect((float) $his['iht_liability'])->toBe((float) $hers['iht_liability'])
-        ->and((float) $his['iht_liability'])->toBe(343_512.0);
+        ->and((float) $his['iht_liability'])->toBe(341_112.0);
 });
 
 it('reports allowance components that add up to the totals beside them', function () {
@@ -89,20 +102,22 @@ it('reports allowance components that add up to the totals beside them', functio
 
     expect((float) $c['nrb_individual'] + (float) $c['nrb_spouse_modelled'] - (float) $c['nrb_gift_deduction'])
         ->toBe((float) $c['nrb_available'])
-        ->and((float) $c['nrb_available'])->toBe(500_000.0)
+        // 325,000 + 325,000 − 144,000. The gift deduction is the £150,000
+        // settlement less its £6,000 s19 annual exemption (W-0367).
+        ->and((float) $c['nrb_available'])->toBe(506_000.0)
         ->and((float) $c['rnrb_individual'] + (float) $c['rnrb_spouse_modelled'])
         ->toBe((float) $c['rnrb_available'])
         ->and((float) $c['rnrb_available'])->toBe(350_000.0)
-        ->and((float) $c['total_allowances'])->toBe(850_000.0);
+        ->and((float) $c['total_allowances'])->toBe(856_000.0);
 });
 
 it('works the taxable estate and the bill from those figures', function () {
-    // 1,728,780 − 850,000 of allowances − 20,000 of charitable bequests (£10,000 in
-    // each mirror will) = 858,780, at the standard rate.
+    // 1,728,780 − 856,000 of allowances − 20,000 of charitable bequests (£10,000 in
+    // each mirror will) = 852,780, at the standard rate.
     $c = ($this->figures)($this->david);
 
-    expect((float) $c['taxable_estate'])->toBe(858_780.0)
-        ->and((float) $c['iht_liability'])->toBe(343_512.0)
+    expect((float) $c['taxable_estate'])->toBe(852_780.0)
+        ->and((float) $c['iht_liability'])->toBe(341_112.0)
         ->and((float) $c['iht_rate_percent'])->toBe(40.0);
 });
 
@@ -134,6 +149,7 @@ it('records the trust settlement once, however often the household is re-seeded'
     $david = User::where('email', 'david.jones@example.com')->firstOrFail();
 
     expect(Gift::where('user_id', $david->id)->where('gift_type', 'clt')->count())->toBe(1)
-        ->and((float) ($this->figures)($david)['nrb_gift_deduction'])->toBe(150_000.0)
-        ->and((float) ($this->figures)($david)['iht_liability'])->toBe(343_512.0);
+        // £150,000 settled, less the £6,000 s19 annual exemption (W-0367).
+        ->and((float) ($this->figures)($david)['nrb_gift_deduction'])->toBe(144_000.0)
+        ->and((float) ($this->figures)($david)['iht_liability'])->toBe(341_112.0);
 });

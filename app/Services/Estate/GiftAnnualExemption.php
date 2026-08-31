@@ -65,49 +65,72 @@ class GiftAnnualExemption
 
         // Chronological, because s19 relieves the earliest gift first. Keys are
         // preserved so the caller gets its rows back in its own order.
-        $order = array_keys($gifts);
-        usort($order, fn ($a, $b) => strcmp(
-            (string) $gifts[$a]['gift_date'],
-            (string) $gifts[$b]['gift_date']
-        ));
+        //
+        // Grouped by DATE rather than taken one at a time, because gifts made on
+        // the same day share their allowance PRO RATA (IHTM14143) rather than in
+        // whatever order the query returned them. Without that, the relief — and
+        // therefore the tax — would depend on insertion order, which is the
+        // W-0468 defect in a new place.
+        $byDate = [];
+        foreach ($gifts as $key => $gift) {
+            $byDate[(string) $gift['gift_date']][] = $key;
+        }
+        ksort($byDate);
 
         /** @var array<int, float> $spent  tax year => amount of that year's allowance used */
         $spent = [];
 
-        foreach ($order as $key) {
-            $gift = $gifts[$key];
-            $value = (float) $gift['value'];
-            $year = self::taxYearOf((string) $gift['gift_date']);
+        foreach ($byDate as $date => $keys) {
+            $cohortValue = array_sum(array_map(
+                fn ($key): float => (float) $gifts[$key]['value'],
+                $keys
+            ));
 
-            $relieved = 0.0;
+            // Snapshot BEFORE the cohort draws anything. Apportioning against a
+            // running remainder would give the first gift of the day its full
+            // share and each later one a share of what was left — so the relief
+            // would still depend on order, which is what pro rata exists to stop.
+            $availableAtCohortStart = $spent;
 
-            // Current year first, then each carried-forward year oldest-first.
-            // The oldest is used before the newer one because it expires sooner.
-            $years = [$year];
-            for ($back = $carryYears; $back >= 1; $back--) {
-                array_unshift($years, $year - $back);
-            }
-            $years = array_reverse($years);
+            foreach ($keys as $key) {
+                $gift = $gifts[$key];
+                $value = (float) $gift['value'];
+                $year = self::taxYearOf((string) $gift['gift_date']);
 
-            foreach ([$year, ...array_slice($years, 1)] as $candidate) {
-                if ($value <= 0.0) {
-                    break;
+                // The share of this day's allowance this gift may draw on. One gift
+                // on the day takes all of it; several divide it by value.
+                $cohortShare = $cohortValue > 0.0 ? $value / $cohortValue : 1.0;
+
+                $relieved = 0.0;
+
+                // Current year first, then each carried-forward year oldest-first.
+                // The oldest is used before the newer one because it expires sooner.
+                $years = [$year];
+                for ($back = $carryYears; $back >= 1; $back--) {
+                    array_unshift($years, $year - $back);
+                }
+                $years = array_reverse($years);
+
+                foreach ([$year, ...array_slice($years, 1)] as $candidate) {
+                    if ($value <= 0.0) {
+                        break;
+                    }
+
+                    $available = ($annual - ($availableAtCohortStart[$candidate] ?? 0.0)) * $cohortShare;
+
+                    if ($available <= 0.0) {
+                        continue;
+                    }
+
+                    $take = min($available, $value);
+                    $spent[$candidate] = ($spent[$candidate] ?? 0.0) + $take;
+                    $relieved += $take;
+                    $value -= $take;
                 }
 
-                $available = $annual - ($spent[$candidate] ?? 0.0);
-
-                if ($available <= 0.0) {
-                    continue;
-                }
-
-                $take = min($available, $value);
-                $spent[$candidate] = ($spent[$candidate] ?? 0.0) + $take;
-                $relieved += $take;
-                $value -= $take;
+                $gifts[$key]['exempt'] = round($relieved, 2);
+                $gifts[$key]['value'] = round($value, 2);
             }
-
-            $gifts[$key]['exempt'] = round($relieved, 2);
-            $gifts[$key]['value'] = round($value, 2);
         }
 
         return $gifts;
