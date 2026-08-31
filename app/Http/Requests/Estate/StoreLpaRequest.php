@@ -29,6 +29,9 @@ class StoreLpaRequest extends FormRequest
             'attorney_decision_type' => 'nullable|in:jointly,jointly_and_severally,jointly_for_some',
             'jointly_for_some_details' => 'nullable|required_if:attorney_decision_type,jointly_for_some|string',
             'when_attorneys_can_act' => 'nullable|in:while_has_capacity,only_when_lost_capacity',
+            // W-0152 — the Mental Capacity Act 2005 s13(11) election. Nullable so an
+            // unanswered question stays unanswered rather than becoming a provision.
+            'appointment_survives_dissolution' => 'nullable|boolean',
 
             'preferences' => 'nullable|string|max:5000',
             'instructions' => 'nullable|string|max:5000',

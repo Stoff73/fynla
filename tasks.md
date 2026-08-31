@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 52**  ·  closed 2026-08-31: 80
+**Outstanding: 51**  ·  closed 2026-08-31: 81
 
 ---
 
@@ -76,7 +76,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0142** `done` (create paths; update guarded separately) — The shared-asset counterparty rule guards chattels only — properties and mortgages can still be orphaned today, through the forms and through Fyn
 - [x] **W-0143** `done` (already fixed, guarded) — The will builder's signing step tells the user these steps make their will legally valid — the same overclaim compliance just removed from the document footer
 - [x] **W-0145** `done` (2 statutory limbs refuse; 0 existing records trapped) — Completion is not blocked when a Lasting Power of Attorney names a certificate provider the statute disqualifies — the will builder blocks its equivalent
-- [ ] **W-0152** `queued` — Divorce terminates an attorney's appointment and the instrument may opt out of that — an election the wizard never offers and the document never mentions
+- [x] **W-0152** `done` (default stated + s13(11) election; compliance-lead review outstanding) — Divorce terminates an attorney's appointment and the instrument may opt out of that — an election the wizard never offers and the document never mentions
 - [ ] **W-0153** `queued` — A legal rule stated in Fynla's own unattributed voice on a will sits beside an attributed one on a power of attorney, and nothing makes the difference visible
 - [ ] **W-0156** `queued` — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
 - [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody

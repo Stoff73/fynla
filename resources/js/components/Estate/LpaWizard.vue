@@ -93,6 +93,11 @@
           v-model="formData"
           :errors="errors"
         />
+        <DissolutionStep
+          v-else-if="currentStep === 'dissolution'"
+          v-model="formData"
+          :errors="errors"
+        />
         <PreferencesStep
           v-else-if="currentStep === 'preferences'"
           v-model="formData"
@@ -164,6 +169,7 @@ import AttorneysStep from './LpaWizardSteps/AttorneysStep.vue';
 import ReplacementAttorneysStep from './LpaWizardSteps/ReplacementAttorneysStep.vue';
 import DecisionTypeStep from './LpaWizardSteps/DecisionTypeStep.vue';
 import WhenCanActStep from './LpaWizardSteps/WhenCanActStep.vue';
+import DissolutionStep from './LpaWizardSteps/DissolutionStep.vue';
 import PreferencesStep from './LpaWizardSteps/PreferencesStep.vue';
 import CertificateProviderStep from './LpaWizardSteps/CertificateProviderStep.vue';
 import NotificationPersonsStep from './LpaWizardSteps/NotificationPersonsStep.vue';
@@ -178,6 +184,7 @@ export default {
     ReplacementAttorneysStep,
     DecisionTypeStep,
     WhenCanActStep,
+    DissolutionStep,
     PreferencesStep,
     CertificateProviderStep,
     NotificationPersonsStep,
@@ -216,6 +223,8 @@ export default {
         attorney_decision_type: 'jointly_and_severally',
         jointly_for_some_details: '',
         when_attorneys_can_act: 'only_when_lost_capacity',
+        // W-0152. Null, never a default — see DissolutionStep and the migration.
+        appointment_survives_dissolution: null,
         preferences: '',
         instructions: '',
         life_sustaining_treatment: null,
@@ -249,6 +258,9 @@ export default {
         { id: 'replacement', label: 'Replacements', skippable: true },
         { id: 'decision', label: 'Decision Type', condition: this.primaryAttorneyCount > 1 },
         { id: 'when_can_act', label: 'When Can Act', condition: this.lpaType === 'property_financial' },
+        // W-0152. Both instrument types: MCA 2005 s13(6)(c) is not limited by type.
+        // Skippable — an unanswered s13(11) election must stay unanswered.
+        { id: 'dissolution', label: 'If a Marriage Ends', skippable: true },
         { id: 'preferences', label: 'Preferences' },
         { id: 'certificate', label: 'Certificate Provider' },
         { id: 'notifications', label: 'Notify', skippable: true },

@@ -394,3 +394,53 @@ describe('completion is refused while a statutory conflict stands', function () 
             ->and($lpa->fresh()->completed_at)->toBeNull();
     });
 });
+
+/**
+ * W-0152. The Mental Capacity Act 2005 s13(11) election had no column, no rule and
+ * no question, so a donor who wanted a spouse attorney's appointment to survive a
+ * divorce could not say so. The column is nullable on purpose: "not asked" is a
+ * different fact from "declined", and a default would write a legally operative
+ * provision on the donor's behalf — the W-0100 defect.
+ */
+describe('the section 13(11) dissolution election', function () {
+    it('stores an express direction that the appointment survives', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'appointment_survives_dissolution' => true,
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->appointment_survives_dissolution)
+            ->toBeTrue();
+    });
+
+    it('leaves the election null when the donor skipped the question', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->appointment_survives_dissolution)
+            ->toBeNull();
+    });
+
+    it('records a donor who chose to leave the law as it stands, distinctly from not asking', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'health_welfare',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'appointment_survives_dissolution' => false,
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->appointment_survives_dissolution)
+            ->toBeFalse();
+    });
+});

@@ -49,6 +49,7 @@ class LastingPowerOfAttorney extends Model
         'attorney_decision_type',
         'jointly_for_some_details',
         'when_attorneys_can_act',
+        'appointment_survives_dissolution',
         'preferences',
         'instructions',
         'life_sustaining_treatment',
@@ -69,6 +70,9 @@ class LastingPowerOfAttorney extends Model
         'donor_date_of_birth' => 'date',
         'registration_date' => 'date',
         'is_registered_with_opg' => 'boolean',
+        // W-0152. Cast, not defaulted — null stays null so an unanswered s13(11)
+        // election never renders as a decision the donor made.
+        'appointment_survives_dissolution' => 'boolean',
         'certificate_provider_known_years' => 'integer',
         'completed_at' => 'datetime',
     ];
