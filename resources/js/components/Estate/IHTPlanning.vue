@@ -243,7 +243,7 @@
                 is left to charity{{ charitableFiguresDiffer ? ' across your household' : '' }}, and comes out of the estate before Inheritance Tax is worked out.
               </p>
               <p v-if="charitableFiguresDiffer" class="text-neutral-500 mt-1">
-                The 10% test that decides the reduced rate looks only at the will operating on the second death, which leaves
+                The {{ charitableThresholdLabel }} test that decides the reduced rate looks only at the will operating on the second death, which leaves
                 <span class="font-semibold text-horizon-500">{{ formatCurrency(ihtData.charitable_rate_test_amount) }}</span>.
               </p>
               <p v-else-if="!charitableLegacyRecorded" class="text-neutral-500">Your will records no gifts to charity.</p>
@@ -618,7 +618,7 @@
               <li>Charitable giving (can reduce Inheritance Tax rate from {{ formatPercent(ihtStandardRate) }} to {{ formatPercent(ihtReducedRate) }} if {{ charitableThresholdLabel }} or more goes to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
               <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
-              <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to £175,000)</li>
+              <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to {{ formatCurrency(ihtResidenceNilRateBand) }})</li>
             </ul>
           </div>
         </div>
@@ -780,7 +780,7 @@ export default {
   computed: {
     ...mapState('estate', ['analysis', 'gifts', 'lifeEvents', 'lifeEventImpact', 'lpas']),
     ...mapGetters('estate', ['netWorthValue', 'ihtLiability', 'ihtExemptAssets']),
-    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'ihtRnrbTaperThreshold', 'annualGiftExemption']),
+    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'ihtRnrbTaperThreshold', 'annualGiftExemption']),
     ...mapGetters('auth', ['currentUser']),
 
     hasSpouseLinked() {

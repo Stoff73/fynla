@@ -49,7 +49,7 @@
           <div class="bg-white rounded-lg p-4">
             <h4 class="font-semibold text-violet-500 mb-2">Death Within 7 Years</h4>
             <ul class="space-y-1 text-neutral-500">
-              <li>• Tax recalculated at <strong>40% death rate</strong></li>
+              <li>• Tax recalculated at <strong>{{ ihtStandardRateLabel }} death rate</strong></li>
               <li>• Credit given for 20% already paid</li>
               <li>• Taper relief applies if death 3-7 years later</li>
               <li>• After 7 years: Chargeable Lifetime Transfer fully effective</li>
@@ -162,7 +162,7 @@
                   <p class="text-xl font-bold text-raspberry-600">{{ formatCurrency(strategy.tax_treatment.immediate_charge) }}</p>
                 </div>
                 <div class="bg-white rounded-lg p-4 border border-light-gray">
-                  <p class="text-xs text-neutral-500 mb-1">If Death Within 7 Years (40%)</p>
+                  <p class="text-xs text-neutral-500 mb-1">If Death Within 7 Years ({{ ihtStandardRateLabel }})</p>
                   <p class="text-xl font-bold text-raspberry-700">{{ formatCurrency(strategy.tax_treatment.death_within_7_years) }}</p>
                 </div>
                 <div class="bg-white rounded-lg p-4 border border-light-gray">
@@ -373,6 +373,7 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import { formatPercentage } from '@/utils/currency';
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -394,7 +395,16 @@ export default {
   },
 
   computed: {
-    ...mapGetters('taxConfig', ['ihtNilRateBand']),
+    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtStandardRate']),
+
+    /**
+     * W-0461 instance 5. The death rate as a caption, read from the same
+     * configuration the figures beside it are calculated from.
+     */
+    ihtStandardRateLabel() {
+      return formatPercentage(this.ihtStandardRate, { isDecimal: true, decimals: 0 });
+    },
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
