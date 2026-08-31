@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 70**  ·  closed 2026-08-31: 62
+**Outstanding: 69**  ·  closed 2026-08-31: 63
 
 ---
 
@@ -109,7 +109,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0367** `review` (s19 built + 7 tests; NOT wired — needs taper suite re-derived + tax review) — Gift values are taken gross, so none of the lifetime exemptions that reduce a chargeable transfer are applied, overstating tax in every case
 - [x] **W-0369** `done` (behaviour correct; authority now cited) — The residence nil rate band may be wrongly excluded from the 10% charitable-rate baseline — flagged for verification, not asserted
 - [x] **W-0370** `done` (6 sites; the accessor existed and one line used it) — The 7- and 14-year statutory gift windows are hardcoded while TaxConfigService already carries them
-- [ ] **W-0371** `queued` — Tax rates and thresholds are hardcoded in the user-facing sentences printed beside figures the arithmetic computed from configuration
+- [x] **W-0371** `done` (4 already done; 2 survivors fixed) — Tax rates and thresholds are hardcoded in the user-facing sentences printed beside figures the arithmetic computed from configuration
 - [x] **W-0373** `done` (found in the same method) — Liability institution names and balances are written to the application log at INFO on every Inheritance Tax calculation
 - [ ] **W-0376** `queued` — Four dead sites found in one day, and the dead code carries its own copies of live rules
 - [ ] **W-0383** `gated` — Product call — how much of someone else's contract should the other life assured see

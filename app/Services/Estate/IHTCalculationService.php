@@ -2152,11 +2152,22 @@ class IHTCalculationService
             : 'Nil Rate Band';
 
         if ($giftsUsed > 0) {
+            // W-0371 — the last two literals in this file's prose. Both windows
+            // are configured and both were spelled out here, beside figures the
+            // configuration produced: change the setting and the application
+            // computes one window while the sentence states another.
+            //
+            // The fourteen is DERIVED, not stored — `getFourteenYearRule()`
+            // returns it as the sum of the two seven-year windows (W-0526),
+            // because there is no fourteen-year window in the legislation.
+            $petWindow = (int) ($this->taxConfig->getPETRules()['years_to_exemption'] ?? 7);
+            $maximumWindow = (int) $this->taxConfig->getFourteenYearRule()['maximum_window'];
+
             $working = $composition ?? '£'.number_format($nrbGross);
             $message = $heading.' of £'.number_format($nrbAvailable).' applied: '.$working
-                .', less £'.number_format($giftsUsed).' of allowance used by gifts made within the last 7 years'
+                .', less £'.number_format($giftsUsed).' of allowance used by gifts made within the last '.$petWindow.' years'
                 .($deduction['clts_7_to_14_years'] > 0
-                    ? ' (including the 14-year rule for historical Chargeable Lifetime Transfers)'
+                    ? ' (including the '.$maximumWindow.'-year rule for historical Chargeable Lifetime Transfers)'
                     : '')
                 .'.';
         } else {
