@@ -14,6 +14,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Protection\LifeCoverReach;
+use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -69,6 +70,10 @@ class EstateAssetAggregatorService
         private readonly LifeCoverReach $lifeCoverReach,
         private readonly TaxConfigService $taxConfig,
         private readonly UndividedShareDiscount $undividedShareDiscount,
+        // W-0338 — the two-leg mortgage reader. The headline read only the
+        // mortgage row's own owner/joint_owner and so could miss a mortgage
+        // secured on a property this user co-owns whose row does not name them.
+        private readonly CrossModuleAssetAggregator $crossModuleAggregator,
     ) {}
 
     /**
@@ -401,16 +406,32 @@ class EstateAssetAggregatorService
         // Get liabilities - single-record pattern
         $liabilitiesCollection = Liability::forUserOrJoint($user->id)
             ->get();
-        $liabilities = $liabilitiesCollection->sum(function ($liability) use ($user) {
-            // Calculate user's share using the trait
-            $userShare = $this->calculateUserShare($liability, $user->id);
-            \Log::info('Liability: '.($liability->institution ?? 'Unknown').' | Type: '.($liability->type ?? 'Unknown').' | User Share: £'.$userShare);
+        // W-0373 — this used to `Log::info` the institution NAME, the debt type
+        // and the balance for every liability, on every estate calculation, on
+        // every surface. A lender and an amount owed are exactly the pair that
+        // makes a log line a personal-data record, and it was written at INFO on
+        // a read path, so it accumulated indefinitely with no purpose beyond a
+        // debugging session that ended. Removed rather than downgraded: there is
+        // no level at which this belongs in a log file.
+        $liabilities = $liabilitiesCollection->sum(
+            fn ($liability) => $this->calculateUserShare($liability, $user->id)
+        );
 
-            return $userShare;
-        });
-
-        // Get mortgages - single-record pattern (joint-aware via MortgageStore)
-        $mortgages = $this->mortgageStore->forUser($user)
+        // W-0338 — the TWO-LEG reader, matching `EstateProjectionService`.
+        //
+        // `mortgageStore->forUser()` reaches a mortgage by the row's own
+        // `user_id`/`joint_owner_id`. But a mortgage's SHARE resolves from the
+        // securing property (CSJ's W-0228 ruling), and the two can disagree: a
+        // home owned 50/50 with a mortgage row naming one spouse only. The
+        // un-named co-owner then contributed nothing, **half the debt was
+        // deducted by nobody, and the estate — and the tax — came out too big.**
+        //
+        // The second leg picks up mortgages on properties the user co-owns that
+        // the mortgage row does not name; `calculateUserMortgageShare()` returns
+        // 0.0 for a mortgage that is genuinely not theirs, so nothing is
+        // double-counted. The projection has read this way since W-0336 and the
+        // headline was the remaining half.
+        $mortgages = $this->crossModuleAggregator->getMortgages($user->id)
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
 
         return $liabilities + $mortgages;
