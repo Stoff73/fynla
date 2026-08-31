@@ -2403,8 +2403,27 @@ class IHTCalculationService
 
         $effectiveDate = Carbon::parse($pensionInclusion['effective_date']);
 
-        // Get total DC pension values
+        // W-0513 — WHAT THIS FIGURE ACTUALLY COVERS, and what it does not.
+        //
+        // The configuration declares `applies_to => ['defined_contribution',
+        // 'death_benefits']`, and IHTA 1984 s150A brings lump sum death benefits
+        // into the estate alongside unused pots. **This sum covers only the
+        // first.** There is no death-benefit column on `dc_pensions` or
+        // `db_pensions` — `lump_sum_entitlement` is the retirement commutation
+        // lump sum, a different thing — so the application has never captured
+        // what a scheme would pay out on death.
+        //
+        // The figure is therefore an UNDERSTATEMENT for any household whose
+        // scheme carries a death-in-service benefit, and it used to be published
+        // as though it were the whole answer. Estimating one would be a made-up
+        // tax figure on a user's estate, so the coverage is declared instead:
+        // `pension_value_covers` and `pension_value_excludes` below say exactly
+        // which of the two configured categories were measured.
         $store = $this->pensionStore;
+        $configuredCategories = (array) ($pensionInclusion['applies_to'] ?? ['defined_contribution']);
+        $coveredCategories = array_values(array_intersect($configuredCategories, ['defined_contribution']));
+        $excludedCategories = array_values(array_diff($configuredCategories, $coveredCategories));
+
         $userPensionValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
         $spousePensionValue = 0;
         if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
@@ -2487,6 +2506,10 @@ class IHTCalculationService
                 // assumptions this scenario is not making.
                 'pension_value_included' => round($totalPensionValue, 2),
                 'pension_value_basis' => 'current_fund_value',
+                // W-0513 — the categories this figure measured, and the ones the
+                // configuration names but no column can answer.
+                'pension_value_covers' => $coveredCategories,
+                'pension_value_excludes' => $excludedCategories,
                 'pension_value_basis_label' => 'the value of your pots today, not the amount left after drawdown',
                 'projected_unused_pension' => round((float) ($baseCalc['projected_unused_pension'] ?? 0), 2),
                 'user_pension_value' => round($userPensionValue, 2),
@@ -2503,6 +2526,10 @@ class IHTCalculationService
             'impact_summary' => $additionalIHT > 0
                 ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).', their value today) are included in your estate.'
                 : 'The '.$effectiveDate->format('Y').' pension amendment would not increase your Inheritance Tax liability based on current pension values.',
+            // W-0513 — stated to the user rather than left as a silent shortfall.
+            'coverage_caveat' => $excludedCategories === []
+                ? null
+                : 'This figure covers your defined contribution pots only. Lump sum death benefits your schemes might pay are also within the amendment, and Fynla does not hold them, so your actual exposure could be higher.',
         ];
     }
 

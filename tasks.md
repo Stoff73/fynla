@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 107**  ·  closed 2026-08-31: 25
+**Outstanding: 106**  ·  closed 2026-08-31: 26
 
 ---
 
@@ -43,7 +43,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0171** `queued` — The estate calculation cannot be audited by the person whose money it is — £500,000 leaves the estate silently, £10,000 is deducted invisibly, and the rule that reverses it all on 2027-04-06 is never mentioned
 - [ ] **W-0462** `queued` — \"Save £74,987\" is attached to an action that leaves the beneficiaries £37,891 worse off — the tax figure is correct and the disclosure is missing
 - [x] **W-0508** `done` — Fourteen more sites read ['married'] alone, so a civil partnership is still treated as single across the Estate API, four agents and three services
-- [ ] **W-0513** `queued` — The projected estate models only defined contribution pots, where IHTA 1984 s150A brings in lump sum death benefits too
+- [x] **W-0513** `done` (coverage declared; death-benefit capture still to decide) — The projected estate models only defined contribution pots, where IHTA 1984 s150A brings in lump sum death benefits too
 - [ ] **W-0514** `queued` — A pension on the first death can destroy the second death's residence band, and the model cannot show it
 - [x] **W-0515** `done` — Fyn still tells the user pensions pass outside the estate, and quotes today's pot as the amount at risk
 
