@@ -127,7 +127,12 @@ class GiftingStrategyOptimizer
         }
 
         // 3. PET Strategy (7-year cycle)
-        if ($remainingIHTLiability > 0 && $yearsUntilDeath >= 7) {
+        // W-0370 — the survival window is configured and `petWindowYears()` has
+        // read it since this class was written; five other lines in this file
+        // still said 7. A comparison against a literal is the sharpest of them:
+        // under a moved window this branch would decide on one number while the
+        // sentence it produces quotes another.
+        if ($remainingIHTLiability > 0 && $yearsUntilDeath >= $this->petWindowYears()) {
             $petStrategy = $this->calculatePETStrategy(
                 $remainingEstateValue,
                 $remainingIHTLiability,
@@ -291,7 +296,7 @@ class GiftingStrategyOptimizer
         return [
             'strategy_name' => 'Potentially Exempt Transfers (PETs)',
             'priority' => 3,
-            'description' => 'Make larger gifts that become exempt after 7 years',
+            'description' => 'Make larger gifts that become exempt after '.$this->petWindowYears().' years',
             'number_of_cycles' => $complete7YearCycles,
             'amount_per_cycle' => round($amountPerCycle, 2),
             'total_gifted' => round($totalGifted, 2),
@@ -305,15 +310,15 @@ class GiftingStrategyOptimizer
             // charges less than the full rate, so moving the schedule moves this.
             'taper_relief_from_year' => $this->taperReliefStartYear(),
             'implementation_steps' => [
-                'Gift £'.number_format($amountPerCycle, 0).' every 7 years to maximize IHT efficiency',
+                'Gift £'.number_format($amountPerCycle, 0).' every '.$this->petWindowYears().' years to maximize IHT efficiency',
                 'Consider gifting to discretionary trust for flexibility',
                 'Gifts must not have reservation of benefit',
                 'Keep detailed gift records with dates and amounts',
                 'Taper relief applies if you survive '.$this->taperReliefStartYear().'-'.$this->petWindowYears().' years',
             ],
             'notes' => $complete7YearCycles > 0 ?
-                "You have {$complete7YearCycles} complete 7-year cycle(s) before expected death" :
-                'Insufficient time for PET strategy (need at least 7 years)',
+                "You have {$complete7YearCycles} complete {$this->petWindowYears()}-year cycle(s) before expected death" :
+                'Insufficient time for PET strategy (need at least '.$this->petWindowYears().' years)',
         ];
     }
 
