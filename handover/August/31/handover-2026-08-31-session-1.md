@@ -27,10 +27,10 @@ restamped.** Twelve items carried "FIXED" in their own working notes from 21 Aug
 
 ## Priorities for the next session
 
-1. **Push the branch and decide the PR. BLOCKED ON CSJ — it is his call whether this goes to
-   `dev` as one PR or several.** `chore/board-verification-31-august` has **12 commits and no
-   upstream**. Everything below assumes that work exists; if the branch is lost, all of it is.
-   The 5 code fixes and the ~70 board restamps could reasonably be split.
+1. **Open the PR. BLOCKED ON CSJ — it is his call whether this goes to `dev` as one PR or
+   several.** The branch **is now pushed** (`origin/chore/board-verification-31-august`, 13
+   commits), so nothing is at risk, but no PR exists. The 5 code fixes and the ~70 board
+   restamps could reasonably be split; CSJ has not been asked which he wants.
 
 2. **The rate-literal set — W-0432 + W-0461, now converged on ONE remaining set.** Both were
    re-measured today. W-0432 is six-of-eight fixed with **two survivors**, and both survivors
@@ -226,7 +226,8 @@ trust-owned gift.
 
 - **Branch:** `chore/board-verification-31-august`, cut from `dev` after #757/#758 merged.
 - **Tree:** clean.
-- **Unpushed commits: 12. THE BRANCH HAS NO UPSTREAM.** All of today's work is local only.
+- **Pushed** to `origin/chore/board-verification-31-august` at session end. 13 commits.
+  **No PR opened — that is CSJ's call** (see priority 1).
 - **`dev`** carries #750–#758. **`main`** unchanged; PR #736 still deliberately unmerged.
 - **Nothing deployed this session.** csjones and production untouched. Migrations from 29 August
   (`add_trust_id_to_gifts_table`, `allow_estate_planning_in_user_assumptions_type`) are on `dev`
