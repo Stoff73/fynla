@@ -4,7 +4,7 @@ title: Projected liabilities are taken at 100% for each member while the headlin
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: gated
+status: done
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-22T23:25:00Z
@@ -69,3 +69,16 @@ proportion is deductible (IHTM28030).
 spouses, all maturing inside the horizon. Fixtures carry a debt running past the
 horizon and a mortgage row naming one spouse on a jointly-owned home — neither shape
 the persona can produce.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.** Both departures the item named are closed in `EstateProjectionService::projectMemberLiabilities()`, and the reasoning is recorded at `:475-507`.
+
+  - **Reach.** `$user->mortgages` and `$user->liabilities` — plain `user_id` relations that made a debt the OTHER member recorded invisible — are replaced by `crossModuleAggregator->getMortgages($member->id)` (`:521`) and `aggregator->getUserLiabilities($member)` (`:533`).
+  - **Fraction.** Balances no longer taken at 100%: `calculateUserMortgageShare()` and `calculateUserShare()` are applied per row.
+
+  **The subtlety in that fix is worth keeping visible, because it is the opposite of what a tidy-up would have done.** Mortgages needed the **two-leg** reader, not just the share. A mortgage is REACHED by the row's own `user_id`/`joint_owner_id`, but its share resolves from the SECURING PROPERTY (CSJ's W-0228 ruling). When those disagree — a home owned 50/50 with a mortgage row naming one spouse — applying the share alone gives that spouse 50% and the other nothing, so **half the debt is deducted by nobody and the tax comes out too big.** The old 100%-of-row happened to recover the whole debt for that shape, so switching to the share on its own would have been a regression. `CrossModuleAssetAggregator::getMortgages()` exists for exactly this, and its second leg picks up mortgages on the user's properties that the row does not name.
+
+  Four loops became one, which is what stopped the two members' branches drifting (Rule 20). The residual — the HEADLINE still reading the one-leg version — was filed separately as **W-0338** and is not double-counted here.
+
+  **The item's own note that this is £0 on the persona today still holds**, which is why the persona locks are unmoved: zero `liabilities` rows and three David-primary mortgages, so 100%-of-primary and share-summed give the same figure. It bites on a debt shared outside the household.
+
+  **Tested:** 94 projection tests pass (397 assertions); 7 persona locks unmoved at £1,728,780 / £343,512.

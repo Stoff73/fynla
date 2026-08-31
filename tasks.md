@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 98**  ·  closed 2026-08-31: 34
+**Outstanding: 96**  ·  closed 2026-08-31: 36
 
 ---
 
@@ -147,9 +147,9 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 
 ## Low (11)
 
-- [ ] **W-0033** `gated` — ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
+- [x] **W-0033** `done` (already fixed in fix-batch-G) — ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
 - [ ] **W-0045** `gated` — All three relevant-property trust surfaces use non-palette blue-* and green-* — a live Rule 11 breach
-- [ ] **W-0336** `gated` — Projected liabilities are taken at 100% for each member while the headline applies the share, so a third-party-shared debt understates tax
+- [x] **W-0336** `done` (already fixed; residual is W-0338) — Projected liabilities are taken at 100% for each member while the headline applies the share, so a third-party-shared debt understates tax
 - [x] **W-0481** `done` (two columns, not one) — AssetFactory randomly generates four asset types the column rejects, so any use without an explicit type fails about half the time
 - [ ] **W-0496** `open` — The native joint-life rows and the suppressed edit affordance have never been looked at on a screen
 - [ ] **W-0497** `open` — The estate strategy and onboarding text meets the user cold with six acronyms — RNRB, NRB, IHT, PET, CLT and GROB
