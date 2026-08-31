@@ -66,6 +66,37 @@
         <div class="px-6 py-6">
           <!-- Step 1: Upload -->
           <div v-if="currentStep === 'upload'">
+            <!--
+              W-0054 — gate BEFORE entry, never after submit. Without the grant the
+              drop zone is never rendered, so no file is ever chosen and no request
+              is ever refused. Mirrors CheckSubscription's statement_upload map.
+            -->
+            <div v-if="!canUploadDocuments" class="bg-savannah-100 border border-light-gray rounded-lg p-6 text-center">
+              <p class="text-sm font-medium text-horizon-500">
+                Document upload is a Premium feature
+              </p>
+              <p class="mt-2 text-sm text-neutral-500">
+                Upgrade your plan to upload a statement and have its figures read for you.
+                You can still enter the details yourself.
+              </p>
+              <div class="mt-5 flex flex-col-reverse sm:flex-row sm:justify-center gap-3">
+                <button
+                  type="button"
+                  class="inline-flex justify-center rounded-button border border-light-gray px-4 py-2 text-sm font-medium text-horizon-500 bg-white hover:bg-savannah-100"
+                  @click="$emit('manual-entry')"
+                >
+                  Enter Manually
+                </button>
+                <router-link
+                  :to="subscriptionOptionsLocation"
+                  class="inline-flex justify-center rounded-button px-4 py-2 text-sm font-medium text-white bg-raspberry-600 hover:bg-raspberry-700"
+                  @click="handleClose"
+                >
+                  Upgrade
+                </router-link>
+              </div>
+            </div>
+            <div v-else>
             <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-4">
               <div class="flex items-start">
                 <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -81,6 +112,7 @@
               @file-removed="handleFileRemoved"
               @error="handleUploadError"
             />
+            </div>
           </div>
 
           <!-- Step 2: Processing -->
@@ -251,6 +283,7 @@ import ProcessingState from './ProcessingState.vue';
 import ConfidenceBadge from './ConfidenceBadge.vue';
 import SheetReviewStep from './SheetReviewStep.vue';
 import documentService from '../../services/documentService';
+import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
 
 export default {
   name: 'DocumentUploadModal',
@@ -299,6 +332,17 @@ export default {
   },
 
   computed: {
+    subscriptionOptionsLocation,
+
+    /**
+     * W-0054 — the same capability CheckSubscription enforces on
+     * POST api/documents/upload. Read before entry so the tier can never
+     * accept a file it will refuse.
+     */
+    canUploadDocuments() {
+      return this.$store.getters['auth/hasCapability']('statement_upload');
+    },
+
     currentStepIndex() {
       const stepMap = {
         upload: 0,

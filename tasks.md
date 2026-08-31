@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 55**  ·  closed 2026-08-31: 77
+**Outstanding: 54**  ·  closed 2026-08-31: 78
 
 ---
 
@@ -55,7 +55,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0034** `gated` — /m has no Health & Lifestyle section at all — the data source is fixed but no mobile screen renders it
 - [x] **W-0040** `done` (already fixed; CSJ ruling encoded) — A deliberate 100/0 joint split is unexpressible, and three acceptance criteria contradict each other on whether it should be
 - [ ] **W-0044** `gated` — The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
-- [ ] **W-0054** `in-progress` — Two tier caps, two gating philosophies — life events block before entry, detailed expenditure blocks after submit with a silent 403
+- [x] **W-0054** `done` (uploads gated before entry; shared copy still design-lead's) — Two tier caps, two gating philosophies — life events block before entry, detailed expenditure blocks after submit with a silent 403
 - [ ] **W-0090** `queued` — Native never says a retirement target was inferred — it shows nothing at all, where web and /m now show the derived figure and label it
 - [ ] **W-0100** `gated` — The Lasting Power of Attorney document generator and its compliance service have never been reviewed — the will builder's sibling, unexamined
 - [x] **W-0104** `done` — An attorney's age is never checked — a child can be appointed attorney on a Lasting Power of Attorney
