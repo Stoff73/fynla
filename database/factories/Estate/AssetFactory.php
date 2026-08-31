@@ -17,14 +17,25 @@ class AssetFactory extends Factory
 
     public function definition(): array
     {
+        // W-0481 — these must be the values the COLUMN accepts, which are
+        // `property`, `pension`, `investment`, `business`, `other`.
+        //
+        // The list used to carry eight, four of which the enum rejects outright
+        // — `cash`, `business_interest`, `personal_possession`, `life_insurance`
+        // — while `business`, which it does accept, was never generated. So a
+        // factory call without an explicit `asset_type` failed roughly half the
+        // time, at random, and the failure looked like a flaky test rather than a
+        // factory that could not produce a valid row.
+        //
+        // Kept as a literal list rather than read from the schema: a factory that
+        // derives its values from the column can never disagree with it, and so
+        // can never fail when the column changes — which is the warning a test
+        // suite is supposed to give.
         $assetType = fake()->randomElement([
             'property',
-            'investment',
             'pension',
-            'cash',
-            'business_interest',
-            'personal_possession',
-            'life_insurance',
+            'investment',
+            'business',
             'other',
         ]);
 
@@ -39,7 +50,11 @@ class AssetFactory extends Factory
             'is_giftable' => $assetType !== 'pension',
             'not_giftable_reason' => $assetType === 'pension' ? 'Pension funds cannot be gifted during lifetime' : null,
             'is_main_residence' => $isMainResidence,
-            'ownership_type' => fake()->randomElement(['individual', 'joint', 'tenants_in_common']),
+            // W-0481, second instance of the same fault in this file. The column
+            // is enum('individual','joint','trust'); `tenants_in_common` is not
+            // in it and never could be — Rule 4 makes that value PROPERTY-only,
+            // and this is the estate `assets` table. `trust` was missing instead.
+            'ownership_type' => fake()->randomElement(['individual', 'joint', 'trust']),
             'beneficiary_designation' => fake()->optional(0.3)->name(),
             'is_iht_exempt' => false,
             'exemption_reason' => null,
@@ -71,24 +86,14 @@ class AssetFactory extends Factory
                 'NHS Pension',
                 'Teachers\' Pension',
             ]),
-            'cash' => fake()->randomElement([
-                'Current Account',
-                'Cash ISA',
-                'Premium Bonds',
-                'Savings Account',
-            ]),
-            'business_interest' => fake()->company().' Shares',
-            'personal_possession' => fake()->randomElement([
-                'Jewellery Collection',
-                'Art Collection',
-                'Classic Car',
-                'Antique Furniture',
-            ]),
-            'life_insurance' => fake()->randomElement([
-                'Term Life Policy',
-                'Whole of Life Policy',
-                'Death in Service Benefit',
-            ]),
+            // W-0481 — `business`, the value the column actually accepts. The
+            // arm here used to be `business_interest`, which it does not, so it
+            // was unreachable AND invalid at the same time.
+            'business' => fake()->company().' Shares',
+            // The `cash`, `personal_possession` and `life_insurance` arms were
+            // removed with the types themselves. Cash lives in the savings
+            // tables and policies in the protection ones; neither is an `assets`
+            // row, which is why the enum never had them.
             default => fake()->words(3, true),
         };
     }
@@ -130,20 +135,6 @@ class AssetFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'ownership_type' => 'joint',
-        ]);
-    }
-
-    /**
-     * Indicate that the asset is a cash holding.
-     */
-    public function cash(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'asset_type' => 'cash',
-            'asset_name' => 'Savings Account',
-            'current_value' => fake()->randomFloat(2, 1000, 100000),
-            'liquidity' => 'liquid',
-            'is_giftable' => true,
         ]);
     }
 
