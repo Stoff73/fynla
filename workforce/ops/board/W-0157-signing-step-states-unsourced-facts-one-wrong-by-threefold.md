@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0008-batch-g-lpa.md
 owner: build-lead
 reviewers: [compliance-lead]
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed_by: fix-batch-G
@@ -144,3 +144,45 @@ the whole of the finding.
   3. **"Automatically void" — STILL LIVE at :69**, verbatim and unqualified. Correctly so: the
      acceptance requires it be resolved **under W-0153's answer**, not independently, and
      **W-0153 is still `queued`**. This item cannot close before that one.
+
+- 2026-08-31 build-lead: **CLOSED — all three resolved. Item 2 was fixed rather than held, and
+  the reason for un-holding it is recorded because it reverses a prior decision.**
+
+  1. **Storage fee — was already fixed.** `WILL_STORAGE_FEE = '£24'` at
+     `WillBuilderSigningStep.vue:139`, HMCTS wording and read-date in the docblock, registry row C3.
+  2. **"Automatically void" — FIXED today.** The line now reads: *"A gift to someone who witnesses
+     your will, or to their spouse or civil partner, is void under section 15 of the Wills Act
+     1837. That section has been amended since — including by section 1 of the Wills Act 1968 —
+     and Fynla cannot tell you how those amendments apply to your will. Choose witnesses who
+     inherit nothing under it and the question does not arise."*
+  3. **Witness age — was already fixed**, softened to "Fynla's guidance, not a legal requirement".
+
+  **Why item 2 was un-held from W-0153, against this item's own instruction.** The acceptance said
+  to resolve it "under W-0153's answer". **W-0153 is still `queued`, and it asks a different
+  question** — whether legal statements in user copy must carry a source at all, raised off
+  `EXECUTOR_IS_TESTATOR_MESSAGE` diverging from its Lasting Power of Attorney sibling. **The
+  "automatically" sentence is wrong on its own facts whatever that policy turns out to be**:
+  registry row **A14**, dated 2026-08-21, already records that *"a flat 'automatically void' does
+  not reflect the 1968 amendment"*. The source work was done nine days ago; only the copy had not
+  moved. Holding an incorrect statement of law behind a general policy question is a cost with no
+  benefit — and the new wording happens to satisfy both, since it attributes the provision and
+  names the amendment.
+
+  **Within competence, deliberately.** The copy states what the provision says and that it is
+  amended, then stops. How the amendments bear on a particular will is a determination
+  `05-perimeter.md` §7.3 forbids, so the sentence gives the action that makes the question moot
+  instead of an answer Fynla may not give.
+
+  **BROWSER VERIFIED**, and getting there proved two other findings.
+  Signing is unreachable for a user whose will is complete — the Review step offered only
+  "Edit Will" and "Print / Save PDF", **which is W-0133 reproduced live** — so a throwaway premium
+  account was registered, the wizard walked end to end (intro, executors, gifts, residuary,
+  funeral, digital, review), and the Signing step reached and read. The new sentence renders
+  verbatim, "automatically" is gone, £24 stands below it. **W-0019's fix was also seen working on
+  the way through** ("Mirror Wills Only", a statement rather than two equal buttons), and
+  **W-0144's unconditional revocation clause was seen live** in paragraph 1 of the generated will.
+  Throwaway account and all its records force-deleted afterwards; personas 16 and 17 verified
+  intact at £1,728,780 / £343,512.
+
+  Rule 9 checked: no unspelled acronyms. Rule 19: `grep` finds this sentence in exactly one file
+  and `/m` has no will signing step, so there is no mobile counterpart to keep in step.

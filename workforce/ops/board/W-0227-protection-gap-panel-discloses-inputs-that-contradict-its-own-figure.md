@@ -4,7 +4,7 @@ title: The protection debt gap panel discloses "mortgage balance £0, other debt
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T04:10:00Z
@@ -124,3 +124,54 @@ nothing on the page says so.
   **Acceptance 2 is a PRODUCT CALL and it is the blocker.** Remove the override, keep it but label
   it ("you entered this; it overrides your records"), or keep it only where no records exist.
   Raised for CSJ 2026-08-31.
+
+- 2026-08-31 build-lead: **FIXED and CLOSED. CSJ pushed back on the framing — "not sure what you
+  mean? what overrides what?" — and he was right: this was never a product call, and checking
+  before asking would have shown that.**
+
+  **What "override" meant, concretely.** `protection_profiles.mortgage_balance` and `.other_debts`
+  are a manual summary predating the `mortgages` and `liabilities` tables.
+  `CoverageGapAnalyzer::calculateDebtProtectionNeed()` read those two FIRST and returned early on
+  them, so a figure typed once beat every mortgage record the user owns. **And nothing in the
+  interface writes those columns** — `grep` across `resources/js` and `resources/mobile` finds no
+  Protection form touching them; only `StoreProtectionProfileRequest` accepts them. So the
+  precedence was reachable without ever being visible. That is a defect, not a decision.
+
+  **Acceptance 1 and 3 — the fix.** `CoverageGapAnalyzer::debtProtectionBasis()` returns the
+  total, the `components` it was built from, and which `source` produced it. Records win where
+  records exist; the profile summary is the fallback where there are none — the acceptance's own
+  third option, chosen because deleting the columns outright would drop the need to zero for
+  anyone who supplied a summary and holds no records. `ProtectionGapPresentationService` now
+  publishes those components as the panel's `inputs` and adds a `debt_source` assumption naming
+  which of the two answered, with the explanation wording following the source.
+
+  **Acceptance 2 — answered by evidence rather than by asking.** The override stays, demoted to a
+  fallback, because no surface writes it and removing it would only break the one case it still
+  serves.
+
+  **Verified on the live persona**, through the real service:
+
+      inputs: {"mortgage_balance":170500,"other_debts":0,"calculated_debt_need":170500}
+      need:   170500
+      source: "Your mortgage and liability records, at your share of each"
+
+  It read `0 / 0 / 182500` before. The £170,500 is the persona-correct figure this item's own
+  Expected table named, reached because W-0172 fixed the Manchester mortgage share.
+
+  **Pinned** by `tests/Feature/Protection/ProtectionDebtDisclosesItsRealInputsTest.php` — four
+  tests, asserting the RELATIONSHIP (disclosed inputs sum to the disclosed need) rather than a
+  literal, because a literal would have passed against the old code on any household whose two
+  sources happened to agree. **Mutation-verified:** restoring the profile-first early return turns
+  the precedence test red; restored and green.
+
+  **Surfaces.** The panel is built server-side in one place and consumed by `/m`
+  (`resources/mobile/views/modules/Protection.vue`, pinned by `FinancialDataParity.spec.js`, 9
+  tests green), so Rule 19 and Rule 20 are satisfied by construction rather than by editing copies.
+  **I COULD NOT RENDER `/m` IN A BROWSER LOCALLY** — `public/m-build/` is the csjones build
+  (base `/fynla/m-build/`), so `/m/app/*` double-prefixes and 404s. Rebuilding it would overwrite
+  CSJ's staged build, which is his call.
+
+  **Adjacent, NOT fixed, reported rather than folded in:** the web `/protection` page renders its
+  own Debt Protection panel from a different component, which already reconciled
+  (£170,500 / £0 / £170,500). That is a second mechanism answering "what does the debt panel
+  disclose" — a Rule 20 consolidation candidate, not this item's defect.

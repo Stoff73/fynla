@@ -45,7 +45,8 @@ class CoverageGapAnalyzer
 
     /**
      * Calculate debt protection need.
-     * Uses ProtectionProfile fields if provided, otherwise pulls from actual records.
+     * Built from the user's actual records; the ProtectionProfile summary fields are
+     * a fallback used only where no records exist. See debtProtectionBasis().
      *
      * **A protection need is personal, so it is the user's SHARE of each debt.**
      * This read the whole of every record the user was primary owner of, at 100%:
@@ -63,17 +64,66 @@ class CoverageGapAnalyzer
      */
     public function calculateDebtProtectionNeed(ProtectionProfile $profile): float
     {
-        // Use ProtectionProfile summary fields if available
+        return (float) $this->debtProtectionBasis($profile)['total'];
+    }
+
+    /**
+     * The debt protection need, WITH the components it was built from and which
+     * source produced it.
+     *
+     * **W-0227 — the records now win where records exist, and the panel discloses
+     * what it actually used.**
+     *
+     * `protection_profiles.mortgage_balance` and `.other_debts` are a manual summary
+     * that predates the `mortgages` and `liabilities` tables. This method used to
+     * read them FIRST and return early on them, so a figure typed once outranked
+     * every mortgage record the user owns, permanently and with nothing on screen
+     * saying so — records could change by hundreds of thousands and the need would
+     * not move. No form writes those two columns; only
+     * `StoreProtectionProfileRequest` accepts them, so the override was reachable
+     * without ever being visible.
+     *
+     * The order is reversed rather than the fields deleted, which is the option the
+     * item's acceptance offered as "keep it only where no records exist". Deleting
+     * them outright would drop the need to zero for anyone who had supplied a
+     * summary and holds no records — a regression dressed as a fix.
+     *
+     * `components` is what the caller must disclose. Publishing the profile columns
+     * beside a need computed from the records is what made the panel state
+     * `mortgage_balance £0, other_debts £0` above a need of £182,500: the two
+     * numbers offered as the inputs had contributed nothing to it.
+     *
+     * @return array{total: float, source: string, components: array<string, float>}
+     */
+    public function debtProtectionBasis(ProtectionProfile $profile): array
+    {
+        // Records first — at the user's share of each, from the one home for
+        // "what does this user owe" (W-0187).
+        $fromRecords = $this->assetAggregator->calculateLiabilityTotals((int) $profile->user_id);
+
+        if ((float) $fromRecords['total'] > 0) {
+            return [
+                'total' => (float) $fromRecords['total'],
+                'source' => 'records',
+                'components' => [
+                    'mortgages' => round((float) $fromRecords['mortgages'], 2),
+                    'other_debts' => round((float) $fromRecords['other'], 2),
+                ],
+            ];
+        }
+
+        // No records. Fall back to the summary the user supplied, and say so.
         $mortgageBalance = (float) ($profile->mortgage_balance ?? 0);
         $otherDebts = (float) ($profile->other_debts ?? 0);
 
-        // If profile has data, use it
-        if ($mortgageBalance > 0 || $otherDebts > 0) {
-            return $mortgageBalance + $otherDebts;
-        }
-
-        // Otherwise, pull from actual records — at the user's share of each.
-        return $this->assetAggregator->calculateLiabilityTotals((int) $profile->user_id)['total'];
+        return [
+            'total' => $mortgageBalance + $otherDebts,
+            'source' => 'profile',
+            'components' => [
+                'mortgages' => round($mortgageBalance, 2),
+                'other_debts' => round($otherDebts, 2),
+            ],
+        ];
     }
 
     /**
