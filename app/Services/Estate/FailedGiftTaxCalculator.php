@@ -102,7 +102,13 @@ final class FailedGiftTaxCalculator
         // gift inside the death window cumulates the seven years before ITSELF.
         // That is where the "fourteen-year rule" comes from — two independent
         // seven-year windows, not one fourteen-year one (IHTM14513).
-        $searchBound = $deathWindow + $lifetimeLookback;
+        //
+        // W-0526 — taken from `getFourteenYearRule()`, which DERIVES it from the
+        // same two blocks read above rather than holding a copy. Composing it here
+        // as well was the second mechanism: the configuration carried its own
+        // `maximum_window: 14` that nothing read, so moving it changed nothing
+        // while moving the CLT block changed the answer silently.
+        $searchBound = (int) $this->taxConfig->getFourteenYearRule()['maximum_window'];
 
         $gifts = Gift::where('user_id', $member->id)
             ->whereIn('gift_type', ['pet', 'clt'])

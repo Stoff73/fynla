@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 118**  ·  closed 2026-08-31: 14
+**Outstanding: 117**  ·  closed 2026-08-31: 15
 
 ---
 
@@ -143,7 +143,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0518** `queued` — Fyn captures salary sacrifice without asking whether the recorded employment income is before or after the pay given up
 - [ ] **W-0522** `gated` — The trust strategy still hardcodes the taper relief band table, the last copy in the estate services
 - [ ] **W-0525** `queued` — Normal Expenditure Out of Income is a label on a strategy and is never computed
-- [ ] **W-0526** `queued` — The 14-year rule is configured and mentioned nowhere in the estate or tax services
+- [x] **W-0526** `done` — The 14-year rule is configured and mentioned nowhere in the estate or tax services
 
 ## Low (11)
 

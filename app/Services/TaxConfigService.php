@@ -365,13 +365,55 @@ class TaxConfigService
     }
 
     /**
-     * Get the 14-year rule configuration
+     * The fourteen-year rule, DERIVED from the two transfer blocks that state it.
      *
-     * @return array Contains lookback periods and calculation steps
+     * **There is no fourteen-year window in the legislation.** There are two
+     * independent seven-year ones: a chargeable transfer within seven years of
+     * death is charged by reference to the transfers in the seven years ending
+     * with THAT transfer (IHTA 1984 s7(1)(b)), so a gift up to fourteen years old
+     * can still matter. Fourteen is the SUM, never an input — which is why it is
+     * computed here rather than configured.
+     *
+     * **W-0526.** It used to be configured, in an `inheritance_tax.fourteen_year_rule`
+     * block carrying its own `lookback_for_failed_pets`, `lookback_for_clts` and
+     * `maximum_window: 14` — and nothing read any of them. `FailedGiftTaxCalculator`
+     * composed the same windows from `potentially_exempt_transfers` and
+     * `chargeable_lifetime_transfers` instead. So one rule had two configured homes:
+     * an admin moving `maximum_window` to 10 changed nothing, moving the CLT block
+     * changed the answer silently, and the two could contradict each other because
+     * a stored 14 does not follow a lookback edited to 5.
+     *
+     * The narrative keys (`description`, `calculation_steps`) are still read from
+     * that block, because prose is the one thing it can own without going stale
+     * against arithmetic it does not perform.
+     *
+     * @return array{lookback_for_failed_pets: int, lookback_for_clts: int, maximum_window: int, description: string, calculation_steps: list<string>}
      */
     public function getFourteenYearRule(): array
     {
-        return $this->get('inheritance_tax.fourteen_year_rule', []);
+        $clts = $this->getCLTRules();
+
+        // BOTH windows come from the chargeable-lifetime-transfer block, because
+        // both are properties of a CLT: `cumulation_period` is how far back from
+        // DEATH a chargeable transfer is caught, `lookback_period` is how far back
+        // from THAT TRANSFER its own cumulation reaches.
+        //
+        // Deliberately NOT `potentially_exempt_transfers.years_to_exemption`, even
+        // though it holds 7 as well. It answers a different question — when a PET
+        // becomes exempt — and substituting it here would be a silent change of
+        // meaning that no test could catch while both keys happen to agree.
+        $lookbackForClts = (int) ($clts['cumulation_period'] ?? 7);
+        $lookbackForFailedPets = (int) ($clts['lookback_period'] ?? 7);
+        $narrative = $this->get('inheritance_tax.fourteen_year_rule', []);
+
+        return [
+            'lookback_for_failed_pets' => $lookbackForFailedPets,
+            'lookback_for_clts' => $lookbackForClts,
+            // The outer search bound. Not a cumulation band in its own right.
+            'maximum_window' => $lookbackForFailedPets + $lookbackForClts,
+            'description' => (string) ($narrative['description'] ?? ''),
+            'calculation_steps' => (array) ($narrative['calculation_steps'] ?? []),
+        ];
     }
 
     /**

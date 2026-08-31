@@ -417,11 +417,18 @@ class TaxConfigurationSeeder extends Seeder
                 // 14-Year Rule (Extended Cumulation)
                 // Failed PETs can affect CLT tax even beyond 7 years
                 // =================================================================
+                // W-0526 — the three window numbers that used to sit here
+                // (`lookback_for_failed_pets`, `lookback_for_clts`,
+                // `maximum_window: 14`) were a SECOND configured home for a rule
+                // `chargeable_lifetime_transfers` already states, and nothing read
+                // them. `maximum_window` was the worst of the three: it is the SUM
+                // of the other two, so a lookback edited to 5 left a stored 14
+                // contradicting it. `TaxConfigService::getFourteenYearRule()` now
+                // derives all three from the CLT block. What stays here is the
+                // prose, which is the one thing this block can own without going
+                // stale against arithmetic it does not perform.
                 'fourteen_year_rule' => [
                     'applies_to' => 'clt_with_prior_failed_pet', // When calculating CLT tax at death
-                    'lookback_for_failed_pets' => 7,             // Look back 7 years from CLT for failed PETs
-                    'lookback_for_clts' => 7,                    // Look back 7 years from death for CLTs
-                    'maximum_window' => 14,                      // Total maximum window is 14 years
                     'description' => 'When calculating IHT on a CLT made within 7 years of death, any failed PETs made in the 7 years before that CLT reduce the NRB available',
                     'calculation_steps' => [
                         '1. Identify all CLTs made within 7 years of death',
