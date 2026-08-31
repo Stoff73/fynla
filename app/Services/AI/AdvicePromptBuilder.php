@@ -438,7 +438,12 @@ PROMPT;
             // S0.10 — family member name is user-controlled free text.
             $memberName = UserContentSanitiser::wrap($member->first_name ?? 'Unknown');
             $memberAge = $member->date_of_birth ? now()->diffInYears($member->date_of_birth) : null;
-            $relationship = ucfirst($member->relationship ?? 'family member');
+            // W-0115 — `display_relationship`, not the raw enum. The appended
+            // accessor prefers `stated_relationship` — what the user actually
+            // chose — over the stored value, so an aliased row is described the
+            // way its owner described it. Reading the enum here told Fyn that
+            // somebody's partner was a "dependent" (W-0114), and Fyn then said so.
+            $relationship = ucfirst($member->display_relationship ?: 'family member');
             $familyLines[] = $memberAge
                 ? "  - {$relationship}: {$memberName} (age {$memberAge})"
                 : "  - {$relationship}: {$memberName}";
