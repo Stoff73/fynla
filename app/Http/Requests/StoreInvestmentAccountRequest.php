@@ -300,6 +300,34 @@ class StoreInvestmentAccountRequest extends FormRequest
     /**
      * Configure the validator instance.
      */
+    /**
+     * The 100% ceiling on a holdings allocation — the one home for it.
+     *
+     * **W-0321.** This rule lived only in the CREATE request. Update carried the
+     * per-holding `max:100` but nothing summing them, so an account created at
+     * 100% could be pushed past it by an edit: create refused what update
+     * accepted, for the same account and the same numbers.
+     *
+     * Static and shared rather than duplicated, because two copies of a
+     * validation rule drift the moment one is touched — and the drift here was
+     * silent, since neither request had any reason to mention the other.
+     *
+     * @param  array<int, array<string, mixed>>|null  $holdings
+     */
+    public static function validateHoldingsAllocation($validator, ?array $holdings): void
+    {
+        if ($holdings === null || ! is_array($holdings)) {
+            return;
+        }
+
+        if (collect($holdings)->sum('allocation_percent') > 100) {
+            $validator->errors()->add(
+                'holdings',
+                'Total allocation percentage cannot exceed 100%.'
+            );
+        }
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
@@ -307,15 +335,7 @@ class StoreInvestmentAccountRequest extends FormRequest
             // rather than rewritten (W-0040).
             $this->validateSharedOwnershipSplit($validator, $this->input('ownership_type'), $this->input('ownership_percentage'));
 
-            if ($this->has('holdings') && is_array($this->holdings)) {
-                $totalAllocation = collect($this->holdings)->sum('allocation_percent');
-                if ($totalAllocation > 100) {
-                    $validator->errors()->add(
-                        'holdings',
-                        'Total allocation percentage cannot exceed 100%.'
-                    );
-                }
-            }
+            self::validateHoldingsAllocation($validator, $this->has('holdings') ? $this->holdings : null);
         });
     }
 }

@@ -51,6 +51,15 @@ class UpdateInvestmentAccountRequest extends FormRequest
     {
         $validator->after(function ($v) {
             $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
+
+            // W-0321 — the same 100% ceiling the CREATE request enforces. It was
+            // missing here, so an account created at 100% could be pushed past it
+            // by an edit: create refused what update accepted, for the same
+            // account and the same numbers.
+            StoreInvestmentAccountRequest::validateHoldingsAllocation(
+                $v,
+                $this->has('holdings') ? $this->holdings : null
+            );
         });
     }
 
