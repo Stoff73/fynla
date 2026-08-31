@@ -4,7 +4,7 @@ title: A mortgage secured on a tenants-in-common property is stored as joint 50%
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0022-cycle4-dashboard-module-totals-and-cache.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T18:40:00Z
@@ -199,3 +199,14 @@ F-0022 §12.
   So the implementation needs a way for a user to SAY "I borrowed alone" — an explicit
   signal — rather than a silent reinterpretation of a column. That is a schema and form
   question, and it belongs to W-0483, which this unblocks.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.**
+  `CalculatesOwnershipShare::refuseRecordWhoseShareFollowsAnother()` (:157) throws a
+  `FinancialCalculationException` for any `Mortgage` or record carrying `property_id`, directing
+  the caller to `calculateUserMortgageShare()`, which resolves the property. It throws rather than
+  falling through deliberately: a silent wrong share is the failure mode this whole family is made
+  of. One home, called by both `atUserShare` and `userShareFraction` (Rule 20) — the guard lived
+  in only one of them until W-0425.
+  **CSJ amended this ruling on 2026-08-30** — a mortgage share MAY differ from the ownership
+  share. That amendment is **W-0483**, and it is engineering on top of this, not a reason to
+  reopen this item.

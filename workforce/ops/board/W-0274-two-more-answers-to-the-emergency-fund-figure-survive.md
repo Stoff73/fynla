@@ -4,7 +4,7 @@ title: Two more answers to "how big is the emergency fund" survive — and one o
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T22:10:00Z
@@ -176,3 +176,10 @@ Screenshots: `W-0274-web-david-16-savings-emergency-fixed.png`,
 `W-0332-m-sarah-17-savings-own-share.png`, `W-0332-m-david-16-savings-own-share.png`.
 
 No persona row was written.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** The emergency-fund figure has one
+  home: `is_emergency_fund` is a designation, not a definition (decided under W-0271, recorded at
+  `AutoRiskCalculator:438`), and `resources/js/store/modules/savings.js:31-39` records that the
+  remaining client-side derivation was removed. `SavingsStore.md:57` notes W-0271 took the last
+  `SavingsAccount` reference away. The `/savings` Emergency Fund tab no longer answers the
+  question differently from the dashboard, `/m` and `/risk-profile`.

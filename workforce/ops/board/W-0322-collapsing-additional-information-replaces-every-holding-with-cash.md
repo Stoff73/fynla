@@ -126,3 +126,14 @@ key is there at all. Verified to fail against the pre-fix code.
 
   Acceptance 1 and 2 are now browser-verified. **Acceptance 3 and 4 — the
   controller's contract for an empty array — remain open.**
+
+- 2026-08-31 build-lead: **VERIFIED PARTIAL against `dev` — the two frontend criteria are ticked
+  and hold; the two open ones are a CONTRACT DECISION, not unstarted work.**
+  **Confirmed still true at the controller:** `InvestmentController:568` runs the sync on
+  `if ($holdings !== null)`, so "clear them all" (`[]`) and "say nothing about them" (absent) are
+  still indistinguishable in effect from the client's side, and `:585-597` still auto-creates a
+  100% `Cash` holding for whatever allocation is unaccounted for. A client that legitimately posts
+  `[]` gets a full-value Cash row.
+  **This is the question, and it is CSJ's:** should emptying an account's holdings leave it with
+  none, or with a 100% Cash row? It governs every write path — form, Fyn capture, native — so it
+  should not be settled inside a form fix. Recorded rather than decided.

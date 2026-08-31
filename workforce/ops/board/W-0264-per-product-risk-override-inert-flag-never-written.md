@@ -166,3 +166,18 @@ Guarded by `tests/Feature/Investment/AccountRiskOverrideIsHonouredTest.php`. Its
 case is the discrimination test: **setting the flag by hand must change nothing**, because
 the preference alone is the fact. If the answer moved with the flag, the flag would still
 be load-bearing.
+
+- 2026-08-31 build-lead: **VERIFIED MOSTLY FIXED against `dev`, with one reader and one data
+  residual left. Not closed.**
+  **Fixed:** `RiskPreferenceService::getProductRiskOverride()` is the one home.
+  `InvestmentController:1091-1097` and `PortfolioPresentationService:206` both read the
+  preference itself and explicitly **not** the flag, each recording why in place. On the pension
+  side `PensionNormaliser:112` now derives `has_custom_risk` from whether a `risk_preference` was
+  supplied, so the flag is written for the first time.
+  **Still open — `PensionProjector:291`**, the reader the item singles out as *"the one that
+  changes the projection"*, still tests the raw pair `has_custom_risk && risk_preference`. For
+  anything written through the store since the normaliser fix the two are equivalent; **for rows
+  written before it they are not** — a pension carrying a `risk_preference` with
+  `has_custom_risk = false` still has its override discarded, and the column defaults to `false`
+  (`DCPension:159`). Closing needs that reader moved onto `getProductRiskOverride()` and a
+  decision on whether existing rows are backfilled.
