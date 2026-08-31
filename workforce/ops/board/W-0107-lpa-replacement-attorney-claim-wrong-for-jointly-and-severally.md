@@ -4,7 +4,7 @@ title: The replacement-attorney check states a legal consequence that is wrong f
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T17:46:00Z
@@ -167,3 +167,19 @@ green "Compliant" badge.
   shape as W-0108 — a statutory feature of the instrument the document does not mention
   — and it is a wizard gap rather than check wording, so it does not belong in this
   item. **Routed to team-lead; no board item raised, the W-01xx block is theirs.**
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  The warning read: *"the Lasting Power of Attorney may become invalid if **ALL** primary attorneys are unable to serve."* Under **MCA 2005 s10(4)** that is true only of a **jointly and severally** appointment, where the survivors carry on.
+
+  **Where attorneys act JOINTLY, the failure of a SINGLE one ends the entire appointment.** So the sentence was not merely imprecise — **it told the donor with the most to lose that they were the safest.** A jointly-appointed donor reading "all" would reasonably conclude that two attorneys made them doubly covered, when in fact it doubled the chance of the instrument collapsing.
+
+  The consequence now depends on `attorney_decision_type`:
+  - **jointly** — *"if any ONE of them can no longer act, the whole appointment ends… even if the others are willing and able."*
+  - **jointly and severally** — the others can continue; the instrument ends once none of them can act.
+
+  **`jointly_for_some` is treated as joint**, and the reason is at the line: the joint limb behaves that way, so a failure ends the decisions reserved to it. Treating it as severally would repeat the original error on the harder half of a hybrid appointment.
+
+  **Tested:** `LpaComplianceServiceTest` — 38 passed, 163 assertions, with a case per decision type; the jointly case asserts the text does NOT contain "jointly and severally", so the two branches cannot collapse into one. 95 LPA tests pass overall. Pint clean.
+
+  **NOT DONE.** No `compliance-lead` review, and this is user-facing copy stating a legal consequence.

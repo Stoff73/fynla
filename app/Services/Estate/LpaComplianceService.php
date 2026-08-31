@@ -440,11 +440,32 @@ class LpaComplianceService
         $replacementCount = $lpa->attorneys->where('attorney_type', 'replacement')->count();
 
         if ($replacementCount === 0) {
+            // W-0107 — the consequence depends on HOW the attorneys were
+            // appointed, and stating one consequence for all of them was wrong
+            // for the appointment type that carries the most risk.
+            //
+            // This said the instrument "may become invalid if ALL primary
+            // attorneys are unable to serve". Under MCA 2005 s10(4) that is only
+            // true of a JOINTLY AND SEVERALLY appointment, where the survivors
+            // carry on. Where attorneys act JOINTLY, the failure of a SINGLE one
+            // ends the entire appointment — so the warning told the donor with
+            // the most to lose that they were the safest.
+            //
+            // 'jointly_for_some' is treated as joint here because the joint
+            // limb behaves that way: a failure ends the decisions reserved to it.
+            $endsOnOneFailure = in_array($lpa->attorney_decision_type, ['jointly', 'jointly_for_some'], true);
+
             return $this->result(
                 'replacement_attorneys',
                 'warning',
                 'No replacement attorneys (recommended)',
-                'Appointing replacement attorneys is recommended in case your primary attorneys can no longer act. Without replacements, the Lasting Power of Attorney may become invalid if all primary attorneys are unable to serve.'
+                $endsOnOneFailure
+                    ? 'Appointing replacement attorneys is recommended. Your attorneys act jointly, so if any ONE of '
+                        .'them can no longer act, the whole appointment ends and this Lasting Power of Attorney can no '
+                        .'longer be used — even if the others are willing and able.'
+                    : 'Appointing replacement attorneys is recommended in case your primary attorneys can no longer act. '
+                        .'Your attorneys act jointly and severally, so the others can continue if one is unable to '
+                        .'serve, but the Lasting Power of Attorney ends once none of them can act.'
             );
         }
 

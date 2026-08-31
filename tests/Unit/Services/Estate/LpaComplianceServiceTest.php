@@ -673,3 +673,74 @@ describe('attorney bankruptcy (W-0105)', function () {
         expect($bankruptcyCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
     });
 });
+
+/**
+ * W-0107 — the consequence of having no replacement attorney depends on HOW the
+ * attorneys were appointed.
+ *
+ * The warning said the instrument "may become invalid if ALL primary attorneys
+ * are unable to serve". Under MCA 2005 s10(4) that is true only of a JOINTLY AND
+ * SEVERALLY appointment, where the survivors carry on. Where attorneys act
+ * JOINTLY, the failure of a SINGLE one ends the entire appointment — so the
+ * warning told the donor with the most to lose that they were the safest.
+ */
+describe('replacement attorney consequence (W-0107)', function () {
+    $replacementCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'replacement_attorneys') ?? [];
+
+    it('warns a jointly-appointed donor that ONE failure ends the whole appointment', function () use ($replacementCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'attorney_decision_type' => 'jointly',
+            ]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+        ]);
+
+        $check = $replacementCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('warning')
+            ->and($check['description'])->toContain('any ONE')
+            ->and($check['description'])->not->toContain('jointly and severally');
+    });
+
+    it('tells a jointly-and-severally donor the others can continue', function () use ($replacementCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'attorney_decision_type' => 'jointly_and_severally',
+            ]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+        ]);
+
+        $check = $replacementCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['description'])->toContain('jointly and severally')
+            ->and($check['description'])->toContain('others can continue');
+    });
+
+    it('treats jointly-for-some as joint, because the joint limb behaves that way', function () use ($replacementCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'attorney_decision_type' => 'jointly_for_some',
+            ]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+        ]);
+
+        expect($replacementCheck($this->service->checkCompliance($lpa->fresh()))['description'])
+            ->toContain('any ONE');
+    });
+});
