@@ -5,7 +5,7 @@ mission: null
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m, ios]
@@ -43,3 +43,21 @@ s21 needs three tests met together — the gift is part of a regular pattern, it
    estate shows no movement.
 4. Tests that fail with the relief removed, not just tests that pass with it present.
 5. `tax-compliance-reviewer` — it moves Inheritance Tax for every qualifying household.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.** Worked through `superpowers:systematic-debugging`.
+
+  **Root cause — and the item's framing needs correcting, because what was there is both worse and better than "never computed".**
+
+  An amount WAS computed. **Twice.** `PersonalizedGiftingStrategyService:361-363` and `GiftingStrategyOptimizer:213-219` each hardcoded `$surplusIncome * 0.5` with a `>= 1000` floor — the same heuristic, invented independently, with different `priority` values and different implementation steps. Meanwhile the configured `gifting_exemptions.normal_expenditure_from_income` block governed neither, because `getNormalExpenditureFromIncome()` had zero callers.
+
+  **So one exemption had two mechanisms and no configuration.** Moving the admin setting did nothing; editing either service let the two answers drift apart with nothing comparing them. That is Rule 20 and Rule 2 in the same defect, and it is why the item read as "a label" — the label was the only part anyone could see.
+
+  **The fix.** `getNormalExpenditureFromIncome()` is now the one home and surfaces the two numbers the strategies act on — `safe_surplus_fraction` and `minimum_annual_gift` — merged over defaults so a silent block cannot invent a rule. Both services read it. Both literals are gone.
+
+  **Why those two numbers are configuration and not law**, recorded at the line because a future reader will ask: **s21 sets no cap at all.** The fraction is a deliberate conservatism against the third statutory test — the donor must maintain their usual standard of living, so advising the whole surplus advises up to the edge of failing it. The minimum is where a standing order stops being worth the record-keeping s21 demands. Neither belongs in a service.
+
+  **Acceptance:** (1) real caller in BOTH services, configuration decides, no literal — the guard proves it. (3) a household with no surplus is unaffected: `max(0, ...)` is untouched and 750 gifting/estate tests are unmoved. (4) **mutation-verified**: re-hardcoding the fraction goes red, and stripping the accessor's defaults goes red; restore goes green.
+
+  **Tested:** `tests/Unit/Services/Estate/NormalExpenditureOutOfIncomeTest.php` — 5 passed; 750 gifting/estate passed (2,460 assertions); Pint clean.
+
+  **NOT DONE.** (2) The "both columns" criterion does not apply as written — s21 here produces a STRATEGY SUGGESTION, not a relief applied to the Inheritance Tax calculation, so there are no two columns for it to disagree across. Recording that rather than ticking it. (5) No `tax-compliance-reviewer` pass.

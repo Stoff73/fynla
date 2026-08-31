@@ -529,9 +529,38 @@ class TaxConfigService
      *
      * @return array Contains conditions and evidence requirements
      */
+    /**
+     * The IHTA 1984 s21 exemption — regular gifts out of surplus income.
+     *
+     * **W-0525.** This accessor had zero callers while TWO services computed the
+     * exemption anyway: `PersonalizedGiftingStrategyService` and
+     * `GiftingStrategyOptimizer` each hardcoded `surplus * 0.5` with a `>= 1000`
+     * floor. So one exemption had two mechanisms and no configuration — moving
+     * the admin setting did nothing, and editing either service let the two
+     * answers drift apart with nothing comparing them.
+     *
+     * The two numbers are surfaced explicitly because they are the ones the
+     * strategies act on, and neither is in the legislation: s21 sets no cap at
+     * all. `safe_surplus_fraction` is a deliberate conservatism — the third
+     * statutory test is that the donor keeps their usual standard of living, so
+     * suggesting the whole surplus would advise up to the edge of failing it.
+     * `minimum_annual_gift` is the point below which a standing order is not
+     * worth the record-keeping the exemption demands.
+     *
+     * @return array{limit: null|float, immediately_exempt: bool, safe_surplus_fraction: float, minimum_annual_gift: float, conditions: array<string, bool>, evidence_required: list<string>}
+     */
     public function getNormalExpenditureFromIncome(): array
     {
-        return $this->get('gifting_exemptions.normal_expenditure_from_income', []);
+        $rules = $this->get('gifting_exemptions.normal_expenditure_from_income', []);
+
+        return $rules + [
+            'limit' => null,
+            'immediately_exempt' => true,
+            'safe_surplus_fraction' => 0.5,
+            'minimum_annual_gift' => 1000.0,
+            'conditions' => [],
+            'evidence_required' => [],
+        ];
     }
 
     /**

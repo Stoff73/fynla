@@ -209,14 +209,24 @@ class GiftingStrategyOptimizer
         int $yearsUntilDeath,
         float $ihtRate
     ): array {
-        // Conservative approach: only gift 50% of surplus income to maintain standard of living
+        // Conservative on purpose: gifting the WHOLE surplus would advise up to
+        // the edge of failing s21's third test, that the donor maintains their
+        // usual standard of living.
+        //
+        // W-0525 — the fraction and the floor come from
+        // `gifting_exemptions.normal_expenditure_from_income`, the same block
+        // `PersonalizedGiftingStrategyService` reads. They were hardcoded here
+        // and there independently, so one exemption had two mechanisms and no
+        // configuration.
+        $s21 = $this->taxConfig->getNormalExpenditureFromIncome();
+
         $surplusIncome = max(0, $totalIncome - $annualExpenditure);
-        $safeGiftingAmount = $surplusIncome * 0.5;
+        $safeGiftingAmount = $surplusIncome * (float) $s21['safe_surplus_fraction'];
 
         $totalGifted = $safeGiftingAmount * $yearsUntilDeath;
         $ihtSaved = $totalGifted * $ihtRate;
 
-        $canAfford = $surplusIncome > 0 && $safeGiftingAmount >= 1000; // Minimum £1,000/year to be worthwhile
+        $canAfford = $surplusIncome > 0 && $safeGiftingAmount >= (float) $s21['minimum_annual_gift'];
 
         return [
             'strategy_name' => 'Normal Expenditure Out of Income',

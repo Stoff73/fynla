@@ -585,8 +585,16 @@ class TaxConfigurationSeeder extends Seeder
 
                 // Normal Expenditure from Income - UNLIMITED if conditions met
                 'normal_expenditure_from_income' => [
-                    'limit' => null,                             // Unlimited
+                    'limit' => null,                             // Unlimited — s21 sets no cap
                     'immediately_exempt' => true,
+                    // W-0525 — the two numbers the gifting strategies act on.
+                    // Neither is in the legislation: the fraction is a deliberate
+                    // conservatism against the "standard of living" test, and the
+                    // minimum is where a standing order stops being worth the
+                    // record-keeping s21 demands. They were hardcoded in two
+                    // services and configured in neither.
+                    'safe_surplus_fraction' => 0.5,
+                    'minimum_annual_gift' => 1000,
                     'conditions' => [
                         'from_income_not_capital' => true,       // Must be from income, not capital
                         'regular_pattern' => true,               // Must be regular/habitual

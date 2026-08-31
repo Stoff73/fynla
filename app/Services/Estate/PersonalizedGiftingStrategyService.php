@@ -357,10 +357,15 @@ class PersonalizedGiftingStrategyService
             return null;
         }
 
-        $surplusIncome = max(0, $totalIncome - $annualExpenditure);
-        $safeGiftingAmount = $surplusIncome * 0.5; // Conservative 50% of surplus
+        // W-0525 — one home for the s21 parameters. `GiftingStrategyOptimizer`
+        // computes the same exemption and reads the same block, so the two
+        // cannot drift; both used to hardcode 0.5 and 1000 independently.
+        $s21 = $this->taxConfig->getNormalExpenditureFromIncome();
 
-        $canAfford = $surplusIncome > 0 && $safeGiftingAmount >= 1000;
+        $surplusIncome = max(0, $totalIncome - $annualExpenditure);
+        $safeGiftingAmount = $surplusIncome * (float) $s21['safe_surplus_fraction'];
+
+        $canAfford = $surplusIncome > 0 && $safeGiftingAmount >= (float) $s21['minimum_annual_gift'];
 
         if (! $canAfford) {
             return null;
