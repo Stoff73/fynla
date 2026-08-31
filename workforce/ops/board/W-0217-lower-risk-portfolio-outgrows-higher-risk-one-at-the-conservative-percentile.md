@@ -4,7 +4,7 @@ title: A £85,000 medium-risk portfolio projects higher than a £220,000 portfol
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0024-cycle4-investment-projection.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T08:10:00Z
@@ -181,3 +181,10 @@ seeded from its inputs (F-0024 §3.3).
 
 **`projected_investments` in the estate calculation moves as a consequence.** F-0018's
 pinned £2,603,695 is no longer a valid baseline — see F-0024 §10.1.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** The cause was a simulation cache keyed
+  on the user and horizon but **not** on the risk-derived return and volatility, so a subset
+  account could out-project the portfolio containing it. Pinned by
+  `tests/Feature/Investment/PortfolioProjectionRespondsToInputsTest.php`, where every assertion is
+  a movement or ordering assertion and none compares against a literal — deliberately, because a
+  literal is what let the original figure survive.

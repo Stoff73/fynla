@@ -160,3 +160,15 @@ test.
 - This item does **not** duplicate W-0134, W-0136, W-0138 or W-0139. Those are wrong or
   missing numbers; this is the absence of the provenance that would have exposed them.
   Fixing them without fixing this leaves the next set undiscoverable by the same route.
+
+- 2026-08-31 build-lead: **VERIFIED PARTIAL against `dev` — one of the three adjustments is now
+  disclosed, two are not, and no code anywhere cites this item.**
+  **Disclosed:** the £150,000 nil-rate-band deduction now reaches the page, but as a side effect
+  of **W-0134**'s mapping fix (`IHTPlanning.vue:1543`/`:1566`), not as work on this item.
+  **Not disclosed:** the £500,000 of Defined Contribution pensions leaving the estate. `grep` for
+  `2027`, "outside your estate" and an exclusion disclosure across `IHTPlanning.vue` finds only
+  the trust sentence at :707 — nothing states that pensions are outside the estate until
+  2027-04-06, which is a date inside this household's planning horizon.
+  **`grep -rn 'W-0171' app/ resources/` returns nothing**, so the provenance work this item asks
+  for has not been started. The item's own closing note is the reason to keep it: the absence of
+  provenance is what makes the next wrong number undiscoverable.

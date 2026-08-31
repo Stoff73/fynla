@@ -75,3 +75,14 @@ it is a product and modelling decision rather than a defect to correct:
   distribution. If the model itself is wrong, this variance may be a symptom of it rather
   than ordinary Monte Carlo dispersion — **settle W-0217 first**, because a fixed seed
   over a wrong model would make a wrong number stable rather than making it right.
+
+- 2026-08-31 build-lead: **VERIFIED — the mechanism is FIXED, one acceptance criterion is not
+  pinned, so this is a test away from closing rather than open work.**
+  **Fixed:** `MonteCarloEngine::seedFromInputs()` (app/Services/Shared/MonteCarloEngine.php:189-201)
+  seeds `mt_srand()` from an md5 of the ksorted inputs, so the simulation is deterministic on its
+  inputs and `MonteCarloSimulator:309` calls it before every run. A warm cache and a cold cache
+  now produce the same figure by construction — the £305,727 swing cannot recur.
+  **Not done — acceptance criterion 4:** no test pins it. `grep` across `tests/` finds no
+  assertion that the same household simulated twice returns the same figure. Without it, removing
+  the seed leaves the suite green.
+  Criterion 2 (the per-login invariant) is separately safe — W-0188 verified closed the same day.

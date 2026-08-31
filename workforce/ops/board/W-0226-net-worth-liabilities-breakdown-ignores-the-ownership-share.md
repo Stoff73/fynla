@@ -102,3 +102,20 @@ the same blind spot that hid W-0203. Found by reading, not by running.
 4. A sweep for other consumers written against the reciprocal-records model.
 5. Verified in a browser on both accounts of a household with a joint non-mortgage
    liability — **a case that must be constructed; no persona covers it.**
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev` — and the docblock beside it now
+  asserts something the schema contradicts, which is why nobody has looked.**
+  `NetWorthService::calculateLiabilitiesBreakdown():138` is still
+  `Liability::where('user_id', $userId)->get()`, and the loop below still takes
+  `$liability->current_balance` at **face value** — no reach, no share.
+  **The comment at :132-133 claims "For joint liabilities, reciprocal records exist with each
+  owner's share stored in current_balance".** That is not how this application models joint
+  records: `App\Models\Estate\Liability` is fillable on `ownership_type`,
+  `ownership_percentage` and `joint_owner_id` (:21-23) and has a `joint_owner_id` relation (:63) —
+  one record with a share, per Rule 6. A reader checking whether this was dealt with finds a
+  comment saying it was, and stops.
+  **The correct mechanism already exists**, six lines of it:
+  `CrossModuleAssetAggregator::calculateLiabilityTotals()` (:404) reaches through
+  `Liability::forUserOrJoint()` and applies `calculateUserShare()`. This is the same
+  consolidation W-0187, W-0206 and W-0173 each completed for their own surface; net worth is the
+  one that was left.

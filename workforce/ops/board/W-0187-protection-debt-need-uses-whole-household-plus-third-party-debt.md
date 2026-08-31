@@ -4,7 +4,7 @@ title: Protection charges one person the entire household's mortgage debt includ
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0019-cycle2-ownership-applied-one-side-only.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T00:30:00Z
@@ -236,3 +236,12 @@ endpoints. **Surfaces widened from `[web]` to `[web, m]`** — `/m` shows the sa
    for one number.
 
 **Not done: browser verification, by instruction.**
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.**
+  `CoverageGapAnalyzer::calculateDebtProtectionNeed():76` returns
+  `CrossModuleAssetAggregator::calculateLiabilityTotals($profile->user_id)['total']`, which reaches
+  each liability through `forUserOrJoint()` and takes `calculateUserShare()` of it — so a third
+  party's share reduces the figure without being credited to anyone, and David is charged his own
+  £182,500 rather than the household's whole debt.
+  **The profile-override branch above it (:71-73) is deliberately left standing and is W-0227's
+  subject, not this item's.**
