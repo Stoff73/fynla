@@ -299,3 +299,98 @@ describe('the LPA payload carries its own vocabulary', function () {
             ->assertJsonPath('data.0.status_label', 'Draft');
     });
 });
+
+/**
+ * W-0145. `LpaComplianceService` has raised the two statutory certificate-provider
+ * disqualifications at `fail` since W-0102/W-0151, and nothing consulted them:
+ * `LpaService` set `completed_at` on any status the request asked for. The will
+ * builder refuses its equivalent conflict (W-0024) and this instrument did not.
+ *
+ * Only the two express limbs refuse — MCA 2005 Sch 1 para 2(6) / SI 2007/1253
+ * reg 8(3)(b) and reg 8(3)(c). The three W-0103 conflicts stay warnings, because
+ * compliance found no express prohibition behind them.
+ */
+describe('completion is refused while a statutory conflict stands', function () {
+    it('refuses to complete an instrument whose certificate provider is an attorney', function () {
+        $response = $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'completed',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Anna Weber',
+            'attorneys' => [
+                ['full_name' => 'Anna Weber', 'attorney_type' => 'primary'],
+            ],
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors('status');
+        expect($response->json('errors.status.0'))
+            ->toContain('certificate provider is also named as an attorney')
+            ->toContain('kept as a draft');
+        // The refusal rolled the write back rather than leaving a half-saved record.
+        expect(LastingPowerOfAttorney::query()->count())->toBe(0);
+    });
+
+    it('saves the same instrument once the conflict is corrected', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'completed',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'attorneys' => [
+                ['full_name' => 'Anna Weber', 'attorney_type' => 'primary'],
+            ],
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->completed_at)->not->toBeNull();
+    });
+
+    it('lets the user keep working on a draft that carries the conflict', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Anna Weber',
+            'attorneys' => [
+                ['full_name' => 'Anna Weber', 'attorney_type' => 'primary'],
+            ],
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->status)->toBe('draft');
+    });
+
+    it('does not refuse a donor named as their own attorney, which is a warning', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'completed',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'attorneys' => [
+                ['full_name' => 'Tomas Weber', 'attorney_type' => 'primary'],
+            ],
+        ])->assertCreated();
+    });
+
+    it('refuses the same conflict on an update that completes a draft', function () {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'status' => 'draft',
+            'certificate_provider_name' => 'Anna Weber',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'full_name' => 'Anna Weber',
+            'attorney_type' => 'primary',
+        ]);
+
+        $this->putJson("/api/estate/lpa/{$lpa->id}", ['status' => 'completed'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('status');
+
+        expect($lpa->fresh()->status)->toBe('draft')
+            ->and($lpa->fresh()->completed_at)->toBeNull();
+    });
+});

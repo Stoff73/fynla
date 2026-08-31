@@ -6,7 +6,6 @@ use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\LpaAttorney;
 use App\Models\TaxConfiguration;
 use App\Models\User;
-use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\LpaService;
 
 beforeEach(function () {
@@ -14,7 +13,9 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $this->service = new LpaService(app(CacheInvalidationService::class));
+    // W-0145. The service now consults compliance before it will complete an
+    // instrument, so it takes the checker.
+    $this->service = app(LpaService::class);
     $this->user = User::factory()->create();
 });
 
