@@ -7,12 +7,25 @@ namespace App\Services\Savings;
 class EmergencyFundCalculator
 {
     /**
-     * Calculate emergency fund runway in months
+     * Calculate emergency fund runway in months, or null where it cannot be
+     * worked out at all.
+     *
+     * **"No runway" and "no idea" are different answers and used to be the same
+     * one** (W-0495). Returning 0.0 for an unrecorded expenditure told a
+     * household sitting on £40,000 of cash that it had zero months of cover, and
+     * the error ran in the alarming direction: every consumer that branches on a
+     * low runway — `HolisticPlanner:333`/`:391` at under three months,
+     * `PriorityRanker:179` at under one — then raised "build your emergency
+     * fund" against a fund that may already be ample.
+     *
+     * Null is what the consumers already handle correctly: `?? 6` reads it as
+     * "no reason to worry", and `isset()` skips the urgency escalation. A zero
+     * could not be told apart from a real one.
      */
-    public function calculateRunway(float $totalSavings, float $monthlyExpenditure): float
+    public function calculateRunway(float $totalSavings, float $monthlyExpenditure): ?float
     {
         if ($monthlyExpenditure <= 0) {
-            return 0.0;
+            return null;
         }
 
         return round($totalSavings / $monthlyExpenditure, 2);
@@ -21,10 +34,22 @@ class EmergencyFundCalculator
     /**
      * Calculate emergency fund adequacy
      *
-     * @return array{runway: float, target: int, adequacy_score: float, shortfall: float}
+     * @return array{runway: float|null, target: int, adequacy_score: float|null, shortfall: float|null}
      */
-    public function calculateAdequacy(float $runway, int $targetMonths = 6): array
+    public function calculateAdequacy(?float $runway, int $targetMonths = 6): array
     {
+        // An unknown runway has no shortfall to state and no adequacy to score.
+        // Reporting a 100% score would claim the fund is ample; reporting 0
+        // would claim it is empty. Both assert something nobody measured.
+        if ($runway === null) {
+            return [
+                'runway' => null,
+                'target' => $targetMonths,
+                'adequacy_score' => null,
+                'shortfall' => null,
+            ];
+        }
+
         $adequacyScore = $targetMonths > 0 ? min(100, ($runway / $targetMonths) * 100) : 0;
         $shortfall = max(0, $targetMonths - $runway);
 
@@ -56,8 +81,14 @@ class EmergencyFundCalculator
      * 1 to target/2: Fair
      * <1 month: Critical
      */
-    public function categorizeAdequacy(float $runway, int $targetMonths = 6): string
+    public function categorizeAdequacy(?float $runway, int $targetMonths = 6): string
     {
+        // Not a category on the scale — the scale runs Critical to Excellent and
+        // every rung asserts a measurement. W-0495.
+        if ($runway === null) {
+            return 'Unknown';
+        }
+
         if ($runway >= $targetMonths) {
             return 'Excellent';
         }

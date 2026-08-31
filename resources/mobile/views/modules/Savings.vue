@@ -99,6 +99,8 @@
             <span class="ms-ef__runway" :class="`ms-ef__runway--${runwayStatus}`">{{ runwayLabel }}</span>
             <span class="ms-ef__label">{{ runwayCovered }}</span>
           </div>
+          <!-- W-0495. Same prompt and same hint as the desktop overview. -->
+          <p v-if="runwayMonths == null" class="m-sub" style="margin:6px 0 0">{{ runwayUnavailableHint }}</p>
         </div>
         <p v-if="emergencyRationale" class="m-sub" style="margin:10px 0 0">{{ emergencyRationale }}</p>
       </div>
@@ -144,6 +146,7 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 // (Rule 20). `/m` reaches it by relative path, as the investment, property and
 // savings-account screens already do.
 import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { RUNWAY_UNAVAILABLE_HINT, runwayLabel } from '../../../js/utils/emergencyRunway.js';
 
 function formatCurrency(value) {
   if (value == null || value === '' || isNaN(Number(value))) return '—';
@@ -221,17 +224,17 @@ export default {
       if (pct >= 50) return 'violet';
       return 'raspberry';
     },
+    // One wording on every surface (Rule 20), composed in
+    // `js/utils/emergencyRunway.js` — the same file the desktop savings overview
+    // imports, not a mobile copy of it. It keeps the W-0276 basis ("from cash
+    // savings", not "of cover", because the runway divides ALL cash by monthly
+    // spend including money in notice and fixed-term accounts) and replaces this
+    // component's own "Runway unavailable" with the prompt W-0495 asked for.
     runwayLabel() {
-      if (this.runwayMonths == null) return 'Runway unavailable';
-      const m = this.runwayMonths;
-      const rounded = m >= 10 ? Math.round(m) : Math.round(m * 10) / 10;
-      // "from cash savings", not "of cover". Runway divides ALL cash by monthly
-      // spend, including money in notice and fixed-term accounts that cannot be
-      // reached on the day it is needed. Naming the basis is the agreed answer to
-      // W-0276 — the figure is deliberately unchanged, the wording stops implying
-      // the money is to hand. One wording on every surface (Rule 20).
-      return `${rounded} ${rounded === 1 ? 'month' : 'months'} from cash savings`;
+      return runwayLabel(this.runwayMonths);
     },
+
+    runwayUnavailableHint: () => RUNWAY_UNAVAILABLE_HINT,
     runwayCovered() {
       if (this.emergencyTarget <= 0) return '';
       const pct = Math.round((this.totalCash / this.emergencyTarget) * 100);

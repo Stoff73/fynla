@@ -67,8 +67,12 @@ const getters = {
             return parseFloat(resolved) || 0;
         }
 
+        // Null, not 0. With no monthly figure there is no runway to state, and
+        // saying "0 months" to a household holding cash is the alarming error
+        // W-0495 exists to remove. The backend now sends null for the same
+        // reason, so both branches agree.
         const monthlyExpenditure = getters.monthlyExpenditure;
-        if (!monthlyExpenditure) return 0;
+        if (!monthlyExpenditure) return null;
 
         return getters.emergencyFundTotal / monthlyExpenditure;
     },
