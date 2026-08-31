@@ -163,7 +163,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('pension_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,7 +294,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('investment_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,7 +370,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('savings_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -117,7 +117,7 @@ export default {
         draft: 'bg-neutral-100 text-neutral-600',
         completed: 'bg-violet-100 text-violet-800',
         registered: 'bg-spring-100 text-spring-800',
-        uploaded: 'bg-light-blue-100 text-light-blue-800',
+        uploaded: 'bg-light-blue-100 text-light-blue-500',
       };
       return classes[this.lpa.status] || 'bg-neutral-100 text-neutral-600';
     },

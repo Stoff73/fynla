@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 103**  ·  closed 2026-08-31: 29
+**Outstanding: 102**  ·  closed 2026-08-31: 30
 
 ---
 
@@ -154,7 +154,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0496** `open` — The native joint-life rows and the suppressed edit affordance have never been looked at on a screen
 - [ ] **W-0497** `open` — The estate strategy and onboarding text meets the user cold with six acronyms — RNRB, NRB, IHT, PET, CLT and GROB
 - [ ] **W-0498** `open` — The joint-ownership configuration cluster is live, populated and read by nothing — three accessors with zero callers
-- [ ] **W-0503** `queued` — The 'Platform updates' insight tag uses text-light-blue-700, a class Tailwind never emits, so the text takes whatever colour it inherits
+- [x] **W-0503** `done` (31 instances + guard) — The 'Platform updates' insight tag uses text-light-blue-700, a class Tailwind never emits, so the text takes whatever colour it inherits
 - [ ] **W-0504** `queued` — Three of the /m dashboard's donut rings are filled to hardcoded constants, so the arc means nothing
 - [ ] **W-0506** `queued` — The consistency sweep reports 91 findings and nothing has been reading it
 - [x] **W-0527** `done` — Quick succession relief is configured and implemented by nothing

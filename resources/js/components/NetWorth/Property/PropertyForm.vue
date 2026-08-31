@@ -35,7 +35,7 @@
                     ? 'bg-horizon-500 text-white'
                     : (isEditMode || currentStep > index + 1)
                     ? 'bg-horizon-500 text-white'
-                    : 'bg-light-blue-200 text-horizon-500'
+                    : 'bg-light-blue-100 text-horizon-500'
                 "
                 @click="goToStep(index + 1)"
                 :title="'Go to ' + step"
@@ -49,7 +49,7 @@
                 v-if="index < activeSteps.length - 1"
                 class="absolute h-0.5 top-5 left-1/2 -z-10"
                 :style="{ width: 'calc(100% - 2.5rem)' }"
-                :class="(isEditMode || currentStep > index + 1) ? 'bg-horizon-500' : 'bg-light-blue-300'"
+                :class="(isEditMode || currentStep > index + 1) ? 'bg-horizon-500' : 'bg-light-blue-100'"
               ></div>
             </div>
           </div>
