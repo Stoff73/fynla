@@ -145,10 +145,29 @@ class IHTCalculationService
             $spouse->loadMissing(['investmentAccounts', 'mortgages', 'liabilities', 'savingsAccounts', 'properties']);
         }
 
-        // 1. Check cache first
-        $cached = $this->getCachedCalculation($user, $spouse, $dataSharingEnabled);
-        if ($cached) {
-            return $cached;
+        // 1. Check cache first — only where a cache can exist.
+        //
+        // **W-0131.** Wave 2.4 made persistence opt-in via `persist: true`, and
+        // then nothing in production ever opted in: `grep` for `persist: true`
+        // across `app/` returns the docblock and nothing else. So the write never
+        // happened, the row never existed, and this read — which runs on EVERY
+        // estate calculation, on every surface — issued a query plus a hash
+        // computation that could not possibly hit.
+        //
+        // `invalidateCache()` had no callers either, so all three arms of the
+        // mechanism were inert: nothing wrote, nothing invalidated, and the read
+        // paid for both.
+        //
+        // Gated on the same flag that governs the write rather than deleted. The
+        // table is an audit trail as well as a cache — `iht_calculations` is what
+        // a snapshot is captured into — so a caller that opts in still gets both
+        // halves, and a read flow now pays for neither. The hash check inside
+        // still guards staleness for those callers.
+        if ($persist) {
+            $cached = $this->getCachedCalculation($user, $spouse, $dataSharingEnabled);
+            if ($cached) {
+                return $cached;
+            }
         }
 
         // 2. Get tax config

@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 100**  ·  closed 2026-08-31: 32
+**Outstanding: 99**  ·  closed 2026-08-31: 33
 
 ---
 
@@ -71,7 +71,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0115** `gated` — Two more relationship formatters survive outside the family surfaces, and one of them can still tell a user their partner is a dependent
 - [ ] **W-0126** `gated` — Seven more holding-valuation copies sat outside the one home, and three were in one controller
 - [ ] **W-0127** `queued` — An imported holding can store units and a value that contradict each other, and reconciling silently overwrites one of them
-- [ ] **W-0131** `queued` — The Inheritance Tax calculation cache is never written — `persist` is never passed true, so `iht_calculations` is empty for every user and every estate view recomputes in full
+- [x] **W-0131** `done` (read gated; write left for a real mutation point) — The Inheritance Tax calculation cache is never written — `persist` is never passed true, so `iht_calculations` is empty for every user and every estate view recomputes in full
 - [ ] **W-0140** `gated` — /plans/estate states an Annual Expenditure neither user entered — £39,420 against a recorded £29,400, and £7,500 for a user with no expenditure recorded at all — and it drives Disposable Income
 - [ ] **W-0142** `queued` — The shared-asset counterparty rule guards chattels only — properties and mortgages can still be orphaned today, through the forms and through Fyn
 - [ ] **W-0143** `gated` — The will builder's signing step tells the user these steps make their will legally valid — the same overclaim compliance just removed from the document footer
