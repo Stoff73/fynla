@@ -254,6 +254,29 @@
                 If you left {{ formatCurrency(ihtData.charitable_threshold) }} or more, your rate would fall to {{ formatPercent(ihtReducedRate) }} and your estate would pay about:
               </p>
               <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(charitableBequestSavings) }} less</p>
+              <!--
+                W-0462. The saving stood alone, and on this household the same
+                action leaves the family worse off — the gift that buys the
+                reduced rate leaves the estate too. Both statements are true and
+                only one was on the page.
+
+                A FIGURE, not a disclaimer: the item is explicit that a caveat
+                does not discharge it. `charitable_residue_effect` is computed
+                server-side beside the saving itself, so the two cannot disagree
+                and no surface composes its own version (Rule 20).
+              -->
+              <p v-if="charitableResidueEffect !== null" class="text-neutral-500 mt-2">
+                <template v-if="charitableResidueEffect < 0">
+                  Your beneficiaries would receive
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(Math.abs(charitableResidueEffect)) }} less</span>,
+                  because the gift leaves the estate as well. The tax saving is smaller than the gift.
+                </template>
+                <template v-else>
+                  Your beneficiaries would receive
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(charitableResidueEffect) }} more</span>,
+                  because the tax saved is larger than the gift.
+                </template>
+              </p>
               <p class="text-neutral-500 mt-1">A scenario only — nothing above changes until the gift is in your will.</p>
             </div>
             <button class="btn-secondary w-full text-xs" @click="navigateToWillTab">Manage bequests in your will</button>
@@ -1044,6 +1067,20 @@ export default {
 
       const percent = (threshold / baseline) * 100;
       return `${Number(percent.toFixed(2))}%`;
+    },
+
+    /**
+     * W-0462 — the change in what the beneficiaries actually receive.
+     *
+     * Read from the server, never recomputed here: the break-even is
+     * `E·(r_s − r_r)/(1 − r_r)`, which is 6.25% of the chargeable estate only at
+     * 40/36. Composing it on the client would be a second mechanism that goes
+     * wrong the moment a rate moves.
+     */
+    charitableResidueEffect() {
+      const value = this.ihtData?.charitable_residue_effect;
+
+      return value === null || value === undefined ? null : Number(value);
     },
 
     charitableFiguresDiffer() {

@@ -580,6 +580,8 @@ class IHTCalculationService
             'charitable_tax_at_standard_rate' => round($current['charitable_tax_at_standard_rate'], 2),
             'charitable_tax_at_reduced_rate' => round($current['charitable_tax_at_reduced_rate'], 2),
             'charitable_rate_saving' => round($current['charitable_rate_saving'], 2),
+            'charitable_residue_effect' => round((float) ($current['charitable_residue_effect'] ?? 0), 2),
+            'charitable_break_even_shortfall' => round((float) ($current['charitable_break_even_shortfall'] ?? 0), 2),
             'iht_liability' => round($ihtLiability, 2),
             // W-0527 — published beside the bill it reduced. A relief that moves
             // a figure without appearing next to it is the audit gap W-0171 names:
@@ -1185,6 +1187,31 @@ class IHTCalculationService
             'charitable_tax_at_standard_rate' => $taxAtStandardRate,
             'charitable_tax_at_reduced_rate' => $taxAtReducedRate,
             'charitable_rate_saving' => max(0, $taxAtStandardRate - $taxAtReducedRate),
+            // W-0462 — the OTHER half of the same recommendation, published from
+            // the same home so no surface has to compose it (Rule 20).
+            //
+            // "Save £74,987" is true and incomplete: the estate really does pay
+            // that much less tax, and on the peak_earners household the family
+            // really does receive £37,891 LESS, because the gift that buys the
+            // reduced rate leaves the estate too. Only one of those was on the
+            // page.
+            //
+            //     Δresidue = (r_s − r_r)·E − S·(1 − r_r)
+            //
+            // Negative means the beneficiaries are worse off. The break-even is
+            // S = E·(r_s − r_r)/(1 − r_r) — 6.25% of the chargeable estate at
+            // 40/36, and ONLY at 40/36, which is why it is derived from the
+            // configured rates and never written as a literal (Rule 2).
+            'charitable_residue_effect' => round(
+                (($standardRate - $reducedRate) * $taxableEstate) - ($charitableShortfall * (1 - $reducedRate)),
+                2
+            ),
+            'charitable_break_even_shortfall' => round(
+                $reducedRate >= 1.0
+                    ? 0.0
+                    : ($taxableEstate * ($standardRate - $reducedRate)) / (1 - $reducedRate),
+                2
+            ),
             // W-0399. determineIHTRate() separates the pooled s23(1) exemption
             // from the survivor-only Sch 1A rate-test amount — the distinction
             // tax-compliance-reviewer ruled on — and then the rate-test figure
