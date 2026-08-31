@@ -120,3 +120,13 @@ asks whether the sentence is internally consistent — do the printed figures
 subtract to the printed answer. **All of them pass on a sentence that recommends
 a value-destroying action, because arithmetic consistency and advice quality are
 different properties** and nothing in the batch tested the second.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.** `grep -rn 'W-0462'` across `app/`,
+  `resources/` and `tests/` returns **nothing**, so no work has been done on this item.
+  The engine half the reviewer asked for **does** exist — `WillAnalysisService:144-149` publishes
+  `taxable_estate`, `taxable_estate_if_qualifying`, `tax_at_standard_rate` and
+  `tax_at_reduced_rate` beside `potential_saving`, with a docblock saying they are there "so every
+  sentence that quotes the saving can print its own working". **No sentence uses them.** The
+  disclosure the gate required — that the recommended action leaves the beneficiaries £37,890.72
+  worse off on user 16 — is still absent from every surface. The figure remains correct; the
+  disclosure is still missing.

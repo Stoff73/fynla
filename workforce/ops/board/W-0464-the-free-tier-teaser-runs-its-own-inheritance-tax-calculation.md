@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: main-inference
 reviewers: [tax-compliance-reviewer, product-lead]
-status: gated
+status: done
 claimed_by: null
 severity: high
 surfaces: [m, web]
@@ -141,3 +141,12 @@ which screen you were on. The model's accessor is now the single answer and
 `workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md` — two rounds,
 26 findings, with legislation and HMRC manual citations. Recorded there because the
 reviewer wrote nothing to disk; without that file both reviews would have been lost.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and consolidated rather than aligned.**
+  `EstateIhtExposureDetector` now injects `IHTCalculationService` (:35) and reads
+  `$calculation['iht_liability']` (:54) — the one mechanism — instead of computing
+  `(netWorth − NRB − RNRB) × 40%` on the logged-in user alone. `:56-58` records the second
+  decision: exposure is "there is a bill to show", not a second threshold test that could disagree
+  with the first. The docblock at :16-23 states the defect it replaced.
+  **This also closes the `/m` half of W-0154's residual**, which was that surface's only
+  inheritance tax figure being a second implementation.
