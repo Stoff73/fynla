@@ -76,10 +76,17 @@ class ComprehensiveEstatePlanService
         $aggregatedAssets = $this->assetAggregator->gatherUserAssets($user);
         $assets = $this->convertToAssetModels($aggregatedAssets, $user);
 
-        // Gather spouse assets if data sharing enabled
+        // Gather spouse assets if the household pools at all.
+        //
+        // W-0340 — belt and braces, NOT a fix. This asked `$dataSharingEnabled` alone,
+        // which reads like the defect W-0340 describes; it is not, because `$spouse` is
+        // resolved twelve lines above already gated on `hasSpousalStatus()`, so it is
+        // null for an unmarried couple and the flag is false. Stated because that is not
+        // visible from this line, and the invariant now holds here rather than depending
+        // on a line above it.
         $spouseAggregatedAssets = collect();
         $spouseAssets = collect();
-        if ($dataSharingEnabled) {
+        if (HouseholdPooling::poolsSpouse($user, $spouse, $dataSharingEnabled)) {
             $spouseAggregatedAssets = $this->assetAggregator->gatherUserAssets($spouse);
             $spouseAssets = $this->convertToAssetModels($spouseAggregatedAssets, $spouse);
         }

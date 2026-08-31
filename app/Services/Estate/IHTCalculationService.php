@@ -1923,15 +1923,24 @@ class IHTCalculationService
 
     private function generateHashes(User $user, ?User $spouse, bool $dataSharingEnabled): array
     {
+        // W-0340 — the CACHE KEY has to pool exactly as the CALCULATION pools, or it
+        // varies on data the cached figure does not depend on. These two lines kept the
+        // loose predicate after every calculating branch moved to `poolsSpouse()`, so
+        // for a linked unmarried couple the key moved with the partner's assets while
+        // the answer did not.
         $userAssets = $this->aggregator->gatherUserAssets($user);
-        $spouseAssets = ($spouse && $dataSharingEnabled) ? $this->aggregator->gatherUserAssets($spouse) : collect();
+        $spouseAssets = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
+            ? $this->aggregator->gatherUserAssets($spouse)
+            : collect();
 
         $assetsString = $userAssets->pluck('current_value')->join(',').'|'.$spouseAssets->pluck('current_value')->join(',')
             .'|'.$this->charitableBequestFingerprint($user);
         $assetsHash = hash('sha256', $assetsString);
 
         $userLiabilities = $this->aggregator->calculateUserLiabilities($user);
-        $spouseLiabilities = ($spouse && $dataSharingEnabled) ? $this->aggregator->calculateUserLiabilities($spouse) : 0;
+        $spouseLiabilities = $this->poolsSpouse($user, $spouse, $dataSharingEnabled)
+            ? $this->aggregator->calculateUserLiabilities($spouse)
+            : 0;
 
         $liabilitiesString = $userLiabilities.'|'.$spouseLiabilities;
         $liabilitiesHash = hash('sha256', $liabilitiesString);
