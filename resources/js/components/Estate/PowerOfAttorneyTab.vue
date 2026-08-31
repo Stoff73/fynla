@@ -122,7 +122,7 @@
       <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
         <h3 class="text-lg font-bold text-horizon-500 mb-2">Delete Lasting Power of Attorney</h3>
         <p class="text-sm text-neutral-500 mb-4">
-          Are you sure you want to delete this {{ deletingLpa?.lpa_type === 'property_financial' ? 'Property & Financial Affairs' : 'Health & Welfare' }} Lasting Power of Attorney? This action cannot be undone.
+          Are you sure you want to delete this {{ deletingLpa?.type_label }} Lasting Power of Attorney? This action cannot be undone.
         </p>
         <div class="flex justify-end space-x-2">
           <button

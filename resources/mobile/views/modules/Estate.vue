@@ -114,6 +114,26 @@
         <button type="button" class="m-btn" style="margin-top:16px" @click="openIhtOnWeb">Open on the web app</button>
         <p v-if="handoffError" class="m-err" style="margin-top:12px">{{ handoffError }}</p>
       </div>
+
+      <!--
+        W-0110. Fyn can create a Lasting Power of Attorney from this device, and
+        until now no screen here could show that it exists — a write with no read.
+        The instrument itself lives on the web screen; this card is the read-back
+        and the route to it.
+      -->
+      <div class="m-card">
+        <p class="m-section-label" style="margin-top:0">Lasting Powers of Attorney</p>
+        <template v-if="lpas.length">
+          <div v-for="lpa in lpas" :key="lpa.id" class="me-row">
+            <span class="me-row__label">{{ lpa.type_label }}</span>
+            <span class="me-row__value">{{ lpa.status_label }}</span>
+          </div>
+        </template>
+        <p v-else class="me-note">You have not recorded a Lasting Power of Attorney yet.</p>
+        <p class="me-note" style="margin-top:12px">The attorneys, the certificate provider and the document itself are on the web app.</p>
+        <button type="button" class="m-btn" style="margin-top:16px" @click="openLpaOnWeb">Open on the web app</button>
+        <p v-if="lpaHandoffError" class="m-err" style="margin-top:12px">{{ lpaHandoffError }}</p>
+      </div>
     </template>
   </MobileChrome>
 </template>
@@ -137,7 +157,7 @@ export default {
   name: 'MobileEstate',
   components: { MobileChrome },
   mixins: [upgradeMixin],
-  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null, bequests: [], handoffError: '' }),
+  data: () => ({ loading: true, error: '', mode: '', teaser: {}, payload: null, netWorth: null, bequests: [], lpas: [], handoffError: '', lpaHandoffError: '' }),
   computed: {
     gifts() { return this.payload?.gifts || []; },
     trusts() { return this.payload?.trusts || []; },
@@ -156,6 +176,14 @@ export default {
     compLabel(type) { return COMP_LABELS[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Assets'); },
     goBack() { this.$router.push({ name: 'dashboard' }); },
     openBequests() { this.$router.push({ name: 'm-estate-bequests' }); },
+    async openLpaOnWeb() {
+      this.lpaHandoffError = '';
+      try {
+        await issueWebHandoff('estate_lpa');
+      } catch {
+        this.lpaHandoffError = 'We could not open the web app just now. Please try again.';
+      }
+    },
     async openIhtOnWeb() {
       this.handoffError = '';
       try {
@@ -172,7 +200,9 @@ export default {
       this.payload = null;
       this.netWorth = null;
       this.bequests = [];
+      this.lpas = [];
       this.handoffError = '';
+      this.lpaHandoffError = '';
       try {
         const { ok, status, data } = await apiGet('/api/estate', store.token);
         if (handleAuthExpiry({ status }, this.$router)) return;
@@ -194,6 +224,11 @@ export default {
           const bq = await apiGet('/api/estate/bequests', store.token);
           if (handleAuthExpiry(bq, this.$router)) return;
           if (bq.ok) this.bequests = bq.data?.data || [];
+          // W-0110. The same endpoint the web screen reads; the labels come with
+          // the records so this surface invents no wording of its own.
+          const lpa = await apiGet('/api/estate/lpa', store.token);
+          if (handleAuthExpiry(lpa, this.$router)) return;
+          if (lpa.ok) this.lpas = lpa.data?.data || [];
         }
       } catch {
         this.error = 'Network error. Please try again.';

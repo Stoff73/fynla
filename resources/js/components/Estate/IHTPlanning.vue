@@ -840,14 +840,15 @@ export default {
       return (this.lpas || []).filter(l => l.status === 'draft' || l.status === 'completed').length;
     },
 
+    // W-0110. This copy said "Property & Financial" where the summary and detail
+    // cards said "Property & Financial Affairs" — one instrument, two names on one
+    // module. Both now come from the record.
     lpasByType() {
-      const types = { property_financial: 'Property & Financial', health_welfare: 'Health & Welfare' };
-      const statuses = { registered: 'Registered', draft: 'Draft', completed: 'Completed' };
       return (this.lpas || []).map(lpa => ({
         type: lpa.lpa_type,
-        label: types[lpa.lpa_type] || lpa.lpa_type,
+        label: lpa.type_label,
         status: lpa.status,
-        statusLabel: statuses[lpa.status] || lpa.status,
+        statusLabel: lpa.status_label,
       }));
     },
 

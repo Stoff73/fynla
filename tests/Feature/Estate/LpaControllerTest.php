@@ -268,3 +268,34 @@ describe('GET /api/estate/lpa/donor-defaults', function () {
             ->assertJsonPath('data.donor_full_name', 'Jane Doe');
     });
 });
+
+/**
+ * W-0110. Fyn can create a Lasting Power of Attorney from `/m` and native, and only
+ * web could read one back. `/m` now reads this endpoint, so the words it prints have
+ * to arrive with the record — four web copies of the vocabulary had already drifted
+ * ("Property & Financial" against "Property & Financial Affairs") and a fifth on `/m`
+ * would have made it five.
+ */
+describe('the LPA payload carries its own vocabulary', function () {
+    it('serves the type and status label with every record', function () {
+        LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id, 'status' => 'registered']);
+
+        $this->getJson('/api/estate/lpa')
+            ->assertOk()
+            ->assertJsonPath('data.0.type_label', 'Property & Financial Affairs')
+            ->assertJsonPath('data.0.status_label', 'Registered');
+    });
+
+    it('names a health and welfare instrument in full', function () {
+        LastingPowerOfAttorney::factory()
+            ->healthWelfare()
+            ->create(['user_id' => $this->user->id, 'status' => 'draft']);
+
+        $this->getJson('/api/estate/lpa')
+            ->assertOk()
+            ->assertJsonPath('data.0.type_label', 'Health & Welfare')
+            ->assertJsonPath('data.0.status_label', 'Draft');
+    });
+});

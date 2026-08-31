@@ -93,10 +93,9 @@ export default {
   emits: ['view', 'edit', 'delete'],
 
   computed: {
+    // W-0110. Served with the record so web and /m cannot drift apart.
     typeLabel() {
-      return this.lpa.lpa_type === 'property_financial'
-        ? 'Property & Financial Affairs'
-        : 'Health & Welfare';
+      return this.lpa.type_label;
     },
     sourceLabel() {
       return this.lpa.source === 'uploaded'
@@ -104,13 +103,7 @@ export default {
         : 'Created in Fynla';
     },
     statusLabel() {
-      const labels = {
-        draft: 'Draft',
-        completed: 'Completed',
-        registered: 'Registered',
-        uploaded: 'Uploaded',
-      };
-      return labels[this.lpa.status] || this.lpa.status;
+      return this.lpa.status_label;
     },
     statusClass() {
       const classes = {

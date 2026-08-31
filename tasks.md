@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 54**  ·  closed 2026-08-31: 78
+**Outstanding: 53**  ·  closed 2026-08-31: 79
 
 ---
 
@@ -64,7 +64,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0107** `done` — The replacement-attorney check states a legal consequence that is wrong for the commonest appointment type
 - [x] **W-0108** `done` — The health and welfare Lasting Power of Attorney document is silent on when attorneys may act — the one restriction that is statutory for that type
 - [x] **W-0109** `done` (4 copies; timescale 8→20 weeks) — The Lasting Power of Attorney registration fee and timescale are stated in three places with no single home, and the timescale looks stale
-- [ ] **W-0110** `queued` — There is no Lasting Power of Attorney surface on /m or iOS, yet Fyn can create one from both — a record the user can never see again
+- [x] **W-0110** `done` (/m surface + handoff + label consolidation; native mirror deferred with W-0044) — There is no Lasting Power of Attorney surface on /m or iOS, yet Fyn can create one from both — a record the user can never see again
 - [x] **W-0111** `done` (already fixed) — Adding a Partner asks for an email address "to create or link their account", then silently discards it — no account, no link, no error
 - [x] **W-0112** `done` (already fixed) — Editing a linked spouse's name never reaches their account — `users.name` is an appended accessor with no column, so the sync is silently discarded
 - [x] **W-0113** `done` (already fixed) — Two Fyn tools write a spouse and only one can link — `create_family_member` has no email parameter, so it can only ever produce an unlinked household
