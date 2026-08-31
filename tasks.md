@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 81**  ·  closed 2026-08-31: 51
+**Outstanding: 78**  ·  closed 2026-08-31: 54
 
 ---
 
@@ -81,15 +81,15 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0156** `queued` — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
 - [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
 - [ ] **W-0178** `queued` — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
-- [ ] **W-0189** `gated` — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
+- [x] **W-0189** `done` (already fixed) — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
 - [ ] **W-0196** `queued` — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
 - [ ] **W-0197** `queued` — State Pension age is legislated by cohort, and the application holds two static keys — a projection decades out needs a resolver, not a choice between 66 and 67
 - [ ] **W-0198** `queued` — Two columns hold one life expectancy — the override now agrees everywhere, the fallbacks still do not
 - [ ] **W-0199** `queued` — A projected cash shortfall never draws on investments, so a household runs out of money while holding an untouched portfolio
 - [ ] **W-0200** `queued` — A joint-life policy records that it covers two lives but never records whose — the second life assured can only be inferred from users.spouse_id
-- [ ] **W-0207** `gated` — A completed 2020 life event is counted as future expected income and displayed as happening "In 0 years
+- [x] **W-0207** `done` (already fixed) — A completed 2020 life event is counted as future expected income and displayed as happening "In 0 years
 - [ ] **W-0208** `queued` — The letter/will consistency check flags a punctuation difference as an executor mismatch and tells the user to edit a legal document
-- [ ] **W-0210** `gated` — A goal is counted and labelled as a life event — Sarah has zero life events and the module reports "1 cash outflow events £400K
+- [x] **W-0210** `done` (already fixed) — A goal is counted and labelled as a life event — Sarah has zero life events and the module reports "1 cash outflow events £400K
 - [ ] **W-0243** `queued` — The native iOS retirement card cannot show a guaranteed income, so a defined-benefit-only spouse still reads £0 there
 - [ ] **W-0258** `queued` — The card captions an arithmetic "expected return" beside a median projection that is lower by volatility drag, and the two cannot be reconciled by the reader
 - [ ] **W-0259** `queued` — The single figure on the projection card is the 20th percentile — the one band where taking more risk makes the number go down
