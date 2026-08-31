@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 78**  ·  closed 2026-08-31: 54
+**Outstanding: 75**  ·  closed 2026-08-31: 57
 
 ---
 
@@ -117,14 +117,14 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0392** `queued` — The estate a will screen states omits Business Property Relief assets, which do pass under the will
 - [ ] **W-0394** `gated` — Every bequest is stored as a gift to a person — both charitable legacies included, because beneficiary_type reaches no request class
 - [ ] **W-0398** `queued` — A residuary substitution beneficiary is invisible to every consumer of the bequests table — which is why this household reads as though its children are unprovided for
-- [ ] **W-0399** `gated` — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
+- [x] **W-0399** `done` (already fixed) — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
 - [x] **W-0413** `done` (write + read-back) — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
 - [ ] **W-0414** `queued` — The goal plan reads a months_remaining key GoalProgressService has never returned, and silently runs on a default of 12
 - [ ] **W-0416** `queued` — iOS native carries two copies of the goal status vocabulary and cannot say Overdue, so it reads "Behind" for a goal whose date has gone
 - [x] **W-0424** `done` (3 faults; both mechanisms were broken) — A pension contribution recorded as a percentage never becomes a financial commitment, so it never reaches expenditure and disposable income is overstated by it
 - [ ] **W-0426** `queued` — The letter_to_spouse capability gates writes only — every GET under api/user/ short-circuits before the capability check, so the letter has never been read-gated
-- [ ] **W-0431** `gated` — The Inheritance Tax rate messages asserted 40%, 36% and 10% as literals while the calculation beside them read the real figures from configuration
-- [ ] **W-0433** `gated` — The charitable percentage and the threshold it is compared against are percentages of different things — 0.6% against 10%, where the statutory figure is 0.81%
+- [x] **W-0431** `done` (already fixed; W-0461 added the template half) — The Inheritance Tax rate messages asserted 40%, 36% and 10% as literals while the calculation beside them read the real figures from configuration
+- [x] **W-0433** `done` (already fixed over three passes) — The charitable percentage and the threshold it is compared against are percentages of different things — 0.6% against 10%, where the statutory figure is 0.81%
 - [ ] **W-0442** `claimed` — The holdings tables hide what they store — and the investment one has never rendered at all, behind a duplicated v-else-if
 - [ ] **W-0443** `queued` — The holding asset-type vocabulary exists as eleven independent copies across four directories, and nothing makes them agree
 - [x] **W-0453** `done` (5 sites + mutation-verified guard) — A null-defaulting tax getter reaches .toLocaleString() unguarded at two template sites — throws on a cold load, in a fallback block nothing else covers
