@@ -177,3 +177,25 @@ Every case makes the property and the mortgage row disagree on purpose, and the
 key case asserts the answer **moves** when the property share moves, with the
 mortgage row untouched. That case is what exposed the trait-static trap recorded in
 F-0022 §12.
+
+- 2026-08-30 CSJ: **RULING AMENDED. "W-0228 can allow mortgage share that is not the same
+  as ownership share."**
+
+  The original ruling (2026-08-22) made the property authoritative for every mortgage
+  secured on it, and it is enforced by a hard throw —
+  `CalculatesOwnershipShare::refuseRecordWhoseShareFollowsAnother()` — with
+  `SecuringPropertyResolver` resolving the property for every consumer. That enforcement
+  now overreaches: it forbids a case CSJ has said is legitimate, a co-owner who borrowed
+  alone owing alone.
+
+  **What this does NOT settle, and must not be guessed:** whether the existing
+  `mortgages.ownership_percentage` column becomes authoritative for rows already written.
+  It cannot simply be trusted — the persona's Manchester mortgage carries `joint 50%`
+  against a property held `tenants_in_common 40%`, and that 50% is exactly the unreviewed
+  value the original ruling existed to stop being believed. Reading it as authoritative
+  would move that household's liabilities from £293,000 to £305,000 and change a verified
+  figure on the strength of data nobody has confirmed.
+
+  So the implementation needs a way for a user to SAY "I borrowed alone" — an explicit
+  signal — rather than a silent reinterpretation of a column. That is a schema and form
+  question, and it belongs to W-0483, which this unblocks.

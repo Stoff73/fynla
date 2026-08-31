@@ -85,3 +85,7 @@ MONEY; reciprocity decides whether the couple exist at all.
 - 2026-08-29 build-lead: **stacked on W-0529.** `financiallySharedSpouse()` lives beside
   the derivation added there, so this branches from that one and the diff shrinks when
   #755 merges.
+
+- 2026-08-30 build-lead: **merged to `dev` as PR #756** — consent on the spouse financial reads. Left `gated` rather than
+  `done` because the reviewer gate named above has not run; `done` here would mean the
+  change is on `dev`, which is true, and would hide that nobody has certified it.

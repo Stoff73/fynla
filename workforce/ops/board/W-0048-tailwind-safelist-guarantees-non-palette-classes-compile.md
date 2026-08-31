@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0005-design-lead-palette-and-copy.md
 owner: design-lead
 reviewers: [build-lead]
-status: blocked
+status: deferred
 severity: medium
 surfaces: [web]
 source: root-caused by design-palette-fix during the W-0045 sweep, 2026-08-21
@@ -216,3 +216,9 @@ specify the same unbuildable pair and are likewise left alone.
 
 **Nothing in this item has edited a colour, a class, the safelist or the guide.**
 The park is intact.
+
+- 2026-08-30 build-lead: **stamp corrected, `blocked` → `deferred`.** It carried no
+  `blocked_by` and no `gate`, so nothing recorded what it was waiting for — while its own
+  closing note says the park is intact and the item is to be re-raised when it unparks.
+  A `blocked` item with no blocker is indistinguishable from a forgotten one, which is
+  how W-0350 sat six days after its blocker had been lifted. Nothing else touched.

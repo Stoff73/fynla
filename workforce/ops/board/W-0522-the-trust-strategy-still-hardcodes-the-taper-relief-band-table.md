@@ -5,7 +5,7 @@ mission: null
 branch: fix/w-0522-hardcoded-taper-band-table
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: in_progress
+status: gated
 claimed_by: null
 severity: medium
 surfaces: [web, m, ios]
@@ -82,3 +82,8 @@ The immediate 20% charge itself **is** modelled, and from configuration:
 settlor rate, and charges it on `max(0, amountToTrust − availableNRB)`.
 
 **But the multi-cycle path does not agree with it — raised as W-0523.**
+
+- 2026-08-30 build-lead: **merged to `dev` as PR #750** (taper ladder read from
+  configuration, transfer typed as a chargeable lifetime transfer). Stamp corrected from
+  `in_progress`, which it had kept for a day after the code landed. `gated`, not `done`:
+  the `tax-compliance-reviewer` gate on it has not run.

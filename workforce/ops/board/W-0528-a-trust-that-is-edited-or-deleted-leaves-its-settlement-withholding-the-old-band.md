@@ -102,3 +102,7 @@ fought and the estate answered differently depending on which had been touched l
   422 rather than silently moving the band, but the control should not be offered.
   `GiftResource` does not expose `trust_id`, which is what a client would need to hide
   it. Left out deliberately rather than shipping an unused field.
+
+- 2026-08-30 build-lead: **merged to `dev` as PR #752** — the settlement gift tracking its trust for life. Left `gated` rather than
+  `done` because the reviewer gate named above has not run; `done` here would mean the
+  change is on `dev`, which is true, and would hide that nobody has certified it.

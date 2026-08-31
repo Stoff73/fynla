@@ -109,3 +109,7 @@ Following it out found the flag derived in **eight places, in six shapes**:
   Now that the 8 are known to be `pending` rather than row-less, whether those reads should
   also require consent is worth re-asking — it is the same class of data this item just
   gated on consent.
+
+- 2026-08-30 build-lead: **merged to `dev` as PR #755** — one derivation of the spouse pooling flag. Left `gated` rather than
+  `done` because the reviewer gate named above has not run; `done` here would mean the
+  change is on `dev`, which is true, and would hide that nobody has certified it.
