@@ -4,7 +4,7 @@ title: A pension contribution recorded as a percentage never becomes a financial
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0030-cycle4-letter-and-income-labels.md
 owner: unassigned — expenditure path
-status: queued
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-08-23T02:55:00Z
@@ -78,3 +78,17 @@ service below goes through it.
 **`UserContextBuilder` and `IncomeOccupation.vue` do not go through the accessor** —
 they each re-derive `net − expenditure`. Any change to the definition has to reach
 all three or the surfaces will disagree.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed, and there were THREE faults, of which the item named one.**
+
+  **Measured before and after on the live persona, not reasoned about:** David's contributions read **£0** against an 8%-of-£145,000 record. After the fix, **£11,600**.
+
+  1. **The item's fault.** `getFinancialCommitments()` gated on `monthly_contribution_amount > 0`, so a percentage-only record never reached the spending side.
+  2. **The tax side was broken too, and the item assumed it worked.** `calculateAnnualPensionContributions()` filtered on `in_array($scheme_type, ['workplace', 'occupational', 'auto_enrolment'])` — but the column is `enum('workplace','sipp','personal')`, so **two of the three permitted values could never match**, and the live data also carries NULL. David's `scheme_type` is null, so the tax mechanism returned £0 as well. **Both mechanisms failed on the same record, for different reasons** — which is why the money vanished completely rather than being counted once.
+  3. Same class as W-0481: an allowlist containing values the column cannot hold.
+
+  **The consolidation (Rule 20).** `monthlyEmployeeContribution(DCPension)` is now the one answer, used by both callers. The stated monthly amount wins where set — it is what the member actually told us — and the percentage is the fallback, not the reverse. `isSalaryDeductedPension()` is stated as an EXCLUSION (`sipp`, `personal`) rather than an allowlist, because those are funded from money already received; anything with a salary and a percentage on it is a salary deduction by construction, since a personal pension has no employer salary basis to compute against.
+
+  **The resulting arithmetic reconciles, which is the check that it is right rather than merely different:** expenditure rose £11,600 and net income rose £5,220 as the relief now applies, so disposable income fell **£6,380** — exactly the after-tax cost of an £11,600 contribution at higher rate. If only one side had moved, that number would have been £11,600.
+
+  **Tested:** `PercentagePensionReachesExpenditureTest` — 4 passed, covering the percentage path, a SIPP correctly excluded, a stated amount beating the percentage, and **the null `scheme_type` that defeated the old allowlist**. 567 profile/expenditure/income tests pass (1,729 assertions); the 7 persona estate locks unmoved.
