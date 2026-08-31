@@ -244,3 +244,10 @@ and conditions only.
 **One acceptance criterion is now satisfied by Batch B and should not be re-done:**
 will-builder gifts *do* arrive as `Bequest` rows (W-0023), verified live — they simply
 arrive without priority or beneficiary type. The remaining criteria stand unchanged.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.** `resources/js/components/Estate/BequestForm.vue`
+  contains no `priority_order`, no `beneficiary_type` and no `charity_registration_number` input —
+  `grep` across `resources/js/components/Estate/*.vue` finds none of the three anywhere. The columns
+  exist and `beneficiary_type` is still an enum of individual/charity/trust/organization, so the
+  charitable status that moves the rate from 40% to 36% is inferred rather than recorded, exactly as
+  filed. Unchanged since 2026-08-21.

@@ -299,3 +299,9 @@ consenting.
   (the `awc` affiliate cookie set with no consent check) are functional/data-integrity
   problems regardless of how the consent question is eventually answered.
   Status left `queued`, severity unchanged. Do not re-raise as a gate.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev` — and still parked by CSJ's 2026-08-21
+  decision, so this is a re-measurement, not a re-raise.** `Register.vue:69` renders the "Cookies
+  Required" block on `!cookiesAccepted` and `:90` gates the whole `<form>` on `cookiesAccepted`, so
+  declining still leaves the page with no form. Unchanged. The Article 7(4) question remains
+  deferred until the functional board is clear; do not treat this as a gate.

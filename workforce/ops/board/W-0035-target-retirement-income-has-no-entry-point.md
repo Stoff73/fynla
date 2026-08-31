@@ -4,7 +4,7 @@ title: Target Retirement Income has no module-UI entry point — every retiremen
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: gated
+status: done
 claimed_by: fix-batch-E
 claimed_at: 2026-08-21
 branch: fixes/F-0004-batch-e-retirement-income.md
@@ -232,3 +232,10 @@ separate item.
 `Feature/Income`, the pension stores, `Feature/AI/DirectWrite`,
 `UpdateRecordSecurityTest` and `CoordinatingAgentCaptureIntegrityTest`; 101 passed /
 235 assertions across the onboarding and campaign families. Pint clean.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, on both surfaces.**
+  `RetirementController::updateRetirementGoals(UpdateRetirementGoalsRequest)` (:669) is the route,
+  `RetirementProfileStore` the writer, and the field has a UI entry point on **web**
+  (`RetirementTargetCard.vue:42`) and on **`/m`** (`resources/mobile/views/modules/Retirement.vue:62`),
+  so Rule 19 is satisfied rather than assumed. Fyn's `capture_retirement_goals` is no longer the
+  only writer.

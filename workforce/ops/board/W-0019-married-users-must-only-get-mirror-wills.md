@@ -4,7 +4,7 @@ title: Married users are offered a one-sided Simple Will with no warning — onl
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead, design-lead]
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 source: CSJ direction 2026-08-21, observed live during persona run 20-08-2026 Pass A
@@ -283,3 +283,9 @@ exists, the gating around it does not.
   **Unblocked: implement mirror-wills-only for married users as specified.** The
   solicitor message for the mirror-wills-only + spouse-who-will-not-engage case was
   already agreed and stands.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and built as CSJ directed.**
+  `WillBuilderIntroStep.vue:67-75` replaces the choice with a **statement** for a married user —
+  not a lone button, on the reasoning that a single button still frames the step as a chooser —
+  and `:79`/`:89` gate the two options on `allowsSimple` / `allowsMirror`. Every word of the
+  refusal comes from the server (`WillTypePolicy`), so the form, the API and Fyn cannot drift.
