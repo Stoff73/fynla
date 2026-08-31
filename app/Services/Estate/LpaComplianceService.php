@@ -73,6 +73,7 @@ class LpaComplianceService
         }
 
         if ($lpa->isHealthWelfare()) {
+            $checks[] = $this->checkHealthWelfareTiming($lpa);
             $checks[] = $this->checkLifeSustainingTreatment($lpa);
         }
 
@@ -532,6 +533,37 @@ class LpaComplianceService
             'pass',
             'Attorneys can act: '.$label,
             'The timing of when attorneys can act has been specified.'
+        );
+    }
+
+    /**
+     * A health and welfare attorney may act ONLY once the donor lacks capacity.
+     *
+     * **W-0108.** \`checkWhenAttorneysCanAct()\` runs for property and financial
+     * affairs only, because there the timing is a genuine CHOICE the donor makes.
+     * Health and welfare was therefore silent on timing altogether — and that is
+     * the type where the answer is fixed by statute: **Mental Capacity Act 2005
+     * s11(7)(a)**.
+     *
+     * So the instrument that had a real decision to record asked for one, and the
+     * instrument with a binding restriction said nothing about it. A donor
+     * comparing the two would reasonably infer their health attorneys could act
+     * whenever, which is the opposite of the position.
+     *
+     * **Stated, not asked.** There is no field here and there should not be: this
+     * is not a preference the donor can set, and offering it as one would imply a
+     * latitude the Act does not give. That is why it is a `pass` carrying the
+     * fact rather than a question that can fail.
+     */
+    private function checkHealthWelfareTiming(LastingPowerOfAttorney $lpa): array
+    {
+        return $this->result(
+            'health_welfare_timing',
+            'pass',
+            'Attorneys can act only once you lack capacity',
+            'A health and welfare Lasting Power of Attorney can only be used after you have lost the mental '
+                .'capacity to make a decision yourself. Unlike a property and financial affairs Lasting Power of '
+                .'Attorney, this is fixed by law and is not something you can change.'
         );
     }
 

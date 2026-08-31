@@ -744,3 +744,42 @@ describe('replacement attorney consequence (W-0107)', function () {
             ->toContain('any ONE');
     });
 });
+
+/**
+ * W-0108 — a health and welfare LPA states when attorneys may act.
+ *
+ * `checkWhenAttorneysCanAct()` runs for property and financial affairs only,
+ * because there the timing is a genuine choice. Health and welfare was silent —
+ * and that is the type where the answer is fixed by statute, MCA 2005 s11(7)(a):
+ * the attorney may act only once the donor lacks capacity.
+ *
+ * So the instrument with a real decision asked for one, and the instrument with
+ * a binding restriction said nothing. A donor comparing the two would reasonably
+ * infer their health attorneys could act whenever.
+ */
+describe('health and welfare timing (W-0108)', function () {
+    $timingCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'health_welfare_timing') ?? [];
+
+    it('tells a health and welfare donor the restriction is fixed by law', function () use ($timingCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->healthWelfare()
+            ->create(['user_id' => $this->user->id]);
+
+        $check = $timingCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('pass')
+            ->and($check['description'])->toContain('lost the mental capacity')
+            ->and($check['description'])->toContain('not something you can change');
+    });
+
+    it('does not add the statement to a property and financial affairs LPA', function () use ($timingCheck) {
+        // There the timing IS a choice, and `when_can_act` already asks for it.
+        // Stating a fixed rule beside a question would contradict it.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        expect($timingCheck($this->service->checkCompliance($lpa->fresh())))->toBe([]);
+    });
+});
