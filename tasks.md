@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 69**  ·  closed 2026-08-31: 63
+**Outstanding: 68**  ·  closed 2026-08-31: 64
 
 ---
 
@@ -111,7 +111,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0370** `done` (6 sites; the accessor existed and one line used it) — The 7- and 14-year statutory gift windows are hardcoded while TaxConfigService already carries them
 - [x] **W-0371** `done` (4 already done; 2 survivors fixed) — Tax rates and thresholds are hardcoded in the user-facing sentences printed beside figures the arithmetic computed from configuration
 - [x] **W-0373** `done` (found in the same method) — Liability institution names and balances are written to the application log at INFO on every Inheritance Tax calculation
-- [ ] **W-0376** `queued` — Four dead sites found in one day, and the dead code carries its own copies of live rules
+- [x] **W-0376** `done` (3 resolved elsewhere; dead card deleted) — Four dead sites found in one day, and the dead code carries its own copies of live rules
 - [ ] **W-0383** `gated` — Product call — how much of someone else's contract should the other life assured see
 - [ ] **W-0385** `queued` — fynla-state.auth.user can name a different user than the token authenticates as, and it is our documented way of checking identity
 - [ ] **W-0392** `queued` — The estate a will screen states omits Business Property Relief assets, which do pass under the will
