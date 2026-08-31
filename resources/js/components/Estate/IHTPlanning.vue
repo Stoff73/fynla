@@ -329,7 +329,7 @@
           <div class="space-y-2 text-xs">
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Annual Exemption:</span>
-              <span class="font-bold text-spring-700">£{{ annualGiftExemption.toLocaleString() }}</span>
+              <span class="font-bold text-spring-700">£{{ (annualGiftExemption || 0).toLocaleString() }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Small Gift Allowance:</span>
@@ -652,7 +652,7 @@
               Your estate has a potential Inheritance Tax liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
             </p>
             <ul class="list-disc list-inside space-y-1">
-              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ annualGiftExemption.toLocaleString() }}/year)</li>
+              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ (annualGiftExemption || 0).toLocaleString() }}/year)</li>
               <!--
                 W-0451. Three rate literals in one line, in the component whose
                 sentence two cards above now moves with configuration. Under a

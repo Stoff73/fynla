@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 101**  ·  closed 2026-08-31: 31
+**Outstanding: 100**  ·  closed 2026-08-31: 32
 
 ---
 
@@ -127,7 +127,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0433** `gated` — The charitable percentage and the threshold it is compared against are percentages of different things — 0.6% against 10%, where the statutory figure is 0.81%
 - [ ] **W-0442** `claimed` — The holdings tables hide what they store — and the investment one has never rendered at all, behind a duplicated v-else-if
 - [ ] **W-0443** `queued` — The holding asset-type vocabulary exists as eleven independent copies across four directories, and nothing makes them agree
-- [ ] **W-0453** `queued` — A null-defaulting tax getter reaches .toLocaleString() unguarded at two template sites — throws on a cold load, in a fallback block nothing else covers
+- [x] **W-0453** `done` (5 sites + mutation-verified guard) — A null-defaulting tax getter reaches .toLocaleString() unguarded at two template sites — throws on a cold load, in a fallback block nothing else covers
 - [ ] **W-0470** `gated` — The controller recomputes the projected net estate on a liabilities figure the projected taxable estate was never struck on, so the two rows disagree on screen
 - [ ] **W-0472** `queued` — The address a user invites their partner on is used once and never stored, so nobody can see who was invited, correct a typo, or re-send
 - [ ] **W-0476** `queued` — The account-enumeration oracle moved one endpoint over — two requests still distinguish a registered address from an unregistered one

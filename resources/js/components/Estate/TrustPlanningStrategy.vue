@@ -41,7 +41,7 @@
             <h4 class="font-semibold text-violet-500 mb-2">Chargeable Lifetime Transfers</h4>
             <ul class="space-y-1 text-neutral-500">
               <li>• Transfers to most trusts are immediately chargeable</li>
-              <li>• <strong>20% tax</strong> on amounts exceeding £{{ ihtNilRateBand.toLocaleString() }} Nil Rate Band</li>
+              <li>• <strong>20% tax</strong> on amounts exceeding £{{ (ihtNilRateBand || 0).toLocaleString() }} Nil Rate Band</li>
               <li>• <strong>25% effective rate</strong> if settlor pays the tax</li>
               <li>• 7-year rolling window for cumulative transfers</li>
             </ul>

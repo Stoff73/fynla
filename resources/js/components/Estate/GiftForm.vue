@@ -76,7 +76,7 @@
           <option value="clt">Chargeable Lifetime Transfer</option>
           <option value="exempt">Exempt Gift</option>
           <option value="small_gift">Small Gift Exemption (£250 limit)</option>
-          <option value="annual_exemption">Annual Exemption (£{{ annualGiftExemption.toLocaleString() }})</option>
+          <option value="annual_exemption">Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }})</option>
         </select>
         <span v-if="errors.gift_type" class="error-message">
           {{ errors.gift_type }}
@@ -109,7 +109,7 @@
             ✓ This gift qualifies for the Small Gift Exemption (£250 or less per person per year)
           </li>
           <li v-if="canUseAnnualExemption">
-            ✓ You can use your Annual Exemption (£{{ annualGiftExemption.toLocaleString() }} per tax year)
+            ✓ You can use your Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }} per tax year)
           </li>
           <li v-if="!qualifiesForSmallGift && formData.gift_value > annualGiftExemption">
             ⚠️ This gift exceeds typical exemptions and will be a Potentially Exempt Transfer (subject to 7-year rule)
