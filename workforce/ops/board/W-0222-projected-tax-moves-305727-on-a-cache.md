@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: null
 owner: build-lead
 reviewers: [chief-of-staff]
-status: queued
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -86,3 +86,26 @@ it is a product and modelling decision rather than a defect to correct:
   assertion that the same household simulated twice returns the same figure. Without it, removing
   the seed leaves the suite green.
   Criterion 2 (the per-login invariant) is separately safe — W-0188 verified closed the same day.
+
+- 2026-08-31 build-lead: **CLOSED — the mechanism was already right; the missing acceptance
+  criterion is now written.**
+
+  **Criterion 1 (a decision, recorded):** the figure is deterministic on its inputs.
+  `MonteCarloEngine::seedFromInputs()` seeds `mt_srand()` from a hash of the ksorted inputs, so a
+  run is a pure function of what was asked and a warm cache cannot differ from a cold one. The
+  £305,727 swing cannot recur.
+  **Criterion 2:** the per-login invariant is untouched — W-0188 was verified closed the same day.
+  **Criterion 3:** no range or rating is displayed, so Rule 12 is not engaged.
+  **Criterion 4 — the gap, now closed:**
+  `tests/Unit/Services/Investment/ProjectionIsDeterministicOnItsInputsTest.php`, three tests.
+
+  Two details of how it is written, because both were deliberate:
+  - **Cache is bypassed throughout** (`cacheKey: null`). A cached second run would pass by
+    returning the first run's stored array and prove nothing about the simulation. The claim under
+    test is that the SIMULATION repeats, not that the cache works.
+  - **A second test asserts the projection still MOVES** when the expected return changes. Seeding
+    on a constant would satisfy a repeatability test perfectly and destroy the model; that is the
+    obvious wrong fix, and it now fails.
+
+  **Mutation-verified:** replacing `seedFromInputs()`'s hash with a bare `mt_srand()` turns two of
+  the three red. Restored and green.

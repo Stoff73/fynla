@@ -4,7 +4,7 @@ title: The per-product risk override has never worked for any real user — `has
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0023-cycle4-validation-and-silent-data-loss.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T21:20:00Z
@@ -181,3 +181,27 @@ be load-bearing.
   `has_custom_risk = false` still has its override discarded, and the column defaults to `false`
   (`DCPension:159`). Closing needs that reader moved onto `getProductRiskOverride()` and a
   decision on whether existing rows are backfilled.
+
+- 2026-08-31 build-lead: **FIXED and CLOSED — the last reader moved, and the backfill turned out
+  not to be needed.**
+
+  `PensionProjector::getGrowthRateForPension()` asked `has_custom_risk && risk_preference` — the
+  reader this item singles out as *"the one that changes the projection"*, and the last of the
+  three still on the raw pair after `InvestmentController` and `PortfolioPresentationService` moved.
+  It now calls `RiskPreferenceService::getProductRiskOverride()`, which reads the preference itself
+  and **does not consult the flag at all**.
+
+  **That answers the open question about existing rows without a data migration.** The concern was
+  pensions written before `PensionNormaliser:112` began deriving `has_custom_risk`: they carry a
+  `risk_preference` with the flag still at its `false` default, and the old gate discarded them.
+  Because the canonical reader ignores the flag, those rows are repaired by reading them correctly
+  rather than by rewriting them. **No backfill was written and none should be** — a migration
+  would only re-derive a column that no longer decides anything.
+
+  **Pinned** by `tests/Feature/Retirement/PensionRiskOverrideReachesTheProjectionTest.php`, three
+  tests asserting `growth_rate_used` — the figure `projectTotalRetirementIncome()` publishes per
+  scheme, so the assertion is on the user-visible consequence rather than an internal. The three
+  cases are the legacy row (preference set, flag false), the modern row (both set), and the inverse
+  legacy row (flag set, no preference, which must fall through rather than throw).
+  **Mutation-verified:** restoring the raw pair turns the legacy-row test red — the one case that
+  matters — while the other two stay green, which is precisely why this survived three fixes.
