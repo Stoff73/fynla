@@ -68,6 +68,18 @@ class UserResource extends JsonResource
             'expenditure_entry_mode' => $this->expenditure_entry_mode,
             'expenditure_sharing_mode' => $this->expenditure_sharing_mode,
             // Expenditure categories
+            //
+            // W-0413 — `rent` and `utilities` are NOT gated on
+            // `$canViewDetailedExpenditure`, unlike the fifteen below them, and
+            // that is deliberate. They are shown only to a user with no main
+            // residence (`ExpenditureForm.vue:1426`), because a homeowner enters
+            // housing costs against the property. For a renter they are not a
+            // "detailed breakdown" at all — they are where the rent goes, and
+            // W-0011 settled that the Premium restriction covers the detailed
+            // categories, not knowing what you spend. Gating them would put a
+            // free-tier renter back where W-0011 found them.
+            'rent' => $this->rent,
+            'utilities' => $this->utilities,
             'food_groceries' => $this->when($canViewDetailedExpenditure, $this->food_groceries),
             'transport_fuel' => $this->when($canViewDetailedExpenditure, $this->transport_fuel),
             'healthcare_medical' => $this->when($canViewDetailedExpenditure, $this->healthcare_medical),

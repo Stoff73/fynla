@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 94**  ·  closed 2026-08-31: 38
+**Outstanding: 93**  ·  closed 2026-08-31: 39
 
 ---
 
@@ -118,7 +118,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0394** `gated` — Every bequest is stored as a gift to a person — both charitable legacies included, because beneficiary_type reaches no request class
 - [ ] **W-0398** `queued` — A residuary substitution beneficiary is invisible to every consumer of the bequests table — which is why this household reads as though its children are unprovided for
 - [ ] **W-0399** `gated` — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
-- [ ] **W-0413** `queued` — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
+- [x] **W-0413** `done` (write + read-back) — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
 - [ ] **W-0414** `queued` — The goal plan reads a months_remaining key GoalProgressService has never returned, and silently runs on a default of 12
 - [ ] **W-0416** `queued` — iOS native carries two copies of the goal status vocabulary and cannot say Overdue, so it reads "Behind" for a goal whose date has gone
 - [ ] **W-0424** `queued` — A pension contribution recorded as a percentage never becomes a financial commitment, so it never reaches expenditure and disposable income is overstated by it

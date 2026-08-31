@@ -118,6 +118,16 @@ class UserProfileService
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
                 'annual_expenditure' => $user->annual_expenditure,
+                // W-0413 — OUTSIDE `categories`, deliberately. That block is
+                // gated on detailed-expenditure entitlement and is absent
+                // entirely for a summary-only profile, whereas these two are
+                // shown to any user with no main residence
+                // (`ExpenditureForm.vue:1426`) because a homeowner enters housing
+                // costs against the property. Putting them inside would hide a
+                // renter's rent behind a Premium gate, which is where W-0011
+                // found free-tier users and put them back.
+                'rent' => $user->rent,
+                'utilities' => $user->utilities,
                 'categories' => [
                     'food_groceries' => $user->food_groceries,
                     'transport_fuel' => $user->transport_fuel,
