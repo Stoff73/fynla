@@ -520,3 +520,69 @@ describe('party role conflicts', function () {
             ->and($keys->duplicates())->toBeEmpty();
     });
 });
+
+/**
+ * W-0104 — every attorney must be 18 or older.
+ *
+ * Mental Capacity Act 2005 s10(1)(a) sets the minimum age for an attorney, and
+ * the same statute sets the donor's. Only the donor's was checked, though
+ * `lpa_attorneys.date_of_birth` is captured for every attorney — so a child
+ * could be appointed and the instrument shown to the user as compliant right up
+ * to the point the Office of the Public Guardian refused to register it.
+ *
+ * The donor check reading as though it covered "the age requirement" is most of
+ * why this survived.
+ */
+describe('attorney ages (W-0104)', function () {
+    $ageCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'attorney_ages') ?? [];
+
+    it('fails when an appointed attorney is under 18', function () use ($ageCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Alfie Jones',
+            'date_of_birth' => now()->subYears(12),
+        ]);
+
+        $check = $ageCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('fail')
+            ->and($check['description'])->toContain('Alfie Jones');
+    });
+
+    it('passes when every attorney is 18 or older', function () use ($ageCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'date_of_birth' => now()->subYears(40),
+        ]);
+
+        expect($ageCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
+    });
+
+    it('fails on a missing date of birth rather than passing quietly', function () use ($ageCheck) {
+        // An attorney whose age cannot be established is exactly the case this
+        // check exists for. Treating unknown as acceptable would reproduce the
+        // defect for anyone who left the field blank.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'date_of_birth' => null,
+        ]);
+
+        expect($ageCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('fail');
+    });
+});

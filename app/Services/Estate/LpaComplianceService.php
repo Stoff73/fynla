@@ -54,6 +54,7 @@ class LpaComplianceService
 
         $checks = [
             $this->checkDonorAge($lpa),
+            $this->checkAttorneyAges($lpa),
             $this->checkAtLeastOneAttorney($lpa),
             $this->checkDecisionType($lpa),
             $this->checkCertificateProvider($lpa),
@@ -117,6 +118,72 @@ class LpaComplianceService
             'pass',
             'Donor is 18 or older',
             'The donor is '.$age.' years old and meets the minimum age requirement.'
+        );
+    }
+
+    /**
+     * Every attorney must be 18 or older — Mental Capacity Act 2005 s10(1)(a).
+     *
+     * **W-0104.** The donor's age was checked and the attorneys' was not, though
+     * `lpa_attorneys.date_of_birth` is captured for every one of them. **A child
+     * could be appointed attorney**, and the instrument would have been presented
+     * to the user as compliant right up to the point the Office of the Public
+     * Guardian refused to register it.
+     *
+     * The same statute sets both ages, which is why the omission is easy to miss:
+     * the donor check reads as though it covers "the age requirement".
+     *
+     * A missing date of birth FAILS rather than passing quietly. An attorney whose
+     * age cannot be established is exactly the case this check exists for, and
+     * treating unknown as acceptable would reproduce the defect for anyone who
+     * left the field blank.
+     */
+    private function checkAttorneyAges(LastingPowerOfAttorney $lpa): array
+    {
+        $attorneys = $lpa->attorneys;
+
+        if ($attorneys->isEmpty()) {
+            // Nothing to judge. `checkAtLeastOneAttorney()` owns the "none
+            // appointed" failure; reporting it twice would double-count it.
+            return $this->result(
+                'attorney_ages',
+                'pass',
+                'No attorneys to check',
+                'Attorney ages will be checked once an attorney is appointed.'
+            );
+        }
+
+        $undated = $attorneys->filter(fn ($attorney): bool => ! $attorney->date_of_birth);
+
+        if ($undated->isNotEmpty()) {
+            return $this->result(
+                'attorney_ages',
+                'fail',
+                'Attorney date of birth is required',
+                'A date of birth is missing for '.$undated->pluck('full_name')->filter()->implode(', ')
+                    .'. Every attorney must be 18 or older, and that cannot be confirmed without it.'
+            );
+        }
+
+        $underage = $attorneys->filter(
+            fn ($attorney): bool => Carbon::parse($attorney->date_of_birth)->age < 18
+        );
+
+        if ($underage->isNotEmpty()) {
+            return $this->result(
+                'attorney_ages',
+                'fail',
+                'Every attorney must be 18 or older',
+                $underage->pluck('full_name')->filter()->implode(', ')
+                    .' is under 18. An attorney must be at least 18 when the Lasting Power of Attorney is made.'
+            );
+        }
+
+        return $this->result(
+            'attorney_ages',
+            'pass',
+            'Every attorney is 18 or older',
+            'All '.$attorneys->count().' appointed attorneys meet the minimum age requirement.'
         );
     }
 
