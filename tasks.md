@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 104**  ·  closed 2026-08-31: 28
+**Outstanding: 103**  ·  closed 2026-08-31: 29
 
 ---
 
@@ -40,7 +40,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0133** `done` (endpoint; no UI control yet) — Completing a will is a one-way door — "Complete & Finalise" never returns, so a gift edited or a bequest deleted after finalising can never be re-synced and the will document and the Estate module diverge permanently
 - [x] **W-0144** `closed_invalid` (CSJ ruling — revocation is the law, 28 days is standard) — The generated will revokes every earlier will and imposes a 28-day survivorship period, and the user is never asked about either
 - [x] **W-0155** `closed_invalid` (CSJ ruling — consent is one button, no withdrawal) — Cookie consent can be given and seen but never withdrawn — F-0007 made Decline meaningful and thereby created a right with no interface
-- [ ] **W-0171** `queued` — The estate calculation cannot be audited by the person whose money it is — £500,000 leaves the estate silently, £10,000 is deducted invisibly, and the rule that reverses it all on 2027-04-06 is never mentioned
+- [x] **W-0171** `done` (/estate card; /plans/estate not touched) — The estate calculation cannot be audited by the person whose money it is — £500,000 leaves the estate silently, £10,000 is deducted invisibly, and the rule that reverses it all on 2027-04-06 is never mentioned
 - [x] **W-0462** `done` (wording needs compliance-lead before shipping) — \"Save £74,987\" is attached to an action that leaves the beneficiaries £37,891 worse off — the tax figure is correct and the disclosure is missing
 - [x] **W-0508** `done` — Fourteen more sites read ['married'] alone, so a civil partnership is still treated as single across the Estate API, four agents and three services
 - [x] **W-0513** `done` (coverage declared; death-benefit capture still to decide) — The projected estate models only defined contribution pots, where IHTA 1984 s150A brings in lump sum death benefits too

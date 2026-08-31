@@ -597,6 +597,20 @@ class IHTCalculationService
             // W-0482 — the unused defined contribution fund at the modelled death date,
             // published beside the other projected terms so a surface can show the row.
             'projected_unused_pension' => $projectedData['projected_unused_pension'],
+            // W-0171 — the single largest adjustment to this household's estate
+            // was invisible. £500,000 of defined contribution pensions leaves the
+            // estate, correctly, and the page said nothing: no row, no figure, no
+            // mention that the exclusion REVERSES on a date inside the planning
+            // horizon. A user cannot check a working whose largest line is absent.
+            //
+            // Published as its own term rather than left to be inferred from the
+            // gap between what the user owns and what is taxed.
+            'pension_excluded_from_estate' => round(
+                (float) $this->pensionStore->forUserByType($user, 'dc')->sum('current_fund_value')
+                + ($poolsSpouse && $spouse ? (float) $this->pensionStore->forUserByType($spouse, 'dc')->sum('current_fund_value') : 0.0),
+                2
+            ),
+            'pension_exclusion_ends' => (string) ($ihtConfig['pension_iht_inclusion']['effective_date'] ?? ''),
             'projected_unused_pension_basis' => $projectedData['projected_unused_pension_basis'],
             // W-0482 — the W-0363 caveat went with its cause, and these arrived with the
             // fix. `05-perimeter.md` §4: where the picture is incomplete, it is said at

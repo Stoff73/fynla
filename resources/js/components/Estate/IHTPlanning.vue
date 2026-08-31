@@ -607,6 +607,28 @@
     />
 
     <!-- Standard Recommendations (Non-Married Users OR Married without full second death data) -->
+    <!--
+      W-0171. The single largest adjustment to this household's estate was
+      invisible: £500,000 of defined contribution pensions leaves the estate,
+      correctly, and the page said nothing — no row, no figure, and no mention
+      that the exclusion REVERSES on a date inside the planning horizon. A user
+      is the only person in the loop who knows whether the inputs are right, and
+      they cannot check a working whose largest line is absent.
+
+      The date is read from configuration, never spelled here (Rule 2).
+    -->
+    <div v-if="pensionExcludedFromEstate > 0" class="bg-eggshell-500 rounded-lg p-4 mb-4 text-xs">
+      <p class="text-neutral-500">
+        <span class="font-semibold text-horizon-500">{{ formatCurrency(pensionExcludedFromEstate) }}</span>
+        of pension savings is left out of the figures above, because pension funds sit
+        outside the estate for Inheritance Tax.
+      </p>
+      <p v-if="pensionExclusionEndsLabel" class="text-neutral-500 mt-1">
+        That changes on <span class="font-semibold text-horizon-500">{{ pensionExclusionEndsLabel }}</span>,
+        when unused pots start counting towards the estate. Your bill above does not yet include them.
+      </p>
+    </div>
+
     <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-eggshell-500 rounded-lg p-4">
       <div class="flex">
         <div class="flex-shrink-0">
@@ -1081,6 +1103,25 @@ export default {
       const value = this.ihtData?.charitable_residue_effect;
 
       return value === null || value === undefined ? null : Number(value);
+    },
+
+    /** W-0171 — the pension value the estate figures exclude. */
+    pensionExcludedFromEstate() {
+      return Number(this.ihtData?.pension_excluded_from_estate ?? 0);
+    },
+
+    /**
+     * W-0171 — when that exclusion ends. Configured, never a literal: a Budget
+     * that moves the commencement date moves this sentence with it.
+     */
+    pensionExclusionEndsLabel() {
+      const date = this.ihtData?.pension_exclusion_ends;
+
+      if (!date) return null;
+
+      return new Date(date).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      });
     },
 
     charitableFiguresDiffer() {

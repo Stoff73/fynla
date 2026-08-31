@@ -4,7 +4,7 @@ title: The estate calculation cannot be audited by the person whose money it is 
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: product-lead
-status: queued
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-08-21T21:20:00Z
@@ -172,3 +172,21 @@ test.
   **`grep -rn 'W-0171' app/ resources/` returns nothing**, so the provenance work this item asks
   for has not been started. The item's own closing note is the reason to keep it: the absence of
   provenance is what makes the next wrong number undiscoverable.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed. Two of the three adjustments were already disclosed; the largest was not.**
+
+  Checked each of the three the item named against the current code rather than assuming:
+
+  - **£10,000 charitable legacy — ALREADY FIXED.** `IHTCalculationTable.vue:227-246` renders the s23 exemption as its own row below the allowances, with the comment recording that the old row was gated on a what-if toggle that never loaded (W-0134).
+  - **£150,000 gift deduction — ALREADY FIXED.** `nrbGiftDeduction` is carried in the allowances block and rendered, so the £150,000 named in prose now has a row and the column adds up (W-0134).
+  - **£500,000 of pensions — STILL INVISIBLE.** Nothing on the page named it. This was the single largest adjustment to the household's estate, and the page had no row, no figure, and no mention that the exclusion reverses on a date **19 months inside the planning horizon**.
+
+  **That last one is the item's actual argument and it is now answered.** The service publishes `pension_excluded_from_estate` — the household's defined contribution total, pooled across the spouse where the estate pools — as its own term rather than leaving it to be inferred from the gap between what the user owns and what is taxed. `pension_exclusion_ends` carries the configured commencement date.
+
+  The page states both: *"£500,000 of pension savings is left out of the figures above… That changes on 6 April 2027, when unused pots start counting towards the estate. Your bill above does not yet include them."* **The date is read from configuration and never spelled in the template** (Rule 2), so a Budget that moves it moves the sentence.
+
+  **Why this is a defect and not an editorial improvement**, restated because the item had to argue it: an estate calculation shown to a user is a working, not a verdict, and the user is the only person in the loop who knows whether the inputs are right. A working whose largest line is absent cannot be checked by anyone.
+
+  **Tested:** 143 estate component tests; 7 persona locks unmoved (£1,728,780 / £343,512). Pint clean.
+
+  **NOT DONE.** Not browser-verified, so the "occurrences on the page" table in this item has not been re-measured — that is the check that would prove it end to end. `/plans/estate` and the printed plan were not touched; only `/estate`'s card carries the disclosure.
