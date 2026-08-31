@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 83**  ·  closed 2026-08-31: 49
+**Outstanding: 81**  ·  closed 2026-08-31: 51
 
 ---
 
@@ -72,9 +72,9 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0126** `done` (already fixed; 13 call sites) — Seven more holding-valuation copies sat outside the one home, and three were in one controller
 - [ ] **W-0127** `queued` — An imported holding can store units and a value that contradict each other, and reconciling silently overwrites one of them
 - [x] **W-0131** `done` (read gated; write left for a real mutation point) — The Inheritance Tax calculation cache is never written — `persist` is never passed true, so `iht_calculations` is empty for every user and every estate view recomputes in full
-- [ ] **W-0140** `gated` — /plans/estate states an Annual Expenditure neither user entered — £39,420 against a recorded £29,400, and £7,500 for a user with no expenditure recorded at all — and it drives Disposable Income
+- [x] **W-0140** `done` (already fixed) — /plans/estate states an Annual Expenditure neither user entered — £39,420 against a recorded £29,400, and £7,500 for a user with no expenditure recorded at all — and it drives Disposable Income
 - [x] **W-0142** `done` (create paths; update guarded separately) — The shared-asset counterparty rule guards chattels only — properties and mortgages can still be orphaned today, through the forms and through Fyn
-- [ ] **W-0143** `gated` — The will builder's signing step tells the user these steps make their will legally valid — the same overclaim compliance just removed from the document footer
+- [x] **W-0143** `done` (already fixed, guarded) — The will builder's signing step tells the user these steps make their will legally valid — the same overclaim compliance just removed from the document footer
 - [ ] **W-0145** `queued` — Completion is not blocked when a Lasting Power of Attorney names a certificate provider the statute disqualifies — the will builder blocks its equivalent
 - [ ] **W-0152** `queued` — Divorce terminates an attorney's appointment and the instrument may opt out of that — an election the wizard never offers and the document never mentions
 - [ ] **W-0153** `queued` — A legal rule stated in Fynla's own unattributed voice on a will sits beside an attributed one on a power of attorney, and nothing makes the difference visible
