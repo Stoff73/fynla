@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 87**  ·  closed 2026-08-31: 45
+**Outstanding: 84**  ·  closed 2026-08-31: 48
 
 ---
 
@@ -53,7 +53,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0031** `done` (already fixed, guarded) — education_level validation accepts three values the column enum cannot hold — latent 500 for Fyn and any API client
 - [x] **W-0032** `done` (already fixed) — scheme_status is collected by both pension forms and silently discarded on every save — no such column exists
 - [ ] **W-0034** `gated` — /m has no Health & Lifestyle section at all — the data source is fixed but no mobile screen renders it
-- [ ] **W-0040** `gated` — A deliberate 100/0 joint split is unexpressible, and three acceptance criteria contradict each other on whether it should be
+- [x] **W-0040** `done` (already fixed; CSJ ruling encoded) — A deliberate 100/0 joint split is unexpressible, and three acceptance criteria contradict each other on whether it should be
 - [ ] **W-0044** `gated` — The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
 - [ ] **W-0054** `in-progress` — Two tier caps, two gating philosophies — life events block before entry, detailed expenditure blocks after submit with a silent 403
 - [ ] **W-0090** `queued` — Native never says a retirement target was inferred — it shows nothing at all, where web and /m now show the derived figure and label it
@@ -69,7 +69,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0112** `gated` — Editing a linked spouse's name never reaches their account — `users.name` is an appended accessor with no column, so the sync is silently discarded
 - [ ] **W-0113** `gated` — Two Fyn tools write a spouse and only one can link — `create_family_member` has no email parameter, so it can only ever produce an unlinked household
 - [ ] **W-0115** `gated` — Two more relationship formatters survive outside the family surfaces, and one of them can still tell a user their partner is a dependent
-- [ ] **W-0126** `gated` — Seven more holding-valuation copies sat outside the one home, and three were in one controller
+- [x] **W-0126** `done` (already fixed; 13 call sites) — Seven more holding-valuation copies sat outside the one home, and three were in one controller
 - [ ] **W-0127** `queued` — An imported holding can store units and a value that contradict each other, and reconciling silently overwrites one of them
 - [x] **W-0131** `done` (read gated; write left for a real mutation point) — The Inheritance Tax calculation cache is never written — `persist` is never passed true, so `iht_calculations` is empty for every user and every estate view recomputes in full
 - [ ] **W-0140** `gated` — /plans/estate states an Annual Expenditure neither user entered — £39,420 against a recorded £29,400, and £7,500 for a user with no expenditure recorded at all — and it drives Disposable Income
@@ -79,7 +79,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0152** `queued` — Divorce terminates an attorney's appointment and the instrument may opt out of that — an election the wizard never offers and the document never mentions
 - [ ] **W-0153** `queued` — A legal rule stated in Fynla's own unattributed voice on a will sits beside an attributed one on a power of attorney, and nothing makes the difference visible
 - [ ] **W-0156** `queued` — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
-- [ ] **W-0161** `gated` — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
+- [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
 - [ ] **W-0178** `queued` — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
 - [ ] **W-0189** `gated` — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
 - [ ] **W-0196** `queued` — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
