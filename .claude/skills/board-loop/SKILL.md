@@ -1,6 +1,6 @@
 ---
 name: board-loop
-description: The loop for clearing the Fynla work board. Use whenever CSJ says "clear the board", "fix the board", "work the board", "board loop", or points at outstanding W-NNNN items and says fix them. One item at a time, verify-before-fixing, invoke superpowers:systematic-debugging on every live bug, test only the diff, update the board immediately, then move on. Never parallel agents, never a full suite per item, never a report before green.
+description: The loop for clearing the Fynla work board. Use whenever CSJ says "clear the board", "fix the board", "work the board", "board loop", or points at outstanding W-NNNN items and says fix them. One item at a time, verify-before-fixing, invoke superpowers:systematic-debugging on every live bug, test only the diff, update the board immediately, then move on. Never parallel agents, never a full suite per item, never a report before green. Always use tasks.md in the root as your reference for what has been done, and always update each task/bug as you go.
 ---
 
 # Board loop
@@ -46,7 +46,7 @@ silent closure reads as no closure.
    delete it, and never weaken an assertion to get green.
 9. **Update the board there and then** — status, the fix at `file:line`, the
    test that now covers it, and anything the acceptance asked for that you did
-   NOT do. Say `W-NNNN is CLOSED. Board updated to done.` Then step 1 again.
+   NOT do. Say `W-NNNN is CLOSED. Board updated to done. Tasks.md updated` Then step 1 again.
 
 Loop until every item is green, tested and closed. **Reports come after green,
 never instead of it.**
