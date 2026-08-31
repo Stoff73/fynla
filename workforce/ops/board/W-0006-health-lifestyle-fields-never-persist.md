@@ -4,7 +4,7 @@ title: Health & Lifestyle form silently drops health_status and smoking_status �
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-20T21:55:00Z
 claimed: 2026-08-21T09:10:00Z
@@ -231,3 +231,11 @@ showing "Not specified" is a read/expose failure for those users, not a missing 
 
 Evidence: `tests/Persona/20-08-2026_run/pass-a-web/24-web-onboarding-step1-filled.png`;
 run report R-11.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  All three fields now survive the round trip. `UpdatePersonalInfoRequest:75-78` accepts `health_status` (nullable), `smoking_status` (NOT nullable — the comment at `:76` records that `users.smoking_status` is NOT NULL DEFAULT 'never', which is what the original silent drop turned on) and `education_level`. `UserProfileController:102-109` passes `$request->validated()` to `UserProfileService::updatePersonalInfo`, so nothing is filtered between the rule and the write.
+
+  The enum values match the persona file exactly: `ProfileEnums::HEALTH_STATUSES` contains `yes`, `SMOKING_STATUSES` contains `never`, `EDUCATION_LEVELS` contains `postgraduate` — the three values `tests/Persona/peak_earners.md:26-28` requires.
+
+  **Tested:** `tests/Unit/Database/ProfileEnumColumnsTest.php` — 4 passed, 7 assertions. It pins each constant to its column, so a validation rule drifting from its enum fails here rather than silently dropping the field again.
