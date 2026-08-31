@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 92**  ·  closed 2026-08-31: 40
+**Outstanding: 91**  ·  closed 2026-08-31: 41
 
 ---
 
@@ -98,7 +98,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0311** `queued` — The native Pensions category still calls the figure "Accessible pension capital" and carries no exclusion note, so a Defined Benefit holder sees a bare £0
 - [ ] **W-0321** `queued` — Nothing enforces the 100% holdings allocation total on write, so any account can be pushed past 100% and into the state W-0257 could not escape
 - [ ] **W-0324** `queued` — holdings.*.dividend_yield has no rule in any nested holdings array, so a yield entered through the account or pension form is silently discarded
-- [ ] **W-0330** `queued` — A joint owner is shown Edit and Delete buttons on a shared investment account that can only ever return 404
+- [x] **W-0330** `done` (web; native is W-0496) — A joint owner is shown Edit and Delete buttons on a shared investment account that can only ever return 404
 - [ ] **W-0334** `queued` — The estate projection silently ignores a user's chosen investment growth method, because the code that honours it is unreachable
 - [x] **W-0335** `done` (2 fixed already; 3rd is correct behaviour) — /api/savings returns 'analysis' => null as a placeholder, nothing dispatches the analyze action, and the store then reads a key that does not exist
 - [ ] **W-0337** `queued` — W-0280 §1 and F-0024 §10 state a double-count mechanism that cannot occur, and a 59-site sweep is queued behind it

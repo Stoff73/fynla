@@ -44,7 +44,19 @@
             <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ account.provider }}</h1>
             <p class="text-base sm:text-lg text-neutral-500 mt-1">{{ account.account_name }}</p>
           </div>
-          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+          <!--
+            W-0330. A joint owner was shown Edit and Delete on an account they can
+            only ever view: `InvestmentController:498` refuses any update where
+            `$account->user_id !== $user->id`, so the buttons were a dead end that
+            failed at the API with no explanation on screen.
+
+            The backend rule is right and unchanged — this removes the affordance
+            that contradicted it. `isPrimaryOwner()` is the shared answer from
+            `@/utils/ownership`, which prefers the API's own `is_primary_owner`
+            flag and falls back to the id comparison, so the client cannot reach a
+            different conclusion from the server (Rule 20).
+          -->
+          <div v-if="canManageAccount" class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
             <button
               v-preview-disabled="'edit'"
               @click="showEditModal = true"
@@ -60,6 +72,14 @@
               Delete
             </button>
           </div>
+          <!--
+            Said rather than left blank. A control silently missing reads as a bug
+            to the person it is missing for; naming the reason is the difference
+            between a restriction and a glitch.
+          -->
+          <p v-else class="text-sm text-neutral-500 shrink-0">
+            {{ coOwnerName(account) || 'The primary owner' }} manages this account.
+          </p>
         </div>
 
         <!-- Key Metrics -->
@@ -464,6 +484,7 @@
 
 <script>
 import { mapActions, mapState, mapGetters } from 'vuex';
+import { coOwnerName, isPrimaryOwner } from '@/utils/ownership';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { CHART_COLORS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
@@ -569,6 +590,18 @@ export default {
     ...mapState('retirement', ['profile']),
     ...mapState('aiFormFill', ['pendingFill']),
     ...mapGetters('taxConfig', ['isaAnnualAllowance']),
+    ...mapGetters('auth', ['currentUser']),
+
+    /**
+     * W-0330 — whether this viewer may edit or delete the account.
+     *
+     * The server already refuses a joint owner's write
+     * (`InvestmentController:498`). This is the same question asked on the
+     * client so the affordance matches the rule, not a second rule.
+     */
+    canManageAccount() {
+      return isPrimaryOwner(this.account, this.currentUser?.id ?? null);
+    },
 
     // ---- Account type guards ----
     detailComponentType() {
@@ -870,6 +903,7 @@ export default {
   },
 
   methods: {
+    coOwnerName,
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData', 'createHolding', 'updateHolding']),
 
     // ---- Navigation ----
