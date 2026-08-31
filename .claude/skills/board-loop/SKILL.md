@@ -1,6 +1,6 @@
 ---
 name: board-loop
-description: The loop for clearing the Fynla work board. Use whenever CSJ says "clear the board", "fix the board", "work the board", "board loop", or points at outstanding W-NNNN items and says fix them. One item at a time, verify-before-fixing, invoke superpowers:systematic-debugging on every live bug, test only the diff, update the board immediately, then move on. Never parallel agents, never a full suite per item, never a report before green. Always use tasks.md in the root as your reference for what has been done, and always update each task/bug as you go.
+description: The loop for clearing the Fynla work board. Use whenever CSJ says "clear the board", "fix the board", "work the board", "board loop", or points at outstanding W-NNNN items and says fix them. One item at a time, verify-before-fixing, invoke superpowers:systematic-debugging on every live bug, test only the diff, update the board immediately, then move on. Never parallel agents, never a full suite per item, never a report before green. Always use tasks.md in the root as your reference for what has been done, and always update each task/bug as you go. NO iOS test, fixes or nay changes are done for this, this is only for web and /m route fixes. ALL iOS issues are deferred, and should be noted as such.
 ---
 
 # Board loop
