@@ -43,6 +43,11 @@ class StorePropertyRequest extends FormRequest
     {
         $validator->after(function ($v) {
             $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
+
+            // W-0142 — a shared property must name who it is shared with. The
+            // chattel requests have refused this since W-0025; properties and
+            // mortgages never did.
+            $this->validateSharedOwnershipCounterparty($v, $this->input('ownership_type'), $this->all());
         });
     }
 

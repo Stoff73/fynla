@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Traits\ValidatesSharedOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreMortgageRequest extends FormRequest
 {
+    use ValidatesSharedOwnership;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -32,6 +35,25 @@ class StoreMortgageRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      */
+    /**
+     * W-0142 — a jointly-held mortgage must name the other borrower.
+     *
+     * `ownership_type` and `joint_owner_id` were both accepted here with nothing
+     * requiring the second where the first says the debt is shared, so a joint
+     * mortgage could be stored with half of it owed by nobody.
+     *
+     * This is not the same question as the SHARE, which resolves from the
+     * securing property rather than from the mortgage row (CSJ's W-0228 ruling)
+     * — hence the counterparty check and not the split check. The two disagreeing
+     * is exactly the case W-0338 had to handle on the read side.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($v) {
+            $this->validateSharedOwnershipCounterparty($v, $this->input('ownership_type'), $this->all());
+        });
+    }
+
     public function rules(): array
     {
         return [

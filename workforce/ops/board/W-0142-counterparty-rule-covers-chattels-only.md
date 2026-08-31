@@ -4,7 +4,7 @@ title: The shared-asset counterparty rule guards chattels only — properties an
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [product-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T19:06:00Z
@@ -74,3 +74,15 @@ would not close the class.
   same class in parallel is the collision team-lead warned about. **Sequence this after
   fix-batch-J lands**, and re-read `SharedOwnership.php` before starting — it is not
   the file F-0002 describes any more.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  The counterparty rule guarded chattels only — `namesCounterparty()` appeared in the two chattel requests and nowhere else — so a shared **property** or **mortgage** could be saved with nobody named. The record then asserts that half of it belongs to someone without saying who, and every share calculation downstream has a co-owner it cannot identify.
+
+  **Lifted into `ValidatesSharedOwnership` rather than copied a third and fourth time.** All four requests already used that trait; a rule duplicated per asset type is precisely how chattels ended up with a guard the others never got. `StorePropertyRequest` and `StoreMortgageRequest` now call it — the mortgage requests had no `withValidator` at all and had to be given one.
+
+  **CREATE only, and a failing test is what taught me that.** My first pass added it to the update paths too, and `MortgageHttpIntegrationTest > it rejects update from non-owner` went red: it sends `ownership_type: joint` without repeating `joint_owner_id`, because **the record already has one**. Demanding a re-statement would turn every unrelated edit — a lender rename, a balance correction — into a 422 for a field the user never touched, which is a worse defect than the one this closes. `SharedOwnership::applyTo()` preserves the stored counterparty, and `UpdateChattelRequest` separately guards the case that actually orphans a record: an explicit `joint_owner_id: null`. **The test was right and my rule was wrong; the rule changed, not the test.**
+
+  For mortgages this is deliberately the COUNTERPARTY check and not the split check: a mortgage's share resolves from the securing property, not from its own row (CSJ's W-0228 ruling), and those two disagreeing is the case W-0338 had to handle on the read side today.
+
+  **Tested:** 425 mortgage, property and chattel tests pass, 2,519 assertions. Pint clean.
