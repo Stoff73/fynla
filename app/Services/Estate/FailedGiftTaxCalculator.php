@@ -124,6 +124,25 @@ final class FailedGiftTaxCalculator
             ->filter(fn (array $g): bool => $g['value'] > 0)
             ->values();
 
+        // W-0367 — THE ANNUAL EXEMPTION IS NOT APPLIED HERE YET, deliberately.
+        //
+        // `App\Services\Estate\GiftAnnualExemption` implements IHTA 1984 s19 and
+        // is proven by seven tests: chronological allocation within a tax year, the
+        // 6 April boundary, one year of carry-forward with the current year spent
+        // first, and the allowance read from configuration.
+        //
+        // It is not wired in because switching it on changes the chargeable value
+        // of EVERY gift, and therefore every household's cumulation and nil rate
+        // band. Ten assertions in `FailedGiftTaperReliefTest` are each derived from
+        // a specific statutory figure, and re-deriving them at speed is how a wrong
+        // Inheritance Tax bill ships. The item's own acceptance requires a
+        // `tax-compliance-reviewer` pass on this change; that has not happened.
+        //
+        // The remaining work is: re-derive that suite against net values, wire the
+        // service here BEFORE the window filter (an out-of-window gift still
+        // consumed its year's allowance, so excluding it would hand that allowance
+        // to a later gift twice), and take the review.
+
         $totals = [
             'pets_in_7_years' => 0.0,
             'clts_in_7_years' => 0.0,
