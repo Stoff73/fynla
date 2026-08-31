@@ -22,6 +22,35 @@ use App\Services\TaxConfigService;
  */
 final class EstateDefaults
 {
+    // ==================== Lasting Power of Attorney registration ====================
+
+    /**
+     * What the Office of the Public Guardian charges to register one Lasting
+     * Power of Attorney, and how long it says registration takes.
+     *
+     * **W-0109 — one home.** These two figures were written out in FOUR places
+     * with no shared source: twice in `LpaComplianceService` and twice in the
+     * frontend (`LpaWizardSteps/ReviewStep.vue`, `PowerOfAttorneyTab.vue`).
+     * Nothing connected them, so the OPG changing either would have needed four
+     * edits by someone who knew all four existed.
+     *
+     * **The timescale was already stale, which is the proof the arrangement does
+     * not work:** every copy said "up to 8 weeks" long after the OPG's published
+     * figure moved to 20. Four copies drifted together because none of them was
+     * anybody's responsibility.
+     *
+     * Not in `TaxConfigService`: this is an administrative fee charged by an
+     * agency, not a tax rate, and putting it there would imply it moves with the
+     * tax year. It does not.
+     *
+     * The frontend has its own copy in `resources/js/constants/lpaRegistration.js`
+     * — two languages, one home each, cross-referenced. Change one, change both.
+     */
+    public const LPA_REGISTRATION_FEE = 82;
+
+    /** Upper bound of the OPG's published registration timescale, in weeks. */
+    public const LPA_REGISTRATION_WEEKS = 20;
+
     // ==================== Thresholds ====================
 
     /**

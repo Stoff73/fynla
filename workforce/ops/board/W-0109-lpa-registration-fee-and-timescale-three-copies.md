@@ -4,7 +4,7 @@ title: The Lasting Power of Attorney registration fee and timescale are stated i
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T17:48:00Z
@@ -205,3 +205,21 @@ owner.
   wrong at the top of the range **and** drops the condition — gov.uk says 8 to 10 weeks
   *if there are no mistakes in the application*, and the condition is the load-bearing
   half given Fynla's own generator is a place mistakes come from.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed. Four copies, not three, and the timescale was indeed stale.**
+
+  The fee and timescale were written out in **four** places with no shared source: `LpaComplianceService` twice (`:529`, `:537`), `LpaWizardSteps/ReviewStep.vue` twice, and `PowerOfAttorneyTab.vue`. Nothing connected them, so the Office of the Public Guardian changing either would have needed four edits by someone who knew all four existed.
+
+  **The stale timescale is the proof the arrangement does not work.** Every copy said *"up to 8 weeks"* long after the OPG's published figure moved to **20**. All four drifted together — not because anyone got it wrong, but because **none of them was anybody's responsibility.** Corrected to 20 weeks everywhere; the £82 fee was right.
+
+  **One home per language, cross-referenced:**
+  - `App\Constants\EstateDefaults::LPA_REGISTRATION_FEE` / `::LPA_REGISTRATION_WEEKS`
+  - `resources/js/constants/lpaRegistration.js`
+
+  Each docblock names the other, so a reader who finds one is told the second exists. Two languages cannot share a constant without an API round trip, and inventing one for two integers would be worse than the problem.
+
+  **Deliberately NOT in `TaxConfigService`:** this is an administrative fee charged by an agency, not a tax rate, and putting it there would imply it moves with the tax year. It does not — the OPG changes it on its own schedule.
+
+  **Tested:** 103 LPA tests pass (376 assertions), 734 frontend component tests. Pint clean.
+
+  **NOT DONE.** Not browser-verified. `/m` and iOS have no LPA surface at all — that is **W-0110** and is not double-counted here.

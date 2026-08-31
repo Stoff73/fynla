@@ -107,8 +107,9 @@
       <ol class="list-decimal list-inside space-y-1">
         <li>Print the completed form</li>
         <li>Sign the form with wet ink (donor, attorneys, certificate provider, witnesses)</li>
-        <li>Register with the Office of the Public Guardian (currently £82 per Lasting Power of Attorney)</li>
-        <li>Wait for registration confirmation (up to 8 weeks)</li>
+        <!-- W-0109 — one home, `@/constants/lpaRegistration`. -->
+        <li>Register with the Office of the Public Guardian (currently £{{ lpaRegistrationFee }} per Lasting Power of Attorney)</li>
+        <li>Wait for registration confirmation (up to {{ lpaRegistrationWeeks }} weeks)</li>
         <li>Return here to mark as registered and add the reference number</li>
       </ol>
     </div>
@@ -116,6 +117,10 @@
 </template>
 
 <script>
+// W-0109 — the one home for the OPG fee and timescale, mirrored by
+// `App\Constants\EstateDefaults`.
+import { LPA_REGISTRATION_FEE, LPA_REGISTRATION_WEEKS } from '@/constants/lpaRegistration';
+
 export default {
   name: 'ReviewStep',
 
@@ -125,6 +130,9 @@ export default {
   },
 
   computed: {
+    lpaRegistrationFee: () => LPA_REGISTRATION_FEE,
+    lpaRegistrationWeeks: () => LPA_REGISTRATION_WEEKS,
+
     primaryAttorneys() {
       return (this.formData.attorneys || []).filter(a => a.attorney_type === 'primary');
     },

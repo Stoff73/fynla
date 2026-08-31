@@ -102,7 +102,7 @@
           <p>
             Fynla helps you record and organise your Lasting Power of Attorney details. To make a Lasting Power of
             Attorney legally valid, it must be printed, signed with wet ink signatures, and registered with the
-            Office of the Public Guardian (currently £82 per registration). We recommend seeking professional
+            Office of the Public Guardian (currently £{{ lpaRegistrationFee }} per registration). We recommend seeking professional
             legal advice when creating your Lasting Power of Attorney.
           </p>
         </div>
@@ -145,6 +145,9 @@
 </template>
 
 <script>
+// W-0109 — the one home for the OPG fee and timescale, mirrored by
+// `App\Constants\EstateDefaults`.
+import { LPA_REGISTRATION_FEE } from '@/constants/lpaRegistration';
 import { mapGetters, mapActions } from 'vuex';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 import LpaSummaryCard from './LpaSummaryCard.vue';
@@ -176,6 +179,8 @@ export default {
   },
 
   computed: {
+    lpaRegistrationFee: () => LPA_REGISTRATION_FEE,
+
     ...mapGetters('estate', ['lpas', 'lpaLoading', 'propertyFinancialLpas', 'healthWelfareLpas']),
 
     hasPropertyFinancial() {

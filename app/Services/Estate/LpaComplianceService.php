@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Constants\EstateDefaults;
 use App\Models\Estate\LastingPowerOfAttorney;
 use Carbon\Carbon;
 
@@ -526,7 +527,9 @@ class LpaComplianceService
                 'registration',
                 'warning',
                 'Not yet registered (currently in draft)',
-                'A Lasting Power of Attorney must be registered with the Office of the Public Guardian before it can be used. Registration takes up to 8 weeks and costs £82.'
+                'A Lasting Power of Attorney must be registered with the Office of the Public Guardian before it '
+                    .'can be used. Registration takes up to '.EstateDefaults::LPA_REGISTRATION_WEEKS.' weeks and '
+                    .'costs £'.EstateDefaults::LPA_REGISTRATION_FEE.'.'
             );
         }
 
@@ -534,7 +537,8 @@ class LpaComplianceService
             'registration',
             'warning',
             'Not yet registered with the Office of the Public Guardian',
-            'This Lasting Power of Attorney should be registered before it is needed. Registration takes up to 8 weeks and costs £82.'
+            'This Lasting Power of Attorney should be registered before it is needed. Registration takes up to '
+                .EstateDefaults::LPA_REGISTRATION_WEEKS.' weeks and costs £'.EstateDefaults::LPA_REGISTRATION_FEE.'.'
         );
     }
 
