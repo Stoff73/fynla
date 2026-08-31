@@ -4,7 +4,7 @@ title: The charitable position is stated four different ways across two screens 
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-21T20:35:00Z
@@ -142,3 +142,24 @@ and treat criterion 4 as advanced rather than open.
   **Re-stated for whoever picks it up:** "one number everywhere" is the WRONG target. The s23(1)
   exemption pools across both wills (£20,000); the Schedule 1A 10% rate test is the survivor's
   will alone (£10,000). Two figures answering two statutory questions is correct.
+
+- 2026-08-31 build-lead: **CLOSED — its blocker cleared the same day, and criterion 1 is re-worded
+  as the item's own note instructed rather than claimed as written.**
+
+  **Criterion 4 — delivered.** W-0452 is verified closed today. There is now ONE division, in
+  `determineIHTRate()`, and both surfaces read its answer:
+  `EstateAgent:752-756` and `EstatePlanService:634-648` each take
+  `$charitableAnalysis['charitable_percent']` instead of recomputing it. The "4.2% on a page whose
+  Net Estate row reads £1,728,780" contradiction cannot recur.
+
+  **Criterion 1 — re-worded, per the 2026-08-23 tax-compliance ruling recorded above.**
+  "One number everywhere" was the wrong target and must not be reinstated. The correct statement,
+  which the code now meets, is: **the s23(1) exemption pools across both wills (£20,000); the
+  Schedule 1A 10% rate test is the survivor's will alone (£10,000); and each figure is labelled as
+  the question it answers.** Two figures answering two statutory questions is correct — summing
+  both wills for the 10% test would over-qualify households for the 36% rate.
+
+  **Criterion 1's real defect — one figure reaching the card under a label claiming it was the
+  other — was fixed under W-0399**, and `EstateAgent:758` / `EstatePlanService:651` now name the
+  SURVIVOR whose position the figures describe rather than whoever is logged in (W-0451 C1), which
+  was the "two accounts told different things" half.

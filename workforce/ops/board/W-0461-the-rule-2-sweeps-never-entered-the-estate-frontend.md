@@ -204,3 +204,34 @@ The frontend scope gap recorded here is folded into **W-0463** acceptance 2. Thi
 found that both Rule 2 sweeps read PHP and one Vue file; W-0463 adds the other half —
 a configured rule with NO consumer emits no literal to find and no output to move, so
 it is invisible to `RateLiteralsComeFromConfigurationTest` as well as to a grep.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev` — ALL NINE instances stand, the
+  acceptance's own criterion 1 is not met, and instance 6 has GROWN.**
+
+  **The five LIVE instances, each still literal:**
+  1. `IHTPlanning.vue:246` — *"The **10%** test that decides the reduced rate…"*
+  2. `EstateCurrentSituation.vue:83` — *"Threshold for **36%** Rate"*
+  3. `planPrintMixin.js:2290` — the same label, second mechanism (Rule 20). The comment at
+     `EstateCurrentSituation.vue:103` now acknowledges the duplicate and it is still a duplicate.
+  4. `IHTPlanning.vue:621` — *"the Home Allowance (up to **£175,000**)"*
+  5. `TrustPlanningStrategy.vue:52` and `:165` — *"40% death rate"*, *"If Death Within 7 Years (40%)"*
+
+  **The four DEAD instances also stand**, in components nothing mounts:
+  `IHTMitigationStrategies.vue:164` (still the wrong statement of law — "10% **of estate**") and
+  `:167`; `GiftingTimelineChart.vue:61`/`:69`.
+
+  **Instance 6 is now WORSE than filed.** `EstateOverviewCard.vue` carries
+  `this.futureTaxableEstate * 0.40` at **:158 AND :169** — two sites, not one. A rate in
+  arithmetic in the frontend, computing a displayed liability, and still the class a prose sweep
+  is structurally blind to.
+
+  **Criterion 1 — "a guard that moves a configured rate and asserts on a rendered Vue template" —
+  is NOT met, and this criterion IS the item.** The nearest thing,
+  `tests/frontend/components/Estate/IHTPlanningRateLabel.test.js`, belongs to W-0132: it calls
+  `IHTPlanning.computed.ihtRateLabel` directly, deliberately not through a mount, and asserts on
+  the FIELD the label reads. It moves no configured rate and renders no template. Re-hardcoding
+  any of the nine still leaves the whole suite green.
+
+  **Convergence worth recording:** W-0432 was re-measured the same day and its only two survivors
+  are this item's instances 4 and the admin-facing `TaxSettingsController:330` tenth instance. The
+  charitable rate family is now down to ONE remaining set, owned here.

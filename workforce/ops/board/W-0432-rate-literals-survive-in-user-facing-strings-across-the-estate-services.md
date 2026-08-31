@@ -309,3 +309,35 @@ figure inside a Rule 2 fix. Reviewer's Q2.
 - [ ] The exclusions above are preserved. A guard that bans percentage literals
       outright would break correct code; if one is written, it needs an exception
       list naming why each excluded number is not a tax value.
+
+- 2026-08-31 build-lead: **RE-MEASURED against `dev` — six of the eight are FIXED, TWO SURVIVE,
+  and the two survivors are W-0461's, so the two items have converged on one remaining set.**
+
+  **Fixed, each verified by opening the line:**
+  1. **`WillAnalysisService`'s `* 0.04` — GONE.** `:112` now reads
+     `$ihtCalculation['charitable_rate_saving']`, so the figure comes from the calculation instead
+     of a baked-in 40−36 differential. This was the item's highest-priority criterion.
+  2. **`EstatePlanService`'s statement of law — CORRECTED.** `:575` reads *"Reduced rate of %s
+     applies: %s or more of the estate **above the nil rate band** is left to charity"* — the
+     Schedule 1A baseline, not the net estate.
+  3. **`PlanConfigService::getCharitableGivingThreshold()` — RETIRED as a second home.** `:204`
+     delegates to `TaxConfigService::getCharitableThresholdPercent()`; the docblock records that
+     `estate.charitable_giving_threshold_percent` is now inert and left in the seeder deliberately,
+     because deleting a seeded key is a data change.
+  4. **`IHTPlanning.vue`'s three-literal line — INTERPOLATED**, now
+     `{{ formatPercent(ihtStandardRate) }}` / `{{ formatPercent(ihtReducedRate) }}` /
+     `{{ charitableThresholdLabel }}`.
+  5. **`GiftingStrategy`'s control-flow literal — FIXED.** `:239-240` compares against
+     `getCharitableThresholdPercent() * 100`, so a household between 10% and 12% is no longer
+     silently never told it could qualify. This was the ninth instance the item flagged as
+     possibly a seventh axis.
+  6. **`ContributionWaterfallService`'s 25% bonus — FIXED**, now `$bonusRateLabel` at :195 and :214.
+
+  **STILL LIVE, both of them:**
+  - **`IHTPlanning.vue:621`** — *"the Home Allowance (up to **£175,000**)"*. This is W-0399's C4
+    item 4, **named by two verdicts and now survived four batches**, standing three lines below a
+    sentence this same item made configuration-driven. The residence nil-rate band is frozen only
+    until April 2028.
+  - **`TaxSettingsController:330`** — `sprintf('%g%% (if 10%%+ to charity)', ((float) ($iht['reduced_rate'] ?? 0.36)) * 100)`.
+    Two literals in one line, inside the admin screen that displays the tax settings themselves.
+    **`grep -rn '?? 0.36' app/` now returns exactly one non-comment hit, and this is it.**
