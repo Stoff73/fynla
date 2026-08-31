@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 74**  ·  closed 2026-08-31: 58
+**Outstanding: 72**  ·  closed 2026-08-31: 60
 
 ---
 
@@ -105,7 +105,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0338** `done` — The headline estate's liability reader can drop a co-owner's share of a mortgage the row does not name, inflating the estate and the tax
 - [ ] **W-0346** `queued` — A granted spouse permission cannot be withdrawn — the status enum has no revoked value
 - [ ] **W-0351** `queued` — A mixed-rate mortgage's fixed and variable rates are stored correctly and can never be displayed — the detail view gates on two fields MortgageResource does not serialise
-- [ ] **W-0366** `queued` — Chargeable lifetime transfers made 7–14 years before death wrongly reduce the death estate's own nil rate band, and the comment above the line states the correct rule
+- [x] **W-0366** `done` (already fixed) — Chargeable lifetime transfers made 7–14 years before death wrongly reduce the death estate's own nil rate band, and the comment above the line states the correct rule
 - [ ] **W-0367** `queued` — Gift values are taken gross, so none of the lifetime exemptions that reduce a chargeable transfer are applied, overstating tax in every case
 - [ ] **W-0369** `queued` — The residence nil rate band may be wrongly excluded from the 10% charitable-rate baseline — flagged for verification, not asserted
 - [ ] **W-0370** `queued` — The 7- and 14-year statutory gift windows are hardcoded while TaxConfigService already carries them
@@ -141,7 +141,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0510** `queued` — A drawn-out pension fund never reports as depleted, so "years funded" is always the full horizon
 - [ ] **W-0516** `queued` — The State Pension age is a literal 67 in the retirement engine and a configured 66 everywhere else
 - [ ] **W-0518** `queued` — Fyn captures salary sacrifice without asking whether the recorded employment income is before or after the pay given up
-- [ ] **W-0522** `gated` — The trust strategy still hardcodes the taper relief band table, the last copy in the estate services
+- [x] **W-0522** `done` (already fixed) — The trust strategy still hardcodes the taper relief band table, the last copy in the estate services
 - [x] **W-0525** `done` — Normal Expenditure Out of Income is a label on a strategy and is never computed
 - [x] **W-0526** `done` — The 14-year rule is configured and mentioned nowhere in the estate or tax services
 
