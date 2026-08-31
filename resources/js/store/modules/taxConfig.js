@@ -84,6 +84,9 @@ const getters = {
   ihtRnrbTaperThreshold: (state) => state.config?.inheritance_tax?.rnrb_taper_threshold ?? null,
   ihtStandardRate: (state) => state.config?.inheritance_tax?.standard_rate ?? null,
   ihtReducedRate: (state) => state.config?.inheritance_tax?.reduced_rate ?? null,
+  // W-0515 — when unused defined contribution pots start counting towards the
+  // estate. Configured, so a Budget that moves it moves every sentence naming it.
+  ihtPensionInclusionDate: (state) => state.config?.inheritance_tax?.pension_inclusion_date ?? null,
 
   // Dividend tax
   dividendAllowance: (state) => state.config?.dividend_tax?.allowance ?? null,

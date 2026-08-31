@@ -88,6 +88,10 @@ class TaxConfigSnapshotService
                 'rnrb_taper_threshold' => (int) $this->taxConfig->get('inheritance_tax.rnrb_taper_threshold', 0),
                 'standard_rate' => (float) $this->taxConfig->get('inheritance_tax.standard_rate', 0),
                 'reduced_rate' => (float) $this->taxConfig->get('inheritance_tax.reduced_rate_charity', 0),
+                // W-0515 — the commencement date for the pension amendment, so the
+                // surfaces that state "until X, pensions pass outside the estate"
+                // read it rather than spelling a year Rule 2 forbids hardcoding.
+                'pension_inclusion_date' => (string) $this->taxConfig->get('inheritance_tax.pension_iht_inclusion.effective_date', ''),
             ],
 
             'dividend_tax' => [

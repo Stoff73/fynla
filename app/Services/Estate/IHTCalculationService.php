@@ -2465,11 +2465,30 @@ class IHTCalculationService
                 'net_estate' => round($currentNetEstate, 2),
                 'iht_liability' => round($currentIHTLiability, 2),
                 'pensions_included' => false,
-                'description' => 'Under current rules, defined contribution pensions pass outside the estate and are not subject to Inheritance Tax.',
+                // W-0515. This said pensions "pass outside the estate" flat, with
+                // no end date, so a user reading it once took it as permanent — while
+                // the block immediately below tells them it stops. The change is
+                // ENACTED, not proposed, and its commencement date is configured, so
+                // the sentence names it rather than implying an indefinite rule.
+                'description' => 'Until '.$effectiveDate->format('j F Y').', unused defined contribution pension pots pass outside the estate and are not subject to Inheritance Tax.',
             ],
             'post_2027_rules' => [
                 'net_estate' => round($postAmendmentNetEstate, 2),
+                // W-0515 — LABELLED, because this is today's pot and the projection
+                // publishes a different figure (`projected_unused_pension`, W-0482):
+                // the unused fund at the modelled death date, after drawdown. Both
+                // are right about different questions, and a household carrying two
+                // pension-in-estate numbers with neither named is the defect.
+                //
+                // Today's pot is the deliberate basis HERE because this block answers
+                // "what would the amendment cost me on what I hold now" — a
+                // comparison a user can check against their own statement. The
+                // projection answers "what will be left at death", which depends on
+                // assumptions this scenario is not making.
                 'pension_value_included' => round($totalPensionValue, 2),
+                'pension_value_basis' => 'current_fund_value',
+                'pension_value_basis_label' => 'the value of your pots today, not the amount left after drawdown',
+                'projected_unused_pension' => round((float) ($baseCalc['projected_unused_pension'] ?? 0), 2),
                 'user_pension_value' => round($userPensionValue, 2),
                 'spouse_pension_value' => round($spousePensionValue, 2),
                 'iht_liability' => round($postAmendmentIHTLiability, 2),
@@ -2482,7 +2501,7 @@ class IHTCalculationService
                 'description' => 'From '.$effectiveDate->format('F Y').', unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
             ],
             'impact_summary' => $additionalIHT > 0
-                ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
+                ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).', their value today) are included in your estate.'
                 : 'The '.$effectiveDate->format('Y').' pension amendment would not increase your Inheritance Tax liability based on current pension values.',
         ];
     }

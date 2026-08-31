@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 112**  ·  closed 2026-08-31: 20
+**Outstanding: 111**  ·  closed 2026-08-31: 21
 
 ---
 
@@ -45,7 +45,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0508** `done` — Fourteen more sites read ['married'] alone, so a civil partnership is still treated as single across the Estate API, four agents and three services
 - [ ] **W-0513** `queued` — The projected estate models only defined contribution pots, where IHTA 1984 s150A brings in lump sum death benefits too
 - [ ] **W-0514** `queued` — A pension on the first death can destroy the second death's residence band, and the model cannot show it
-- [ ] **W-0515** `queued` — Fyn still tells the user pensions pass outside the estate, and quotes today's pot as the amount at risk
+- [x] **W-0515** `done` — Fyn still tells the user pensions pass outside the estate, and quotes today's pot as the amount at risk
 
 ## Medium (95)
 

@@ -114,7 +114,13 @@
             <span class="text-sm text-neutral-500">Defined Contribution pension funds</span>
             <span class="text-sm font-semibold text-horizon-500">{{ formatCurrency(scenario.pension_death_benefits.dc_total) }}</span>
           </div>
-          <p class="text-xs text-neutral-400">Pension funds are typically outside the estate for Inheritance Tax purposes when nomination forms are completed.</p>
+          <!--
+            W-0515 — the same claim the estate engine makes, and it had the same
+            gap: stated with no end date, so a reader takes it as permanent. The
+            change is enacted, and this is the second place that said it, which
+            is why the date is named here too rather than only in the service.
+          -->
+          <p class="text-xs text-neutral-400">{{ pensionEstateStatement }}</p>
         </div>
       </div>
 
@@ -158,6 +164,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import householdService from '@/services/householdService';
 
@@ -171,6 +178,31 @@ export default {
       loading: false,
       error: null,
     };
+  },
+  computed: {
+    ...mapGetters('taxConfig', ['ihtPensionInclusionDate']),
+
+    /**
+     * W-0515. The claim used to be stated flat — "pension funds are typically
+     * outside the estate" — with no end date, so a reader took it as permanent.
+     * The change is ENACTED, and its commencement date is configuration, so the
+     * date is never spelled here (Rule 2): a Budget that moves it moves this
+     * sentence. Where the date has not loaded, the qualifier is dropped rather
+     * than guessed, because a wrong date is worse than a general statement.
+     */
+    pensionEstateStatement() {
+      const base = 'pension funds are typically outside the estate for Inheritance Tax purposes when nomination forms are completed.';
+
+      if (!this.ihtPensionInclusionDate) {
+        return base.charAt(0).toUpperCase() + base.slice(1);
+      }
+
+      const from = new Date(this.ihtPensionInclusionDate).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      });
+
+      return `Until ${from}, ${base} From that date, unused defined contribution pots are included.`;
+    },
   },
   mounted() {
     this.fetchScenario();
