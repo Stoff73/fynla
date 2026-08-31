@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 114**  ·  closed 2026-08-31: 18
+**Outstanding: 113**  ·  closed 2026-08-31: 19
 
 ---
 
@@ -35,7 +35,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 
 ## High (11)
 
-- [ ] **W-0037** `queued` — Bequest form cannot record priority order, beneficiary type or charity registration — charitable status is inferred from the beneficiary's name
+- [x] **W-0037** `done` — Bequest form cannot record priority order, beneficiary type or charity registration — charitable status is inferred from the beneficiary's name
 - [ ] **W-0050** `queued` — You cannot create an account without consenting to Google Analytics and Awin affiliate tracking — a cookie wall, justified by copy that is factually untrue
 - [ ] **W-0133** `queued` — Completing a will is a one-way door — "Complete & Finalise" never returns, so a gift edited or a bequest deleted after finalising can never be re-synced and the will document and the Estate module diverge permanently
 - [ ] **W-0144** `queued` — The generated will revokes every earlier will and imposes a 28-day survivorship period, and the user is never asked about either
