@@ -374,12 +374,38 @@ class LpaComplianceService
             );
         }
 
+        // W-0106 — THERE ARE TWO ROUTES TO BEING A CERTIFICATE PROVIDER, and the
+        // two-year rule belongs to only one of them.
+        //
+        // The Lasting Powers of Attorney Regulations 2007 admit either someone
+        // who has known the donor personally for at least two years, OR a person
+        // with relevant professional skills — a GP, a solicitor, a social worker
+        // — for whom no prior relationship is required at all. A solicitor met
+        // last month is a perfectly good certificate provider.
+        //
+        // This check applied the two-year rule unconditionally, so the
+        // professional route was FAILED — while
+        // `certificate_provider_professional_details` already existed as a column
+        // to record it. The field for the exception was there; the exception was
+        // not, which is why the defect reads as an oversight rather than a
+        // decision.
+        if (filled($lpa->certificate_provider_professional_details)) {
+            return $this->result(
+                'certificate_provider_years',
+                'pass',
+                'Certificate provider qualifies on professional skills',
+                'A certificate provider acting in a professional capacity does not need to have known you for two '
+                    .'years. Recorded: '.$lpa->certificate_provider_professional_details
+            );
+        }
+
         if ($lpa->certificate_provider_known_years === null) {
             return $this->result(
                 'certificate_provider_years',
                 'warning',
                 'Years known not specified',
-                'Please confirm how long the certificate provider has known you. They must have known you for at least 2 years.'
+                'Please confirm how long the certificate provider has known you. They must have known you for at '
+                    .'least 2 years, unless they are acting in a professional capacity.'
             );
         }
 
@@ -388,7 +414,9 @@ class LpaComplianceService
                 'certificate_provider_years',
                 'fail',
                 'Certificate provider must have known you for at least 2 years',
-                'Your certificate provider has known you for '.$lpa->certificate_provider_known_years.' year(s). The minimum is 2 years.'
+                'Your certificate provider has known you for '.$lpa->certificate_provider_known_years.' year(s). '
+                    .'The minimum is 2 years, unless they are acting in a professional capacity — a GP, solicitor '
+                    .'or similar — in which case record their professional details instead.'
             );
         }
 

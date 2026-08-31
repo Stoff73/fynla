@@ -783,3 +783,69 @@ describe('health and welfare timing (W-0108)', function () {
         expect($timingCheck($this->service->checkCompliance($lpa->fresh())))->toBe([]);
     });
 });
+
+/**
+ * W-0106 — the professional certificate-provider route.
+ *
+ * The Lasting Powers of Attorney Regulations 2007 admit EITHER someone who has
+ * known the donor personally for at least two years, OR a person with relevant
+ * professional skills — a GP, a solicitor, a social worker — for whom no prior
+ * relationship is required. A solicitor met last month qualifies.
+ *
+ * The two-year rule was applied unconditionally, so the professional route was
+ * failed — while `certificate_provider_professional_details` already existed as
+ * a column to record it. The field for the exception was there; the exception
+ * was not.
+ */
+describe('professional certificate provider (W-0106)', function () {
+    $yearsCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'certificate_provider_years') ?? [];
+
+    it('passes a professional provider with no two-year relationship', function () use ($yearsCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'certificate_provider_name' => 'Ms Adeyemi',
+                'certificate_provider_known_years' => 0,
+                'certificate_provider_professional_details' => 'Solicitor, Adeyemi & Co',
+            ]);
+
+        $check = $yearsCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('pass')
+            ->and($check['description'])->toContain('Solicitor, Adeyemi & Co');
+    });
+
+    it('does not require the years question of a professional provider', function () use ($yearsCheck) {
+        // Null years is a warning on the personal route. On the professional
+        // route the question does not arise.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'certificate_provider_name' => 'Dr Okafor',
+                'certificate_provider_known_years' => null,
+                'certificate_provider_professional_details' => 'GP, Riverside Practice',
+            ]);
+
+        expect($yearsCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
+    });
+
+    it('still enforces two years on the personal route', function () use ($yearsCheck) {
+        // The exception must not swallow the rule.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'certificate_provider_name' => 'A Neighbour',
+                'certificate_provider_known_years' => 1,
+                'certificate_provider_professional_details' => null,
+            ]);
+
+        $check = $yearsCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('fail')
+            ->and($check['description'])->toContain('professional capacity');
+    });
+});
