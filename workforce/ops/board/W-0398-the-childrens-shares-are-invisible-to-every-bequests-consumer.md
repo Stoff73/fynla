@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0029-cycle4-wills-and-estate-figures.md
 owner: null
 reviewers: [product-lead, quality-lead]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -81,3 +81,55 @@ the Estate module, `WillAnalysisService`, and `/m`'s bequests screen, which show
 - 2026-08-23 build-lead: raised from the cycle-4 wills batch. **Not a defect
   about the missing data** — that half is unfinished data entry and is recorded
   here only so the next person does not re-investigate it.
+
+---
+
+## Closed 2026-09-01
+
+**Acceptance 1 — decided, and it resolves in the code rather than as a preference.**
+**A residuary share should NOT be representable in `bequests`.**
+`Will::getNonSpouseAllocationPercentage():79-81` sums exactly the `bequest_type =
+'percentage'` rows. A residuary is a share of what REMAINS after the specific gifts, not
+a percentage of the estate, so storing one there reports a mirror will leaving everything
+to a partner as a **100% non-partner allocation**. Making it distinguishable needs a new
+enum value plus every consumer of that enum — a schema change bought to duplicate what
+the will document already holds correctly. The existing exclusion stands.
+
+**Acceptance 2 — the surfaces stop implying the count is the whole will.** That was the
+real defect: the children ARE provided for, as the residuary's substitution beneficiary,
+and the table saw nothing.
+
+- `WillDocumentService::BEQUESTS_EXCLUDE_RESIDUARY_NOTE` — the sentence, beside the
+  exclusion it explains.
+- `WillController::getBequests():163-190` serves it, **including when there is no will**,
+  so an empty list is not read as a complete one either.
+- Web: `WillPlanning.vue:374-380`, `:508`, `:634`.
+- `/m`: `EstateBequests.vue:24-30`, `:70`, `:101`.
+
+**Acceptance 3 — Rule 20, and why the sentence is served rather than written twice.**
+`/m` is an isolated bundle and cannot import from `resources/js`, so a frontend-held
+sentence would be **two copies from the day it was written** — which is the arrangement
+that produces one surface saying something the other does not. It has one home, in the
+service that causes the exclusion.
+
+Wording avoids requiring the reader to know what "residuary" means: *"This lists the
+specific gifts in your will. Anything left over — the residue — is dealt with separately
+in the will document itself, along with anyone named to inherit it."* Asserted by test.
+
+### Tests — the diff only
+
+`tests/Feature/Estate/BequestsStateWhatTheyExcludeTest.php` — 4: the note served with a
+will, served without one, worded for a reader who does not know the term, and a **guard
+on the exclusion itself** — if someone later "fixes" this by writing residuary rows into
+`bequests` as percentages, the mirror-will allocation assertion goes red. That guard is
+on the live answer that would be corrupted, not on a style rule.
+
+**Regression:** 650 PHP tests across the estate suites; 43 frontend specs across the web
+Estate components and the `/m` module views.
+
+### Recorded, not re-investigated
+
+The persona's four percentage bequests being absent is **unfinished data entry, not a
+save-path defect** — `BequestBeneficiaryTypeTest` round-trips 60/40 percentage bequests
+through POST and GET with names and priority order intact, deliberately not 50/50 so a
+dropped, duplicated or overwritten row could not pass. Left as the item found it.

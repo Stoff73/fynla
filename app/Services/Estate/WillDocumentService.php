@@ -844,6 +844,28 @@ class WillDocumentService
      * allocation. Recording it there would corrupt an existing answer to buy a
      * duplicate of one the document already holds.
      */
+    /**
+     * W-0398 — the sentence that stops a bequest count reading as the whole will.
+     *
+     * The residuary exclusion above is correct and must stay: a residuary is a share of
+     * what REMAINS after the specific gifts, not a percentage of the estate, and
+     * `Will::getNonSpouseAllocationPercentage()` sums exactly the `percentage` rows —
+     * so storing one there would report a mirror will leaving everything to a partner
+     * as a 100% NON-partner allocation. Recording it would corrupt a live answer to buy
+     * a duplicate of one the document already holds.
+     *
+     * What was wrong is the CONSEQUENCE. The persona's children are provided for, as
+     * the residuary's substitution beneficiary in free text, and every consumer of the
+     * `bequests` table saw nothing — so the household read as though its children were
+     * unprovided for, and `/m`'s "1 bequest" was accurate about the table and
+     * misleading about the will.
+     *
+     * Served with the payload rather than written into each screen: `/m` is an isolated
+     * bundle and cannot import from `resources/js`, so a sentence held on the frontend
+     * would be two copies from the day it was written (Rule 20).
+     */
+    public const BEQUESTS_EXCLUDE_RESIDUARY_NOTE = 'This lists the specific gifts in your will. Anything left over — the residue — is dealt with separately in the will document itself, along with anyone named to inherit it.';
+
     private function syncBequests(WillDocument $doc, Will $will): int
     {
         // Clear rows from ANY will document, not just this one. A user who

@@ -371,6 +371,13 @@
           </button>
         </div>
 
+        <!--
+          W-0398. The residuary is deliberately document-only, so this list is the
+          specific gifts and not the whole will. Said plainly, because a household whose
+          children inherit the residue otherwise reads as though they are unprovided for.
+        -->
+        <p v-if="residuaryNote" class="text-sm text-neutral-500 mb-3">{{ residuaryNote }}</p>
+
         <!-- Bequests List -->
         <div v-if="bequests.length > 0" class="space-y-3">
           <div
@@ -497,6 +504,8 @@ export default {
       },
       originalForm: null,
       bequests: [],
+      // W-0398 — served by the API, not written here, so /m cannot say something else.
+      residuaryNote: '',
       showBequestModal: false,
       bequestBeingEdited: null,
       savingBequest: false,
@@ -623,6 +632,9 @@ export default {
       try {
         const response = await api.get('/estate/bequests');
         this.bequests = response.data.data;
+        // W-0398 — the same sentence /m shows, from the same source, so a count of
+        // these rows cannot read as the whole of the will on either surface.
+        this.residuaryNote = response.data.residuary_note || '';
       } catch (error) {
         logger.error('Failed to load bequests:', error);
       }

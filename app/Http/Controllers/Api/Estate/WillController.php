@@ -15,6 +15,7 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\IntestacyCalculator;
+use App\Services\Estate\WillDocumentService;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
 use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
@@ -169,6 +170,7 @@ class WillController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [],
+                'residuary_note' => WillDocumentService::BEQUESTS_EXCLUDE_RESIDUARY_NOTE,
             ]);
         }
 
@@ -177,6 +179,13 @@ class WillController extends Controller
         return response()->json([
             'success' => true,
             'data' => $bequests,
+            // W-0398. This table holds SPECIFIC gifts only — the residuary is
+            // deliberately document-only, for the reason at
+            // `WillDocumentService::BEQUESTS_EXCLUDE_RESIDUARY_NOTE`. Without saying so,
+            // a count of these rows reads as the whole of the will, and a household
+            // whose children inherit the residue reads as though they are unprovided
+            // for. Served here so web and `/m` say the same thing from one source.
+            'residuary_note' => WillDocumentService::BEQUESTS_EXCLUDE_RESIDUARY_NOTE,
         ]);
     }
 
