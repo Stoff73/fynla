@@ -90,12 +90,12 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0207** `done` (already fixed) — A completed 2020 life event is counted as future expected income and displayed as happening "In 0 years
 - [x] **W-0208** `done` (already fixed; verified in code + mutation; browser re-drive not possible on current data) — The letter/will consistency check flags a punctuation difference as an executor mismatch and tells the user to edit a legal document
 - [x] **W-0210** `done` (already fixed) — A goal is counted and labelled as a life event — Sarah has zero life events and the module reports "1 cash outflow events £400K
-- [ ] **W-0243** `queued` — The native iOS retirement card cannot show a guaranteed income, so a defined-benefit-only spouse still reads £0 there
+- [ ] **W-0243** `deferred-ios` — The native iOS retirement card cannot show a guaranteed income, so a defined-benefit-only spouse still reads £0 there
 - [ ] **W-0258** `queued` — The card captions an arithmetic "expected return" beside a median projection that is lower by volatility drag, and the two cannot be reconciled by the reader
 - [ ] **W-0259** `queued` — The single figure on the projection card is the 20th percentile — the one band where taking more risk makes the number go down
 - [ ] **W-0275** `queued` — Eight consumers still ask "who depends on this user" with a user_id-only query
 - [ ] **W-0280** `queued` — Census — user_id-only queries over records that can be shared. Every line is a code-read hypothesis until measured; the first one I published was WRONG
-- [ ] **W-0311** `queued` — The native Pensions category still calls the figure "Accessible pension capital" and carries no exclusion note, so a Defined Benefit holder sees a bare £0
+- [ ] **W-0311** `deferred-ios` — The native Pensions category still calls the figure "Accessible pension capital" and carries no exclusion note, so a Defined Benefit holder sees a bare £0
 - [x] **W-0321** `done` — Nothing enforces the 100% holdings allocation total on write, so any account can be pushed past 100% and into the state W-0257 could not escape
 - [ ] **W-0324** `queued` — holdings.*.dividend_yield has no rule in any nested holdings array, so a yield entered through the account or pension form is silently discarded
 - [x] **W-0330** `done` (web; native is W-0496) — A joint owner is shown Edit and Delete buttons on a shared investment account that can only ever return 404
@@ -120,7 +120,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0399** `done` (already fixed) — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
 - [x] **W-0413** `done` (write + read-back) — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
 - [ ] **W-0414** `queued` — The goal plan reads a months_remaining key GoalProgressService has never returned, and silently runs on a default of 12
-- [ ] **W-0416** `queued` — iOS native carries two copies of the goal status vocabulary and cannot say Overdue, so it reads "Behind" for a goal whose date has gone
+- [ ] **W-0416** `deferred-ios` — iOS native carries two copies of the goal status vocabulary and cannot say Overdue, so it reads "Behind" for a goal whose date has gone
 - [x] **W-0424** `done` (3 faults; both mechanisms were broken) — A pension contribution recorded as a percentage never becomes a financial commitment, so it never reaches expenditure and disposable income is overstated by it
 - [ ] **W-0426** `queued` — The letter_to_spouse capability gates writes only — every GET under api/user/ short-circuits before the capability check, so the letter has never been read-gated
 - [x] **W-0431** `done` (already fixed; W-0461 added the template half) — The Inheritance Tax rate messages asserted 40%, 36% and 10% as literals while the calculation beside them read the real figures from configuration

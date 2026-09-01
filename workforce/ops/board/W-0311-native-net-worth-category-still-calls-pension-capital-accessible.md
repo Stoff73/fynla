@@ -4,7 +4,7 @@ title: The native Pensions category still calls the figure "Accessible pension c
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: deferred-ios
 severity: medium
 surfaces: [ios]
 created: 2026-08-22T21:45:00Z
@@ -125,3 +125,14 @@ MobileDetailHeader(
   `Features/`, and both exist because a backend fix reached native for free while
   its Swift copy of the presentation rule did not.
 - Do not develop against `ios/` (the dormant Capacitor target).
+
+---
+
+## Deferred 2026-09-01 — iOS is out of scope for the board loop
+
+CSJ ruled on 2026-08-31 that the board loop covers web and `/m` only, and every iOS
+item defers rather than being worked. This item's `surfaces` is `[ios]` alone, so all
+of it defers. No Swift was changed and nothing was verified on a simulator.
+
+The backend and `/m` halves named in the item are unaffected and remain available to
+whoever picks the native work up.
