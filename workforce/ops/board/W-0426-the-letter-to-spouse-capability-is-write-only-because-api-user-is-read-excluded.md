@@ -4,7 +4,7 @@ title: The letter_to_spouse capability gates writes only — every GET under api
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0030-cycle4-letter-and-income-labels.md
 owner: unassigned — product/tier decision (CSJ)
-status: queued
+status: gated
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-23T03:20:00Z
@@ -80,3 +80,44 @@ Two things follow whichever way it goes:
 2. Either way, **add GET rows to `PremiumCapabilityEnforcementTest`'s datasets.** A
    dataset of writes cannot see a read-side hole, and this one has been open long enough
    for a test named after capability enforcement to have gone green over it throughout.
+
+---
+
+## 2026-09-01 — acceptance 2 done, acceptance 1 gated on CSJ
+
+**Acceptance 1 is not taken.** The item states it plainly: whether Letter to Loved Ones
+is premium-to-read is CSJ's call. Narrowing `READ_ONLY_EXCLUDED_PATHS` would change what
+a Free user can see, and it is not an engineering decision. **No middleware was changed.**
+
+**Confirmed live first, in the code.** `CheckSubscription::handle():85` returns
+`$next($request)` on `isExcludedPath()` **before** the capability map at `:136` is
+consulted. `READ_ONLY_EXCLUDED_PATHS` holds `api/user/` (`:37`) and every letter route is
+`GET api/user/letter-to-spouse*`, so the `letter_to_spouse` capability gates the PUT
+only.
+
+**Acceptance 2 done — and the shape of it matters.** The ask was "add GET rows to the
+datasets", and a first pass at that added two GET rows that **duplicated URIs already in
+the dataset** at `:32-33`. That is noise, not coverage: probing one endpoint cannot see a
+hole that exists *by construction* in the ordering of two lists.
+
+`tests/Feature/Tiers/PremiumCapabilityEnforcementTest.php:86-125` compares the two lists
+directly — every `CAPABILITY_ROUTE_MAP` entry whose prefix falls under a
+`READ_ONLY_EXCLUDED_PATHS` entry is unreachable for GET — and asserts the resulting set
+is exactly the one known instance. It does **not** assert that reads should be gated,
+so it does not pre-empt acceptance 1.
+
+**Mutation-verified:** adding a second capability under an excluded prefix
+(`api/settings/adviser-notes`) turns it red. That is the property acceptance 2 actually
+wanted: a new read-side hole cannot ship with a green suite.
+
+The dataset row is also renamed `Letter to Spouse (write only — see W-0426)`, so a reader
+of the dataset sees what it does and does not cover.
+
+**Regression:** 21 tests in the file.
+
+### The decision still outstanding, in one line
+
+*Should a Free user be able to READ their Letter to Loved Ones?* If no, narrow
+`READ_ONLY_EXCLUDED_PATHS` from `api/user/` to the specific paths a churned **paid** user
+needs — profile, settings, subscription — rather than removing the entry, which is the
+defect that exclusion was added to prevent.

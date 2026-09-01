@@ -31,7 +31,13 @@ it('denies Free users at every implemented Premium capability boundary', functio
     'document upload' => ['POST', '/api/documents/upload-only'],
     'investment cost analysis' => ['GET', '/api/investment/fees/analyze'],
     'joint household view' => ['GET', '/api/household/net-worth'],
-    'Letter to Spouse' => ['PUT', '/api/user/letter-to-spouse'],
+    // W-0426 — named as a WRITE, because that is all this capability gates. The two
+    // GET rows above are the capabilities whose routes sit outside the read-only
+    // excluded prefixes and so are genuinely read-gated. A GET row for the letter is
+    // deliberately absent: asserting a 403 there would assert a behaviour the
+    // application does not have. The read-side hole is covered by the reflection test
+    // below, which compares the two lists rather than probing one endpoint.
+    'Letter to Spouse (write only — see W-0426)' => ['PUT', '/api/user/letter-to-spouse'],
 ]);
 
 it('does not stop Premium requests at the capability boundary', function (string $method, string $uri) {
@@ -75,6 +81,47 @@ it('does not let the letter financial position outrun the letter itself for a Fr
     if ($letter->status() === 403) {
         expect($position->json('error'))->toBe($letter->json('error'));
     }
+});
+
+/**
+ * W-0426 acceptance 2. **A dataset of writes cannot see a read-side hole**, and this
+ * file's datasets were writes plus two already-gated GETs — so a test named after
+ * capability enforcement went green over an ungated read for as long as the hole
+ * existed.
+ *
+ * `CheckSubscription::handle()` returns at `isExcludedPath()` BEFORE the capability map
+ * is consulted, so any capability whose route sits under a `READ_ONLY_EXCLUDED_PATHS`
+ * prefix is **unreachable for GET by construction** — not by oversight at the call site,
+ * which is why reading either list alone shows nothing wrong.
+ *
+ * This compares the two lists directly. It does not assert that reads SHOULD be gated —
+ * whether Letter to Loved Ones is premium-to-read is CSJ's call — it asserts that the
+ * set of capabilities in that state is the one we know about. A new capability landing
+ * under an excluded prefix turns this red on the day it lands, instead of shipping a
+ * silent read-side hole with a green suite.
+ */
+it('names every capability whose reads the excluded prefixes make unreachable', function () {
+    $middleware = new ReflectionClass(\App\Http\Middleware\CheckSubscription::class);
+    $capabilityMap = $middleware->getConstant('CAPABILITY_ROUTE_MAP');
+    $readOnlyExcluded = $middleware->getConstant('READ_ONLY_EXCLUDED_PATHS');
+
+    $unreachableForGet = [];
+    foreach ($capabilityMap as $routePrefix => $entityKey) {
+        foreach ($readOnlyExcluded as $excludedPrefix) {
+            if (str_starts_with($routePrefix, $excludedPrefix)) {
+                $unreachableForGet[$routePrefix] = $entityKey;
+                break;
+            }
+        }
+    }
+
+    // The one known instance, pending the product decision on W-0426 acceptance 1.
+    // If reads are gated, narrow `READ_ONLY_EXCLUDED_PATHS` to the specific paths a
+    // churned PAID user needs — profile, settings, subscription — rather than removing
+    // the entry, which is the defect that exclusion was added to prevent.
+    expect($unreachableForGet)->toBe([
+        'api/user/letter-to-spouse' => 'letter_to_spouse',
+    ]);
 });
 
 it('removes detailed expenditure fields from Free responses', function () {
