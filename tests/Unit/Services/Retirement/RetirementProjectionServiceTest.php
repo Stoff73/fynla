@@ -444,30 +444,84 @@ describe('projectTargetIncomeDrawdown', function () {
             ->and($result['yearly_income'])->toBeArray();
     });
 
-    it('tracks fund depletion age correctly', function () {
+    /**
+     * W-0510. This assertion used to sit inside `if ($result['fund_depletion_age']
+     * !== null)`, and the value was ALWAYS null — so the branch never ran and the
+     * test went green over the defect it is named after. A conditional assertion is
+     * not a test of the condition.
+     *
+     * The cause: on this path the fund never reaches zero. Once the need exceeds the
+     * balance the drawdown IS the balance, so the growth line reduces to
+     * `$remainingFund * (1 + $rate)` and the fund approaches zero for ever. Depletion
+     * now means "cannot meet this year's need", which is the question the figure was
+     * always meant to answer.
+     */
+    it('names the age a pot too small for the target stops covering it', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,
-            'current_fund_value' => 100000,
+            'current_fund_value' => 20000,
             'monthly_contribution_amount' => 0,
         ]);
 
         $this->user->load(['dcPensions', 'dbPensions', 'statePension']);
 
-        $potProjection = [
+        $result = $this->service->projectTargetIncomeDrawdown($this->user, [
             'retirement_age' => 65,
-            'percentile_20_at_retirement' => 100000,
+            'percentile_20_at_retirement' => 20000,
             'risk_level' => 'medium',
-        ];
+        ]);
 
-        $result = $this->service->projectTargetIncomeDrawdown($this->user, $potProjection);
+        // £20,000 against a target this household cannot meet: it runs out early, and
+        // the figure has to say so rather than reporting the full horizon.
+        expect($result['fund_depletion_age'])->not->toBeNull()
+            ->and($result['fund_depletion_age'])->toBeGreaterThanOrEqual(65)
+            ->and($result['fund_depletion_age'])->toBeLessThan(100)
+            ->and($result['years_funded'])->toBeLessThan(35);
+    });
 
-        // Small pot should deplete before age 100
-        if ($result['fund_depletion_age'] !== null) {
-            expect($result['fund_depletion_age'])->toBeGreaterThan(65)
-                ->and($result['fund_depletion_age'])->toBeLessThanOrEqual(100);
-        }
+    it('agrees with itself: the depletion age, the yearly flag and years funded', function () {
+        DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'current_fund_value' => 20000,
+            'monthly_contribution_amount' => 0,
+        ]);
 
-        expect($result['years_funded'])->toBeGreaterThan(0);
+        $this->user->load(['dcPensions', 'dbPensions', 'statePension']);
+
+        $result = $this->service->projectTargetIncomeDrawdown($this->user, [
+            'retirement_age' => 65,
+            'percentile_20_at_retirement' => 20000,
+            'risk_level' => 'medium',
+        ]);
+
+        $firstDepletedRow = collect($result['yearly_income'])->firstWhere('fund_depleted', true);
+
+        expect($firstDepletedRow)->not->toBeNull()
+            // The three figures are published together and a household reads them
+            // together; before this they could not agree, because two of them were
+            // derived from a condition that never fired.
+            ->and($firstDepletedRow['age'])->toBe($result['fund_depletion_age'])
+            ->and($result['years_funded'])->toBe($result['fund_depletion_age'] - 65);
+    });
+
+    it('reports the full horizon for a pot that genuinely lasts', function () {
+        // The other direction, so the fix cannot be "always report depletion".
+        DCPension::factory()->create([
+            'user_id' => $this->user->id,
+            'current_fund_value' => 5_000_000,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $this->user->load(['dcPensions', 'dbPensions', 'statePension']);
+
+        $result = $this->service->projectTargetIncomeDrawdown($this->user, [
+            'retirement_age' => 65,
+            'percentile_20_at_retirement' => 5_000_000,
+            'risk_level' => 'medium',
+        ]);
+
+        expect($result['fund_depletion_age'])->toBeNull()
+            ->and(collect($result['yearly_income'])->where('fund_depleted', true))->toBeEmpty();
     });
 });
 

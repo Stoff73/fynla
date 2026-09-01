@@ -139,7 +139,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0499** `done` (defined from the persona playbook, gated in the Store; guard found family_module + benefits_child in the same state) — investments_exotic was advertised as Premium and enforced nowhere
 - [x] **W-0500** `done` (/m asks it directly; Fyn may write only the safe `true`; iOS deferred, no browser drive) — /m users can now answer the question the undivided-share discount turns on
 - [x] **W-0507** `done` (both caveats on both teasers from the engine's strings; correspondence guard added) — The free-tier estate teaser printed a second-death IHT figure with none of the caveats the full table carries
-- [ ] **W-0510** `queued` — A drawn-out pension fund never reports as depleted, so "years funded" is always the full horizon
+- [x] **W-0510** `done` (depletion = cannot meet the need, not zero; the guarding test was a decoy and is corrected) — A drawn-out pension fund never reported as depleted, so "years funded" was always the full horizon
 - [ ] **W-0516** `queued` — The State Pension age is a literal 67 in the retirement engine and a configured 66 everywhere else
 - [ ] **W-0518** `queued` — Fyn captures salary sacrifice without asking whether the recorded employment income is before or after the pay given up
 - [x] **W-0522** `done` (already fixed) — The trust strategy still hardcodes the taper relief band table, the last copy in the estate services

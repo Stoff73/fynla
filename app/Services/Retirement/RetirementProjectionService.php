@@ -675,13 +675,35 @@ class RetirementProjectionService
 
             // Draw what we can from the fund
             $dcDrawdown = min($dcNeeded, $remainingFund);
-            $fundDepleted = $remainingFund <= 0;
+
+            // W-0510 — depleted means "cannot meet this year's need", not "reached
+            // zero", because on this path the fund NEVER reaches zero.
+            //
+            // Once the need exceeds the balance, `$dcDrawdown` IS `$remainingFund`,
+            // so the growth line below reduces to `$remainingFund * (1 + $rate)`:
+            // the balance is multiplied by the growth rate every year and approaches
+            // zero without arriving. Measured on a £20,000 pot against a £45,000
+            // target — £567 at 63, £11.34 at 64, pennies thereafter. `<= 0` was
+            // therefore never true, so `fund_depletion_age` was always null,
+            // `fund_depleted` always false, and `years_funded` always the full
+            // horizon. A household whose money stops covering its target at 64 was
+            // told it lasted to 100.
+            //
+            // The pound of tolerance is not an epsilon for float noise: these figures
+            // are published to the penny, and a household short by less than a pound
+            // in a year has not run out of money. A shortfall large enough to matter
+            // is the one worth telling them about.
+            //
+            // `projectIncomeDrawdown()` is deliberately NOT changed. It withdraws a
+            // sustainable percentage of the remainder by design, so a fund that never
+            // depletes is that model working rather than the same defect.
+            $fundDepleted = $dcNeeded > 0 && $remainingFund < ($dcNeeded - 1.0);
 
             // Total income for this year
             $totalIncome = $dcDrawdown + $incomeFromGuaranteed;
 
             // Track fund depletion
-            if ($remainingFund <= 0 && $fundDepletionAge === null) {
+            if ($fundDepleted && $fundDepletionAge === null) {
                 $fundDepletionAge = $age;
             }
 
