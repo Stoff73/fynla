@@ -155,6 +155,14 @@ trait CalculatesOwnershipShare
      */
     private function refuseRecordWhoseShareFollowsAnother(object $asset): void
     {
+        // W-0483 — a mortgage carrying an explicitly declared liability share is no
+        // longer a record whose share follows another. It still refuses the accidental
+        // case, which is the one the guard exists for: a caller reaching for
+        // `ownership_percentage` on a mortgage row nobody reviewed.
+        if (($asset->declared_liability_percentage ?? null) !== null) {
+            return;
+        }
+
         if (isset($asset->property_id) || $asset instanceof Mortgage) {
             throw FinancialCalculationException::invalidInput(
                 'asset',
@@ -275,12 +283,32 @@ trait CalculatesOwnershipShare
      * exists and are used — stated here so the fallback is not mistaken for the
      * rule.
      *
-     * **Accepted limitation (CSJ, knowingly):** this cannot express a mortgage in
-     * one spouse's sole name against a jointly-owned property. Do not add a
-     * borrower-split field to work around it, and do not raise it as a defect.
+     * **Amended by CSJ, 2026-08-30 (W-0483):** *"W-0228 can allow mortgage share
+     * that is not the same as ownership share."* The limitation this docblock used
+     * to record — that a mortgage in one spouse's sole name against a jointly-owned
+     * property is inexpressible — is lifted, and the shape of the lift matters:
+     *
+     * - It is a **declared** share, `mortgages.declared_liability_percentage`, and
+     *   nullable. Null means nobody has said anything and the property is
+     *   authoritative, which is every row that existed before the column did.
+     * - It is **not** `mortgages.ownership_percentage`. That column is populated
+     *   everywhere, was never reviewed, and is precisely the unread value W-0228
+     *   stopped trusting — the persona carries `joint 50%` on a mortgage secured on
+     *   a `tenants_in_common 40%` property. Believing it would move a verified
+     *   household figure by £12,000 and reintroduce the two-mechanism disagreement
+     *   the ruling closed.
+     *
+     * So the ruling still holds by default and yields only to someone saying
+     * otherwise, which is the "supplied beats inherited" shape W-0040 established.
      */
     private function calculateUserMortgageAmountShare(object $mortgage, int $userId, float $fullAmount): float
     {
+        $declared = $this->declaredLiabilityShare($mortgage, $userId);
+
+        if ($declared !== null) {
+            return $fullAmount * $declared;
+        }
+
         $securing = $this->propertyOwnershipFor($mortgage);
 
         $ownershipType = $securing->ownership_type ?? 'individual';
@@ -299,6 +327,46 @@ trait CalculatesOwnershipShare
 
         if (($securing->joint_owner_id ?? null) === $userId) {
             return $fullAmount * ((100 - $percentage) / 100);
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * The share of a mortgage this user has been DECLARED to carry, or null where
+     * nobody has declared one (W-0483).
+     *
+     * Returned as a 0..1 multiplier so the caller cannot forget to divide. The
+     * declared figure is the share belonging to the mortgage's own `user_id`, the
+     * same convention `ownership_percentage` uses everywhere else in the
+     * application — the counterparty gets the remainder — so there is one reading
+     * of "percentage" to learn, not two.
+     *
+     * A user who is neither the borrower nor the counterparty carries none of it.
+     */
+    private function declaredLiabilityShare(object $mortgage, int $userId): ?float
+    {
+        $declared = $mortgage->declared_liability_percentage ?? null;
+
+        if ($declared === null) {
+            return null;
+        }
+
+        $percentage = (float) $declared;
+        $securing = $this->propertyOwnershipFor($mortgage);
+
+        if (($mortgage->user_id ?? null) === $userId) {
+            return $percentage / 100;
+        }
+
+        // The counterparty is whoever else owns the property securing it. A sole
+        // borrower declaring 100% leaves them zero, which is the case this exists for.
+        $counterpartyId = ($securing->user_id ?? null) === ($mortgage->user_id ?? null)
+            ? ($securing->joint_owner_id ?? null)
+            : ($securing->user_id ?? null);
+
+        if ($counterpartyId !== null && $counterpartyId === $userId) {
+            return (100 - $percentage) / 100;
         }
 
         return 0.0;

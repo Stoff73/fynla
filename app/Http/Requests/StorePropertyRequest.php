@@ -121,6 +121,10 @@ class StorePropertyRequest extends FormRequest
             'mortgage_joint_owner_id' => ['nullable', 'exists:users,id'],
             'mortgage_joint_owner_name' => ['nullable', 'string', 'max:255'],
             'mortgage_ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            // W-0483 — the declared borrowing share, where it differs from the share
+            // of the property. Nullable: absent means nobody has said, and the
+            // property securing the mortgage stays authoritative (W-0228).
+            'mortgage_declared_liability_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
 
             // Rental (for BTL)
             'rental_income' => ['nullable', 'numeric', 'min:0'],

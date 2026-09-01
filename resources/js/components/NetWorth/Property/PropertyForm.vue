@@ -707,6 +707,44 @@
               <div class="rounded-md border border-horizon-200 bg-savannah-100 p-3">
                 <p class="text-sm text-horizon-500">{{ mortgageLiabilityShareSummary }}</p>
               </div>
+
+              <!--
+                W-0483. CSJ amended W-0228 on 2026-08-30 so a mortgage share need not
+                match the ownership share. It stays an opt-in: the property is
+                authoritative until someone says otherwise, and saying otherwise has to
+                be deliberate rather than a field that quietly carries a default.
+              -->
+              <div v-if="isSharedProperty">
+                <div class="flex items-center">
+                  <input
+                    id="declares_own_mortgage_liability"
+                    v-model="declaresOwnMortgageLiability"
+                    type="checkbox"
+                    class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
+                  />
+                  <label for="declares_own_mortgage_liability" class="ml-2 block text-sm font-medium text-horizon-500">
+                    We borrowed in different shares from the way we own the property
+                  </label>
+                </div>
+
+                <div v-if="declaresOwnMortgageLiability" class="mt-2">
+                  <label for="declared_liability_percentage" class="block text-sm font-medium text-horizon-500 mb-1">
+                    Your share of the borrowing (%)
+                  </label>
+                  <input
+                    id="declared_liability_percentage"
+                    v-model.number="mortgageForm.declared_liability_percentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500"
+                  />
+                  <p class="text-xs text-neutral-500 mt-1">
+                    Enter 100 if you took the borrowing on alone. The rest belongs to your co-owner.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1164,7 +1202,9 @@ export default {
         lease_start_date: '',
         lease_end_date: '',
       },
+      declaresOwnMortgageLiability: false,
       mortgageForm: {
+        declared_liability_percentage: null,
         lender_name: '',
         mortgage_account_number: '',
         mortgage_type: '',
@@ -1200,11 +1240,28 @@ export default {
     // Says what the user's share of the mortgage will be, derived from the
     // property ownership they have already set on this form (W-0228/W-0236).
     // Read-only by design — see the template comment.
-    mortgageLiabilityShareSummary() {
-      const type = this.form.ownership_type;
+    isSharedProperty() {
+      return this.form.ownership_type === 'joint' || this.form.ownership_type === 'tenants_in_common';
+    },
 
-      if (type !== 'joint' && type !== 'tenants_in_common') {
+    mortgageLiabilityShareSummary() {
+      if (!this.isSharedProperty) {
         return 'You are responsible for the whole of this mortgage.';
+      }
+
+      // W-0483 — a declared share is what the server will use, so the sentence has to
+      // describe it. Saying "matching your share of the property" beside a figure that
+      // deliberately does not match is the two-figures-one-debt failure W-0228 closed,
+      // rebuilt in copy.
+      const declared = Number(this.mortgageForm.declared_liability_percentage);
+      if (this.declaresOwnMortgageLiability && Number.isFinite(declared)) {
+        const coOwnerName = this.form.joint_owner_name
+          || (this.spouse && this.spouse.name)
+          || 'your co-owner';
+
+        return `You are responsible for ${this.trimPercent(declared)}% of this mortgage, `
+          + `which you have told us differs from your share of the property. The remaining `
+          + `${this.trimPercent(100 - declared)}% belongs to ${coOwnerName}.`;
       }
 
       const share = Number(this.form.ownership_percentage);
@@ -1616,6 +1673,11 @@ export default {
         this.mortgageForm.maturity_date = this.formatDateForInput(mortgage.maturity_date);
         this.mortgageForm.ownership_type = mortgage.ownership_type || 'individual';
         this.mortgageForm.ownership_percentage = mortgage.ownership_percentage || this.form.ownership_percentage || 50;
+        // W-0483 — null means nobody declared a borrowing split, so the box starts
+        // unticked and the property stays authoritative. `?? null` rather than `|| null`
+        // because a declared 0 is a statement ("I borrowed none of it"), not an absence.
+        this.mortgageForm.declared_liability_percentage = mortgage.declared_liability_percentage ?? null;
+        this.declaresOwnMortgageLiability = this.mortgageForm.declared_liability_percentage !== null;
         this.mortgageForm.joint_owner_id = mortgage.joint_owner_id || null;
         this.mortgageForm.joint_owner_name = mortgage.joint_owner_name || '';
 
@@ -1893,9 +1955,19 @@ export default {
       if (cleanedProperty.ownership_type !== 'tenants_in_common') {
         delete cleanedProperty.ownership_percentage;
       }
-      // The mortgage section has no share input at all.
+      // The mortgage section has no OWNERSHIP share input at all — the share of the
+      // asset still follows the property (W-0228).
       if (cleanedMortgage) {
         delete cleanedMortgage.ownership_percentage;
+
+        // W-0483 — the declared BORROWING share is different: it is sent only when
+        // the user ticked the box, and explicitly nulled when they untick it, so
+        // withdrawing the declaration puts the property back in charge. Leaving the
+        // key out on untick would silently keep an old declaration alive.
+        cleanedMortgage.declared_liability_percentage = this.declaresOwnMortgageLiability
+          && Number.isFinite(Number(this.mortgageForm.declared_liability_percentage))
+          ? Number(this.mortgageForm.declared_liability_percentage)
+          : null;
       }
 
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)

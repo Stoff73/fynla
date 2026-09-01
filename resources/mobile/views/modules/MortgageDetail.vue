@@ -32,8 +32,20 @@ export default {
     rows() { return [
       { key: 'Type', value: label(this.mortgage.mortgage_type) }, { key: 'Ownership', value: label(this.mortgage.ownership_type) }, { key: 'Monthly payment', value: fmt(this.mortgage.monthly_payment) }, { key: 'Interest rate', value: this.rate(this.mortgage.interest_rate) }, { key: 'Rate type', value: label(this.mortgage.rate_type) },
       ...this.mixedRateRows,
+      ...this.declaredLiabilityRows,
       { key: 'Remaining term', value: this.mortgage.remaining_term_months == null ? '—' : `${this.mortgage.remaining_term_months} months` }, { key: 'Maturity date', value: date(this.mortgage.maturity_date) },
     ]; },
+    // W-0483. A mortgage's share follows the property securing it unless someone has
+    // declared otherwise, and `/m` showed only "Ownership: Joint" — so a household
+    // where one person borrowed alone read here as sharing the debt. No row where
+    // nothing was declared: the Ownership row above is then the whole truth.
+    declaredLiabilityRows() {
+      const declared = this.mortgage?.declared_liability_percentage;
+      if (declared == null) return [];
+
+      return [{ key: 'Your share of the borrowing', value: `${Number(declared).toFixed(2)}%` }];
+    },
+
     mixedRateRows() {
       if (this.mortgage?.rate_type !== 'mixed') return [];
       const rows = [];

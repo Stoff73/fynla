@@ -304,6 +304,11 @@ class MortgageStore
             'ownership_type' => ($partial ? 'sometimes|' : 'required|').'in:individual,joint',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
             'interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
+            // W-0483 — the declared borrowing share. Nullable and never required:
+            // absent or null means nobody has said, and the property securing the
+            // mortgage stays authoritative. Bounded here as well as on the requests,
+            // because Fyn and `/m` write through this Store and through nothing else.
+            'declared_liability_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
 
             // The sixth axis (W-0329): a bound the form enforces and this Store did
             // not. These six are columns on `mortgages`, Store/UpdateMortgageRequest

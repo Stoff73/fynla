@@ -210,3 +210,27 @@ F-0022 §12.
   **CSJ amended this ruling on 2026-08-30** — a mortgage share MAY differ from the ownership
   share. That amendment is **W-0483**, and it is engineering on top of this, not a reason to
   reopen this item.
+
+## 2026-09-01 — the amendment is now in the code (W-0483 acceptance 3)
+
+CSJ amended this ruling on 2026-08-30: *"W-0228 can allow mortgage share that is not
+the same as ownership share."* Recorded here so a reader of the ruling sees it, not
+only on W-0483.
+
+**The ruling still stands as the default.** A mortgage's share follows the property
+securing it, and every row that existed before this date is unaffected. What changed is
+that it now yields to an explicit statement:
+`mortgages.declared_liability_percentage`, nullable with no default. Null means nobody
+has said and the property is authoritative.
+
+**What did NOT change, and must not.** `mortgages.ownership_percentage` is still unread.
+It is populated on every row, was never reviewed, and is the value whose disagreement
+with the property produced the two-figures-one-debt failure this ruling closed — the
+persona still carries `joint 50%` on a mortgage secured on a `tenants_in_common 40%`
+property. `CalculatesOwnershipShare::refuseRecordWhoseShareFollowsAnother()` still
+throws for any caller reaching for it, and a test pins that the household figure does
+not move.
+
+Consequence 5 of this ruling — "do not add a borrower-split field to work around it, and
+do not raise it as a defect" — is superseded by the amendment, not by anyone's judgement.
+It stood correctly until CSJ changed it.

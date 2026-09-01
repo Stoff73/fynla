@@ -94,6 +94,10 @@ class StoreMortgageRequest extends FormRequest
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint'])],
             'joint_owner_id' => ['nullable', 'exists:users,id'],
             'joint_owner_name' => ['nullable', 'string', 'max:255'],
+            // W-0483 — the share of this borrowing the mortgage's own owner carries,
+            // where it is not the share of the property. Nullable and with no default:
+            // absent means nobody has said, and the property stays authoritative.
+            'declared_liability_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
 
             // Notes
             'notes' => ['nullable', 'string', 'max:1000'],
