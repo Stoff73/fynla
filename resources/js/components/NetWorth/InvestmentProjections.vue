@@ -190,8 +190,13 @@
                 <span class="summary-item-label">Current Value</span>
                 <span class="summary-item-value">{{ formatCurrency(account.current_value) }}</span>
               </div>
+              <!-- W-0259 — the median leads; the conservative band stands beside it. -->
               <div class="summary-item purple">
-                <span class="summary-item-label">Projected Value (80%)</span>
+                <span class="summary-item-label">Projected Value (middle outcome)</span>
+                <span class="summary-item-value">{{ formatProjectedMedian }}</span>
+              </div>
+              <div class="summary-item purple">
+                <span class="summary-item-label">Lower outcome (4 in 5 do better)</span>
                 <span class="summary-item-value">{{ formatProjectedValue80 }}</span>
               </div>
             </div>
@@ -771,6 +776,16 @@ export default {
       if (!this.hasProjectionData) return '—';
       const lastYear = this.projectionData.year_by_year[this.projectionData.year_by_year.length - 1];
       return this.formatCurrency(lastYear?.percentile_20);
+    },
+
+    // W-0259. The 20th percentile is hump-shaped in risk — it peaks partway up the
+    // scale and falls again — so a card leading on it alone tells a user that taking
+    // more risk made them poorer. The median rises monotonically with risk, so the two
+    // together say what is actually true of the model.
+    formatProjectedMedian() {
+      if (!this.hasProjectionData) return '—';
+      const lastYear = this.projectionData.year_by_year[this.projectionData.year_by_year.length - 1];
+      return this.formatCurrency(lastYear?.percentile_50);
     },
 
     years() {

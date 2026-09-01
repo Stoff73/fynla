@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 43**  ·  closed 2026-08-31: 89
+**Outstanding: 42**  ·  closed 2026-08-31: 90
 
 ---
 
@@ -92,7 +92,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0210** `done` (already fixed) — A goal is counted and labelled as a life event — Sarah has zero life events and the module reports "1 cash outflow events £400K
 - [ ] **W-0243** `deferred-ios` — The native iOS retirement card cannot show a guaranteed income, so a defined-benefit-only spouse still reads £0 there
 - [x] **W-0258** `done` (option 2 — disclosure added, one home, 3rd site found; reversible if CSJ prefers 1 or 3) — The card captions an arithmetic "expected return" beside a median projection that is lower by volatility drag, and the two cannot be reconciled by the reader
-- [ ] **W-0259** `queued` — The single figure on the projection card is the 20th percentile — the one band where taking more risk makes the number go down
+- [x] **W-0259** `done` (option 2 — median beside the band on 3 cards; W-0217 acceptance 2 amended) — The single figure on the projection card is the 20th percentile — the one band where taking more risk makes the number go down
 - [ ] **W-0275** `queued` — Eight consumers still ask "who depends on this user" with a user_id-only query
 - [ ] **W-0280** `queued` — Census — user_id-only queries over records that can be shared. Every line is a code-read hypothesis until measured; the first one I published was WRONG
 - [ ] **W-0311** `deferred-ios` — The native Pensions category still calls the figure "Accessible pension capital" and carries no exclusion note, so a Defined Benefit holder sees a bare £0

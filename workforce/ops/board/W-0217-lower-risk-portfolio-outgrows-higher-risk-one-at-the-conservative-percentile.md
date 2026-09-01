@@ -113,8 +113,17 @@ app(\App\Services\Investment\InvestmentProjectionService::class)
 
 1. An explanation of why the smaller, lower-risk portfolio outgrows the larger one —
    either the model is corrected, or the behaviour is shown to be intended and why.
-2. A higher risk preference produces a higher projected return than a lower one, all
-   else equal, at every percentile reported.
+2. ~~A higher risk preference produces a higher projected return than a lower one, all
+   else equal, at every percentile reported.~~
+   **AMENDED 2026-09-01 by W-0259** — this asked for a property a correct Monte Carlo
+   does not have. Measured across four risk levels and two horizons, the **median and
+   the spread rise monotonically with risk; the twentieth percentile is hump-shaped**,
+   peaking further up the scale the longer the horizon, because added volatility widens
+   the downside faster than added expected return lifts it. Forcing monotonicity at
+   every percentile would mean breaking the model.
+   **The property the model does guarantee, and the one to assert:** the median rises
+   with risk, and the spread between percentiles widens with it. W-0259 carries the
+   measurements and the product consequence.
 3. An account with no holdings has a stated, deliberate treatment rather than an
    emergent one.
 4. The twentieth percentile is defensible as a pessimistic case over long horizons.
