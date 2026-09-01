@@ -74,3 +74,37 @@ throw FinancialCalculationException::investmentCalculationError('Reason', ['cont
 ```
 
 Factories: `divisionByZero`, `missingData`, `invalidInput`, `taxConfigError`, `projectionError`, `ihtCalculationError`, `pensionCalculationError`, `investmentCalculationError`, `protectionCalculationError`, `insufficientData`, `timeout`.
+
+## Legal-sounding copy carries its source (W-0153)
+
+Any user-facing sentence that states what the law is must name the provision that says
+so. `WillDocumentService::EXECUTOR_IS_TESTATOR_MESSAGE` read "A will cannot appoint its
+own testator as executor" — a rule in Fynla's own voice the reader could not check —
+while the powers-of-attorney side stated the same class of thing attributed and
+paragraph-referenced. Nothing required attribution, so the two diverged in silence.
+
+The test is **act, not object**: describe what the office or instrument *is*, cite the
+provision, and let the consequence follow.
+
+```php
+// No.  An unattributable prohibition in Fynla's voice.
+'A will cannot appoint its own testator as executor.'
+
+// Yes. What the office is, cited, and the contradiction follows from it.
+'An executor is the person who collects in the estate and administers it after the
+ testator has died (Administration of Estates Act 1925, section 25), so a will naming
+ its own testator is a contradiction Fynla cannot resolve for you.'
+```
+
+**Never invent a citation to satisfy this.** Where no express provision exists, the
+statement is a warning that describes, not a refusal that prohibits — that is why the
+three `LpaComplianceService` party-role conflicts stay warnings while the two statutory
+limbs refuse (W-0145). An unattributable claim is a claim that should not be made.
+
+Homes for this vocabulary: `LpaCheckPolicy`, `WillTypePolicy`, `WillDocumentService`.
+A statement of a legal position belongs in one of them, once — never inline at a call
+site, and never in a Vue file.
+
+**A lint rule is deliberately not built.** A regex for legal-sounding copy fires on the
+correct cases too, and a detector that cries wolf on attributed statements trains
+reviewers to dismiss it. The failure this rule addresses was judgement, not detection.

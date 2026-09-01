@@ -18,8 +18,32 @@ class WillDocumentService
      * Lives here as the one home so every path — the will builder, the mirror
      * generator and Fyn's create_will handler — refuses in the same words
      * (W-0024, Rule 20).
+     *
+     * W-0153 — **a legal statement in user-facing copy carries its source.**
+     *
+     * This sentence opened "A will cannot appoint its own testator as executor",
+     * a rule in Fynla's own voice that the reader had no way to check. The
+     * powers-of-attorney side states the same CLASS of thing attributed and
+     * paragraph-referenced (`LpaComplianceService`, `LpaCheckPolicy`), so the two
+     * instruments diverged silently — and the divergence surfaced only because one
+     * agent happened to write copy for both in one day.
+     *
+     * The rule that governs the wording is the act-not-object test: say what the
+     * office IS, cite the provision that says so, and let the contradiction follow.
+     * Do NOT assert a prohibition unless an express one exists — there is no
+     * statutory section reading "a testator may not be their own executor", and
+     * inventing a reference for one would be worse than the unattributed sentence
+     * it replaced. The same discipline governs the three W-0103 party-role
+     * warnings, which stay warnings for exactly this reason.
+     *
+     * **If you are writing new legal-sounding copy anywhere in this application,
+     * this paragraph is the rule.** Attribution is not a style preference; an
+     * unattributable claim is a claim that should not be made.
+     *
+     * The replacement was NOT silently edited into the approved W-0024 string —
+     * see the W-0153 board entry, which records the re-approval as outstanding.
      */
-    public const EXECUTOR_IS_TESTATOR_MESSAGE = 'A will cannot appoint its own testator as executor. Name the person who will carry out your wishes.';
+    public const EXECUTOR_IS_TESTATOR_MESSAGE = 'An executor is the person who collects in the estate and administers it after the testator has died (Administration of Estates Act 1925, section 25), so a will naming its own testator is a contradiction Fynla cannot resolve for you. Name the person who will carry out your wishes.';
 
     /**
      * Shown to the partner on a generated mirror will, against every gift
