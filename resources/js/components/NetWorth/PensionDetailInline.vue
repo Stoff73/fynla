@@ -464,6 +464,11 @@
                 <p>Based on {{ projectionData.years_to_retirement }} years to retirement age {{ projectionData.retirement_age }},
                 {{ projectionData.risk_level }} risk profile ({{ projectionData.expected_return }}% expected return),
                 and {{ formatCurrency(projectionData.monthly_contribution) }}/month contributions.</p>
+                <!--
+                  W-0258. The third site quoting an arithmetic expected return beside a
+                  median projection. Same sentence as the two charts, from the same home.
+                -->
+                <p class="mt-1">{{ VOLATILITY_DRAG_NOTE }}</p>
               </div>
             </div>
             <div v-else class="text-center py-12 text-neutral-500">
@@ -531,6 +536,7 @@
 </template>
 
 <script>
+import { VOLATILITY_DRAG_NOTE } from '@/utils/projectionCaption';
 import { DEFAULT_DB_NORMAL_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapActions, mapState } from 'vuex';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
@@ -590,6 +596,9 @@ export default {
   },
 
   computed: {
+    // W-0258 — exposed so the template reads the one home rather than a literal.
+    VOLATILITY_DRAG_NOTE: () => VOLATILITY_DRAG_NOTE,
+
     // W-0196 — exposed so the template reads the one home rather than a literal.
     DEFAULT_DB_NORMAL_RETIREMENT_AGE: () => DEFAULT_DB_NORMAL_RETIREMENT_AGE,
 

@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import { projectionRiskMessage } from '@/utils/projectionCaption';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, CHART_DEFAULTS, TEXT_COLORS } from '@/constants/designSystem';
@@ -116,9 +117,11 @@ export default {
         return null;
       }
 
-      const levelDisplay = this.formatRiskLevel(this.riskLevel);
-      const formattedReturn = Number(this.expectedReturn).toFixed(2);
-      return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return)`;
+      // W-0258 — the same caption as the investment chart, from one place.
+      return projectionRiskMessage({
+        levelDisplay: this.formatRiskLevel(this.riskLevel),
+        expectedReturn: this.expectedReturn,
+      });
     },
 
     filteredLifeEvents() {
