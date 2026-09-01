@@ -81,23 +81,31 @@ class Bequest extends Model
      *
      * The limitation this docblock used to record — "no write path populates
      * beneficiary_type" — was true and is now fixed. Every write path classifies
-     * the beneficiary through nameLooksCharitable() below and stores the result,
-     * so the structured check is the one that answers first and the name list is
-     * the fallback it was always meant to be (W-0394).
+     * the beneficiary through nameLooksCharitable() and stores the result, which
+     * is why the name list is no longer consulted here (W-0394).
+     *
+     * **The name list is a WRITE-time inference and must not be a read-time
+     * override.** Reaching for it here defeated an explicit answer: a user who
+     * chose Individual for a gift to "Shelter Macmillan" was overruled by the
+     * word in the name, and the classification decides the charitable total that
+     * decides the 36% reduced rate (IHTA 1984 Sch 1A). That error understates
+     * the tax bill — the one direction a tax figure must never be wrong in — and
+     * the user had no way to correct it, because the field they would correct was
+     * the field being ignored.
+     *
+     * Dropping the fallback errs the other way for any row written before the
+     * write paths were fixed and never repaired: it reads as an individual, the
+     * charitable total is understated, and the tax bill is overstated. That is
+     * the safe direction, it is visible on the screen, and the user can fix it by
+     * setting the type. `bequests:backfill-will` repairs the known rows.
      */
     public function isCharitable(): bool
     {
-        // Check beneficiary_type
         if ($this->beneficiary_type === 'charity') {
             return true;
         }
 
-        // Check charity registration number
-        if (! empty($this->charity_registration_number)) {
-            return true;
-        }
-
-        return self::nameLooksCharitable($this->beneficiary_name ?? '');
+        return ! empty($this->charity_registration_number);
     }
 
     /**

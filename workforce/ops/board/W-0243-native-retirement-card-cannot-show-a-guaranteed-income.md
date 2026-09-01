@@ -4,7 +4,7 @@ title: The native iOS retirement card cannot show a guaranteed income, so a defi
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: deferred-ios
 severity: medium
 surfaces: [ios]
 created: 2026-08-22T20:40:00Z
@@ -56,3 +56,14 @@ lead with" is what W-0238 existed to remove.
 2. Verified in the simulator against csjones staging, per the TestFlight trap in
    root `CLAUDE.md` (the app reads the **staging** database).
 3. The pot/income rule matches web and `/m` exactly, including the caption.
+
+---
+
+## Deferred 2026-09-01 — iOS is out of scope for the board loop
+
+CSJ ruled on 2026-08-31 that the board loop covers web and `/m` only, and every iOS
+item defers rather than being worked. This item's `surfaces` is `[ios]` alone, so all
+of it defers. No Swift was changed and nothing was verified on a simulator.
+
+The backend and `/m` halves named in the item are unaffected and remain available to
+whoever picks the native work up.

@@ -198,12 +198,18 @@ describe('checkCompliance', function () {
                 'certificate_provider_known_years' => 5,
                 'when_attorneys_can_act' => 'only_when_lost_capacity',
             ]);
+        // W-0105 — a COMPLETE property and financial affairs instrument now
+        // answers the bankruptcy question. Leaving it null is a real warning
+        // (s13(8) disqualifies a bankrupt attorney), so a fixture describing a
+        // finished LPA has to state it rather than inherit silence.
         LpaAttorney::factory()->create([
             'lasting_power_of_attorney_id' => $lpa->id,
             'attorney_type' => 'primary',
+            'is_bankrupt' => false,
         ]);
         LpaAttorney::factory()->replacement()->create([
             'lasting_power_of_attorney_id' => $lpa->id,
+            'is_bankrupt' => false,
         ]);
         LpaNotificationPerson::factory()->create([
             'lasting_power_of_attorney_id' => $lpa->id,
@@ -518,5 +524,328 @@ describe('party role conflicts', function () {
             ->and($keys)->toContain('party_roles_donor_attorney')
             ->and($keys)->toContain('party_roles_donor_certificate_provider')
             ->and($keys->duplicates())->toBeEmpty();
+    });
+});
+
+/**
+ * W-0104 — every attorney must be 18 or older.
+ *
+ * Mental Capacity Act 2005 s10(1)(a) sets the minimum age for an attorney, and
+ * the same statute sets the donor's. Only the donor's was checked, though
+ * `lpa_attorneys.date_of_birth` is captured for every attorney — so a child
+ * could be appointed and the instrument shown to the user as compliant right up
+ * to the point the Office of the Public Guardian refused to register it.
+ *
+ * The donor check reading as though it covered "the age requirement" is most of
+ * why this survived.
+ */
+describe('attorney ages (W-0104)', function () {
+    $ageCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'attorney_ages') ?? [];
+
+    it('fails when an appointed attorney is under 18', function () use ($ageCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Alfie Jones',
+            'date_of_birth' => now()->subYears(12),
+        ]);
+
+        $check = $ageCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('fail')
+            ->and($check['description'])->toContain('Alfie Jones');
+    });
+
+    it('passes when every attorney is 18 or older', function () use ($ageCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'date_of_birth' => now()->subYears(40),
+        ]);
+
+        expect($ageCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
+    });
+
+    it('fails on a missing date of birth rather than passing quietly', function () use ($ageCheck) {
+        // An attorney whose age cannot be established is exactly the case this
+        // check exists for. Treating unknown as acceptable would reproduce the
+        // defect for anyone who left the field blank.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'date_of_birth' => null,
+        ]);
+
+        expect($ageCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('fail');
+    });
+});
+
+/**
+ * W-0105 — a bankrupt attorney cannot act for property and financial affairs.
+ *
+ * Mental Capacity Act 2005 s13(8)-(9). The question was never asked: no column,
+ * no field, no check — so an instrument naming a bankrupt attorney was presented
+ * as compliant and would have been refused registration by the Office of the
+ * Public Guardian.
+ *
+ * The restriction is TYPE-DEPENDENT, which is why a blanket bar would be wrong:
+ * a bankrupt person may act as attorney for health and welfare.
+ */
+describe('attorney bankruptcy (W-0105)', function () {
+    $bankruptcyCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'attorney_bankruptcy') ?? [];
+
+    it('fails a property and financial affairs LPA naming a bankrupt attorney', function () use ($bankruptcyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Marcus Webb',
+            'is_bankrupt' => true,
+        ]);
+
+        $check = $bankruptcyCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('fail')
+            ->and($check['description'])->toContain('Marcus Webb');
+    });
+
+    it('does NOT disqualify a bankrupt attorney on a health and welfare LPA', function () use ($bankruptcyCheck) {
+        // s13(8) applies to property and financial affairs only. Refusing them
+        // here would invent a restriction the statute does not impose.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->healthWelfare()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'is_bankrupt' => true,
+        ]);
+
+        expect($bankruptcyCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
+    });
+
+    it('warns rather than fails when the question has not been answered', function () use ($bankruptcyCheck) {
+        // The donor may simply not have been asked, and the application has only
+        // just begun asking. Treating silence as a breach would fail every
+        // instrument created before the field existed.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'is_bankrupt' => null,
+        ]);
+
+        expect($bankruptcyCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('warning');
+    });
+
+    it('passes when every attorney is confirmed not bankrupt', function () use ($bankruptcyCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+            'is_bankrupt' => false,
+        ]);
+
+        expect($bankruptcyCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
+    });
+});
+
+/**
+ * W-0107 — the consequence of having no replacement attorney depends on HOW the
+ * attorneys were appointed.
+ *
+ * The warning said the instrument "may become invalid if ALL primary attorneys
+ * are unable to serve". Under MCA 2005 s10(4) that is true only of a JOINTLY AND
+ * SEVERALLY appointment, where the survivors carry on. Where attorneys act
+ * JOINTLY, the failure of a SINGLE one ends the entire appointment — so the
+ * warning told the donor with the most to lose that they were the safest.
+ */
+describe('replacement attorney consequence (W-0107)', function () {
+    $replacementCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'replacement_attorneys') ?? [];
+
+    it('warns a jointly-appointed donor that ONE failure ends the whole appointment', function () use ($replacementCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'attorney_decision_type' => 'jointly',
+            ]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+        ]);
+
+        $check = $replacementCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('warning')
+            ->and($check['description'])->toContain('any ONE')
+            ->and($check['description'])->not->toContain('jointly and severally');
+    });
+
+    it('tells a jointly-and-severally donor the others can continue', function () use ($replacementCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'attorney_decision_type' => 'jointly_and_severally',
+            ]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+        ]);
+
+        $check = $replacementCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['description'])->toContain('jointly and severally')
+            ->and($check['description'])->toContain('others can continue');
+    });
+
+    it('treats jointly-for-some as joint, because the joint limb behaves that way', function () use ($replacementCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'attorney_decision_type' => 'jointly_for_some',
+            ]);
+
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'attorney_type' => 'primary',
+        ]);
+
+        expect($replacementCheck($this->service->checkCompliance($lpa->fresh()))['description'])
+            ->toContain('any ONE');
+    });
+});
+
+/**
+ * W-0108 — a health and welfare LPA states when attorneys may act.
+ *
+ * `checkWhenAttorneysCanAct()` runs for property and financial affairs only,
+ * because there the timing is a genuine choice. Health and welfare was silent —
+ * and that is the type where the answer is fixed by statute, MCA 2005 s11(7)(a):
+ * the attorney may act only once the donor lacks capacity.
+ *
+ * So the instrument with a real decision asked for one, and the instrument with
+ * a binding restriction said nothing. A donor comparing the two would reasonably
+ * infer their health attorneys could act whenever.
+ */
+describe('health and welfare timing (W-0108)', function () {
+    $timingCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'health_welfare_timing') ?? [];
+
+    it('tells a health and welfare donor the restriction is fixed by law', function () use ($timingCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->healthWelfare()
+            ->create(['user_id' => $this->user->id]);
+
+        $check = $timingCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('pass')
+            ->and($check['description'])->toContain('lost the mental capacity')
+            ->and($check['description'])->toContain('not something you can change');
+    });
+
+    it('does not add the statement to a property and financial affairs LPA', function () use ($timingCheck) {
+        // There the timing IS a choice, and `when_can_act` already asks for it.
+        // Stating a fixed rule beside a question would contradict it.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id]);
+
+        expect($timingCheck($this->service->checkCompliance($lpa->fresh())))->toBe([]);
+    });
+});
+
+/**
+ * W-0106 — the professional certificate-provider route.
+ *
+ * The Lasting Powers of Attorney Regulations 2007 admit EITHER someone who has
+ * known the donor personally for at least two years, OR a person with relevant
+ * professional skills — a GP, a solicitor, a social worker — for whom no prior
+ * relationship is required. A solicitor met last month qualifies.
+ *
+ * The two-year rule was applied unconditionally, so the professional route was
+ * failed — while `certificate_provider_professional_details` already existed as
+ * a column to record it. The field for the exception was there; the exception
+ * was not.
+ */
+describe('professional certificate provider (W-0106)', function () {
+    $yearsCheck = fn (array $result): array => collect($result['checks'])
+        ->firstWhere('key', 'certificate_provider_years') ?? [];
+
+    it('passes a professional provider with no two-year relationship', function () use ($yearsCheck) {
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'certificate_provider_name' => 'Ms Adeyemi',
+                'certificate_provider_known_years' => 0,
+                'certificate_provider_professional_details' => 'Solicitor, Adeyemi & Co',
+            ]);
+
+        $check = $yearsCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('pass')
+            ->and($check['description'])->toContain('Solicitor, Adeyemi & Co');
+    });
+
+    it('does not require the years question of a professional provider', function () use ($yearsCheck) {
+        // Null years is a warning on the personal route. On the professional
+        // route the question does not arise.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'certificate_provider_name' => 'Dr Okafor',
+                'certificate_provider_known_years' => null,
+                'certificate_provider_professional_details' => 'GP, Riverside Practice',
+            ]);
+
+        expect($yearsCheck($this->service->checkCompliance($lpa->fresh()))['status'])->toBe('pass');
+    });
+
+    it('still enforces two years on the personal route', function () use ($yearsCheck) {
+        // The exception must not swallow the rule.
+        $lpa = LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create([
+                'user_id' => $this->user->id,
+                'certificate_provider_name' => 'A Neighbour',
+                'certificate_provider_known_years' => 1,
+                'certificate_provider_professional_details' => null,
+            ]);
+
+        $check = $yearsCheck($this->service->checkCompliance($lpa->fresh()));
+
+        expect($check['status'])->toBe('fail')
+            ->and($check['description'])->toContain('professional capacity');
     });
 });

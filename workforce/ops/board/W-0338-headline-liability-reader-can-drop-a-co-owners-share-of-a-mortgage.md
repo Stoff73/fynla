@@ -4,7 +4,7 @@ title: The headline estate's liability reader can drop a co-owner's share of a m
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-23T00:15:00Z
@@ -73,3 +73,15 @@ review was run on the change rather than on the finished code.
 
 Six service-level measurements, fifteen feature tests and a full browser pass on both
 accounts would every one of them have stayed green.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed. This was W-0336's recorded residual and is now the same reader on both sides.**
+
+  `EstateAssetAggregatorService:413` read `mortgageStore->forUser($user)` — the **one-leg** reader — while `EstateProjectionService` has used the two-leg `CrossModuleAssetAggregator::getMortgages()` since W-0336. So the headline and the projection reached different sets of mortgages for one household.
+
+  **Why the one-leg reader loses debt, restated because it is not obvious from the call site:** a mortgage is REACHED by the row's own `user_id`/`joint_owner_id`, but its SHARE resolves from the securing property (CSJ's W-0228 ruling). Those can disagree — a home owned 50/50 with a mortgage row naming one spouse only. The un-named co-owner then contributed nothing, **half the debt was deducted by nobody, and the estate, and therefore the tax, came out too big.**
+
+  The second leg picks up mortgages on properties the user co-owns that the mortgage row does not name. `calculateUserMortgageShare()` returns 0.0 for a mortgage genuinely not theirs, so the wider reach cannot double-count — which is what makes the two-leg reader safe rather than merely broader.
+
+  **Tested:** 246 estate/mortgage/liability tests pass, 2,075 assertions; the 7 persona locks unmoved at £1,728,780 / £343,512 — expected, since that household's three mortgages are all David-primary and the two readers agree on that shape.
+
+  **NOT DONE.** No `tax-compliance-reviewer` pass, and this moves the estate for any household whose mortgage row and securing property disagree.

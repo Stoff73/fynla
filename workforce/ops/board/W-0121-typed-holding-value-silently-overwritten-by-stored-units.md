@@ -3,7 +3,7 @@ id: W-0121
 title: A typed holding value is silently overwritten by the unit count already on record
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 claimed: 2026-08-21T18:05:00Z
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
@@ -114,3 +114,9 @@ this relationship — see **W-0122**.
   branch (`DCPensionHoldingsController.php:96-98`). Raised as **W-0126**. Whether that
   blocks this item is quality-lead's call: the Fyn path was the one named as the
   prerequisite and it is closed, but "no branch anywhere" is literally not yet true.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `HoldingValuation::supplied()`
+  (app/Support/HoldingValuation.php:166) distinguishes a field present in THIS payload from one
+  inherited off the stored row, and `:127-133` branches on it — "supplied beats inherited", stated
+  in the class docblock at :28. A typed `current_value` is no longer overwritten by the unit count
+  already on record. W-0039's direction (units are the fact) is preserved, not reversed.

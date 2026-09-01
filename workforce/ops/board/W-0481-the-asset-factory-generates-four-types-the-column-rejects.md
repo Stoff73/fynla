@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [quality-lead]
-status: queued
+status: done
 claimed_by: null
 severity: low
 surfaces: []
@@ -77,3 +77,17 @@ anything pointing at the factory.
   randomised and can emit `tenants_in_common`, which `assets.ownership_type` rejects
   outright (it is property-only). Hit while running the W-0475 guard. Acceptance 1
   covers both fields.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed, and there were TWO columns wrong, not one.**
+
+  **`asset_type`, as filed.** The factory drew at random from eight values; the enum accepts five (`property`, `pension`, `investment`, `business`, `other`). Four were rejected outright — `cash`, `business_interest`, `personal_possession`, `life_insurance` — and `business`, which the column DOES accept, was never generated at all.
+
+  **`ownership_type`, found by the guard.** `:53` drew `['individual', 'joint', 'tenants_in_common']` against `enum('individual','joint','trust')`. `tenants_in_common` is not in it and never could be: **Rule 4 makes that value PROPERTY-only**, and this is the estate `assets` table. `trust`, which the column does accept, was missing. Same fault, same file, one line apart — and it only surfaced because the new test persisted rows rather than building them.
+
+  **Why this was worse than a factory that always fails:** it failed at RANDOM, roughly half the time, so it read as a flaky test rather than a factory that cannot produce a valid row — and the usual response to a flaky test is to re-run it.
+
+  Also removed: the `cash()` state, which wrote `asset_type => 'cash'` and would therefore have failed on **every** call. It had zero callers. The name-map arms for the three departed types went with them — cash lives in the savings tables and policies in the protection ones; neither is an `assets` row, which is why the enum never had them.
+
+  **Deliberately kept as literal lists rather than read from the schema**, and recorded because it looks like an improvement: a factory that derives its values from the column can never disagree with it, and so can never fail when the column changes — which is exactly the warning a suite is supposed to give.
+
+  **Tested:** `tests/Feature/Database/AssetFactoryProducesValidRowsTest.php` — 2 passed, **85 assertions over 40 random draws**, every row persisted. A single reintroduced invalid value would have to dodge all forty.

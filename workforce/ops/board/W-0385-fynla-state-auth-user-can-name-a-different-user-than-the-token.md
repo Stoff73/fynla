@@ -4,7 +4,7 @@ title: fynla-state.auth.user can name a different user than the token authentica
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0027-cycle4-life-cover-reach.md
 owner: null
-status: queued
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-08-23T01:05:00Z
@@ -59,3 +59,13 @@ Two things come out of this and they are separable:
 2. Determine whether the stale `fynla-state.auth.user` is a login/logout path that fails
    to clear or replace the persisted user, and whether any surface renders identity from
    it. If so, that is its own defect with its own severity.
+
+- 2026-08-31 build-lead: **RESOLVED AND TESTED — closed. Both acceptance criteria answered, and the second one has a better answer than the item expected.**
+
+  **Acceptance 1 — the playbook is corrected.** `.claude/skills/verify-m/SKILL.md` now leads with it: establish which account you are on from `GET /api/auth/user`, **never from `localStorage`**, with the measured evidence in place — store said `sarah.jones@example.com` (17), token authenticated as `david.jones@example.com` (16), and the page rendered David's data throughout. It says WHY, which is the part that makes it stick: **the server answers to the token, not to the persisted Vuex snapshot.**
+
+  **Acceptance 2 — investigated, and it is NOT a product defect.** `store/modules/auth.js:85-95` shows `login` commits `clearAuth` and resets **every** module — `userProfile`, `lifeStage`, `onboarding`, `netWorth`, `aiChat` — and removes the stored token, all **before** authenticating. `logout` does the same at `:115-129`. So neither path leaves a stale user behind, and no surface renders identity from a store the login flow has not just rewritten.
+
+  **The staleness came from injecting a token directly**, without going through `login` — which is precisely what the scaffold-token bridge does, and therefore precisely the situation a `/m` verification is in. That is recorded in the skill too, so the next reader understands it is a harness artefact rather than assuming the login path is unsafe and "fixing" something that works.
+
+  **So no code changed, and that is the finding**: the item's title was right to call this *a verification-method defect*. Had it been treated as an auth bug, the fix would have been applied to a login path that was already correct.

@@ -4,7 +4,7 @@ title: Nothing enforces the 100% holdings allocation total on write, so any acco
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T22:50:00Z
@@ -79,3 +79,15 @@ holdings array is the mirror-image contract question.
   answer; if the server adopts a tolerance it should match the 0.01 used there,
   since `68.18 + 31.76 + 0.06` is `100.00000000000001` in IEEE 754 and a naive
   `> 100` would reject correct accounts.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  `StoreInvestmentAccountRequest` summed the allocations and refused a total above 100. `UpdateInvestmentAccountRequest` carried the per-holding `max:100` and **nothing summing them** — its `withValidator()` checked only the ownership split. So an account created at 100% could be pushed past it by an edit: **create refused what update accepted, for the same account and the same numbers.**
+
+  The rule is now `StoreInvestmentAccountRequest::validateHoldingsAllocation()`, static and called by both. Shared rather than copied deliberately: two copies of a validation rule drift the moment one is touched, and this drift was **silent**, because neither request had any reason to mention the other.
+
+  A request carrying no `holdings` key is untouched, so a partial update — a provider rename — is not refused for failing to re-state an allocation it never touched.
+
+  **Tested:** `UpdateHoldingsAllocationCeilingTest` — 3 passed (over 100 refused, exactly 100 allowed, absent holdings ignored); 259 investment-account and holdings tests pass, 809 assertions. Pint clean.
+
+  **Related and NOT fixed here:** the tech-debt report records that `InvestmentController`'s create guards the auto-Cash row with `&& ! $hasCashHolding` (`:439`) while update does not (`:587`), so 70% equities + 20% Cash through update yields two Cash rows. Same create/update asymmetry, different mechanism — left as its own item rather than folded in.

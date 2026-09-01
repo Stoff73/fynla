@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0033-cycle4-the-charitable-saving-and-the-percentage-denominator.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: gated
+status: done
 claimed_by: fix-cycle4-figures
 severity: high
 surfaces: [web]
@@ -144,3 +144,11 @@ longer moves between sessions; **it cannot confirm which will it came from.** Th
 is the axis, and only the fixture expresses it. Stated rather than implied.
 
 Branch doc: `workforce/branches/fixes/F-0033-cycle4-the-charitable-saving-and-the-percentage-denominator.md`
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `EstateAgent:752-756` records that
+  this third site used to divide the charitable total by the baseline to recompute a percentage
+  the household calculation had already published; it now reads
+  `$charitableAnalysis['charitable_percent']` — the one answer, settled in
+  `IHTCalculationService:548`. So `/estate` and `/plans/estate` quote the same figure, and the
+  percentage on `/plans/estate` is derivable from the estate figure printed above it.
+  **This also unblocks W-0139's criterion 4**, which was waiting on this item.

@@ -4,7 +4,7 @@ title: Completion is not blocked when a Lasting Power of Attorney names a certif
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead, product-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T20:10:00Z
@@ -56,3 +56,51 @@ Those three stay warnings.
 - 2026-08-21 fix-batch-G: raised on team-lead's direction after W-0103 shipped without a
   gate. **Deliberately left queued** — the inheritance tax work (W-0154) outranks it, and
   team-lead confirmed not blocking completion on the non-statutory conflicts was correct.
+
+---
+
+## Closed 2026-08-31 — the two statutory limbs now refuse
+
+**Root cause.** The classification was never the problem — `LpaComplianceService`
+has raised both limbs at `fail` since W-0102 and W-0151. Nothing consulted them.
+`LpaService::createLpa()` and `updateLpa()` set `completed_at` from whatever status
+the request asked for (`:53`, `:84` before this change), so the checks reported a
+statutory disqualification into a payload while the same call saved the instrument.
+
+**Acceptance 1 — the two block, the other three do not.**
+`app/Services/Estate/LpaCheckPolicy.php:120-140` names the two blocking keys and
+carries the reason the other three stay warnings; `LpaService.php:108-140`
+(`refuseDisqualifiedCompletion`) is called on both write paths, inside the
+transaction, so a refusal rolls the write back.
+
+**Acceptance 2 — measured before deciding.** 4 completed/registered instruments
+exist in the local database and **0** carry either conflict, so no existing record
+is trapped. The gate is written so it could not trap one anyway: it refuses only the
+transition INTO `completed`/`registered`, and the instrument stays saveable as a
+draft. Proven by `it('lets the user keep working on a draft that carries the
+conflict')`.
+
+**Acceptance 3 — the wording composes from `LpaCheckPolicy`.**
+`LpaCheckPolicy::completionRefusal()` builds the refusal from the failing check's own
+title and description plus the existing `REFERRAL` constant. No second copy of the
+statutory sentences exists.
+
+**Acceptance 4 — verified both ways**, as W-0024's was.
+`tests/Feature/Estate/LpaControllerTest.php` — 5 new tests: refused while the conflict
+stands (422 on `status`, nothing written), saved once the name is corrected, draft
+still editable, a donor-as-own-attorney warning NOT refused, and the same refusal on
+the update path that completes an existing draft.
+
+**Regression:** 450 passed across the LPA controller, both estate unit suites and the
+Fyn `create_power_of_attorney` tool.
+
+## Not done, and deliberate
+
+`markAsRegistered()` is NOT gated (`LpaService.php:158-170` carries the reason at the
+line). It records that the Office of the Public Guardian *has* registered the
+instrument — a fact about the world, not a claim Fynla is making — and refusing it
+would leave a user unable to record what has already happened.
+
+**Surfaces:** the gate is server-side on the shared write path, so web, `/m` and Fyn
+all hit it. Only web has an LPA form today (see W-0110), so there is no second
+frontend to mirror it into.

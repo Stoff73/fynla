@@ -59,6 +59,14 @@ class ProtectionGapPresentationService
             $user,
         );
         $gaps = $this->gapAnalyzer->calculateCoverageGap($needs, $coverage);
+
+        // W-0227 — the inputs disclosed on the debt panel must be the inputs the
+        // figure was actually built from. This published `profile->mortgage_balance`
+        // and `profile->other_debts` beside a need computed from the user's LIABILITY
+        // RECORDS, so the panel stated `£0` and `£0` above a need of £182,500: a user
+        // could not reconcile the figure to anything, because the two numbers offered
+        // as its inputs had contributed nothing to it.
+        $debtBasis = $this->gapAnalyzer->debtProtectionBasis($profile);
         $lifePolicies = $this->lifePolicyReferences($lifePoliciesCovering);
         $incomePolicies = $this->incomePolicyReferences(
             $user->incomeProtectionPolicies,
@@ -97,16 +105,28 @@ class ProtectionGapPresentationService
                 (float) ($gaps['coverage_allocated']['debt_covered'] ?? 0),
                 (float) ($gaps['gaps_by_category']['debt_protection_gap'] ?? 0),
                 [
-                    'mortgage_balance' => round((float) ($profile->mortgage_balance ?? 0), 2),
-                    'other_debts' => round((float) ($profile->other_debts ?? 0), 2),
+                    'mortgage_balance' => round((float) ($debtBasis['components']['mortgages'] ?? 0), 2),
+                    'other_debts' => round((float) ($debtBasis['components']['other_debts'] ?? 0), 2),
                     'calculated_debt_need' => round((float) ($needs['debt_protection'] ?? 0), 2),
                 ],
                 [[
                     'key' => 'allocation_priority',
                     'value' => 'Life cover is allocated to debt first',
                     'unit' => null,
+                ], [
+                    // W-0227 acceptance 3 — a figure whose provenance is invisible
+                    // cannot be checked by the person it is being sold to. The two
+                    // sources produce the same shape, so without this the reader
+                    // cannot tell which one answered.
+                    'key' => 'debt_source',
+                    'value' => $debtBasis['source'] === 'records'
+                        ? 'Your mortgage and liability records, at your share of each'
+                        : 'The summary figures on your protection profile — you have no mortgage or liability records',
+                    'unit' => null,
                 ]],
-                'This gap compares the canonical mortgage and other debt need with the life cover allocated to debt first.',
+                $debtBasis['source'] === 'records'
+                    ? 'This compares the mortgages and other debts on your records, counted at your own share, with the life cover allocated to debt first.'
+                    : 'This compares the debt figures recorded on your protection profile with the life cover allocated to debt first.',
                 $lifePolicies,
             ),
             $this->category(

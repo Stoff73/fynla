@@ -3,7 +3,7 @@ id: W-0483
 title: A co-owner who borrowed alone cannot be shown as owing alone, and only CSJ can change that
 mission: M-0002-persona-fidelity
 owner: null
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-25T12:00:00Z
@@ -111,3 +111,50 @@ to someone who owes nothing.
      authoritative would move that household's liabilities £293,000 → £305,000 and break a
      verified figure.
   3. Rule 19 — the form change lands on web AND `/m`.
+
+## 2026-09-01 — CLOSED. All three engineering items built.
+
+CSJ granted the capability on 2026-08-30. The three things the previous note said
+remained are done.
+
+**1. A way to SAY it, that legacy rows cannot trigger.**
+`mortgages.declared_liability_percentage`, nullable with **no default**
+(`database/migrations/2026_09_01_130000_...`). Deliberately a new column rather than
+believing `mortgages.ownership_percentage`: that one is populated everywhere, was never
+reviewed, and the persona carries `joint 50%` on a mortgage secured on a
+`tenants_in_common 40%` property. Reading it as authoritative would have moved that
+household from £293,000 to £305,000 and broken a verified figure — the exact outcome the
+note warned about, and the reason a nullable column is the whole design rather than an
+implementation detail. Null means nobody has said, and that is every pre-existing row.
+
+**2. The guard permits the declared case and still refuses the accidental one.**
+`CalculatesOwnershipShare::refuseRecordWhoseShareFollowsAnother()` returns early only
+when `declared_liability_percentage` is non-null; a caller reaching for the mortgage
+row's ownership columns still throws.
+`calculateUserMortgageAmountShare()` consults `declaredLiabilityShare()` first and falls
+through to the property otherwise, which is the "supplied beats inherited" shape W-0040
+established. **W-0228 still holds by default and yields only to a statement**, and the
+docblock recording the old limitation now records the amendment instead of the ban.
+
+**3. Rule 19.** Web: an opt-in on the property wizard's mortgage step —
+`PropertyForm.vue:717-750` — a checkbox and a percentage, shown only for a shared
+property, and the liability summary sentence changes with it so the screen never
+describes a share it is not sending. Unticking sends an explicit `null`, so a
+declaration can be withdrawn. The field is carried through `StorePropertyRequest`,
+`Store/UpdateMortgageRequest`, `MortgageService`, `MortgageStore` and
+`MortgageResource`.
+`/m` is a **read-only** mortgage detail — edits there route through Fyn — so there is no
+form to mirror; it gains the row instead (`MortgageDetail.vue`), because "Ownership:
+Joint" alone told a household that borrowed unequally that they share the debt.
+
+**Tests:** `tests/Feature/Property/DeclaredMortgageLiabilityBeatsTheInheritedShareTest.php`
+— 6 passed, including the load-bearing one that pins `ownership_percentage` on the
+mortgage row as still unread, and one pinning a declared **0** as a statement rather than
+an absence. Suites: **235 passed** across Mortgage / OwnershipShare / PropertyWizard;
+frontend **466 passed, 60 files**.
+
+**Acceptance 3 — recorded on W-0228.** Done below.
+
+**Not done:** no browser drive of the new control. Fyn's mortgage tool catalogue was not
+extended with the field, so a `/m` user cannot yet declare a split by asking Fyn — the
+Store accepts it, the tool schema does not offer it. Named rather than silently left.

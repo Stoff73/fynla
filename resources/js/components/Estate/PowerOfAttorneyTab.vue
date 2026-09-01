@@ -102,7 +102,7 @@
           <p>
             Fynla helps you record and organise your Lasting Power of Attorney details. To make a Lasting Power of
             Attorney legally valid, it must be printed, signed with wet ink signatures, and registered with the
-            Office of the Public Guardian (currently £82 per registration). We recommend seeking professional
+            Office of the Public Guardian (currently £{{ lpaRegistrationFee }} per registration). We recommend seeking professional
             legal advice when creating your Lasting Power of Attorney.
           </p>
         </div>
@@ -122,7 +122,7 @@
       <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
         <h3 class="text-lg font-bold text-horizon-500 mb-2">Delete Lasting Power of Attorney</h3>
         <p class="text-sm text-neutral-500 mb-4">
-          Are you sure you want to delete this {{ deletingLpa?.lpa_type === 'property_financial' ? 'Property & Financial Affairs' : 'Health & Welfare' }} Lasting Power of Attorney? This action cannot be undone.
+          Are you sure you want to delete this {{ deletingLpa?.type_label }} Lasting Power of Attorney? This action cannot be undone.
         </p>
         <div class="flex justify-end space-x-2">
           <button
@@ -145,6 +145,9 @@
 </template>
 
 <script>
+// W-0109 — the one home for the OPG fee and timescale, mirrored by
+// `App\Constants\EstateDefaults`.
+import { LPA_REGISTRATION_FEE } from '@/constants/lpaRegistration';
 import { mapGetters, mapActions } from 'vuex';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 import LpaSummaryCard from './LpaSummaryCard.vue';
@@ -176,6 +179,8 @@ export default {
   },
 
   computed: {
+    lpaRegistrationFee: () => LPA_REGISTRATION_FEE,
+
     ...mapGetters('estate', ['lpas', 'lpaLoading', 'propertyFinancialLpas', 'healthWelfareLpas']),
 
     hasPropertyFinancial() {

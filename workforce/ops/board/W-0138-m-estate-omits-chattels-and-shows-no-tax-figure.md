@@ -4,7 +4,7 @@ title: The /m estate screen omits chattels entirely, shows an individual estate 
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0016-cycle1-m-chattels-and-plan-expenditure.md
 owner: build-lead
-status: queued
+status: done
 severity: high
 surfaces: [m, web, ios]
 created: 2026-08-21T20:30:00Z
@@ -219,3 +219,14 @@ has already made the change.
   household. Two surfaces, two numbers, one name. The hero now states the basis: *"Based on
   your own records. It does not include anything held only in your partner's name."*
   Open since 2026-08-21.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, all three faults.**
+  **Chattels:** `resources/mobile/views/modules/Estate.vue:134` carries `chattel: 'Possessions'`
+  in `COMP_LABELS`, so they appear in the estate breakdown.
+  **The individual-vs-household figure:** the figure is not changed but is now *labelled* — :57
+  states "Based on your own records. It does not include anything held only in your partner's
+  name", which is what the fault was about (two surfaces, two numbers, one name, nothing telling
+  the reader which).
+  **The subtitle:** now "Your estate, your will and your plans" — the second limb of the
+  acceptance's disjunction, taken after CSJ's W-0469 decision settled that `/m` hands off to web
+  rather than showing an Inheritance Tax figure.

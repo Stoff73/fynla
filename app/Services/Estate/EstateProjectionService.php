@@ -209,14 +209,10 @@ class EstateProjectionService
      */
     private function getFallbackGrowthRate(User $user): float
     {
-        $assumptions = $this->assumptionsService->getEstateAssumptions($user);
-
-        if (($assumptions['investment_growth_method'] ?? 'monte_carlo') === 'custom'
-            && isset($assumptions['custom_investment_rate'])) {
-            return (float) $assumptions['custom_investment_rate'] / 100;
-        }
-
-        return 0.047;
+        // W-0334. This was a byte-identical copy of the rule in the other consumer,
+        // hardcoded fallback included. They agreed only by transcription, which is the
+        // arrangement that let the setting be honoured here and ignored there.
+        return $this->assumptionsService->investmentGrowthRateFor($user);
     }
 
     /**
@@ -239,21 +235,129 @@ class EstateProjectionService
         array $assumptions,
         bool $dataSharingEnabled
     ): float {
+        return $this->projectInvestmentsAfterCashShortfall(
+            $user,
+            $spouse,
+            $yearsToProject,
+            $assumptions,
+            $dataSharingEnabled,
+            []
+        )['projected_investments'];
+    }
+
+    /**
+     * W-0199 — what the portfolio is worth after paying for the spending the
+     * household's cash could not meet.
+     *
+     * W-0137 stopped projected cash going negative and published the unmet spending as
+     * `projected_cash_shortfall`. That left the opposite contradiction: a household was
+     * modelled as running out of cash while its investments grew untouched to the end
+     * of the projection. **Nobody dies owing years of unfunded spending while holding a
+     * portfolio they never sold** — and every pound of it was taxed as though they had.
+     *
+     * ## The model, stated (acceptance 1)
+     *
+     * When cash reaches zero, the household sells investments to cover that year's
+     * shortfall, and stops when the portfolio is exhausted. Anything it still cannot
+     * meet stays a shortfall — a planning output, not a negative asset.
+     *
+     * ## One investment model, not two (acceptance 2)
+     *
+     * The horizon value comes from the SAME projection as before: the Monte Carlo p20,
+     * or the user's custom rate where they chose one. The annual path is then that
+     * projection's OWN implied rate — `(Vn / V0) ^ (1/n) - 1` — so the drawdown is
+     * unwound from the one model's answer rather than computed by a second model with
+     * its own growth assumptions. That second model is exactly what the deleted
+     * `projectCashAndInvestmentsIntegrated()` was, and why wiring it back up would have
+     * been the wrong fix.
+     *
+     * ## Growth on the reduced balance (acceptance 3)
+     *
+     * The deficit is taken in the year it falls and the balance grows from there, so
+     * money sold in year 3 stops compounding in year 3. Subtracting the total at the
+     * horizon would credit the household with growth on money it had already spent.
+     *
+     * @param  array<int, float>  $annualDeficits  Cash shortfall by year offset, from
+     *                                             `HouseholdCashFlowProjector`.
+     * @return array{projected_investments: float, drawn_from_investments: float, unmet_shortfall: float}
+     */
+    public function projectInvestmentsAfterCashShortfall(
+        User $user,
+        ?User $spouse,
+        int $yearsToProject,
+        array $assumptions,
+        bool $dataSharingEnabled,
+        array $annualDeficits
+    ): array {
+        $currentValue = $this->getCurrentInvestmentValue($user, $spouse, $dataSharingEnabled);
+        $totalDeficit = array_sum($annualDeficits);
+
         if ($yearsToProject <= 0) {
-            return $this->getCurrentInvestmentValue($user, $spouse, $dataSharingEnabled);
+            // At the horizon 0 there is no path to walk: the deficit, if any, is met
+            // from what is held today.
+            $drawn = min($currentValue, $totalDeficit);
+
+            return [
+                'projected_investments' => round($currentValue - $drawn, 2),
+                'drawn_from_investments' => round($drawn, 2),
+                'unmet_shortfall' => round($totalDeficit - $drawn, 2),
+            ];
         }
 
         $method = $assumptions['investment_growth_method'] ?? 'monte_carlo';
 
-        if ($method === 'monte_carlo') {
-            return $this->projectInvestmentsMonteCarlo($user, $spouse, $yearsToProject, $dataSharingEnabled);
+        $horizonValue = $method === 'monte_carlo'
+            ? $this->projectInvestmentsMonteCarlo($user, $spouse, $yearsToProject, $dataSharingEnabled)
+            : $this->futureValueCalculator->calculateFutureValue(
+                $currentValue,
+                ($assumptions['custom_investment_rate'] ?? 5.0) / 100,
+                $yearsToProject
+            );
+
+        if ($totalDeficit <= 0.0) {
+            return [
+                'projected_investments' => round($horizonValue, 2),
+                'drawn_from_investments' => 0.0,
+                'unmet_shortfall' => 0.0,
+            ];
         }
 
-        // Custom rate: simple compound growth
-        $customRate = ($assumptions['custom_investment_rate'] ?? 5.0) / 100;
-        $currentValue = $this->getCurrentInvestmentValue($user, $spouse, $dataSharingEnabled);
+        // A household with nothing invested cannot draw on investments; the whole
+        // shortfall stays a shortfall, and the implied rate below would divide by zero.
+        if ($currentValue <= 0.0) {
+            return [
+                'projected_investments' => round($horizonValue, 2),
+                'drawn_from_investments' => 0.0,
+                'unmet_shortfall' => round($totalDeficit, 2),
+            ];
+        }
 
-        return $this->futureValueCalculator->calculateFutureValue($currentValue, $customRate, $yearsToProject);
+        $impliedRate = ($horizonValue / $currentValue) ** (1 / $yearsToProject) - 1;
+
+        $balance = $currentValue;
+        $drawn = 0.0;
+        $unmet = 0.0;
+
+        for ($year = 0; $year < $yearsToProject; $year++) {
+            $balance *= (1 + $impliedRate);
+
+            $deficit = (float) ($annualDeficits[$year] ?? 0.0);
+
+            if ($deficit <= 0.0) {
+                continue;
+            }
+
+            $available = min($balance, $deficit);
+            $balance -= $available;
+            $drawn += $available;
+            $unmet += $deficit - $available;
+        }
+
+        return [
+            'projected_investments' => round(max(0.0, $balance), 2),
+            'drawn_from_investments' => round($drawn, 2),
+            'unmet_shortfall' => round($unmet, 2),
+        ];
     }
 
     /**
@@ -573,7 +677,13 @@ class EstateProjectionService
     /**
      * Project a single liability using linear amortisation
      */
-    private function projectSingleLiability(
+    /**
+     * W-0470 — public so the DISPLAY breakdown projects a liability exactly as
+     * the engine does. `IHTFormattingService` had its own rules: a binary cliff
+     * at age 70 for mortgages and no amortisation at all for anything else, so
+     * the rows printed beside a projected total were not projected.
+     */
+    public function projectSingleLiability(
         float $currentBalance,
         ?string $endDate,
         int $currentAge,
@@ -613,7 +723,8 @@ class EstateProjectionService
     /**
      * Estimate payoff date from balance, monthly payment, and interest rate.
      */
-    private function estimatePayoffDate($liability): ?string
+    /** W-0470 — public for the same reason as {@see projectSingleLiability()}. */
+    public function estimatePayoffDate($liability): ?string
     {
         $balance = (float) ($liability->current_balance ?? 0);
         $monthly = (float) ($liability->monthly_payment ?? 0);

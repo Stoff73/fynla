@@ -30,7 +30,11 @@ class PensionProjector
      * Public because the estate's cash-flow projection needs the same answer and used
      * to carry a private 68 of its own.
      */
-    public const DEFAULT_RETIREMENT_AGE = 67;
+    /**
+     * W-0196 — one home for the default; see {@see RetirementAgeResolver}. Kept
+     * public because F-0018 already made external callers read it.
+     */
+    public const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     public function __construct(
         private readonly RiskPreferenceService $riskService,
@@ -281,15 +285,33 @@ class PensionProjector
      * Get growth rate for a specific DC pension.
      *
      * Priority:
-     * 1. Pension's own risk_preference (if has_custom_risk is true)
+     * 1. The pension's own risk preference, if it has one
      * 2. User's main risk level from Risk module
      * 3. Default 5%
+     *
+     * **W-0264 — this asked `has_custom_risk && risk_preference`, and this is the
+     * reader the item singles out as "the one that changes the projection".**
+     *
+     * Nothing wrote `has_custom_risk`. The column defaults to `false`
+     * (`DCPension::$attributes`), no client ever sent it, and until
+     * `PensionNormaliser` began deriving it every override a user had set was
+     * discarded here — silently, and only in the projection. Two readers of the same
+     * question were fixed onto `getProductRiskOverride()` (`InvestmentController` and
+     * `PortfolioPresentationService`) and this one was left on the raw pair, which is
+     * the half-fixed shape that hides: the file reads as though it handles the
+     * override, and does, for rows written since the normaliser landed.
+     *
+     * **It is not fixed for rows written before it**, which still carry a preference
+     * with `has_custom_risk = false`. Reading the preference itself — the flag is not
+     * consulted at all — repairs those without a backfill, so no data migration is
+     * needed and none should be written.
      */
     private function getGrowthRateForPension(DCPension $pension, int $userId): float
     {
-        // Check if pension has custom risk override
-        if ($pension->has_custom_risk && $pension->risk_preference) {
-            return $this->getGrowthRateForRiskLevel($pension->risk_preference);
+        $override = $this->riskService->getProductRiskOverride($pension);
+
+        if ($override !== null) {
+            return $this->getGrowthRateForRiskLevel($override);
         }
 
         // Fall back to user's main risk level

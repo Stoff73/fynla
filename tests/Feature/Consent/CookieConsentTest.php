@@ -281,3 +281,115 @@ it('refuses to write cookie consent through the general consent endpoint', funct
     // preference the tracking middleware never sees (W-0049).
     expect(UserConsent::whereIn('consent_type', UserConsent::COOKIE_BANNER_TYPES)->count())->toBe(0);
 });
+
+/**
+ * W-0156. F-0007 created a record that belongs to no user, and nothing removed it.
+ * `claimAnonymousConsents()` rescues the visitor who goes on to register; the one who
+ * never registers kept their row indefinitely. `fyn:user:erase` operates on a user and
+ * these have none; the six-year episodic purge is a different store. The row sat
+ * outside both halves of the covered half of retention.
+ *
+ * The purge rides the existing `registrations:cleanup` command — the closest shape,
+ * already removing stale pre-account state — rather than a second scheduled mechanism.
+ */
+describe('unclaimable anonymous consent rows are purged (W-0156)', function () {
+    it('deletes a row no browser can still claim', function () {
+        $row = UserConsent::create([
+            'subject_token' => str_repeat('a', 64),
+            'consent_type' => 'cookies',
+            'version' => '1.0',
+            'consented' => true,
+            'consented_at' => now()->subDays(400),
+        ]);
+        // Eloquent stamps created_at on insert, so the age has to be forced after it.
+        $row->forceFill(['created_at' => now()->subDays(400)])->saveQuietly();
+
+        $this->artisan('registrations:cleanup')
+            ->expectsOutputToContain('Deleted 1 unclaimable anonymous consent record(s).');
+
+        expect(UserConsent::query()->count())->toBe(0);
+    });
+
+    /**
+     * Acceptance 4. The lifetime is the cookie's, so a row is claimable right up to
+     * the day the token expires — tested against a row one day short of it.
+     */
+    it('keeps a row that is still claimable, and claiming it still works', function () {
+        $token = str_repeat('b', 64);
+        $row = UserConsent::create([
+            'subject_token' => $token,
+            'consent_type' => 'cookies',
+            'version' => '1.0',
+            'consented' => true,
+            'consented_at' => now()->subDays(CookieConsentService::LIFETIME_DAYS - 1),
+        ]);
+        // Forced, not passed to create(): Eloquent stamps created_at on insert, so a
+        // row built without this is one second old and the boundary is never tested.
+        $row->forceFill([
+            'created_at' => now()->subDays(CookieConsentService::LIFETIME_DAYS - 1),
+        ])->saveQuietly();
+
+        $this->artisan('registrations:cleanup')
+            ->expectsOutputToContain('No unclaimable anonymous consent records to clean up.');
+
+        $user = User::factory()->create();
+        expect(UserConsent::claimAnonymousConsents($token, $user->id))->toBe(1);
+
+        $row = UserConsent::query()->sole();
+        expect($row->user_id)->toBe($user->id)
+            ->and($row->subject_token)->toBeNull();
+    });
+
+    /**
+     * Acceptance 5. F-0007 leaves a row unclaimed rather than deleting it where the
+     * account already holds the same type and version, because deleting either would
+     * destroy evidence. That row looks exactly like an abandoned one — null user, live
+     * token — so a purge that could not tell them apart would break the principle it
+     * was enforcing.
+     */
+    it('never deletes a row kept as evidence for someone who did register', function () {
+        $token = str_repeat('c', 64);
+        $user = User::factory()->create();
+
+        UserConsent::create([
+            'user_id' => $user->id,
+            'consent_type' => 'cookies',
+            'version' => '1.0',
+            'consented' => true,
+            'consented_at' => now()->subDays(500),
+        ]);
+        $anonymous = UserConsent::create([
+            'subject_token' => $token,
+            'consent_type' => 'cookies',
+            'version' => '1.0',
+            'consented' => true,
+            'consented_at' => now()->subDays(500),
+        ]);
+        $anonymous->forceFill(['created_at' => now()->subDays(500)])->saveQuietly();
+
+        // The registration happens: the row is deliberately kept, not claimed.
+        expect(UserConsent::claimAnonymousConsents($token, $user->id))->toBe(0);
+        expect($anonymous->fresh()->superseded_at)->not->toBeNull();
+
+        $this->artisan('registrations:cleanup')
+            ->expectsOutputToContain('No unclaimable anonymous consent records to clean up.');
+
+        expect($anonymous->fresh())->not->toBeNull();
+    });
+
+    it('leaves a claimed row alone however old it is', function () {
+        $user = User::factory()->create();
+        UserConsent::create([
+            'user_id' => $user->id,
+            'consent_type' => 'cookies',
+            'version' => '1.0',
+            'consented' => true,
+            'consented_at' => now()->subDays(900),
+        ]);
+        UserConsent::query()->update(['created_at' => now()->subDays(900)]);
+
+        $this->artisan('registrations:cleanup');
+
+        expect(UserConsent::query()->count())->toBe(1);
+    });
+});

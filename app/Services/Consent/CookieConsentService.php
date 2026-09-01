@@ -48,7 +48,17 @@ class CookieConsentService
     /** HttpOnly: identifies the anonymous subject of a consent record. */
     public const SUBJECT_COOKIE = 'fyn_consent_ref';
 
-    private const LIFETIME_DAYS = 365;
+    /**
+     * How long the status and subject cookies live.
+     *
+     * W-0156 made this public because it is also the lifetime of an UNCLAIMED
+     * anonymous consent row. The row is claimable only by a browser that can
+     * still present the token in `SUBJECT_COOKIE`, so once that cookie has
+     * expired the row is unclaimable by construction — it cannot become anyone's
+     * consent, and keeping it is retention with no purpose. Binding the purge to
+     * this constant means the two can never drift apart (Rule 20).
+     */
+    public const LIFETIME_DAYS = 365;
 
     private const SUBJECT_PATTERN = '/^[a-f0-9]{64}$/';
 

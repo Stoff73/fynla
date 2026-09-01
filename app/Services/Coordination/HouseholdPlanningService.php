@@ -404,12 +404,48 @@ class HouseholdPlanningService
 
         // IHT on second death (survivor's combined estate)
         $combinedNrb = $nrb + $nrbTransferred; // Survivor gets transferred NRB
-        $combinedRnrb = $rnrb + $rnrbTransferred;
-        $totalAllowances = $combinedNrb + $combinedRnrb;
 
         // Pensions outside estate for IHT
         $survivorPensionValue = $this->calculateDCPensionValue($survivor);
         $inheritedPensionValue = $pensionDeathBenefits['dc_total'];
+
+        // W-0514 — THE SECOND DEATH'S RESIDENCE BAND IS TAPERED. It was not.
+        //
+        // This line was `$combinedRnrb = $rnrb + $rnrbTransferred`, added and
+        // never reduced, while `secondDeathIhtFor()` in this same service tapers
+        // correctly. Two mechanisms for one allowance, and the one used here had
+        // forgotten the rule — so a survivor whose estate had been swollen past
+        // the threshold by everything they inherited kept the full £350,000.
+        //
+        // That is precisely the effect this item exists to show: the first death
+        // moves the deceased's estate onto the survivor, and it is the SURVIVOR's
+        // combined estate the taper is measured against (IHTM46023). A household
+        // comfortably below the threshold twice over can be above it once.
+        //
+        // Measured on the estate BEFORE allowances, and before the pension
+        // deductions below — the taper base is the estate, not the taxable
+        // remainder. Pensions are excluded from the base today because they are
+        // outside the estate; from the configured 2027 date they are not, which
+        // is the amendment W-0515 models and the reason this base is computed as
+        // its own value rather than reused from the taxable figure.
+        $survivorEstateForTaper = max(0.0, $survivorNetPosition
+            + $lifeInsurancePayouts['not_in_trust']
+            - $survivorPensionValue
+            - $inheritedPensionValue);
+
+        $taperThreshold = (float) ($ihtConfig['rnrb_taper_threshold'] ?? EstateDefaults::RNRB_TAPER_THRESHOLD);
+        $combinedRnrb = $rnrb + $rnrbTransferred;
+        $rnrbTaperReduction = 0.0;
+
+        if ($survivorEstateForTaper > $taperThreshold) {
+            $rnrbTaperReduction = min(
+                $combinedRnrb,
+                ($survivorEstateForTaper - $taperThreshold) * $this->rnrbTaperRate($ihtConfig)
+            );
+            $combinedRnrb = max(0.0, $combinedRnrb - $rnrbTaperReduction);
+        }
+
+        $totalAllowances = $combinedNrb + $combinedRnrb;
 
         // Net taxable estate (excluding pensions which are outside estate)
         $taxableEstate = max(0, $survivorNetPosition
@@ -431,6 +467,11 @@ class HouseholdPlanningService
             'iht_second_death' => round($ihtOnSecondDeath, 2),
             'nrb_transferred' => round($nrbTransferred, 2),
             'rnrb_transferred' => round($rnrbTransferred, 2),
+            // W-0514 — published so a household can see WHY its residence band is
+            // smaller than the two bands it was told it had. A taper that moves a
+            // figure without appearing beside it cannot be checked.
+            'rnrb_taper_reduction_on_second_death' => round($rnrbTaperReduction, 2),
+            'survivor_estate_for_taper' => round($survivorEstateForTaper, 2),
             'total_allowances_on_second_death' => round($totalAllowances, 2),
             'taxable_estate_on_second_death' => round($taxableEstate, 2),
             'joint_assets_passing_to_survivor' => round($jointAssetsPassingToSurvivor, 2),

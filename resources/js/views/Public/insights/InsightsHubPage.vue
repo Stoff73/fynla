@@ -321,7 +321,14 @@ export default {
         'Pensions': 'bg-violet-50 text-violet-700',
         'Savings & ISA': 'bg-spring-50 text-spring-700',
         'Estate planning': 'bg-violet-50 text-violet-700',
-        'Platform updates': 'bg-light-blue-100 text-light-blue-700',
+        // W-0503 — was `text-light-blue-500`, a shade that does not exist. The
+        // `light-blue` scale in `tailwind.config.js:106-109` has 100 and 500 and
+        // nothing else, so Tailwind emitted no rule and the tag rendered with
+        // whatever text colour it inherited. `text-light-blue-500` is the shade
+        // that exists AND the one already safelisted at `tailwind.config.js:27`,
+        // which matters because this class is composed at runtime from a lookup
+        // and the scanner cannot see it in the markup.
+        'Platform updates': 'bg-light-blue-100 text-light-blue-500',
       };
       return classes[tag] || 'bg-neutral-100 text-neutral-600';
     },

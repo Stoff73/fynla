@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0009-batch-i-onboarding-spouse.md
 owner: build-lead
 claimed_by: fix-batch-I
-status: gated
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T18:50:00Z
@@ -171,3 +171,15 @@ worth recording rather than quietly rewriting.
 
 `create_family_member` still accepts `partner` and maps it to `other_dependent`.
 Whether a partner is linkable at all was W-0111, answered there: no.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `CoordinatingAgent::linkSpouseAccount()` (`:1878`) is now **THE one path from a Fyn tool to a spouse account link**, and its docblock names this item and states the failure precisely.
+
+  **Why it mattered more than "one tool lacked a parameter":** two tools can express *"this person is my spouse"* — `capture_spouse_details` during onboarding and `create_family_member` everywhere else — and **on the advice → `delegate_to_capture` turn the model is offered BOTH** (`OnboardingChatDirector::captureToolSet()` returns `AdviceFyn::WRITE_TOOLS`, which contains the pair) and picks between them. Only one could establish the link; the other wrote a bare `family_members` row. **So which tool the model happened to reach for decided whether the household was linked at all** — non-deterministic, and invisible to the user, who had said the same thing either way.
+
+  Both tools now enter `linkSpouseAccount()`, and it enters `SpouseLinkingService` — the same single home the settings form and the onboarding wizard use (Rule 20). **Callers keep their own input contracts and response shapes, because their consumers differ; what they no longer keep is their own idea of what linking a spouse means.**
+
+  A related trap is fixed at the entry point: the email is lowercased and trimmed there, so every downstream lookup sees the canonical form. Case-mismatched emails were previously either rejecting the spouse's real account or creating a duplicate on case-sensitive collations (P0.8).
+
+  **Tested:** 75 spouse-linking and family-member tool tests pass, 244 assertions.

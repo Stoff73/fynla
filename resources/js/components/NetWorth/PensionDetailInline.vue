@@ -238,11 +238,11 @@
                   <dl class="space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Normal Retirement Age:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.normal_retirement_age || 65 }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.normal_retirement_age || DEFAULT_DB_NORMAL_RETIREMENT_AGE }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Payment Start Age:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.payment_start_age || pension.normal_retirement_age || 65 }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.payment_start_age || pension.normal_retirement_age || DEFAULT_DB_NORMAL_RETIREMENT_AGE }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Spouse Pension:</dt>
@@ -464,6 +464,11 @@
                 <p>Based on {{ projectionData.years_to_retirement }} years to retirement age {{ projectionData.retirement_age }},
                 {{ projectionData.risk_level }} risk profile ({{ projectionData.expected_return }}% expected return),
                 and {{ formatCurrency(projectionData.monthly_contribution) }}/month contributions.</p>
+                <!--
+                  W-0258. The third site quoting an arithmetic expected return beside a
+                  median projection. Same sentence as the two charts, from the same home.
+                -->
+                <p class="mt-1">{{ VOLATILITY_DRAG_NOTE }}</p>
               </div>
             </div>
             <div v-else class="text-center py-12 text-neutral-500">
@@ -531,6 +536,9 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
+import { VOLATILITY_DRAG_NOTE } from '@/utils/projectionCaption';
+import { DEFAULT_DB_NORMAL_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapActions, mapState } from 'vuex';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
@@ -589,6 +597,12 @@ export default {
   },
 
   computed: {
+    // W-0258 — exposed so the template reads the one home rather than a literal.
+    VOLATILITY_DRAG_NOTE: () => VOLATILITY_DRAG_NOTE,
+
+    // W-0196 — exposed so the template reads the one home rather than a literal.
+    DEFAULT_DB_NORMAL_RETIREMENT_AGE: () => DEFAULT_DB_NORMAL_RETIREMENT_AGE,
+
     ...mapState('auth', ['user']),
 
     /**
@@ -898,21 +912,9 @@ export default {
 
     formatUnits,
 
-    formatAssetType(type) {
-      const labels = {
-        equity: 'Equity',
-        uk_equity: 'UK Equity',
-        us_equity: 'US Equity',
-        international_equity: 'Intl Equity',
-        fund: 'Fund',
-        etf: 'ETF',
-        bond: 'Bond',
-        cash: 'Cash',
-        alternative: 'Alternative',
-        property: 'Property',
-      };
-      return labels[type] || type || '—';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     formatDCPensionType(type) {
       const types = {

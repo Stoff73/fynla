@@ -20,7 +20,8 @@ use App\Services\TaxConfigService;
  */
 class RetirementProjectionService
 {
-    private const DEFAULT_RETIREMENT_AGE = 67;
+    /** W-0196 — one home for the default; see {@see RetirementAgeResolver}. */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     public function __construct(
         private readonly MonteCarloSimulator $simulator,
@@ -33,7 +34,16 @@ class RetirementProjectionService
         // `projectSafeWithdrawalDrawdown()` decides only when the fund can no longer pay
         // it. Reading the one source is what stops the income the household is shown
         // spending and the fund the estate is taxed on becoming two opinions.
-        private readonly PensionProjector $pensionProjector
+        private readonly PensionProjector $pensionProjector,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        private readonly RetirementAgeResolver $retirementAge,
+        // W-0516 — the one home for State Pension age. This service carried a literal
+        // `?? 67` at two sites while `HouseholdCashFlowProjector` read the statutory
+        // cohort schedule, so a user with no State Pension record had their retirement
+        // income projected from 67 and their household cash flow from 66. W-0482 then
+        // wired this service into the projected estate, so the literal was reaching an
+        // Inheritance Tax figure.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -292,7 +302,7 @@ class RetirementProjectionService
             $dcDrawdown = $remainingFund > 0 ? $remainingFund * $sustainableWithdrawalRate : 0;
 
             // State pension may start at a different age
-            $statePensionThisYear = $age >= ($user->statePension?->state_pension_age ?? 67)
+            $statePensionThisYear = $age >= $this->statePensionAge->forUser($user)
                 ? $statePensionIncome
                 : 0;
 
@@ -662,7 +672,7 @@ class RetirementProjectionService
             }
 
             // State pension may start at a different age
-            $statePensionThisYear = $age >= ($user->statePension?->state_pension_age ?? 67)
+            $statePensionThisYear = $age >= $this->statePensionAge->forUser($user)
                 ? $statePensionIncome
                 : 0;
 
@@ -672,13 +682,35 @@ class RetirementProjectionService
 
             // Draw what we can from the fund
             $dcDrawdown = min($dcNeeded, $remainingFund);
-            $fundDepleted = $remainingFund <= 0;
+
+            // W-0510 — depleted means "cannot meet this year's need", not "reached
+            // zero", because on this path the fund NEVER reaches zero.
+            //
+            // Once the need exceeds the balance, `$dcDrawdown` IS `$remainingFund`,
+            // so the growth line below reduces to `$remainingFund * (1 + $rate)`:
+            // the balance is multiplied by the growth rate every year and approaches
+            // zero without arriving. Measured on a £20,000 pot against a £45,000
+            // target — £567 at 63, £11.34 at 64, pennies thereafter. `<= 0` was
+            // therefore never true, so `fund_depletion_age` was always null,
+            // `fund_depleted` always false, and `years_funded` always the full
+            // horizon. A household whose money stops covering its target at 64 was
+            // told it lasted to 100.
+            //
+            // The pound of tolerance is not an epsilon for float noise: these figures
+            // are published to the penny, and a household short by less than a pound
+            // in a year has not run out of money. A shortfall large enough to matter
+            // is the one worth telling them about.
+            //
+            // `projectIncomeDrawdown()` is deliberately NOT changed. It withdraws a
+            // sustainable percentage of the remainder by design, so a fund that never
+            // depletes is that model working rather than the same defect.
+            $fundDepleted = $dcNeeded > 0 && $remainingFund < ($dcNeeded - 1.0);
 
             // Total income for this year
             $totalIncome = $dcDrawdown + $incomeFromGuaranteed;
 
             // Track fund depletion
-            if ($remainingFund <= 0 && $fundDepletionAge === null) {
+            if ($fundDepleted && $fundDepletionAge === null) {
                 $fundDepletionAge = $age;
             }
 
@@ -740,24 +772,17 @@ class RetirementProjectionService
         return $this->getRetirementAgeWithSource($user)['age'];
     }
 
-    /** @return array{age:int,source:string} */
+    /**
+     * W-0196. This copy read `users.target_retirement_age` before the retirement
+     * profile, so a household that had set a target in the retirement module and left
+     * a stale one on the user record got a different answer here than from the estate
+     * projection. The order and the source labels now live in one place.
+     *
+     * @return array{age:int,source:string}
+     */
     private function getRetirementAgeWithSource(User $user): array
     {
-        if ($user->target_retirement_age) {
-            return ['age' => (int) $user->target_retirement_age, 'source' => 'user_profile'];
-        }
-
-        if ($user->retirementProfile?->target_retirement_age) {
-            return ['age' => (int) $user->retirementProfile->target_retirement_age, 'source' => 'retirement_profile'];
-        }
-
-        foreach ($user->dcPensions as $pension) {
-            if ($pension->retirement_age) {
-                return ['age' => (int) $pension->retirement_age, 'source' => 'pension'];
-            }
-        }
-
-        return ['age' => self::DEFAULT_RETIREMENT_AGE, 'source' => 'assumed'];
+        return $this->retirementAge->withSource($user);
     }
 
     private function getUserRiskLevel(User $user): string

@@ -4,7 +4,7 @@ title: Rental income is stated two different ways on the same page — the tax c
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0017-cycle1-tax-income-and-allowances.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-21T23:45:00Z
@@ -267,3 +267,9 @@ Server-side in shared services. Two web components relabelled. `/m` shows
 drill-down.
 
 Not done: browser verification, by instruction.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `PropertyService::annualRentalTaxPosition()`
+  is the one home for the figure, cited as such at `SyncOwnerRentalIncome:19`,
+  `PropertyController:491`, `PropertyService:38` and `Tax\IncomeDefinitionsService:201`. The two
+  paths that each wrote their own version are gone, so the headline and the tax computation on
+  `/valuable-info?section=income` read the same number.

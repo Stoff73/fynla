@@ -19,6 +19,7 @@ use App\Services\Benefits\ChildBenefitService;
 use App\Services\Estate\WillAnalysisService;
 use App\Services\Gamification\PointsService;
 use App\Services\Property\PropertyService;
+use App\Services\Retirement\PensionContributionRule;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
@@ -118,6 +119,16 @@ class UserProfileService
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
                 'annual_expenditure' => $user->annual_expenditure,
+                // W-0413 — OUTSIDE `categories`, deliberately. That block is
+                // gated on detailed-expenditure entitlement and is absent
+                // entirely for a summary-only profile, whereas these two are
+                // shown to any user with no main residence
+                // (`ExpenditureForm.vue:1426`) because a homeowner enters housing
+                // costs against the property. Putting them inside would hide a
+                // renter's rent behind a Premium gate, which is where W-0011
+                // found free-tier users and put them back.
+                'rent' => $user->rent,
+                'utilities' => $user->utilities,
                 'categories' => [
                     'food_groceries' => $user->food_groceries,
                     'transport_fuel' => $user->transport_fuel,
@@ -269,8 +280,12 @@ class UserProfileService
     /**
      * Get expenditure breakdown including financial commitments.
      * Uses categories sum when entry_mode is 'category', otherwise uses monthly_expenditure.
+     *
+     * Public because this is the one home for "what does this household spend each
+     * month" (W-0531). `ResolvesExpenditure` delegates here rather than re-summing,
+     * so the runway, the risk score and the Expenditure tab cannot disagree.
      */
-    private function getExpenditureBreakdown(User $user): array
+    public function getExpenditureBreakdown(User $user): array
     {
         // Calculate manual expenditure based on entry mode
         if ($user->expenditure_entry_mode === 'category') {
@@ -352,16 +367,12 @@ class UserProfileService
     {
         $totalContributions = 0.0;
 
-        // Sum employee contributions from occupational/workplace pensions
         foreach ($user->dcPensions as $pension) {
-            // Only include workplace/occupational pensions (not SIPPs which are personal contributions)
-            if (in_array($pension->scheme_type, ['workplace', 'occupational', 'auto_enrolment'])) {
-                // Calculate from percentage if available
-                if ($pension->employee_contribution_percent && $pension->annual_salary) {
-                    $monthlyContribution = ($pension->annual_salary * $pension->employee_contribution_percent / 100) / 12;
-                    $totalContributions += $monthlyContribution * 12;
-                }
+            if (! PensionContributionRule::isSalaryDeducted($pension)) {
+                continue;
             }
+
+            $totalContributions += PensionContributionRule::monthlyEmployee($pension) * 12;
         }
 
         return $totalContributions;
@@ -945,7 +956,12 @@ class UserProfileService
         // Note: DC Pensions are always individual - no joint ownership support
         $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
         foreach ($dcPensions as $pension) {
-            if ($pension->monthly_contribution_amount > 0) {
+            // W-0424 — the one home for "how much does this pension take each
+            // month", so a percentage-only record is no longer invisible to the
+            // spending side. `monthly_contribution_amount > 0` was the whole gate.
+            $monthlyContribution = PensionContributionRule::monthlyEmployee($pension);
+
+            if ($monthlyContribution > 0) {
                 // Apply ownership filter - DC pensions are always individual
                 if (! $this->shouldIncludeByOwnership(false, $ownershipFilter)) {
                     continue;
@@ -955,7 +971,7 @@ class UserProfileService
                     'id' => $pension->id,
                     'name' => $pension->scheme_name ?? 'DC Pension',
                     'type' => 'dc_pension',
-                    'monthly_amount' => $pension->monthly_contribution_amount,
+                    'monthly_amount' => $monthlyContribution,
                     'is_joint' => false,
                     'ownership_type' => 'individual',
                 ];

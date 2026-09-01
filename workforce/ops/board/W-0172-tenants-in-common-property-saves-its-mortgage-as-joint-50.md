@@ -4,7 +4,7 @@ title: A tenants-in-common property saves its mortgage as joint 50% — the owne
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0013-batch-f-ownership-boundary.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T20:45:00Z
@@ -255,3 +255,10 @@ present and correct in the payload (it was added by W-0012, which fixed exactly 
 "silently discarded" version of this). So if the value was NULL after save, the loss
 is upstream of the service — in the form or the request — not here. **That is a
 narrowing, not a diagnosis, and it still needs its own clean reproduction.**
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `MortgageService:76-92` no longer
+  defaults a shared mortgage's share to 50: `SharedOwnership::applyTo()` takes the caller's stated
+  share where there is one, and the **parent property's** share where there is not, so a
+  tenants-in-common property at 40% gets a mortgage at 40%. Same supplied-beats-inherited rule as
+  W-0040 and W-0121, from one source (Rule 20). The half of the debt that used to belong to
+  nobody is gone.

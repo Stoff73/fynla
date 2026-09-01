@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: fix-batch-F
 reviewers: [compliance-lead, security-reviewer]
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
@@ -420,3 +420,11 @@ way to withdraw, on any surface. Downstream of this fix rather than a flaw in it
 before, Decline did nothing, so a missing withdrawal route changed no outcome; making
 Decline mechanically meaningful created a right with no interface. It needs a
 privacy-screen control calling the existing endpoint, and it must reach `/m`.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, both halves.**
+  **Enforcement:** `CaptureAwcCookie:51` returns unless
+  `CookieConsentService::resolvedStatus() === STATUS_ACCEPTED`, so the 365-day HttpOnly `awc`
+  cookie is no longer set for every visitor. **Record:** `App\Models\UserConsent` is written by
+  `App\Services\Consent\CookieConsentService` and nowhere else, so consent is demonstrable; the
+  `CookieConsentController` clears the cookie on withdrawal, which is what a browser-only
+  `declineCookies()` was structurally incapable of doing.

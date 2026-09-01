@@ -11,6 +11,7 @@ use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Support\HouseholdPooling;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
 
 /**
@@ -21,6 +22,7 @@ use App\Traits\ResolvesIncome;
  */
 class TaxOptimisationService
 {
+    use CalculatesOwnershipShare;
     use ResolvesIncome;
 
     public function __construct(
@@ -120,9 +122,18 @@ class TaxOptimisationService
         $remaining = max(0, $isaAllowance - $totalUsed);
 
         // Check if user has non-ISA accounts that could benefit
-        $giaValue = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'gia')
-            ->sum('current_value');
+        // W-0280, measured. A jointly-held general investment account was counted at
+        // 100% for whichever spouse recorded it and at 0% for the other — £95,000 of a
+        // £95,000 account on one side, nothing on the other. This figure drives an
+        // INDIVIDUAL action (a Bed & ISA or an inter-spouse transfer), so the member's
+        // own share is the right quantity, and neither 100% nor 0% is it.
+        $giaValue = $this->atUserShare(
+            InvestmentAccount::query()
+                ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+                ->where('account_type', 'gia')
+                ->get(),
+            $user->id
+        )->sum('current_value');
 
         $nonISASavings = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)

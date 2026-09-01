@@ -27,7 +27,11 @@ class RetirementActionDefinitionService
         private readonly PensionContributionOptimizer $optimizer,
         private readonly TaxConfigService $taxConfig,
         private readonly SalarySacrificeAnalyzer $salarySacrificeAnalyzer,
-        private readonly DecumulationPlanner $decumulationPlanner
+        private readonly DecumulationPlanner $decumulationPlanner,
+        // W-0516 — the one home for State Pension age. It is a birth cohort under the
+        // Pensions Act 2014, not a constant, so a literal is wrong for anyone the
+        // rise reaches.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -970,7 +974,7 @@ class RetirementActionDefinitionService
         ];
 
         // Step 2: State Pension details
-        $spa = (int) ($statePension->state_pension_age ?? 67);
+        $spa = $user ? $this->statePensionAge->forUser($user) : $this->statePensionAge->forDateOfBirth(null);
         $forecastAnnual = (float) ($statePension->state_pension_forecast_annual ?? 0);
         $alreadyReceiving = (bool) ($statePension->already_receiving ?? false);
         $gapFillCost = (float) ($statePension->gap_fill_cost ?? 0);
@@ -1854,7 +1858,7 @@ class RetirementActionDefinitionService
         // Step 2: State Pension record
         $statePension = app(PensionStore::class)->statePension(User::findOrFail($userId));
         $forecastAmount = $statePension ? (float) ($statePension->state_pension_forecast_annual ?? 0) : 0;
-        $spa = $statePension ? (int) ($statePension->state_pension_age ?? 67) : 67;
+        $spa = $this->statePensionAge->forUser(User::findOrFail($userId));
         $niCompleted = $statePension ? (int) ($statePension->ni_years_completed ?? 0) : 0;
         $niRequired = $statePension ? (int) ($statePension->ni_years_required ?? 35) : 35;
         $alreadyReceiving = $statePension ? (bool) ($statePension->already_receiving ?? false) : false;

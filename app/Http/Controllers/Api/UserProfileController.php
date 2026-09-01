@@ -165,6 +165,20 @@ class UserProfileController extends Controller
             'annual_expenditure' => 'nullable|numeric|min:0',
             'use_simple_entry' => 'nullable|boolean',
             'use_separate_expenditure' => 'nullable|boolean',
+            // W-0413 — `rent` and `utilities` were the two the list skipped, and
+            // `$request->validate()` returns ONLY what it validated, so both were
+            // dropped before the write. Everything else was already in place:
+            // the columns exist on `users`, the model casts them (`User:176-177`),
+            // the form collects them (`ExpenditureForm.vue:1415-1416`) and
+            // `CoordinatingAgent:5236` lists them among the expenditure fields.
+            // Only the rule was missing, so the fields silently went nowhere.
+            //
+            // They are shown to RENTERS only — hidden once a main residence
+            // exists (`ExpenditureForm.vue:1426`), because a homeowner's housing
+            // costs are entered against the property. So the people losing this
+            // data were exactly the ones with no property record to hold it.
+            'rent' => 'nullable|numeric|min:0',
+            'utilities' => 'nullable|numeric|min:0',
             'food_groceries' => 'nullable|numeric|min:0',
             'transport_fuel' => 'nullable|numeric|min:0',
             'healthcare_medical' => 'nullable|numeric|min:0',

@@ -112,7 +112,7 @@ export default {
     getModuleBadgeClass(mod) {
       const classes = {
         tax_optimisation: 'bg-violet-100 text-violet-600',
-        investment: 'bg-light-blue-100 text-light-blue-600',
+        investment: 'bg-light-blue-100 text-light-blue-500',
         retirement: 'bg-savannah-200 text-horizon-500',
         protection: 'bg-raspberry-100 text-raspberry-600',
         savings: 'bg-spring-100 text-spring-600',

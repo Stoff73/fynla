@@ -44,7 +44,19 @@
             <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ account.provider }}</h1>
             <p class="text-base sm:text-lg text-neutral-500 mt-1">{{ account.account_name }}</p>
           </div>
-          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+          <!--
+            W-0330. A joint owner was shown Edit and Delete on an account they can
+            only ever view: `InvestmentController:498` refuses any update where
+            `$account->user_id !== $user->id`, so the buttons were a dead end that
+            failed at the API with no explanation on screen.
+
+            The backend rule is right and unchanged — this removes the affordance
+            that contradicted it. `isPrimaryOwner()` is the shared answer from
+            `@/utils/ownership`, which prefers the API's own `is_primary_owner`
+            flag and falls back to the id comparison, so the client cannot reach a
+            different conclusion from the server (Rule 20).
+          -->
+          <div v-if="canManageAccount" class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
             <button
               v-preview-disabled="'edit'"
               @click="showEditModal = true"
@@ -60,6 +72,14 @@
               Delete
             </button>
           </div>
+          <!--
+            Said rather than left blank. A control silently missing reads as a bug
+            to the person it is missing for; naming the reason is the difference
+            between a restriction and a glitch.
+          -->
+          <p v-else class="text-sm text-neutral-500 shrink-0">
+            {{ coOwnerName(account) || 'The primary owner' }} manages this account.
+          </p>
         </div>
 
         <!-- Key Metrics -->
@@ -170,8 +190,13 @@
                 <span class="summary-item-label">Current Value</span>
                 <span class="summary-item-value">{{ formatCurrency(account.current_value) }}</span>
               </div>
+              <!-- W-0259 — the median leads; the conservative band stands beside it. -->
               <div class="summary-item purple">
-                <span class="summary-item-label">Projected Value (80%)</span>
+                <span class="summary-item-label">Projected Value (middle outcome)</span>
+                <span class="summary-item-value">{{ formatProjectedMedian }}</span>
+              </div>
+              <div class="summary-item purple">
+                <span class="summary-item-label">Lower outcome (4 in 5 do better)</span>
                 <span class="summary-item-value">{{ formatProjectedValue80 }}</span>
               </div>
             </div>
@@ -463,7 +488,10 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapActions, mapState, mapGetters } from 'vuex';
+import { coOwnerName, isPrimaryOwner } from '@/utils/ownership';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { CHART_COLORS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
@@ -569,6 +597,18 @@ export default {
     ...mapState('retirement', ['profile']),
     ...mapState('aiFormFill', ['pendingFill']),
     ...mapGetters('taxConfig', ['isaAnnualAllowance']),
+    ...mapGetters('auth', ['currentUser']),
+
+    /**
+     * W-0330 — whether this viewer may edit or delete the account.
+     *
+     * The server already refuses a joint owner's write
+     * (`InvestmentController:498`). This is the same question asked on the
+     * client so the affordance matches the rule, not a second rule.
+     */
+    canManageAccount() {
+      return isPrimaryOwner(this.account, this.currentUser?.id ?? null);
+    },
 
     // ---- Account type guards ----
     detailComponentType() {
@@ -717,7 +757,7 @@ export default {
     },
 
     yearsToRetirement() {
-      const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || 68;
+      const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
       const currentAge = this.currentUser?.date_of_birth
         ? Math.floor((new Date() - new Date(this.currentUser.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))
         : null;
@@ -737,6 +777,16 @@ export default {
       if (!this.hasProjectionData) return '—';
       const lastYear = this.projectionData.year_by_year[this.projectionData.year_by_year.length - 1];
       return this.formatCurrency(lastYear?.percentile_20);
+    },
+
+    // W-0259. The 20th percentile is hump-shaped in risk — it peaks partway up the
+    // scale and falls again — so a card leading on it alone tells a user that taking
+    // more risk made them poorer. The median rises monotonically with risk, so the two
+    // together say what is actually true of the model.
+    formatProjectedMedian() {
+      if (!this.hasProjectionData) return '—';
+      const lastYear = this.projectionData.year_by_year[this.projectionData.year_by_year.length - 1];
+      return this.formatCurrency(lastYear?.percentile_50);
     },
 
     years() {
@@ -870,6 +920,7 @@ export default {
   },
 
   methods: {
+    coOwnerName,
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData', 'createHolding', 'updateHolding']),
 
     // ---- Navigation ----
@@ -1007,14 +1058,9 @@ export default {
       return { individual: 'Individual', joint: 'Joint', trust: 'Trust' }[type] || 'Individual';
     },
 
-    formatAssetType(type) {
-      const types = {
-        equity: 'Equity', equities: 'Equities', fixed_income: 'Fixed Income', bonds: 'Bonds',
-        property: 'Property', real_estate: 'Real Estate', commodities: 'Commodities', cash: 'Cash',
-        alternatives: 'Alternatives', fund: 'Fund', etf: 'ETF', stock: 'Stock', bond: 'Bond', other: 'Other',
-      };
-      return types[type] || type?.charAt(0).toUpperCase() + type?.slice(1).replace(/_/g, ' ') || 'Other';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     formatAllocation(value) {
       return (value || 0).toFixed(1);

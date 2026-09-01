@@ -29,7 +29,8 @@ use App\Services\TaxConfigService;
  */
 class RetirementIncomeService
 {
-    private const DEFAULT_RETIREMENT_AGE = 67;
+    /** W-0196 — one home for the default; see {@see RetirementAgeResolver}. */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     private const PROJECTION_END_AGE = 100;
 
@@ -43,6 +44,13 @@ class RetirementIncomeService
         private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
         private readonly RetirementProjectionService $projectionService,
         private readonly InvestmentProjectionService $investmentProjectionService,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        // This service used a PARTIAL chain: the retirement profile or the default,
+        // never the user record or a pension, so a household whose only stated age
+        // was on a pension was projected from 67 here and from the pension elsewhere.
+        private readonly RetirementAgeResolver $retirementAge,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -63,7 +71,7 @@ class RetirementIncomeService
         $profile = RetirementProfile::where('user_id', $userId)->first();
         $currentAge = $user->date_of_birth ? $user->date_of_birth->age : null;
 
-        $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+        $retirementAge = $this->retirementAge->forUser($user);
 
         // Get projected pension pot value (80% Monte Carlo confidence)
         $potProjection = $this->projectionService->projectPensionPot($user);
@@ -152,7 +160,7 @@ class RetirementIncomeService
         $profile = RetirementProfile::where('user_id', $userId)->first();
         $currentAge = $user->date_of_birth ? $user->date_of_birth->age : null;
 
-        $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+        $retirementAge = $this->retirementAge->forUser($user);
 
         // Get target income from centralised RequiredCapitalCalculator, or use custom if provided
         if ($customTargetIncome !== null) {
@@ -248,7 +256,9 @@ class RetirementIncomeService
             $user = User::find($userId);
             $profile = RetirementProfile::where('user_id', $userId)->first();
             $currentAge = $user?->date_of_birth?->age;
-            $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+            $retirementAge = $user
+                ? $this->retirementAge->forUser($user)
+                : RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
             $yearsToRetirement = max(0, $retirementAge - ($currentAge ?? 45));
         }
 
@@ -325,7 +335,8 @@ class RetirementIncomeService
                 'name' => 'State Pension',
                 'value' => null,
                 'annual_income' => round($annualIncome, 2),
-                'payment_start_age' => $pension->state_pension_age ?? 67,
+                // W-0516 — the cohort schedule, not a literal, where the record is silent.
+                'payment_start_age' => $this->statePensionAge->forUser($pension->user),
                 'already_receiving' => (bool) $pension->already_receiving,
                 'tax_treatment' => 'taxable',
                 'source_type' => 'state_pension',
@@ -569,7 +580,12 @@ class RetirementIncomeService
             ->map(fn ($uid) => app(PensionStore::class)->statePension(User::findOrFail($uid)))
             ->filter();
 
-        $defaultSPA = (int) $this->taxConfig->get('pension.state_pension.current_spa', 67);
+        // W-0197. Was `current_spa` — one number for every cohort. The resolver reads
+        // the statutory schedule, so a 26-year-old and a 46-year-old no longer share
+        // a State Pension age.
+        $defaultSPA = $this->statePensionAge->forDateOfBirth(
+            User::find($userIds[0] ?? null)?->date_of_birth
+        );
 
         // No state pension data entered
         if ($statePensions->isEmpty()) {

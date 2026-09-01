@@ -207,3 +207,5 @@
 {"ts": "2026-08-29T12:35:00Z", "agent": "build-lead", "item": "W-0323", "event": "done", "note": "board reconciliation pass 2: was review; delivered by Phailanx; #718; commit 775e2d9a1; restamped from dev history, NOT re-verified"}
 {"ts": "2026-08-29T12:35:00Z", "agent": "build-lead", "item": "W-0484", "event": "done", "note": "board reconciliation pass 2: was queued; delivered by Stoff73; #734,#736; commit 71c858cfe; restamped from dev history, NOT re-verified"}
 {"ts": "2026-08-29T12:35:00Z", "agent": "build-lead", "item": "W-0486", "event": "done", "note": "board reconciliation pass 2: was queued; delivered by Icecube-acc; commit f66152547; restamped from dev history, NOT re-verified"}
+{"ts":"2026-08-31T16:34:11Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-08-31.md"}
+{"ts":"2026-08-31T16:34:15Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}

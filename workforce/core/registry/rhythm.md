@@ -128,6 +128,24 @@ is a pattern; "we didn't get to a few things" is not.
 there. It is named so the ratio stays visible — a week that is mostly drift means
 Monday's plan was fiction.
 
+## 4ter. The consistency sweep
+
+`workforce/ops/sweep.sh` runs **weekly, at the Monday planning meeting**, and its
+output is read there rather than filed.
+
+**Why a rhythm at all (W-0506):** it was run on discovery, so by the time anyone
+looked it reported 99 broken references and nobody believed it. A three-minute check
+that is only run when something already feels wrong cannot tell you nothing is wrong.
+
+Two rules that keep it worth reading:
+
+- **Findings and advisories are different numbers.** A size-budget crossing is a
+  review (`00-precedence.md` §2.4 says so in terms), not a breach; it is counted
+  separately and does not inflate the headline.
+- **A rising finding count is the signal, not the absolute number.** Some references
+  are permanently unresolvable — a build hash quoted as deploy evidence, for
+  instance — and chasing those to zero is how a check gets gamed rather than fixed.
+
 ## 5. Liveness thresholds
 
 | Threshold | Value |

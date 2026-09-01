@@ -24,6 +24,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  * assert the band itself rather than the gift row, because the band is the thing
  * the user is shown and the thing that was wrong.
  */
+/**
+ * W-0367 — the withheld band is the settlement NET of the s19 annual exemption.
+ *
+ * A £200,000 settlement is relieved by £6,000 — £3,000 for its own tax year plus
+ * £3,000 carried forward from an unused year — so £194,000 is the chargeable
+ * transfer that withholds band. The subject of these tests is unchanged: which
+ * settlements withhold band and for how long.
+ */
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
@@ -49,7 +57,7 @@ beforeEach(function () {
 });
 
 it('withholds the settlor band for a trust settlement', function () {
-    expect(($this->bandWithheld)())->toBe(200_000.0);
+    expect(($this->bandWithheld)())->toBe(194_000.0);
 });
 
 it('withholds the edited amount, not the amount first settled', function () {
@@ -57,7 +65,7 @@ it('withholds the edited amount, not the amount first settled', function () {
 
     // Withheld £200,000 before, so £100,000 of band was available to the estate
     // that the settlement had already used — £40,000 of understated tax at 40%.
-    expect(($this->bandWithheld)())->toBe(300_000.0);
+    expect(($this->bandWithheld)())->toBe(294_000.0);
 });
 
 it('gives the band back when the trust is deleted', function () {
@@ -78,7 +86,7 @@ it('withholds the band again when a deleted trust is restored', function () {
     $this->trust->delete();
     $this->trust->restore();
 
-    expect(($this->bandWithheld)())->toBe(200_000.0);
+    expect(($this->bandWithheld)())->toBe(194_000.0);
 });
 
 describe('the gifting module cannot move a band the trust owns', function () {
@@ -89,7 +97,7 @@ describe('the gifting module cannot move a band the trust owns', function () {
             ->assertStatus(422)
             ->assertJsonPath('success', false);
 
-        expect(($this->bandWithheld)())->toBe(200_000.0);
+        expect(($this->bandWithheld)())->toBe(194_000.0);
     });
 
     it('refuses to edit the settlement gift, and the band stays withheld', function () {
@@ -102,7 +110,7 @@ describe('the gifting module cannot move a band the trust owns', function () {
             'recipient' => 'Settlement Trust',
         ])->assertStatus(422);
 
-        expect(($this->bandWithheld)())->toBe(200_000.0);
+        expect(($this->bandWithheld)())->toBe(194_000.0);
     });
 
     it('still lets the user manage a gift they entered themselves', function () {
@@ -117,6 +125,6 @@ describe('the gifting module cannot move a band the trust owns', function () {
 
         $this->actingAs($this->user)->deleteJson("/api/estate/gifts/{$own->id}")->assertOk();
 
-        expect(($this->bandWithheld)())->toBe(200_000.0);
+        expect(($this->bandWithheld)())->toBe(194_000.0);
     });
 });

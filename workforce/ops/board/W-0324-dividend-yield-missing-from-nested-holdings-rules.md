@@ -4,7 +4,7 @@ title: holdings.*.dividend_yield has no rule in any nested holdings array, so a 
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T22:50:00Z
@@ -113,3 +113,46 @@ nothing to stop either.
   become a third copy. It is **accepted, not `required_if`**: written as `required_if`
   it turned an existing green 201 into a 422, because other callers legitimately omit
   it — the "column wider than the rule" direction in `app/Http/CLAUDE.md`.
+
+---
+
+## Closed 2026-09-01 — both halves, because the rule alone would not have fixed it
+
+**The rule was only half the defect.** Adding `holdings.*.dividend_yield` to the three
+nested sets would have left the value validated and **still discarded**:
+`InvestmentController` read `$holdingData['ocf_percent']` and never mentioned this
+column at either write site. A fix that stopped at the request class would have looked
+right, passed a 201-shaped test, and changed nothing in the database.
+
+| Half | Where |
+|---|---|
+| The rule | `StoreInvestmentAccountRequest:113-120`, `UpdateInvestmentAccountRequest:128-130`, `Retirement/StoreDCPensionRequest:109-111` |
+| The write | `InvestmentController:436` (create) and `:587` (update) |
+
+Range copied from the standalone `Investment\StoreHoldingRequest:55` rather than chosen
+here, so the two paths cannot disagree about what the column accepts.
+
+### On "the gap may be unreachable rather than live"
+
+The item was right that `InlineHoldingsEditor` does not bind the field today, so no web
+form reached it. That is **not** a reason to leave it: the nested arrays are the shape
+Fyn's capture tools and any API client send, and nothing stopped either. A validated
+value silently dropped is the W-0011 shape — the save reports success and the user has
+no way to learn their figure was lost.
+
+### Tests
+
+`tests/Feature/Investment/NestedHoldingDividendYieldTest.php` — 3:
+
+- the yield **reaches the database** through the nested array (asserted with
+  `assertDatabaseHas`, not on a 201 — a status-only test passes on the broken code);
+- an out-of-range yield is refused;
+- **all three** request classes carry the rule, so fixing the one that was tested and
+  leaving the other two is caught. That third test is the guard: the defect is the
+  *absence* of a rule, which no behavioural test of a single endpoint can see.
+
+**Regression:** 335 tests across the investment features and services.
+
+**Rule 19:** the write is server-side on the shared path, so web, `/m` and Fyn all reach
+it. No frontend currently sends the field in a nested array — that remains the open
+product question the item raised, and it is now safe either way.

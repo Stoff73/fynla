@@ -124,6 +124,40 @@ class DependantsReach
     }
 
     /**
+     * The household's family, reached and de-duplicated, WITHOUT the dependency
+     * filter — for consumers whose question is not "who depends on this user".
+     *
+     * W-0275 acceptance 3: the semantics differ per site and routing mechanically
+     * would be wrong. Intestacy is the clear case — the Administration of Estates Act
+     * 1925 distributes to **children**, and a grown, self-supporting child inherits
+     * exactly as a dependent one does. Filtering by `is_dependent` there would
+     * disinherit the children of every household that recorded them honestly.
+     *
+     * Reach, de-duplication and the viewer rule are the same as `dependantsOf()` —
+     * the same household, asked a different question about the same people.
+     *
+     * @param  list<string>|null  $relationships  Restrict to these, or null for all.
+     * @return Collection<int, FamilyMember>
+     */
+    public function householdFamilyOf(User $user, ?array $relationships = null): Collection
+    {
+        $spouseId = $user->reciprocalLiveSpouse()?->id;
+
+        $query = FamilyMember::query()
+            ->whereIn('user_id', $spouseId === null ? [$user->id] : [$user->id, $spouseId]);
+
+        if ($relationships !== null) {
+            $query->whereIn('relationship', $relationships);
+        }
+
+        return $query->get(self::COLUMNS)
+            ->reject(fn (FamilyMember $member): bool => $this->describesTheViewer($member, $user))
+            ->sortBy(fn (FamilyMember $member): int => $member->user_id === $user->id ? 0 : 1)
+            ->unique(fn (FamilyMember $member): string => $this->identity($member))
+            ->values();
+    }
+
+    /**
      * A row reached through the spouse that describes the person reading it.
      *
      * Only rows on the SPOUSE's account can do this — the user's own record of

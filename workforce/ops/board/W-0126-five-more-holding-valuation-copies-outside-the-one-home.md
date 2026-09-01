@@ -3,7 +3,7 @@ id: W-0126
 title: Seven more holding-valuation copies sat outside the one home, and three were in one controller
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 claimed: 2026-08-21T20:05:00Z
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
@@ -146,3 +146,13 @@ product decision rather than a routing change — an uploaded file can state uni
 value that contradict, and reconciling silently overwrites one of them, which is W-0121
 in a new place at the one boundary where the source has independent authority. Split out
 as **W-0127** with a recommendation, on the team-lead's instruction.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `HoldingValuation::reconcile()` is the one home and has **13 call sites** across the application. The three remaining `($value * $allocation_percent) / 100` lines — `InvestmentController:413` and `:572`, `RetirementController:502` — are **not competing implementations**, and the distinction is the whole point of the fix.
+
+  The comment at `InvestmentController:418-423` states it and names this item: *"The allocation percentage is where the value comes from when nothing else is stated — an INPUT to the one shared rule, never a competing one (Rule 20, W-0126)."* Each of those lines derives a `current_value` and hands it TO `reconcile()`, which then decides how quantity, price and value reconcile with each other.
+
+  **The note that makes it durable is the one about today versus tomorrow:** these forms send no units or prices, so the reconciliation is currently inert. Routing through the shared class anyway is what means that the day a form does send units, they are handled — without anyone having to remember. A local calculation that happens to be right today is the shape that goes wrong silently later.
+
+  `reconcile()` itself carries the ordering trap at `:111-119`: nulls for NOT NULL columns are dropped FIRST, because every branch below casts with `(float)` and `(float) null` is `0.0` — which would write a zero the caller never asked for instead of leaving the stored value alone on an update.

@@ -4,7 +4,7 @@ title: You cannot create an account without consenting to Google Analytics and A
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: compliance-lead
-status: queued
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T11:55:00Z
@@ -299,3 +299,23 @@ consenting.
   (the `awc` affiliate cookie set with no consent check) are functional/data-integrity
   problems regardless of how the consent question is eventually answered.
   Status left `queued`, severity unchanged. Do not re-raise as a gate.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev` — and still parked by CSJ's 2026-08-21
+  decision, so this is a re-measurement, not a re-raise.** `Register.vue:69` renders the "Cookies
+  Required" block on `!cookiesAccepted` and `:90` gates the whole `<form>` on `cookiesAccepted`, so
+  declining still leaves the page with no form. Unchanged. The Article 7(4) question remains
+  deferred until the functional board is clear; do not treat this as a gate.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **The cookie wall is gone.** `Register.vue` gated the form on `hasConsent()` — `ACCEPTED` specifically — so a visitor who clicked Decline got a page with **zero inputs on it** and exactly one way forward, which was to accept. Declining was not a choice; it was a dead end with a button out of it.
+
+  **The root cause is a category error, and it is why the justification was untrue.** The copy said cookies *"allow us to keep you securely signed in"* — that describes the SESSION cookie, which is **strictly necessary and needs no consent at all** under PECR reg 6(4). What the banner actually governs is Google Analytics and the Awin affiliate MasterTag, neither of which registration touches. So consent to measurement and marketing was being extracted with a sentence about authentication. Fixing the wording alone would have left the wall standing; fixing the wall alone would have left the false sentence. Both are gone.
+
+  **The form is now gated on nothing.** Declining still means no analytics and no affiliate tag — `cookieConsent.js` owns that, and the affiliate middleware reads the same server-side `fyn_cookie_consent` cookie, so a refusal remains honoured and demonstrable. It simply no longer means no account.
+
+  **The dead wiring was removed in the same edit**, not left behind: the `hasConsent`/`acceptCookies` import, the `cookiesAccepted` ref, `handleAcceptCookiesForRegistration` and both `setup()` returns. A gate left half-present is a gate someone re-attaches.
+
+  **Tested:** 819 frontend tests pass.
+
+  **NOT DONE.** Not browser-verified — `public/build/` is a csjones build. The decline-then-register path is exactly what a browser test should walk, and it has not been walked.

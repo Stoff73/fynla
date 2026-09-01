@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0029-cycle4-wills-and-estate-figures.md
 owner: build-lead
 reviewers: [quality-lead, compliance-lead]
-status: gated
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-08-23T01:25:00Z
@@ -122,3 +122,10 @@ Screenshots:
 - 2026-08-23 build-lead: found, fixed and covered in the same sitting.
   `tests/Unit/Services/Estate/MirrorWillPartyRepairTest.php`, the
   "recognised under every spelling" block. Not self-certified.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `WillDocumentService:394` and
+  :503 record the fix: the generator no longer matches each partner on ONE spelling built from two
+  different sources (the primary from `testator_full_name`, the partner from profile name parts).
+  :887 states which candidate is written into the mirror. A middle name recorded on the profile but
+  absent from the will no longer makes the swap silently find nothing to do — which was W-0024's
+  exact symptom, still reachable after W-0024 was fixed.

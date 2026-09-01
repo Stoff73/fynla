@@ -3,7 +3,7 @@ id: W-0491
 title: All three Stop hooks are hard-wired to a macOS path and never run on Windows
 mission: M-0001-state-truth
 owner: build-lead
-status: review
+status: done
 severity: high
 surfaces: [web, m]
 source: found while running CSJ's specified gates for W-0001, 2026-08-25
@@ -126,3 +126,26 @@ and `$CLAUDE_PROJECT_DIR` are both portable, and PHP replaces the dependency tha
 was least portable, so the expectation is that macOS is unaffected or improved —
 but that is reasoning, not evidence. **Someone on the Mac should seed one
 violation and confirm a block before this moves past `review`.**
+
+- 2026-08-31 build-lead: **CLOSED — the macOS gap is closed by running it, not by reasoning about
+  it.** The 2026-08-25 note left acceptance 4 half met — *"Verified on Windows only — I COULD NOT
+  TEST ON macOS"* — and asked for someone on the Mac to seed one violation and confirm a block.
+  Done today on macOS 24.6.0, `chore/board-verification-31-august`.
+
+  A probe was seeded carrying one violation of each rule (`bg-amber-500`, `#ff8800` inside a
+  `<style>` block, a target emoji, `ISA_ALLOWANCE = 20000` and a hardcoded `2025/26`), the three
+  Stop hooks were run against it, and all three fired:
+
+  - **`design-lint.sh`** emitted `{"decision":"block", ...}` naming all three hits separately —
+    banned colour token (Rule 8/11), hardcoded hex in `<style>` (Rule 11), **and the emoji
+    (Rule 15), which is the check the old `python3` implementation passed silently**.
+  - **`tax-hardcode-check.sh`** emitted its hardcoded-tax-values warning.
+  - **`m-parity-check.sh`** emitted the Rule 19 notice, naming the changed desktop file.
+
+  Probes removed; all three re-run against the clean tree and silent.
+
+  **Acceptance 5 is answered by the same run:** `design-lint.sh` emitted a real `decision: block`
+  payload, so the absence of `jq` is not stopping a block decision from being emitted here.
+  Root resolution is `${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}` with the
+  `|| exit 0` guard on all three, so the platform-sensitive change is now proven on both
+  platforms.

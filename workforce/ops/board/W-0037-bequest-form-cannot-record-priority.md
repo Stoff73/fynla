@@ -4,7 +4,7 @@ title: Bequest form cannot record priority order, beneficiary type or charity re
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T12:35:00Z
@@ -244,3 +244,24 @@ and conditions only.
 **One acceptance criterion is now satisfied by Batch B and should not be re-done:**
 will-builder gifts *do* arrive as `Bequest` rows (W-0023), verified live — they simply
 arrive without priority or beneficiary type. The remaining criteria stand unchanged.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.** `resources/js/components/Estate/BequestForm.vue`
+  contains no `priority_order`, no `beneficiary_type` and no `charity_registration_number` input —
+  `grep` across `resources/js/components/Estate/*.vue` finds none of the three anywhere. The columns
+  exist and `beneficiary_type` is still an enum of individual/charity/trust/organization, so the
+  charitable status that moves the rate from 40% to 36% is inferred rather than recorded, exactly as
+  filed. Unchanged since 2026-08-21.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **The backend was already done; the UI was the whole remaining gap, and it was the half that mattered.** `bequests` carries `beneficiary_type`, `charity_registration_number` and `priority_order`; `StoreBequestRequest:38-45` and `UpdateBequestRequest` validate all three; and `Bequest::isCharitable():88-101` reads `beneficiary_type` FIRST, then the registration number, and falls back to `nameLooksCharitable()` only when both are absent.
+
+  **But `BequestForm.vue` had none of the three fields**, so nothing ever set them and the name inference was still the only route in practice. `WillController:150` calls `Bequest::inferBeneficiaryType($name)` whenever the key is absent from the payload — and it always was.
+
+  **That is a tax consequence, not a data-quality one.** A charitable legacy of 10% or more of the Schedule 1A baseline moves the whole estate from the standard Inheritance Tax rate to the reduced one. A charity whose name does not read like one — a named trust, a foundation, an institute — was silently treated as an individual, and the household lost the reduced rate with nothing on screen saying why.
+
+  **The fix:** a "Who is the beneficiary?" select (person / charity / trust / organisation), a registration-number field revealed only for a charity, and an optional priority order with the plain-English explanation that lower numbers are paid first if the estate cannot meet every gift. All three are sent in the `save` payload — **the payload was the second half of the bug**: adding inputs without adding them to the emit would have left the controller inferring exactly as before. The registration number is cleared when the type is not charity, matching the pattern already used for the amount fields when the bequest type changes.
+
+  **Tested:** 52 bequest backend tests (155 assertions); 24 estate component tests, including `WillPlanning.spec.js` and `IHTPlanningCharitableCard.spec.js` which cover the charitable path.
+
+  **NOT DONE.** Not browser-verified — `public/build/` is a csjones build. No `/m` equivalent exists: the will builder is web-only.

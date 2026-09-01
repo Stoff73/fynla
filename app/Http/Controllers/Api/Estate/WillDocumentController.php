@@ -200,6 +200,27 @@ class WillDocumentController extends Controller
     }
 
     /**
+     * Reopen a completed will document for editing (W-0133).
+     */
+    public function reopen(Request $request, int $id): JsonResponse
+    {
+        try {
+            $doc = WillDocument::where('user_id', $request->user()->id)
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Will document reopened for editing.',
+                'data' => $this->service->reopen($doc),
+            ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            return $this->errorResponse('Failed to reopen will document.', $e);
+        }
+    }
+
+    /**
      * Generate a mirror will for the spouse.
      */
     public function generateMirror(Request $request, int $id): JsonResponse

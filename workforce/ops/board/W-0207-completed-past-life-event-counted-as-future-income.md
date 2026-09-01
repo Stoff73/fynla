@@ -4,7 +4,7 @@ title: A completed 2020 life event is counted as future expected income and disp
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0021
 owner: build-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-08-22T01:40:00Z
@@ -151,3 +151,13 @@ has already happened is not money still to come')` — **6 passing**, covering t
 projection summary, the served API summary, the model predicate, the module panel, and
 both boundaries: an event dated **today** still counts (the day is not out), and an event
 the user marked **completed** does not, even with a future date.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `LifeEvent::hasOccurred()` (`:212`) is the one home for the question, and `getHasOccurredAttribute()` appends it to every serialisation so **no surface re-derives it**. The docblock names the four that each failed to ask it independently: the goals projection summary, the module "Upcoming Life Events" panel, the web events tab and the `/m` goals screen.
+
+  **The subtle part is the rule it settled on, and it is the reason a naive fix would have missed the persona's own event:** a past DATE is sufficient on its own, and status is not. W-0029 deliberately allows a past-dated event to be recorded — a completed inheritance needs somewhere to go — and nothing obliges the user to mark it completed afterwards. **The persona's confirmed 2020 inheritance is exactly that: still `expected`, six years after the fact.** Filtering on `status === 'completed'` alone would have left it counted as future income and displayed as "In X years", which is the defect.
+
+  Today counts as still to come: an event dated today has not been overtaken until the day is out.
+
+  **Tested:** 47 life-event tests pass, 149 assertions.

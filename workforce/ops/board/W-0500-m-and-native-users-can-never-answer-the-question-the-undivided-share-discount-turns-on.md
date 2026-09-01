@@ -4,7 +4,7 @@ title: /m and native users can never answer the question the undivided-share dis
 mission: w-0368-undivided-share-discount
 branch: null
 owner: build-lead
-status: open
+status: done
 severity: medium
 surfaces: [m, ios]
 created: 2026-08-26T00:00:00Z
@@ -153,3 +153,59 @@ store already advertises a capability it does not have.
   applies no ownership share at all, returning £295,000 for a share worth £106,200.
   Separate from this item, larger, and pre-dating W-0368.
 - **W-0040** — the ownership-percentage rule this field sits beside on the same form.
+
+## 2026-09-01 — CLOSED for web and /m. iOS deferred.
+
+**Acceptance 1 and 2 — a structured question, on the surface, parsed by nobody.**
+`/m` has no property form and issued no PUT, so the question is a control of its own on
+`resources/mobile/views/modules/PropertyDetail.vue`: *"Is {co-owner} your spouse or
+civil partner?"* with Yes and No, PUT straight to `/api/properties/{id}`, which already
+accepted the field (`UpdatePropertyRequest:50`).
+
+It is **not** a Fyn quick-reply, and that is deliberate rather than a shortcut. The item
+required the answer to come from a structured question and never from the model's
+reading of conversation; a control that writes a boolean the user pressed has no model
+in the path at all, so acceptance 2 holds by construction rather than by prompt
+discipline. It renders only where the answer can change a number — a shared property
+whose co-owner holds no account, on the owner's own record, not yet answered.
+
+**Acceptance 3 — asymmetric caution, and there is no "not sure" button on purpose.**
+Not answering *is* "not sure": the column stays NULL, no discount applies, and the tax
+figure stays on the conservative side. Only an explicit No writes `false`, which is the
+only value that reduces a stated liability.
+
+**Acceptance 4 — the normaliser gap closed, but only halfway, and on purpose.**
+`PropertyStore::validateCanonical()` accepted the field while
+`PropertyNormaliser::fromFyn()` dropped it, so the codebase stated an intent it did not
+implement. Carrying it wholesale would have been worse than the gap: `false` is the
+value that turns the discount on, and a model reading *"I own it with Ruth"* and
+concluding "not the spouse" is exactly the inference `UndividedShareDiscount`'s docblock
+forbids — measured on live data, where a co-owner named "wife" belongs to a user marked
+single.
+
+So **`true` passes and `false` does not**, by strict identity. `true` is a no-op for the
+discount (IHTA 1984 s161 already denies it between spouses), so Fyn can confirm a
+spousal co-owner and can never grant a discount. The negative comes only from the
+button. Pinned by a test that walks `0`, `'0'`, `'false'`, `'no'`, `null`, `''`,
+`'true'` and `1` and asserts none of them reaches the canonical.
+
+**Acceptance 5 — unchanged and untouched.** No `runInlineCapture()` change, no
+`quick_replies` change, no new SSE event: the answer is an ordinary PUT from a surface
+control, so INV-2.4.1 and INV-2.4.2 cannot be affected by this diff.
+
+**Acceptance 7 — round trip.** One column, one endpoint, one Resource key
+(`PropertyResource:51`). A property answered on `/m` reopens on web showing the same
+answer because there is no second store of the answer.
+
+Tests: `tests/Feature/Estate/CoOwnerSpouseAnswerComesFromTheUserTest.php` — 6 passed.
+Property family: **348 passed**. `/m` frontend: **194 passed, 34 files**.
+
+**Not done, and named rather than implied:**
+- **Acceptance 6 is half done.** No browser drive — the local `/m` bundle is a csjones
+  build (see W-0034) — and therefore no DB read confirming the stored column from a real
+  tap. The endpoint half is covered by the feature test, which does read the column back.
+- **Native is deferred**, per CSJ's ruling that the board loop is web and `/m` only.
+  iOS still has no route to the answer and no property update.
+- **No onboarding quick-reply.** Acceptance 1 named the bubble as the onboarding variant;
+  a user creating a property mid-onboarding is asked by the surface afterwards instead.
+  The answer is never lost, because the question persists until answered.

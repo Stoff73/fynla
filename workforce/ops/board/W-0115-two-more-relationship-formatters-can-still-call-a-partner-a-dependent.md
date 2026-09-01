@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0009-batch-i-onboarding-spouse.md
 owner: build-lead
 claimed_by: fix-batch-I
-status: gated
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T19:50:00Z
@@ -268,3 +268,20 @@ precisely because the fallback is not supposed to know better.
 
 Screenshot-bearing reports already filed use the old spelling. They were accurate
 when taken and were left alone.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  Two formatters survived outside the family surfaces, both reading the **raw enum** instead of the appended `display_relationship`:
+
+  - `AdvicePromptBuilder:441` — `ucfirst($member->relationship ?? 'family member')`
+  - `LetterToSpouseService:760` — `ucfirst($member->relationship ?? 'dependent')`
+
+  **The accessor exists precisely because the enum is the wrong thing to print.** `FamilyMember::getDisplayRelationshipAttribute()` prefers `stated_relationship` — what the user actually chose where the label was translated — over the stored value, and its own docblock says why: *"Never the raw enum on an aliased row: that is how the application ends up telling somebody their partner is a dependent (W-0114)."* These two did exactly that.
+
+  **The second one was worse than a formatting slip.** Its fallback was the literal string `'dependent'`, so a member with no recorded relationship was **asserted to be a dependant in the Letter to Spouse** — a document the reader's family is meant to act on after a death. Now `'family member'`, which claims nothing.
+
+  The first fed **Fyn's prompt**, so the model was told a partner was a dependent and would then say so in its own words — a wrong fact laundered through generated prose, where it is much harder to trace back.
+
+  Sweep confirms no raw-enum formatter remains: `grep` for `ucfirst($member->relationship` and the `?? 'dependent'` fallback returns nothing.
+
+  **Tested:** 60 letter/prompt/relationship tests pass (219 assertions) and 63 family-member tests (168 assertions). Pint clean.

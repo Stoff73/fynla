@@ -4,7 +4,7 @@ title: The retirement module reports "not yet set up" for a household with £500
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0024
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T20:45:00Z
@@ -214,3 +214,9 @@ provision.** Sarah (17), who has £0 in Defined Contribution pensions:
 because he has a pot — the guaranteed-income headline correctly does not fire for him.
 
 **Superseded the earlier "not browser-verified" note in this handoff.**
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `RetirementAgent:458-464` names the
+  absent profile as a **gap** — `field: retirement_profile`, `severity: blocking`, with the
+  explicit note that "what the user already holds is known and unaffected" — instead of returning
+  `success: false` with an empty array. A household with £500,000 of pensions is no longer told it
+  has no retirement provision, and the caller can ask for a target rather than for everything.

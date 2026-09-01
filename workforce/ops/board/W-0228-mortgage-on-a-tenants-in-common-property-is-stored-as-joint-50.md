@@ -4,7 +4,7 @@ title: A mortgage secured on a tenants-in-common property is stored as joint 50%
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0022-cycle4-dashboard-module-totals-and-cache.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T18:40:00Z
@@ -199,3 +199,38 @@ F-0022 §12.
   So the implementation needs a way for a user to SAY "I borrowed alone" — an explicit
   signal — rather than a silent reinterpretation of a column. That is a schema and form
   question, and it belongs to W-0483, which this unblocks.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.**
+  `CalculatesOwnershipShare::refuseRecordWhoseShareFollowsAnother()` (:157) throws a
+  `FinancialCalculationException` for any `Mortgage` or record carrying `property_id`, directing
+  the caller to `calculateUserMortgageShare()`, which resolves the property. It throws rather than
+  falling through deliberately: a silent wrong share is the failure mode this whole family is made
+  of. One home, called by both `atUserShare` and `userShareFraction` (Rule 20) — the guard lived
+  in only one of them until W-0425.
+  **CSJ amended this ruling on 2026-08-30** — a mortgage share MAY differ from the ownership
+  share. That amendment is **W-0483**, and it is engineering on top of this, not a reason to
+  reopen this item.
+
+## 2026-09-01 — the amendment is now in the code (W-0483 acceptance 3)
+
+CSJ amended this ruling on 2026-08-30: *"W-0228 can allow mortgage share that is not
+the same as ownership share."* Recorded here so a reader of the ruling sees it, not
+only on W-0483.
+
+**The ruling still stands as the default.** A mortgage's share follows the property
+securing it, and every row that existed before this date is unaffected. What changed is
+that it now yields to an explicit statement:
+`mortgages.declared_liability_percentage`, nullable with no default. Null means nobody
+has said and the property is authoritative.
+
+**What did NOT change, and must not.** `mortgages.ownership_percentage` is still unread.
+It is populated on every row, was never reviewed, and is the value whose disagreement
+with the property produced the two-figures-one-debt failure this ruling closed — the
+persona still carries `joint 50%` on a mortgage secured on a `tenants_in_common 40%`
+property. `CalculatesOwnershipShare::refuseRecordWhoseShareFollowsAnother()` still
+throws for any caller reaching for it, and a test pins that the household figure does
+not move.
+
+Consequence 5 of this ruling — "do not add a borrower-split field to work around it, and
+do not raise it as a defect" — is superseded by the amendment, not by anyone's judgement.
+It stood correctly until CSJ changed it.

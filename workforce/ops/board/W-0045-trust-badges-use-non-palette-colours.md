@@ -4,7 +4,7 @@ title: All three relevant-property trust surfaces use non-palette blue-* and gre
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0005-design-lead-palette-and-copy.md
 owner: design-lead
-status: gated
+status: done
 severity: low
 surfaces: [web, m]
 source: flagged by design-lead during W-0021 review, 2026-08-21; deliberately not bundled into that fix
@@ -157,3 +157,39 @@ David (16) and Sarah (17) were not touched.
   `light-blue-700` token or restating the Info badge against an existing pair — a
   design-system amendment, which is Azlan's, not a code fix.
   Unpark with W-0048.
+
+## 2026-09-01 — CLOSED
+
+Verified in the code, not from the notes above. A sweep of
+`resources/js/components/Trusts/*.vue` and `resources/js/views/Trusts/*.vue` for
+`(blue|green|red|teal|gray|grey|amber|orange|primary|secondary)-NNN`, anchored so it
+cannot match inside `light-blue-`, returns **zero**. The replacing tokens are at:
+
+- `TrustCard.vue:239` — `bg-light-blue-100`
+- `TrustsDashboard.vue:763, 769`
+- `TrustDetailView.vue:470, 662, 677, 706, 714` — including
+  `border-t border-light-blue-500/20`, which replaced the hardcoded
+  `rgba(59, 130, 246, 0.2)` divider the mapping named
+- `TrustsOverviewCard.vue:279, 308, 317`
+
+The only `rgba()` left in the module are three `rgba(0, 0, 0, 0.1)` box-shadows —
+neutral shadows, not palette colours, and not in the item's mapping.
+
+**Tokens verified to resolve, not asserted.** The mapping's claim that every combination
+compiles was re-checked against `tailwind.config.js` by importing it: `light-blue-100`
+#DDE2EF, `light-blue-500` #6C83BC, `spring-100/600/700`, `raspberry-50/200/600/700`,
+`horizon-500` #1F2A44 — all ten present. This matters more than a normal assertion here,
+because a token that does not exist is a **build error**, not a lint warning — the exact
+trap the item recorded about the guide's `text-light-blue-700`.
+
+**No tests were re-run, because none exist.** No spec covers these four components and
+there is no palette lint. That is not an oversight to fix here: the item's own root-cause
+note explains why nothing catches this class of breach — `tailwind.config.js:9-12`
+safelists `blue-*`, `green-*`, `teal-*` and `red-*` — and CSJ **parked** that work
+explicitly on 2026-08-21 (*"this is parked for now, low priority, getting the system
+working is key"*), tracked as W-0048 with 807 occurrences still outstanding elsewhere.
+Building a guard here would reopen a parked decision.
+
+**Acceptance box 6 remains unticked: no visual confirmation.** The four screens listed in
+"Needs visual confirmation" have not been looked at, by me or anyone. Recorded rather than
+implied.

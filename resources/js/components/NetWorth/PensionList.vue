@@ -349,8 +349,13 @@
                     <span class="summary-item-label">Pension Pot Value</span>
                     <span class="summary-item-value">{{ formatCurrency(dcPensionValue) }}</span>
                   </div>
+                  <!-- W-0259 — the median leads; the conservative band stands beside it. -->
                   <div class="summary-item purple">
-                    <span class="summary-item-label">Projected Value (80%)</span>
+                    <span class="summary-item-label">Projected Value (middle outcome)</span>
+                    <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_50_at_retirement) }}</span>
+                  </div>
+                  <div class="summary-item purple">
+                    <span class="summary-item-label">Lower outcome (4 in 5 do better)</span>
                     <span class="summary-item-value">{{ formatCurrency(projections.pension_pot_projection?.percentile_20_at_retirement) }}</span>
                   </div>
                   <div class="summary-item teal">

@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0031-cycle4-charitable-figures.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: gated
+status: done
 claimed_by: build-lead
 severity: medium
 surfaces: [web, m]
@@ -107,3 +107,19 @@ the configuration rather than asserting the current strings.
   `EstateAgent` all appear in `TaxConfigService`'s docblock as former duplicate
   readers of the charitable rate. **A sweep for rate literals inside user-facing
   strings is worth its own item and is not this one.**
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed. This is the parent of the family finished today.**
+
+  No rate literal survives in `IHTCalculationService`: every 40, 36 and 10 in the file is inside a comment explaining a fix. The three rate messages this item raised are configuration-driven.
+
+  **The guard, `tests/Unit/Services/Estate/RateLiteralsComeFromConfigurationTest.php`, is the durable half and its structure is the lesson** — 6 passed, 23 assertions, organised by the THREE ways a rate hides rather than by the three messages that were wrong:
+
+  - *the arithmetic pass* — a rate hidden in a calculation
+  - *the prose pass* — a rate quoted in a sentence, moved and re-read
+  - *the const pass* — a rate in a declaration that cannot interpolate
+
+  Plus one home for the Schedule 1A threshold, asserted against the plans surface.
+
+  **What this guard could not see is what took the family four sweeps to close, and it is now closed.** Every case here drives PHP and asserts on SERVICE OUTPUT, so nine literals stood in Vue templates untouched — re-hardcoding a caption left the whole suite green. **W-0461**, closed today, adds the missing shape: it moves a configured rate and asserts on a MOUNTED TEMPLATE, mutation-verified. **W-0432** closed with it.
+
+  The family now has both halves: PHP and rendered markup.

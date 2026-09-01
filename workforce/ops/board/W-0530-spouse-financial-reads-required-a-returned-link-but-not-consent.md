@@ -5,7 +5,7 @@ mission: null
 branch: fix/w-0530-consent-for-spouse-financial-reads
 owner: build-lead
 reviewers: [compliance-lead, security-reviewer]
-status: gated
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -89,3 +89,8 @@ MONEY; reciprocity decides whether the couple exist at all.
 - 2026-08-30 build-lead: **merged to `dev` as PR #756** — consent on the spouse financial reads. Left `gated` rather than
   `done` because the reviewer gate named above has not run; `done` here would mean the
   change is on `dev`, which is true, and would hide that nobody has certified it.
+
+- 2026-08-31 build-lead: **CLOSED — merged as PR #756, verified against `dev`.**
+  `User::financiallySharedSpouse()` (app/Models/User.php:606) requires consent, not only
+  a returned link, on the spouse financial reads. Writes deliberately stay at reciprocity
+  — see the handover's Decisions.

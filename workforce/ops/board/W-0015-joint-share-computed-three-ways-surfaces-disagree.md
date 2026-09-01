@@ -4,7 +4,7 @@ title: The same joint account's share is computed three different ways — inves
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-21T00:20:00Z
 claimed: 2026-08-21T10:30:00Z
@@ -308,3 +308,17 @@ row is the only one in dispute, and only because of this item plus W-0014.
   **iOS not checked** (`ios-native/`) — outside this dispatch.
 
 - 2026-08-21 build-lead: batch handover (CLAUDE.md Rule 22) — `workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md`. Carries the dispatch verbatim, the joint-share consolidation reasoning, decisions taken, dead ends ruled out, and environment state.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  One concept, three implementations, is now one implementation. `resources/js/utils/ownership.js` is the single home for a viewer's share of a shared record, and every surface the item named reads it:
+
+  - web investments — `Investment/PortfolioOverview.vue:188`, `:287`, `:291`
+  - web savings and cash — `Savings/SavingsModuleOverview.vue:169`, `Cash/AccountGroupList.vue:53`
+  - **`/m` — `resources/mobile/views/modules/Investment.vue:94` imports `../../../js/utils/ownership.js` directly.** Not a mobile copy of the rule: the same file. Rule 20 across surfaces, which is what this item was really about.
+
+  Backend shares `app/Traits/CalculatesOwnershipShare.php` (`SavingsAgent`, `InvestmentAgent` and the rest), so the server-side figures cannot drift from the client's either.
+
+  The double-count is closed at its source by **W-0014** — the stored `ownership_percentage 100.00` on `investment_accounts.id 14` was the wrong value both screens were faithfully rendering. With the write fixed and the read consolidated, both spouses cannot be told they own 100% of one record.
+
+  **Tested:** `tests/frontend/utils/ownership.test.js` — 16 passed; 352 passed / 1,003 assertions across the backend ownership suites.

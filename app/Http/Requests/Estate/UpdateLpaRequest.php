@@ -29,6 +29,9 @@ class UpdateLpaRequest extends FormRequest
             'attorney_decision_type' => 'nullable|in:jointly,jointly_and_severally,jointly_for_some',
             'jointly_for_some_details' => 'nullable|required_if:attorney_decision_type,jointly_for_some|string',
             'when_attorneys_can_act' => 'nullable|in:while_has_capacity,only_when_lost_capacity',
+            // W-0152 — the Mental Capacity Act 2005 s13(11) election. Nullable so an
+            // unanswered question stays unanswered rather than becoming a provision.
+            'appointment_survives_dissolution' => 'nullable|boolean',
 
             'preferences' => 'nullable|string|max:5000',
             'instructions' => 'nullable|string|max:5000',
@@ -47,6 +50,9 @@ class UpdateLpaRequest extends FormRequest
             'attorneys.*.attorney_type' => 'sometimes|in:primary,replacement',
             'attorneys.*.full_name' => 'sometimes|string|max:255',
             'attorneys.*.date_of_birth' => 'nullable|date|before:today',
+            // W-0105 — MCA 2005 s13(8). Nullable so an unanswered question stays
+            // unanswered; a default of false would be a declaration nobody made.
+            'attorneys.*.is_bankrupt' => 'sometimes|nullable|boolean',
             'attorneys.*.address_line_1' => 'nullable|string|max:255',
             'attorneys.*.address_line_2' => 'nullable|string|max:255',
             'attorneys.*.address_city' => 'nullable|string|max:255',

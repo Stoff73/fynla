@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import { projectionRiskMessage } from '@/utils/projectionCaption';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
@@ -129,15 +130,13 @@ export default {
         return null;
       }
 
-      const levelDisplay = this.formatRiskLevel(this.riskLevel);
-      const formattedReturn = Number(this.expectedReturn).toFixed(2);
-      const fees = Number(this.feeDragPercent) || 0;
-
-      if (fees > 0) {
-        return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return, less ${fees.toFixed(2)}% in charges)`;
-      }
-
-      return `Using ${levelDisplay} risk profile (${formattedReturn}% expected return)`;
+      // W-0258 — one home, so the volatility-drag disclosure cannot be on one
+      // chart and missing from the other.
+      return projectionRiskMessage({
+        levelDisplay: this.formatRiskLevel(this.riskLevel),
+        expectedReturn: this.expectedReturn,
+        feeDragPercent: this.feeDragPercent,
+      });
     },
 
     filteredLifeEvents() {

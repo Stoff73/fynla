@@ -288,6 +288,59 @@ describe('FamilyMembers.vue', () => {
     expect(wrapper.vm.showModal).toBe(false);
   });
 
+  /**
+   * W-0472. CSJ's W-0349 decision stopped this endpoint creating an account for an
+   * unregistered address — it invites it — and the address is **not stored**:
+   * `family_members` has no email column and no invitation table exists.
+   *
+   * The component branched on `created` and `linked`. The invite path returns neither,
+   * so it fell through to "Family member added successfully!" and the user was never
+   * told an invitation had gone out at all. The `created` branch could not fire either:
+   * the controller returns no such key and `created_new_user` is always false. **A
+   * branch that cannot execute is worse than the limitation it hides.**
+   *
+   * Whether the address should be retained is CSJ's and compliance-lead's call
+   * (acceptance 1). Saying an invitation went out is true either way.
+   */
+  it('says an invitation went out, and to which address', async () => {
+    familyMembersService.createFamilyMember.mockResolvedValue({
+      data: { family_member: { id: 9 }, linked: false, invitation_pending: true },
+    });
+
+    const addButton = wrapper.findAll('button').find((button) => button.text() === 'Add');
+    await addButton.trigger('click');
+    await wrapper.findComponent({ name: 'FamilyMemberFormModal' }).vm.$emit('save', {
+      name: 'Sam Partner',
+      relationship: 'spouse',
+      email: 'sam@example.com',
+    });
+    await flushPromises();
+
+    // The address the user just typed — disclosing nothing, since they typed it, and
+    // the response deliberately confirms nothing about whether it is registered.
+    expect(wrapper.vm.successMessage).toContain('sam@example.com');
+    expect(wrapper.vm.successMessage).toContain('invitation');
+    // And it says the address is not kept, because it is not.
+    expect(wrapper.vm.successMessage).toContain('do not keep a record');
+  });
+
+  it('does not claim a family member was simply added when one was invited', async () => {
+    familyMembersService.createFamilyMember.mockResolvedValue({
+      data: { family_member: { id: 9 }, linked: false, invitation_pending: true },
+    });
+
+    const addButton = wrapper.findAll('button').find((button) => button.text() === 'Add');
+    await addButton.trigger('click');
+    await wrapper.findComponent({ name: 'FamilyMemberFormModal' }).vm.$emit('save', {
+      name: 'Sam Partner',
+      relationship: 'spouse',
+      email: 'sam@example.com',
+    });
+    await flushPromises();
+
+    expect(wrapper.vm.successMessage).not.toBe('Family member added successfully!');
+  });
+
   it('updates an existing family member from the modal save event', async () => {
     const editButton = wrapper.findAll('button').find((button) => button.text() === 'Edit');
     await editButton.trigger('click');

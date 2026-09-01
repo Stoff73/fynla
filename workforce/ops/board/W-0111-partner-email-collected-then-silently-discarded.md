@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0009-batch-i-onboarding-spouse.md
 owner: build-lead
 claimed_by: fix-batch-I
-status: gated
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-08-21T18:40:00Z
@@ -182,3 +182,15 @@ relationship HMRC does not recognise as one that shares allowances, transfers th
 nil rate band, or claims the spouse exemption — not from this form field. The
 plumbing (`SpouseLinkingService`) would be the least of it; the work is the
 schema and the permission model.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `StoreFamilyMemberRequest:43` now carries `prohibited_unless:relationship,spouse` on `email`, and `FamilyMemberFormModal.vue:49-52` no longer offers the field for a partner. The comment names this item and states the principle plainly: **"A field the code intends to discard is not a field to accept."**
+
+  **The reasoning behind the asymmetry is recorded and worth keeping**, because "just save it for partners too" is the obvious wrong fix: a spouse row IS the household's account link — `users.spouse_id`, both `SpousePermission` rows and everything joint key off it — and `email` is not a `family_members` column at all. Only a spouse is routed to linking, so for a partner the value had nowhere to go. Accepting it, validating it, returning 201 and then dropping it is the shape the item objected to.
+
+  **Two related decisions in the same code:**
+  - `required_if:relationship,spouse` — without an email there is nothing to link by, and the record that came back claimed a link it never made (**W-0051**). The message for that rule already existed; the rule itself never did.
+  - **Add-only.** The update endpoint cannot link an account, so offering the field on an edit would silently discard it — the same defect on a different route. To link a spouse already on file, add them again with their email; the linking service adopts the existing record rather than creating a duplicate.
+
+  **Tested:** 63 family-member tests pass, 168 assertions.

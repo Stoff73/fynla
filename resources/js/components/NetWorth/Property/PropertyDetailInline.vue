@@ -489,6 +489,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapState, mapActions } from 'vuex';
 import PropertyForm from './PropertyForm.vue';
 import PropertyFinancials from './PropertyFinancials.vue';
@@ -535,7 +536,7 @@ export default {
     },
 
     retirementAge() {
-      return this.retirementProfile?.target_retirement_age || 67;
+      return this.retirementProfile?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
     },
 
     tabs() {

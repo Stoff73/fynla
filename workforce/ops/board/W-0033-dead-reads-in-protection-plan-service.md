@@ -3,7 +3,7 @@ id: W-0033
 title: ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T18:20:00Z
@@ -98,3 +98,13 @@ so — either by deleting the dead branches or by wiring them to the real column
   `tests/Unit/Services/Protection/`, `tests/Feature/Protection/ProtectionApiTest.php`,
   `tests/Integration/ProtectionWorkflowTest.php` — **133 passed, 388 assertions**.
   Pint clean. **Not browser-verified** — a persona-tester closes Rule 14's loop.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed. It was done in fix-batch-G on 2026-08-21 and left at `gated`.**
+
+  `grep` for `$user->smoker` and `$user->good_health` in `ComprehensiveProtectionPlanService` returns **two hits, both inside the comment that explains their removal**. No executable read of either phantom property survives.
+
+  **The acceptance asked for a decision, recorded, with the code saying so — and all three are met.** `:194-205` states it: the **protection profile is authoritative** and the user record is not consulted. The rationale is the enforcing layer's rather than a preference, and it is written out at the line: `RecommendationEngine:185,232` generates the actual advice from `$profile->smoker_status`, `ProtectionDataReadinessService:199,396` gates on it, and two other modules read the same profile field for the same fact (`RetirementActionDefinitionService:1656`, `DecumulationPlanner:183`). Nothing anywhere reads `users.smoking_status` for protection.
+
+  **Worth noting for the next reader:** the item was explicit that this was *"dead code, not a live fault"* and that pointing the reads at the real columns would have changed which source drives protection advice. The batch deleted rather than rewired, which is the conservative half of that choice and the one consistent with the enforcing layer.
+
+  **Tested:** 6 `ComprehensiveProtectionPlan` tests pass, 10 assertions.

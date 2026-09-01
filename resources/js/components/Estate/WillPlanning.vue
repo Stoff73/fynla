@@ -371,6 +371,13 @@
           </button>
         </div>
 
+        <!--
+          W-0398. The residuary is deliberately document-only, so this list is the
+          specific gifts and not the whole will. Said plainly, because a household whose
+          children inherit the residue otherwise reads as though they are unprovided for.
+        -->
+        <p v-if="residuaryNote" class="text-sm text-neutral-500 mb-3">{{ residuaryNote }}</p>
+
         <!-- Bequests List -->
         <div v-if="bequests.length > 0" class="space-y-3">
           <div
@@ -497,6 +504,8 @@ export default {
       },
       originalForm: null,
       bequests: [],
+      // W-0398 — served by the API, not written here, so /m cannot say something else.
+      residuaryNote: '',
       showBequestModal: false,
       bequestBeingEdited: null,
       savingBequest: false,
@@ -623,6 +632,9 @@ export default {
       try {
         const response = await api.get('/estate/bequests');
         this.bequests = response.data.data;
+        // W-0398 — the same sentence /m shows, from the same source, so a count of
+        // these rows cannot read as the whole of the will on either surface.
+        this.residuaryNote = response.data.residuary_note || '';
       } catch (error) {
         logger.error('Failed to load bequests:', error);
       }
@@ -650,13 +662,21 @@ export default {
       // flagged `is_iht_exempt` — a pension with a nominated beneficiary, which
       // genuinely passes outside the will, but also a trading business
       // qualifying for Business Property Relief, which does not. The relief
-      // removes it from the tax, not from the estate. Raised as W-0392.
+      // removes it from the tax, not from the estate. W-0392 split the two facts
+      // apart at source (`passes_outside_estate`) and published this figure.
       try {
         const response = await api.post('/estate/calculate-iht');
-        const userNetEstate = response.data?.calculation?.user_net_estate;
-        this.netEstateValue = userNetEstate === undefined || userNetEstate === null
+        // W-0392 FIXED. This read `user_net_estate` — the TAXABLE estate — on a screen
+        // describing what the will disposes of. `user_estate_passing_under_will`
+        // rejects only what genuinely leaves the estate, so a wholly relieved trading
+        // business stays in the figure, which is what a will actually disposes of.
+        // Falls back to the taxable figure so a cached or older payload still renders.
+        const calculation = response.data?.calculation ?? {};
+        const estateUnderWill = calculation.user_estate_passing_under_will
+          ?? calculation.user_net_estate;
+        this.netEstateValue = estateUnderWill === undefined || estateUnderWill === null
           ? 0
-          : Number(userNetEstate);
+          : Number(estateUnderWill);
       } catch (error) {
         logger.error('Failed to load estate value:', error);
         this.netEstateValue = 0;

@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: main-inference
 reviewers: [tax-compliance-reviewer, compliance-lead, product-lead]
-status: gated
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -207,3 +207,8 @@ the user-facing disclosure of that gap is **W-0466**.
 `workforce/ops/handoffs/W-0463/tax-compliance-reviewer-verdict-2026-08-23.md` — two rounds,
 26 findings, with legislation and HMRC manual citations. Recorded there because the
 reviewer wrote nothing to disk; without that file both reviews would have been lost.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `EstateAssetAggregatorService:340-343`
+  reads the configured regime rather than emitting a boolean: the £2,500,000 `allowance_cap` gated
+  on `allowance_cap_effective_date` (dated, not hardcoded — Rule 2), with `relief_above_cap` applied
+  above it. Business Property Relief is no longer all-or-nothing.

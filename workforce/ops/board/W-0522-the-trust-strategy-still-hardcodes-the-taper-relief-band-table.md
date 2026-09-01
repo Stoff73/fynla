@@ -5,7 +5,7 @@ mission: null
 branch: fix/w-0522-hardcoded-taper-band-table
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: gated
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m, ios]
@@ -87,3 +87,17 @@ settlor rate, and charges it on `max(0, amountToTrust − availableNRB)`.
   configuration, transfer typed as a chargeable lifetime transfer). Stamp corrected from
   `in_progress`, which it had kept for a day after the code landed. `gated`, not `done`:
   the `tax-compliance-reviewer` gate on it has not run.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  **No taper band table survives in `PersonalizedTrustStrategyService`.** Both remaining occurrences of the word are comments: the class docblock at `:23` and the working note at `:393`. The last copy is gone and the schedule is read from `TaxConfigService:438` — `inheritance_tax.chargeable_lifetime_transfers.taper_relief` — with `GiftingStrategy` and `GiftingStrategyOptimizer` reading the same home.
+
+  **The note at `:388-400` is worth keeping, because the taper duplication was the least of what was wrong there.** The seven-year death charge in that service had three faults at once:
+
+  1. It charged the **GROSS** amount with no nil rate band, while `buildImmediateCLTStrategy()` four hundred lines above charged only the excess. **Two paths, one question, two answers.**
+  2. No credit for the 20% already paid on the way in.
+  3. It was worked at **projected life expectancy**. With death twenty years out, every cycle had aged past seven years, the tapered rate came back nil, and the user was shown a **£0 risk — for a transfer they are being told to make today, that they could fail by dying tomorrow.**
+
+  **CSJ's ruling, 2026-08-29: the excess, and death NOW.** The band a transfer consumes is not charged here — it is charged in the ESTATE, whose nil rate band is withheld for seven years by `FailedGiftTaxCalculator`. Charging it in both places would bill one band twice.
+
+  **Tested:** 114 trust-strategy and taper tests pass, 349 assertions.

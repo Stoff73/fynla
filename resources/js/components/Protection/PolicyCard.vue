@@ -114,11 +114,18 @@ export default {
     // A joint-life policy covers both spouses and is recorded once, on the account
     // that entered it. It reaches the other life assured read-only, so say whose
     // record it is rather than offering an edit that cannot work (W-0186).
+    // W-0200. The name is INFERRED from the spouse link — the policy record has no
+    // field for a second life assured — so it is qualified rather than stated as
+    // though the user had entered it. A business partner or an unmarried partner
+    // cannot currently be recorded at all, and a user reading a confident
+    // "Joint life with Sarah" has no way to know the app chose that name.
     jointLifeNote() {
       if (!this.isLifePolicy || !this.policy.joint_life) return null;
-      return this.policy.joint_life_with
-        ? `Joint life with ${this.policy.joint_life_with}`
-        : 'Joint life';
+      if (!this.policy.joint_life_with) return 'Joint life';
+
+      return this.policy.joint_life_with_source === 'inferred_from_spouse'
+        ? `Joint life — we have assumed the other life assured is ${this.policy.joint_life_with}`
+        : `Joint life with ${this.policy.joint_life_with}`;
     },
 
     sharedRecordNote() {

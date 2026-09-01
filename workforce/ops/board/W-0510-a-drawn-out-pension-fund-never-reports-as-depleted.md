@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [quality-lead]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -68,3 +68,41 @@ say it is spent at 64. That is the wrong direction for a planning tool to be wro
   asserts "under £1" rather than exactly zero, with this item cited as the reason.
 - 2026-08-28 — `min()` is the right operator; the reporting around it is what is wrong.
   Do not "fix" this by letting the fund go negative.
+
+## 2026-09-01 — CLOSED
+
+**Acceptance 4 first, because it decides whether the rest may land.** Nothing renders
+`years_funded` — grep across `resources/js` and `resources/mobile` returns no consumer,
+so no household is currently being reassured by it. `fund_depletion_age` IS rendered:
+`FutureValueTab.vue:94` shows "Fund lasts until age N" for this path and
+`PensionList.vue:332` warns for the other one. The first of those has **never
+displayed**, because the value was always null. So the change makes a true warning
+appear where a silent screen used to be, which is the safe direction.
+
+**Acceptance 1 — a threshold that is a definition, not an epsilon.**
+`RetirementProjectionService.php:677-700`: depleted is now
+`$dcNeeded > 0 && $remainingFund < ($dcNeeded - 1.0)` — *cannot meet this year's need* —
+with the reasoning at the line. The pound is not float tolerance: these figures are
+published to the penny, and a household short by less than a pound in a year has not run
+out of money.
+
+`projectIncomeDrawdown()` is deliberately untouched and the docblock says so. It
+withdraws a sustainable percentage of the remainder by design, so a fund that never
+depletes is that model working rather than the same defect wearing the same clothes.
+
+**Acceptance 2 — the three figures now agree**, and a test asserts it directly: the
+first row flagged `fund_depleted` carries the same age as `fund_depletion_age`, and
+`years_funded` is that age less the retirement age.
+
+**Acceptance 3 — and the test that should have caught this was a decoy.**
+`RetirementProjectionServiceTest.php` had *"tracks fund depletion age correctly"*, whose
+only assertion sat inside `if ($result['fund_depletion_age'] !== null)`. The value was
+always null, so the branch never ran and the test went green over the defect it is named
+after. **Corrected rather than deleted**, with the reasoning at the line, and joined by
+two more: one pinning the three figures agreeing, and one in the other direction — a
+£5,000,000 pot reports no depletion — so the fix cannot be "always report depletion".
+
+Tests: 18 passed on that file; **446 passed** across Retirement / Projection / Drawdown.
+
+**Not done:** no browser drive of the newly-appearing depletion badge, and no
+re-measurement against a live persona.

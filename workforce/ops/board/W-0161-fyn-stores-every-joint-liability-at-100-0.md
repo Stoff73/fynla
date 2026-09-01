@@ -4,7 +4,7 @@ title: Fyn stored every joint liability at 100/0 — half the debt attributed to
 mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: fix-batch-F
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T19:30:00Z
@@ -79,3 +79,13 @@ their before/after values per the W-0030 standard.
 
 **Not verified by me:** no browser verification — a persona-tester closes Rule 14's
 loop independently.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `LiabilityStore::create():47` now hands the payload to `SharedOwnership::applyTo()` before validating, so a shared liability takes the 50 default instead of the 100 that left half the debt attributed to nobody. **Fyn writes through this store like every other caller**, which is why fixing it here fixed Fyn rather than requiring a separate fix on the agent — Rule 20 in the shape that actually works.
+
+  **The comment at `:44-46` records something worth keeping:** the local copy that used to live here *"knew only 'joint'"*, so a **tenants-in-common** liability fell through to 100 even after the joint case was handled. That is the same gap W-0025 closed for chattels, and it is why the answer was to delete the copy rather than extend it — an ownership rule with a hand-maintained list of shared types gets one more type wrong every time a type is added.
+
+  **Tested:** 47 liability tests pass, 152 assertions.
+
+  Related, closed today: **W-0014** fixed the same 100% default on investment accounts, and **W-0015** consolidated the read side so no surface computes the share for itself.

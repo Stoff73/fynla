@@ -412,6 +412,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapState, mapGetters, mapActions } from 'vuex';
 import IncomeSourceSlider from './IncomeSourceSlider.vue';
 import FundDepletionChart from './FundDepletionChart.vue';
@@ -479,7 +480,7 @@ export default {
     },
 
     retirementAge() {
-      return this.retirementIncome?.retirement_age || this.profile?.target_retirement_age || 68;
+      return this.retirementIncome?.retirement_age || this.profile?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
     },
 
     displayTargetIncome() {

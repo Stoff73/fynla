@@ -4,7 +4,7 @@ title: The projection pools a different household than the headline, so an unmar
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T00:15:00Z
@@ -102,3 +102,10 @@ explicit anyway, described as belt-and-braces rather than as a fix.
 £300,000 against married £420,000, two distinct figures so the test can tell the behaviours
 apart, plus civil partnership pooling identically (W-0474). 565 passed across Feature
 Estate and Unit Estate.
+
+- 2026-08-31 build-lead: **CLOSED — merged as PR #758, verified against `dev`.**
+  `IHTCalculationService::generateHashes()` now builds both the asset and the liability
+  hash through `poolsSpouse()`, so the cache key pools exactly as the calculation pools;
+  `ComprehensiveEstatePlanService` gathers spouse assets through
+  `HouseholdPooling::poolsSpouse()`. Pinned by
+  `tests/Feature/Estate/UnmarriedLinkedCoupleIsNotPooledTest.php`.

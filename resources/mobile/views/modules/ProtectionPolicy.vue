@@ -80,7 +80,11 @@
         </div>
         <div v-if="policy.joint_life" class="m-detail-row">
           <span class="m-detail-key">Joint life</span>
-          <span class="m-detail-value">{{ policy.joint_life_with ? `Yes, with ${policy.joint_life_with}` : 'Yes' }}</span>
+          <!--
+            W-0200. The name is inferred from the spouse link, not recorded on the
+            policy, so it is qualified here exactly as it is on web.
+          -->
+          <span class="m-detail-value">{{ jointLifeValue }}</span>
         </div>
         <div v-if="policy.is_own_policy === false" class="m-detail-row">
           <span class="m-detail-key">Recorded by</span>
@@ -194,6 +198,17 @@ export default {
     };
   },
   computed: {
+    // W-0200. `life_insurance_policies` has no field for a second life assured, so
+    // the name is inferred from the spouse link. Saying it plainly here rather than
+    // presenting the app's assumption as the user's own statement.
+    jointLifeValue() {
+      if (!this.policy?.joint_life_with) return 'Yes';
+
+      return this.policy.joint_life_with_source === 'inferred_from_spouse'
+        ? `Yes — we have assumed this is ${this.policy.joint_life_with}`
+        : `Yes, with ${this.policy.joint_life_with}`;
+    },
+
     contextualRequest() {
       const resourceType = {
         life: 'life_insurance_policy',

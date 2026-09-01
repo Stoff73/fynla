@@ -3,7 +3,7 @@ id: W-0104
 title: An attorney's age is never checked — a child can be appointed attorney on a Lasting Power of Attorney
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T17:43:00Z
@@ -140,3 +140,20 @@ comparison — this is a gap rather than a hard problem.
   - Whether the wizard should make `date_of_birth` required. That is a product call and
     it has a real cost — a donor may genuinely not know their attorney's date of birth,
     and forcing a guess into a document is worse than a `warning` that says so.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **A child could be appointed attorney.** `LpaComplianceService` ran `checkDonorAge()` and had no equivalent for attorneys, though `lpa_attorneys.date_of_birth` is captured for every one of them. The instrument was presented to the user as compliant right up to the point the Office of the Public Guardian refused to register it.
+
+  **Mental Capacity Act 2005 s10(1)(a) sets both minimum ages — the donor's and the attorney's — and that is most of why this survived:** the donor check reads as though it covers "the age requirement", so a reader auditing the service for age handling finds one and stops.
+
+  `checkAttorneyAges()` is now registered beside `checkDonorAge()` in `checkCompliance()` and names every attorney who fails, rather than reporting a bare count — an instrument with four attorneys needs to say which one.
+
+  **Three judgements recorded at the line:**
+  - **A missing date of birth FAILS.** An attorney whose age cannot be established is exactly the case the check exists for; treating unknown as acceptable would reproduce the defect for anyone who left the field blank.
+  - **An empty attorney list PASSES here**, because `checkAtLeastOneAttorney()` owns the "none appointed" failure and reporting it twice would double-count it.
+  - Under-18s and undated attorneys are reported separately, because they are different problems with different remedies.
+
+  **Tested:** `LpaComplianceServiceTest` — 31 passed, 148 assertions, including a 12-year-old attorney named in the failure text, an adult attorney passing, and a null date of birth failing rather than passing quietly. 88 LPA tests pass overall. Pint clean.
+
+  Sibling items still open on this service: **W-0105** (no bankruptcy question), **W-0106** (professional certificate provider), **W-0107**, **W-0108**, **W-0109**, and **W-0100**, which notes the whole generator has never been reviewed.

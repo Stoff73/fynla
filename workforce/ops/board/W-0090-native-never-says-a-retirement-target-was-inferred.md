@@ -4,7 +4,7 @@ title: Native never says a retirement target was inferred — it shows nothing a
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [product-lead]
-status: queued
+status: deferred-ios
 severity: medium
 surfaces: [ios]
 created: 2026-08-21T19:45:00Z
@@ -102,3 +102,17 @@ explain it** — and whoever picks up either should read the other.
   `RequiredCapitalCalculator::getIncomeSource()` returns `profile` or `calculated`
   (`app/Services/Retirement/RequiredCapitalCalculator.php:138-145`) and `required_income`
   sits beside it. No backend work is needed for this item.
+
+---
+
+## Deferred 2026-08-31 — iOS is out of scope for the board loop
+
+CSJ ruled on 2026-08-31 that the board loop covers web and `/m` only; every iOS item
+is deferred rather than worked. This item's `surfaces` is `[ios]` alone, so all of it
+defers. No Swift was changed.
+
+The backend half remains true and needs no work: `required_income` and `income_source`
+already sit in `GET api/retirement/required-capital`
+(`app/Services/Retirement/RequiredCapitalCalculator.php:106,113`), and `/m` reads both
+at `resources/mobile/views/modules/Retirement.vue:295-315`. Whoever picks this up has
+the endpoint and the caption wording waiting.

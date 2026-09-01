@@ -111,6 +111,63 @@ final class LpaCheckPolicy
     public const REFERRAL = 'Fynla does not provide legal advice. If anything here is unclear, or your circumstances are complicated, please speak to a qualified solicitor.';
 
     /**
+     * W-0145. The two limbs that refuse completion, and the only two.
+     *
+     * Both are express statutory disqualifications of the certificate provider:
+     * an attorney appointed under this instrument (Mental Capacity Act 2005
+     * Sch 1 para 2(6); SI 2007/1253 reg 8(3)(b)), and an attorney under any other
+     * power of attorney the same donor has made (reg 8(3)(c)).
+     *
+     * The other three party-role conflicts `LpaComplianceService` raises stay
+     * warnings on purpose. Compliance searched for an express prohibition on a
+     * donor naming themselves as their own attorney or certificate provider and
+     * did not find one, so refusing to save that arrangement would have Fynla
+     * asserting a rule that may not exist — the W-0100 overclaim pointing the
+     * other way.
+     *
+     * @var list<string>
+     */
+    public const COMPLETION_BLOCKING_KEYS = [
+        'party_roles_certificate_provider_attorney',
+        'party_roles_certificate_provider_other_instrument',
+    ];
+
+    /**
+     * W-0145. The refusal shown when a user tries to complete or register an
+     * instrument carrying one of the two statutory conflicts, composed from the
+     * failing check's own words rather than a second copy of them.
+     *
+     * Returns null when nothing blocks — including when other checks failed,
+     * because only the two limbs above are entitled to refuse.
+     *
+     * The instrument is NOT made uneditable: it stays saveable as a draft, so the
+     * user can open it and correct the name. A gate that locks a record the user
+     * cannot then fix is a trap, not a guard.
+     *
+     * @param  list<array{key: string, status: string, title: string, description: string}>  $checks
+     */
+    public static function completionRefusal(array $checks): ?string
+    {
+        foreach ($checks as $check) {
+            if ($check['status'] !== 'fail') {
+                continue;
+            }
+            if (! in_array($check['key'], self::COMPLETION_BLOCKING_KEYS, true)) {
+                continue;
+            }
+
+            return implode("\n\n", [
+                $check['title'].'.',
+                $check['description'],
+                'Your Lasting Power of Attorney has been kept as a draft so you can correct it.',
+                self::REFERRAL,
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
      * Which outcome the counts produce. Failures take precedence over points.
      */
     public static function outcomeFor(int $failed, int $warnings): string

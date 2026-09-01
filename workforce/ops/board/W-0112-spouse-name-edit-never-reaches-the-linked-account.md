@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0009-batch-i-onboarding-spouse.md
 owner: build-lead
 claimed_by: fix-batch-I
-status: gated
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T18:45:00Z
@@ -182,3 +182,15 @@ Left for a sweep of the legacy `name` column rather than patched here.
 `name` is not a column and is not fillable, yet `User::$guarded` does not exclude
 it and callers keep passing it. Worth deciding whether `users.name` should be
 rejected loudly rather than absorbed. Noted in the acceptance above; not taken.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `FamilyMembersController:381` now routes the spouse update through `SpouseLinkingService::userAttributesFrom($data)`, which maps `family_members` columns onto `users` columns from **one declared correspondence** (`FAMILY_MEMBER_TO_USER_COLUMNS`) rather than five hand-written assignments.
+
+  **The comment states the cause exactly, and it is the interesting part:** those five lines *"had to guess which column each field lands in. The name line guessed `name`, which `users` does not have, so every rename was discarded in silence."*
+
+  `users.name` is an **appended accessor** (`User::getNameAttribute()`, `:342`) composed from the name parts, with a legacy-column fallback. Writing to it therefore **fails silently** — Eloquent has no column to set and no error to raise. That is why the defect was invisible: the update returned 200, the family-member row changed, and the account did not.
+
+  **A declared map is what makes that class of fault impossible**, rather than a fix to one line: any field whose destination is unknown simply is not in the map, so it cannot be written to a column that does not exist.
+
+  **Tested:** 76 spouse-linking and family-member tests pass, 228 assertions.

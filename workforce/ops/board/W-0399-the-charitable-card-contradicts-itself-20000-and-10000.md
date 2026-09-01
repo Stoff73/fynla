@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0031-cycle4-charitable-figures.md
 owner: build-lead
 reviewers: [quality-lead, tax-compliance-reviewer]
-status: gated
+status: done
 claimed_by: build-lead
 severity: medium
 surfaces: [web, m]
@@ -306,3 +306,15 @@ What the reviewer needs to know, to make that review cheap:
 - **Rule 9 now fixed**, since the functional work put me in the file: all three
   rate messages spell out "Inheritance Tax", asserted by a test that also
   refuses the acronym anywhere in the sentence.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  The card said *"Your will leaves {charitable_deduction} to charity"* — and `charitable_deduction` is the **POOLED household exemption**, not this user's will. So both spouses were told their own will left £20,000 when each leaves £10,000, **directly above a message quoting the survivor's £10,000**. Two correct figures, one false label, and nothing saying they answer different questions.
+
+  **The resolution is the part worth keeping**, because the obvious fix would have been wrong: neither figure is "your will" on a married household. `charitable_deduction` is the household's, and `charitable_rate_test_amount` is the **SURVIVOR's** — which is not the logged-in user half the time. So the copy names **what each figure IS** rather than whose it is. Relabelling one as "your will" would have replaced a wrong number with a wrong owner.
+
+  The service side is settled too: `IHTCalculationService:1248` records that `determineIHTRate()` separates the pooled s23(1) exemption from the survivor-only Schedule 1A rate-test amount — the distinction the tax reviewer ruled on — and that the rate-test figure was then read by nothing, dying in that method, which is why only the pooled exemption ever reached a screen.
+
+  **Tested:** `IHTPlanningCharitableCard.spec.js` — 10 passed.
+
+  Its descendants were closed today: the `£175,000` literal this item's C4 verdict named (**W-0461**, instance 4) and the rate-literal family it belonged to (**W-0432**).

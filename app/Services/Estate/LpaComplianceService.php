@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Constants\EstateDefaults;
 use App\Models\Estate\LastingPowerOfAttorney;
 use Carbon\Carbon;
 
@@ -54,6 +55,8 @@ class LpaComplianceService
 
         $checks = [
             $this->checkDonorAge($lpa),
+            $this->checkAttorneyAges($lpa),
+            $this->checkAttorneyBankruptcy($lpa),
             $this->checkAtLeastOneAttorney($lpa),
             $this->checkDecisionType($lpa),
             $this->checkCertificateProvider($lpa),
@@ -71,6 +74,7 @@ class LpaComplianceService
         }
 
         if ($lpa->isHealthWelfare()) {
+            $checks[] = $this->checkHealthWelfareTiming($lpa);
             $checks[] = $this->checkLifeSustainingTreatment($lpa);
         }
 
@@ -117,6 +121,147 @@ class LpaComplianceService
             'pass',
             'Donor is 18 or older',
             'The donor is '.$age.' years old and meets the minimum age requirement.'
+        );
+    }
+
+    /**
+     * Every attorney must be 18 or older — Mental Capacity Act 2005 s10(1)(a).
+     *
+     * **W-0104.** The donor's age was checked and the attorneys' was not, though
+     * `lpa_attorneys.date_of_birth` is captured for every one of them. **A child
+     * could be appointed attorney**, and the instrument would have been presented
+     * to the user as compliant right up to the point the Office of the Public
+     * Guardian refused to register it.
+     *
+     * The same statute sets both ages, which is why the omission is easy to miss:
+     * the donor check reads as though it covers "the age requirement".
+     *
+     * A missing date of birth FAILS rather than passing quietly. An attorney whose
+     * age cannot be established is exactly the case this check exists for, and
+     * treating unknown as acceptable would reproduce the defect for anyone who
+     * left the field blank.
+     */
+    private function checkAttorneyAges(LastingPowerOfAttorney $lpa): array
+    {
+        $attorneys = $lpa->attorneys;
+
+        if ($attorneys->isEmpty()) {
+            // Nothing to judge. `checkAtLeastOneAttorney()` owns the "none
+            // appointed" failure; reporting it twice would double-count it.
+            return $this->result(
+                'attorney_ages',
+                'pass',
+                'No attorneys to check',
+                'Attorney ages will be checked once an attorney is appointed.'
+            );
+        }
+
+        $undated = $attorneys->filter(fn ($attorney): bool => ! $attorney->date_of_birth);
+
+        if ($undated->isNotEmpty()) {
+            return $this->result(
+                'attorney_ages',
+                'fail',
+                'Attorney date of birth is required',
+                'A date of birth is missing for '.$undated->pluck('full_name')->filter()->implode(', ')
+                    .'. Every attorney must be 18 or older, and that cannot be confirmed without it.'
+            );
+        }
+
+        $underage = $attorneys->filter(
+            fn ($attorney): bool => Carbon::parse($attorney->date_of_birth)->age < 18
+        );
+
+        if ($underage->isNotEmpty()) {
+            return $this->result(
+                'attorney_ages',
+                'fail',
+                'Every attorney must be 18 or older',
+                $underage->pluck('full_name')->filter()->implode(', ')
+                    .' is under 18. An attorney must be at least 18 when the Lasting Power of Attorney is made.'
+            );
+        }
+
+        return $this->result(
+            'attorney_ages',
+            'pass',
+            'Every attorney is 18 or older',
+            'All '.$attorneys->count().' appointed attorneys meet the minimum age requirement.'
+        );
+    }
+
+    /**
+     * A bankrupt attorney cannot act on a property and financial affairs LPA.
+     *
+     * **W-0105.** Mental Capacity Act 2005 s13(8)-(9). The question was never
+     * asked at all: there was no column, no field and no check, so an instrument
+     * naming a bankrupt attorney was presented as compliant and would have been
+     * refused registration by the Office of the Public Guardian.
+     *
+     * **Type-dependent, which is why a blanket bar would have been wrong.** The
+     * disqualification applies to PROPERTY AND FINANCIAL AFFAIRS only — a
+     * bankrupt person may perfectly well act as attorney for health and welfare,
+     * and refusing them there would invent a restriction the statute does not
+     * impose.
+     *
+     * An unanswered question is reported as a WARNING, not a failure. The donor
+     * may simply not have been asked yet, and the application has only just begun
+     * asking; treating silence as a breach would fail every instrument created
+     * before this field existed.
+     */
+    private function checkAttorneyBankruptcy(LastingPowerOfAttorney $lpa): array
+    {
+        if ($lpa->lpa_type !== 'property_financial') {
+            return $this->result(
+                'attorney_bankruptcy',
+                'pass',
+                'Bankruptcy does not disqualify a health and welfare attorney',
+                'The bankruptcy restriction in s13(8) applies to property and financial affairs only.'
+            );
+        }
+
+        $attorneys = $lpa->attorneys;
+
+        if ($attorneys->isEmpty()) {
+            return $this->result(
+                'attorney_bankruptcy',
+                'pass',
+                'No attorneys to check',
+                'Bankruptcy will be checked once an attorney is appointed.'
+            );
+        }
+
+        $bankrupt = $attorneys->filter(fn ($attorney): bool => $attorney->is_bankrupt === true);
+
+        if ($bankrupt->isNotEmpty()) {
+            return $this->result(
+                'attorney_bankruptcy',
+                'fail',
+                'A bankrupt attorney cannot manage property and financial affairs',
+                $bankrupt->pluck('full_name')->filter()->implode(', ')
+                    .' is recorded as bankrupt. Under the Mental Capacity Act 2005 they cannot act as attorney '
+                    .'for property and financial affairs, and this Lasting Power of Attorney cannot be registered '
+                    .'while they are named.'
+            );
+        }
+
+        $unanswered = $attorneys->filter(fn ($attorney): bool => $attorney->is_bankrupt === null);
+
+        if ($unanswered->isNotEmpty()) {
+            return $this->result(
+                'attorney_bankruptcy',
+                'warning',
+                'Bankruptcy has not been confirmed for every attorney',
+                'Confirm whether '.$unanswered->pluck('full_name')->filter()->implode(', ')
+                    .' has been made bankrupt. A bankrupt attorney cannot act for property and financial affairs.'
+            );
+        }
+
+        return $this->result(
+            'attorney_bankruptcy',
+            'pass',
+            'No attorney is bankrupt',
+            'Every appointed attorney is confirmed as not bankrupt.'
         );
     }
 
@@ -230,12 +375,38 @@ class LpaComplianceService
             );
         }
 
+        // W-0106 — THERE ARE TWO ROUTES TO BEING A CERTIFICATE PROVIDER, and the
+        // two-year rule belongs to only one of them.
+        //
+        // The Lasting Powers of Attorney Regulations 2007 admit either someone
+        // who has known the donor personally for at least two years, OR a person
+        // with relevant professional skills — a GP, a solicitor, a social worker
+        // — for whom no prior relationship is required at all. A solicitor met
+        // last month is a perfectly good certificate provider.
+        //
+        // This check applied the two-year rule unconditionally, so the
+        // professional route was FAILED — while
+        // `certificate_provider_professional_details` already existed as a column
+        // to record it. The field for the exception was there; the exception was
+        // not, which is why the defect reads as an oversight rather than a
+        // decision.
+        if (filled($lpa->certificate_provider_professional_details)) {
+            return $this->result(
+                'certificate_provider_years',
+                'pass',
+                'Certificate provider qualifies on professional skills',
+                'A certificate provider acting in a professional capacity does not need to have known you for two '
+                    .'years. Recorded: '.$lpa->certificate_provider_professional_details
+            );
+        }
+
         if ($lpa->certificate_provider_known_years === null) {
             return $this->result(
                 'certificate_provider_years',
                 'warning',
                 'Years known not specified',
-                'Please confirm how long the certificate provider has known you. They must have known you for at least 2 years.'
+                'Please confirm how long the certificate provider has known you. They must have known you for at '
+                    .'least 2 years, unless they are acting in a professional capacity.'
             );
         }
 
@@ -244,7 +415,9 @@ class LpaComplianceService
                 'certificate_provider_years',
                 'fail',
                 'Certificate provider must have known you for at least 2 years',
-                'Your certificate provider has known you for '.$lpa->certificate_provider_known_years.' year(s). The minimum is 2 years.'
+                'Your certificate provider has known you for '.$lpa->certificate_provider_known_years.' year(s). '
+                    .'The minimum is 2 years, unless they are acting in a professional capacity — a GP, solicitor '
+                    .'or similar — in which case record their professional details instead.'
             );
         }
 
@@ -297,11 +470,32 @@ class LpaComplianceService
         $replacementCount = $lpa->attorneys->where('attorney_type', 'replacement')->count();
 
         if ($replacementCount === 0) {
+            // W-0107 — the consequence depends on HOW the attorneys were
+            // appointed, and stating one consequence for all of them was wrong
+            // for the appointment type that carries the most risk.
+            //
+            // This said the instrument "may become invalid if ALL primary
+            // attorneys are unable to serve". Under MCA 2005 s10(4) that is only
+            // true of a JOINTLY AND SEVERALLY appointment, where the survivors
+            // carry on. Where attorneys act JOINTLY, the failure of a SINGLE one
+            // ends the entire appointment — so the warning told the donor with
+            // the most to lose that they were the safest.
+            //
+            // 'jointly_for_some' is treated as joint here because the joint
+            // limb behaves that way: a failure ends the decisions reserved to it.
+            $endsOnOneFailure = in_array($lpa->attorney_decision_type, ['jointly', 'jointly_for_some'], true);
+
             return $this->result(
                 'replacement_attorneys',
                 'warning',
                 'No replacement attorneys (recommended)',
-                'Appointing replacement attorneys is recommended in case your primary attorneys can no longer act. Without replacements, the Lasting Power of Attorney may become invalid if all primary attorneys are unable to serve.'
+                $endsOnOneFailure
+                    ? 'Appointing replacement attorneys is recommended. Your attorneys act jointly, so if any ONE of '
+                        .'them can no longer act, the whole appointment ends and this Lasting Power of Attorney can no '
+                        .'longer be used — even if the others are willing and able.'
+                    : 'Appointing replacement attorneys is recommended in case your primary attorneys can no longer act. '
+                        .'Your attorneys act jointly and severally, so the others can continue if one is unable to '
+                        .'serve, but the Lasting Power of Attorney ends once none of them can act.'
             );
         }
 
@@ -333,7 +527,9 @@ class LpaComplianceService
                 'registration',
                 'warning',
                 'Not yet registered (currently in draft)',
-                'A Lasting Power of Attorney must be registered with the Office of the Public Guardian before it can be used. Registration takes up to 8 weeks and costs £82.'
+                'A Lasting Power of Attorney must be registered with the Office of the Public Guardian before it '
+                    .'can be used. Registration takes up to '.EstateDefaults::LPA_REGISTRATION_WEEKS.' weeks and '
+                    .'costs £'.EstateDefaults::LPA_REGISTRATION_FEE.'.'
             );
         }
 
@@ -341,7 +537,8 @@ class LpaComplianceService
             'registration',
             'warning',
             'Not yet registered with the Office of the Public Guardian',
-            'This Lasting Power of Attorney should be registered before it is needed. Registration takes up to 8 weeks and costs £82.'
+            'This Lasting Power of Attorney should be registered before it is needed. Registration takes up to '
+                .EstateDefaults::LPA_REGISTRATION_WEEKS.' weeks and costs £'.EstateDefaults::LPA_REGISTRATION_FEE.'.'
         );
     }
 
@@ -368,6 +565,37 @@ class LpaComplianceService
             'pass',
             'Attorneys can act: '.$label,
             'The timing of when attorneys can act has been specified.'
+        );
+    }
+
+    /**
+     * A health and welfare attorney may act ONLY once the donor lacks capacity.
+     *
+     * **W-0108.** \`checkWhenAttorneysCanAct()\` runs for property and financial
+     * affairs only, because there the timing is a genuine CHOICE the donor makes.
+     * Health and welfare was therefore silent on timing altogether — and that is
+     * the type where the answer is fixed by statute: **Mental Capacity Act 2005
+     * s11(7)(a)**.
+     *
+     * So the instrument that had a real decision to record asked for one, and the
+     * instrument with a binding restriction said nothing about it. A donor
+     * comparing the two would reasonably infer their health attorneys could act
+     * whenever, which is the opposite of the position.
+     *
+     * **Stated, not asked.** There is no field here and there should not be: this
+     * is not a preference the donor can set, and offering it as one would imply a
+     * latitude the Act does not give. That is why it is a `pass` carrying the
+     * fact rather than a question that can fail.
+     */
+    private function checkHealthWelfareTiming(LastingPowerOfAttorney $lpa): array
+    {
+        return $this->result(
+            'health_welfare_timing',
+            'pass',
+            'Attorneys can act only once you lack capacity',
+            'A health and welfare Lasting Power of Attorney can only be used after you have lost the mental '
+                .'capacity to make a decision yourself. Unlike a property and financial affairs Lasting Power of '
+                .'Attorney, this is fixed by law and is not something you can change.'
         );
     }
 

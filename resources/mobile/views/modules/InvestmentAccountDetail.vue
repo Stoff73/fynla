@@ -69,6 +69,7 @@ import CanonicalPortfolio from '../../components/CanonicalPortfolio.vue';
 import ISAContributionHistory from '../../components/ISAContributionHistory.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
+import { formatAssetType } from '../../../js/constants/assetTypes.js';
 
 function capitalise(s) {
   if (!s) return '';
@@ -140,7 +141,11 @@ export default {
       if (v == null || Number.isNaN(Number(v))) return '—';
       return `${Number(v).toFixed(1)}%`;
     },
-    assetTypeLabel(h) { return capitalise(h.asset_type); },
+    // W-0443 acceptance 4. This was a TWELFTH copy the item did not list, and the worst
+    // of them: `capitalise('uk_equity')` is not a label at all. `/m` shares the one
+    // vocabulary rather than mirroring it — it already imports `ownership.js` and
+    // `holdingUnits.js` from the same place, so a third copy would be a choice.
+    assetTypeLabel(h) { return formatAssetType(h.asset_type); },
     goBack() { this.$router.push('/investment'); },
     async load() {
       this.loading = true;

@@ -4,7 +4,7 @@ title: LifeCoverReach keeps reading a deleted partner's policies, because it fol
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0027-cycle4-life-cover-reach.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T22:10:00Z
@@ -85,3 +85,10 @@ partner."*
   their account"*, David's as *"Joint life with Sarah Jones"*. The three blocked link
   states are covered by tests, not by the browser — **the persona has none of them**, so
   no screen can show them. Moving to `handoff`.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `LifeCoverReach:120` resolves the
+  second life through `User::reciprocalLiveSpouse()`, not `$user->spouse_id`, and the docblock at
+  :67-76 records all three cases it now handles: a deleted partner (the row is retained for
+  regulatory reasons and ignored at read time, per CSJ's D1/D2 decision), a one-sided link, and a
+  live reciprocal one. A deleted partner's policies are no longer shown as cover the user may not
+  have.

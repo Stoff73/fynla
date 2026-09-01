@@ -63,7 +63,7 @@ class FamilyMember extends Model
      *
      * @var list<string>
      */
-    protected $appends = ['age', 'is_linked_account', 'display_relationship'];
+    protected $appends = ['age', 'is_linked_account', 'display_relationship', 'resolved_annual_income'];
 
     /**
      * Keep the legacy `name` column in step with the name parts.
@@ -263,6 +263,33 @@ class FamilyMember extends Model
     public function getIsLinkedAccountAttribute(): bool
     {
         return $this->isLinkedAccount();
+    }
+
+    /**
+     * The income of a linked account is the ACCOUNT's income, not the copy that
+     * was written onto the row when the member was created (W-0176).
+     *
+     * `family_members.annual_income` is a snapshot. For an unlinked member it is
+     * the only figure there is. For a linked spouse it goes stale the moment they
+     * update their own profile, and the card then prints "Annual Income £0"
+     * beside an account earning £120,000 — the `decimal:2` cast makes the stale
+     * zero the string "0.00", which is truthy in the template, so the row renders
+     * rather than hiding.
+     *
+     * Appended rather than overriding `annual_income` itself: that attribute has
+     * a `decimal:2` cast and is writable through `UpdateRecordAllowlist`, and an
+     * accessor of the same name collides with both. Resolved here rather than in
+     * the client so web, /m and iOS cannot disagree.
+     */
+    public function getResolvedAnnualIncomeAttribute(): ?string
+    {
+        $linked = $this->liveLinkedUser();
+
+        if ($linked === null || $linked->annual_employment_income === null) {
+            return $this->annual_income;
+        }
+
+        return number_format((float) $linked->annual_employment_income, 2, '.', '');
     }
 
     /**

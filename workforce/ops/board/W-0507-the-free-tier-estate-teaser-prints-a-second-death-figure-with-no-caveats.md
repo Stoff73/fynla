@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [compliance-lead]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -75,3 +75,44 @@ cited prior art (W-0466, W-0363, W-0467) all exist on `dev` under those ids, so 
 This is the second item to survive the `main` reconciliation; the first was
 `PremiumTestPersonaSeeder` in PR #734. Everything else `main` held was either stale,
 deliberately deleted here, or superseded.
+
+## 2026-09-01 — CLOSED
+
+**Acceptance 1 — both caveats, from the engine's own strings.** The engine already
+published both as finished sentences; the teaser detector passed one and the web teaser
+rendered neither. `EstateIhtExposureDetector::detect()` now returns
+`projected_pension_inclusion_caveat` beside `unmodelled_relief_caveat`, and
+`resources/js/views/Estate/EstateDashboard.vue:52-63` renders both under the figure.
+No sentence is written in a component — a guard below proves it.
+
+**Acceptance 2 — `/m`.** `resources/mobile/views/modules/Estate.vue` already rendered
+the relief caveat and now renders the pension one at `:31`. Both surfaces read the same
+two keys from the same detector.
+
+**Acceptance 3 — the guard, because this is the third instance.**
+`tests/Feature/Estate/EveryIhtFigureCarriesItsCaveatsTest.php` asserts four things: the
+engine publishes both as sentences; the teaser detector passes both through; **every
+surface printing `estimated_liability_gbp` renders both keys**; and neither engine
+sentence is duplicated into a frontend bundle. A manual fix has not held three times, so
+the correspondence is now measured rather than remembered.
+
+**A distinction the guard cost a round to get right, and worth recording.**
+`IHTPlanning.vue:620-630` carries a component-authored sentence — "£X of pension savings
+is left out of the figures above… that changes on {date}". It is about the **current**
+column, not the projected one, the engine publishes no equivalent, and it is true. It is
+therefore not duplicated caveat copy and the guard does not fail it. **It is worth
+publishing from the engine one day so the teaser can say it too** — named here rather
+than fixed, because deleting a true sentence to satisfy a guard would be the wrong
+direction.
+
+`EstateIhtExposureDetectorTest:51` asserts the detector's exact key set — a Rule 12
+tripwire against a score appearing in the free-tier payload. Extended deliberately, with
+the reasoning at the line, rather than loosened.
+
+Tests: 22 passed across the two detector/caveat files; **842 passed, 1 failed → 0** on
+the Estate/IHT/Teaser filter (the one failure was that key-set assertion, now updated);
+frontend **466 passed, 60 files**.
+
+**Not done:** acceptance 4, `compliance-lead` on the copy — no copy was written here.
+Both sentences are the ones compliance already reviewed for W-0466 and W-0482; this
+change moves where they are rendered, not what they say. No browser drive.

@@ -4,7 +4,7 @@ title: The dashboard module cards are a second, wrong answer to a figure printed
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0022-cycle4-dashboard-module-totals-and-cache.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T18:30:00Z
@@ -114,3 +114,11 @@ W-0241 (net worth counts every defined benefit pension as £0) · W-0242
 render a guaranteed income) · W-0244 (`RetirementAgent` reports "not set up" for a
 household with £500,000 of pensions) · W-0245 (the two dashboards still duplicate
 the card-building computed).
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and applied ONCE rather than in each
+  analyzer.** `CalculatesOwnershipShare::atUserShare()` (:118) hands every module analysis
+  read-only presentation copies already at the user's fraction, so the dozens of derived figures
+  downstream — liquidity ladder, rate comparison, deposit-protection exposure — inherit the share
+  without any of them learning about ownership. Consumed by `SavingsAgent:88` and
+  `InvestmentAgent:112`, the two directions of the defect. The docblock at :109-113 flags that the
+  clones must never be persisted.

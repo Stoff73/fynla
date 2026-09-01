@@ -4,7 +4,7 @@ title: The mortgage share cannot be entered — the form offers only "Me only" o
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0022-cycle4-dashboard-module-totals-and-cache.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T18:45:00Z
@@ -84,3 +84,11 @@ instead.
 `npx vitest run resources/js/components/__tests__/NetWorth` — 59 passing.
 The derived figures this feeds are covered by
 `tests/Feature/NetWorth/MortgageShareFollowsThePropertyTest.php` (10 passing).
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and closed by REMOVING the input
+  rather than adding one.** `PropertyForm.vue:1201` derives `mortgageLiabilityShareSummary` from
+  the property ownership already set on the form and shows it **read-only**; the old
+  "Borrower(s) — Me only / Joint borrowers" question is gone (:693 records its removal). Adding a
+  percentage input would have been a second place to state what the property already says, free
+  to disagree with it — which is exactly how the Manchester unit became a 40% property carrying a
+  50% mortgage.

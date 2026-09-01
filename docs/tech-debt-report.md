@@ -1,81 +1,61 @@
-# Tech Debt Report — Session 2026-08-29
+# Tech Debt Report — Session 2026-08-31
 
-**Files analysed:** 31 changed across five work items (W-0482 re-gate, W-0485 + W-0511, W-0509, W-0489, W-0204)
-**Issues found:** 5
-**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
+**Files analysed:** 9 changed (5 source, 4 new tests) — board `.md` files excluded as documentation
+**Issues found:** 3
+**Severity breakdown:** 0 critical, 3 warnings, 0 suggestions
 
-## Clean on the mechanical checks
+Mechanical checks all clean on the changed files: `declare(strict_types=1)` present on all
+four new tests, no debug leftovers (`dd`/`dump`/`console.log`), no banned colour tokens or
+hex in the Vue change, no hardcoded tax values, no Pest global-helper collisions (each of
+`w0227Mortgage`, `w0226Liability`, `w0264Pension`, `w0264Rate` is defined exactly once),
+no unspelled acronyms in the new user-facing copy, Pint clean.
 
-Run against every changed PHP and Vue file, all clear:
+## Critical Issues
 
-- `declare(strict_types=1);` present in all 17 changed PHP files
-- No `console.log`, `dd()`, `dump()` or `var_dump()` left behind
-- No hardcoded tax values in any added line (Rule 2) — every figure comes from
-  `TaxConfigService` or the income-tax config array, and the `?? 2870` literal that DID
-  exist was removed under W-0511
-- No `amber-*`, `orange-*`, `primary-*`, `secondary-*` or `gray-*` in the changed Vue
-  (Rules 8 and 11)
-- No new acronyms in user-facing copy and no scores (Rules 9 and 12) — the new salary
-  sacrifice and pension caveat strings spell everything out
-- No new icons on any surface (Rule 15)
+None.
 
 ## Warnings
 
-### 1. `app/Services/Estate/IHTCalculationService.php` — 2,973 lines
-**Category:** Complexity & maintainability
-**What's wrong:** Comfortably the largest service in the changed set and roughly six times
-the 500-line split threshold. W-0482 added ~174 lines to it this session. Pre-existing, but
-growing, and it is the file every estate item lands in.
-**Suggested fix:** Not an end-of-day job. Worth its own item to extract the projection
-terms — `projectedUnusedPensionFund()` and its siblings are already cohesive enough to move
-to a collaborator without changing behaviour.
+### 1. Two mechanisms answer "what does this user owe" — Rule 20
 
-### 2. `app/Services/TaxConfigService.php:528` — an unconfigured year now silently grants nothing
-**Category:** Convention / silent failure
-**What's wrong:** `getBlindPersonsAllowance()` returned `?? 2870` — a stale year's figure,
-so an unconfigured year granted the WRONG allowance invisibly. W-0511 replaced it with
-`?? 0`, which under-grants visibly rather than over-granting invisibly, and every seeded
-year sets the key. That is the better of the two, but it is still a silent answer to a
-missing configuration.
-**Suggested fix:** Deliberate and documented at the line. Revisit only if a broader
-decision is taken on how `TaxConfigService` should behave when a year lacks a key — several
-getters have the same shape (`$psa[$taxBand] ?? 0`), so it is a family, not a one-off.
+- **Files:** `app/Services/NetWorth/NetWorthService.php:155` (`calculateLiabilitiesBreakdown`)
+  and `app/Services/Shared/CrossModuleAssetAggregator.php:404` (`calculateLiabilityTotals`)
+- **Category:** 6 — inconsistency with existing patterns
+- **What's wrong:** W-0226 fixed the net worth breakdown to use the same reach
+  (`forUserOrJoint`) and the same fraction (`calculateUserShare`) as the aggregator, so the
+  two now AGREE. They are still two implementations of one question. The parity is currently
+  held by a test, not by construction.
+- **Suggested fix:** have `calculateLiabilitiesBreakdown()` categorise the rows
+  `calculateLiabilityTotals()` already reaches, rather than re-querying. Deliberately not
+  done inside a defect fix — it widens the diff past the reported defect.
+  **Parity is pinned meanwhile** by
+  `tests/Feature/NetWorth/NetWorthLiabilitiesUseTheUserShareTest.php`, third test.
+
+### 2. The debt protection panel exists twice
+
+- **Files:** `app/Services/Protection/ProtectionGapPresentationService.php` (canonical
+  `protection_gap_v1`, consumed by `/m`) and the web `/protection` page's own Protection
+  Shortfall component
+- **Category:** 1 — cross-file duplication
+- **What's wrong:** found while browser-verifying W-0227. The web page renders its own Debt
+  Protection panel, which already reconciled (£170,500 / £0 / £170,500), while the canonical
+  payload was the one publishing `£0 / £0 / £182,500`. One question, two renderers — which is
+  why a defect could be live on one surface and absent on the other.
+- **Suggested fix:** point the web panel at the canonical payload, as `/m` already does.
+
+### 3. `InvestmentController`'s two write paths disagree about the auto-Cash row
+
+- **Files:** `app/Http/Controllers/Api/InvestmentController.php:439` (create) and `:587` (update)
+- **Category:** 1 — cross-file duplication with a divergent condition
+- **What's wrong:** create guards the automatic Cash holding with `&& ! $hasCashHolding`;
+  update does not. Posting 70% equities and 20% Cash through update yields TWO Cash rows —
+  the user's at 20% and an automatic one at 10%.
+- **Suggested fix:** one helper for "fill the unallocated remainder with Cash", called by both.
+  Found while closing W-0322; recorded there too.
 
 ## Suggestions
 
-### 3. `app/Traits/ResolvesIncome.php` — `app()` resolution in a constructor-injection codebase
-**Category:** Inconsistency with existing patterns
-**What's wrong:** `getTaxConfig()` resolves `TaxConfigService` from the container rather
-than taking it by injection.
-**Suggested fix:** None available — a trait has no constructor of its own, and this mirrors
-the trait's existing `getIncomeTaxCalculator()` seam, which consumers override. Noted so it
-is not read as an oversight.
-
-### 4. `tests/Unit/Console/Commands/` is not bound in `tests/Pest.php`
-**Category:** Convention drift (test bootstrap)
-**What's wrong:** Every file in that directory declares
-`uses(TestCase::class, RefreshDatabase::class)` for itself, because `Pest.php` binds per
-directory by name and does not bind this one. A new file without the declaration throws "A
-facade root has not been set" with 0 assertions — which is what
-`NoCommandCopiesSavingsIntoCashTest` did on its first run.
-**Suggested fix:** Bind the directory in `Pest.php` once and drop the per-file declarations.
-`tests/CLAUDE.md` currently advises working around this rather than fixing it, so changing
-it means changing that guidance too.
-
-### 5. `docs/archive/appMapping/` still documents `migrate:savings-to-cash`
-**Category:** Dead documentation
-**What's wrong:** Four references to a command deleted under W-0489.
-**Suggested fix:** Leave them. It is archive, and rewriting history there makes the archive
-less useful rather than more. Recorded so a future sweep does not read them as live.
-
-## Reported, not fixed — already tracked
-
-- `EstateOverviewCard.vue:116`, `IHTPlanning.vue:1657`, `WillPlanning.vue:519` branch on
-  `marital_status === 'married'` alone, so a civil partnership reads a single person's
-  framing. In scope on **W-0508**, which names `IHTPlanning.vue:1657` explicitly.
-- The pension residual keeps growth on withdrawn pounds — filed as **W-0517**, blocked on
-  W-0512.
-- Fyn's `capture_salary_sacrifice` does not ask the income basis — filed as **W-0518**.
+None.
 
 ---
 *Generated by tech-debt-session skill*

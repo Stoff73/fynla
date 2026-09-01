@@ -4,7 +4,7 @@ title: A professional certificate provider is failed by the two-year rule, despi
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T17:45:00Z
@@ -174,3 +174,17 @@ distinction the enforcing code never reads.
   - **Whether `certificate_provider_professional_details` being non-empty is adequate
     evidence of route (b).** It is a free-text field. Fynla is recording what the user
     typed and the wording above says exactly that and no more.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **There are TWO routes to being a certificate provider, and the two-year rule belongs to only one of them.** The Lasting Powers of Attorney Regulations 2007 admit either someone who has known the donor **personally for at least two years**, or a person with **relevant professional skills** — a GP, a solicitor, a social worker — for whom no prior relationship is required at all. A solicitor met last month is a perfectly good certificate provider.
+
+  `checkCertificateProviderKnownYears()` applied the two-year rule unconditionally, so **the professional route was failed** — while `certificate_provider_professional_details` **already existed as a column to record it**. That is what makes this an oversight rather than a decision: the field for the exception was there and the exception was not.
+
+  Now: a populated `certificate_provider_professional_details` passes on that basis and quotes the detail back, so the user can see WHICH capacity was accepted. The years question does not arise on that route — null years is a warning on the personal route only.
+
+  **The exception does not swallow the rule.** A provider with no professional details and one year known still fails, and the message now names the alternative — *"unless they are acting in a professional capacity — a GP, solicitor or similar — in which case record their professional details instead"* — so a user failing on the personal route learns the other route exists. A test asserts that failure still occurs.
+
+  **Tested:** `LpaComplianceServiceTest` — 43 passed, 172 assertions, covering the professional pass with details quoted, the professional route with null years, and the personal route still failing at one year. Pint clean.
+
+  **NOT DONE.** No UI field for the professional details, and no `compliance-lead` review.

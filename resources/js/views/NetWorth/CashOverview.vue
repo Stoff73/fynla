@@ -252,7 +252,7 @@
         </div>
 
         <!-- Open Banking Card — shown only when the Premium affordance flag is true. -->
-        <div v-if="openApiAffordance" class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
+        <div v-if="openApiAffordance" class="bg-light-blue-100 rounded-lg border border-light-blue-100 p-6">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2.5">
               <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>

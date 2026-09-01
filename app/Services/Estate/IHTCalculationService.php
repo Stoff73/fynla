@@ -9,6 +9,7 @@ use App\Models\Estate\Bequest;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
+use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\Settings\AssumptionsService;
 use App\Services\Stores\PensionStore;
@@ -103,6 +104,11 @@ class IHTCalculationService
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
         private readonly UndividedShareDiscount $undividedShareDiscount,
         private readonly FailedGiftTaxCalculator $failedGiftTax,
+        // W-0527 — IHTA 1984 s141. The relief reaches BOTH columns because
+        // `assessTaxPosition()` is the one mechanism that produces a liability
+        // (:435 current, :973 projected), so it cannot be applied to one and not
+        // the other — the disagreement W-0465 records.
+        private readonly QuickSuccessionReliefCalculator $quickSuccessionRelief,
         // What the household owns and owes at the modelled date of death. The five
         // projected terms are asked for here and never re-derived; the growth,
         // amortisation and drawdown that decide them all live in one place (Rule 20).
@@ -139,10 +145,29 @@ class IHTCalculationService
             $spouse->loadMissing(['investmentAccounts', 'mortgages', 'liabilities', 'savingsAccounts', 'properties']);
         }
 
-        // 1. Check cache first
-        $cached = $this->getCachedCalculation($user, $spouse, $dataSharingEnabled);
-        if ($cached) {
-            return $cached;
+        // 1. Check cache first — only where a cache can exist.
+        //
+        // **W-0131.** Wave 2.4 made persistence opt-in via `persist: true`, and
+        // then nothing in production ever opted in: `grep` for `persist: true`
+        // across `app/` returns the docblock and nothing else. So the write never
+        // happened, the row never existed, and this read — which runs on EVERY
+        // estate calculation, on every surface — issued a query plus a hash
+        // computation that could not possibly hit.
+        //
+        // `invalidateCache()` had no callers either, so all three arms of the
+        // mechanism were inert: nothing wrote, nothing invalidated, and the read
+        // paid for both.
+        //
+        // Gated on the same flag that governs the write rather than deleted. The
+        // table is an audit trail as well as a cache — `iht_calculations` is what
+        // a snapshot is captured into — so a caller that opts in still gets both
+        // halves, and a read flow now pays for neither. The hash check inside
+        // still guards staleness for those callers.
+        if ($persist) {
+            $cached = $this->getCachedCalculation($user, $spouse, $dataSharingEnabled);
+            if ($cached) {
+                return $cached;
+            }
         }
 
         // 2. Get tax config
@@ -194,6 +219,23 @@ class IHTCalculationService
         $userGrossAssets = $userTaxableAssets->sum('current_value');
         $spouseGrossAssets = $spouseTaxableAssets->sum('current_value');
         $totalGrossAssets = $userGrossAssets + $spouseGrossAssets;
+
+        // W-0392. A DIFFERENT estate from the taxable one above, and the Will Planning
+        // tab needs this one.
+        //
+        // `is_iht_exempt` carries two facts — "passes outside the estate" (a nominated
+        // pension) and "is in the estate but wholly relieved" (a qualifying trading
+        // business). Rejecting on it produces the TAXABLE estate, which is right for
+        // tax and wrong for a will: **Business Property Relief removes an asset from
+        // the tax, not from the estate**, so the business does pass under the will.
+        // A business owner's will screen understated their estate by the whole value
+        // of their trading business.
+        //
+        // This set rejects only what genuinely leaves the estate, so a wholly relieved
+        // business stays in it. `user_net_estate` above is untouched and remains the
+        // taxable figure every tax consumer relies on.
+        $userWillAssets = $userAssets->reject(fn ($asset) => $asset->passes_outside_estate ?? false);
+        $userGrossEstateUnderWill = $userWillAssets->sum('current_value');
 
         // W-0091 / W-0463 — PARTIAL Business Property Relief, which a boolean could
         // not express. A wholly relieved business is already gone via
@@ -468,6 +510,11 @@ class IHTCalculationService
             'total_liabilities' => round($totalLiabilities, 2),
 
             'user_net_estate' => round($userNetEstate, 2),
+
+            // W-0392 — what this user's WILL disposes of, which is not the taxable
+            // estate. Published beside it rather than replacing it: the two answer
+            // different questions and both have consumers.
+            'user_estate_passing_under_will' => round($userGrossEstateUnderWill - $userLiabilities, 2),
             'spouse_net_estate' => round($spouseNetEstate, 2),
             'total_net_estate' => round($totalNetEstate, 2),
 
@@ -574,7 +621,14 @@ class IHTCalculationService
             'charitable_tax_at_standard_rate' => round($current['charitable_tax_at_standard_rate'], 2),
             'charitable_tax_at_reduced_rate' => round($current['charitable_tax_at_reduced_rate'], 2),
             'charitable_rate_saving' => round($current['charitable_rate_saving'], 2),
+            'charitable_residue_effect' => round((float) ($current['charitable_residue_effect'] ?? 0), 2),
+            'charitable_break_even_shortfall' => round((float) ($current['charitable_break_even_shortfall'] ?? 0), 2),
             'iht_liability' => round($ihtLiability, 2),
+            // W-0527 — published beside the bill it reduced. A relief that moves
+            // a figure without appearing next to it is the audit gap W-0171 names:
+            // the reader cannot reconcile the taxable estate and the rate against
+            // a liability that is quietly lower than their product.
+            'quick_succession_relief' => round((float) ($current['quick_succession_relief'] ?? 0.0), 2),
             'effective_rate' => round($effectiveRate, 2),
 
             // Projected values at death (asset-specific)
@@ -584,6 +638,20 @@ class IHTCalculationService
             // W-0482 — the unused defined contribution fund at the modelled death date,
             // published beside the other projected terms so a surface can show the row.
             'projected_unused_pension' => $projectedData['projected_unused_pension'],
+            // W-0171 — the single largest adjustment to this household's estate
+            // was invisible. £500,000 of defined contribution pensions leaves the
+            // estate, correctly, and the page said nothing: no row, no figure, no
+            // mention that the exclusion REVERSES on a date inside the planning
+            // horizon. A user cannot check a working whose largest line is absent.
+            //
+            // Published as its own term rather than left to be inferred from the
+            // gap between what the user owns and what is taxed.
+            'pension_excluded_from_estate' => round(
+                (float) $this->pensionStore->forUserByType($user, 'dc')->sum('current_fund_value')
+                + ($poolsSpouse && $spouse ? (float) $this->pensionStore->forUserByType($spouse, 'dc')->sum('current_fund_value') : 0.0),
+                2
+            ),
+            'pension_exclusion_ends' => (string) ($ihtConfig['pension_iht_inclusion']['effective_date'] ?? ''),
             'projected_unused_pension_basis' => $projectedData['projected_unused_pension_basis'],
             // W-0482 — the W-0363 caveat went with its cause, and these arrived with the
             // fix. `05-perimeter.md` §4: where the picture is incomplete, it is said at
@@ -754,14 +822,11 @@ class IHTCalculationService
         // `getFallbackGrowthRate()` reads it, but only as the fallback for when the
         // simulation FAILS. A user's explicit choice was reachable solely by the
         // simulation erroring — exactly backwards.
-        $projectedInvestments = $this->estateProjection->projectInvestments(
-            $user,
-            $spouse,
-            $yearsUntilDeath,
-            $assumptions,
-            $dataSharingEnabled
-        );
-
+        // W-0199 — the cash flow runs FIRST now, because the investment projection
+        // needs to know which years the household could not fund. Projecting
+        // investments before knowing that was what left a household running out of
+        // cash while its portfolio grew untouched to the horizon.
+        //
         // Project cash: one mechanism, shared with the year-by-year table the user
         // reads beneath the headline (Rule 20 — see HouseholdCashFlowProjector).
         $cashFlow = $this->cashFlowProjector->project(
@@ -781,6 +846,21 @@ class IHTCalculationService
             $inflationRate
         );
         $projectedCash = $cashFlow['final_cash'];
+
+        // W-0199 — investments, net of what had to be sold to cover the years cash
+        // could not fund. The horizon value still comes from the user's configured
+        // growth method (W-0520 — Monte Carlo, or their own rate); the drawdown is
+        // unwound from that same projection's implied rate rather than from a second
+        // investment model with its own assumptions.
+        $investmentProjection = $this->estateProjection->projectInvestmentsAfterCashShortfall(
+            $user,
+            $spouse,
+            $yearsUntilDeath,
+            $assumptions,
+            $dataSharingEnabled,
+            $cashFlow['annual_deficits'] ?? []
+        );
+        $projectedInvestments = $investmentProjection['projected_investments'];
 
         $projectedProperties = $this->estateProjection->projectProperties(
             $user,
@@ -1002,7 +1082,16 @@ class IHTCalculationService
             // negative balance — a Cash ISA at minus £854,179 — which is not a value a
             // deposit account can hold, and which was then subtracted from the estate.
             // A shortfall is a planning output; a negative asset is a broken model.
-            'projected_cash_shortfall' => round((float) $cashFlow['shortfall'], 2),
+            // W-0199. What is left AFTER the household sold investments to cover it.
+            // Before, this was the raw cash shortfall while the portfolio it should
+            // have been paid from grew untouched — the household was modelled as both
+            // unable to fund its spending and still holding the money to fund it, and
+            // the estate was taxed on the second half of that contradiction.
+            'projected_cash_shortfall' => round((float) $investmentProjection['unmet_shortfall'], 2),
+
+            // Published so the row can be shown rather than the reduction appearing as
+            // unexplained shrinkage in the projected portfolio.
+            'projected_investments_drawn_for_shortfall' => $investmentProjection['drawn_from_investments'],
 
             // What the projection had to assume because a figure was absent. Published
             // so an unavailable number is never read as a real zero — a missing State
@@ -1156,6 +1245,12 @@ class IHTCalculationService
         $taxAtStandardRate = $taxableEstate * $standardRate;
         $taxAtReducedRate = $taxableEstateIfQualifying * $reducedRate;
 
+        // W-0527 — IHTA 1984 s141. Never negative and never larger than the tax
+        // borne on the earlier death, both guarded in the calculator. A household
+        // with no inheritance life event, or one that has not stated that tax,
+        // gets 0.0 and is completely unaffected.
+        $quickSuccession = $this->quickSuccessionReliefFor($ctx['pooled_members'] ?? []);
+
         return $this->suppressRateOnNilLiability([
             'rnrb' => $rnrbData,
             'rate' => $rateData,
@@ -1168,6 +1263,31 @@ class IHTCalculationService
             'charitable_tax_at_standard_rate' => $taxAtStandardRate,
             'charitable_tax_at_reduced_rate' => $taxAtReducedRate,
             'charitable_rate_saving' => max(0, $taxAtStandardRate - $taxAtReducedRate),
+            // W-0462 — the OTHER half of the same recommendation, published from
+            // the same home so no surface has to compose it (Rule 20).
+            //
+            // "Save £74,987" is true and incomplete: the estate really does pay
+            // that much less tax, and on the peak_earners household the family
+            // really does receive £37,891 LESS, because the gift that buys the
+            // reduced rate leaves the estate too. Only one of those was on the
+            // page.
+            //
+            //     Δresidue = (r_s − r_r)·E − S·(1 − r_r)
+            //
+            // Negative means the beneficiaries are worse off. The break-even is
+            // S = E·(r_s − r_r)/(1 − r_r) — 6.25% of the chargeable estate at
+            // 40/36, and ONLY at 40/36, which is why it is derived from the
+            // configured rates and never written as a literal (Rule 2).
+            'charitable_residue_effect' => round(
+                (($standardRate - $reducedRate) * $taxableEstate) - ($charitableShortfall * (1 - $reducedRate)),
+                2
+            ),
+            'charitable_break_even_shortfall' => round(
+                $reducedRate >= 1.0
+                    ? 0.0
+                    : ($taxableEstate * ($standardRate - $reducedRate)) / (1 - $reducedRate),
+                2
+            ),
             // W-0399. determineIHTRate() separates the pooled s23(1) exemption
             // from the survivor-only Sch 1A rate-test amount — the distinction
             // tax-compliance-reviewer ruled on — and then the rate-test figure
@@ -1177,7 +1297,12 @@ class IHTCalculationService
             'charitable_rate_test_amount' => (float) ($rateData['charitable_rate_test_amount'] ?? $charitableDeduction),
             'total_allowances' => $totalAllowances,
             'taxable_estate' => $taxableEstate,
-            'iht_liability' => $taxableEstate * $rateData['rate'],
+            // W-0527 — s141 reduces the TAX, not the estate, so it is subtracted
+            // here and not from `$taxableEstate`. Floored at zero: the relief can
+            // never exceed the tax borne on the earlier death, but the bill it is
+            // being set against can be smaller than that.
+            'iht_liability' => max(0.0, ($taxableEstate * $rateData['rate']) - $quickSuccession),
+            'quick_succession_relief' => round($quickSuccession, 2),
         ]);
     }
 
@@ -1508,7 +1633,23 @@ class IHTCalculationService
         // it comes from the survivor rather than from whoever happens to be logged in.
         $charitablePercent = $profiles->get($survivor->id)?->charitable_giving_percent ?? 0;
 
-        // Calculate baseline: Net Estate - NRB (RNRB is excluded from baseline calculation)
+        // The Schedule 1A baseline amount: net estate LESS THE NIL RATE BAND ONLY.
+        //
+        // **W-0369 — the residence band is excluded, and that is correct.**
+        // Sch 1A para 3 deducts "the available nil-rate band", and IHTM45031's
+        // worked examples deduct the NRB alone: the residence nil-rate band is
+        // an allowance against the taxable estate, not a component of the
+        // baseline the 10% test is measured against.
+        //
+        // Cited rather than asserted, because the line previously read "(RNRB is
+        // excluded from baseline calculation)" with no authority — a bare claim
+        // about a statutory denominator that a reader could neither check nor
+        // safely change. Deducting the residence band here would SHRINK the
+        // baseline and so shrink the 10% threshold, qualifying households for
+        // the reduced rate that do not meet it.
+        //
+        // `$nrbAvailable` is the pooled band including any transferred from a
+        // predeceased spouse, which is what "available" means in para 3.
         $baseline = max(0, $netEstate - $nrbAvailable);
 
         // Threshold for reduced rate: 10% of baseline
@@ -2054,11 +2195,22 @@ class IHTCalculationService
             : 'Nil Rate Band';
 
         if ($giftsUsed > 0) {
+            // W-0371 — the last two literals in this file's prose. Both windows
+            // are configured and both were spelled out here, beside figures the
+            // configuration produced: change the setting and the application
+            // computes one window while the sentence states another.
+            //
+            // The fourteen is DERIVED, not stored — `getFourteenYearRule()`
+            // returns it as the sum of the two seven-year windows (W-0526),
+            // because there is no fourteen-year window in the legislation.
+            $petWindow = (int) ($this->taxConfig->getPETRules()['years_to_exemption'] ?? 7);
+            $maximumWindow = (int) $this->taxConfig->getFourteenYearRule()['maximum_window'];
+
             $working = $composition ?? '£'.number_format($nrbGross);
             $message = $heading.' of £'.number_format($nrbAvailable).' applied: '.$working
-                .', less £'.number_format($giftsUsed).' of allowance used by gifts made within the last 7 years'
+                .', less £'.number_format($giftsUsed).' of allowance used by gifts made within the last '.$petWindow.' years'
                 .($deduction['clts_7_to_14_years'] > 0
-                    ? ' (including the 14-year rule for historical Chargeable Lifetime Transfers)'
+                    ? ' (including the '.$maximumWindow.'-year rule for historical Chargeable Lifetime Transfers)'
                     : '')
                 .'.';
         } else {
@@ -2100,6 +2252,70 @@ class IHTCalculationService
      * @param  float  $nrbSingle  The individual NRB amount
      * @return array NRB deduction breakdown, summed across members
      */
+    /**
+     * Quick succession relief for the household — IHTA 1984 s141.
+     *
+     * **W-0527.** Sums the relief over every `inheritance` life event whose donor
+     * death falls inside the configured window and whose Inheritance Tax borne on
+     * that earlier death the user has actually stated. Everything the formula
+     * needs but that figure was already recorded: the amount received and the
+     * date it happened.
+     *
+     * **`iht_paid_on_prior_death` is NULL for almost every inheritance, and that
+     * is not zero.** Most estates bear no tax, and a user who has not answered has
+     * not said there was none. A NULL contributes nothing and the household is
+     * unaffected — which is why criterion 3 holds by construction rather than by
+     * a guard somewhere downstream.
+     *
+     * The years are measured to today, matching the modelled date of death that
+     * the rest of the current column is struck at.
+     *
+     * @param  list<User>  $members  The people whose records this calculation covers
+     */
+    private function quickSuccessionReliefFor(array $members): float
+    {
+        if ($members === []) {
+            return 0.0;
+        }
+
+        $relief = 0.0;
+
+        // Per member, because `forUserOrJoint()` scopes one user at a time and a
+        // jointly-recorded inheritance would otherwise be counted once for each
+        // of them. `unique('id')` collapses the overlap.
+        $events = collect($members)
+            ->flatMap(fn (User $member) => LifeEvent::forUserOrJoint($member->id)
+                ->where('event_type', 'inheritance')
+                ->whereNotNull('iht_paid_on_prior_death')
+                ->get()
+                ->all())
+            ->unique('id');
+
+        foreach ($events as $event) {
+            $receivedOn = $event->occurred_at ?? $event->expected_date;
+
+            if ($receivedOn === null) {
+                continue;
+            }
+
+            $taxPaid = (float) $event->iht_paid_on_prior_death;
+            $netReceived = (float) $event->amount;
+
+            $relief += $this->quickSuccessionRelief->reliefFor(
+                taxPaidOnFirstDeath: $taxPaid,
+                netValueReceived: $netReceived,
+                // The gross transfer is the net the beneficiary received plus the
+                // tax borne on it. Derived rather than asked for: a user who knows
+                // both of the other two knows this by arithmetic, and a third
+                // field they could contradict is a worse question than none.
+                grossTransfer: $netReceived + $taxPaid,
+                yearsBetweenDeaths: Carbon::parse($receivedOn)->floatDiffInYears(today()),
+            );
+        }
+
+        return $relief;
+    }
+
     private function calculateNRBDeductionForGifts(array $members, float $nrbSingle, ?Carbon $deathDate = null): array
     {
         $totals = [
@@ -2317,8 +2533,27 @@ class IHTCalculationService
 
         $effectiveDate = Carbon::parse($pensionInclusion['effective_date']);
 
-        // Get total DC pension values
+        // W-0513 — WHAT THIS FIGURE ACTUALLY COVERS, and what it does not.
+        //
+        // The configuration declares `applies_to => ['defined_contribution',
+        // 'death_benefits']`, and IHTA 1984 s150A brings lump sum death benefits
+        // into the estate alongside unused pots. **This sum covers only the
+        // first.** There is no death-benefit column on `dc_pensions` or
+        // `db_pensions` — `lump_sum_entitlement` is the retirement commutation
+        // lump sum, a different thing — so the application has never captured
+        // what a scheme would pay out on death.
+        //
+        // The figure is therefore an UNDERSTATEMENT for any household whose
+        // scheme carries a death-in-service benefit, and it used to be published
+        // as though it were the whole answer. Estimating one would be a made-up
+        // tax figure on a user's estate, so the coverage is declared instead:
+        // `pension_value_covers` and `pension_value_excludes` below say exactly
+        // which of the two configured categories were measured.
         $store = $this->pensionStore;
+        $configuredCategories = (array) ($pensionInclusion['applies_to'] ?? ['defined_contribution']);
+        $coveredCategories = array_values(array_intersect($configuredCategories, ['defined_contribution']));
+        $excludedCategories = array_values(array_diff($configuredCategories, $coveredCategories));
+
         $userPensionValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
         $spousePensionValue = 0;
         if ($this->poolsSpouse($user, $spouse, $dataSharingEnabled)) {
@@ -2379,11 +2614,34 @@ class IHTCalculationService
                 'net_estate' => round($currentNetEstate, 2),
                 'iht_liability' => round($currentIHTLiability, 2),
                 'pensions_included' => false,
-                'description' => 'Under current rules, defined contribution pensions pass outside the estate and are not subject to Inheritance Tax.',
+                // W-0515. This said pensions "pass outside the estate" flat, with
+                // no end date, so a user reading it once took it as permanent — while
+                // the block immediately below tells them it stops. The change is
+                // ENACTED, not proposed, and its commencement date is configured, so
+                // the sentence names it rather than implying an indefinite rule.
+                'description' => 'Until '.$effectiveDate->format('j F Y').', unused defined contribution pension pots pass outside the estate and are not subject to Inheritance Tax.',
             ],
             'post_2027_rules' => [
                 'net_estate' => round($postAmendmentNetEstate, 2),
+                // W-0515 — LABELLED, because this is today's pot and the projection
+                // publishes a different figure (`projected_unused_pension`, W-0482):
+                // the unused fund at the modelled death date, after drawdown. Both
+                // are right about different questions, and a household carrying two
+                // pension-in-estate numbers with neither named is the defect.
+                //
+                // Today's pot is the deliberate basis HERE because this block answers
+                // "what would the amendment cost me on what I hold now" — a
+                // comparison a user can check against their own statement. The
+                // projection answers "what will be left at death", which depends on
+                // assumptions this scenario is not making.
                 'pension_value_included' => round($totalPensionValue, 2),
+                'pension_value_basis' => 'current_fund_value',
+                // W-0513 — the categories this figure measured, and the ones the
+                // configuration names but no column can answer.
+                'pension_value_covers' => $coveredCategories,
+                'pension_value_excludes' => $excludedCategories,
+                'pension_value_basis_label' => 'the value of your pots today, not the amount left after drawdown',
+                'projected_unused_pension' => round((float) ($baseCalc['projected_unused_pension'] ?? 0), 2),
                 'user_pension_value' => round($userPensionValue, 2),
                 'spouse_pension_value' => round($spousePensionValue, 2),
                 'iht_liability' => round($postAmendmentIHTLiability, 2),
@@ -2396,8 +2654,12 @@ class IHTCalculationService
                 'description' => 'From '.$effectiveDate->format('F Y').', unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
             ],
             'impact_summary' => $additionalIHT > 0
-                ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
+                ? 'The '.$effectiveDate->format('Y').' pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).', their value today) are included in your estate.'
                 : 'The '.$effectiveDate->format('Y').' pension amendment would not increase your Inheritance Tax liability based on current pension values.',
+            // W-0513 — stated to the user rather than left as a silent shortfall.
+            'coverage_caveat' => $excludedCategories === []
+                ? null
+                : 'This figure covers your defined contribution pots only. Lump sum death benefits your schemes might pay are also within the amendment, and Fynla does not hold them, so your actual exposure could be higher.',
         ];
     }
 

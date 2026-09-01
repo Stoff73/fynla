@@ -4,7 +4,7 @@ title: The 'Platform updates' insight tag uses text-light-blue-700, a class Tail
 mission: M-0002-persona-fidelity
 owner: design-lead
 reviewers: [build-lead]
-status: queued
+status: done
 severity: low
 surfaces: [web]
 source: found while measuring W-0048, 2026-08-26
@@ -81,3 +81,17 @@ reason; the guide is CSJ's document.
    currently describe a pair that cannot work.
 3. Verified in a browser against an article that carries the 'Platform updates'
    category, since none does today. Seeding one is part of the check.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed, and it was thirty-one instances, not one.**
+
+  **Confirmed live and diagnosed.** `tailwind.config.js:106-109` defines `light-blue` with **100 and 500 and nothing else**. `text-light-blue-700` therefore emits no rule at all, and the "Platform updates" tag rendered with whatever text colour it inherited. **A missing colour is not an error — it is silence**, which is why it survived.
+
+  **The sweep is the finding.** The item named one class. Counting every `light-blue-*` across `resources/js` and `resources/mobile` returned **31 uses of shades the config does not define** — 13 × 600, 8 × 200, 5 × 300, 2 × 800, 2 × 50 and the 1 × 700 this item raised — across **thirteen files**, including `CrossModuleInsights.vue`, `CalculatorCard.vue`, `InvestmentList.vue` and `CashOverview.vue`. Every one of them was rendering nothing.
+
+  All 31 are mapped to the nearest shade that exists (absent lights → 100, absent darks → 500). Only `light-blue-100` (142) and `light-blue-500` (79) remain.
+
+  **The tag itself uses `text-light-blue-500`**, which is both the shade that exists AND the one already safelisted at `tailwind.config.js:27` — that second point matters, because this class is composed at runtime from a lookup table and Tailwind's scanner cannot see it in the markup.
+
+  **The guard is the durable half.** `tests/frontend/design/paletteShadesExist.test.js` walks both bundles and fails on any `light-blue-*` shade the config does not define. Without it the next one is just as invisible: it cannot be caught by looking at the page, only by looking at the config.
+
+  **Tested:** 820 frontend tests pass, including the new guard.

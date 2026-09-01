@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -126,3 +126,35 @@ And a fifth worth more thought than a regex: the guard **skips any line containi
 across 17 files pass. It blocks the narrow copy and blesses the correct-today copy. If
 the canonical list ever gains a member the guard stays green while 22 sites diverge.
 Asserting on `HouseholdPooling` usage would be the stronger shape.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev` on the Estate API — and the shape is
+  now the half-fixed one the board keeps being caught by.**
+  Still reading `in_array($user->marital_status, ['married'])` alone:
+  `WillController:80`, `GiftingController:81` and `:272`, `TrustController:187`.
+  **`TrustController` is the sharp case: two lines apart, one fixed and one not.** `:207` resolves
+  the spouse through `HouseholdPooling::hasSpousalStatus($user)` — W-0480 F2, with the reasoning
+  in the comment at :203 — while `:187`, twenty lines above it in the same method, still uses
+  `['married']` to decide the default `nrb_transferred_from_spouse`. So a civil partner gets the
+  corrected calculation and a default profile built as a single person, in one request.
+  A reader checking "does this file use the canonical rule?" answers **yes**.
+  The canonical rule is `HouseholdPooling::hasSpousalStatus()`; IHTA 1984 s18, s8A and s8G each
+  read "spouse or civil partner" (SI 2005/3229 reg 7).
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **Five code sites remained** — the other three `['married']` hits in `app/` are comments describing this very defect. All five now call `HouseholdPooling::hasSpousalStatus()`, which tests `POOLING_MARITAL_STATUSES`:
+
+  - `WillController:80` — a civil partner was shown a single-person will position
+  - `GiftingController:81` and `:272` — both occurrences; gifting exemptions and the transferable band pool for a civil partnership exactly as for a marriage
+  - `TrustController:187`
+  - `ProtectionDataReadinessService:421`
+
+  **`TrustController` was the sharp one and is worth recording.** `:207` already resolved the spouse through `hasSpousalStatus()` (W-0480 F2, with the reasoning in the comment at `:203`), while `:187` — twenty lines above, in the same method — still read `['married']`. **A civil partnership therefore received the corrected calculation and a single-person default `nrb_transferred_from_spouse` in one request.** A reader asking "does this file use the canonical rule?" answered yes and stopped, which is exactly how the survivor hid.
+
+  **Acceptance 2 — the baseline entries are deleted, not suppressed.** `tests/Architecture/MaritalStatusLiteralsArchitectureTest.php` fails on a STALE entry as well as a new one, so removing the four lines is what makes this enforced rather than remembered. The guard passes with them gone, which proves the sites are genuinely fixed rather than re-listed.
+
+  **Acceptance 3 — direction of movement.** A civil partner now takes the same branch a married user always did: spousal exemption available, transferable band modelled, will position pooled. The figures move only for `civil_partnership`; `married`, `single`, `widowed` and `divorced` reach identical code, which is why 653 tests are unmoved.
+
+  **Tested:** 653 passed, 1,936 assertions across the trust, gifting, will, protection-readiness and spouse suites, plus the architecture guard. Pint clean.
+
+  **NOT DONE.** (4) No `tax-compliance-reviewer` pass, and the Estate API endpoints do move tax. (5) Not verified in a browser on web or `/m` — the backend is shared, so `/m` inherits the fix, but I have not seen it.

@@ -106,16 +106,6 @@ class SpousePermissionController extends Controller
         // withholds the invitee's account details in the unlinked case, which is what
         // W-0349 closed — that distinction is made below, not by this branch test.
         if ($outgoing) {
-            // Deliberately the CALLER'S OWN family-member card, never the
-            // invitee's account. Returning the account holder's real name here
-            // would answer "who owns this address?" for any address the caller
-            // typed — the enumeration this flow exists to close (W-0349). Until
-            // they accept, the caller sees back only what they themselves
-            // entered.
-            $ownCard = FamilyMember::where('user_id', $user->id)
-                ->where('relationship', 'spouse')
-                ->first();
-
             // Once the accounts ARE linked the counterparty is already known to this
             // user — they linked to them — so withholding the name here would tell
             // them less than the screen they can already see. The withholding applies
@@ -123,22 +113,27 @@ class SpousePermissionController extends Controller
             // not hold an account, where the name would answer "who owns this?".
             $linkedSpouse = $user->spouse_id ? User::find($user->spouse_id) : null;
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'has_spouse' => true,
-                    'spouse' => $linkedSpouse
-                        ? $this->counterparty($linkedSpouse)
-                        : [
-                            'id' => null,
-                            'name' => $ownCard?->name,
-                            'email' => null,
-                        ],
-                    'permission' => $outgoing,
-                    'can_view_spouse_data' => false,
-                    'awaiting_their_response' => true,
-                ],
-            ]);
+            if ($linkedSpouse) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'has_spouse' => true,
+                        'spouse' => $this->counterparty($linkedSpouse),
+                        'permission' => $outgoing,
+                        'can_view_spouse_data' => false,
+                        'awaiting_their_response' => true,
+                    ],
+                ]);
+            }
+
+            // W-0476 — an unanswered invitation from an UNLINKED caller returns the
+            // one shape below whether or not the invitee holds an account. It used to
+            // return this branch's payload when they did and the family-member branch
+            // at the foot of this method when they did not: five keys against six, and
+            // `permission` carrying the invitee's user id, which exists only because
+            // the address is registered. Pressing Withdraw then finished the job — see
+            // `revoke()`.
+            return $this->unansweredInvitationStatus($user);
         }
 
         // A spouse in family_members with no account link (may never have had one).
@@ -200,44 +195,10 @@ class SpousePermissionController extends Controller
             ]);
         }
 
-        // W-0349. This sentence used to read "Add their email in the Family
-        // Members section", which after CSJ's 2026-08-23 decision told a user
-        // who had just done exactly that to go and do it. Supplying the email
-        // no longer creates and links an account — it sends an invitation.
-        //
-        // **One sentence, and no conditional.** A first version added "If you have
-        // given us their email address, we have already invited them", which
-        // `compliance-lead` showed cannot be true where it prints: a LIVE
-        // invitation is caught by the outgoing-pending branch above (`:88-115`),
-        // so the only way to reach here having supplied an address is that the
-        // invitation was **declined, rejected or withdrawn**. In that one case the
-        // sentence would conceal a refusal behind a reassurance, on a consent
-        // surface — worse than saying less.
-        //
-        // The honest three-state version — never asked / invited and waiting /
-        // invited and declined — is not writable, because `family_members` has no
-        // email column and the invitation is not retained (W-0472). That is the
-        // second consequence of the retention gap, and it belongs on that item
-        // rather than being worked around in copy.
-        //
-        // Note also `sendInvitationNotification()` swallows a send failure and
-        // returns false, so any future copy asserting "we have invited them" must
-        // read that boolean rather than assume it.
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'has_spouse' => true,
-                'spouse' => [
-                    'id' => null,
-                    'name' => $spouseFamilyMember->name,
-                    'email' => null,
-                ],
-                'permission' => null,
-                'can_view_spouse_data' => false,
-                'requires_account_link' => true,
-                'message' => 'Nothing can be shared until your partner has their own Fynla account and accepts the link.',
-            ],
-        ]);
+        // A spouse recorded in `family_members` with no account link and no pending
+        // row. Same shape as an unanswered invitation to a registered address — see
+        // `unansweredInvitationStatus()` for why they must be indistinguishable.
+        return $this->unansweredInvitationStatus($user);
     }
 
     /**
@@ -452,11 +413,23 @@ class SpousePermissionController extends Controller
         // pick different rows for the same couple and leave a withdrawal undone.
         $permission = $query->orderBy('id')->first();
 
+        // W-0476 — a missing row is not an error, and saying so was an account
+        // enumeration oracle. `SpouseLinkingService` can only create a permission row
+        // when the invited address holds an account, so "no row" meant "that address
+        // is not registered" — and the caller learned it by pressing Withdraw. The
+        // 404 distinguished the two addresses even after `status()` was made to
+        // return the same shape for both, which is the mistake this item records:
+        // the disclosure re-formed one button further on.
+        //
+        // Revocation is idempotent by nature: the caller asked for sharing to be off
+        // and sharing is off. Reporting success asserts the end state, not the
+        // existence of a row, and W-0472's decision not to retain an invited address
+        // means there will never be a row to find for an unregistered invitee.
         if (! $permission) {
             return response()->json([
-                'success' => false,
-                'message' => 'No permission found to revoke',
-            ], 404);
+                'success' => true,
+                'message' => 'Permission revoked successfully',
+            ]);
         }
 
         // Marked, not deleted. A deleted row left no record that anyone had
@@ -473,6 +446,52 @@ class SpousePermissionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Permission revoked successfully',
+        ]);
+    }
+
+    /**
+     * The one shape for "this user has a partner recorded who has not accepted".
+     *
+     * **Both invitation states return this, and that is the whole point (W-0476).**
+     * Only a REGISTERED invitee has a user id to key a `SpousePermission` row on, so
+     * every branch that varied with the row's existence answered "is that address
+     * registered?" for any address the caller typed. W-0349 closed that on the POST
+     * and it re-formed here, on the status endpoint the screen polls straight after.
+     *
+     * Three things are withheld, each because it exists only in the registered case:
+     * the permission row (its `spouse_id` IS the invitee's account id), the invitee's
+     * account details, and the key set itself — a payload with five keys for one
+     * branch and six for the other is an oracle whatever the values are.
+     *
+     * The name returned is the CALLER'S OWN family-member card. Until the invitee
+     * accepts, the caller sees back only what they themselves entered.
+     *
+     * The sentence has to be true in both states, so it names acceptance rather than
+     * account creation: an invitee who already holds an account is not waiting to make
+     * one. `requires_account_link` keeps its name and its value — `/m` reads it to
+     * draw "Not shared yet" — and both states genuinely are "not linked yet".
+     */
+    private function unansweredInvitationStatus(User $user): JsonResponse
+    {
+        $ownCard = FamilyMember::where('user_id', $user->id)
+            ->where('relationship', 'spouse')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'has_spouse' => true,
+                'spouse' => [
+                    'id' => null,
+                    'name' => $ownCard?->name,
+                    'email' => null,
+                ],
+                'permission' => null,
+                'can_view_spouse_data' => false,
+                'awaiting_their_response' => true,
+                'requires_account_link' => true,
+                'message' => 'Nothing can be shared until your partner accepts the link from their own Fynla account.',
+            ],
         ]);
     }
 }

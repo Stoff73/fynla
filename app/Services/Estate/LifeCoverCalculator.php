@@ -426,14 +426,10 @@ class LifeCoverCalculator
      */
     private function getInvestmentReturnRate(User $user): float
     {
-        $assumptions = $this->assumptionsService->getEstateAssumptions($user);
-
-        if (($assumptions['investment_growth_method'] ?? 'monte_carlo') === 'custom'
-            && isset($assumptions['custom_investment_rate'])) {
-            return (float) $assumptions['custom_investment_rate'] / 100;
-        }
-
-        return 0.047;
+        // W-0334. This was a byte-identical copy of the rule in the other consumer,
+        // hardcoded fallback included. They agreed only by transcription, which is the
+        // arrangement that let the setting be honoured here and ignored there.
+        return $this->assumptionsService->investmentGrowthRateFor($user);
     }
 
     /**

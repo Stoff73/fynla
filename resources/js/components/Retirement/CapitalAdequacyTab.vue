@@ -268,6 +268,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapState, mapActions, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -310,7 +311,7 @@ export default {
     },
 
     retirementAge() {
-      return this.profile?.target_retirement_age || 68;
+      return this.profile?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
     },
 
     yearsToRetirement() {

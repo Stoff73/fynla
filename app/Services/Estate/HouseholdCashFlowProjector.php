@@ -8,7 +8,9 @@ use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Retirement\PensionProjector;
+use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -88,6 +90,10 @@ class HouseholdCashFlowProjector
         // that REDUCES the fund it is paid from. `PensionProjector` still decides how much
         // the pension is meant to pay; this decides how long it can pay it.
         private readonly RetirementProjectionService $retirementProjection,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        private readonly RetirementAgeResolver $retirementAge,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -102,6 +108,7 @@ class HouseholdCashFlowProjector
      *     starting_cash: float,
      *     final_cash: float,
      *     shortfall: float,
+     *     annual_deficits: array<int, float>,
      *     years: list<array<string, mixed>>,
      *     assumptions: list<string>,
      *     pre_retirement_income: float,
@@ -143,6 +150,12 @@ class HouseholdCashFlowProjector
         $viewer = $profiles[0];
         $balance = $startingCash;
         $shortfall = 0.0;
+        // W-0199. The per-year amounts, not just their sum. The loop below already
+        // knows each one and threw it into a running total, which is why the estate
+        // projection could only ever subtract a lump at the horizon — and so did not
+        // subtract it at all. Investments have to be sold in the YEAR the cash runs
+        // short, because the money that is sold stops compounding from that year on.
+        $annualDeficits = [];
         $years = [];
 
         for ($year = 0; $year < $yearsToProject; $year++) {
@@ -188,6 +201,7 @@ class HouseholdCashFlowProjector
 
             if ($balance < 0) {
                 $shortfall += -$balance;
+                $annualDeficits[$year] = round(-$balance, 2);
                 $balance = 0.0;
             }
 
@@ -227,6 +241,9 @@ class HouseholdCashFlowProjector
             'starting_cash' => round($startingCash, 2),
             'final_cash' => round($balance, 2),
             'shortfall' => round($shortfall, 2),
+            // W-0199 — keyed by year offset from today, so a consumer can draw on
+            // investments in the year the shortfall actually falls.
+            'annual_deficits' => $annualDeficits,
             'years' => $years,
             'assumptions' => $assumptions,
             'pre_retirement_income' => round($householdPreRetirementIncome, 2),
@@ -253,23 +270,10 @@ class HouseholdCashFlowProjector
      */
     public function retirementAgeFor(User $user): int
     {
-        if ($user->retirementProfile?->target_retirement_age) {
-            return (int) $user->retirementProfile->target_retirement_age;
-        }
-
-        if ($user->target_retirement_age) {
-            return (int) $user->target_retirement_age;
-        }
-
-        $pensionRetirementAge = $user->dcPensions()
-            ->whereNotNull('retirement_age')
-            ->value('retirement_age');
-
-        if ($pensionRetirementAge) {
-            return (int) $pensionRetirementAge;
-        }
-
-        return PensionProjector::DEFAULT_RETIREMENT_AGE;
+        // W-0196. This copy had the order right — retirement profile before the user
+        // record — and it is the order the one home now uses for everyone. Delegated
+        // rather than kept, so there is no second implementation left to drift.
+        return $this->retirementAge->forUser($user);
     }
 
     /**
@@ -605,7 +609,11 @@ class HouseholdCashFlowProjector
             return (int) $recorded;
         }
 
-        return (int) $this->taxConfig->get('pension.state_pension.current_spa', PensionProjector::DEFAULT_RETIREMENT_AGE);
+        // W-0197. Was `current_spa`, one scalar for every member of the household.
+        // The projection runs to a second death decades out, so two people of
+        // different ages need different State Pension ages — which is what the
+        // resolver reads from the statutory schedule.
+        return $this->statePensionAge->forDateOfBirth($member->date_of_birth);
     }
 
     /**

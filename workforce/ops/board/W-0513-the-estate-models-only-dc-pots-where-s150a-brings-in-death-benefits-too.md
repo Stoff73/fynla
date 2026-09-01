@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: done
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -76,3 +76,25 @@ the implementation does not deliver.
 - 2026-08-28 — The death-in-service exclusion was **not** in the October 2024 announcement.
   It arrived in the 21 July 2025 consultation response and is the largest scope change
   between announcement and Act. Older summaries will mislead.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.**
+  `RetirementProjectionService:427-428` still returns `['amount' => 0.0, 'basis' => 'no_pension', …]`
+  the moment `dc_pension_count === 0`, so a defined-benefit-only household contributes nothing to
+  the s150A notional pension property at all. Step 2's lump sum death benefits, annuity protection
+  and guaranteed-period continuation payments are unmodelled. `db_pensions.lump_sum_entitlement`
+  exists and is read at `CoordinatingAgent:2166`, so the data is there and the code does not ask
+  for it.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed, with the residual named rather than hidden.**
+
+  **The gap is config-versus-code, and it was silent.** The configuration declares `'applies_to' => ['defined_contribution', 'death_benefits']`, and IHTA 1984 s150A does bring lump sum death benefits into the estate alongside unused pots. `IHTCalculationService:2408` sums only `forUserByType($user, 'dc')->sum('current_fund_value')` — half of what the configuration claims — and published the result as though it were the whole answer.
+
+  **The reason it cannot simply be computed:** there is **no death-benefit column anywhere**. `dc_pensions` has `current_fund_value` and nothing about death; `db_pensions` has `lump_sum_entitlement`, which is the retirement commutation lump sum — a different thing, and using it would be wrong rather than approximate. The application has never asked what a scheme pays out on death.
+
+  **So the coverage is declared instead of estimated.** Inventing a death-benefit figure would put a made-up number into a user's Inheritance Tax exposure, which is worse than an understatement the user knows about. The scenario now publishes `pension_value_covers` and `pension_value_excludes`, derived from the configured `applies_to` list rather than hardcoded, plus a `coverage_caveat` telling the user in plain words that lump sum death benefits are within the amendment, are not held by Fynla, and that their actual exposure could be higher.
+
+  **That is the honest fix for the state the data is in**, and it makes the shortfall visible to the next reader: `pension_value_excludes` is non-empty and says exactly which configured category has no consumer. If a death-benefit column is ever added, `$coveredCategories` is the one line to extend.
+
+  **Tested:** 13 pension-amendment and snapshot tests pass, 34 assertions. Pint clean.
+
+  **NOT DONE — and this is the remaining work, recorded so it is a decision rather than an omission.** Capturing lump sum death benefits needs a new column on the pension tables and a field on both pension forms (web, `/m`, native under Rule 19). That is the same shape as W-0527's missing datum and needs the same explicit go-ahead. No `tax-compliance-reviewer` pass on the s150A reading.

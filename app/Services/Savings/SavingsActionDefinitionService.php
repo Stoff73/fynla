@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Savings;
 
 use App\Constants\TaxDefaults;
-use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\Mortgage;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
@@ -36,7 +36,9 @@ class SavingsActionDefinitionService
         private readonly TaxConfigService $taxConfig,
         private readonly PSACalculator $psaCalculator,
         private readonly FSCSAssessor $fscsAssessor,
-        private readonly EmergencyFundCalculator $emergencyFundCalculator
+        private readonly EmergencyFundCalculator $emergencyFundCalculator,
+        // W-0275 — the one home for reaching a household's family (Rule 20).
+        private readonly DependantsReach $dependantsReach
     ) {}
 
     /**
@@ -2825,11 +2827,13 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
-        $children = FamilyMember::where('user_id', $userId)
-            ->where('relationship', 'child')
+        // W-0275. Junior ISA and child-savings actions never reached the parent who
+        // did not do the data entry, so one parent was offered them and the other was
+        // not, for the same children.
+        $children = $this->dependantsReach
+            ->householdFamilyOf(User::findOrFail($userId), ['child'])
             ->where('is_dependent', true)
-            ->whereNotNull('date_of_birth')
-            ->get();
+            ->filter(fn ($child) => $child->date_of_birth !== null);
 
         if ($children->isEmpty()) {
             return [];
@@ -3578,11 +3582,11 @@ class SavingsActionDefinitionService
     {
         $now = Carbon::now();
 
-        return FamilyMember::where('user_id', $userId)
-            ->where('relationship', 'child')
+        // W-0275 — same reach as the Junior ISA action above.
+        return $this->dependantsReach
+            ->householdFamilyOf(User::findOrFail($userId), ['child'])
             ->where('is_dependent', true)
-            ->whereNotNull('date_of_birth')
-            ->get()
+            ->filter(fn ($child) => $child->date_of_birth !== null)
             ->filter(fn ($child) => $child->date_of_birth->diffInYears($now) < 18);
     }
 

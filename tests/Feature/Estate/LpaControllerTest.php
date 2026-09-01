@@ -268,3 +268,179 @@ describe('GET /api/estate/lpa/donor-defaults', function () {
             ->assertJsonPath('data.donor_full_name', 'Jane Doe');
     });
 });
+
+/**
+ * W-0110. Fyn can create a Lasting Power of Attorney from `/m` and native, and only
+ * web could read one back. `/m` now reads this endpoint, so the words it prints have
+ * to arrive with the record — four web copies of the vocabulary had already drifted
+ * ("Property & Financial" against "Property & Financial Affairs") and a fifth on `/m`
+ * would have made it five.
+ */
+describe('the LPA payload carries its own vocabulary', function () {
+    it('serves the type and status label with every record', function () {
+        LastingPowerOfAttorney::factory()
+            ->propertyFinancial()
+            ->create(['user_id' => $this->user->id, 'status' => 'registered']);
+
+        $this->getJson('/api/estate/lpa')
+            ->assertOk()
+            ->assertJsonPath('data.0.type_label', 'Property & Financial Affairs')
+            ->assertJsonPath('data.0.status_label', 'Registered');
+    });
+
+    it('names a health and welfare instrument in full', function () {
+        LastingPowerOfAttorney::factory()
+            ->healthWelfare()
+            ->create(['user_id' => $this->user->id, 'status' => 'draft']);
+
+        $this->getJson('/api/estate/lpa')
+            ->assertOk()
+            ->assertJsonPath('data.0.type_label', 'Health & Welfare')
+            ->assertJsonPath('data.0.status_label', 'Draft');
+    });
+});
+
+/**
+ * W-0145. `LpaComplianceService` has raised the two statutory certificate-provider
+ * disqualifications at `fail` since W-0102/W-0151, and nothing consulted them:
+ * `LpaService` set `completed_at` on any status the request asked for. The will
+ * builder refuses its equivalent conflict (W-0024) and this instrument did not.
+ *
+ * Only the two express limbs refuse — MCA 2005 Sch 1 para 2(6) / SI 2007/1253
+ * reg 8(3)(b) and reg 8(3)(c). The three W-0103 conflicts stay warnings, because
+ * compliance found no express prohibition behind them.
+ */
+describe('completion is refused while a statutory conflict stands', function () {
+    it('refuses to complete an instrument whose certificate provider is an attorney', function () {
+        $response = $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'completed',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Anna Weber',
+            'attorneys' => [
+                ['full_name' => 'Anna Weber', 'attorney_type' => 'primary'],
+            ],
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors('status');
+        expect($response->json('errors.status.0'))
+            ->toContain('certificate provider is also named as an attorney')
+            ->toContain('kept as a draft');
+        // The refusal rolled the write back rather than leaving a half-saved record.
+        expect(LastingPowerOfAttorney::query()->count())->toBe(0);
+    });
+
+    it('saves the same instrument once the conflict is corrected', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'completed',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'attorneys' => [
+                ['full_name' => 'Anna Weber', 'attorney_type' => 'primary'],
+            ],
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->completed_at)->not->toBeNull();
+    });
+
+    it('lets the user keep working on a draft that carries the conflict', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Anna Weber',
+            'attorneys' => [
+                ['full_name' => 'Anna Weber', 'attorney_type' => 'primary'],
+            ],
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->status)->toBe('draft');
+    });
+
+    it('does not refuse a donor named as their own attorney, which is a warning', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'completed',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'attorneys' => [
+                ['full_name' => 'Tomas Weber', 'attorney_type' => 'primary'],
+            ],
+        ])->assertCreated();
+    });
+
+    it('refuses the same conflict on an update that completes a draft', function () {
+        $lpa = LastingPowerOfAttorney::factory()->propertyFinancial()->create([
+            'user_id' => $this->user->id,
+            'status' => 'draft',
+            'certificate_provider_name' => 'Anna Weber',
+        ]);
+        LpaAttorney::factory()->create([
+            'lasting_power_of_attorney_id' => $lpa->id,
+            'full_name' => 'Anna Weber',
+            'attorney_type' => 'primary',
+        ]);
+
+        $this->putJson("/api/estate/lpa/{$lpa->id}", ['status' => 'completed'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('status');
+
+        expect($lpa->fresh()->status)->toBe('draft')
+            ->and($lpa->fresh()->completed_at)->toBeNull();
+    });
+});
+
+/**
+ * W-0152. The Mental Capacity Act 2005 s13(11) election had no column, no rule and
+ * no question, so a donor who wanted a spouse attorney's appointment to survive a
+ * divorce could not say so. The column is nullable on purpose: "not asked" is a
+ * different fact from "declined", and a default would write a legally operative
+ * provision on the donor's behalf — the W-0100 defect.
+ */
+describe('the section 13(11) dissolution election', function () {
+    it('stores an express direction that the appointment survives', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'appointment_survives_dissolution' => true,
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->appointment_survives_dissolution)
+            ->toBeTrue();
+    });
+
+    it('leaves the election null when the donor skipped the question', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'property_financial',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->appointment_survives_dissolution)
+            ->toBeNull();
+    });
+
+    it('records a donor who chose to leave the law as it stands, distinctly from not asking', function () {
+        $this->postJson('/api/estate/lpa', [
+            'lpa_type' => 'health_welfare',
+            'status' => 'draft',
+            'donor_full_name' => 'Tomas Weber',
+            'donor_date_of_birth' => '1978-04-11',
+            'certificate_provider_name' => 'Priya Shah',
+            'appointment_survives_dissolution' => false,
+        ])->assertCreated();
+
+        expect(LastingPowerOfAttorney::query()->sole()->appointment_survives_dissolution)
+            ->toBeFalse();
+    });
+});

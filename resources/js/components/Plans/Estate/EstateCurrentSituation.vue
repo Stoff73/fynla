@@ -80,7 +80,7 @@
             <p class="text-sm font-bold text-horizon-500">{{ situation.charitable_giving.current_percentage }}%</p>
           </div>
           <div class="bg-eggshell-500 rounded-lg p-3">
-            <p class="text-xs text-neutral-500">Threshold for 36% Rate</p>
+            <p class="text-xs text-neutral-500">{{ charitableThresholdRateLabel }}</p>
             <p class="text-sm font-bold text-horizon-500">{{ situation.charitable_giving.threshold }}%</p>
           </div>
           <div v-if="situation.charitable_giving.shortfall > 0" class="bg-eggshell-500 rounded-lg p-3">
@@ -100,8 +100,9 @@
           The sentence is composed by the server and printed verbatim. It is NOT
           written here, because `planPrintMixin.js` draws the same panel for the
           printed plan and two copies of one sentence is the drift Rule 20
-          forbids — the pair already duplicates the "Threshold for 36% Rate"
-          label, which is filed as W-0461.
+          forbids. The pair used to duplicate the "Threshold for 36% Rate" label
+          as well; W-0461 converged it on `@/utils/estateRateLabels`, which both
+          mechanisms now call.
 
           Empty for a single person, and whenever the reader IS the survivor.
         -->
@@ -116,6 +117,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { charitableThresholdRateLabel } from '@/utils/estateRateLabels';
 import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
 import IHTCalculationTable from '@/components/Estate/IHTCalculationTable.vue';
 
@@ -127,7 +129,17 @@ export default {
     situation: { type: Object, required: true },
   },
   computed: {
-    ...mapGetters('taxConfig', ['ihtRnrbTaperThreshold']),
+    ...mapGetters('taxConfig', ['ihtRnrbTaperThreshold', 'ihtReducedRate']),
+
+    /**
+     * W-0461 instance 2. Composed in `@/utils/estateRateLabels` because
+     * `planPrintMixin` draws this same panel for the printed plan — the
+     * duplicate the comment below records is now one source, not two.
+     */
+    charitableThresholdRateLabel() {
+      return charitableThresholdRateLabel(this.ihtReducedRate);
+    },
+
     tableProps() {
       if (!this.situation?.calculation || !this.situation?.assets_breakdown) return null;
 

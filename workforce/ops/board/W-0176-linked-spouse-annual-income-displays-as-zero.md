@@ -4,7 +4,7 @@ title: A linked spouse's annual income displays as £0 on /settings/family — t
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0017-cycle1-tax-income-and-allowances.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web]
 created: 2026-08-21T23:50:00Z
 claimed: 2026-08-22T20:05:00Z
@@ -109,3 +109,11 @@ and over-serving in another. Anyone treating this service as a settled source sh
 which method they entered by.
 
 Not done: browser verification, by instruction — the tester closes that loop.
+
+- 2026-08-31 build-lead: **FIXED.** The card read `family_members.annual_income` — a snapshot written when the member was created, which goes stale the moment the linked spouse updates their own profile. The `decimal:2` cast turns the stale zero into the string `'0.00'`, which is TRUTHY in the template, so `v-if="member.annual_income"` rendered the row and printed **Annual Income £0** beside an account earning £120,000.
+
+  `FamilyMember::getResolvedAnnualIncomeAttribute()` now resolves through `liveLinkedUser()` and is appended, so web, /m and iOS all read one server-side answer; `FamilyMembers.vue:128` guards numerically on it, so a genuine zero hides instead of printing.
+
+  **Appended rather than overriding `annual_income` itself** — the first attempt did override it and returned 500 on every family-member write, because that attribute carries a `decimal:2` cast and is writable through `UpdateRecordAllowlist:124`; an accessor of the same name collides with both. Recorded because the collision is silent until a write runs.
+
+  100 family tests pass (345 assertions).

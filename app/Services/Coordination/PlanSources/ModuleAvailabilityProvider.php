@@ -6,10 +6,10 @@ namespace App\Services\Coordination\PlanSources;
 
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
-use App\Models\FamilyMember;
 use App\Models\Investment\RiskProfile;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
@@ -32,6 +32,8 @@ final class ModuleAvailabilityProvider
         private readonly SavingsStore $savingsStore,
         private readonly InvestmentAccountStore $investmentStore,
         private readonly PensionStore $pensionStore,
+        // W-0275 — the one home for "who depends on this user" (Rule 20).
+        private readonly DependantsReach $dependantsReach,
     ) {}
 
     /**
@@ -54,7 +56,9 @@ final class ModuleAvailabilityProvider
                 'risk_profile_set' => RiskProfile::where('user_id', $user->id)->exists(),
             ],
             'protection' => [
-                'dependants_known' => FamilyMember::where('user_id', $user->id)->exists(),
+                // W-0275 — the household's family, not the rows this account happened
+                // to type, or a linked parent's protection module reads as unstarted.
+                'dependants_known' => $this->dependantsReach->householdFamilyOf($user)->isNotEmpty(),
                 'life_cover_in_force' => LifeInsurancePolicy::where('user_id', $user->id)->exists(),
                 'income_known' => $this->hasAnnualIncome($user),
             ],

@@ -4,7 +4,7 @@ title: Every overdue goal reports "On track" and the goals page congratulates th
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0029-cycle4-goals-and-expenditure-split.md
 owner: build-lead (fix-cycle4-goals-expenditure)
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T02:00:00Z
@@ -115,3 +115,11 @@ user, so its second copy of the banner never rendered. **I COULD NOT TEST THIS.*
 Tests: `tests/Unit/Services/Goals/GoalOverdueIsNotOnTrackTest.php` (18) +
 `tests/Feature/Goals/PastDatedRecordsTest.php` extended (9, in W-0029's own file, where the
 acceptance stopped). Branch doc §2, §6.3.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, with the Carbon behaviour recorded
+  rather than assumed.** `GoalCalculationService:60-73` sets out the composition — past-dated goals
+  became creatable under W-0029, `start_date` is stamped today so the span runs backwards, and on
+  Carbon 2 `diffInDays()` is ABSOLUTE so the inverted range returned +21 and the `$totalDays <= 0`
+  guard never fired. `isOverdue()` is now the one answer (Rule 20, cited from
+  `GoalProgressService:29`), consumed by `GoalCard.vue:243`. An overdue goal no longer reports
+  "On track", and the page banner no longer congratulates on it.

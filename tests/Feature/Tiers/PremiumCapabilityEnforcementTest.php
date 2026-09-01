@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\CheckSubscription;
 use App\Models\User;
 use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -31,7 +32,13 @@ it('denies Free users at every implemented Premium capability boundary', functio
     'document upload' => ['POST', '/api/documents/upload-only'],
     'investment cost analysis' => ['GET', '/api/investment/fees/analyze'],
     'joint household view' => ['GET', '/api/household/net-worth'],
-    'Letter to Spouse' => ['PUT', '/api/user/letter-to-spouse'],
+    // W-0426 — the GET rows are the point. This capability gated the PUT alone until
+    // 2026-09-01, because `isExcludedPath()` returned on the `api/user/` read-only
+    // prefix before the capability map was consulted, and a dataset of writes cannot
+    // see a read-side hole.
+    'Letter to Spouse (write)' => ['PUT', '/api/user/letter-to-spouse'],
+    'Letter to Spouse (read)' => ['GET', '/api/user/letter-to-spouse'],
+    'Letter financial position (read)' => ['GET', '/api/user/letter-to-spouse/financial-position'],
 ]);
 
 it('does not stop Premium requests at the capability boundary', function (string $method, string $uri) {
@@ -50,6 +57,7 @@ it('does not stop Premium requests at the capability boundary', function (string
     'investment cost analysis' => ['GET', '/api/investment/fees/analyze'],
     'joint household view' => ['GET', '/api/household/net-worth'],
     'Letter to Spouse' => ['PUT', '/api/user/letter-to-spouse'],
+    'Letter to Spouse (read)' => ['GET', '/api/user/letter-to-spouse'],
 ]);
 
 it('does not let the letter financial position outrun the letter itself for a Free user', function () {
@@ -75,6 +83,47 @@ it('does not let the letter financial position outrun the letter itself for a Fr
     if ($letter->status() === 403) {
         expect($position->json('error'))->toBe($letter->json('error'));
     }
+});
+
+/**
+ * W-0426. `CheckSubscription::handle()` returned at `isExcludedPath()` BEFORE the
+ * capability map was consulted, so any capability whose route sits under a
+ * `READ_ONLY_EXCLUDED_PATHS` prefix was **unreachable for GET by construction** —
+ * not by oversight at a call site, which is why reading either list alone showed
+ * nothing wrong, and why a test named after capability enforcement went green over
+ * an ungated read for as long as the hole existed.
+ *
+ * `isExcludedPath()` now declines to exclude a capability-mapped path, so the two
+ * lists can overlap without opening a hole. This asserts the resulting property
+ * directly rather than asserting the shape of the two lists: no capability is
+ * unreachable for GET. It is the same measurement the old version made, with the
+ * expected set now empty instead of naming one known instance.
+ */
+it('leaves no capability unreachable for GET behind an excluded prefix', function () {
+    $middleware = new ReflectionClass(CheckSubscription::class);
+    $capabilityMap = $middleware->getConstant('CAPABILITY_ROUTE_MAP');
+    $readOnlyExcluded = $middleware->getConstant('READ_ONLY_EXCLUDED_PATHS');
+
+    $overlapping = [];
+    foreach ($capabilityMap as $routePrefix => $entityKey) {
+        foreach ($readOnlyExcluded as $excludedPrefix) {
+            if (str_starts_with($routePrefix, $excludedPrefix)) {
+                $overlapping[$routePrefix] = $entityKey;
+                break;
+            }
+        }
+    }
+
+    // The overlap is expected and harmless now — what must hold is that every
+    // overlapping capability is still gated on a GET, which the dataset above
+    // drives for the one that exists. This pins the mechanism that makes that
+    // true, so removing it fails here even if the dataset is not extended.
+    $source = file_get_contents(__DIR__.'/../../../app/Http/Middleware/CheckSubscription.php');
+
+    expect($source)->toContain('isCapabilityMapped')
+        ->and($overlapping)->toBe([
+            'api/user/letter-to-spouse' => 'letter_to_spouse',
+        ]);
 });
 
 it('removes detailed expenditure fields from Free responses', function () {

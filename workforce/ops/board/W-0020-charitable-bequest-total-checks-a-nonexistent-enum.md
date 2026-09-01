@@ -4,7 +4,7 @@ title: Charitable bequest total checks bequest_type === 'specific', a value the 
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0003-batch-b-estate-wills.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-21T08:50:00Z
 claimed: 2026-08-21T09:40:00Z
@@ -276,3 +276,5 @@ Report: `reports/R-05-premium-sweep.md`.
   **The generalisable rule, worth carrying beyond this item:** a fix that makes a
   calculation read a NEW input invalidates every cache key derived from the old
   inputs. Changing what a calculation depends on is a cache-key change.
+
+- 2026-08-31 build-lead: **ALREADY FIXED — verified in the code.** `WillAnalysisService:206` now filters on `bequest_type = 'specific_amount'`, the value the enum can actually hold, and `:209`/`:224` use `['percentage','specific_asset','residuary']`. The charitable set itself comes from `Bequest::isCharitable()` rather than a beneficiary-type guess. A charitable cash legacy now counts toward the total, so the 10% test can reach the reduced rate. The comment at `:265` records the dead branch the enum never supported.

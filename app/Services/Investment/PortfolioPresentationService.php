@@ -109,6 +109,18 @@ class PortfolioPresentationService
                 'ticker' => $holding->ticker,
                 'asset_type' => $holding->asset_type,
                 'current_value' => round($value, 2),
+                // W-0442 acceptance 3. Units, purchase price, current price and purchase
+                // date are captured, validated and stored (W-0039), and the portfolio
+                // contract never carried them — so `/m` could not show them however its
+                // template was written, while web's tables show all four.
+                //
+                // Nullable rather than defaulted: a holding recorded without a purchase
+                // price has NOT been bought for nothing, and `HoldingResource:30-35`
+                // serves them null for the same reason. The surface prints an em dash.
+                'quantity' => $holding->quantity !== null ? (float) $holding->quantity : null,
+                'purchase_price' => $holding->purchase_price !== null ? (float) $holding->purchase_price : null,
+                'current_price' => $holding->current_price !== null ? (float) $holding->current_price : null,
+                'purchase_date' => $holding->purchase_date?->toDateString(),
                 'wrapper_percentage' => $exposure['portfolio_percentage'] ?? 0.0,
                 'whole_relevant_portfolio_percentage' => $relevantPortfolioValue > 0
                     ? round(($value / $relevantPortfolioValue) * 100, 2)

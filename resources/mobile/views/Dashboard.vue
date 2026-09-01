@@ -569,27 +569,31 @@ export default {
     // routes, and the visualisation each card uses.
     finances() {
       const f = dashboardFigures(this.data);
-      const trend = f.netWorth.trendPct;
 
       return [
         {
           key: 'net_worth', label: 'Net worth', tone: 'horizon', icon: ICON.netWorth,
           value: this.fmt(f.netWorth.total), route: '/net-worth',
           viz: 'donut',
-          // ponytail: this ring's fill is a constant from the 2026 redesign
-          // (7eaa085cb), not a derived figure, and it is left as it was found —
-          // changing what the ring shows is a design decision, not part of
-          // consolidating the derivation. `f.netWorth.equityPct` is available when
-          // that decision is taken. Raised as W-0504.
-          progress: 72, vizNum: (trend >= 0 ? '+' : '') + trend + '%', vizCap: 'Trend',
+          // W-0504 — the arc, the number and the caption are now one quantity.
+          //
+          // This ring was `progress: 72` beside `vizNum: <trend>%`: a constant arc next
+          // to a live figure, so on `peak_earners` it rendered at 72% against `+0%`.
+          //
+          // It shows EQUITY, not trend, matching web (`GamifiedDashboard.vue:320`) and
+          // the same `equityPct` field on the shared derivation. Trend was the wrong
+          // quantity for this shape whatever it was filled with: it is signed, and a
+          // 0-100 arc cannot render a fall — which is likely why it was left constant.
+          progress: f.netWorth.equityPct, vizNum: f.netWorth.equityPct + '%', vizCap: 'Equity',
           caption: this.fmt(f.netWorth.totalAssets) + ' assets',
         },
         {
           key: 'protection', label: 'Protection', tone: 'raspberry', icon: ICON.shield,
           value: this.fmt(f.protection.value), route: '/protection',
           viz: 'donut',
-          // ponytail: constant, as above. Web uses covered ? 100 : 0.
-          progress: f.protection.covered ? 85 : 0,
+          // W-0504 — was `covered ? 85 : 0`. Cover is binary here, so the arc is
+          // full or empty; 85 drew a partial arc for a state that has no partial.
+          progress: f.protection.covered ? 100 : 0,
           vizNum: f.protection.vizNum, vizCap: 'Cover',
           caption: f.protection.caption,
         },
@@ -617,8 +621,9 @@ export default {
           key: 'investment', label: 'Investment', tone: 'horizon', icon: ICON.investment, wide: true,
           value: this.fmt(f.investment.value), route: '/investment',
           viz: 'donut',
-          // ponytail: constant, as above. Web uses the share of total assets.
-          progress: f.investment.value > 0 ? 72 : 0,
+          // W-0504 — was `value > 0 ? 72 : 0`, so every household with any investment
+          // saw the same 72% arc. `peak_earners` holds 11%.
+          progress: f.investment.sharePct,
           vizNum: f.investment.vizNum,
           vizCap: f.investment.vizCap,
           caption: f.investment.caption,

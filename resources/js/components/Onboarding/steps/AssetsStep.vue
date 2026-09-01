@@ -63,7 +63,7 @@
 
                   <div class="detail-row">
                     <span class="detail-label">Retirement Age</span>
-                    <span class="detail-value">{{ pension.retirement_age || currentUser?.target_retirement_age || 67 }}</span>
+                    <span class="detail-value">{{ pension.retirement_age || currentUser?.target_retirement_age || DEFAULT_RETIREMENT_AGE }}</span>
                   </div>
 
                   <div class="detail-row">
@@ -163,7 +163,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('pension_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,7 +294,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('investment_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,7 +370,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('savings_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -499,6 +499,7 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
@@ -1204,6 +1205,8 @@ export default {
     };
 
     return {
+      // W-0196 — the template reads the one home, not a literal.
+      DEFAULT_RETIREMENT_AGE,
       stepTitle,
       stepDescription,
       activeTab,

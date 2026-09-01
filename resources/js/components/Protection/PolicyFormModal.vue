@@ -280,6 +280,40 @@
               <p class="text-xs text-neutral-500 mt-1 ml-6">
                 A joint life policy covers two people and pays out once, on the first death. Two separate single life policies pay out twice.
               </p>
+
+              <!--
+                W-0200. The second life assured used to be inferred from the linked
+                spouse, because there was no field for it. A key-person policy over a
+                business partner, or an unmarried couple's policy, was silently
+                attributed to the spouse or to nobody.
+              -->
+              <div v-if="formData.joint_life" class="mt-3 ml-6">
+                <label for="joint_life_with" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Who is the other person covered?
+                </label>
+                <select
+                  id="joint_life_with"
+                  v-model="jointLifeWithSelection"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-violet-500 focus:border-violet-500"
+                >
+                  <option value="">Not recorded</option>
+                  <option v-for="option in beneficiaryOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                  <option value="other">Someone else</option>
+                </select>
+                <input
+                  v-if="jointLifeWithSelection === 'other'"
+                  v-model="formData.joint_life_with_name"
+                  type="text"
+                  maxlength="255"
+                  placeholder="Their full name"
+                  class="w-full mt-2 px-3 py-2 border border-horizon-300 rounded-lg focus:ring-violet-500 focus:border-violet-500"
+                />
+                <p class="text-xs text-neutral-500 mt-1">
+                  Leave this as Not recorded and we will assume your linked partner, where you have one.
+                </p>
+              </div>
             </div>
 
             <!-- Mortgage Protection (for Life Insurance) -->
@@ -575,6 +609,8 @@ export default {
         term_years: null,
         in_trust: false,
         joint_life: false,
+        joint_life_with_user_id: null,
+        joint_life_with_name: null,
         is_mortgage_protection: false,
         benefit_frequency: 'monthly',
         deferred_period_weeks: null,
@@ -582,6 +618,7 @@ export default {
         coverage_type: 'accident_and_sickness',
         notes: '',
       },
+      jointLifeWithSelection: '',
     };
   },
 
@@ -726,6 +763,8 @@ export default {
               term_years: null,
               in_trust: false,
               joint_life: false,
+              joint_life_with_user_id: null,
+              joint_life_with_name: null,
               is_mortgage_protection: false,
               benefit_frequency: 'monthly',
               deferred_period_weeks: null,
@@ -871,6 +910,8 @@ export default {
         term_years: this.policy.term_years || this.policy.policy_term_years || null,
         in_trust: this.policy.in_trust || false,
         joint_life: this.policy.joint_life || false,
+        joint_life_with_user_id: this.policy.joint_life_with_user_id || null,
+        joint_life_with_name: this.policy.joint_life_with_name || null,
         is_mortgage_protection: this.policy.is_mortgage_protection || false,
         benefit_frequency: this.policy.benefit_frequency || 'monthly',
         deferred_period_weeks: this.policy.deferred_period_weeks || null,
@@ -878,12 +919,41 @@ export default {
         coverage_type: this.policy.coverage_type || 'accident_and_sickness',
         notes: this.policy.notes || '',
       };
+
+      this.jointLifeWithSelection = this.policy.joint_life_with_user_id
+        ? `linked_${this.policy.joint_life_with_user_id}`
+        : (this.policy.joint_life_with_name ? 'other' : '');
+    },
+
+    // The picker offers one list of people; the record keeps an account id where
+    // there is an account and a free-text name where there is not — the same pair
+    // every other shared record uses for its counterparty (W-0200).
+    applyJointLifeSelection() {
+      const selection = this.jointLifeWithSelection;
+
+      if (!this.formData.joint_life || selection === '') {
+        this.formData.joint_life_with_user_id = null;
+        this.formData.joint_life_with_name = null;
+        return;
+      }
+
+      if (selection === 'other') {
+        this.formData.joint_life_with_user_id = null;
+        return;
+      }
+
+      const option = this.beneficiaryOptions.find(candidate => candidate.value === selection);
+      const isLinkedAccount = selection.startsWith('linked_');
+
+      this.formData.joint_life_with_user_id = isLinkedAccount ? Number(selection.replace('linked_', '')) : null;
+      this.formData.joint_life_with_name = isLinkedAccount ? null : (option?.name || null);
     },
 
     async handleSubmit() {
       this.submitting = true;
 
       try {
+        this.applyJointLifeSelection();
         const policyData = this.preparePolicyData();
         this.$emit('save', policyData);
       } catch (error) {
@@ -922,6 +992,8 @@ export default {
 
         data.in_trust = this.formData.in_trust || false;
         data.joint_life = this.formData.joint_life || false;
+        data.joint_life_with_user_id = this.formData.joint_life_with_user_id || null;
+        data.joint_life_with_name = this.formData.joint_life_with_name || null;
         data.is_mortgage_protection = this.formData.is_mortgage_protection || false;
         data.beneficiaries = serialiseBeneficiaries(this.beneficiaryRows) || null;
       } else if (type === 'criticalIllness') {

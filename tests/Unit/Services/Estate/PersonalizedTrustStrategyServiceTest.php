@@ -70,7 +70,10 @@ describe('PersonalizedTrustStrategyService', function () {
 
         // Check Strategy 1: Immediate CLT
         $strategy1 = $result['strategies'][0];
-        expect($strategy1['strategy_name'])->toBe('Immediate Discretionary Trust (CLT)');
+        // W-0497 — the name expands the acronym now. This assertion pinned the
+        // wording a reader met cold; the expansion is the fix, not a cosmetic change,
+        // so the assertion moves with it rather than being loosened to a substring.
+        expect($strategy1['strategy_name'])->toBe('Immediate Discretionary Trust (a Chargeable Lifetime Transfer, or CLT)');
         expect($strategy1['amount'])->toBe(200000.0);
         expect($strategy1['lifetime_tax_charge'])->toBe(0.0); // Within NRB
         expect($strategy1['priority'])->toBe(1);
@@ -124,7 +127,8 @@ describe('PersonalizedTrustStrategyService', function () {
 
         $strategy2 = $result['strategies'][1]; // Multi-Cycle CLT Strategy
 
-        expect($strategy2['strategy_name'])->toBe('Multi-Cycle CLT Strategy');
+        // W-0497 — expanded on first use; the card may abbreviate below it.
+        expect($strategy2['strategy_name'])->toBe('Multi-Cycle Chargeable Lifetime Transfer (CLT) Strategy');
         expect($strategy2)->toHaveKey('clt_schedule');
         expect($strategy2['clt_schedule'])->toBeArray();
 
@@ -429,7 +433,9 @@ describe('PersonalizedTrustStrategyService', function () {
         );
 
         expect($result['summary']['current_iht_liability'])->toBe(0.0);
-        expect($result['summary']['effectiveness_rating'])->toBe('N/A - No IHT liability');
+        // W-0497 — a standalone string with no card above it to introduce the term,
+        // so it carries the full words.
+        expect($result['summary']['effectiveness_rating'])->toBe('N/A - No Inheritance Tax liability');
     });
 
     it('calculates giftable amounts by liquidity category', function () {

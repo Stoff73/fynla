@@ -1,5 +1,6 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { EXPENDITURE_COMPOSITION_LABELS, expenditureCompositionNote, expenditureCompositionRows } from '@/utils/expenditureComposition';
+import { charitableThresholdRateLabel } from '@/utils/estateRateLabels';
 /**
  * Mixin for printing/PDF export of plans.
  * Follows the Letter to Spouse pattern for print window generation.
@@ -2287,7 +2288,7 @@ export const planPrintMixin = {
             <div style="font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 6px;">Charitable Giving</div>
             <div class="metric-label">Current Charitable Rate</div>
             <div class="metric-value">${this.fmtPercentage(cg.current_percentage)}</div>
-            <div class="metric-label" style="margin-top: 4px;">Threshold for 36% Rate</div>
+            <div class="metric-label" style="margin-top: 4px;">${charitableThresholdRateLabel(this.$store.getters['taxConfig/ihtReducedRate'])}</div>
             <div class="metric-value">${this.fmtPercentage(cg.threshold)}</div>
             ${(cg.shortfall || 0) > 0 ? `<div class="metric-label" style="margin-top: 4px;">Shortfall to Qualify</div><div class="metric-value">${this.fmtCurrency(cg.shortfall)}</div>` : ''}
             ${(cg.potential_saving || 0) > 0 ? `<div class="metric-label" style="margin-top: 4px;">Potential Saving</div><div class="metric-value" style="color: #15803d;">${this.fmtCurrency(cg.potential_saving)}</div>` : ''}

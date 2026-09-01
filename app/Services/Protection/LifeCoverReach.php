@@ -117,18 +117,38 @@ class LifeCoverReach
             ? $user->lifeInsurancePolicies
             : $user->lifeInsurancePolicies()->get();
 
-        $spouse = $user->reciprocalLiveSpouse();
-
-        if ($spouse === null) {
-            return collect($own->all());
-        }
-
-        $sharedWithSpouse = LifeInsurancePolicy::query()
-            ->where('user_id', $spouse->id)
+        // W-0200 — a policy whose owner NAMED this account as the second life
+        // assured reaches it, whether or not the two are married or linked. Naming
+        // someone is the owner disclosing their own contract to the person it
+        // insures, which is the same disclosure `joint_life` makes for a spouse,
+        // made explicitly instead of inferred.
+        $namedHere = LifeInsurancePolicy::query()
             ->where('joint_life', true)
+            ->where('joint_life_with_user_id', $user->id)
+            ->where('user_id', '!=', $user->id)
             ->get();
 
-        return collect($own->all())->concat($sharedWithSpouse);
+        $spouse = $user->reciprocalLiveSpouse();
+
+        // The spouse inference is the fallback, not a second rule: a policy that
+        // names its second life assured is not also attributed to the spouse.
+        // BOTH halves of the pair close it — a second life recorded as a name,
+        // because they hold no account, leaves `joint_life_with_user_id` null, and
+        // gating on that column alone let the policy reach the spouse anyway.
+        $sharedWithSpouse = $spouse === null
+            ? collect()
+            : LifeInsurancePolicy::query()
+                ->where('user_id', $spouse->id)
+                ->where('joint_life', true)
+                ->whereNull('joint_life_with_user_id')
+                ->whereNull('joint_life_with_name')
+                ->get();
+
+        return collect($own->all())
+            ->concat($namedHere)
+            ->concat($sharedWithSpouse)
+            ->unique('id')
+            ->values();
     }
 
     /**
@@ -167,21 +187,85 @@ class LifeCoverReach
      */
     public function otherLifeAssured(LifeInsurancePolicy $policy, User $viewer): ?string
     {
+        return $this->resolveOtherLifeAssured($policy, $viewer)['name'];
+    }
+
+    /**
+     * Where the name above came from: `recorded` when the owner named the second
+     * life assured, `inferred_from_spouse` when the application worked it out from
+     * `users.spouse_id`, null when there is no name at all.
+     *
+     * Published beside the name rather than folded into it (the shape `income_source`
+     * and life expectancy's `source` already use) so a surface can qualify the
+     * statement instead of each one deciding for itself whether to. Both come out of
+     * one resolver, so the name and its provenance cannot disagree.
+     */
+    public function otherLifeAssuredSource(LifeInsurancePolicy $policy, User $viewer): ?string
+    {
+        return $this->resolveOtherLifeAssured($policy, $viewer)['source'];
+    }
+
+    /**
+     * The one home for "who else does this policy cover, and how do we know".
+     *
+     * Order matters: a recorded second life assured wins over the spouse inference
+     * (W-0200), because the inference exists only to answer the question when
+     * nobody has. A recorded name is disclosed to the owner and to the named
+     * account; it is not disclosed to a spouse who is not that person, which is
+     * how a key-person policy over a business partner stops reading as a policy
+     * over the husband.
+     *
+     * @return array{name: string|null, source: string|null}
+     */
+    private function resolveOtherLifeAssured(LifeInsurancePolicy $policy, User $viewer): array
+    {
         if (! $policy->joint_life) {
-            return null;
+            return ['name' => null, 'source' => null];
+        }
+
+        $isOwn = $this->isOwnedBy($policy, $viewer);
+        $namedUserId = $policy->joint_life_with_user_id;
+
+        if ($namedUserId !== null || $policy->joint_life_with_name !== null) {
+            // The viewer sees a recorded name if the policy is theirs, or if they
+            // are the person it names. Anyone else — including a spouse who is not
+            // the second life assured — is told nothing.
+            if (! $isOwn && $namedUserId !== $viewer->id) {
+                return ['name' => null, 'source' => null];
+            }
+
+            $name = $isOwn
+                ? ($policy->joint_life_with_name ?: $this->nameOf($namedUserId))
+                : $this->nameOf($policy->user_id);
+
+            return ['name' => $name, 'source' => $name === null ? null : 'recorded'];
         }
 
         $spouse = $viewer->reciprocalLiveSpouse();
 
-        $other = $this->isOwnedBy($policy, $viewer)
+        $other = $isOwn
             ? $spouse
             : ($spouse?->id === $policy->user_id ? $spouse : null);
 
         if (! $other) {
+            return ['name' => null, 'source' => null];
+        }
+
+        $name = trim($other->first_name.' '.$other->surname) ?: null;
+
+        return ['name' => $name, 'source' => $name === null ? null : 'inferred_from_spouse'];
+    }
+
+    /** The display name of an account, or null where there is no account to name. */
+    private function nameOf(?int $userId): ?string
+    {
+        if ($userId === null) {
             return null;
         }
 
-        return trim($other->first_name.' '.$other->surname) ?: null;
+        $user = User::find($userId);
+
+        return $user === null ? null : (trim($user->first_name.' '.$user->surname) ?: null);
     }
 
     /**

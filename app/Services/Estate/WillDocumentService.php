@@ -18,8 +18,32 @@ class WillDocumentService
      * Lives here as the one home so every path — the will builder, the mirror
      * generator and Fyn's create_will handler — refuses in the same words
      * (W-0024, Rule 20).
+     *
+     * W-0153 — **a legal statement in user-facing copy carries its source.**
+     *
+     * This sentence opened "A will cannot appoint its own testator as executor",
+     * a rule in Fynla's own voice that the reader had no way to check. The
+     * powers-of-attorney side states the same CLASS of thing attributed and
+     * paragraph-referenced (`LpaComplianceService`, `LpaCheckPolicy`), so the two
+     * instruments diverged silently — and the divergence surfaced only because one
+     * agent happened to write copy for both in one day.
+     *
+     * The rule that governs the wording is the act-not-object test: say what the
+     * office IS, cite the provision that says so, and let the contradiction follow.
+     * Do NOT assert a prohibition unless an express one exists — there is no
+     * statutory section reading "a testator may not be their own executor", and
+     * inventing a reference for one would be worse than the unattributed sentence
+     * it replaced. The same discipline governs the three W-0103 party-role
+     * warnings, which stay warnings for exactly this reason.
+     *
+     * **If you are writing new legal-sounding copy anywhere in this application,
+     * this paragraph is the rule.** Attribution is not a style preference; an
+     * unattributable claim is a claim that should not be made.
+     *
+     * The replacement was NOT silently edited into the approved W-0024 string —
+     * see the W-0153 board entry, which records the re-approval as outstanding.
      */
-    public const EXECUTOR_IS_TESTATOR_MESSAGE = 'A will cannot appoint its own testator as executor. Name the person who will carry out your wishes.';
+    public const EXECUTOR_IS_TESTATOR_MESSAGE = 'An executor is the person who collects in the estate and administers it after the testator has died (Administration of Estates Act 1925, section 25), so a will naming its own testator is a contradiction Fynla cannot resolve for you. Name the person who will carry out your wishes.';
 
     /**
      * Shown to the partner on a generated mirror will, against every gift
@@ -447,6 +471,40 @@ class WillDocumentService
     }
 
     /**
+     * Put a completed will back into draft so it can be corrected.
+     *
+     * **W-0133.** Completion was a one-way door: nothing anywhere set `status`
+     * back to `draft`, so a gift edited or a bequest deleted in the Estate module
+     * after finalising could never be re-synced, and the will document and the
+     * module diverged permanently — with the document still presented as the
+     * user's will.
+     *
+     * Reopening does NOT rewrite anything. It clears `generated_at`, because a
+     * document being edited has not been generated, and leaves every answer in
+     * place so the wizard resumes where it was. Completing again runs the same
+     * validation and the same `WillTypePolicy` refusal as the first time.
+     *
+     * Deliberately not automatic. A will that silently reverted to draft when an
+     * unrelated gift changed would leave a user believing they had a completed
+     * will when they did not — the failure this fix exists to remove, in the
+     * opposite direction.
+     */
+    public function reopen(WillDocument $doc): WillDocument
+    {
+        if ($doc->status !== 'complete') {
+            return $doc;
+        }
+
+        $doc->update([
+            'status' => 'draft',
+            'generated_at' => null,
+            'last_edited_at' => now(),
+        ]);
+
+        return $doc->fresh();
+    }
+
+    /**
      * Mark a will document as complete.
      */
     public function markComplete(WillDocument $doc): WillDocument
@@ -786,6 +844,28 @@ class WillDocumentService
      * allocation. Recording it there would corrupt an existing answer to buy a
      * duplicate of one the document already holds.
      */
+    /**
+     * W-0398 — the sentence that stops a bequest count reading as the whole will.
+     *
+     * The residuary exclusion above is correct and must stay: a residuary is a share of
+     * what REMAINS after the specific gifts, not a percentage of the estate, and
+     * `Will::getNonSpouseAllocationPercentage()` sums exactly the `percentage` rows —
+     * so storing one there would report a mirror will leaving everything to a partner
+     * as a 100% NON-partner allocation. Recording it would corrupt a live answer to buy
+     * a duplicate of one the document already holds.
+     *
+     * What was wrong is the CONSEQUENCE. The persona's children are provided for, as
+     * the residuary's substitution beneficiary in free text, and every consumer of the
+     * `bequests` table saw nothing — so the household read as though its children were
+     * unprovided for, and `/m`'s "1 bequest" was accurate about the table and
+     * misleading about the will.
+     *
+     * Served with the payload rather than written into each screen: `/m` is an isolated
+     * bundle and cannot import from `resources/js`, so a sentence held on the frontend
+     * would be two copies from the day it was written (Rule 20).
+     */
+    public const BEQUESTS_EXCLUDE_RESIDUARY_NOTE = 'This lists the specific gifts in your will. Anything left over — the residue — is dealt with separately in the will document itself, along with anyone named to inherit it.';
+
     private function syncBequests(WillDocument $doc, Will $will): int
     {
         // Clear rows from ANY will document, not just this one. A user who

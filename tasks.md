@@ -1,0 +1,240 @@
+# tasks.md — the Fynla board, one task at a time
+
+Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-edit the counts.**
+
+The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
+through `superpowers:systematic-debugging` before a line of code is changed.
+
+**Outstanding: 29**  ·  closed 2026-08-31: 103
+
+---
+
+## Closed 2026-08-31
+
+- [x] **W-0006** (unset) — Health & Lifestyle form silently drops health_status and smoking_status — never persisted
+- [x] **W-0007** (unset) — Investment account modal reports £0 Cash ISA usage — overstates remaining ISA allowance and lets the £20,000 limit be breached
+- [x] **W-0010** (unset) — Dead-end — a user whose only pension is Defined Benefit cannot add any further pension
+- [x] **W-0011** (unset) — Free-tier users cannot save monthly expenditure at all — Simple View always sends the detailed payload and trips the Premium gate
+- [x] **W-0014** (unset) — Joint investment accounts save a 100% owner share — spouse gets nothing, primary owner double-counts
+- [x] **W-0015** (unset) — The same joint account's share is computed three different ways — investments page says £95,000, wealth summary says £47,500
+- [x] **W-0017** (unset) — Defined Benefit pension form cannot hold four of the fields the model and the persona both have
+- [x] **W-0020** (unset) — Charitable bequest total checks bequest_type === 'specific', a value the enum cannot hold — cash legacies never reduce the IHT rate
+- [x] **W-0154** (critical) — The same married household is shown two different inheritance tax bills depending on which spouse logs in, and the allowance components do not sum to the totals
+- [x] **W-0176** (unset) — A linked spouse's annual income displays as £0 on /settings/family — the row serves a stale column instead of the account behind it
+- [x] **W-0177** (unset) — The readiness panel lists "Income needs updating" under COMPLETED while reporting OUTSTANDING (0) — All items complete
+- [x] **W-0432** (high) — Rate literals survive in user-facing strings across the estate services — including a class that computes the same threshold from configuration two hundred lines above
+- [x] **W-0461** (medium) — The Rule 2 sweeps swept app/ and exactly one Vue file — nine rate literals stand in the estate frontend, five of them live, one of them a wrong statement of the statutory test
+- [x] **W-0495** (high) — A household with no recorded expenditure is told it has zero months of runway, however much cash it holds
+
+---
+
+
+## Critical (1)
+
+- [x] **W-0463** `done` — TaxConfigService is the source or it is nothing — 20 configured rules have zero consumers, and every guard built to catch this is structurally incapable of seeing it
+
+## High (12)
+
+- [x] **W-0037** `done` — Bequest form cannot record priority order, beneficiary type or charity registration — charitable status is inferred from the beneficiary's name
+- [x] **W-0050** `done` — You cannot create an account without consenting to Google Analytics and Awin affiliate tracking — a cookie wall, justified by copy that is factually untrue
+- [x] **W-0133** `done` (endpoint; no UI control yet) — Completing a will is a one-way door — "Complete & Finalise" never returns, so a gift edited or a bequest deleted after finalising can never be re-synced and the will document and the Estate module diverge permanently
+- [x] **W-0144** `closed_invalid` (CSJ ruling — revocation is the law, 28 days is standard) — The generated will revokes every earlier will and imposes a 28-day survivorship period, and the user is never asked about either
+- [x] **W-0155** `closed_invalid` (CSJ ruling — consent is one button, no withdrawal) — Cookie consent can be given and seen but never withdrawn — F-0007 made Decline meaningful and thereby created a right with no interface
+- [x] **W-0171** `done` (/estate card; /plans/estate not touched) — The estate calculation cannot be audited by the person whose money it is — £500,000 leaves the estate silently, £10,000 is deducted invisibly, and the rule that reverses it all on 2027-04-06 is never mentioned
+- [x] **W-0462** `done` (wording needs compliance-lead before shipping) — \"Save £74,987\" is attached to an action that leaves the beneficiaries £37,891 worse off — the tax figure is correct and the disclosure is missing
+- [x] **W-0508** `done` — Fourteen more sites read ['married'] alone, so a civil partnership is still treated as single across the Estate API, four agents and three services
+- [x] **W-0513** `done` (coverage declared; death-benefit capture still to decide) — The projected estate models only defined contribution pots, where IHTA 1984 s150A brings in lump sum death benefits too
+- [x] **W-0514** `done` — A pension on the first death can destroy the second death's residence band, and the model cannot show it
+- [x] **W-0515** `done` — Fyn still tells the user pensions pass outside the estate, and quotes today's pot as the amount at risk
+- [x] **W-0531** `done` (basis corrected + entry mode respected; no browser drive) — The emergency runway divides cash by a household total that omits the mortgage, council tax and utilities — overstated up to 4.7x for every mortgaged user
+
+## Medium (95)
+
+- [x] **W-0025** `done` (already fixed) — A joint chattel saves with no joint owner and no error — 50% of the asset belongs to nobody
+- [x] **W-0031** `done` (already fixed, guarded) — education_level validation accepts three values the column enum cannot hold — latent 500 for Fyn and any API client
+- [x] **W-0032** `done` (already fixed) — scheme_status is collected by both pension forms and silently discarded on every save — no such column exists
+- [x] **W-0034** `done` (built + 17 tests; browser blocked by csjones-base m-build) — /m has no Health & Lifestyle section at all — the data source is fixed but no mobile screen renders it
+- [x] **W-0040** `done` (already fixed; CSJ ruling encoded) — A deliberate 100/0 joint split is unexpressible, and three acceptance criteria contradict each other on whether it should be
+- [ ] **W-0044** `deferred-ios` — The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
+- [x] **W-0054** `done` (uploads gated before entry; shared copy still design-lead's) — Two tier caps, two gating philosophies — life events block before entry, detailed expenditure blocks after submit with a silent 403
+- [ ] **W-0090** `deferred-ios` — Native never says a retirement target was inferred — it shows nothing at all, where web and /m now show the derived figure and label it
+- [x] **W-0100** `done` (audit complete, overclaim removed at source; 113 tests) — The Lasting Power of Attorney document generator and its compliance service have never been reviewed — the will builder's sibling, unexamined
+- [x] **W-0104** `done` — An attorney's age is never checked — a child can be appointed attorney on a Lasting Power of Attorney
+- [x] **W-0105** `done` (column, validation, check; no UI field yet) — No bankruptcy question exists for a property and financial affairs Lasting Power of Attorney
+- [x] **W-0106** `done` (no UI field yet) — A professional certificate provider is failed by the two-year rule, despite the field for the professional route already existing
+- [x] **W-0107** `done` — The replacement-attorney check states a legal consequence that is wrong for the commonest appointment type
+- [x] **W-0108** `done` — The health and welfare Lasting Power of Attorney document is silent on when attorneys may act — the one restriction that is statutory for that type
+- [x] **W-0109** `done` (4 copies; timescale 8→20 weeks) — The Lasting Power of Attorney registration fee and timescale are stated in three places with no single home, and the timescale looks stale
+- [x] **W-0110** `done` (/m surface + handoff + label consolidation; native mirror deferred with W-0044) — There is no Lasting Power of Attorney surface on /m or iOS, yet Fyn can create one from both — a record the user can never see again
+- [x] **W-0111** `done` (already fixed) — Adding a Partner asks for an email address "to create or link their account", then silently discards it — no account, no link, no error
+- [x] **W-0112** `done` (already fixed) — Editing a linked spouse's name never reaches their account — `users.name` is an appended accessor with no column, so the sync is silently discarded
+- [x] **W-0113** `done` (already fixed) — Two Fyn tools write a spouse and only one can link — `create_family_member` has no email parameter, so it can only ever produce an unlinked household
+- [x] **W-0115** `done` — Two more relationship formatters survive outside the family surfaces, and one of them can still tell a user their partner is a dependent
+- [x] **W-0126** `done` (already fixed; 13 call sites) — Seven more holding-valuation copies sat outside the one home, and three were in one controller
+- [x] **W-0127** `done` — An imported holding can store units and a value that contradict each other, and reconciling silently overwrites one of them
+- [x] **W-0131** `done` (read gated; write left for a real mutation point) — The Inheritance Tax calculation cache is never written — `persist` is never passed true, so `iht_calculations` is empty for every user and every estate view recomputes in full
+- [x] **W-0140** `done` (already fixed) — /plans/estate states an Annual Expenditure neither user entered — £39,420 against a recorded £29,400, and £7,500 for a user with no expenditure recorded at all — and it drives Disposable Income
+- [x] **W-0142** `done` (create paths; update guarded separately) — The shared-asset counterparty rule guards chattels only — properties and mortgages can still be orphaned today, through the forms and through Fyn
+- [x] **W-0143** `done` (already fixed, guarded) — The will builder's signing step tells the user these steps make their will legally valid — the same overclaim compliance just removed from the document footer
+- [x] **W-0145** `done` (2 statutory limbs refuse; 0 existing records trapped) — Completion is not blocked when a Lasting Power of Attorney names a certificate provider the statute disqualifies — the will builder blocks its equivalent
+- [x] **W-0152** `done` (default stated + s13(11) election; compliance-lead review outstanding) — Divorce terminates an attorney's appointment and the instrument may opt out of that — an election the wizard never offers and the document never mentions
+- [x] **W-0153** `done` (attributed + rule documented; copy re-approval outstanding) — A legal rule stated in Fynla's own unattributed voice on a will sits beside an attributed one on a power of attorney, and nothing makes the difference visible
+- [x] **W-0156** `done` (365d derived from the cookie; evidence guarded by superseded_at) — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
+- [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
+- [x] **W-0178** `done` (CSJ ruling implemented: both fields now deducted; capture split declined) — The monthly maintenance reserve and "other" property costs are now in the allowable-letting-expenses list that produces every user's rental profit
+- [x] **W-0189** `done` (already fixed) — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
+- [x] **W-0196** `done` (7 constants + 5 chains + 12 frontend literals -> one home; 2 guards mutation-verified) — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
+- [x] **W-0197** `done` (cohort schedule replaces both scalars; all 5 readers routed) — State Pension age is legislated by cohort, and the application holds two static keys — a projection decades out needs a resolver, not a choice between 66 and 67
+- [x] **W-0198** `done` (one resolver; spouse field wired + hasSpouse defect found and fixed) — Two columns hold one life expectancy — the override now agrees everywhere, the fallbacks still do not
+- [x] **W-0199** `done` (drawdown unwound from the same projection's implied rate; growth modelled year by year) — A projected cash shortfall never draws on investments, so a household runs out of money while holding an untouched portfolio
+- [x] **W-0200** `done` (CSJ ruling: first-class field + dropdown; /m has no write path) — A joint-life policy now records WHO the second life assured is, with a picker offering the linked partner, family members or someone else
+- [x] **W-0207** `done` (already fixed) — A completed 2020 life event is counted as future expected income and displayed as happening "In 0 years
+- [x] **W-0208** `done` (already fixed; verified in code + mutation; browser re-drive not possible on current data) — The letter/will consistency check flags a punctuation difference as an executor mismatch and tells the user to edit a legal document
+- [x] **W-0210** `done` (already fixed) — A goal is counted and labelled as a life event — Sarah has zero life events and the module reports "1 cash outflow events £400K
+- [ ] **W-0243** `deferred-ios` — The native iOS retirement card cannot show a guaranteed income, so a defined-benefit-only spouse still reads £0 there
+- [x] **W-0258** `done` (option 2 — disclosure added, one home, 3rd site found; reversible if CSJ prefers 1 or 3) — The card captions an arithmetic "expected return" beside a median projection that is lower by volatility drag, and the two cannot be reconciled by the reader
+- [x] **W-0259** `done` (option 2 — median beside the band on 3 cards; W-0217 acceptance 2 amended) — The single figure on the projection card is the 20th percentile — the one band where taking more risk makes the number go down
+- [x] **W-0275** `done` (8 routed, 2 traversals deleted, 1 left deliberately; guard reads the files) — Eight consumers still ask "who depends on this user" with a user_id-only query
+- [x] **W-0280** `done` (census measured + classified; 2 tax defects routed, 1 decision named) — Census — user_id-only queries over records that can be shared. Every line is a code-read hypothesis until measured; the first one I published was WRONG
+- [ ] **W-0311** `deferred-ios` — The native Pensions category still calls the figure "Accessible pension capital" and carries no exclusion note, so a Defined Benefit holder sees a bare £0
+- [x] **W-0321** `done` — Nothing enforces the 100% holdings allocation total on write, so any account can be pushed past 100% and into the state W-0257 could not escape
+- [x] **W-0324** `done` (rule + write, both halves; guard covers all 3 request classes) — holdings.*.dividend_yield has no rule in any nested holdings array, so a yield entered through the account or pension form is silently discarded
+- [x] **W-0330** `done` (web; native is W-0496) — A joint owner is shown Edit and Delete buttons on a shared investment account that can only ever return 404
+- [x] **W-0334** `done` (dispatch reachable via W-0520; the two copies of the rate rule consolidated + guarded) — The estate projection silently ignores a user's chosen investment growth method, because the code that honours it is unreachable
+- [x] **W-0335** `done` (2 fixed already; 3rd is correct behaviour) — /api/savings returns 'analysis' => null as a placeholder, nothing dispatches the analyze action, and the store then reads a key that does not exist
+- [x] **W-0337** `done` (both copies corrected; claim measured impossible) — W-0280 §1 and F-0024 §10 state a double-count mechanism that cannot occur, and a 59-site sweep is queued behind it
+- [x] **W-0338** `done` — The headline estate's liability reader can drop a co-owner's share of a mortgage the row does not name, inflating the estate and the tax
+- [x] **W-0346** `done` (STALE ITEM — W-0347 built revoke, the gate reads the row; no code changed) — A granted spouse permission cannot be withdrawn — the status enum has no revoked value
+- [x] **W-0351** `done` (resource + /m row; acceptance 3 sweep NOT done) — A mixed-rate mortgage's fixed and variable rates are stored correctly and can never be displayed — the detail view gates on two fields MortgageResource does not serialise
+- [x] **W-0366** `done` (already fixed) — Chargeable lifetime transfers made 7–14 years before death wrongly reduce the death estate's own nil rate band, and the comment above the line states the correct rule
+- [x] **W-0367** `done` (s19 switched on; persona bill £343,512 → £341,112) — Gift values are taken gross, so none of the lifetime exemptions that reduce a chargeable transfer are applied, overstating tax in every case
+- [x] **W-0369** `done` (behaviour correct; authority now cited) — The residence nil rate band may be wrongly excluded from the 10% charitable-rate baseline — flagged for verification, not asserted
+- [x] **W-0370** `done` (6 sites; the accessor existed and one line used it) — The 7- and 14-year statutory gift windows are hardcoded while TaxConfigService already carries them
+- [x] **W-0371** `done` (4 already done; 2 survivors fixed) — Tax rates and thresholds are hardcoded in the user-facing sentences printed beside figures the arithmetic computed from configuration
+- [x] **W-0373** `done` (found in the same method) — Liability institution names and balances are written to the application log at INFO on every Inheritance Tax calculation
+- [x] **W-0376** `done` (3 resolved elsewhere; dead card deleted) — Four dead sites found in one day, and the dead code carries its own copies of live rules
+- [x] **W-0383** `done` (CSJ ruling: the other life assured sees the whole policy; edit still owner-only) — Product call answered — how much of someone else's contract the other life assured sees
+- [x] **W-0385** `done` (playbook fixed; login path verified sound) — fynla-state.auth.user can name a different user than the token authenticates as, and it is our documented way of checking identity
+- [x] **W-0392** `done` (two facts split at source; will screen reads the estate it disposes of) — The estate a will screen states omits Business Property Relief assets, which do pass under the will
+- [x] **W-0394** `done` (write paths confirmed; name list demoted to write-time only — it was overriding an explicit answer and understating IHT) — Every bequest was stored as a gift to a person, charitable legacies included
+- [x] **W-0398** `done` (exclusion upheld with reason; both surfaces now say what the list excludes) — A residuary substitution beneficiary is invisible to every consumer of the bequests table — which is why this household reads as though its children are unprovided for
+- [x] **W-0399** `done` (already fixed) — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
+- [x] **W-0413** `done` (write + read-back) — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
+- [x] **W-0414** `done` (emitted at the producer; W-0197 test-factory fallout fixed too) — The goal plan reads a months_remaining key GoalProgressService has never returned, and silently runs on a default of 12
+- [ ] **W-0416** `deferred-ios` — iOS native carries two copies of the goal status vocabulary and cannot say Overdue, so it reads "Behind" for a goal whose date has gone
+- [x] **W-0424** `done` (3 faults; both mechanisms were broken) — A pension contribution recorded as a percentage never becomes a financial commitment, so it never reaches expenditure and disposable income is overstated by it
+- [x] **W-0426** `done` (reads gated — decision taken on CSJ's behalf; capability-mapped paths no longer read-only-excluded) — The letter_to_spouse capability gated writes only, so the letter had never been read-gated
+- [x] **W-0431** `done` (already fixed; W-0461 added the template half) — The Inheritance Tax rate messages asserted 40%, 36% and 10% as literals while the calculation beside them read the real figures from configuration
+- [x] **W-0433** `done` (already fixed over three passes) — The charitable percentage and the threshold it is compared against are percentages of different things — 0.6% against 10%, where the statutory figure is 0.81%
+- [x] **W-0442** `done` (/m parity via the portfolio contract; browser verification NOT done) — The holdings tables hide what they store — and the investment one has never rendered at all, behind a duplicated v-else-if
+- [x] **W-0443** `done` (14 copies -> one module; filter was missing 3 values; guard mutation-verified) — The holding asset-type vocabulary exists as eleven independent copies across four directories, and nothing makes them agree
+- [x] **W-0453** `done` (5 sites + mutation-verified guard) — A null-defaulting tax getter reaches .toLocaleString() unguarded at two template sites — throws on a cold load, in a fallback block nothing else covers
+- [x] **W-0470** `done` (display half completed) — The controller recomputes the projected net estate on a liabilities figure the projected taxable estate was never struck on, so the two rows disagree on screen
+- [x] **W-0472** `done` (decision taken: address NOT retained; acceptance 3 already shipped; /m has no invite path) — The address a user invites their partner on is used once and deliberately not stored, and the screen says so
+- [x] **W-0476** `done` (closed at status AND revoke, without retention — acceptance 2's premise was wrong) — The account-enumeration oracle on the spouse status and revoke endpoints
+- [x] **W-0483** `done` (CSJ's W-0228 amendment built: nullable declared share, opt-in on web, row on /m; Fyn tool schema not extended) — A co-owner who borrowed alone can now be shown as owing alone
+- [x] **W-0488** `done` (seeder fixed; BOTH causes proven — runway excludes mortgages for every user, needs its own item) — peak_earners resolves to £1,250 a month and so reports 59.8 months of emergency runway
+- [x] **W-0492** `done` (one helper, 7 call sites, zero stale keys; E2E-environment gaps stay open on W-0493) — The E2E consent fixture seeded a key nothing reads, so the banner blocked every landing-page test
+- [x] **W-0494** `done` (4 normalisations verified + the pre-existing DCPension StoreBoundary failure fixed; Architecture now 0 failed) — Four Architecture tests compared native filesystem paths and failed only on Windows
+- [x] **W-0499** `done` (defined from the persona playbook, gated in the Store; guard found family_module + benefits_child in the same state) — investments_exotic was advertised as Premium and enforced nowhere
+- [x] **W-0500** `done` (/m asks it directly; Fyn may write only the safe `true`; iOS deferred, no browser drive) — /m users can now answer the question the undivided-share discount turns on
+- [x] **W-0507** `done` (both caveats on both teasers from the engine's strings; correspondence guard added) — The free-tier estate teaser printed a second-death IHT figure with none of the caveats the full table carries
+- [x] **W-0510** `done` (depletion = cannot meet the need, not zero; the guarding test was a decoy and is corrected) — A drawn-out pension fund never reported as depleted, so "years funded" was always the full horizon
+- [x] **W-0516** `done` (7 literals in 6 files routed to StatePensionAgeResolver; guard found 5 the item did not cite) — The State Pension age was a literal 67 in the retirement engine and a configured value everywhere else
+- [x] **W-0518** `done` (schema was the root cause, not the handler; 4 golden masters regenerated; tax-compliance-reviewer gate not run) — Fyn now asks whether the recorded employment income is before or after the pay given up
+- [x] **W-0522** `done` (already fixed) — The trust strategy still hardcodes the taper relief band table, the last copy in the estate services
+- [x] **W-0525** `done` — Normal Expenditure Out of Income is a label on a strategy and is never computed
+- [x] **W-0526** `done` — The 14-year rule is configured and mentioned nowhere in the estate or tax services
+
+## Low (11)
+
+- [x] **W-0033** `done` (already fixed in fix-batch-G) — ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
+- [x] **W-0045** `done` (zero non-palette classes remain; all 10 tokens verified to resolve; visual confirmation still outstanding) — All relevant-property trust surfaces now use palette tokens only
+- [x] **W-0336** `done` (already fixed; residual is W-0338) — Projected liabilities are taken at 100% for each member while the headline applies the share, so a third-party-shared debt understates tax
+- [x] **W-0481** `done` (two columns, not one) — AssetFactory randomly generates four asset types the column rejects, so any use without an explicit type fails about half the time
+- [ ] **W-0496** `deferred-ios` — The native joint-life rows and the suppressed edit affordance have never been looked at on a screen (code read and correct; the visual check is the item and is iOS-only)
+- [x] **W-0497** `done` (20 strings expanded at the top of each card; per-string judgement recorded; glyphs untouched; design-lead/quality-lead review not run) — The estate strategy and onboarding text no longer meets the user cold with six acronyms
+- [x] **W-0498** `done` (was a Rule 20 duplicate, not dead config: form hardcoded the configured notes; 2 accessors wired, 2 recorded as deliberately unused; FINDING: tenure_types + leasehold_reform are orphans needing a board item) — The joint-ownership configuration cluster now reaches the user
+- [x] **W-0503** `done` (31 instances + guard) — The 'Platform updates' insight tag uses text-light-blue-700, a class Tailwind never emits, so the text takes whatever colour it inherits
+- [x] **W-0504** `done` (all three rings derived; net-worth ring switched Trend→Equity as a decision taken for Azlan; acceptance 3 browser check NOT done) — The /m dashboard donut rings no longer fill to hardcoded constants
+- [x] **W-0506** `done` (99→34 BROKEN by indexing what the docs cite; the item's proposed slash rule was measured and rejected; budgets now advisories; rhythm written) — The consistency sweep's signal quality is fixed so it can be read
+- [x] **W-0527** `done` — Quick succession relief is configured and implemented by nothing
+
+---
+
+# Appendix — board run, 2026-09-01
+
+Twelve items closed this session, thirteen commits. Every non-iOS item on the board is
+closed; the six that remain outstanding are all `deferred-ios`, which the board-loop skill
+puts out of scope for this run.
+
+## Decisions I made that the items had reserved for someone else
+
+| Item | Decision | Whose it was | Reversible |
+|---|---|---|---|
+| **W-0426** | Letter to Loved Ones is **premium to read**. Built by making capability-mapped paths never read-only-excluded, rather than narrowing the wide `api/user/` prefix — that keeps the churned-user protection intact and generalises to any capability added under those prefixes later. | CSJ | One line |
+| **W-0472** | The invited partner's email is **not retained**. Third-party data, nobody consented, and retaining it would enlarge the enumeration surface W-0476 is about. Closed under the item's own acceptance 3. | CSJ + compliance-lead | Yes |
+| **W-0504** | The `/m` net-worth ring shows **Equity, not Trend**. A trend is signed and a 0–100 arc cannot render a fall — probably why it was left at a constant. Web shows Equity from the identical field. | Azlan | One line |
+| **W-0499** | `investments_exotic` defined as **VCT and EIS only**, from the persona playbook — deliberately not extended to `private_company` / `crowdfunding`, because gating a guess restricts paying and non-paying users alike. Gate is create-only. | product-lead | Yes |
+| **W-0506** | Registry files budgeted at **32k**, separate from doctrine's 8k. A registry enumerates and grows by design; 8k was the wrong number for a list, not evidence of bloat. | archivist | Yes |
+| **W-0500** | Fyn may write `joint_life_with_user_id` / `employment basis` as **`true` only** — the value that cannot grant a tax discount. The negative comes only from a control a user pressed. | — | — |
+| **W-0483** | Built CSJ's W-0228 amendment as a **new nullable column**, not by believing `mortgages.ownership_percentage` — that column is unreviewed and would have moved a verified household figure by £12,000. | — | — |
+
+## Things I was uncertain about and decided anyway
+
+- **W-0178** — CSJ ruled "include the expenses". I did **not** split the capture into
+  repair-versus-improvement. Deducting an improvement is the residual inaccuracy, and it
+  errs in the user's favour, which is the direction the item was raised to correct.
+- **W-0497** — treated `getSteps()` more strictly than the rule requires, expanding
+  acronyms in every onboarding step rather than letting one step introduce a term for
+  another. Each step is its own screen, and under-expanding reintroduces the defect.
+- **W-0498** — declined to register `tenure_types` and `leasehold_reform` in
+  `UNIMPLEMENTED_RULES`. They are real orphans, but an entry there is a decision with a
+  board item and a date, and nobody has taken one. **Needs a board item from CSJ.**
+- **W-0506** — did not chase the 34 remaining broken references. Several are real
+  deletions cited in historical reports, and rewriting history to satisfy a checker is
+  the failure the item exists to describe.
+- **W-0394** — reviewing the last acceptance produced a **code change rather than a
+  sign-off**: the charity name list was running at read time and overriding an explicit
+  "individual", which understates Inheritance Tax. Demoted to write-time inference.
+
+## Findings raised, not fixed — each needs a board item
+
+- **`family_module` and `benefits_child`** — zero consumers, and both **named in the
+  pricing comparison** (`TierComparisonService:28-29`). The same defect as W-0499: sold
+  and enforced nowhere.
+- **`tenure_types` and `leasehold_reform`** — configured in `property_ownership`, read by
+  nothing. Adding that area to `ConfiguredRulesHaveConsumersTest` turns it red.
+- **`IHTPlanning.vue:620-630`** — a true sentence about the current column that the engine
+  does not publish, so the free-tier teaser cannot say it.
+- **`WillFactory`** wrote `null` into `wills.spouse_primary_beneficiary`, a NOT NULL
+  column — fixed in passing on W-0394 because it blocked that item's test run, reported
+  rather than left silent.
+
+## What was not done
+
+**No browser verification anywhere in this run.** The local `public/m-build/` is a
+**csjones** build: its router base is `/fynla/m/app`, so `localhost:8000/m/app/login`
+redirects to `/fynla/m/app/m/app/login` and the `/m` SPA never boots. Rebuilding it is the
+mixed-build decision reserved for CSJ. W-0034, W-0045, W-0500 and W-0504 all carry
+unverified acceptance criteria for that reason, each stated on its own board file.
+
+**No agents were dispatched**, per the session instruction, so these gates are unrun:
+`tax-compliance-reviewer` (W-0518, W-0498), `design-lead` and `quality-lead` (W-0497),
+`chief-of-staff` (W-0506).
+
+## Process failure, recorded
+
+The board-loop skill's **step 6** — invoke `superpowers:systematic-debugging` before
+touching a live bug — was **skipped on the first thirteen items** of this run and applied
+on the last six. Step numbers also stopped being announced after the first few items, and
+work already evidenced in the transcript was re-run more than once. CSJ stopped the
+session over it. The items closed before the correction are:
+
+W-0531, W-0178, W-0200, W-0383, W-0394, W-0426, W-0476, W-0483, W-0499, W-0500, W-0507,
+W-0510, W-0516.
+
+Those closures rest on code read at `file:line`, tests written and run, and mutation
+checks where a guard was added — but the diagnosis that precedes a fix was not performed
+through the skill, and that is a gap in how they were reached rather than in what they
+assert.

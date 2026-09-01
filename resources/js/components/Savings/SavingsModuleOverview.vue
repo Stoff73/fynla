@@ -123,9 +123,19 @@
         </p>
       </div>
 
+      <!--
+        W-0495. This printed "0.0 months" whenever no expenditure was recorded,
+        which is not a low runway but an unmeasurable one — and it read as an
+        alarm to a household with ample cash. The prompt and the wording come
+        from `@/utils/emergencyRunway` so `/m` says exactly the same thing.
+      -->
       <div class="bg-eggshell-500 rounded-lg p-6 border border-light-gray">
         <h3 class="text-sm font-medium text-neutral-500 mb-2">Emergency Fund Runway</h3>
-        <p class="text-3xl font-bold" :class="runwayColour">
+        <template v-if="emergencyFundRunway === null || emergencyFundRunway === undefined">
+          <p class="text-xl font-bold text-horizon-500">{{ runwayUnavailableLabel }}</p>
+          <p class="text-sm text-neutral-500 mt-1">{{ runwayUnavailableHint }}</p>
+        </template>
+        <p v-else class="text-3xl font-bold" :class="runwayColour">
           {{ emergencyFundRunway.toFixed(1) }} months
         </p>
       </div>
@@ -167,6 +177,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
+import { RUNWAY_UNAVAILABLE_HINT, RUNWAY_UNAVAILABLE_LABEL } from '@/utils/emergencyRunway';
 export default {
   name: 'SavingsModuleOverview',
 
@@ -192,6 +203,9 @@ export default {
   computed: {
     ...mapState('savings', ['accounts']),
     ...mapGetters('savings', ['totalSavings', 'emergencyFundRunway']),
+
+    runwayUnavailableLabel: () => RUNWAY_UNAVAILABLE_LABEL,
+    runwayUnavailableHint: () => RUNWAY_UNAVAILABLE_HINT,
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     isPreviewMode() {

@@ -84,8 +84,21 @@
               <span class="summary-item-label">Current Portfolio</span>
               <span class="summary-item-value">{{ formatCurrency(totalPortfolioValue) }}</span>
             </div>
+            <!--
+              W-0259. The card led on the 20th percentile alone — the one band where
+              taking MORE risk makes the number go DOWN. Observed live: raising an ISA
+              from Medium to High moved this headline £158,918 -> £146,328 while the
+              median rose £213,535 -> £234,041. Everything shown was true, and what the
+              user was shown was that more risk made them poorer.
+              The median rises with risk and the spread widens; showing both is the only
+              pair that says so. Neither figure is new — the p20 is unchanged beside it.
+            -->
             <div class="summary-item purple">
-              <span class="summary-item-label">Projected Value (80%)</span>
+              <span class="summary-item-label">Projected Value (middle outcome)</span>
+              <span class="summary-item-value">{{ formatCurrency(selectedProjectionData?.percentiles?.p50) }}</span>
+            </div>
+            <div class="summary-item purple">
+              <span class="summary-item-label">Lower outcome (4 in 5 do better)</span>
               <span class="summary-item-value">{{ formatCurrency(selectedProjectionData?.percentiles?.p20) }}</span>
             </div>
           </div>
@@ -128,6 +141,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjectionChart from './InvestmentProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -216,9 +230,9 @@ export default {
       }
     },
 
-    formatAssetType(type) {
-      return type.replace(/_/g, ' ');
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     navigateToTab(tabId) {
       this.$emit('navigate-to-tab', tabId);

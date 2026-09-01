@@ -51,6 +51,15 @@ class UpdateInvestmentAccountRequest extends FormRequest
     {
         $validator->after(function ($v) {
             $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
+
+            // W-0321 — the same 100% ceiling the CREATE request enforces. It was
+            // missing here, so an account created at 100% could be pushed past it
+            // by an edit: create refused what update accepted, for the same
+            // account and the same numbers.
+            StoreInvestmentAccountRequest::validateHoldingsAllocation(
+                $v,
+                $this->has('holdings') ? $this->holdings : null
+            );
         });
     }
 
@@ -117,6 +126,8 @@ class UpdateInvestmentAccountRequest extends FormRequest
             // StoreInvestmentAccountRequest. True only because W-0263 widened the
             // column to decimal(7,4); keep all four in step (Rule 20).
             'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
+            // W-0324 — same rule as the store request and the standalone endpoint.
+            'holdings.*.dividend_yield' => 'nullable|numeric|min:0|max:100',
         ];
     }
 

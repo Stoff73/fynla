@@ -4,7 +4,7 @@ title: /plans/estate states an Annual Expenditure neither user entered — £39,
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0016-cycle1-m-chattels-and-plan-expenditure.md
 owner: build-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T20:40:00Z
@@ -319,3 +319,11 @@ Sarah's panel now reads "Annual Expenditure £14,820" followed by "Recorded Expe
 
 **Reported, not fixed:** `IncomeOccupation.vue:193` on the profile shows the same composed
 figure with no composition beside it. Different surface, not named in the decision.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `resources/js/utils/expenditureComposition.js` exists for this item and names it in its first line. The figure keeps its meaning — recorded entries PLUS financial commitments, which Disposable Income must subtract to be true — but the plans no longer print that composed total under a bare label naming only one of its components, and **a user who has recorded no expenditure is told so** rather than shown a number that is entirely commitments.
+
+  One home, both mechanisms: `Plans/Shared/PlanExpenditureComposition.vue` and `Plans/Shared/planPrintMixin.js` both import `expenditureCompositionRows()` and `expenditureCompositionNote()`, so the four plan panels and the adviser print pack say the same thing (Rule 20). The server composes the numbers via `UserProfileService::expenditurePresentation`; the module owns only the labels and the presentation decision.
+
+  **Tested:** 821 frontend tests and 123 expenditure tests pass (331 assertions).

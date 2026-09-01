@@ -757,7 +757,11 @@ class LetterToSpouseService
 
         foreach ($familyMembers as $member) {
             $info .= "• {$member->name}\n";
-            $info .= '  Relationship: '.ucfirst($member->relationship ?? 'dependent')."\n";
+            // W-0115 — the same appended accessor the family surfaces use. The
+            // fallback here was literally 'dependent', so an unrecorded
+            // relationship was asserted as one in a document the reader's family
+            // is meant to act on.
+            $info .= '  Relationship: '.ucfirst($member->display_relationship ?: 'family member')."\n";
             if ($member->date_of_birth) {
                 $age = Carbon::parse($member->date_of_birth)->age;
                 $info .= "  Age: {$age}\n";

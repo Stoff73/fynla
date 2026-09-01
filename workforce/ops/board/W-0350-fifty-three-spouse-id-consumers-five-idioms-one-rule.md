@@ -4,7 +4,7 @@ title: 53 spouse_id consumers, five idioms, and only three use the rule the mode
 mission: persona-run-peak_earners-2026-08-20
 branch: fix/w-0350-spouse-link-authorization-one-helper
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -253,3 +253,8 @@ than lifted blind.
   **This item's own history is the argument for keeping the status honest.** It sat at
   `blocked / blocked_by: [csj-decision]` for six days after W-0347 had lifted the block, so
   a high-severity authorization item read as waiting on CSJ when it was waiting on nobody.
+
+- 2026-08-31 build-lead: **CLOSED — merged as PR #753, verified against `dev`.**
+  `User::reciprocalLiveSpouse()` (app/Models/User.php:553) is the single rule; twelve
+  files consume it. Tier 2 cross-account writes and the Tier 1/Tier 3 disclosure surface
+  are gated on reciprocity.

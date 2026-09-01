@@ -365,13 +365,55 @@ class TaxConfigService
     }
 
     /**
-     * Get the 14-year rule configuration
+     * The fourteen-year rule, DERIVED from the two transfer blocks that state it.
      *
-     * @return array Contains lookback periods and calculation steps
+     * **There is no fourteen-year window in the legislation.** There are two
+     * independent seven-year ones: a chargeable transfer within seven years of
+     * death is charged by reference to the transfers in the seven years ending
+     * with THAT transfer (IHTA 1984 s7(1)(b)), so a gift up to fourteen years old
+     * can still matter. Fourteen is the SUM, never an input — which is why it is
+     * computed here rather than configured.
+     *
+     * **W-0526.** It used to be configured, in an `inheritance_tax.fourteen_year_rule`
+     * block carrying its own `lookback_for_failed_pets`, `lookback_for_clts` and
+     * `maximum_window: 14` — and nothing read any of them. `FailedGiftTaxCalculator`
+     * composed the same windows from `potentially_exempt_transfers` and
+     * `chargeable_lifetime_transfers` instead. So one rule had two configured homes:
+     * an admin moving `maximum_window` to 10 changed nothing, moving the CLT block
+     * changed the answer silently, and the two could contradict each other because
+     * a stored 14 does not follow a lookback edited to 5.
+     *
+     * The narrative keys (`description`, `calculation_steps`) are still read from
+     * that block, because prose is the one thing it can own without going stale
+     * against arithmetic it does not perform.
+     *
+     * @return array{lookback_for_failed_pets: int, lookback_for_clts: int, maximum_window: int, description: string, calculation_steps: list<string>}
      */
     public function getFourteenYearRule(): array
     {
-        return $this->get('inheritance_tax.fourteen_year_rule', []);
+        $clts = $this->getCLTRules();
+
+        // BOTH windows come from the chargeable-lifetime-transfer block, because
+        // both are properties of a CLT: `cumulation_period` is how far back from
+        // DEATH a chargeable transfer is caught, `lookback_period` is how far back
+        // from THAT TRANSFER its own cumulation reaches.
+        //
+        // Deliberately NOT `potentially_exempt_transfers.years_to_exemption`, even
+        // though it holds 7 as well. It answers a different question — when a PET
+        // becomes exempt — and substituting it here would be a silent change of
+        // meaning that no test could catch while both keys happen to agree.
+        $lookbackForClts = (int) ($clts['cumulation_period'] ?? 7);
+        $lookbackForFailedPets = (int) ($clts['lookback_period'] ?? 7);
+        $narrative = $this->get('inheritance_tax.fourteen_year_rule', []);
+
+        return [
+            'lookback_for_failed_pets' => $lookbackForFailedPets,
+            'lookback_for_clts' => $lookbackForClts,
+            // The outer search bound. Not a cumulation band in its own right.
+            'maximum_window' => $lookbackForFailedPets + $lookbackForClts,
+            'description' => (string) ($narrative['description'] ?? ''),
+            'calculation_steps' => (array) ($narrative['calculation_steps'] ?? []),
+        ];
     }
 
     /**
@@ -487,9 +529,38 @@ class TaxConfigService
      *
      * @return array Contains conditions and evidence requirements
      */
+    /**
+     * The IHTA 1984 s21 exemption — regular gifts out of surplus income.
+     *
+     * **W-0525.** This accessor had zero callers while TWO services computed the
+     * exemption anyway: `PersonalizedGiftingStrategyService` and
+     * `GiftingStrategyOptimizer` each hardcoded `surplus * 0.5` with a `>= 1000`
+     * floor. So one exemption had two mechanisms and no configuration — moving
+     * the admin setting did nothing, and editing either service let the two
+     * answers drift apart with nothing comparing them.
+     *
+     * The two numbers are surfaced explicitly because they are the ones the
+     * strategies act on, and neither is in the legislation: s21 sets no cap at
+     * all. `safe_surplus_fraction` is a deliberate conservatism — the third
+     * statutory test is that the donor keeps their usual standard of living, so
+     * suggesting the whole surplus would advise up to the edge of failing it.
+     * `minimum_annual_gift` is the point below which a standing order is not
+     * worth the record-keeping the exemption demands.
+     *
+     * @return array{limit: null|float, immediately_exempt: bool, safe_surplus_fraction: float, minimum_annual_gift: float, conditions: array<string, bool>, evidence_required: list<string>}
+     */
     public function getNormalExpenditureFromIncome(): array
     {
-        return $this->get('gifting_exemptions.normal_expenditure_from_income', []);
+        $rules = $this->get('gifting_exemptions.normal_expenditure_from_income', []);
+
+        return $rules + [
+            'limit' => null,
+            'immediately_exempt' => true,
+            'safe_surplus_fraction' => 0.5,
+            'minimum_annual_gift' => 1000.0,
+            'conditions' => [],
+            'evidence_required' => [],
+        ];
     }
 
     /**
@@ -756,6 +827,21 @@ class TaxConfigService
 
     /**
      * Check if joint tenancy has survivorship rights (for IHT calculations)
+     *
+     * **W-0498 — deliberately without callers, and this note is the point.**
+     *
+     * This and `allowsWillOverride()` below answer a FIRST-death question: what happens
+     * to a jointly-held asset when one owner dies. The estate model does not ask it.
+     * `EstateAssetAggregatorService` produces a SECOND-death estate, where there is no
+     * survivor left for a joint tenancy to pass to, so survivorship must not be
+     * consulted there — W-0375 rewrote that service's docblock to say so, and a guard
+     * in `JointOwnershipConfigReachesTheUserTest` fails if either method appears in it.
+     *
+     * They are kept rather than deleted because the configured data they read is real
+     * and is now shown to users through `TaxConfigSnapshotService`; a first-death
+     * treatment would compose from here rather than re-deriving it. The absence of a
+     * caller is a decision, recorded, instead of looking like dead code somebody
+     * forgot to wire.
      */
     public function hasSurvivorshipRights(string $jointOwnershipType): bool
     {

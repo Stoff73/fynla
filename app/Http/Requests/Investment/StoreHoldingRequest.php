@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Investment;
 
 use App\Constants\HoldingSubTypes;
+use App\Http\Traits\ValidatesHoldingValuation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,6 +14,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreHoldingRequest extends FormRequest
 {
+    use ValidatesHoldingValuation;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -24,6 +27,13 @@ class StoreHoldingRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      */
+    public function withValidator($validator): void
+    {
+        // W-0127 — see the trait for why this is refused here rather than
+        // reconciled silently.
+        $validator->after(fn ($v) => $this->validateHoldingValuationAgrees($v));
+    }
+
     public function rules(): array
     {
         return [

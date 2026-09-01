@@ -243,7 +243,7 @@
                 is left to charity{{ charitableFiguresDiffer ? ' across your household' : '' }}, and comes out of the estate before Inheritance Tax is worked out.
               </p>
               <p v-if="charitableFiguresDiffer" class="text-neutral-500 mt-1">
-                The 10% test that decides the reduced rate looks only at the will operating on the second death, which leaves
+                The {{ charitableThresholdLabel }} test that decides the reduced rate looks only at the will operating on the second death, which leaves
                 <span class="font-semibold text-horizon-500">{{ formatCurrency(ihtData.charitable_rate_test_amount) }}</span>.
               </p>
               <p v-else-if="!charitableLegacyRecorded" class="text-neutral-500">Your will records no gifts to charity.</p>
@@ -254,6 +254,29 @@
                 If you left {{ formatCurrency(ihtData.charitable_threshold) }} or more, your rate would fall to {{ formatPercent(ihtReducedRate) }} and your estate would pay about:
               </p>
               <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(charitableBequestSavings) }} less</p>
+              <!--
+                W-0462. The saving stood alone, and on this household the same
+                action leaves the family worse off — the gift that buys the
+                reduced rate leaves the estate too. Both statements are true and
+                only one was on the page.
+
+                A FIGURE, not a disclaimer: the item is explicit that a caveat
+                does not discharge it. `charitable_residue_effect` is computed
+                server-side beside the saving itself, so the two cannot disagree
+                and no surface composes its own version (Rule 20).
+              -->
+              <p v-if="charitableResidueEffect !== null" class="text-neutral-500 mt-2">
+                <template v-if="charitableResidueEffect < 0">
+                  Your beneficiaries would receive
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(Math.abs(charitableResidueEffect)) }} less</span>,
+                  because the gift leaves the estate as well. The tax saving is smaller than the gift.
+                </template>
+                <template v-else>
+                  Your beneficiaries would receive
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(charitableResidueEffect) }} more</span>,
+                  because the tax saved is larger than the gift.
+                </template>
+              </p>
               <p class="text-neutral-500 mt-1">A scenario only — nothing above changes until the gift is in your will.</p>
             </div>
             <button class="btn-secondary w-full text-xs" @click="navigateToWillTab">Manage bequests in your will</button>
@@ -306,7 +329,7 @@
           <div class="space-y-2 text-xs">
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Annual Exemption:</span>
-              <span class="font-bold text-spring-700">£{{ annualGiftExemption.toLocaleString() }}</span>
+              <span class="font-bold text-spring-700">£{{ (annualGiftExemption || 0).toLocaleString() }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Small Gift Allowance:</span>
@@ -584,6 +607,28 @@
     />
 
     <!-- Standard Recommendations (Non-Married Users OR Married without full second death data) -->
+    <!--
+      W-0171. The single largest adjustment to this household's estate was
+      invisible: £500,000 of defined contribution pensions leaves the estate,
+      correctly, and the page said nothing — no row, no figure, and no mention
+      that the exclusion REVERSES on a date inside the planning horizon. A user
+      is the only person in the loop who knows whether the inputs are right, and
+      they cannot check a working whose largest line is absent.
+
+      The date is read from configuration, never spelled here (Rule 2).
+    -->
+    <div v-if="pensionExcludedFromEstate > 0" class="bg-eggshell-500 rounded-lg p-4 mb-4 text-xs">
+      <p class="text-neutral-500">
+        <span class="font-semibold text-horizon-500">{{ formatCurrency(pensionExcludedFromEstate) }}</span>
+        of pension savings is left out of the figures above, because pension funds sit
+        outside the estate for Inheritance Tax.
+      </p>
+      <p v-if="pensionExclusionEndsLabel" class="text-neutral-500 mt-1">
+        That changes on <span class="font-semibold text-horizon-500">{{ pensionExclusionEndsLabel }}</span>,
+        when unused pots start counting towards the estate. Your bill above does not yet include them.
+      </p>
+    </div>
+
     <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-eggshell-500 rounded-lg p-4">
       <div class="flex">
         <div class="flex-shrink-0">
@@ -607,7 +652,7 @@
               Your estate has a potential Inheritance Tax liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
             </p>
             <ul class="list-disc list-inside space-y-1">
-              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ annualGiftExemption.toLocaleString() }}/year)</li>
+              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ (annualGiftExemption || 0).toLocaleString() }}/year)</li>
               <!--
                 W-0451. Three rate literals in one line, in the component whose
                 sentence two cards above now moves with configuration. Under a
@@ -618,7 +663,7 @@
               <li>Charitable giving (can reduce Inheritance Tax rate from {{ formatPercent(ihtStandardRate) }} to {{ formatPercent(ihtReducedRate) }} if {{ charitableThresholdLabel }} or more goes to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
               <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
-              <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to £175,000)</li>
+              <li v-if="!ihtData?.rnrb || ihtData.rnrb === 0">Consider leaving your main residence to direct descendants to claim the Home Allowance (up to {{ formatCurrency(ihtResidenceNilRateBand) }})</li>
             </ul>
           </div>
         </div>
@@ -780,7 +825,7 @@ export default {
   computed: {
     ...mapState('estate', ['analysis', 'gifts', 'lifeEvents', 'lifeEventImpact', 'lpas']),
     ...mapGetters('estate', ['netWorthValue', 'ihtLiability', 'ihtExemptAssets']),
-    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'ihtRnrbTaperThreshold', 'annualGiftExemption']),
+    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand', 'ihtStandardRate', 'ihtReducedRate', 'ihtRnrbTaperThreshold', 'annualGiftExemption']),
     ...mapGetters('auth', ['currentUser']),
 
     hasSpouseLinked() {
@@ -795,14 +840,15 @@ export default {
       return (this.lpas || []).filter(l => l.status === 'draft' || l.status === 'completed').length;
     },
 
+    // W-0110. This copy said "Property & Financial" where the summary and detail
+    // cards said "Property & Financial Affairs" — one instrument, two names on one
+    // module. Both now come from the record.
     lpasByType() {
-      const types = { property_financial: 'Property & Financial', health_welfare: 'Health & Welfare' };
-      const statuses = { registered: 'Registered', draft: 'Draft', completed: 'Completed' };
       return (this.lpas || []).map(lpa => ({
         type: lpa.lpa_type,
-        label: types[lpa.lpa_type] || lpa.lpa_type,
+        label: lpa.type_label,
         status: lpa.status,
-        statusLabel: statuses[lpa.status] || lpa.status,
+        statusLabel: lpa.status_label,
       }));
     },
 
@@ -1044,6 +1090,39 @@ export default {
 
       const percent = (threshold / baseline) * 100;
       return `${Number(percent.toFixed(2))}%`;
+    },
+
+    /**
+     * W-0462 — the change in what the beneficiaries actually receive.
+     *
+     * Read from the server, never recomputed here: the break-even is
+     * `E·(r_s − r_r)/(1 − r_r)`, which is 6.25% of the chargeable estate only at
+     * 40/36. Composing it on the client would be a second mechanism that goes
+     * wrong the moment a rate moves.
+     */
+    charitableResidueEffect() {
+      const value = this.ihtData?.charitable_residue_effect;
+
+      return value === null || value === undefined ? null : Number(value);
+    },
+
+    /** W-0171 — the pension value the estate figures exclude. */
+    pensionExcludedFromEstate() {
+      return Number(this.ihtData?.pension_excluded_from_estate ?? 0);
+    },
+
+    /**
+     * W-0171 — when that exclusion ends. Configured, never a literal: a Budget
+     * that moves the commencement date moves this sentence with it.
+     */
+    pensionExclusionEndsLabel() {
+      const date = this.ihtData?.pension_exclusion_ends;
+
+      if (!date) return null;
+
+      return new Date(date).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      });
     },
 
     charitableFiguresDiffer() {

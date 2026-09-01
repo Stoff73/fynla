@@ -170,6 +170,9 @@ it('uses the user target age for a DC pension whose scheme age is later', functi
         $projector,
         $assumptions,
         $taxConfig,
+        // W-0516 — the State Pension age resolver. Real: the cohort schedule is the
+        // behaviour, and mocking it would pin the literal this item removed.
+        app(App\Services\Retirement\StatePensionAgeResolver::class),
     ))->build($user);
 
     expect($contract['contract_version'])->toBe('retirement_projection_v1')
