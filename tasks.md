@@ -141,7 +141,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0507** `done` (both caveats on both teasers from the engine's strings; correspondence guard added) — The free-tier estate teaser printed a second-death IHT figure with none of the caveats the full table carries
 - [x] **W-0510** `done` (depletion = cannot meet the need, not zero; the guarding test was a decoy and is corrected) — A drawn-out pension fund never reported as depleted, so "years funded" was always the full horizon
 - [x] **W-0516** `done` (7 literals in 6 files routed to StatePensionAgeResolver; guard found 5 the item did not cite) — The State Pension age was a literal 67 in the retirement engine and a configured value everywhere else
-- [ ] **W-0518** `queued` — Fyn captures salary sacrifice without asking whether the recorded employment income is before or after the pay given up
+- [x] **W-0518** `done` (schema was the root cause, not the handler; 4 golden masters regenerated; tax-compliance-reviewer gate not run) — Fyn now asks whether the recorded employment income is before or after the pay given up
 - [x] **W-0522** `done` (already fixed) — The trust strategy still hardcodes the taper relief band table, the last copy in the estate services
 - [x] **W-0525** `done` — Normal Expenditure Out of Income is a label on a strategy and is never computed
 - [x] **W-0526** `done` — The 14-year rule is configured and mentioned nowhere in the estate or tax services

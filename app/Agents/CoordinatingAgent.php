@@ -5441,11 +5441,45 @@ class CoordinatingAgent extends BaseAgent
             $payload['employer_ni_rebate_pct'] = max(0.0, min(1.0, $rebate));
         }
 
+        // W-0518 — the follow-up the web profile asks and Fyn did not.
+        //
+        // `users.employment_income_basis` decides whether the recorded employment
+        // income is the full salary or what reaches the payslip, and therefore whether
+        // the Annual Allowance taper applies. Null means nobody has asked, which
+        // `IncomeDefinitionsService:158` publishes as `assumed_gross` — a defensible
+        // assumption, stated as one. But Fyn is the primary capture path on `/m` and
+        // native, where there is no Income Definitions panel to visit, so on two of
+        // three surfaces the assumption could never be corrected.
+        //
+        // Asked here, in the tool, once, so every surface asks it — not copied into
+        // each client (Rule 20).
+        //
+        // Two gates, both mirroring the web form. It is asked only of someone
+        // declaring sacrifice, because that is the only case where the answer changes
+        // a figure (`IncomeOccupation.vue:242` gates on the same condition); and an
+        // answer already on file is never overwritten, because re-asking a settled
+        // question and preferring the newer answer would let a conversational
+        // misreading quietly replace something the user typed into a form.
+        $basis = $input['employment_income_basis'] ?? null;
+
+        if ($basis !== null && $payload['salary_sacrifice'] && $user->employment_income_basis === null) {
+            if (! in_array($basis, ['gross', 'post_sacrifice'], true)) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'message' => 'employment_income_basis must be gross or post_sacrifice.',
+                ];
+            }
+
+            $user->update(['employment_income_basis' => $basis]);
+        }
+
         $pension->update($payload);
 
         return [
             'updated' => true,
             'pension_id' => $pension->id,
+            'employment_income_basis' => $user->fresh()->employment_income_basis,
             'message' => 'Salary sacrifice setting updated.',
         ];
     }
