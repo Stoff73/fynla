@@ -36,6 +36,11 @@ $pensionConsumers = [
     // columns. No queries, no mutations — conceptually an internal of
     // the store.
     'App\Services\Stores\Recalc\PensionDerivedColumnCalculator',
+    // The two employee-contribution rules (W-0424). Takes a pension instance the
+    // caller already fetched through PensionStore and reads its properties — no
+    // queries, no mutations, same category as the calculator above. Lives here
+    // rather than on UserProfileService, which is what this boundary was red about.
+    'App\Services\Retirement\PensionContributionRule',
     // One-off backfill of the canonical derived columns for existing
     // rows: reads via DCPension/DBPension/StatePension::chunkById and
     // forceFill/saveQuietly the derived columns only — a migration-style

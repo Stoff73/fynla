@@ -134,8 +134,8 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0476** `done` (closed at status AND revoke, without retention — acceptance 2's premise was wrong) — The account-enumeration oracle on the spouse status and revoke endpoints
 - [x] **W-0483** `done` (CSJ's W-0228 amendment built: nullable declared share, opt-in on web, row on /m; Fyn tool schema not extended) — A co-owner who borrowed alone can now be shown as owing alone
 - [x] **W-0488** `done` (seeder fixed; BOTH causes proven — runway excludes mortgages for every user, needs its own item) — peak_earners resolves to £1,250 a month and so reports 59.8 months of emergency runway
-- [ ] **W-0492** `review` — The E2E consent fixture seeds a key nothing reads, so the banner blocks every landing-page test
-- [ ] **W-0494** `review` — Four Architecture tests compare native filesystem paths and fail only on Windows
+- [x] **W-0492** `done` (one helper, 7 call sites, zero stale keys; E2E-environment gaps stay open on W-0493) — The E2E consent fixture seeded a key nothing reads, so the banner blocked every landing-page test
+- [x] **W-0494** `done` (4 normalisations verified + the pre-existing DCPension StoreBoundary failure fixed; Architecture now 0 failed) — Four Architecture tests compared native filesystem paths and failed only on Windows
 - [ ] **W-0499** `open` — investments_exotic is advertised as a Premium feature and enforced nowhere, so a free user is not actually prevented from using it
 - [ ] **W-0500** `open` — /m and native users can never answer the question the undivided-share discount turns on, so W-0368 is permanently inert on those surfaces
 - [ ] **W-0507** `queued` — The free-tier estate teaser prints a second-death Inheritance Tax figure with none of the caveats the full table carries
