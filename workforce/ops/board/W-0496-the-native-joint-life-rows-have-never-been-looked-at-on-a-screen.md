@@ -3,7 +3,7 @@ id: W-0496
 title: The native joint-life rows and the suppressed edit affordance have never been looked at on a screen
 mission: M-0001-state-truth
 owner: build-lead
-status: open
+status: deferred-ios
 severity: low
 surfaces: [ios]
 created: 2026-08-26T00:00:00Z
@@ -89,3 +89,29 @@ own. A green unit suite does not close this item; that is what is already true.
 - **W-0201** — the change itself. Merged with this carved out.
 - **W-0186** — where `is_own_policy` and the no-edit-affordance rule came from.
 - **PR #718** — the branch carrying it.
+
+## 2026-09-01 — DEFERRED, iOS. Not closed.
+
+`surfaces: [ios]`, and CSJ ruled on 2026-08-31 that the board loop is web and `/m` only.
+`ios-native/` is untouched.
+
+The **code** was read at its current lines rather than assumed, so the next person does
+not repeat that part:
+
+- `ProtectionModels.swift:222-224, 247-249` — `jointLife`, `isOwnPolicy` and
+  `jointLifeWith` are decoded, with the coding keys mapped to the JSON contract.
+- `ProtectionPolicyView.swift:199` — `rows.append(("Joint life", name.map { "Yes, with \($0)" } ?? "Yes"))`, the fallback the item asks about.
+- `:201-202` — `rows.append(("Recorded by", spouseName(policy) ?? "Your spouse"))`, gated on `isOwnPolicy == false`.
+- `:72` — `let editAction: (() -> Void)? = policy.isOwnPolicy == false ? nil : { ... }`, and `:88-90` passes it to `MobilePageActions`, which drops the button when it is nil.
+
+**That is not what this item asks for, and reading it does not close it.** The acceptance
+is *"both screens seen and described — or a screenshot attached"*, and it says explicitly
+that a green unit suite does not close it. The three unverified things — that the rows
+render in the right position with `/m`'s exact wording, that the fallbacks behave
+including the empty-string case, and that the edit affordance is actually gone — are all
+things only a screen shows. The item's own history is the argument: the docblock was
+once recorded as stale and was not, and iOS was offering "Edit details" against a write
+path that would 404.
+
+It still needs a Mac with Xcode, the `Fynla-Staging` scheme, and a csjones account.
+Unchanged and owed.
