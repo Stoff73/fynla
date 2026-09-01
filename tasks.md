@@ -116,7 +116,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0383** `done` (CSJ ruling: the other life assured sees the whole policy; edit still owner-only) — Product call answered — how much of someone else's contract the other life assured sees
 - [x] **W-0385** `done` (playbook fixed; login path verified sound) — fynla-state.auth.user can name a different user than the token authenticates as, and it is our documented way of checking identity
 - [x] **W-0392** `done` (two facts split at source; will screen reads the estate it disposes of) — The estate a will screen states omits Business Property Relief assets, which do pass under the will
-- [ ] **W-0394** `queued` — Every bequest is stored as a gift to a person — both charitable legacies included, because beneficiary_type reaches no request class
+- [x] **W-0394** `done` (write paths confirmed; name list demoted to write-time only — it was overriding an explicit answer and understating IHT) — Every bequest was stored as a gift to a person, charitable legacies included
 - [x] **W-0398** `done` (exclusion upheld with reason; both surfaces now say what the list excludes) — A residuary substitution beneficiary is invisible to every consumer of the bequests table — which is why this household reads as though its children are unprovided for
 - [x] **W-0399** `done` (already fixed) — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
 - [x] **W-0413** `done` (write + read-back) — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
