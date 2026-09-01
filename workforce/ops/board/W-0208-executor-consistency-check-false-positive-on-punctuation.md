@@ -4,7 +4,7 @@ title: The letter/will consistency check flags a punctuation difference as an ex
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-22T01:45:00Z
@@ -72,3 +72,51 @@ is likely to dismiss those too.
    wording differs but the people match — never instruct a legal-document edit for it.
 4. Verified in a browser against a matching pair, a punctuation-only difference, and a
    genuinely different executor.
+
+---
+
+## Verified 2026-09-01 — already fixed, and the fix holds under mutation
+
+**Checked in the code, not taken on trust.** The comparison is party-set based, not
+string based:
+
+- `LetterEstateValidationService::executorsMatch():268-272` compares
+  `willExecutorParties()` against `partySet()` — sets, not rendered strings.
+- `partySet():309-313` splits on `,`, `;`, `&` and the word `and`.
+- `asPartySet():318-325` de-duplicates and sorts, so ordering cannot matter.
+- `normaliseParty()` handles case and titles.
+- `willExecutorParties():285-296` reads `will_documents.executors` — the structured
+  source — where there is one, and falls to the string only for a will captured as free
+  text through Fyn or onboarding. That is acceptance 1 done properly: it does not
+  re-split a derived copy when the fact is available (Rule 20).
+
+The reasoning for all of it is written at `:255-267`, naming this item.
+
+**Acceptance 1 and 3 — satisfied.** Separators, case, ordering and whitespace are
+normalised, and a formatting-only difference produces no warning at all, so no user is
+told to amend a legal document over an ampersand.
+
+**Acceptance 2 — proven by test.** `tests/Unit/Services/Estate/LetterEstateValidationServiceTest.php`
+— 18 passing, including "it still warns when one of the two executors differs" and "it
+still warns when the letter names only one of two". The comparison is not merely
+loosened.
+
+**Mutation-verified.** Narrowing `partySet()`'s separators back to `,` alone turns three
+tests red — both punctuation-equivalence cases and the will-document case. The guard
+bites.
+
+### Acceptance 4 — verified against the repro's own data, not in a browser
+
+Run directly against `david.jones@example.com`, the account in the repro:
+
+```
+will executor:   Sarah Jones & Barclays Wealth
+letter executor: Sarah Jones & Barclays Wealth
+EXECUTOR WARNINGS: 0
+```
+
+**The punctuation-only and genuinely-different cases were NOT re-driven through the
+browser** — both strings on that account now read identically, so the live data no
+longer reproduces the difference, and forcing one would mean editing a database row.
+Those two cases are covered by the passing tests above and by the mutation run. Stated
+plainly rather than described as browser-verified.

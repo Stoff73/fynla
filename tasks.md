@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 45**  ·  closed 2026-08-31: 87
+**Outstanding: 44**  ·  closed 2026-08-31: 88
 
 ---
 
@@ -88,7 +88,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0199** `done` (drawdown unwound from the same projection's implied rate; growth modelled year by year) — A projected cash shortfall never draws on investments, so a household runs out of money while holding an untouched portfolio
 - [ ] **W-0200** `gated` (inference now stated on web + /m; the schema call is CSJ's, with W-0042) — A joint-life policy records that it covers two lives but never records whose — the second life assured can only be inferred from users.spouse_id
 - [x] **W-0207** `done` (already fixed) — A completed 2020 life event is counted as future expected income and displayed as happening "In 0 years
-- [ ] **W-0208** `queued` — The letter/will consistency check flags a punctuation difference as an executor mismatch and tells the user to edit a legal document
+- [x] **W-0208** `done` (already fixed; verified in code + mutation; browser re-drive not possible on current data) — The letter/will consistency check flags a punctuation difference as an executor mismatch and tells the user to edit a legal document
 - [x] **W-0210** `done` (already fixed) — A goal is counted and labelled as a life event — Sarah has zero life events and the module reports "1 cash outflow events £400K
 - [ ] **W-0243** `queued` — The native iOS retirement card cannot show a guaranteed income, so a defined-benefit-only spouse still reads £0 there
 - [ ] **W-0258** `queued` — The card captions an arithmetic "expected return" beside a median projection that is lower by volatility drag, and the two cannot be reconciled by the reader
