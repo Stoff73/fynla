@@ -4,7 +4,7 @@ title: The holdings tables hide what they store — and the investment one has n
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0032-cycle4-pension-holdings-entry-and-display.md
 owner: build-lead
-status: claimed
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-08-23T03:30:00Z
@@ -163,3 +163,63 @@ rendered row.**
 
   **Acceptance 1 therefore stands unverified in the browser, acceptance 3 (`/m`) is
   not done, and this item stays at `claimed`.**
+
+---
+
+## Closed 2026-09-01 — acceptance 3 done
+
+**Acceptances 1 and 2 verified in the code, not taken on trust.**
+`Investment/HoldingsTable.vue:61` is one `v-else-if` wrapping chart, legend and table,
+with the reasoning at `:50-60`; `PensionDetailInline.vue:349-366` renders Units Held,
+Purchase Price, Current Price and Purchase Date.
+
+**Acceptance 3 — `/m` parity — was the open half, and the template was never the
+problem.**
+
+`/m` does list holdings, through `CanonicalPortfolio.vue`, and showed name, value,
+percentages, exposure and fees. **The `financial_portfolio_v1` contract never carried
+units, purchase price, current price or purchase date**
+(`PortfolioPresentationService:106-131`), so no `/m` template change alone could have
+shown them. That is why this half stayed open after the web half was fixed: the visible
+gap was on the frontend and the cause was one layer down — the same read-boundary shape
+as W-0351.
+
+- `PortfolioPresentationService.php:112-122` serves all four. **Nullable, not
+  defaulted**, matching `HoldingResource:30-35`: a holding recorded without a purchase
+  price has not been bought for nothing, and a zero collapses "not recorded" into a
+  figure the reader cannot tell apart from a real one.
+- `CanonicalPortfolio.vue:16-27` renders them, hidden entirely when a holding records
+  none.
+- `:183` imports `formatUnits` from `resources/js/utils/holdingUnits.js` — **the same
+  formatter both web tables use**, whose whole purpose is to distinguish "no unit count
+  recorded" from "zero units held". A `/m` copy would have been free to lose that
+  (Rule 20). `/m` reaching into `resources/js/utils` is the established pattern —
+  `InvestmentAccountDetail.vue` already imports `ownership.js` that way.
+- A separate `price()` formatter, because pence matter on a unit price and the shared
+  `currency()` here uses `maximumFractionDigits: 0`.
+
+### Tests
+
+- `tests/Unit/Services/Investment/PortfolioCarriesCaptureFactsTest.php` — 2: all four
+  carried, and null rather than zero when none is recorded.
+- `resources/mobile/components/__tests__/CanonicalPortfolioCaptureFacts.spec.js` — 3:
+  rendered, pence kept on a unit price, and nothing shown when none is recorded.
+  **Mutation-verified:** removing the units span turns it red.
+
+One test expectation was wrong and the code was right — `formatUnits` returns
+`4,211.5`, thousands-separated. Corrected in the test, with the reasoning at the line:
+"fixing" the formatter to match would have broken both web tables that share it.
+
+**Regression:** 318 frontend specs across `/m` components, `/m` views and web components.
+
+### NOT DONE — acceptance 4
+
+**Browser verification is still not done.** The item records the browser was requested
+and held; it was not driven here either. Both halves are covered by rendering tests
+rather than by a real click-through, and that is stated rather than implied.
+
+### Reported, not fixed
+
+`CanonicalPortfolio.vue:23` prints "OCF" unexpanded on `/m`. Rule 9 wants it spelled out
+on first use on the surface the reader is looking at. Pre-existing and outside this
+item's scope — named so it is not mistaken for something this change introduced.
