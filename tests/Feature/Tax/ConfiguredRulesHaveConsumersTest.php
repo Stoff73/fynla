@@ -53,6 +53,24 @@ uses(RefreshDatabase::class);
 /** Tax areas whose rules must have consumers. Add one only after auditing it. */
 const GUARDED_AREAS = ['inheritance_tax'];
 
+/*
+ * `property_ownership` — audited 2026-09-01 (W-0498) and NOT added, deliberately.
+ *
+ * `joint_ownership_types` is now consumed (TaxConfigSnapshotService → AssetForm.vue) and
+ * is covered by `JointOwnershipConfigReachesTheUserTest`, which asserts the consumer
+ * directly. But adding the whole area turns this test red on two rules W-0498 does not
+ * cover: **`tenure_types` and `leasehold_reform` have no consumer anywhere in `app/`.**
+ *
+ * They are genuine orphans of the same class. They are not registered in
+ * UNIMPLEMENTED_RULES here because an entry there is a decision someone has taken, with
+ * a board item and a date — and nobody has taken one about leasehold reform. Raised on
+ * W-0498's board file for CSJ instead of parked quietly in a register.
+ *
+ * Worth recording how they were missed: a plain `grep -rl` over `app/` reports a
+ * consumer for both, because it counts `TaxConfigService.php` — the file this test's
+ * haystack excludes precisely so a rule cannot look consumed by its own getter.
+ */
+
 /**
  * Rules configured but knowingly not implemented.
  *

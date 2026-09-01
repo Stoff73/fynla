@@ -295,12 +295,24 @@ export default {
     },
 
     ownershipTypeDescription() {
+      // W-0498 — the two joint sentences come from tax configuration, which holds them
+      // as `notes` and had no reader. This component hardcoded its own slightly
+      // different wording beside them, so the configured text was live, populated and
+      // shown to nobody while a drifting copy did the work.
+      //
+      // `individual` and `trust` stay here deliberately: the configured cluster is
+      // `joint_ownership_types` and describes joint holdings only. Inventing config
+      // entries for the two sole-ownership cases to make this line uniform would put
+      // words in the configuration that nobody wrote there.
+      const jointTypes = this.$store.getters['taxConfig/jointOwnershipTypes'] || {};
+
       const descriptions = {
         individual: 'You are the sole owner - passes via your will',
-        joint_tenants: 'Automatically passes to surviving owner on death',
-        tenants_in_common: 'Your share passes via your will',
+        joint_tenants: jointTypes.joint_tenancy?.notes,
+        tenants_in_common: jointTypes.tenants_in_common?.notes,
         trust: 'Held in trust - special Inheritance Tax treatment may apply',
       };
+
       return descriptions[this.formData.ownership_type] || 'Select ownership type to see description';
     },
 

@@ -78,6 +78,10 @@ const getters = {
   badrRate: (state) => state.config?.capital_gains_tax?.badr_rate ?? null,
   badrLifetimeLimit: (state) => state.config?.capital_gains_tax?.badr_lifetime_limit ?? null,
 
+  // Joint ownership (W-0498) — what happens to a jointly-held asset on death, in the
+  // configured words. `AssetForm.vue` carried its own copy of these two sentences.
+  jointOwnershipTypes: (state) => state.config?.property_ownership?.joint_ownership_types ?? {},
+
   // IHT
   ihtNilRateBand: (state) => state.config?.inheritance_tax?.nil_rate_band ?? null,
   ihtResidenceNilRateBand: (state) => state.config?.inheritance_tax?.residence_nil_rate_band ?? null,

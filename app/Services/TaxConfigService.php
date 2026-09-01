@@ -827,6 +827,21 @@ class TaxConfigService
 
     /**
      * Check if joint tenancy has survivorship rights (for IHT calculations)
+     *
+     * **W-0498 — deliberately without callers, and this note is the point.**
+     *
+     * This and `allowsWillOverride()` below answer a FIRST-death question: what happens
+     * to a jointly-held asset when one owner dies. The estate model does not ask it.
+     * `EstateAssetAggregatorService` produces a SECOND-death estate, where there is no
+     * survivor left for a joint tenancy to pass to, so survivorship must not be
+     * consulted there — W-0375 rewrote that service's docblock to say so, and a guard
+     * in `JointOwnershipConfigReachesTheUserTest` fails if either method appears in it.
+     *
+     * They are kept rather than deleted because the configured data they read is real
+     * and is now shown to users through `TaxConfigSnapshotService`; a first-death
+     * treatment would compose from here rather than re-deriving it. The absence of a
+     * caller is a decision, recorded, instead of looking like dead code somebody
+     * forgot to wire.
      */
     public function hasSurvivorshipRights(string $jointOwnershipType): bool
     {
