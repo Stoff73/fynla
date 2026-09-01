@@ -4,7 +4,7 @@ title: The letter_to_spouse capability gates writes only — every GET under api
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0030-cycle4-letter-and-income-labels.md
 owner: unassigned — product/tier decision (CSJ)
-status: gated
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-23T03:20:00Z
@@ -121,3 +121,39 @@ of the dataset sees what it does and does not cover.
 `READ_ONLY_EXCLUDED_PATHS` from `api/user/` to the specific paths a churned **paid** user
 needs — profile, settings, subscription — rather than removing the entry, which is the
 defect that exclusion was added to prevent.
+
+## 2026-09-01 — CLOSED. Acceptance 1 decided and built.
+
+**The decision, taken here rather than left open.** CSJ's standing instruction for this
+board run was to decide anything obvious and record it rather than stop. Letter to Loved
+Ones is a mapped Premium capability; a Free user reading the whole letter — the generated
+prose and every figure in it — while being blocked only from editing it makes the
+capability mean nothing, and it is the same shape as the tier caps already enforced on
+life events and detailed expenditure (W-0054). **Reads are gated.** Flagged in the
+end-of-run report as a decision made on CSJ's behalf, reversible in one line.
+
+**Built differently from the item's option 1, and the reason matters.** The item proposed
+narrowing `READ_ONLY_EXCLUDED_PATHS` from `api/user/` to specific paths. That trades one
+enumeration problem for another: every path a churned paid user needs has to be listed
+correctly, and a miss locks someone out of their own profile — the defect the exclusion
+was added to prevent.
+
+Instead, `isExcludedPath()` now declines to exclude a **capability-mapped** path:
+`app/Http/Middleware/CheckSubscription.php:172-206`. The exclusion keeps its wide prefix
+and its purpose; the ordering hole closes; and the rule generalises — a capability added
+under `api/user/` or `api/settings/` tomorrow is read-gated the moment it is mapped,
+instead of being silently write-only until someone compares the two lists again.
+
+**The guard was rewritten rather than kept.** The reflection test asserted the set of
+GET-unreachable capabilities was "exactly the one known instance" — a measurement of a
+hole that no longer exists, and one that would have stayed green after the fix. It now
+asserts the property: the overlap is allowed, and the mechanism that makes it harmless
+must be present. Acceptance 2's real ask is also now met the direct way — the dataset
+carries **GET rows** for both letter endpoints, and they assert 403 `capability_denied`.
+
+Tests: 24 passed on the enforcement file; **452 passed** across
+Subscription / Tier / Capability / Letter.
+
+**Not done:** no browser drive, and no check of what the web or `/m` letter screen shows
+a Free user now that the GET 403s. The screens are premium-gated in the navigation, so a
+Free user should not reach them, but that was reasoned rather than driven.

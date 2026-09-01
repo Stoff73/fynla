@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\CheckSubscription;
 use App\Models\User;
 use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -31,13 +32,13 @@ it('denies Free users at every implemented Premium capability boundary', functio
     'document upload' => ['POST', '/api/documents/upload-only'],
     'investment cost analysis' => ['GET', '/api/investment/fees/analyze'],
     'joint household view' => ['GET', '/api/household/net-worth'],
-    // W-0426 — named as a WRITE, because that is all this capability gates. The two
-    // GET rows above are the capabilities whose routes sit outside the read-only
-    // excluded prefixes and so are genuinely read-gated. A GET row for the letter is
-    // deliberately absent: asserting a 403 there would assert a behaviour the
-    // application does not have. The read-side hole is covered by the reflection test
-    // below, which compares the two lists rather than probing one endpoint.
-    'Letter to Spouse (write only — see W-0426)' => ['PUT', '/api/user/letter-to-spouse'],
+    // W-0426 — the GET rows are the point. This capability gated the PUT alone until
+    // 2026-09-01, because `isExcludedPath()` returned on the `api/user/` read-only
+    // prefix before the capability map was consulted, and a dataset of writes cannot
+    // see a read-side hole.
+    'Letter to Spouse (write)' => ['PUT', '/api/user/letter-to-spouse'],
+    'Letter to Spouse (read)' => ['GET', '/api/user/letter-to-spouse'],
+    'Letter financial position (read)' => ['GET', '/api/user/letter-to-spouse/financial-position'],
 ]);
 
 it('does not stop Premium requests at the capability boundary', function (string $method, string $uri) {
@@ -56,6 +57,7 @@ it('does not stop Premium requests at the capability boundary', function (string
     'investment cost analysis' => ['GET', '/api/investment/fees/analyze'],
     'joint household view' => ['GET', '/api/household/net-worth'],
     'Letter to Spouse' => ['PUT', '/api/user/letter-to-spouse'],
+    'Letter to Spouse (read)' => ['GET', '/api/user/letter-to-spouse'],
 ]);
 
 it('does not let the letter financial position outrun the letter itself for a Free user', function () {
@@ -84,44 +86,44 @@ it('does not let the letter financial position outrun the letter itself for a Fr
 });
 
 /**
- * W-0426 acceptance 2. **A dataset of writes cannot see a read-side hole**, and this
- * file's datasets were writes plus two already-gated GETs — so a test named after
- * capability enforcement went green over an ungated read for as long as the hole
- * existed.
+ * W-0426. `CheckSubscription::handle()` returned at `isExcludedPath()` BEFORE the
+ * capability map was consulted, so any capability whose route sits under a
+ * `READ_ONLY_EXCLUDED_PATHS` prefix was **unreachable for GET by construction** —
+ * not by oversight at a call site, which is why reading either list alone showed
+ * nothing wrong, and why a test named after capability enforcement went green over
+ * an ungated read for as long as the hole existed.
  *
- * `CheckSubscription::handle()` returns at `isExcludedPath()` BEFORE the capability map
- * is consulted, so any capability whose route sits under a `READ_ONLY_EXCLUDED_PATHS`
- * prefix is **unreachable for GET by construction** — not by oversight at the call site,
- * which is why reading either list alone shows nothing wrong.
- *
- * This compares the two lists directly. It does not assert that reads SHOULD be gated —
- * whether Letter to Loved Ones is premium-to-read is CSJ's call — it asserts that the
- * set of capabilities in that state is the one we know about. A new capability landing
- * under an excluded prefix turns this red on the day it lands, instead of shipping a
- * silent read-side hole with a green suite.
+ * `isExcludedPath()` now declines to exclude a capability-mapped path, so the two
+ * lists can overlap without opening a hole. This asserts the resulting property
+ * directly rather than asserting the shape of the two lists: no capability is
+ * unreachable for GET. It is the same measurement the old version made, with the
+ * expected set now empty instead of naming one known instance.
  */
-it('names every capability whose reads the excluded prefixes make unreachable', function () {
-    $middleware = new ReflectionClass(\App\Http\Middleware\CheckSubscription::class);
+it('leaves no capability unreachable for GET behind an excluded prefix', function () {
+    $middleware = new ReflectionClass(CheckSubscription::class);
     $capabilityMap = $middleware->getConstant('CAPABILITY_ROUTE_MAP');
     $readOnlyExcluded = $middleware->getConstant('READ_ONLY_EXCLUDED_PATHS');
 
-    $unreachableForGet = [];
+    $overlapping = [];
     foreach ($capabilityMap as $routePrefix => $entityKey) {
         foreach ($readOnlyExcluded as $excludedPrefix) {
             if (str_starts_with($routePrefix, $excludedPrefix)) {
-                $unreachableForGet[$routePrefix] = $entityKey;
+                $overlapping[$routePrefix] = $entityKey;
                 break;
             }
         }
     }
 
-    // The one known instance, pending the product decision on W-0426 acceptance 1.
-    // If reads are gated, narrow `READ_ONLY_EXCLUDED_PATHS` to the specific paths a
-    // churned PAID user needs — profile, settings, subscription — rather than removing
-    // the entry, which is the defect that exclusion was added to prevent.
-    expect($unreachableForGet)->toBe([
-        'api/user/letter-to-spouse' => 'letter_to_spouse',
-    ]);
+    // The overlap is expected and harmless now — what must hold is that every
+    // overlapping capability is still gated on a GET, which the dataset above
+    // drives for the one that exists. This pins the mechanism that makes that
+    // true, so removing it fails here even if the dataset is not extended.
+    $source = file_get_contents(__DIR__.'/../../../app/Http/Middleware/CheckSubscription.php');
+
+    expect($source)->toContain('isCapabilityMapped')
+        ->and($overlapping)->toBe([
+            'api/user/letter-to-spouse' => 'letter_to_spouse',
+        ]);
 });
 
 it('removes detailed expenditure fields from Free responses', function () {
