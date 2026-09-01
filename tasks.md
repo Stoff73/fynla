@@ -80,7 +80,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0153** `done` (attributed + rule documented; copy re-approval outstanding) — A legal rule stated in Fynla's own unattributed voice on a will sits beside an attributed one on a power of attorney, and nothing makes the difference visible
 - [x] **W-0156** `done` (365d derived from the cookie; evidence guarded by superseded_at) — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
 - [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
-- [ ] **W-0178** `queued` — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
+- [ ] **W-0178** `gated` (analysis done + disclosure fixed; splitting the capture needs a founder decision) — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
 - [x] **W-0189** `done` (already fixed) — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
 - [ ] **W-0196** `queued` — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
 - [ ] **W-0197** `queued` — State Pension age is legislated by cohort, and the application holds two static keys — a projection decades out needs a resolver, not a choice between 66 and 67

@@ -4,7 +4,7 @@ title: Decide whether the monthly maintenance reserve and "other" property costs
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: compliance-lead
-status: queued
+status: gated
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T21:05:00Z
@@ -118,3 +118,60 @@ settled: `app/Services/Property/PropertyService.php:85-97`.
 **wider** list including council tax and mortgage payments. That is correct — it answers a
 cash-flow question, not a tax one. The two lists differing is by design; do not "align"
 them.
+
+---
+
+## 2026-09-01 — analysis done, calculator change gated, disclosure fixed
+
+**Verified live first.** `app/Services/Property/PropertyService.php:134-141` deducts
+exactly the eight fields the item names; the reserve and `other_monthly_costs` are
+excluded. The item's description is accurate.
+
+### The tax analysis, within competence
+
+On the question as put — are these two deductible **as currently captured** — the
+answer is **no, and the current behaviour is right**:
+
+- **`monthly_maintenance_reserve`.** An expense must be *incurred* wholly and
+  exclusively for the property business. A sinking-fund contribution is money set
+  aside by the landlord for the landlord; nothing has been spent and no supplier has
+  been paid. It becomes allowable when the repair is done, not when the reserve is
+  funded — and only if the work is a repair rather than an improvement.
+- **`other_monthly_costs`.** Uncategorised by definition, so the wholly-and-exclusively
+  test cannot be satisfied by anything the application holds. Deducting it would be
+  deducting an unknown.
+
+**So no change to the deduction list is recommended.** The item's "for including them"
+arguments are real, but they are arguments that the *capture* is wrong, not that the
+*calculation* is.
+
+### What that leaves — the actual defect, and why it is gated
+
+A landlord's genuine repairs **are** allowable, and there is **no field for them**.
+The user with £120 a month of real repair spending has only `monthly_maintenance_reserve`
+to put it in, and that field is correctly excluded — so their taxable rental profit is
+overstated, and since W-0175 that figure feeds total income, adjusted net income and
+threshold income, where it can move a Personal Allowance or an annual-allowance taper.
+
+Fixing that means **splitting the capture**: a new "repairs and maintenance actually
+paid" field that is deducted, alongside the reserve that is not. That is acceptance 2,
+and it changes the taxable income of every buy-to-let user — precisely the thing this
+item exists to have *decided* rather than settled quietly inside a fix. Acceptance 1
+requires a named founder or `compliance-lead`. **Gated on that, not on engineering.**
+
+### Done now, because it is true under either answer
+
+The user-facing note listed what IS deducted and never what is not, so a landlord who
+entered a maintenance figure had no way to learn it had been left out.
+`resources/js/components/UserProfile/IncomeOccupation.vue:455-468` now names the
+exclusion and why. This satisfies the disclosure half of acceptance 3 and does not
+pre-empt the decision — if the answer changes the list, this sentence changes with it.
+
+**Untouched:** `PropertyService::calculateTaxPosition()` and
+`tests/Unit/Services/Tax/RentalIncomeOneDefinitionTest.php`, whose assertion that the
+reserve is not deducted still encodes today's answer correctly.
+
+### For the decision-maker, the question in one line
+
+*Should Fynla capture "repairs actually paid" separately from "maintenance reserve", so
+that real repair spending is deducted and the sinking fund is not?* Recommended: yes.

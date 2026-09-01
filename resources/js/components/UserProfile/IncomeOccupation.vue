@@ -454,6 +454,16 @@
               with other income types taxed at remaining band positions.
               Rental profit is your share of the rent less allowable letting expenses — utilities,
               buildings and contents insurance, service charge, ground rent and managing agent fees.
+              <!--
+                W-0178. The note listed what IS deducted and never what is not, so a
+                landlord who entered a maintenance reserve had no way to tell it had
+                been left out of the figure driving their taxable income. Naming the
+                exclusion is true under either answer to the open deductibility
+                question, so it does not pre-empt that decision.
+              -->
+              A maintenance reserve and any other monthly costs are not deducted: money set
+              aside is not money spent, and an uncategorised cost cannot be shown to be for
+              the letting alone.
             </p>
           </div>
         </div>
