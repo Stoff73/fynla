@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 36**  ·  closed 2026-08-31: 96
+**Outstanding: 35**  ·  closed 2026-08-31: 97
 
 ---
 
@@ -104,7 +104,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0337** `done` (both copies corrected; claim measured impossible) — W-0280 §1 and F-0024 §10 state a double-count mechanism that cannot occur, and a 59-site sweep is queued behind it
 - [x] **W-0338** `done` — The headline estate's liability reader can drop a co-owner's share of a mortgage the row does not name, inflating the estate and the tax
 - [x] **W-0346** `done` (STALE ITEM — W-0347 built revoke, the gate reads the row; no code changed) — A granted spouse permission cannot be withdrawn — the status enum has no revoked value
-- [ ] **W-0351** `queued` — A mixed-rate mortgage's fixed and variable rates are stored correctly and can never be displayed — the detail view gates on two fields MortgageResource does not serialise
+- [x] **W-0351** `done` (resource + /m row; acceptance 3 sweep NOT done) — A mixed-rate mortgage's fixed and variable rates are stored correctly and can never be displayed — the detail view gates on two fields MortgageResource does not serialise
 - [x] **W-0366** `done` (already fixed) — Chargeable lifetime transfers made 7–14 years before death wrongly reduce the death estate's own nil rate band, and the comment above the line states the correct rule
 - [x] **W-0367** `done` (s19 switched on; persona bill £343,512 → £341,112) — Gift values are taken gross, so none of the lifetime exemptions that reduce a chargeable transfer are applied, overstating tax in every case
 - [x] **W-0369** `done` (behaviour correct; authority now cited) — The residence nil rate band may be wrongly excluded from the 10% charitable-rate baseline — flagged for verification, not asserted

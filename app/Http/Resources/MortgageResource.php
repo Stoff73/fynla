@@ -67,6 +67,29 @@ class MortgageResource extends JsonResource
                 $this->variable_interest_rate
             ),
 
+            // W-0351. The table holds TWO pairs for a mixed rate and this resource
+            // served only one of them: the RATES (`fixed_interest_rate`,
+            // `variable_interest_rate`, above) but never the SPLIT — what proportion of
+            // the balance sits on each.
+            //
+            // `PropertyDetailInline.vue:319,323` needs both: the split is the label
+            // ("Fixed (60.00%):") and the rate is the value ("12.00%"). Gating on a key
+            // the payload never carried made `undefined` the gate, so both rows were
+            // STRUCTURALLY unreachable — no data could satisfy them, and the user who
+            // had just successfully entered a 60/40 split could not see it.
+            //
+            // Gated on `rate_type`, not `mortgage_type`: the pair above it splits
+            // repayment against interest-only, which is a different question about the
+            // same mortgage and answered by a different column.
+            'fixed_rate_percentage' => $this->when(
+                $this->rate_type === 'mixed',
+                $this->fixed_rate_percentage
+            ),
+            'variable_rate_percentage' => $this->when(
+                $this->rate_type === 'mixed',
+                $this->variable_rate_percentage
+            ),
+
             'notes' => $this->notes,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
