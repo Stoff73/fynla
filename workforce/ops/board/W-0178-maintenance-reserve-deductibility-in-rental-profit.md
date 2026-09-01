@@ -4,7 +4,7 @@ title: Decide whether the monthly maintenance reserve and "other" property costs
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: compliance-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T21:05:00Z
@@ -175,3 +175,39 @@ reserve is not deducted still encodes today's answer correctly.
 
 *Should Fynla capture "repairs actually paid" separately from "maintenance reserve", so
 that real repair spending is deducted and the sinking fund is not?* Recommended: yes.
+
+- 2026-09-01 board-loop: **CLOSED — CSJ ruled, and the ruling is implemented.**
+  CSJ's decision, recorded on the board: *"what use is it having a profit figure
+  without expenses, this is stupid, include the expenses"*. That answers acceptance 1
+  for both fields, in the "include them" direction.
+
+  **Acceptance 3 — one place.** `app/Services/Property/PropertyService.php:133-155`.
+  `monthly_maintenance_reserve` and `other_monthly_costs` join the allowable list; the
+  reasoning on both sides is at the line, so the next reader sees why the argument for
+  excluding them lost rather than assuming nobody made it. Mortgage interest and
+  council tax stay out, unchanged and for the reasons already established.
+
+  The user-facing note moved with it —
+  `resources/js/components/UserProfile/IncomeOccupation.vue:450-465`. It named the
+  exclusion; it now names the two fields among the expenses, and names mortgage
+  payments as the one exclusion, with the Section 24 credit as the reason. Rule 19:
+  `/m` and native carry no equivalent note — grep for "letting expenses" across
+  `resources/mobile/` and `ios-native/` returns nothing — so there is no second copy
+  to move, and the figure itself is the shared backend one.
+
+  **Acceptance 4 — the test that encoded the old answer.**
+  `tests/Unit/Services/Tax/RentalIncomeOneDefinitionTest.php:90` asserted the reserve
+  was *not* deducted. Inverted rather than deleted, with the reasoning at the line, and
+  a sibling case added for `other_monthly_costs`. Every figure in that file and in
+  `tests/Feature/Property/JointRentalIncomeReachesBothOwnersTest.php` moved with the
+  £100/month reserve now being allowable: half-share £8,880 → £8,280.
+
+  Tests: 17 passed on the two files directly; **289 passed** across
+  Property / Rental / IncomeDefinitions / Section24.
+
+  **Acceptance 2 not done, deliberately.** Splitting the capture — asking the landlord
+  whether a maintenance figure is a repair or an improvement — is a form redesign CSJ
+  did not ask for and the ruling did not require. Deducting an improvement is the
+  residual inaccuracy, and it runs in the user's favour rather than against them, which
+  is the direction this item was raised to correct. Left as a stated limitation, not a
+  silent one.

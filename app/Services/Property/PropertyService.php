@@ -130,7 +130,21 @@ class PropertyService
     {
         $monthlyRental = (float) ($property->monthly_rental_income ?? 0);
 
-        // Non-mortgage allowable costs (deductible from rental income for tax)
+        // Non-mortgage allowable costs (deductible from rental income for tax).
+        //
+        // W-0178 — the maintenance reserve and the uncategorised "other" costs are
+        // deducted here on CSJ's ruling: a profit figure that ignores what the
+        // landlord spends is not a profit figure. The argument for leaving them out
+        // was that a reserve is money set aside rather than incurred, and that an
+        // uncategorised field cannot be shown to be wholly and exclusively for the
+        // property business. Both are true and both were outweighed: excluding them
+        // overstates taxable profit, and this figure feeds total, adjusted net and
+        // threshold income (W-0175), so the overstatement can move a Personal
+        // Allowance or an annual allowance taper against the user.
+        //
+        // Mortgage interest stays out — it is relieved as the Section 24 basic rate
+        // credit below, not as an expense — and so does council tax, which on a let
+        // property is normally the tenant's.
         $monthlyAllowableCosts = (float) ($property->monthly_gas ?? 0)
             + (float) ($property->monthly_electricity ?? 0)
             + (float) ($property->monthly_water ?? 0)
@@ -138,7 +152,9 @@ class PropertyService
             + (float) ($property->monthly_contents_insurance ?? 0)
             + (float) ($property->monthly_service_charge ?? 0)
             + (float) ($property->monthly_ground_rent ?? 0)
-            + (float) ($property->managing_agent_fee ?? 0);
+            + (float) ($property->managing_agent_fee ?? 0)
+            + (float) ($property->monthly_maintenance_reserve ?? 0)
+            + (float) ($property->other_monthly_costs ?? 0);
 
         $monthlyTaxableIncome = $monthlyRental - $monthlyAllowableCosts;
 
