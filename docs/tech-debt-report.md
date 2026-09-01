@@ -1,14 +1,20 @@
-# Tech Debt Report — Session 2026-08-31
+# Tech Debt Report — Session 2026-09-01
 
-**Files analysed:** 9 changed (5 source, 4 new tests) — board `.md` files excluded as documentation
+**Files analysed:** 110 changed across `f3fae45bd..HEAD` (25 commits, the board run)
 **Issues found:** 3
-**Severity breakdown:** 0 critical, 3 warnings, 0 suggestions
+**Severity breakdown:** 0 critical, 1 warning, 2 suggestions
 
-Mechanical checks all clean on the changed files: `declare(strict_types=1)` present on all
-four new tests, no debug leftovers (`dd`/`dump`/`console.log`), no banned colour tokens or
-hex in the Vue change, no hardcoded tax values, no Pest global-helper collisions (each of
-`w0227Mortgage`, `w0226Liability`, `w0264Pension`, `w0264Rate` is defined exactly once),
-no unspelled acronyms in the new user-facing copy, Pint clean.
+The pass is close to clean. Every automated convention check came back empty:
+
+| Check | Result |
+|---|---|
+| `declare(strict_types=1)` in every changed PHP file | present in all |
+| Debug leftovers (`dd(`, `dump(`, `console.log`, `var_dump`) | none added |
+| Banned colour classes (`amber-`, `orange-`, `primary-N`, `secondary-N`, `gray-N`) | none added |
+| Hardcoded hex in Vue `<style>` blocks | none added |
+| Hardcoded tax values | none added — the `20000` matches are pension-pot **test fixtures**, not tax constants |
+| New acronyms in user-facing text | none — W-0497 **removed** 20 of them |
+| Grandfathered glyphs (Rule 15 forward-only) | untouched; `git diff` shows zero ✓/✗/⚠ lines added or removed |
 
 ## Critical Issues
 
@@ -16,46 +22,49 @@ None.
 
 ## Warnings
 
-### 1. Two mechanisms answer "what does this user owe" — Rule 20
-
-- **Files:** `app/Services/NetWorth/NetWorthService.php:155` (`calculateLiabilitiesBreakdown`)
-  and `app/Services/Shared/CrossModuleAssetAggregator.php:404` (`calculateLiabilityTotals`)
-- **Category:** 6 — inconsistency with existing patterns
-- **What's wrong:** W-0226 fixed the net worth breakdown to use the same reach
-  (`forUserOrJoint`) and the same fraction (`calculateUserShare`) as the aggregator, so the
-  two now AGREE. They are still two implementations of one question. The parity is currently
-  held by a test, not by construction.
-- **Suggested fix:** have `calculateLiabilitiesBreakdown()` categorise the rows
-  `calculateLiabilityTotals()` already reaches, rather than re-querying. Deliberately not
-  done inside a defect fix — it widens the diff past the reported defect.
-  **Parity is pinned meanwhile** by
-  `tests/Feature/NetWorth/NetWorthLiabilitiesUseTheUserShareTest.php`, third test.
-
-### 2. The debt protection panel exists twice
-
-- **Files:** `app/Services/Protection/ProtectionGapPresentationService.php` (canonical
-  `protection_gap_v1`, consumed by `/m`) and the web `/protection` page's own Protection
-  Shortfall component
-- **Category:** 1 — cross-file duplication
-- **What's wrong:** found while browser-verifying W-0227. The web page renders its own Debt
-  Protection panel, which already reconciled (£170,500 / £0 / £170,500), while the canonical
-  payload was the one publishing `£0 / £0 / £182,500`. One question, two renderers — which is
-  why a defect could be live on one surface and absent on the other.
-- **Suggested fix:** point the web panel at the canonical payload, as `/m` already does.
-
-### 3. `InvestmentController`'s two write paths disagree about the auto-Cash row
-
-- **Files:** `app/Http/Controllers/Api/InvestmentController.php:439` (create) and `:587` (update)
-- **Category:** 1 — cross-file duplication with a divergent condition
-- **What's wrong:** create guards the automatic Cash holding with `&& ! $hasCashHolding`;
-  update does not. Posting 70% equities and 20% Cash through update yields TWO Cash rows —
-  the user's at 20% and an automatic one at 10%.
-- **Suggested fix:** one helper for "fill the unallocated remainder with Cash", called by both.
-  Found while closing W-0322; recorded there too.
+### 1. `app/Agents/CoordinatingAgent.php` — 6,768 lines
+**Category:** Complexity & Maintainability
+**What's wrong:** The file was already far past the 500-line guidance before today; W-0518 added
+~30 lines to `handleCaptureSalarySacrifice()`. Every Fyn capture handler lives here, so the file
+grows with every capture tool and is now the single largest service in the codebase.
+**Suggested fix:** Not a same-day change, and explicitly **not** attempted here — splitting the
+tool dispatcher touches every capture path and the golden-master catalogue. It wants its own
+board item with a plan, not an opportunistic extraction at the end of a session.
 
 ## Suggestions
 
-None.
+### 2. `app/Services/TaxConfigService.php` — 909 lines, and two methods with no callers
+**Category:** Dead & Redundant Code (judged, not dead)
+**What's wrong:** `hasSurvivorshipRights()` and `allowsWillOverride()` have zero callers.
+**Suggested fix:** None — this was audited under W-0498 and the absence is now a **recorded
+decision** at `:828-846`, with a guard that fails if either appears in
+`EstateAssetAggregatorService`. Listed here only so a future dead-code sweep does not delete
+them believing nobody looked.
+
+### 3. `app/Services/Retirement/RetirementProjectionService.php` — 915 lines, 9 constructor args
+**Category:** Complexity & Maintainability
+**What's wrong:** W-0516 added a ninth constructor dependency (`StatePensionAgeResolver`). Two
+test files construct this service by hand and both needed updating, which is the cost of the
+argument list showing up.
+**Suggested fix:** Leave it. The dependency is correct — it is what removed the literal — and the
+alternative (a service locator or a facade) would hide the coupling rather than reduce it. Worth
+watching if a tenth argument appears.
+
+## Deliberate simplifications carried forward
+
+Not defects; recorded so they are not "fixed" by someone who does not know why they are there.
+
+- `resources/js/components/Estate/AssetForm.vue:303,305` — `individual` and `trust` descriptions
+  stay hardcoded while `joint_tenants` and `tenants_in_common` read tax config. The configured
+  cluster is `joint_ownership_types` and describes joint holdings only; inventing config entries
+  for the two sole-ownership cases would put words in the configuration nobody wrote (W-0498).
+- `app/Services/Stores/Normalisers/PropertyNormaliser.php` — `joint_owner_is_spouse` accepts
+  `true` and **not** `false`, by strict identity. `false` is the value that turns the
+  undivided-share discount on, and an LLM inferring it from narrative is the banned inference
+  (W-0500).
+- `workforce/ops/sweep.sh` — the placeholder filter is a list of literal patterns
+  (`NNNN`, `YYYY`, `<`, `...`, `/.`), not a heuristic. A heuristic that guesses which references
+  are "only citations" was measured and rejected on W-0506.
 
 ---
 *Generated by tech-debt-session skill*
