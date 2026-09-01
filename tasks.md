@@ -149,7 +149,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 ## Low (11)
 
 - [x] **W-0033** `done` (already fixed in fix-batch-G) — ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
-- [ ] **W-0045** `queued` — All three relevant-property trust surfaces use non-palette blue-* and green-* — a live Rule 11 breach
+- [x] **W-0045** `done` (zero non-palette classes remain; all 10 tokens verified to resolve; visual confirmation still outstanding) — All relevant-property trust surfaces now use palette tokens only
 - [x] **W-0336** `done` (already fixed; residual is W-0338) — Projected liabilities are taken at 100% for each member while the headline applies the share, so a third-party-shared debt understates tax
 - [x] **W-0481** `done` (two columns, not one) — AssetFactory randomly generates four asset types the column rejects, so any use without an explicit type fails about half the time
 - [ ] **W-0496** `open` — The native joint-life rows and the suppressed edit affordance have never been looked at on a screen
