@@ -33,7 +33,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 
 - [x] **W-0463** `done` — TaxConfigService is the source or it is nothing — 20 configured rules have zero consumers, and every guard built to catch this is structurally incapable of seeing it
 
-## High (11)
+## High (12)
 
 - [x] **W-0037** `done` — Bequest form cannot record priority order, beneficiary type or charity registration — charitable status is inferred from the beneficiary's name
 - [x] **W-0050** `done` — You cannot create an account without consenting to Google Analytics and Awin affiliate tracking — a cookie wall, justified by copy that is factually untrue
@@ -46,13 +46,14 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0513** `done` (coverage declared; death-benefit capture still to decide) — The projected estate models only defined contribution pots, where IHTA 1984 s150A brings in lump sum death benefits too
 - [x] **W-0514** `done` — A pension on the first death can destroy the second death's residence band, and the model cannot show it
 - [x] **W-0515** `done` — Fyn still tells the user pensions pass outside the estate, and quotes today's pot as the amount at risk
+- [x] **W-0531** `done` (basis corrected + entry mode respected; no browser drive) — The emergency runway divides cash by a household total that omits the mortgage, council tax and utilities — overstated up to 4.7x for every mortgaged user
 
 ## Medium (95)
 
 - [x] **W-0025** `done` (already fixed) — A joint chattel saves with no joint owner and no error — 50% of the asset belongs to nobody
 - [x] **W-0031** `done` (already fixed, guarded) — education_level validation accepts three values the column enum cannot hold — latent 500 for Fyn and any API client
 - [x] **W-0032** `done` (already fixed) — scheme_status is collected by both pension forms and silently discarded on every save — no such column exists
-- [ ] **W-0034** `gated` — /m has no Health & Lifestyle section at all — the data source is fixed but no mobile screen renders it
+- [x] **W-0034** `done` (built + 17 tests; browser blocked by csjones-base m-build) — /m has no Health & Lifestyle section at all — the data source is fixed but no mobile screen renders it
 - [x] **W-0040** `done` (already fixed; CSJ ruling encoded) — A deliberate 100/0 joint split is unexpressible, and three acceptance criteria contradict each other on whether it should be
 - [ ] **W-0044** `gated` — The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
 - [x] **W-0054** `done` (uploads gated before entry; shared copy still design-lead's) — Two tier caps, two gating philosophies — life events block before entry, detailed expenditure blocks after submit with a silent 403
