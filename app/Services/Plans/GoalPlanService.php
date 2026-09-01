@@ -167,7 +167,9 @@ class GoalPlanService extends BasePlanService
         $remaining = max(0, $targetAmount - $currentAmount);
         $progressPercent = $progress['progress_percentage'] ?? 0;
         $isOnTrack = $progress['is_on_track'] ?? false;
-        $monthsRemaining = $progress['months_remaining'] ?? null;
+        // W-0414 — the key is emitted now. The fallback reads the goal directly rather
+        // than defaulting to a number, so an absent key can never become a plausible one.
+        $monthsRemaining = $progress['months_remaining'] ?? $goal->months_remaining;
         $monthlyContribution = (float) ($goal->monthly_contribution ?? 0);
 
         $lines = [];
@@ -276,7 +278,10 @@ class GoalPlanService extends BasePlanService
         $currentAmount = (float) $goal->current_amount;
         $remaining = max(0, $targetAmount - $currentAmount);
         $monthlyContribution = (float) ($goal->monthly_contribution ?? 0);
-        $monthsRemaining = $progress['months_remaining'] ?? 12;
+        // W-0414. Was `?? 12` — a default that fired for EVERY goal, because the key
+        // was never emitted. The fallback now reads the goal, so a what-if is modelled
+        // on the goal's own horizon instead of a fixed year.
+        $monthsRemaining = $progress['months_remaining'] ?? $goal->months_remaining;
 
         // Use disposable income via DistributionAccount instead of hardcoded amounts
         $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);

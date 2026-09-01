@@ -202,6 +202,23 @@ class TaxConfigurationFactory extends Factory
                     'full_new_state_pension' => 11973.00,
                     'qualifying_years' => 35,
                     'minimum_qualifying_years' => 10,
+                    // W-0197. `StatePensionAgeResolver` reads the statutory schedule and
+                    // deliberately THROWS rather than falling back to a scalar, because a
+                    // single number is wrong for most cohorts. `Pest.php`'s global hook
+                    // creates this factory as a safety net for suites that do not seed the
+                    // real configuration, so the schedule has to be here too — otherwise
+                    // any test that touches State Pension age explodes on setup rather
+                    // than on the behaviour it is testing.
+                    //
+                    // Mirrors `TaxConfigurationSeeder`'s bands.
+                    'age_schedule' => [
+                        ['from' => null, 'to' => '1954-10-05', 'age' => 66],
+                        ['from' => '1954-10-06', 'to' => '1960-04-05', 'age' => 66],
+                        ['from' => '1960-04-06', 'to' => '1977-04-05', 'age' => 67],
+                        ['from' => '1977-04-06', 'to' => '1978-04-05', 'age' => 67],
+                        ['from' => '1978-04-06', 'to' => '1979-04-05', 'age' => 68],
+                        ['from' => '1979-04-06', 'to' => null, 'age' => 68],
+                    ],
                 ],
             ],
 

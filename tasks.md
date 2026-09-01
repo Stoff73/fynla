@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 33**  ·  closed 2026-08-31: 99
+**Outstanding: 32**  ·  closed 2026-08-31: 100
 
 ---
 
@@ -119,7 +119,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0398** `done` (exclusion upheld with reason; both surfaces now say what the list excludes) — A residuary substitution beneficiary is invisible to every consumer of the bequests table — which is why this household reads as though its children are unprovided for
 - [x] **W-0399** `done` (already fixed) — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
 - [x] **W-0413** `done` (write + read-back) — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
-- [ ] **W-0414** `queued` — The goal plan reads a months_remaining key GoalProgressService has never returned, and silently runs on a default of 12
+- [x] **W-0414** `done` (emitted at the producer; W-0197 test-factory fallout fixed too) — The goal plan reads a months_remaining key GoalProgressService has never returned, and silently runs on a default of 12
 - [ ] **W-0416** `deferred-ios` — iOS native carries two copies of the goal status vocabulary and cannot say Overdue, so it reads "Behind" for a goal whose date has gone
 - [x] **W-0424** `done` (3 faults; both mechanisms were broken) — A pension contribution recorded as a percentage never becomes a financial commitment, so it never reaches expenditure and disposable income is overstated by it
 - [ ] **W-0426** `queued` — The letter_to_spouse capability gates writes only — every GET under api/user/ short-circuits before the capability check, so the letter has never been read-gated
