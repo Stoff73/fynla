@@ -137,7 +137,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0492** `done` (one helper, 7 call sites, zero stale keys; E2E-environment gaps stay open on W-0493) — The E2E consent fixture seeded a key nothing reads, so the banner blocked every landing-page test
 - [x] **W-0494** `done` (4 normalisations verified + the pre-existing DCPension StoreBoundary failure fixed; Architecture now 0 failed) — Four Architecture tests compared native filesystem paths and failed only on Windows
 - [x] **W-0499** `done` (defined from the persona playbook, gated in the Store; guard found family_module + benefits_child in the same state) — investments_exotic was advertised as Premium and enforced nowhere
-- [ ] **W-0500** `open` — /m and native users can never answer the question the undivided-share discount turns on, so W-0368 is permanently inert on those surfaces
+- [x] **W-0500** `done` (/m asks it directly; Fyn may write only the safe `true`; iOS deferred, no browser drive) — /m users can now answer the question the undivided-share discount turns on
 - [ ] **W-0507** `queued` — The free-tier estate teaser prints a second-death Inheritance Tax figure with none of the caveats the full table carries
 - [ ] **W-0510** `queued` — A drawn-out pension fund never reports as depleted, so "years funded" is always the full horizon
 - [ ] **W-0516** `queued` — The State Pension age is a literal 67 in the retirement engine and a configured 66 everywhere else
