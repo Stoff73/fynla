@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\DBPension;
 use App\Models\User;
 
 /**
@@ -44,7 +43,12 @@ final class RetirementAgeResolver
     /**
      * The age assumed when the user has told us nothing. See the class docblock for
      * why it is 67; do not change it here without changing
-     * {@see DBPension::DEFAULT_NORMAL_RETIREMENT_AGE} in the same edit.
+     * `App\Models\DBPension::DEFAULT_NORMAL_RETIREMENT_AGE` in the same edit.
+     *
+     * Written as plain text rather than `{@see}`: Pint normalises a fully-qualified
+     * class reference in that tag back to a short name and ADDS the import, which the
+     * `StoreBoundary` architecture test then rejects — a service may not use a model
+     * directly. The reference is documentation, not a dependency.
      */
     public const DEFAULT_RETIREMENT_AGE = 67;
 
