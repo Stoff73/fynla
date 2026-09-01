@@ -288,8 +288,35 @@ class TaxConfigurationSeeder extends Seeder
                     'full_new_state_pension' => 11973.00,
                     'qualifying_years' => 35,
                     'minimum_qualifying_years' => 10,
-                    'current_spa' => 66,                         // Current State Pension Age
-                    'future_spa' => 67,                          // Rising to 67 between April 2026 and April 2028; further rise to 68 planned 2044-2046
+                    // W-0197. `current_spa` and `future_spa` are RETIRED. They were two
+                    // snapshots of a moving statutory schedule, and choosing between
+                    // them could never be right for a projection running decades out:
+                    // a 46-year-old and a 26-year-old do not share a State Pension age,
+                    // and one scalar gave them one. Four services read 66 and one read
+                    // 67, so a household could be told two different State Pension ages
+                    // for the same person by two different modules.
+                    //
+                    // The schedule below is read by StatePensionAgeResolver, which takes
+                    // a date of birth and returns the age that applies to THAT cohort.
+                    // Each band is `from` (inclusive) to `to` (inclusive, null = open
+                    // ended), by date of birth, with the age that cohort reaches.
+                    //
+                    // Sources: Pensions Act 1995 Sch 4, Pensions Act 2007, Pensions Act
+                    // 2011 and Pensions Act 2014 s26. The 2044-2046 rise to 68 is
+                    // legislated (Pensions Act 2007 as amended); the review that could
+                    // bring it forward has not changed the statute, so the statute is
+                    // what is modelled.
+                    'age_schedule' => [
+                        ['from' => null,         'to' => '1954-10-05', 'age' => 66],
+                        ['from' => '1954-10-06', 'to' => '1960-04-05', 'age' => 66],
+                        // Pensions Act 2014 s26 — the rise to 67 phases in for those
+                        // born 6 Apr 1960 to 5 Apr 1977, reaching a flat 67 thereafter.
+                        ['from' => '1960-04-06', 'to' => '1977-04-05', 'age' => 67],
+                        ['from' => '1977-04-06', 'to' => '1978-04-05', 'age' => 67],
+                        // Pensions Act 2007 — rise to 68 between 2044 and 2046.
+                        ['from' => '1978-04-06', 'to' => '1979-04-05', 'age' => 68],
+                        ['from' => '1979-04-06', 'to' => null,         'age' => 68],
+                    ],
                 ],
 
                 // Salary sacrifice configuration

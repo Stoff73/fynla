@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Models\TaxConfiguration;
 use App\Services\Marketing\PensionEstimateService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -69,7 +70,13 @@ it('projects a 40s full-time earner with a medium pot correctly', function () {
     $ageMidpoint = 45;      // AGE_MIDPOINTS['40s']
     $potMidpoint = 62500.0; // POT_MIDPOINTS['25k_100k']
     $incomeMidpoint = 30000.0; // INCOME_MIDPOINTS['upto_50270']
-    $retirementAge = 67;      // pension.state_pension.future_spa from TaxConfigService
+    // W-0197. This was a hardcoded 67 sourced from `pension.state_pension.future_spa`,
+    // and that literal ENCODED THE DEFECT: one State Pension age for every age band,
+    // when the statute gives a 25-year-old and a 55-year-old different ones. The key
+    // is retired, so the expectation now resolves for this test's own band exactly as
+    // the service does — a test that hardcodes the answer cannot tell whether the
+    // service is reading the schedule or ignoring it.
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint; // 22
     // AUTO_ENROLMENT_TOTAL_PCT = 0.08 — statutory auto-enrolment minimum
     $monthlyContrib = round($incomeMidpoint * 0.08 / 12, 2); // £200.00
@@ -94,7 +101,7 @@ it('projects a 30s higher-rate earner with a large pot correctly', function () {
     $ageMidpoint = 35;       // AGE_MIDPOINTS['30s']
     $potMidpoint = 175000.0; // POT_MIDPOINTS['100k_250k']
     $incomeMidpoint = 75000.0;  // INCOME_MIDPOINTS['50271_100000']
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint; // 32
     $monthlyContrib = round($incomeMidpoint * 0.08 / 12, 2); // £500.00
 
@@ -116,7 +123,7 @@ it('projects a 50s self-employed earner correctly', function () {
     $ageMidpoint = 55;       // AGE_MIDPOINTS['50s']
     $potMidpoint = 175000.0; // POT_MIDPOINTS['100k_250k']
     $incomeMidpoint = 112500.0; // INCOME_MIDPOINTS['100001_125140']
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint; // 12
     $monthlyContrib = round($incomeMidpoint * 0.08 / 12, 2); // £750.00
 
@@ -138,7 +145,7 @@ it('projects a 60_plus part-time earner with 4 years to retirement', function ()
     $ageMidpoint = 63;       // AGE_MIDPOINTS['60_plus']
     $potMidpoint = 300000.0; // POT_MIDPOINTS['over_250k']
     $incomeMidpoint = 30000.0;  // INCOME_MIDPOINTS['upto_50270']
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint; // 4 years — retirement not yet passed
     $monthlyContrib = round($incomeMidpoint * 0.08 / 12, 2);
 
@@ -163,7 +170,7 @@ it('returns 0 monthly contribution for not-employed and still projects pot growt
 
     $potMidpoint = 12500.0; // POT_MIDPOINTS['under_25k']
     $ageMidpoint = 35;      // AGE_MIDPOINTS['30s']
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint; // 32
 
     expect($result['monthly_contribution_assumed'])->toBe(0.0)
@@ -232,7 +239,7 @@ it('projects from zero pot for a young earner with no existing pension pot', fun
     $potMidpoint = 0.0;     // POT_MIDPOINTS['none']
     $incomeMidpoint = 30000.0; // INCOME_MIDPOINTS['upto_50270']
     $ageMidpoint = 25;      // AGE_MIDPOINTS['under_30']
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint; // 42
     $monthlyContrib = round($incomeMidpoint * 0.08 / 12, 2);
 
@@ -253,7 +260,7 @@ it('applies documented defaults when the answers array is empty', function () {
     $potMidpoint = 0.0;     // POT_MIDPOINTS['none']
     $incomeMidpoint = 30000.0; // INCOME_MIDPOINTS['upto_50270']
     $ageMidpoint = 25;      // AGE_MIDPOINTS['under_30']
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint;
     $monthlyContrib = round($incomeMidpoint * 0.08 / 12, 2);
 
@@ -291,7 +298,7 @@ it('falls back to the under_30 default for an unrecognised age band', function (
     ]);
 
     $ageMidpoint = 25; // AGE_MIDPOINTS['under_30']
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
 
     expect($result['years_to_retirement'])->toBe($retirementAge - $ageMidpoint); // 42
 });
@@ -310,7 +317,7 @@ it('falls back to none (0) for an unrecognised pot band', function () {
     $potMidpoint = 0.0;
     $incomeMidpoint = 30000.0;
     $ageMidpoint = 45;
-    $retirementAge = 67;
+    $retirementAge = app(StatePensionAgeResolver::class)->forCurrentAge($ageMidpoint);
     $yearsToRetirement = $retirementAge - $ageMidpoint;
     $monthlyContrib = round($incomeMidpoint * 0.08 / 12, 2);
 

@@ -4,7 +4,7 @@ title: State Pension age is legislated by cohort, and the application holds two 
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: chief-of-staff
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T07:30:00Z
@@ -89,3 +89,64 @@ the same person, and it leaves exactly one place to change when the resolver lan
    anything derived.
 5. Two people of different ages in one household get different State Pension ages, and
    the estate, retirement and decumulation modules all agree on each.
+
+---
+
+## Closed 2026-09-01 — a schedule, not a scalar
+
+**Acceptance 1 — one resolver, reading a schedule.**
+`app/Services/Retirement/StatePensionAgeResolver.php` takes a date of birth (or an age,
+for the marketing funnel, which never asks for one) and returns the age that applies to
+that cohort. The schedule lives in tax configuration —
+`TaxConfigurationSeeder` `pension.state_pension.age_schedule` — as bands of
+`from`/`to`/`age`, covering the 2026-2028 rise to 67 and the legislated 2044-2046 rise
+to 68. Sources cited at the seeded block: Pensions Act 1995 Sch 4, 2007, 2011, and 2014
+s26.
+
+**Acceptance 2 — both scalars retired, not left beside it.** `current_spa` and
+`future_spa` no longer exist in the seeder, and no service reads them. There is
+deliberately **no scalar fallback**: a missing schedule throws, naming this item, rather
+than silently standing in with a number that is wrong for most cohorts.
+
+**Acceptance 3 — all five readers go through it.**
+
+| Reader | Was | Now |
+|---|---|---|
+| `RetirementIncomeService` | `current_spa` | cohort of the user being projected |
+| `AssumptionsService` | `current_spa`, with a RETIREMENT-age default behind it | cohort |
+| `AssetLocationController` | `current_spa` | `forUser()` |
+| `PensionEstimateService` | `future_spa` — the only reader of the other key | `forCurrentAge()` on the visitor's band |
+| `HouseholdCashFlowProjector` | `current_spa` | cohort, per household member |
+
+`AssumptionsService` is worth noting: it used its own **retirement-age** default as the
+fallback for **State Pension age** — two different questions answering each other. Both
+now go to the service that owns them (W-0196 for the first, this for the second).
+
+**Acceptance 4 — a recorded forecast still wins.** `forUser()` returns
+`state_pensions.state_pension_age` when the user holds one, before consulting any
+cohort. They may have a forecast we cannot reproduce, and overriding it with our own
+arithmetic would be telling them their own statement is wrong.
+
+**Acceptance 5 — two people in one household get different answers**, and every module
+agrees on each, because every module asks the same resolver. Asserted directly.
+
+### Tests
+
+`tests/Unit/Services/Retirement/StatePensionAgeResolverTest.php` — 10 tests: the three
+cohort bands, two household members differing, the recorded override, the unknown date
+of birth, both keys gone from configuration, no service reading a retired key, and the
+missing-schedule throw.
+
+**A test that encoded the defect, corrected rather than deleted.**
+`PensionEstimateServiceTest` hardcoded `$retirementAge = 67; // future_spa` in nine
+places. That literal WAS the defect — one State Pension age for every age band — so
+every case now resolves for its own band exactly as the service does. A test that
+hardcodes the answer cannot tell whether the service reads the schedule or ignores it.
+The reasoning is written at the first occurrence.
+
+**Regression:** 1,075 tests across estate, retirement, investment and stores; 112 across
+marketing and investment features.
+
+**Rule 19:** no State Pension age literal exists in `resources/mobile`. The web
+components' `state_pension_age || 67` fallbacks are display fallbacks for a value the
+API supplies and are W-0516's, which this item does not pre-empt.

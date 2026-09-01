@@ -8,6 +8,7 @@ use App\Models\Investment\Holding;
 use App\Models\User;
 use App\Models\UserAssumption;
 use App\Services\Retirement\RetirementAgeResolver;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\Collection;
@@ -43,7 +44,9 @@ class AssumptionsService
 
     public function __construct(
         private readonly RiskPreferenceService $riskService,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge
     ) {}
 
     /**
@@ -431,7 +434,10 @@ class AssumptionsService
             }
         }
 
-        return (int) $this->taxConfig->get('pension.state_pension.current_spa', self::DEFAULT_RETIREMENT_AGE);
+        // W-0197. Was `current_spa` with a RETIREMENT-age default behind it — two
+        // different questions answering each other. Both are now resolved by the
+        // service that owns them.
+        return $this->statePensionAge->forDateOfBirth($user->date_of_birth);
     }
 
     /**

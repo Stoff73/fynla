@@ -10,6 +10,7 @@ use App\Services\Goals\LifeEventService;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -91,6 +92,8 @@ class HouseholdCashFlowProjector
         private readonly RetirementProjectionService $retirementProjection,
         // W-0196 — the one home for the retirement-age default and its priority chain.
         private readonly RetirementAgeResolver $retirementAge,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -595,7 +598,11 @@ class HouseholdCashFlowProjector
             return (int) $recorded;
         }
 
-        return (int) $this->taxConfig->get('pension.state_pension.current_spa', PensionProjector::DEFAULT_RETIREMENT_AGE);
+        // W-0197. Was `current_spa`, one scalar for every member of the household.
+        // The projection runs to a second death decades out, so two people of
+        // different ages need different State Pension ages — which is what the
+        // resolver reads from the statutory schedule.
+        return $this->statePensionAge->forDateOfBirth($member->date_of_birth);
     }
 
     /**

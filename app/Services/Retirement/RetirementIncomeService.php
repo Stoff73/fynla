@@ -49,6 +49,8 @@ class RetirementIncomeService
         // never the user record or a pension, so a household whose only stated age
         // was on a pension was projected from 67 here and from the pension elsewhere.
         private readonly RetirementAgeResolver $retirementAge,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -577,7 +579,12 @@ class RetirementIncomeService
             ->map(fn ($uid) => app(PensionStore::class)->statePension(User::findOrFail($uid)))
             ->filter();
 
-        $defaultSPA = (int) $this->taxConfig->get('pension.state_pension.current_spa', 67);
+        // W-0197. Was `current_spa` — one number for every cohort. The resolver reads
+        // the statutory schedule, so a 26-year-old and a 46-year-old no longer share
+        // a State Pension age.
+        $defaultSPA = $this->statePensionAge->forDateOfBirth(
+            User::find($userIds[0] ?? null)?->date_of_birth
+        );
 
         // No state pension data entered
         if ($statePensions->isEmpty()) {
