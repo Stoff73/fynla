@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Services\Estate\FutureValueCalculator;
 use App\Services\Retirement\DecumulationPlanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,9 @@ class DecumulationController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly DecumulationPlanner $planner
+        private readonly DecumulationPlanner $planner,
+        // W-0198 — the one home for how long this person expects to live.
+        private readonly FutureValueCalculator $futureValue
     ) {}
 
     /**
@@ -59,9 +62,13 @@ class DecumulationController extends Controller
         $retirementAge = $profile->target_retirement_age;
         $currentAge = $profile->current_age;
         $yearsToRetirement = max(0, $retirementAge - $currentAge);
-        $lifeExpectancy = $user->life_expectancy_override ?? $profile->life_expectancy ?? 85;
+        // W-0198. Was `override ?? profile ?? 85`, one of four different combinations
+        // of the same two columns. The precedence lives in one place now.
+        $lifeExpectancy = $this->futureValue->getLifeExpectancy($user)['death_age'];
         $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
-        $hasSpouse = $profile->spouse_life_expectancy !== null;
+        // W-0198. Was `spouse_life_expectancy !== null` — a married user who had not
+        // filled that optional field was compared against a single-life annuity.
+        $hasSpouse = $this->futureValue->hasSpouse($user);
 
         // Care cost parameters
         $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);

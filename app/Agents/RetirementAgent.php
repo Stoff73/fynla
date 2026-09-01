@@ -10,6 +10,7 @@ use App\Events\Eval\GateChecked;
 use App\Models\Goal;
 use App\Models\RetirementProfile;
 use App\Models\User;
+use App\Services\Estate\FutureValueCalculator;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
@@ -56,6 +57,8 @@ class RetirementAgent extends BaseAgent
         private readonly SimpleAssetAllocationOptimizer $allocationOptimizer,
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly TaxEfficiencyCalculator $taxCalculator,
+        // W-0198 — the one home for how long this person expects to live.
+        private readonly FutureValueCalculator $futureValue,
         private readonly ?PlanConfigService $planConfig = null
     ) {
         if ($this->planConfig) {
@@ -193,9 +196,18 @@ class RetirementAgent extends BaseAgent
                 $accumulationToDecumulationYears = (int) $this->taxConfig->get('retirement.accumulation_to_decumulation_years', 10);
                 if ($yearsToRetirement <= $accumulationToDecumulationYears && $currentDcValue > 0) {
                     $decumulationUser = User::with('protectionProfile')->find($userId);
-                    $lifeExpectancy = $decumulationUser?->life_expectancy_override ?? $profile->life_expectancy ?? 85;
+                    // W-0198. Was `override ?? profile ?? 85`. The precedence lives in
+                    // one place now, so retirement, decumulation and the estate answer
+                    // the same for the same person.
+                    $lifeExpectancy = $decumulationUser
+                        ? $this->futureValue->getLifeExpectancy($decumulationUser)['death_age']
+                        : self::DEFAULT_LIFE_EXPECTANCY;
                     $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
-                    $hasSpouse = $profile->spouse_life_expectancy !== null;
+                    // W-0198. Same defect as the controller: presence of an optional
+                    // field is not the same question as whether there is a spouse.
+                    $hasSpouse = $decumulationUser
+                        ? $this->futureValue->hasSpouse($decumulationUser)
+                        : false;
 
                     // Wire care costs from RetirementProfile into decumulation planning
                     $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
