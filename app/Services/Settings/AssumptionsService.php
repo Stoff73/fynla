@@ -40,6 +40,9 @@ class AssumptionsService
 
     private const DEFAULT_INVESTMENT_GROWTH_METHOD = 'monte_carlo';
 
+    /** W-0334 — the fallback both copies of this rule carried, now in one place. */
+    private const DEFAULT_INVESTMENT_GROWTH_RATE = 0.047;
+
     private const VALID_ASSUMPTION_TYPES = ['pensions', 'investments', 'estate_planning'];
 
     public function __construct(
@@ -438,6 +441,32 @@ class AssumptionsService
         // different questions answering each other. Both are now resolved by the
         // service that owns them.
         return $this->statePensionAge->forDateOfBirth($user->date_of_birth);
+    }
+
+    /**
+     * W-0334 — the one home for "what annual growth rate does this user's assumption
+     * imply", and the one place `investment_growth_method` is interpreted.
+     *
+     * `EstateProjectionService::getFallbackGrowthRate()` and
+     * `LifeCoverCalculator::getInvestmentReturnRate()` were **byte-identical copies**
+     * of this rule, hardcoded 4.7% fallback included. They agreed only because one was
+     * copied from the other — and that arrangement is exactly what produced a setting
+     * honoured by life-cover sizing and silently ignored by the estate projection,
+     * which is the defect this item records.
+     *
+     * The default is the same 4.7% both copies carried; it lives here now so a change
+     * cannot reach one consumer and not the other (Rule 20).
+     */
+    public function investmentGrowthRateFor(User $user): float
+    {
+        $assumptions = $this->getEstateAssumptions($user);
+
+        if (($assumptions['investment_growth_method'] ?? self::DEFAULT_INVESTMENT_GROWTH_METHOD) === 'custom'
+            && isset($assumptions['custom_investment_rate'])) {
+            return (float) $assumptions['custom_investment_rate'] / 100;
+        }
+
+        return self::DEFAULT_INVESTMENT_GROWTH_RATE;
     }
 
     /**
