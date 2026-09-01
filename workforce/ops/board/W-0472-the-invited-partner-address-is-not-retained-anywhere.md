@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [product-lead, compliance-lead]
-status: queued
+status: gated
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -70,3 +70,65 @@ Measured: after inviting `nobody-w0349@example.com`, the resulting card reads
   than shipping a screen that cannot describe its own state. The two-branch
   message was written, found to have a branch that could never fire, and removed —
   a branch that cannot execute is worse than the limitation it hides.
+
+---
+
+## 2026-09-01 — acceptance 1 gated; a second defect found and fixed
+
+**Acceptance 1 is not taken.** Storing a non-user's email address, for a person who has
+consented to nothing, is a data-retention question needing CSJ **and**
+`compliance-lead`. **No column was added and no invitation record was created.**
+
+**Verified in the live schema first, not from the item:** `family_members` still has no
+email column, and `SHOW TABLES` returns only `letters_to_spouse` and
+`spouse_permissions` — no invitation store exists.
+
+### The second defect, which is unconditional
+
+The API has carried `invitation_pending: true` since W-0349
+(`FamilyMembersController:245`), **and no frontend read it** — `grep` across
+`resources/js` and `resources/mobile` returned only backend hits.
+
+`FamilyMembers.vue:436-455` branched on `created` and `linked`. The invite path returns
+**neither**, so it fell through to *"Family member added successfully!"* — the user
+invited someone and was never told an invitation had gone out.
+
+**And the `created` branch could not fire at all.** It set a temporary password and
+opened a credentials modal; the controller returns no `created` key and
+`SpouseLinkingService` sets `created_new_user => false` unconditionally, because W-0349
+stopped this endpoint creating accounts. **A branch that cannot execute is worse than
+the limitation it hides** — the same finding this item's own working note records
+against an earlier two-branch message.
+
+Replaced with an `invitation_pending` branch naming the address **the user has just
+typed**. That discloses nothing — they typed it — and the response still confirms
+nothing about whether the address is registered (W-0348, W-0349's enumeration
+hardening). It also says the address is not kept, which is true under the current
+answer and is the honest thing to say while acceptance 1 is open.
+
+### Tests
+
+`resources/js/components/__tests__/UserProfile/FamilyMembers.spec.js` — 2 new: the
+message names the address and says an invitation went out, and it is **not** the
+generic "added successfully". **Mutation-verified:** restoring the `created` branch
+turns both red.
+
+**Regression:** 738 frontend tests.
+
+**Rule 19:** `/m` has the sharing panel and the invitee's answer route
+(`router.js:81`) but **no add-family-member form**, so there is no counterpart to carry
+this message. Verified in `router.js`, not assumed.
+
+### Left alone deliberately
+
+`spouseCreated` and `temporaryPassword` are now provably always `false`/`null` and feed
+`SpouseSuccessModal`'s `is-created` and `temporary-password` props. They are inert — the
+modal will always render its linked variant — and removing them means editing that
+component's props too. Named here rather than widened into.
+
+### The decision still outstanding, in one line
+
+*Should the invited address be retained so the user can see who they invited, fix a
+typo, and re-send?* If yes it needs a column or a pending-invitation record, a screen
+that names it, and a re-send that becomes neither an enumeration oracle (W-0349) nor a
+way to mail somebody repeatedly.

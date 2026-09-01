@@ -432,16 +432,22 @@ export default {
           const isSpouse = formData.relationship === 'spouse';
 
           if (!isPreviewMode && isSpouse && responseData) {
-            if (responseData.created) {
-              // Show spouse success modal with credentials
-              spouseCreated.value = true;
-              spouseEmail.value = responseData.spouse_email || formData.email;
-              temporaryPassword.value = responseData.temporary_password || null;
-              showSpouseSuccess.value = true;
-              // Refresh user data to reflect spouse linkage (silently - don't block modal)
-              store.dispatch('auth/fetchUser').catch((err) => {
-                console.warn('Failed to refresh user data after spouse creation:', err);
-              });
+            // W-0472. There is no `created` branch any more, and there was one here
+            // until this item: it set a temporary password and opened a credentials
+            // modal. CSJ's W-0349 decision stopped this endpoint creating an account
+            // for an unregistered address — it invites it — so the controller returns
+            // no `created` key and `created_new_user` is always false. **A branch that
+            // cannot execute is worse than the limitation it hides**, and this one hid
+            // the state below.
+            if (responseData.invitation_pending) {
+              // The address is not stored anywhere (see W-0472 acceptance 1 — whether
+              // it should be is CSJ's and compliance-lead's call), so this names the
+              // one the user has just typed. That discloses nothing: they typed it,
+              // and the response deliberately confirms nothing about whether it is
+              // registered (W-0348, W-0349).
+              successMessage.value = `We have emailed an invitation to ${formData.email}. `
+                + 'They will appear as linked once they accept. We do not keep a record '
+                + 'of the address, so check it now if you are unsure.';
             } else if (responseData.linked) {
               // Show spouse success modal for linking
               spouseCreated.value = false;
