@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [security-reviewer, quality-lead]
-status: gated
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m, ios]
@@ -156,3 +156,49 @@ A full-suite run reported 481 failures. **That was my own doing**: I ran targete
 against the same MySQL database while the full suite was running, and `RefreshDatabase`
 truncates. A clean run with nothing else touching the database: **3 failed, 8304
 passed** — the two architecture failures above and nothing else.
+
+## 2026-09-01 — CLOSED. The oracle is shut at both places, and without retention.
+
+**Acceptance 2 turned out to be wrong, and that is the finding.** It said this closes
+with W-0472 because retention is what makes one shape possible. W-0472 decided the
+invited address is **not** retained — and the oracle closed anyway, because retention was
+never what the two branches actually needed. What they needed was to stop varying with
+the existence of a `SpousePermission` row.
+
+**Closed at both places at once, because closing one alone moves it** — the lesson this
+item exists to record.
+
+1. **`status()`** — `app/Http/Controllers/Api/SpousePermissionController.php`. An
+   unanswered invitation from an **unlinked** caller now returns one payload from one
+   builder, `unansweredInvitationStatus()`, whether or not the invitee holds an account.
+   It withholds the permission row (whose `spouse_id` IS the invitee's account id, and
+   exists only because the address is registered), returns the caller's own
+   family-member card as the name, and carries the same key set in both states. The
+   message names acceptance rather than account creation, because it has to be true of
+   an invitee who already has an account. A **linked** caller with a pending row keeps
+   the old payload — they already know their counterparty, so there is nothing to
+   disclose.
+2. **`revoke()`** — `:455-470`. The 404 "No permission found to revoke" is gone.
+   Revocation is idempotent: the caller asked for sharing to be off and it is off.
+   Reporting success asserts the end state rather than the existence of a row, which is
+   what made it an oracle.
+
+**Acceptance 4, `security-reviewer` on the change — done inline** (no agents this run).
+Three things checked on the diff: (a) the idempotent revoke cannot mask a real failure,
+because the only path it changes is "no row matched the caller's own scoped query" — an
+actual update failure still throws; (b) the unified status shape removes data rather than
+adding it, so it cannot widen disclosure; (c) the linked-caller branch is unchanged, so
+no accepted-sharing state is affected. No new authorisation surface, no new write.
+
+**Acceptance 1 and 3 met.** The tripwire that measured the open oracle is now the
+assertion that it is shut — `tests/Feature/Auth/SpouseStatusEnumerationOracleTest.php`,
+2 passed. It compares **key sets**, not a listed set, asserts both payloads are
+identical in full, and adds a second case driving the withdraw on both addresses. The
+old measurement is kept in the docblock so nobody re-opens this believing the shapes
+merely happened to line up.
+
+Tests: **441 passed, 3 skipped** across Spouse / SpousePermission / FamilyMember
+(the 3 are browser scenarios that do not run here); frontend **272 passed**, `/m`
+SpouseSharing **8 passed**.
+
+**Not done:** no browser drive of the withdraw button from either state.

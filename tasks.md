@@ -131,7 +131,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0453** `done` (5 sites + mutation-verified guard) — A null-defaulting tax getter reaches .toLocaleString() unguarded at two template sites — throws on a cold load, in a fallback block nothing else covers
 - [x] **W-0470** `done` (display half completed) — The controller recomputes the projected net estate on a liabilities figure the projected taxable estate was never struck on, so the two rows disagree on screen
 - [x] **W-0472** `done` (decision taken: address NOT retained; acceptance 3 already shipped; /m has no invite path) — The address a user invites their partner on is used once and deliberately not stored, and the screen says so
-- [ ] **W-0476** `gated` (measured + tripwired; closes with W-0472, withdraw re-forms the oracle) — The account-enumeration oracle moved one endpoint over — two requests still distinguish a registered address from an unregistered one
+- [x] **W-0476** `done` (closed at status AND revoke, without retention — acceptance 2's premise was wrong) — The account-enumeration oracle on the spouse status and revoke endpoints
 - [ ] **W-0483** `queued` — A co-owner who borrowed alone cannot be shown as owing alone, and only CSJ can change that
 - [x] **W-0488** `done` (seeder fixed; BOTH causes proven — runway excludes mortgages for every user, needs its own item) — peak_earners resolves to £1,250 a month and so reports 59.8 months of emergency runway
 - [ ] **W-0492** `review` — The E2E consent fixture seeds a key nothing reads, so the banner blocks every landing-page test
