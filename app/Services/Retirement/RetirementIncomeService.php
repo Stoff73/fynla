@@ -335,7 +335,8 @@ class RetirementIncomeService
                 'name' => 'State Pension',
                 'value' => null,
                 'annual_income' => round($annualIncome, 2),
-                'payment_start_age' => $pension->state_pension_age ?? 67,
+                // W-0516 — the cohort schedule, not a literal, where the record is silent.
+                'payment_start_age' => $this->statePensionAge->forUser($pension->user),
                 'already_receiving' => (bool) $pension->already_receiving,
                 'tax_treatment' => 'taxable',
                 'source_type' => 'state_pension',

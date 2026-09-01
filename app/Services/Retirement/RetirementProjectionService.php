@@ -36,7 +36,14 @@ class RetirementProjectionService
         // spending and the fund the estate is taxed on becoming two opinions.
         private readonly PensionProjector $pensionProjector,
         // W-0196 — the one home for the retirement-age default and its priority chain.
-        private readonly RetirementAgeResolver $retirementAge
+        private readonly RetirementAgeResolver $retirementAge,
+        // W-0516 — the one home for State Pension age. This service carried a literal
+        // `?? 67` at two sites while `HouseholdCashFlowProjector` read the statutory
+        // cohort schedule, so a user with no State Pension record had their retirement
+        // income projected from 67 and their household cash flow from 66. W-0482 then
+        // wired this service into the projected estate, so the literal was reaching an
+        // Inheritance Tax figure.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -295,7 +302,7 @@ class RetirementProjectionService
             $dcDrawdown = $remainingFund > 0 ? $remainingFund * $sustainableWithdrawalRate : 0;
 
             // State pension may start at a different age
-            $statePensionThisYear = $age >= ($user->statePension?->state_pension_age ?? 67)
+            $statePensionThisYear = $age >= $this->statePensionAge->forUser($user)
                 ? $statePensionIncome
                 : 0;
 
@@ -665,7 +672,7 @@ class RetirementProjectionService
             }
 
             // State pension may start at a different age
-            $statePensionThisYear = $age >= ($user->statePension?->state_pension_age ?? 67)
+            $statePensionThisYear = $age >= $this->statePensionAge->forUser($user)
                 ? $statePensionIncome
                 : 0;
 

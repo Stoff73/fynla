@@ -24,6 +24,7 @@ use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Retirement\RetirementDataReadinessService;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
@@ -51,6 +52,8 @@ class RetirementAgent extends BaseAgent
         private readonly RetirementActionDefinitionService $actionDefinitionService,
         private readonly RiskPreferenceService $riskPreferenceService,
         private readonly RetirementDataReadinessService $readinessService,
+        // W-0516 — the one home for State Pension age.
+        private readonly StatePensionAgeResolver $statePensionAge,
         // Portfolio optimization services (shared with Investment module)
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
         private readonly MonteCarloSimulator $monteCarloSimulator,
@@ -138,7 +141,7 @@ class RetirementAgent extends BaseAgent
                 }
 
                 $targetIncome = (float) $profile->target_retirement_income;
-                $statePensionAge = $statePension->state_pension_age ?? 67;
+                $statePensionAge = $this->statePensionAge->forUser($user);
                 $retirementAge = $profile->target_retirement_age;
 
                 // Income at retirement: only include state pension if retiring at or after SPA
@@ -408,11 +411,11 @@ class RetirementAgent extends BaseAgent
             'retires_before_spa' => null,
             'income_after_spa' => null,
             'income_gap_after_spa' => null,
-            // Record-derived — facts about what this household holds.
-            // The `?? 67` mirrors the happy path's fallback exactly, literal included,
-            // so the branches cannot drift. That hardcoded age predates this work and
-            // is raised, not changed here.
-            'state_pension_age' => $statePension->state_pension_age ?? 67,
+            // Record-derived — facts about what this household holds. W-0516 closed
+            // the literal this comment used to defend: both branches now resolve from
+            // the cohort schedule, so they still cannot drift and neither hardcodes an
+            // age that changes with the user's year of birth.
+            'state_pension_age' => $this->statePensionAge->forUser($user),
             'state_pension_income' => $incomeProjection['state_pension_income'] ?? 0,
             'current_dc_value' => (float) $dcPensions->sum('current_fund_value'),
             'total_dc_value' => $incomeProjection['dc_total_value'] ?? 0,

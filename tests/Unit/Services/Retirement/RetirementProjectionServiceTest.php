@@ -14,6 +14,7 @@ use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Shared\MonteCarloEngine;
 use App\Services\TaxConfigService;
@@ -101,7 +102,11 @@ beforeEach(function () {
         // W-0196 — the retirement-age chain moved out of this service into the one
         // home every module now reads. Real, not mocked: the resolution order IS the
         // behaviour these projections depend on.
-        app(RetirementAgeResolver::class)
+        app(RetirementAgeResolver::class),
+        // W-0516 — State Pension age is a birth cohort, not a literal. Real, not
+        // mocked, for the same reason as the resolver above: the schedule IS the
+        // behaviour these projections depend on.
+        app(StatePensionAgeResolver::class),
     );
 });
 

@@ -15,6 +15,8 @@ final class RetirementProjectionContractService
         private readonly RetirementProjectionService $projectionService,
         private readonly AssumptionsService $assumptionsService,
         private readonly TaxConfigService $taxConfig,
+        // W-0516 — the one home for State Pension age.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -107,7 +109,7 @@ final class RetirementProjectionContractService
                 'resource_type' => 'state_pension',
                 'resource_id' => (int) $statePension->id,
                 'name' => 'State Pension',
-                'commencement_age' => (int) ($statePension->state_pension_age ?? 67),
+                'commencement_age' => $this->statePensionAge->forUser($user),
                 'current_value' => null,
                 'projected_value' => null,
                 'annual_income' => round((float) ($statePension->state_pension_forecast_annual ?? 0), 2),
