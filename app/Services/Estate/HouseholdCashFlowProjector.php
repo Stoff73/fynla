@@ -108,6 +108,7 @@ class HouseholdCashFlowProjector
      *     starting_cash: float,
      *     final_cash: float,
      *     shortfall: float,
+     *     annual_deficits: array<int, float>,
      *     years: list<array<string, mixed>>,
      *     assumptions: list<string>,
      *     pre_retirement_income: float,
@@ -149,6 +150,12 @@ class HouseholdCashFlowProjector
         $viewer = $profiles[0];
         $balance = $startingCash;
         $shortfall = 0.0;
+        // W-0199. The per-year amounts, not just their sum. The loop below already
+        // knows each one and threw it into a running total, which is why the estate
+        // projection could only ever subtract a lump at the horizon — and so did not
+        // subtract it at all. Investments have to be sold in the YEAR the cash runs
+        // short, because the money that is sold stops compounding from that year on.
+        $annualDeficits = [];
         $years = [];
 
         for ($year = 0; $year < $yearsToProject; $year++) {
@@ -194,6 +201,7 @@ class HouseholdCashFlowProjector
 
             if ($balance < 0) {
                 $shortfall += -$balance;
+                $annualDeficits[$year] = round(-$balance, 2);
                 $balance = 0.0;
             }
 
@@ -233,6 +241,9 @@ class HouseholdCashFlowProjector
             'starting_cash' => round($startingCash, 2),
             'final_cash' => round($balance, 2),
             'shortfall' => round($shortfall, 2),
+            // W-0199 — keyed by year offset from today, so a consumer can draw on
+            // investments in the year the shortfall actually falls.
+            'annual_deficits' => $annualDeficits,
             'years' => $years,
             'assumptions' => $assumptions,
             'pre_retirement_income' => round($householdPreRetirementIncome, 2),

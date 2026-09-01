@@ -800,14 +800,11 @@ class IHTCalculationService
         // `getFallbackGrowthRate()` reads it, but only as the fallback for when the
         // simulation FAILS. A user's explicit choice was reachable solely by the
         // simulation erroring — exactly backwards.
-        $projectedInvestments = $this->estateProjection->projectInvestments(
-            $user,
-            $spouse,
-            $yearsUntilDeath,
-            $assumptions,
-            $dataSharingEnabled
-        );
-
+        // W-0199 — the cash flow runs FIRST now, because the investment projection
+        // needs to know which years the household could not fund. Projecting
+        // investments before knowing that was what left a household running out of
+        // cash while its portfolio grew untouched to the horizon.
+        //
         // Project cash: one mechanism, shared with the year-by-year table the user
         // reads beneath the headline (Rule 20 — see HouseholdCashFlowProjector).
         $cashFlow = $this->cashFlowProjector->project(
@@ -827,6 +824,21 @@ class IHTCalculationService
             $inflationRate
         );
         $projectedCash = $cashFlow['final_cash'];
+
+        // W-0199 — investments, net of what had to be sold to cover the years cash
+        // could not fund. The horizon value still comes from the user's configured
+        // growth method (W-0520 — Monte Carlo, or their own rate); the drawdown is
+        // unwound from that same projection's implied rate rather than from a second
+        // investment model with its own assumptions.
+        $investmentProjection = $this->estateProjection->projectInvestmentsAfterCashShortfall(
+            $user,
+            $spouse,
+            $yearsUntilDeath,
+            $assumptions,
+            $dataSharingEnabled,
+            $cashFlow['annual_deficits'] ?? []
+        );
+        $projectedInvestments = $investmentProjection['projected_investments'];
 
         $projectedProperties = $this->estateProjection->projectProperties(
             $user,
@@ -1048,7 +1060,16 @@ class IHTCalculationService
             // negative balance — a Cash ISA at minus £854,179 — which is not a value a
             // deposit account can hold, and which was then subtracted from the estate.
             // A shortfall is a planning output; a negative asset is a broken model.
-            'projected_cash_shortfall' => round((float) $cashFlow['shortfall'], 2),
+            // W-0199. What is left AFTER the household sold investments to cover it.
+            // Before, this was the raw cash shortfall while the portfolio it should
+            // have been paid from grew untouched — the household was modelled as both
+            // unable to fund its spending and still holding the money to fund it, and
+            // the estate was taxed on the second half of that contradiction.
+            'projected_cash_shortfall' => round((float) $investmentProjection['unmet_shortfall'], 2),
+
+            // Published so the row can be shown rather than the reduction appearing as
+            // unexplained shrinkage in the projected portfolio.
+            'projected_investments_drawn_for_shortfall' => $investmentProjection['drawn_from_investments'],
 
             // What the projection had to assume because a figure was absent. Published
             // so an unavailable number is never read as a real zero — a missing State

@@ -4,7 +4,7 @@ title: A projected cash shortfall never draws on investments, so a household run
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: chief-of-staff
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T07:30:00Z
@@ -65,3 +65,66 @@ the projected inheritance tax is charged on it.
 3. The drawdown's effect on growth is modelled, not applied as a lump at the horizon.
 4. `projected_investments` moves consistently on `/estate/inheritance-tax` and
    `/plans/estate`, and W-0135's two-screen agreement holds.
+
+---
+
+## Closed 2026-09-01 — the model stated, and taken from the projection that already exists
+
+**Acceptance 1 — the stated model.** When cash reaches zero the household sells
+investments to cover that year's shortfall, and stops when the portfolio is exhausted.
+What it still cannot meet stays a shortfall — a planning output, where a negative asset
+would be a broken model. Written at
+`EstateProjectionService::projectInvestmentsAfterCashShortfall()`.
+
+**Acceptance 2 — one investment model, not two.** The horizon value still comes from
+the user's configured growth method (Monte Carlo p20, or their own rate — W-0520). The
+annual path is **that same projection's implied rate**, `(Vn / V0) ^ (1/n) - 1`, so the
+drawdown is unwound from the one model's own answer. That is the distinction the item
+was right to insist on: the deleted `projectCashAndInvestmentsIntegrated()` carried its
+own growth assumptions and would have been a second model; deriving the rate from the
+first one is not.
+
+`projectInvestments()` is now a thin call into the same method with no deficits, so the
+two cannot drift — asserted directly.
+
+**Acceptance 3 — growth on the reduced balance.** The deficit is taken in the year it
+falls, so money sold in year 3 stops compounding in year 3. The test that proves it:
+the same £10,000 sold early costs the household **more than £10,000** at the horizon,
+and more than the same £10,000 sold late. A lump subtraction at the horizon can produce
+neither result.
+
+### How the deficits reach it
+
+`HouseholdCashFlowProjector` already computed each year's unmet amount and threw it
+into a running total — which is exactly why the estate could only ever have subtracted
+a lump, and so subtracted nothing. It now publishes `annual_deficits`, keyed by year
+offset. Three lines, no new mechanism.
+
+`IHTCalculationService` runs the cash flow **before** the investment projection now, so
+the second knows what the first could not fund, and publishes two figures where it
+published one:
+
+- `projected_cash_shortfall` is now what remains **after** the portfolio was drawn on.
+  Before, it was the raw cash shortfall while the investments that should have paid it
+  grew untouched — the household modelled as both unable to fund its spending and still
+  holding the money to fund it, with the estate taxed on the second half.
+- `projected_investments_drawn_for_shortfall` is published so the reduction can be shown
+  as a row rather than appearing as unexplained shrinkage.
+
+### Tests
+
+`tests/Unit/Services/Estate/CashShortfallDrawsOnInvestmentsTest.php` — 6 tests: no
+shortfall leaves the projection untouched, a household with nothing invested reports the
+whole shortfall unmet, early selling costs more than late selling and more than the sum
+itself, the portfolio empties before anything is reported unmet, the plain projection
+equals the drawdown path at zero deficit, and the configured growth method is honoured.
+
+A custom rate is used rather than Monte Carlo throughout, and the reason is written at
+the helper: the simulation's p20 moves between runs, and a test that cannot state its
+expected number cannot tell a correct drawdown from a wrong one.
+
+**Regression:** 643 tests across the estate services and features.
+
+**Impact:** still nil on screen for `peak_earners`, whose shortfall is £0. The next
+household with a genuine shortfall no longer has an overstated estate, or projected
+Inheritance Tax charged on money it should have spent.

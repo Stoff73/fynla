@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 46**  ·  closed 2026-08-31: 86
+**Outstanding: 45**  ·  closed 2026-08-31: 87
 
 ---
 
@@ -85,7 +85,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0196** `done` (7 constants + 5 chains + 12 frontend literals -> one home; 2 guards mutation-verified) — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
 - [x] **W-0197** `done` (cohort schedule replaces both scalars; all 5 readers routed) — State Pension age is legislated by cohort, and the application holds two static keys — a projection decades out needs a resolver, not a choice between 66 and 67
 - [x] **W-0198** `done` (one resolver; spouse field wired + hasSpouse defect found and fixed) — Two columns hold one life expectancy — the override now agrees everywhere, the fallbacks still do not
-- [ ] **W-0199** `queued` — A projected cash shortfall never draws on investments, so a household runs out of money while holding an untouched portfolio
+- [x] **W-0199** `done` (drawdown unwound from the same projection's implied rate; growth modelled year by year) — A projected cash shortfall never draws on investments, so a household runs out of money while holding an untouched portfolio
 - [ ] **W-0200** `queued` — A joint-life policy records that it covers two lives but never records whose — the second life assured can only be inferred from users.spouse_id
 - [x] **W-0207** `done` (already fixed) — A completed 2020 life event is counted as future expected income and displayed as happening "In 0 years
 - [ ] **W-0208** `queued` — The letter/will consistency check flags a punctuation difference as an executor mismatch and tells the user to edit a legal document
