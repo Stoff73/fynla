@@ -43,7 +43,7 @@ class EstateOnboardingFlow
                 'description' => 'Tell us about your family members and who you want to benefit from your estate',
                 'order' => 2,
                 'required' => false,
-                'skip_reason' => 'Beneficiary information helps us calculate available reliefs (like spouse exemption and RNRB) and model different bequest scenarios to minimize IHT.',
+                'skip_reason' => 'Beneficiary information helps us calculate available reliefs (like spouse exemption and the Residence Nil Rate Band) and model different bequest scenarios to minimise Inheritance Tax.',
                 'fields' => [
                     'spouse_info' => ['required' => false],
                     'children_info' => ['required' => false],
@@ -98,10 +98,10 @@ class EstateOnboardingFlow
             'domicile_info' => [
                 'name' => 'domicile_info',
                 'title' => 'Domicile Information',
-                'description' => 'Your domicile status affects your UK tax liability and IHT calculations',
+                'description' => 'Your domicile status affects your UK tax liability and Inheritance Tax calculations',
                 'order' => 3,
                 'required' => true,
-                'skip_reason' => 'Domicile status is crucial for IHT planning. Non-UK domiciled individuals have different IHT rules and exemptions. Without this information, we cannot calculate your accurate IHT liability.',
+                'skip_reason' => 'Domicile status is crucial for Inheritance Tax (IHT) planning. Non-UK domiciled individuals have different IHT rules and exemptions. Without this information, we cannot calculate your accurate IHT liability.',
                 'fields' => [
                     'country_of_birth' => ['required' => true],
                     'uk_arrival_date' => ['required' => false], // Only if non-UK born
@@ -116,7 +116,7 @@ class EstateOnboardingFlow
                 'description' => 'Tell us about your properties, investments, and other assets',
                 'order' => 4,
                 'required' => true,
-                'skip_reason' => 'Your assets form the basis of your taxable estate. Without this information, we cannot calculate your potential IHT liability, which is the primary purpose of estate planning.',
+                'skip_reason' => 'Your assets form the basis of your taxable estate. Without this information, we cannot calculate your potential Inheritance Tax liability, which is the primary purpose of estate planning.',
                 'fields' => [
                     'has_properties' => ['required' => false],
                     'has_investments' => ['required' => false],
@@ -131,7 +131,7 @@ class EstateOnboardingFlow
                 'description' => 'Tell us about mortgages, loans, and other debts',
                 'order' => 5,
                 'required' => false,
-                'skip_reason' => 'Liabilities reduce your taxable estate for IHT purposes. Skipping this may result in overestimating your IHT bill and missing potential tax savings.',
+                'skip_reason' => 'Liabilities reduce your taxable estate for Inheritance Tax (IHT) purposes. Skipping this may result in overestimating your IHT bill and missing potential tax savings.',
                 'fields' => [
                     'has_mortgages' => ['required' => false],
                     'has_loans' => ['required' => false],
@@ -144,7 +144,7 @@ class EstateOnboardingFlow
                 'description' => 'Tell us about your existing life insurance and protection coverage',
                 'order' => 6,
                 'required' => false,
-                'skip_reason' => 'Protection policies can provide liquidity for your estate to pay IHT bills. Knowing about these helps us ensure your beneficiaries have enough funds to settle tax liabilities.',
+                'skip_reason' => 'Protection policies can provide liquidity for your estate to pay Inheritance Tax bills. Knowing about these helps us ensure your beneficiaries have enough funds to settle tax liabilities.',
                 'fields' => [
                     'has_life_insurance' => ['required' => false],
                     'life_insurance_policies' => ['required' => false],
@@ -170,7 +170,7 @@ class EstateOnboardingFlow
                 'order' => 10,
                 'required' => false,
                 'conditional' => true, // Only show if certain conditions are met
-                'skip_reason' => 'Existing trusts can affect your IHT calculation due to Potentially Exempt Transfers (PETs) and Chargeable Lifetime Transfers (CLTs). Skipping this may lead to inaccurate tax projections.',
+                'skip_reason' => 'Existing trusts can affect your Inheritance Tax calculation due to Potentially Exempt Transfers (PETs) and Chargeable Lifetime Transfers (CLTs). Skipping this may lead to inaccurate tax projections.',
                 'fields' => [
                     'has_trusts' => ['required' => false],
                     'trust_details' => ['required' => false],

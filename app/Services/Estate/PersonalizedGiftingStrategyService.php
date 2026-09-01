@@ -63,7 +63,7 @@ class PersonalizedGiftingStrategyService
                 'liquidity_analysis' => $liquidityAnalysis,
                 'giftable_amounts' => $giftableAmounts,
                 'summary' => [
-                    'message' => 'No IHT liability - no gifting strategies needed',
+                    'message' => 'No Inheritance Tax liability - no gifting strategies needed',
                     'original_iht_liability' => 0,
                     'total_iht_saved' => 0,
                     'remaining_iht_liability' => 0,
@@ -284,7 +284,7 @@ class PersonalizedGiftingStrategyService
                 'Properties can be gifted outright or in stages (e.g., 10% per year)',
                 'Consider Capital Gains Tax (CGT) on disposal (24% for residential property)',
                 'Stamp Duty Land Tax (SDLT) may apply to recipient',
-                'Gift becomes PET - exempt after 7 years',
+                'Gift becomes a Potentially Exempt Transfer (PET) - exempt after 7 years',
                 'Consider setting up a trust for flexibility',
                 'Rental income should continue to recipient after gift',
                 'Professional legal and tax advice essential',

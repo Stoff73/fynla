@@ -220,9 +220,9 @@ class PersonalizedTrustStrategyService
         })->toArray();
 
         return [
-            'strategy_name' => 'Immediate Discretionary Trust (CLT)',
+            'strategy_name' => 'Immediate Discretionary Trust (a Chargeable Lifetime Transfer, or CLT)',
             'priority' => 1,
-            'description' => 'Transfer liquid assets into a discretionary trust using your available Nil Rate Band',
+            'description' => 'Transfer liquid assets into a discretionary trust using your available Nil Rate Band (NRB) — the amount that passes free of Inheritance Tax (IHT)',
             'amount' => $amountToTrust,
             'iht_saving_potential' => min($amountToTrust, $availableNRB) * $ihtRate, // Saving: IHT rate on amount within NRB
             'lifetime_tax_charge' => $lifetimeCharge,
@@ -298,9 +298,9 @@ class PersonalizedTrustStrategyService
         $implementation[] = ($cyclesNeeded + 3).'. **Total removed from estate**: £'.number_format($totalOverLifetime, 0).' over '.(($cyclesNeeded - 1) * 7).' years';
 
         return [
-            'strategy_name' => 'Multi-Cycle CLT Strategy',
+            'strategy_name' => 'Multi-Cycle Chargeable Lifetime Transfer (CLT) Strategy',
             'priority' => 2,
-            'description' => 'Use multiple 7-year cycles to maximize NRB usage for larger estates',
+            'description' => 'Use multiple 7-year cycles to maximise use of your Nil Rate Band (NRB) — the amount that passes free of Inheritance Tax (IHT) — for larger estates',
             'amount' => $totalOverLifetime,
             'iht_saving_potential' => $ihtSaving,
             // W-0523 — summed from the schedule rather than assumed nil. Each cycle
@@ -444,7 +444,7 @@ class PersonalizedTrustStrategyService
         return [
             'strategy_name' => 'Loan Trust Strategy',
             'priority' => 3,
-            'description' => 'Lend assets to a trust - loan stays in estate but future growth is IHT-free',
+            'description' => 'Lend assets to a trust - the loan stays in your estate but future growth is free of Inheritance Tax (IHT)',
             'amount' => (float) $loanAmount,
             'iht_saving_potential' => (float) $ihtSaving,
             'lifetime_tax_charge' => 0.0, // No immediate charge (it's a loan, not a gift)
@@ -516,7 +516,7 @@ class PersonalizedTrustStrategyService
         return [
             'strategy_name' => 'Discounted Gift Trust',
             'priority' => 4,
-            'description' => 'Gift assets to trust but retain income rights - reduces the chargeable gift value',
+            'description' => 'Gift assets to a trust but retain income rights - reduces the value of the Chargeable Lifetime Transfer (CLT), and so the Inheritance Tax (IHT) it attracts',
             'amount' => $giftValue,
             'chargeable_amount' => $cltValue,
             'discount_value' => $discountValue,
@@ -586,7 +586,7 @@ class PersonalizedTrustStrategyService
         return [
             'strategy_name' => 'Property Trust Planning',
             'priority' => 5,
-            'description' => 'Alternative approaches for your main residence to mitigate IHT',
+            'description' => 'Alternative approaches for your main residence to mitigate Inheritance Tax (IHT)',
             'amount' => $propertyValue,
             'iht_saving_potential' => 0, // Cannot be directly calculated
             'lifetime_tax_charge' => 0,
@@ -599,8 +599,8 @@ class PersonalizedTrustStrategyService
                 '**Option A: Downsizing Strategy**',
                 '1. Wait until dependants leave home',
                 '2. Downsize to smaller property',
-                '3. Gift released equity using PET/CLT strategies above',
-                '4. Claim RNRB on remaining property value',
+                '3. Gift released equity using the Potentially Exempt Transfer (PET) and Chargeable Lifetime Transfer (CLT) strategies above',
+                '4. Claim the Residence Nil Rate Band (RNRB) on the remaining property value',
                 '',
                 '**Option B: Life Interest Trust in Will**',
                 '1. Leave property in trust via Will (not lifetime)',
@@ -610,7 +610,7 @@ class PersonalizedTrustStrategyService
                 '',
                 '**Option C: Shared Ownership**',
                 '1. Gift % ownership to adult children',
-                '2. They pay market rent for their share (avoid GROB)',
+                '2. They pay market rent for their share, so the gift is not a gift with reservation of benefit (GROB)',
                 '3. Gradual transfer over time',
                 '4. Complex and may not save significant IHT',
                 '',
@@ -705,7 +705,7 @@ class PersonalizedTrustStrategyService
     private function calculateEffectivenessRating(array $impact, float $currentIHTLiability): string
     {
         if ($currentIHTLiability == 0) {
-            return 'N/A - No IHT liability';
+            return 'N/A - No Inheritance Tax liability';
         }
 
         $savingPercentage = ($impact['net_saving'] / $currentIHTLiability) * 100;

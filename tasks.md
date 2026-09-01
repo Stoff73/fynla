@@ -153,7 +153,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0336** `done` (already fixed; residual is W-0338) — Projected liabilities are taken at 100% for each member while the headline applies the share, so a third-party-shared debt understates tax
 - [x] **W-0481** `done` (two columns, not one) — AssetFactory randomly generates four asset types the column rejects, so any use without an explicit type fails about half the time
 - [ ] **W-0496** `deferred-ios` — The native joint-life rows and the suppressed edit affordance have never been looked at on a screen (code read and correct; the visual check is the item and is iOS-only)
-- [ ] **W-0497** `open` — The estate strategy and onboarding text meets the user cold with six acronyms — RNRB, NRB, IHT, PET, CLT and GROB
+- [x] **W-0497** `done` (20 strings expanded at the top of each card; per-string judgement recorded; glyphs untouched; design-lead/quality-lead review not run) — The estate strategy and onboarding text no longer meets the user cold with six acronyms
 - [ ] **W-0498** `open` — The joint-ownership configuration cluster is live, populated and read by nothing — three accessors with zero callers
 - [x] **W-0503** `done` (31 instances + guard) — The 'Platform updates' insight tag uses text-light-blue-700, a class Tailwind never emits, so the text takes whatever colour it inherits
 - [ ] **W-0504** `queued` — Three of the /m dashboard's donut rings are filled to hardcoded constants, so the arc means nothing

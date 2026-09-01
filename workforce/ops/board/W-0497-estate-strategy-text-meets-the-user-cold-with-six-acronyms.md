@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [design-lead, quality-lead]
-status: open
+status: done
 claimed_by: null
 severity: low
 surfaces: [web, m, ios]
@@ -95,3 +95,61 @@ decision and CSJ's alone.
 - **W-0454** — the allowance-message sweep. Verified already satisfied 2026-08-26;
   this is what its sweep found.
 - **W-0431, W-0432** — earlier Rule 9 work.
+
+## 2026-09-01 — CLOSED
+
+**The unit is the method, because the method is the screen.**
+`TrustPlanningStrategy.vue` renders `strategy_name` (`:115`), `description` (`:116`),
+`implementation_steps` (`:209`), `key_benefits` (`:264`) and `key_risks` (`:279`) in one
+card, and each strategy method returns exactly one card. That is what makes CSJ's
+2026-08-24 amendment operable here: expand at the top of the card, abbreviate below it.
+
+**Acceptance 1 — 20 strings changed across the three files.** The expansions were placed
+in `strategy_name` and `description`, which the reader meets first, so the steps,
+benefits and risks below may keep the short form.
+
+**Acceptance 2 — the judgement, recorded so nobody "fixes" a compliant string:**
+
+| Left abbreviated | What introduces it, on the same screen |
+|---|---|
+| `'✗ Immediate IHT charge if over NRB (20%)'`, `'✓ Assets immediately outside your estate for IHT'`, `'✗ 10-year anniversary charges (6% on value above NRB)'` | the description above them: *"…using your available Nil Rate Band (NRB) — the amount that passes free of Inheritance Tax (IHT)"* |
+| `'✓ Maximize NRB usage over multiple cycles'`, `'✓ No immediate tax if each transfer within NRB'`, `' (NRB resets after 7 years)'` | *"Multi-Cycle Chargeable Lifetime Transfer (CLT) Strategy"* + the description expanding NRB and IHT |
+| `'3. **Loan remains in your estate** for IHT purposes'`, `'4. **Investment growth is outside your estate** (IHT-free)'` | the Loan Trust description, now *"…free of Inheritance Tax (IHT)"* |
+| `'✓ Reduced CLT value due to discount'`, `'✗ Still subject to 7-year rule on CLT value'`, `'✓ Lower IHT charge than full gift'` | the Discounted Gift Trust description, now expanding both CLT and IHT |
+| `'✓ RNRB available on main residence'`, `'4. Avoids double IHT charge on same property'`, `'4. Complex and may not save significant IHT'` | the Property Trust description (IHT) and step 4, now *"Claim the Residence Nil Rate Band (RNRB)…"* |
+| `'Gift liquid assets now (becomes PET…)'` | `:204` in the same method: *"…using Potentially Exempt Transfers (PETs)"* |
+| the second and third `IHT` inside `:104`, `:134` | the first use in the **same string**, now expanded |
+
+**`getSteps()` was treated more strictly than the rule requires, deliberately.** It
+returns many onboarding steps and **each step is its own screen**, so an expansion in the
+income step does not introduce the term for the beneficiary step. Every step that names
+an acronym now expands it in its own text. The item says over-expanding is acceptable and
+under-expanding reintroduces the defect; this is the safe direction.
+
+**Acceptance 3 — `/m` and native.** Neither holds a copy of any of these strings, and
+neither renders `strategy_name`, `implementation_steps`, `key_benefits` or `key_risks` at
+all — greps return nothing. There is one home, so both inherit by construction; the
+strategy cards are a web surface today.
+
+**Acceptance 4 — no glyph changes.** `git diff` shows **zero** lines containing ✓, ✗ or
+⚠️ added or removed. Rule 15's grandfather clause held.
+
+**Guard:** `tests/Feature/Estate/EstateAcronymsAreExpandedOnTheirOwnScreenTest.php` —
+per method, an acronym in any string literal must have its expansion in a literal of the
+same method. A second case fails if the glyphs are tidied away.
+
+**Two instrument errors, recorded because the first offender list was wrong twice:**
+1. A regex for quoted literals is wrong on PHP source — an apostrophe inside a docblock
+   (`User's IHT profile`) opens a bogus string and the scan then swallows comments and
+   code. It reported offences in `__construct()` and `calculateNRBAvoidanceProjection()`
+   that do not exist. Replaced with `token_get_all`.
+2. Tracking the method name as "the `T_STRING` after `T_FUNCTION`" misfiles literals
+   under `toArray`, because an anonymous `function ($x)` has no name token. The flag now
+   clears on the first non-whitespace token.
+
+Tests: **47 passed** across TrustStrategy / GiftingStrategy / EstateOnboarding / Acronym.
+Three assertions in `PersonalizedTrustStrategyServiceTest` pinned the old wording as a
+contract — corrected with the reasoning at each line, not loosened to substring matches.
+
+**Not done:** the `design-lead` and `quality-lead` reviewers on this item's front matter
+were not run — no agent was dispatched, per the session instruction. No browser drive.
