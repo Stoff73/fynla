@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 50**  ·  closed 2026-08-31: 82
+**Outstanding: 49**  ·  closed 2026-08-31: 83
 
 ---
 
@@ -78,7 +78,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0145** `done` (2 statutory limbs refuse; 0 existing records trapped) — Completion is not blocked when a Lasting Power of Attorney names a certificate provider the statute disqualifies — the will builder blocks its equivalent
 - [x] **W-0152** `done` (default stated + s13(11) election; compliance-lead review outstanding) — Divorce terminates an attorney's appointment and the instrument may opt out of that — an election the wizard never offers and the document never mentions
 - [x] **W-0153** `done` (attributed + rule documented; copy re-approval outstanding) — A legal rule stated in Fynla's own unattributed voice on a will sits beside an attributed one on a power of attorney, and nothing makes the difference visible
-- [ ] **W-0156** `queued` — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
+- [x] **W-0156** `done` (365d derived from the cookie; evidence guarded by superseded_at) — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
 - [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
 - [ ] **W-0178** `queued` — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
 - [x] **W-0189** `done` (already fixed) — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
