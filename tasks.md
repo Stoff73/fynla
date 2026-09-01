@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 30**  ·  closed 2026-08-31: 102
+**Outstanding: 29**  ·  closed 2026-08-31: 103
 
 ---
 
@@ -132,7 +132,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0472** `gated` (dead branch removed, invitation now stated; retention is CSJ + compliance) — The address a user invites their partner on is used once and never stored, so nobody can see who was invited, correct a typo, or re-send
 - [ ] **W-0476** `gated` (measured + tripwired; closes with W-0472, withdraw re-forms the oracle) — The account-enumeration oracle moved one endpoint over — two requests still distinguish a registered address from an unregistered one
 - [ ] **W-0483** `queued` — A co-owner who borrowed alone cannot be shown as owing alone, and only CSJ can change that
-- [ ] **W-0488** `queued` — peak_earners resolves to £1,250 a month and so reports 59.8 months of emergency runway
+- [x] **W-0488** `done` (seeder fixed; BOTH causes proven — runway excludes mortgages for every user, needs its own item) — peak_earners resolves to £1,250 a month and so reports 59.8 months of emergency runway
 - [ ] **W-0492** `review` — The E2E consent fixture seeds a key nothing reads, so the banner blocks every landing-page test
 - [ ] **W-0494** `review` — Four Architecture tests compare native filesystem paths and fail only on Windows
 - [ ] **W-0499** `open` — investments_exotic is advertised as a Premium feature and enforced nowhere, so a free user is not actually prevented from using it

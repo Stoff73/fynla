@@ -6,7 +6,6 @@
   "description": "A couple in their late 40s with high incomes, Buy-to-Let property, substantial investments, and complex pension arrangements including Defined Benefit schemes.",
   "netWorthRange": "£1.5m - £2m",
   "focus": "Tax efficiency, pension allowances",
-
   "user": {
     "first_name": "David",
     "last_name": "Mitchell",
@@ -21,7 +20,7 @@
     "occupation": "Finance Director",
     "target_retirement_age": 60,
     "target_retirement_income": 75000,
-    "monthly_expenditure": 2500,
+    "monthly_expenditure": 2770,
     "health_status": "yes",
     "smoking_status": "never",
     "education_level": "postgraduate",
@@ -33,14 +32,13 @@
       "county": "Surrey",
       "postcode": "GU1 4RH"
     },
-    "annual_charitable_donations": 2400.00,
+    "annual_charitable_donations": 2400.0,
     "is_gift_aid": true,
     "domicile": {
       "country_of_birth": "United Kingdom",
       "domicile_status": "uk_domiciled"
     }
   },
-
   "spouse": {
     "first_name": "Sarah",
     "last_name": "Mitchell",
@@ -57,7 +55,6 @@
     "target_retirement_age": 60,
     "target_retirement_income": 55000
   },
-
   "family_members": [
     {
       "id": 1,
@@ -80,7 +77,6 @@
       "notes": "Year 10, private school"
     }
   ],
-
   "properties": [
     {
       "id": 1,
@@ -165,7 +161,6 @@
       "notes": "Investment with colleague Mike Jones - David owns 40%, Mike owns 60%"
     }
   ],
-
   "mortgages": [
     {
       "id": 1,
@@ -218,7 +213,6 @@
       "notes": "Buy-to-Let mortgage - David's 40% share, joint with Mike Jones (60%)"
     }
   ],
-
   "savings_accounts": [
     {
       "id": 1,
@@ -300,7 +294,6 @@
       "notes": "Maximum allowed holding"
     }
   ],
-
   "investment_accounts": [
     {
       "id": 1,
@@ -328,7 +321,7 @@
           "isin": "GB00B41YBW71",
           "asset_type": "fund",
           "units": 351,
-          "initial_unit_cost": 85.50,
+          "initial_unit_cost": 85.5,
           "current_unit_price": 99.86,
           "current_value": 35051,
           "allocation_percentage": 36.8,
@@ -341,8 +334,8 @@
           "isin": "GB00BLDYK618",
           "asset_type": "uk_equity",
           "units": 2500,
-          "initial_unit_cost": 8.40,
-          "current_unit_price": 10.00,
+          "initial_unit_cost": 8.4,
+          "current_unit_price": 10.0,
           "current_value": 25000,
           "allocation_percentage": 26.3,
           "annual_fee": 0.34
@@ -354,7 +347,7 @@
           "isin": "IE00B3RBWM25",
           "asset_type": "etf",
           "units": 318,
-          "initial_unit_cost": 93.00,
+          "initial_unit_cost": 93.0,
           "current_unit_price": 109.99,
           "current_value": 34977,
           "allocation_percentage": 36.9,
@@ -386,8 +379,8 @@
           "isin": "GB00B4PQW151",
           "asset_type": "fund",
           "units": 333,
-          "initial_unit_cost": 225.00,
-          "current_unit_price": 255.00,
+          "initial_unit_cost": 225.0,
+          "current_unit_price": 255.0,
           "current_value": 84915,
           "allocation_percentage": 100,
           "annual_fee": 0.22
@@ -416,8 +409,8 @@
           "isin": "IE00B4L5Y983",
           "asset_type": "etf",
           "units": 625,
-          "initial_unit_cost": 68.00,
-          "current_unit_price": 80.00,
+          "initial_unit_cost": 68.0,
+          "current_unit_price": 80.0,
           "current_value": 50000,
           "allocation_percentage": 52.6,
           "annual_fee": 0.2
@@ -429,8 +422,8 @@
           "isin": "IE00B42WWV65",
           "asset_type": "bond",
           "units": 1316,
-          "initial_unit_cost": 19.50,
-          "current_unit_price": 19.00,
+          "initial_unit_cost": 19.5,
+          "current_unit_price": 19.0,
           "current_value": 25004,
           "allocation_percentage": 26.3,
           "annual_fee": 0.12
@@ -442,8 +435,8 @@
           "isin": "IE00B4ND3602",
           "asset_type": "alternative",
           "units": 84,
-          "initial_unit_cost": 195.00,
-          "current_unit_price": 238.00,
+          "initial_unit_cost": 195.0,
+          "current_unit_price": 238.0,
           "current_value": 19992,
           "allocation_percentage": 21.1,
           "annual_fee": 0.12
@@ -465,7 +458,6 @@
       "notes": "Tax-efficient Venture Capital Trust investments"
     }
   ],
-
   "dc_pensions": [
     {
       "id": 1,
@@ -505,8 +497,8 @@
           "isin": "IE00BKX55S42",
           "asset_type": "fund",
           "units": 4211,
-          "initial_unit_cost": 32.50,
-          "current_unit_price": 38.00,
+          "initial_unit_cost": 32.5,
+          "current_unit_price": 38.0,
           "current_value": 160018,
           "allocation_percentage": 50,
           "annual_fee": 0.23
@@ -518,8 +510,8 @@
           "isin": "IE0032895942",
           "asset_type": "bond",
           "units": 800,
-          "initial_unit_cost": 125.00,
-          "current_unit_price": 120.00,
+          "initial_unit_cost": 125.0,
+          "current_unit_price": 120.0,
           "current_value": 96000,
           "allocation_percentage": 30,
           "annual_fee": 0.18
@@ -540,7 +532,6 @@
       ]
     }
   ],
-
   "db_pensions": [
     {
       "id": 1,
@@ -556,15 +547,13 @@
       "notes": "Sarah's NHS pension - 2015 scheme"
     }
   ],
-
   "state_pension": {
-    "forecast_weekly_amount": 221.20,
+    "forecast_weekly_amount": 221.2,
     "forecast_annual_amount": 11502,
     "state_pension_age": 67,
     "qualifying_years": 30,
     "years_remaining": 8
   },
-
   "spouse_state_pension": {
     "forecast_weekly_amount": 218.39,
     "forecast_annual_amount": 11356,
@@ -572,7 +561,6 @@
     "qualifying_years": 26,
     "years_remaining": 20
   },
-
   "life_insurance_policies": [
     {
       "id": 1,
@@ -590,7 +578,6 @@
       "beneficiaries": "Sarah Mitchell (spouse), William Mitchell (child), Charlotte Mitchell (child)"
     }
   ],
-
   "critical_illness_policies": [
     {
       "id": 1,
@@ -605,9 +592,7 @@
       "notes": "Joint standalone critical illness cover"
     }
   ],
-
   "income_protection_policies": [],
-
   "disability_policies": [
     {
       "owner": "user",
@@ -625,7 +610,6 @@
       "policy_term_years": null
     }
   ],
-
   "sickness_illness_policies": [
     {
       "owner": "spouse",
@@ -643,11 +627,8 @@
       "policy_term_years": null
     }
   ],
-
   "liabilities": [],
-
   "gifts": [],
-
   "trusts": [
     {
       "id": 1,
@@ -665,9 +646,7 @@
       "notes": "Set up when William started secondary school. Trustees have discretion to distribute for any educational purpose. Growth of £35k since inception."
     }
   ],
-
   "business_interests": [],
-
   "chattels": [
     {
       "id": 1,
@@ -757,9 +736,8 @@
       "notes": "Capital Gains Tax exempt - wasting asset. PCP finance ends 2025."
     }
   ],
-
   "expenditure": {
-    "total_monthly": 2500,
+    "total_monthly": 2770,
     "categories": {
       "food_groceries": 450,
       "transport_fuel": 150,
@@ -780,17 +758,17 @@
       "children_activities": 100,
       "gifts_charity": 50,
       "regular_savings": 0,
-      "other_expenditure": 0
+      "other_expenditure": 0,
+      "utilities": 320,
+      "rent": 0
     }
   },
-
   "key_concerns": [
     "Are we on track for retirement at 60?",
     "How do we optimise our tax position with tapered pension allowance?",
     "Should we pay off the mortgage or invest more?",
     "What is the best strategy for the Buy-to-Let property?"
   ],
-
   "highlights": {
     "investment_profile": {
       "portfolio_allocation": "65% equities, 20% bonds, 15% alternatives",
@@ -800,13 +778,11 @@
     "net_worth_range": "1.5m - 2m",
     "primary_focus": "Tax efficiency, pension allowances"
   },
-
   "risk_profile": {
     "main_risk_level": "upper_medium",
     "spouse_risk_level": "medium",
     "notes": "High earners with substantial wealth, David prefers growth-focused approach while Sarah is more balanced given NHS pension security"
   },
-
   "will": {
     "has_will": true,
     "spouse_primary_beneficiary": true,
@@ -869,7 +845,6 @@
       ]
     }
   },
-
   "goals": [
     {
       "goal_name": "Max Pension Contributions",
@@ -958,7 +933,6 @@
       "ownership_type": "joint"
     }
   ],
-
   "letter_to_spouse": {
     "immediate_actions": "1. Contact Sarah Mitchell immediately - she is executor and knows everything\n2. Notify Global Finance Corp HR (020 7946 0123) - death in service benefit of 4x salary\n3. Access our joint Nationwide account for immediate expenses\n4. Contact James Patterson at Hargreaves Lansdown (01onal 234 567890)\n5. File life insurance claim with Vitality - policy VIT-LT-456789 (£500k in trust)\n6. Keep my mobile phone active - it has all authentication apps\n7. Register the death at Guildford Register Office\n8. Obtain at least 12 death certificates (multiple financial accounts)",
     "executor_name": "Sarah Mitchell & Barclays Wealth",
@@ -1023,7 +997,6 @@
       ]
     }
   },
-
   "life_events": [
     {
       "event_name": "Previous Inheritance (David's Aunt)",
