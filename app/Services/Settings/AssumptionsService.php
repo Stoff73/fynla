@@ -7,6 +7,7 @@ namespace App\Services\Settings;
 use App\Models\Investment\Holding;
 use App\Models\User;
 use App\Models\UserAssumption;
+use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,7 +24,16 @@ class AssumptionsService
 
     private const DEFAULT_COMPOUND_PERIODS = 12;
 
-    private const DEFAULT_RETIREMENT_AGE = 68;
+    /**
+     * W-0196. Was a private 68 — one of the two outliers against the 67 anchored by
+     * W-0036. Reads the one home now.
+     *
+     * NOTE the conflation at the only call site below: it is used as a fallback for
+     * STATE PENSION age, which is a different question with a different answer
+     * (legislated by cohort — W-0197, W-0516). Left pointing here so the number stops
+     * disagreeing with everything else, but W-0516 owns replacing it properly.
+     */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
 

@@ -296,6 +296,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import investmentService from '@/services/investmentService';
@@ -358,7 +359,7 @@ export default {
 
     // Calculate years to retirement
     yearsToRetirement() {
-      const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || 68;
+      const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
       const currentAge = this.currentUser?.date_of_birth
         ? Math.floor((new Date() - new Date(this.currentUser.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))
         : null;

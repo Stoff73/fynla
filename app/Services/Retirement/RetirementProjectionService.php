@@ -20,7 +20,8 @@ use App\Services\TaxConfigService;
  */
 class RetirementProjectionService
 {
-    private const DEFAULT_RETIREMENT_AGE = 67;
+    /** W-0196 — one home for the default; see {@see RetirementAgeResolver}. */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     public function __construct(
         private readonly MonteCarloSimulator $simulator,
@@ -33,7 +34,9 @@ class RetirementProjectionService
         // `projectSafeWithdrawalDrawdown()` decides only when the fund can no longer pay
         // it. Reading the one source is what stops the income the household is shown
         // spending and the fund the estate is taxed on becoming two opinions.
-        private readonly PensionProjector $pensionProjector
+        private readonly PensionProjector $pensionProjector,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        private readonly RetirementAgeResolver $retirementAge
     ) {}
 
     /**
@@ -740,24 +743,17 @@ class RetirementProjectionService
         return $this->getRetirementAgeWithSource($user)['age'];
     }
 
-    /** @return array{age:int,source:string} */
+    /**
+     * W-0196. This copy read `users.target_retirement_age` before the retirement
+     * profile, so a household that had set a target in the retirement module and left
+     * a stale one on the user record got a different answer here than from the estate
+     * projection. The order and the source labels now live in one place.
+     *
+     * @return array{age:int,source:string}
+     */
     private function getRetirementAgeWithSource(User $user): array
     {
-        if ($user->target_retirement_age) {
-            return ['age' => (int) $user->target_retirement_age, 'source' => 'user_profile'];
-        }
-
-        if ($user->retirementProfile?->target_retirement_age) {
-            return ['age' => (int) $user->retirementProfile->target_retirement_age, 'source' => 'retirement_profile'];
-        }
-
-        foreach ($user->dcPensions as $pension) {
-            if ($pension->retirement_age) {
-                return ['age' => (int) $pension->retirement_age, 'source' => 'pension'];
-            }
-        }
-
-        return ['age' => self::DEFAULT_RETIREMENT_AGE, 'source' => 'assumed'];
+        return $this->retirementAge->withSource($user);
     }
 
     private function getUserRiskLevel(User $user): string

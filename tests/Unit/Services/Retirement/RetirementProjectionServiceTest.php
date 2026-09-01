@@ -12,6 +12,7 @@ use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RequiredCapitalCalculator;
+use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Shared\MonteCarloEngine;
@@ -96,7 +97,11 @@ beforeEach(function () {
         // W-0482 — `unusedDcFundAtAge()` reads the same annual income the household cash
         // flow credits. Nothing in this file exercises that path, so the real service is
         // fine here; it is a constructor argument, not a behaviour under test.
-        app(PensionProjector::class)
+        app(PensionProjector::class),
+        // W-0196 — the retirement-age chain moved out of this service into the one
+        // home every module now reads. Real, not mocked: the resolution order IS the
+        // behaviour these projections depend on.
+        app(RetirementAgeResolver::class)
     );
 });
 

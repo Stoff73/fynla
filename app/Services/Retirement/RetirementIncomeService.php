@@ -29,7 +29,8 @@ use App\Services\TaxConfigService;
  */
 class RetirementIncomeService
 {
-    private const DEFAULT_RETIREMENT_AGE = 67;
+    /** W-0196 — one home for the default; see {@see RetirementAgeResolver}. */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     private const PROJECTION_END_AGE = 100;
 
@@ -43,6 +44,11 @@ class RetirementIncomeService
         private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
         private readonly RetirementProjectionService $projectionService,
         private readonly InvestmentProjectionService $investmentProjectionService,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        // This service used a PARTIAL chain: the retirement profile or the default,
+        // never the user record or a pension, so a household whose only stated age
+        // was on a pension was projected from 67 here and from the pension elsewhere.
+        private readonly RetirementAgeResolver $retirementAge,
     ) {}
 
     /**
@@ -63,7 +69,7 @@ class RetirementIncomeService
         $profile = RetirementProfile::where('user_id', $userId)->first();
         $currentAge = $user->date_of_birth ? $user->date_of_birth->age : null;
 
-        $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+        $retirementAge = $this->retirementAge->forUser($user);
 
         // Get projected pension pot value (80% Monte Carlo confidence)
         $potProjection = $this->projectionService->projectPensionPot($user);
@@ -152,7 +158,7 @@ class RetirementIncomeService
         $profile = RetirementProfile::where('user_id', $userId)->first();
         $currentAge = $user->date_of_birth ? $user->date_of_birth->age : null;
 
-        $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+        $retirementAge = $this->retirementAge->forUser($user);
 
         // Get target income from centralised RequiredCapitalCalculator, or use custom if provided
         if ($customTargetIncome !== null) {
@@ -248,7 +254,9 @@ class RetirementIncomeService
             $user = User::find($userId);
             $profile = RetirementProfile::where('user_id', $userId)->first();
             $currentAge = $user?->date_of_birth?->age;
-            $retirementAge = $profile?->target_retirement_age ?? self::DEFAULT_RETIREMENT_AGE;
+            $retirementAge = $user
+                ? $this->retirementAge->forUser($user)
+                : RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
             $yearsToRetirement = max(0, $retirementAge - ($currentAge ?? 45));
         }
 

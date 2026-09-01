@@ -8,6 +8,7 @@ use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Retirement\PensionProjector;
+use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -88,6 +89,8 @@ class HouseholdCashFlowProjector
         // that REDUCES the fund it is paid from. `PensionProjector` still decides how much
         // the pension is meant to pay; this decides how long it can pay it.
         private readonly RetirementProjectionService $retirementProjection,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        private readonly RetirementAgeResolver $retirementAge,
     ) {}
 
     /**
@@ -253,23 +256,10 @@ class HouseholdCashFlowProjector
      */
     public function retirementAgeFor(User $user): int
     {
-        if ($user->retirementProfile?->target_retirement_age) {
-            return (int) $user->retirementProfile->target_retirement_age;
-        }
-
-        if ($user->target_retirement_age) {
-            return (int) $user->target_retirement_age;
-        }
-
-        $pensionRetirementAge = $user->dcPensions()
-            ->whereNotNull('retirement_age')
-            ->value('retirement_age');
-
-        if ($pensionRetirementAge) {
-            return (int) $pensionRetirementAge;
-        }
-
-        return PensionProjector::DEFAULT_RETIREMENT_AGE;
+        // W-0196. This copy had the order right — retirement profile before the user
+        // record — and it is the order the one home now uses for everyone. Delegated
+        // rather than kept, so there is no second implementation left to drift.
+        return $this->retirementAge->forUser($user);
     }
 
     /**

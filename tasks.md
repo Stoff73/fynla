@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 49**  ·  closed 2026-08-31: 83
+**Outstanding: 48**  ·  closed 2026-08-31: 84
 
 ---
 
@@ -82,7 +82,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
 - [ ] **W-0178** `gated` (analysis done + disclosure fixed; splitting the capture needs a founder decision) — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
 - [x] **W-0189** `done` (already fixed) — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
-- [ ] **W-0196** `queued` — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
+- [x] **W-0196** `done` (7 constants + 5 chains + 12 frontend literals -> one home; 2 guards mutation-verified) — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
 - [ ] **W-0197** `queued` — State Pension age is legislated by cohort, and the application holds two static keys — a projection decades out needs a resolver, not a choice between 66 and 67
 - [ ] **W-0198** `queued` — Two columns hold one life expectancy — the override now agrees everywhere, the fallbacks still do not
 - [ ] **W-0199** `queued` — A projected cash shortfall never draws on investments, so a household runs out of money while holding an untouched portfolio

@@ -30,7 +30,11 @@ class PensionProjector
      * Public because the estate's cash-flow projection needs the same answer and used
      * to carry a private 68 of its own.
      */
-    public const DEFAULT_RETIREMENT_AGE = 67;
+    /**
+     * W-0196 — one home for the default; see {@see RetirementAgeResolver}. Kept
+     * public because F-0018 already made external callers read it.
+     */
+    public const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     public function __construct(
         private readonly RiskPreferenceService $riskService,

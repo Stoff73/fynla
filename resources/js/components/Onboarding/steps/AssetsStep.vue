@@ -63,7 +63,7 @@
 
                   <div class="detail-row">
                     <span class="detail-label">Retirement Age</span>
-                    <span class="detail-value">{{ pension.retirement_age || currentUser?.target_retirement_age || 67 }}</span>
+                    <span class="detail-value">{{ pension.retirement_age || currentUser?.target_retirement_age || DEFAULT_RETIREMENT_AGE }}</span>
                   </div>
 
                   <div class="detail-row">
@@ -499,6 +499,7 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
@@ -1204,6 +1205,8 @@ export default {
     };
 
     return {
+      // W-0196 — the template reads the one home, not a literal.
+      DEFAULT_RETIREMENT_AGE,
       stepTitle,
       stepDescription,
       activeTab,

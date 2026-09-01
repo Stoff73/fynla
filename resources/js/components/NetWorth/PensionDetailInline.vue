@@ -238,11 +238,11 @@
                   <dl class="space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Normal Retirement Age:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.normal_retirement_age || 65 }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.normal_retirement_age || DEFAULT_DB_NORMAL_RETIREMENT_AGE }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Payment Start Age:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.payment_start_age || pension.normal_retirement_age || 65 }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.payment_start_age || pension.normal_retirement_age || DEFAULT_DB_NORMAL_RETIREMENT_AGE }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Spouse Pension:</dt>
@@ -531,6 +531,7 @@
 </template>
 
 <script>
+import { DEFAULT_DB_NORMAL_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapActions, mapState } from 'vuex';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
@@ -589,6 +590,9 @@ export default {
   },
 
   computed: {
+    // W-0196 — exposed so the template reads the one home rather than a literal.
+    DEFAULT_DB_NORMAL_RETIREMENT_AGE: () => DEFAULT_DB_NORMAL_RETIREMENT_AGE,
+
     ...mapState('auth', ['user']),
 
     /**
