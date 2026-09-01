@@ -3,7 +3,7 @@ id: W-0044
 title: The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: deferred-ios
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T18:20:00Z
@@ -92,3 +92,7 @@ handoff enum is duplicated per surface rather than derived from one source.
   explicitly did not ask for it. `Fynla-Staging` points at csjones, not local, so an
   end-to-end exercise of the handoff was not available either. **I COULD NOT TEST THE
   BUTTON.** Acceptance 3 is open and belongs to whoever runs the native pass.
+
+- 2026-09-01 board-loop: **DEFERRED — iOS.** `surfaces: [ios]`, and CSJ ruled
+  2026-08-31 that the board loop is web and `/m` only. `ios-native/` is untouched.
+  The gap is real and the item stays open for a native cycle; nothing here closes it.

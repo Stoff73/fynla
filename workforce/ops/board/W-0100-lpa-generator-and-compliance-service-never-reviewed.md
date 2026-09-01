@@ -6,7 +6,7 @@ branch: branches/fixes/F-0008-batch-g-lpa.md
 owner: build-lead
 claimed_by: fix-batch-G
 reviewers: [compliance-lead, product-lead]
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 severity: medium
@@ -270,3 +270,16 @@ document generator is exactly what W-0024 turned out to be.**
 
   **This closes my Need. It does not close the item** — acceptances 1–4 and the evidence pack
   are not mine, and nothing here is an approval (`05-perimeter.md` §7.3).
+
+- 2026-09-01 board-loop: **CLOSED.** Every acceptance is answered on this item —
+  1–4 by fix-batch-G, 5 by compliance-lead — and the code was re-read rather than
+  taken from those notes. The overclaim is gone at source:
+  `app/Services/Estate/LpaComplianceService.php:15-19` states in the class docblock
+  that the service does not determine whether the instrument is compliant, valid or
+  sufficient, and `resources/js/components/Estate/LpaComplianceChecklist.vue:5`
+  carries the same sentence at the render site. No `'compliant'` verdict string and
+  no success-coloured badge survive. LPA suite re-run: **113 passed**.
+
+  **Not done:** no browser drive. The audit's findings all became their own items
+  (W-0101–W-0110), each closed separately; nothing is left here to browser-verify
+  that is not covered by one of those. Recorded rather than implied.

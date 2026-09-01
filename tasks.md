@@ -55,10 +55,10 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0032** `done` (already fixed) — scheme_status is collected by both pension forms and silently discarded on every save — no such column exists
 - [x] **W-0034** `done` (built + 17 tests; browser blocked by csjones-base m-build) — /m has no Health & Lifestyle section at all — the data source is fixed but no mobile screen renders it
 - [x] **W-0040** `done` (already fixed; CSJ ruling encoded) — A deliberate 100/0 joint split is unexpressible, and three acceptance criteria contradict each other on whether it should be
-- [ ] **W-0044** `gated` — The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
+- [ ] **W-0044** `deferred-ios` — The native iOS app has no route to the Will Builder — WebHandoffClient lacks the estateWill case the PHP enum and /m both have
 - [x] **W-0054** `done` (uploads gated before entry; shared copy still design-lead's) — Two tier caps, two gating philosophies — life events block before entry, detailed expenditure blocks after submit with a silent 403
 - [ ] **W-0090** `deferred-ios` — Native never says a retirement target was inferred — it shows nothing at all, where web and /m now show the derived figure and label it
-- [ ] **W-0100** `gated` — The Lasting Power of Attorney document generator and its compliance service have never been reviewed — the will builder's sibling, unexamined
+- [x] **W-0100** `done` (audit complete, overclaim removed at source; 113 tests) — The Lasting Power of Attorney document generator and its compliance service have never been reviewed — the will builder's sibling, unexamined
 - [x] **W-0104** `done` — An attorney's age is never checked — a child can be appointed attorney on a Lasting Power of Attorney
 - [x] **W-0105** `done` (column, validation, check; no UI field yet) — No bankruptcy question exists for a property and financial affairs Lasting Power of Attorney
 - [x] **W-0106** `done` (no UI field yet) — A professional certificate provider is failed by the two-year rule, despite the field for the professional route already existing
