@@ -47,6 +47,20 @@
           >
             Estimated Inheritance Tax exposure: <span class="font-semibold">{{ formatCurrency(teaserData.estimated_liability_gbp) }}</span>
           </p>
+          <!--
+            W-0507. The figure above is the projected second-death one, and the two
+            caveats the engine publishes with it reached the full table only — a
+            component this teaser does not render. So every free user, and every demo
+            persona a prospective customer sees, read the number with nothing attached.
+            Rendered from the engine's own strings; neither sentence is written here
+            (Rule 20).
+          -->
+          <p v-if="teaserData.unmodelled_relief_caveat" class="text-xs text-neutral-500 mt-3">
+            {{ teaserData.unmodelled_relief_caveat }}
+          </p>
+          <p v-if="teaserData.projected_pension_inclusion_caveat" class="text-xs text-neutral-500 mt-2">
+            {{ teaserData.projected_pension_inclusion_caveat }}
+          </p>
         </div>
 
         <div class="bg-eggshell border border-horizon-200 rounded-lg p-6">
