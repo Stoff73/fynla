@@ -126,6 +126,8 @@ class UpdateInvestmentAccountRequest extends FormRequest
             // StoreInvestmentAccountRequest. True only because W-0263 widened the
             // column to decimal(7,4); keep all four in step (Rule 20).
             'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
+            // W-0324 — same rule as the store request and the standalone endpoint.
+            'holdings.*.dividend_yield' => 'nullable|numeric|min:0|max:100',
         ];
     }
 

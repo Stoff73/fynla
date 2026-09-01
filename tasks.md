@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 39**  ·  closed 2026-08-31: 93
+**Outstanding: 38**  ·  closed 2026-08-31: 94
 
 ---
 
@@ -97,7 +97,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0280** `done` (census measured + classified; 2 tax defects routed, 1 decision named) — Census — user_id-only queries over records that can be shared. Every line is a code-read hypothesis until measured; the first one I published was WRONG
 - [ ] **W-0311** `deferred-ios` — The native Pensions category still calls the figure "Accessible pension capital" and carries no exclusion note, so a Defined Benefit holder sees a bare £0
 - [x] **W-0321** `done` — Nothing enforces the 100% holdings allocation total on write, so any account can be pushed past 100% and into the state W-0257 could not escape
-- [ ] **W-0324** `queued` — holdings.*.dividend_yield has no rule in any nested holdings array, so a yield entered through the account or pension form is silently discarded
+- [x] **W-0324** `done` (rule + write, both halves; guard covers all 3 request classes) — holdings.*.dividend_yield has no rule in any nested holdings array, so a yield entered through the account or pension form is silently discarded
 - [x] **W-0330** `done` (web; native is W-0496) — A joint owner is shown Edit and Delete buttons on a shared investment account that can only ever return 404
 - [ ] **W-0334** `queued` — The estate projection silently ignores a user's chosen investment growth method, because the code that honours it is unreachable
 - [x] **W-0335** `done` (2 fixed already; 3rd is correct behaviour) — /api/savings returns 'analysis' => null as a placeholder, nothing dispatches the analyze action, and the store then reads a key that does not exist

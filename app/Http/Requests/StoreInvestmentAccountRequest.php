@@ -111,6 +111,13 @@ class StoreInvestmentAccountRequest extends FormRequest
             // it to decimal(7,4), which is what makes `max:100` true here rather
             // than merely written down. Keep all four in step (Rule 20).
             'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
+            // W-0324. `validated()` passes exactly the keys with rules and drops the
+            // rest, so a dividend yield sent in a nested holdings array was silently
+            // discarded and the save reported success. The standalone
+            // `Investment\StoreHoldingRequest:55` has always had this rule; the nested
+            // sets did not, which is a rule-versus-schema disagreement on the PRESENCE
+            // axis rather than the range axis a previous sweep looked for.
+            'holdings.*.dividend_yield' => 'nullable|numeric|min:0|max:100',
         ];
     }
 
