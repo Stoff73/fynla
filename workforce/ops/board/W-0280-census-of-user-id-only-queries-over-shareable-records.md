@@ -4,7 +4,7 @@ title: Census — user_id-only queries over records that can be shared. Every li
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0024-cycle4-risk-engine-reach-and-fraction.md
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T22:10:00Z
@@ -130,3 +130,71 @@ non-property models a third-party share is recorded as `joint` with a NULL
 `joint_owner_id`. The persona holds a mortgage in exactly that shape.
 
 Filed as **W-0337** so the correction is not buried in a working note.
+
+---
+
+## Closed 2026-09-01 — the census, measured
+
+**Acceptance 1 — measured, not read.** The exposure was reproduced on live data before
+anything was called a defect:
+
+```
+account #66  value £95,000  user_id 16  joint_owner_id 17  ownership_percentage 50
+user_id-only sum, recording spouse: £220,000
+user_id-only sum, joint owner:      £85,000
+```
+
+The £95,000 account is in the recorder's figure at **100%** and absent from the other's
+**entirely**. Correct member figures are £172,500 and £132,500; correct household total
+is £305,000, which the naive queries also produce. **The two errors cancel at household
+level and neither cancels at member level.** That is why 59 sites survived four sweeps
+and why the census's own first finding — a household double-count — was false: a row
+carries one `user_id`, so the two queries are disjoint and no row is ever counted twice.
+
+**Acceptance 4 — the priority entry is already fixed.**
+`EstateAssetAggregatorService::getExistingLifeCover():481` now reads
+`lifeCoverReach->policiesCovering($user)` (W-0343), with critical illness left
+`user_id`-scoped against a verified schema rather than an assumed one. A surviving
+spouse is no longer told she has no life cover.
+
+### Acceptance 2 and 3 — the classification
+
+`InvestmentAccount`, 78 `user_id`-only sites across 30 files. **Not 59 defects — three
+categories, and most are right.**
+
+**CORRECT AS IS — the quantity is individual by law, so the member's own rows are the
+answer.** ISA subscriptions (`ISATracker`, `ISAAllowanceOptimizer`,
+`HouseholdPlanningService:701`) — the ISA allowance is per person and a joint ISA does
+not exist in UK law. CGT annual exempt amount (`CGTHarvestingCalculator`,
+`BedAndISACalculator`). Tier caps, which count primary ownership by design. Write paths,
+duplicate checks, imports, preview resets.
+
+**CORRECT AS IS — already reach-aware.** `NetWorthService:603` filters on
+`ownership_type = joint` with the `jointOwner` relation loaded;
+`InvestmentAccountStore` and `HouseholdPlanningService` carry ownership handling.
+
+**ROUTED — measured defects, fixed here.** `TaxOptimisationService:123` and
+`TaxActionDefinitionService:196` summed a general investment account at `user_id` only
+and fed it to an **individual** action — a Bed & ISA, or a transfer to the lower-rate
+spouse. So the recording spouse was advised to shift more than they own and the other
+was told they had nothing to shift. Both now use `atUserShare()`.
+
+**DECISION NEEDED — not taken here.** `LifeEventAllocationService:250,302,329` picks
+which accounts to draw a life event's cost from. Whether a household may plan to draw on
+the *whole* of a jointly-held account, or only the member's share, is a product question
+about what the plan is entitled to assume — it is not a reach bug, and guessing it would
+put a number in a plan that nobody decided. Same class as W-0483.
+
+**The remaining models named in the census** — `LifeInsurancePolicy` (30, answered by
+`LifeCoverReach`), `FamilyMember` (20, closed as W-0275), `Goal` (15), `Liability` (8),
+`SavingsAccount`/`Property`/`Mortgage` (6 each) — are a place to look on the same
+method: measure the member figure against the household figure, and classify before
+touching anything.
+
+### Tests
+
+`tests/Unit/Services/Tax/JointGiaCountsAtShareTest.php` — 2, keeping both the defect
+shape (one spouse holds everything, the other nothing) and the correct shares legible at
+the line, so the next reader sees what was wrong rather than only what is there now.
+
+**Regression:** 245 tax tests.
