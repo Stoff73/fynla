@@ -235,6 +235,17 @@ class EstateAssetAggregatorService
                 'ownership_percentage' => 100,
                 'is_primary_owner' => true,
                 'is_iht_exempt' => true, // DC pensions outside estate if beneficiary nominated
+                // W-0392. `is_iht_exempt` carried TWO different facts and no consumer
+                // could tell them apart: "this asset passes outside the estate"
+                // (a nominated pension) and "this asset is IN the estate but wholly
+                // relieved from tax" (a qualifying trading business, set at
+                // `applyBusinessPropertyRelief()`).
+                //
+                // They are not the same thing and a will screen needs the difference:
+                // Business Property Relief removes an asset from the TAX, not from the
+                // estate, so the business does pass under the will. A pension with a
+                // nominated beneficiary genuinely does not.
+                'passes_outside_estate' => true,
             ];
         });
 
@@ -251,6 +262,9 @@ class EstateAssetAggregatorService
                 'ownership_percentage' => 100,
                 'is_primary_owner' => true,
                 'is_iht_exempt' => true,
+                // W-0392 — a defined benefit pension dies with the member; it passes
+                // outside the estate rather than being relieved within it.
+                'passes_outside_estate' => true,
                 // W-0154. Was `$pension->expected_annual_pension ?? 0` — a column that
                 // has never existed on `db_pensions`, so this was 0 for every Defined
                 // Benefit pension in the application. The derived column is preferred

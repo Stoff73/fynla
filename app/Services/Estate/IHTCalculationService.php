@@ -220,6 +220,23 @@ class IHTCalculationService
         $spouseGrossAssets = $spouseTaxableAssets->sum('current_value');
         $totalGrossAssets = $userGrossAssets + $spouseGrossAssets;
 
+        // W-0392. A DIFFERENT estate from the taxable one above, and the Will Planning
+        // tab needs this one.
+        //
+        // `is_iht_exempt` carries two facts — "passes outside the estate" (a nominated
+        // pension) and "is in the estate but wholly relieved" (a qualifying trading
+        // business). Rejecting on it produces the TAXABLE estate, which is right for
+        // tax and wrong for a will: **Business Property Relief removes an asset from
+        // the tax, not from the estate**, so the business does pass under the will.
+        // A business owner's will screen understated their estate by the whole value
+        // of their trading business.
+        //
+        // This set rejects only what genuinely leaves the estate, so a wholly relieved
+        // business stays in it. `user_net_estate` above is untouched and remains the
+        // taxable figure every tax consumer relies on.
+        $userWillAssets = $userAssets->reject(fn ($asset) => $asset->passes_outside_estate ?? false);
+        $userGrossEstateUnderWill = $userWillAssets->sum('current_value');
+
         // W-0091 / W-0463 — PARTIAL Business Property Relief, which a boolean could
         // not express. A wholly relieved business is already gone via
         // `is_iht_exempt` above; one above the £2,500,000 cap stays in the estate at
@@ -493,6 +510,11 @@ class IHTCalculationService
             'total_liabilities' => round($totalLiabilities, 2),
 
             'user_net_estate' => round($userNetEstate, 2),
+
+            // W-0392 — what this user's WILL disposes of, which is not the taxable
+            // estate. Published beside it rather than replacing it: the two answer
+            // different questions and both have consumers.
+            'user_estate_passing_under_will' => round($userGrossEstateUnderWill - $userLiabilities, 2),
             'spouse_net_estate' => round($spouseNetEstate, 2),
             'total_net_estate' => round($totalNetEstate, 2),
 

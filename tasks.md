@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 35**  ·  closed 2026-08-31: 97
+**Outstanding: 34**  ·  closed 2026-08-31: 98
 
 ---
 
@@ -80,13 +80,13 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0153** `done` (attributed + rule documented; copy re-approval outstanding) — A legal rule stated in Fynla's own unattributed voice on a will sits beside an attributed one on a power of attorney, and nothing makes the difference visible
 - [x] **W-0156** `done` (365d derived from the cookie; evidence guarded by superseded_at) — An anonymous consent row for a visitor who never registers is kept indefinitely — no purge, no expiry, and neither retention path reaches it
 - [x] **W-0161** `done` (already fixed) — Fyn stored every joint liability at 100/0 — half the debt attributed to nobody
-- [ ] **W-0178** `gated` (analysis done + disclosure fixed; splitting the capture needs a founder decision) — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit
+- [ ] **W-0178** `queued` (analysis done + disclosure fixed; splitting the capture needs a founder decision) — Decide whether the monthly maintenance reserve and "other" property costs belong in the allowable-letting-expenses list that produces every user's rental profit. CSJ states what use is it having a profit figure without expenses, this si stupid, include the expenses!!!!!!!!!
 - [x] **W-0189** `done` (already fixed) — The Income Definitions panel shows a chain of labelled steps whose arithmetic does not work — £147,690 less £11,600 is displayed as £147,690
 - [x] **W-0196** `done` (7 constants + 5 chains + 12 frontend literals -> one home; 2 guards mutation-verified) — Seven retirement-age defaults and four copies of the priority chain — 68 in three services, 67 in four, and two different orderings
 - [x] **W-0197** `done` (cohort schedule replaces both scalars; all 5 readers routed) — State Pension age is legislated by cohort, and the application holds two static keys — a projection decades out needs a resolver, not a choice between 66 and 67
 - [x] **W-0198** `done` (one resolver; spouse field wired + hasSpouse defect found and fixed) — Two columns hold one life expectancy — the override now agrees everywhere, the fallbacks still do not
 - [x] **W-0199** `done` (drawdown unwound from the same projection's implied rate; growth modelled year by year) — A projected cash shortfall never draws on investments, so a household runs out of money while holding an untouched portfolio
-- [ ] **W-0200** `gated` (inference now stated on web + /m; the schema call is CSJ's, with W-0042) — A joint-life policy records that it covers two lives but never records whose — the second life assured can only be inferred from users.spouse_id
+- [ ] **W-0200** `queued` (inference now stated on web + /m; the schema call is CSJ's, with W-0042) — A joint-life policy records that it covers two lives but never records whose — the second life assured can only be inferred from users.spouse_id, what if it is not the pouse, and if it is the spouse we need to show this, as with all joint policies, mortgages, accounts, why is there no drop down with the spouse and add person options?
 - [x] **W-0207** `done` (already fixed) — A completed 2020 life event is counted as future expected income and displayed as happening "In 0 years
 - [x] **W-0208** `done` (already fixed; verified in code + mutation; browser re-drive not possible on current data) — The letter/will consistency check flags a punctuation difference as an executor mismatch and tells the user to edit a legal document
 - [x] **W-0210** `done` (already fixed) — A goal is counted and labelled as a life event — Sarah has zero life events and the module reports "1 cash outflow events £400K
@@ -112,10 +112,10 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0371** `done` (4 already done; 2 survivors fixed) — Tax rates and thresholds are hardcoded in the user-facing sentences printed beside figures the arithmetic computed from configuration
 - [x] **W-0373** `done` (found in the same method) — Liability institution names and balances are written to the application log at INFO on every Inheritance Tax calculation
 - [x] **W-0376** `done` (3 resolved elsewhere; dead card deleted) — Four dead sites found in one day, and the dead code carries its own copies of live rules
-- [ ] **W-0383** `gated` — Product call — how much of someone else's contract should the other life assured see
+- [ ] **W-0383** `queued` — Product call — how much of someone else's contract should the other life assured see - CSJ says all, if there i a shared account, show the life policy to the other user
 - [x] **W-0385** `done` (playbook fixed; login path verified sound) — fynla-state.auth.user can name a different user than the token authenticates as, and it is our documented way of checking identity
-- [ ] **W-0392** `queued` — The estate a will screen states omits Business Property Relief assets, which do pass under the will
-- [ ] **W-0394** `gated` — Every bequest is stored as a gift to a person — both charitable legacies included, because beneficiary_type reaches no request class
+- [x] **W-0392** `done` (two facts split at source; will screen reads the estate it disposes of) — The estate a will screen states omits Business Property Relief assets, which do pass under the will
+- [ ] **W-0394** `queued` — Every bequest is stored as a gift to a person — both charitable legacies included, because beneficiary_type reaches no request class
 - [ ] **W-0398** `queued` — A residuary substitution beneficiary is invisible to every consumer of the bequests table — which is why this household reads as though its children are unprovided for
 - [x] **W-0399** `done` (already fixed) — The Charitable Bequest card states £20,000 and £10,000 for the same legacy, two sentences apart, on both spouses' accounts
 - [x] **W-0413** `done` (write + read-back) — rent and utilities never persist from the expenditure form — both endpoints accept them and neither validates them
@@ -148,7 +148,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 ## Low (11)
 
 - [x] **W-0033** `done` (already fixed in fix-batch-G) — ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
-- [ ] **W-0045** `gated` — All three relevant-property trust surfaces use non-palette blue-* and green-* — a live Rule 11 breach
+- [ ] **W-0045** `queued` — All three relevant-property trust surfaces use non-palette blue-* and green-* — a live Rule 11 breach
 - [x] **W-0336** `done` (already fixed; residual is W-0338) — Projected liabilities are taken at 100% for each member while the headline applies the share, so a third-party-shared debt understates tax
 - [x] **W-0481** `done` (two columns, not one) — AssetFactory randomly generates four asset types the column rejects, so any use without an explicit type fails about half the time
 - [ ] **W-0496** `open` — The native joint-life rows and the suppressed edit affordance have never been looked at on a screen
