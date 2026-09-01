@@ -4,7 +4,7 @@ title: A joint-life policy records that it covers two lives but never records wh
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: gated
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T02:30:00Z
@@ -61,3 +61,56 @@ W-0186's fix uses it, deliberately and in one place
    chattel counterparty rule uses), and `LifeCoverReach` composed from it instead of
    `spouse_id`.
 3. If the inference stays: it is stated in the interface, not silent.
+
+---
+
+## 2026-09-01 — acceptance 3 done, acceptance 1 and 2 gated
+
+**Acceptance 1 is explicitly a CSJ product call** ("this is a product call, not an
+engineering one"), and the item says it should probably be taken with **W-0042**. It is
+not taken here. The schema in acceptance 2 waits on it.
+
+**Acceptance 3 is done, and it is right under either answer.** If the inference stays it
+is now stated; if a second life assured becomes a first-class field, the source flips to
+`recorded` and the qualifying wording disappears with it.
+
+### What the user saw before
+
+`LifeInsurancePolicyResource` published `joint_life_with` — a name inferred from
+`users.spouse_id`, because the table has no field for a second life assured — and every
+surface presented it as though the user had entered it:
+
+| Surface | Was |
+|---|---|
+| `PolicyCard.vue:118` | "Joint life with Sarah" |
+| `/m` `Protection.vue:168` | "Joint life with Sarah" |
+| `/m` `ProtectionPolicy.vue:83` | "Yes, with Sarah" |
+
+### What it says now
+
+`joint_life_with_source` is published beside the name — the same shape as
+`income_source` (W-0035) and life expectancy's `source` (W-0198), so a surface can
+qualify the statement rather than each one deciding for itself whether to. It is
+`inferred_from_spouse` when a name was derived and **null when there is none**, so no
+source is invented for a policy that names nobody.
+
+All three surfaces now say the app assumed it:
+`PolicyCard.vue:117-128`, `Protection.vue:166-171`, `ProtectionPolicy.vue:203-211`.
+
+**Rule 19: web and `/m` both carry it.** iOS is out of scope for the board loop; its
+`joint_life_with` field is unchanged and still reads as fact — recorded here rather
+than implied to be done.
+
+### Tests
+
+`tests/Feature/Protection/JointLifeInferenceIsStatedTest.php` — 2 tests: the source is
+published with the inferred name, and no source is invented when nothing is named.
+
+**Regression:** 190 protection tests, 239 frontend component specs.
+
+### The decision still outstanding, in one line
+
+*Should a joint-life policy name its second life assured as a first-class field
+(`joint_life_with_user_id` plus a `joint_life_with_name` fallback), so a business
+partner or unmarried partner can be recorded — or does the spouse inference stay?*
+Same call as W-0042.

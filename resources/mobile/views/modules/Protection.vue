@@ -165,8 +165,10 @@ export default {
             // record it is when it is not this one's (W-0186).
             sharedNote: raw.joint_life
               ? (raw.is_own_policy === false
-                ? `Joint life with ${raw.joint_life_with || 'your spouse'} — recorded on their account`
-                : `Joint life with ${raw.joint_life_with || 'your spouse'}`)
+                // W-0200. The name is inferred from the spouse link, not recorded on
+                // the policy, so the list says "assumed" rather than asserting it.
+                ? `Joint life — we have assumed this is ${raw.joint_life_with || 'your spouse'}, recorded on their account`
+                : `Joint life — we have assumed the other life assured is ${raw.joint_life_with || 'your spouse'}`)
               : null,
           });
         });

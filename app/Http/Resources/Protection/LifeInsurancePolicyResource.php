@@ -27,6 +27,22 @@ class LifeInsurancePolicyResource extends JsonResource
             'id' => $this->id,
             'is_own_policy' => $isOwn,
             'joint_life_with' => $viewer === null ? null : $reach->otherLifeAssured($this->resource, $viewer),
+            // W-0200. `life_insurance_policies` records THAT a policy covers two lives
+            // and never WHOSE: it has no `joint_owner_id`, unlike every other shared
+            // record in the application. So the name above is inferred from
+            // `users.spouse_id` — the only answer available — and until now the
+            // inference was invisible: a user was told their spouse is the other life
+            // assured as though they had said so.
+            //
+            // Published as a source rather than folded into the name, the same shape as
+            // `income_source` (W-0035) and life expectancy's `source` (W-0198), so a
+            // surface can qualify the statement instead of each one deciding for itself
+            // whether to. Becomes `recorded` on the day a second life assured is a
+            // first-class field — the product call this item is gated on.
+            'joint_life_with_source' => $viewer === null
+                || $reach->otherLifeAssured($this->resource, $viewer) === null
+                    ? null
+                    : 'inferred_from_spouse',
             'user_id' => $this->user_id,
             'policy_type' => $this->policy_type,
             'provider' => $this->provider,
