@@ -163,12 +163,12 @@ export default {
             // A joint-life policy covers both spouses and is recorded once, on the
             // account that entered it. Name the other life assured, and say whose
             // record it is when it is not this one's (W-0186).
+            // W-0200. The second life assured is a recorded field now, so the
+            // hedge belongs only to a name the application inferred from the spouse
+            // link. Saying "we have assumed" about a name the user typed reads as
+            // though their own answer were a guess.
             sharedNote: raw.joint_life
-              ? (raw.is_own_policy === false
-                // W-0200. The name is inferred from the spouse link, not recorded on
-                // the policy, so the list says "assumed" rather than asserting it.
-                ? `Joint life — we have assumed this is ${raw.joint_life_with || 'your spouse'}, recorded on their account`
-                : `Joint life — we have assumed the other life assured is ${raw.joint_life_with || 'your spouse'}`)
+              ? this.jointLifeNote(raw)
               : null,
           });
         });
@@ -208,6 +208,18 @@ export default {
   async created() { await this.load(); },
   methods: {
     fmt(v) { return formatCurrency(v); },
+    // One sentence, two provenances: a name the owner recorded is stated, a name
+    // worked out from the spouse link is qualified (W-0200).
+    jointLifeNote(raw) {
+      const inferred = raw.joint_life_with_source !== 'recorded';
+      const name = raw.joint_life_with || 'your spouse';
+      const whose = raw.is_own_policy === false ? ', recorded on their account' : '';
+
+      return inferred
+        ? `Joint life — we have assumed the other life assured is ${name}${whose}`
+        : `Joint life with ${name}${whose}`;
+    },
+
     shortFrequency(freq) {
       const map = { monthly: 'mo', weekly: 'wk', quarterly: 'qtr', annually: 'yr', annual: 'yr', yearly: 'yr' };
       return map[freq] || (freq || 'mo');
