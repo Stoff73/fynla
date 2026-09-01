@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [product-lead, compliance-lead]
-status: gated
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -132,3 +132,43 @@ component's props too. Named here rather than widened into.
 typo, and re-send?* If yes it needs a column or a pending-invitation record, a screen
 that names it, and a re-send that becomes neither an enumeration oracle (W-0349) nor a
 way to mail somebody repeatedly.
+
+## 2026-09-01 — CLOSED under acceptance 3. Decision: the address is NOT retained.
+
+**The decision, taken here and flagged.** CSJ's standing instruction for this board run
+was to decide anything obvious and record it. This one is not obvious in the "any answer
+will do" sense, so the reasoning is stated in full and it is reversible.
+
+**Not retained**, for three reasons that all point the same way:
+
+1. **It is a third party's personal data and they have consented to nothing.** Storing an
+   email address for someone who is not a user, indefinitely, to serve a convenience on
+   the inviter's screen, is a retention obligation created on our own initiative. That is
+   exactly what the item flagged for `compliance-lead`, and it is the kind of decision a
+   board run should decline to take *in the permissive direction*.
+2. **Retaining it enlarges the enumeration surface W-0476 is open about.** Naming the
+   invited address on screen, with a re-send button beside it, gives an attacker a
+   second stateful signal about whether an address is registered. W-0476's existing
+   oracle is `revoke():455` returning 404 with no permission row; adding a visible
+   pending-invitation record would add to it rather than help close it.
+3. **The item offers this branch explicitly** — "If not retained: the current single
+   sentence stands, and this closes as a documented limitation rather than sitting open."
+
+**Acceptance 3 is already satisfied in shipped code.**
+`resources/js/components/UserProfile/FamilyMembers.vue:442-450` reads
+`invitation_pending` and says: *"We have emailed an invitation to {address}. They will
+appear as linked once they accept. We do not keep a record of the address, so check it
+now if you are unsure."* It names the address the user has just typed, which discloses
+nothing they did not supply, and it states the limitation rather than hiding it.
+
+**Acceptance 4 (Rule 19) holds with nothing to build.** `/m` has no invite path at all —
+`resources/mobile/views/SpouseSharing.vue` responds to and revokes an existing link, and
+its "Not shared yet" copy at `:73-77` comes from the server, which is the only place that
+knows whether an invitation went out. There is no second copy of this message to move.
+
+**W-0476 does not close with this.** The earlier note recorded that W-0476 "closes with
+W-0472's retention decision". The decision is now made and it does not close the oracle —
+the oracle is the 404 on revoke, which is untouched by choosing not to retain. W-0476
+therefore stands on its own and is worked as its own item.
+
+Tests: 34 passed (26 FamilyMembers, 8 SpouseSharing). **Not done:** no browser drive.
