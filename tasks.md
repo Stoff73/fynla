@@ -136,7 +136,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0488** `done` (seeder fixed; BOTH causes proven — runway excludes mortgages for every user, needs its own item) — peak_earners resolves to £1,250 a month and so reports 59.8 months of emergency runway
 - [x] **W-0492** `done` (one helper, 7 call sites, zero stale keys; E2E-environment gaps stay open on W-0493) — The E2E consent fixture seeded a key nothing reads, so the banner blocked every landing-page test
 - [x] **W-0494** `done` (4 normalisations verified + the pre-existing DCPension StoreBoundary failure fixed; Architecture now 0 failed) — Four Architecture tests compared native filesystem paths and failed only on Windows
-- [ ] **W-0499** `open` — investments_exotic is advertised as a Premium feature and enforced nowhere, so a free user is not actually prevented from using it
+- [x] **W-0499** `done` (defined from the persona playbook, gated in the Store; guard found family_module + benefits_child in the same state) — investments_exotic was advertised as Premium and enforced nowhere
 - [ ] **W-0500** `open` — /m and native users can never answer the question the undivided-share discount turns on, so W-0368 is permanently inert on those surfaces
 - [ ] **W-0507** `queued` — The free-tier estate teaser prints a second-death Inheritance Tax figure with none of the caveats the full table carries
 - [ ] **W-0510** `queued` — A drawn-out pension fund never reports as depleted, so "years funded" is always the full horizon
