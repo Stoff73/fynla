@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 40**  ·  closed 2026-08-31: 92
+**Outstanding: 39**  ·  closed 2026-08-31: 93
 
 ---
 
@@ -101,7 +101,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0330** `done` (web; native is W-0496) — A joint owner is shown Edit and Delete buttons on a shared investment account that can only ever return 404
 - [ ] **W-0334** `queued` — The estate projection silently ignores a user's chosen investment growth method, because the code that honours it is unreachable
 - [x] **W-0335** `done` (2 fixed already; 3rd is correct behaviour) — /api/savings returns 'analysis' => null as a placeholder, nothing dispatches the analyze action, and the store then reads a key that does not exist
-- [ ] **W-0337** `queued` — W-0280 §1 and F-0024 §10 state a double-count mechanism that cannot occur, and a 59-site sweep is queued behind it
+- [x] **W-0337** `done` (both copies corrected; claim measured impossible) — W-0280 §1 and F-0024 §10 state a double-count mechanism that cannot occur, and a 59-site sweep is queued behind it
 - [x] **W-0338** `done` — The headline estate's liability reader can drop a co-owner's share of a mortgage the row does not name, inflating the estate and the tax
 - [ ] **W-0346** `queued` — A granted spouse permission cannot be withdrawn — the status enum has no revoked value
 - [ ] **W-0351** `queued` — A mixed-rate mortgage's fixed and variable rates are stored correctly and can never be displayed — the detail view gates on two fields MortgageResource does not serialise
