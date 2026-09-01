@@ -7,9 +7,9 @@ namespace App\Services\Estate;
 use App\Models\Estate\Asset;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
-use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\Stores\MortgageStore;
 use App\Services\TaxConfigService;
@@ -43,6 +43,8 @@ class ComprehensiveEstatePlanService
         private readonly ActuarialLifeTableStore $actuarialStore,
         private readonly MortgageStore $mortgageStore,
         private readonly AvailableNrbCalculator $availableNrbCalculator,
+        // W-0275 — the one home for reaching a household's family (Rule 20).
+        private readonly DependantsReach $dependantsReach,
     ) {}
 
     /**
@@ -266,50 +268,17 @@ class ComprehensiveEstatePlanService
             $age = Carbon::parse($user->date_of_birth)->age;
         }
 
-        // Get children and step-children from user's family members
-        $children = FamilyMember::where('user_id', $user->id)
-            ->where('relationship', 'child')
-            ->get();
-
-        $stepChildren = FamilyMember::where('user_id', $user->id)
-            ->where('relationship', 'step_child')
-            ->get();
-
-        // If spouse exists and data sharing is enabled, also include spouse's children
-        // (avoiding duplicates based on name and date_of_birth)
-        if ($spouse && $dataSharingEnabled) {
-            $spouseChildren = FamilyMember::where('user_id', $spouse->id)
-                ->where('relationship', 'child')
-                ->get();
-
-            // Add spouse's children that aren't duplicates
-            foreach ($spouseChildren as $spouseChild) {
-                $isDuplicate = $children->contains(function ($child) use ($spouseChild) {
-                    return $child->name === $spouseChild->name &&
-                           $child->date_of_birth === $spouseChild->date_of_birth;
-                });
-
-                if (! $isDuplicate) {
-                    $children->push($spouseChild);
-                }
-            }
-
-            $spouseStepChildren = FamilyMember::where('user_id', $spouse->id)
-                ->where('relationship', 'step_child')
-                ->get();
-
-            // Add spouse's step-children that aren't duplicates
-            foreach ($spouseStepChildren as $spouseStepChild) {
-                $isDuplicate = $stepChildren->contains(function ($child) use ($spouseStepChild) {
-                    return $child->name === $spouseStepChild->name &&
-                           $child->date_of_birth === $spouseStepChild->date_of_birth;
-                });
-
-                if (! $isDuplicate) {
-                    $stepChildren->push($spouseStepChild);
-                }
-            }
-        }
+        // W-0275 acceptance 2. This was a hand-rolled spouse traversal — a third
+        // implementation of the reach beside `DependantsReach` and
+        // `ProfileCompletenessChecker`'s — with its own duplicate rule (name AND
+        // date_of_birth, both compared raw). It has three faults the one home does not:
+        // it never matched on `linked_user_id`, so the same child with a linked account
+        // and a differently-typed name counted twice; it compared a Carbon against a
+        // string, so a duplicate with a date of birth was rarely detected; and it gated
+        // on `$dataSharingEnabled`, which governs disclosing a partner's FINANCIAL data
+        // and is not the question of whose children they are.
+        $children = $this->dependantsReach->householdFamilyOf($user, ['child']);
+        $stepChildren = $this->dependantsReach->householdFamilyOf($user, ['step_child']);
 
         // Convert to array format
         $childrenArray = $children->map(fn ($child) => ['name' => $child->name, 'relationship' => 'Child'])

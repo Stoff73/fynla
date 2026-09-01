@@ -8,7 +8,11 @@ use App\Services\Estate\IntestacyCalculator;
 
 describe('IntestacyCalculator', function () {
     beforeEach(function () {
-        $this->calculator = new IntestacyCalculator;
+        // W-0275 — the calculator reaches the household's family through the one home
+        // now, rather than querying `family_members.user_id` itself, so it takes that
+        // dependency. Real, not mocked: the reach IS the behaviour these cases depend
+        // on, and a mock would let the naive query back in unnoticed.
+        $this->calculator = app(IntestacyCalculator::class);
     });
 
     it('calculates distribution for married person with no children - spouse gets all', function () {

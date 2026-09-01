@@ -7,9 +7,9 @@ namespace App\Services\Protection;
 use App\Agents\ProtectionAgent;
 use App\Constants\ProfileEnums;
 use App\Exceptions\FinancialCalculationException;
-use App\Models\FamilyMember;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Shared\DependantsReach;
 use App\Support\PremiumAnnualiser;
 use App\Traits\FormatsCurrency;
 use Carbon\Carbon;
@@ -31,7 +31,9 @@ class ComprehensiveProtectionPlanService
         private ProtectionAgent $protectionAgent,
         private CoverageGapAnalyzer $gapAnalyzer,
         private AdequacyScorer $adequacyScorer,
-        private RecommendationEngine $recommendationEngine
+        private RecommendationEngine $recommendationEngine,
+        // W-0275 — the one home for "who depends on this user" (Rule 20).
+        private readonly DependantsReach $dependantsReach
     ) {}
 
     /**
@@ -241,7 +243,10 @@ class ComprehensiveProtectionPlanService
             'education_level' => $educationLevel,
             'smoker_status' => $smokerStatus,
             'health_status' => $healthStatus,
-            'number_of_dependents' => FamilyMember::where('user_id', $user->id)->where('is_dependent', true)->count(),
+            // W-0275. `family_members.user_id` records who TYPED the row, not whose
+            // children they are, so the parent who did not do the data entry was
+            // assessed as childless — and this figure sizes their life cover.
+            'number_of_dependents' => $this->dependantsReach->countFor($user),
             'dependents_ages' => $profile->dependents_ages ?? [],
             'retirement_age' => $profile->retirement_age ?? 65,
             'death_in_service_multiple' => $profile->death_in_service_multiple,

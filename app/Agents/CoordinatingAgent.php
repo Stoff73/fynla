@@ -73,6 +73,7 @@ use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Payment\SubscriptionStatusService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\GoalStore;
@@ -161,6 +162,8 @@ class CoordinatingAgent extends BaseAgent
         // W-0202 — the one home for the household expenditure write, shared with
         // the profile path so both surfaces divide by the same rule.
         private readonly HouseholdExpenditureWriter $expenditureWriter,
+        // W-0275 — the one home for reaching a household's family (Rule 20).
+        private readonly DependantsReach $dependantsReach,
     ) {}
 
     /**
@@ -4601,9 +4604,9 @@ class CoordinatingAgent extends BaseAgent
         $spouse = $user->spouse;
         $spouseFullName = $spouse ? trim($spouse->first_name.' '.$spouse->surname) : null;
 
-        $children = FamilyMember::where('user_id', $user->id)
-            ->where('relationship', 'child')
-            ->get();
+        // W-0275. Fyn listed only the rows this account typed, so it told one parent
+        // their household had no children while telling the other about the same two.
+        $children = $this->dependantsReach->householdFamilyOf($user, ['child']);
         $childNames = $children->count() > 0
             ? $children->map(fn ($c) => trim($c->first_name.' '.($c->last_name ?? '')))->implode(', ')
             : null;

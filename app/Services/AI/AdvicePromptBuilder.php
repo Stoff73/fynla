@@ -13,7 +13,6 @@ use App\Models\CriticalIllnessPolicy;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
-use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
@@ -29,6 +28,7 @@ use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -63,6 +63,8 @@ class AdvicePromptBuilder
         private readonly PrerequisiteGateService $prerequisiteGate,
         private readonly MemoryRetrieverService $memory,
         private readonly PropertyStore $propertyStore,
+        // W-0275 — the one home for reaching a household's family (Rule 20).
+        private readonly DependantsReach $dependantsReach,
     ) {}
 
     /**
@@ -1003,7 +1005,9 @@ PROMPT;
 
             // Family Members
             if ($include('family_member')) {
-                $family = FamilyMember::where('user_id', $userId)->get();
+                // W-0275 — the family block in the advice prompt, reached across the
+                // household so the two accounts cannot be advised as different families.
+                $family = $this->dependantsReach->householdFamilyOf(User::findOrFail($userId));
                 // W-0350 — reciprocal only.
                 $spouse = $user->reciprocalLiveSpouse();
                 $familyParts = [];
