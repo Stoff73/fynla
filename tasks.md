@@ -113,7 +113,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0371** `done` (4 already done; 2 survivors fixed) — Tax rates and thresholds are hardcoded in the user-facing sentences printed beside figures the arithmetic computed from configuration
 - [x] **W-0373** `done` (found in the same method) — Liability institution names and balances are written to the application log at INFO on every Inheritance Tax calculation
 - [x] **W-0376** `done` (3 resolved elsewhere; dead card deleted) — Four dead sites found in one day, and the dead code carries its own copies of live rules
-- [ ] **W-0383** `queued` — Product call — how much of someone else's contract should the other life assured see - CSJ says all, if there i a shared account, show the life policy to the other user
+- [x] **W-0383** `done` (CSJ ruling: the other life assured sees the whole policy; edit still owner-only) — Product call answered — how much of someone else's contract the other life assured sees
 - [x] **W-0385** `done` (playbook fixed; login path verified sound) — fynla-state.auth.user can name a different user than the token authenticates as, and it is our documented way of checking identity
 - [x] **W-0392** `done` (two facts split at source; will screen reads the estate it disposes of) — The estate a will screen states omits Business Property Relief assets, which do pass under the will
 - [ ] **W-0394** `queued` — Every bequest is stored as a gift to a person — both charitable legacies included, because beneficiary_type reaches no request class
