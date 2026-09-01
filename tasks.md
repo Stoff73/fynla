@@ -156,6 +156,6 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0497** `done` (20 strings expanded at the top of each card; per-string judgement recorded; glyphs untouched; design-lead/quality-lead review not run) — The estate strategy and onboarding text no longer meets the user cold with six acronyms
 - [x] **W-0498** `done` (was a Rule 20 duplicate, not dead config: form hardcoded the configured notes; 2 accessors wired, 2 recorded as deliberately unused; FINDING: tenure_types + leasehold_reform are orphans needing a board item) — The joint-ownership configuration cluster now reaches the user
 - [x] **W-0503** `done` (31 instances + guard) — The 'Platform updates' insight tag uses text-light-blue-700, a class Tailwind never emits, so the text takes whatever colour it inherits
-- [ ] **W-0504** `queued` — Three of the /m dashboard's donut rings are filled to hardcoded constants, so the arc means nothing
+- [x] **W-0504** `done` (all three rings derived; net-worth ring switched Trend→Equity as a decision taken for Azlan; acceptance 3 browser check NOT done) — The /m dashboard donut rings no longer fill to hardcoded constants
 - [ ] **W-0506** `queued` — The consistency sweep reports 91 findings and nothing has been reading it
 - [x] **W-0527** `done` — Quick succession relief is configured and implemented by nothing

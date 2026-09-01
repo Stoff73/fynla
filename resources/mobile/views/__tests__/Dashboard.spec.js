@@ -291,3 +291,51 @@ describe('Dashboard.vue — Bank Accounts presentation naming', () => {
     expect(panel).toMatchObject({ label: 'Bank Accounts', route: '/savings' });
   });
 });
+
+/**
+ * W-0504. Three of the five rings were filled to constants from the 2026 redesign
+ * (7eaa085cb) — 72, `covered ? 85 : 0`, and `value > 0 ? 72 : 0` — while the captions
+ * beside them were wired to real data. So the arc and the number inside it described
+ * different quantities: on `peak_earners` the net-worth ring rendered at 72% next to
+ * `+0%`, and the investment ring at 72% while investments were 11% of assets.
+ *
+ * An arc at 72% looks deliberate, which is why it went unnoticed.
+ *
+ * The rule these pin is the one acceptance 2 states: whatever a ring renders must agree
+ * with the number printed inside it, independent of which metric wins.
+ */
+describe('W-0504 donut rings are derived, not constants', () => {
+  const source = readFileSync('resources/mobile/views/Dashboard.vue', 'utf8');
+
+  // Comments stripped before matching. Without this the guard reads the comments
+  // that DESCRIBE the old constants — "this ring was `progress: 72`" — and reports the
+  // defect it is documenting as a live one.
+  const cardsBlock = source
+    .slice(source.indexOf('const f = dashboardFigures'))
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('//'))
+    .join('\n');
+
+  it('fills no ring with a hardcoded percentage', () => {
+    // The three literals as they were written, so a reintroduction in any of the three
+    // shapes fails rather than only the bare number.
+    expect(cardsBlock).not.toMatch(/progress:\s*72\b/);
+    expect(cardsBlock).not.toMatch(/progress:\s*[^,\n]*\?\s*85\s*:/);
+    expect(cardsBlock).not.toMatch(/progress:\s*[^,\n]*\?\s*72\s*:/);
+  });
+
+  it('drives every ring from a figure on the shared derivation', () => {
+    const progresses = [...cardsBlock.matchAll(/progress:\s*([^,\n]+)/g)].map((m) => m[1].trim());
+
+    expect(progresses.length).toBeGreaterThan(0);
+    progresses.forEach((expression) => {
+      expect(expression).toMatch(/\bf\./);
+    });
+  });
+
+  it('shows the net worth ring the same quantity it fills the arc with', () => {
+    // The defect in one line: `progress: 72` beside `vizNum: trend%`. Whatever the ring
+    // is labelled, the arc and the number have to be the same thing.
+    expect(cardsBlock).toMatch(/progress:\s*f\.netWorth\.equityPct[\s\S]{0,120}vizNum:\s*f\.netWorth\.equityPct/);
+  });
+});
