@@ -4,7 +4,7 @@ title: The holding asset-type vocabulary exists as eleven independent copies acr
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
-status: queued
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-08-23T04:35:00Z
@@ -85,3 +85,65 @@ list, on the client side.
   A consolidation touching eleven components across four directories is a batch in
   its own right and should not be folded into a functional fix — which is why it is
   here rather than inside F-0032.
+
+---
+
+## Closed 2026-09-01 — fourteen copies, not eleven
+
+**Acceptance 1 — one vocabulary, in one module.** `resources/js/constants/assetTypes.js`
+holds the ten values and their labels. Every consumer reads it: the eleven the item
+listed, plus **three it did not**:
+
+- `HoldingForm.vue:128-137` — ten hardcoded `<option>` elements, the list a user picks
+  FROM, so a value missing there could never be entered however the column was defined.
+- `HoldingsTable.vue:26-33` — a filter dropdown **missing three of the ten values**
+  (`equity`, `fund`, `etf`), so a user could never filter to those types however many
+  holdings they held. Found by the guard, not by reading.
+- `/m`'s `InvestmentAccountDetail.vue:148` — `capitalise(h.asset_type)`, which is not a
+  label at all.
+
+**Acceptance 2 — one label per value, spelled per Rule 9.** "UK Equity" and "US Equity",
+never "Uk"/"Us". `etf` is **"Exchange-Traded Fund"** rather than a bare acronym — a
+deliberate visible change, because acceptance 2 puts Rule 9 spelling in scope and a cold
+acronym is what Rule 9 forbids.
+
+**An unknown value returns an em dash, not a title-cased guess.** Title-casing is
+exactly how "Uk Equity" reached a screen: it presents a stored string the vocabulary does
+not contain as though it were a real label.
+
+**Acceptance 3 — the server relationship, stated.** The authority is the
+`holdings.asset_type` column enum, mirrored in
+`StoreHoldingRequest::getAssetTypes():63-75` and `DCPensionHoldingsController:94`. The
+module's docblock records that this is the client mirror — add a value to the column and
+the rules, then here, never here alone — and **a test reads the PHP file and asserts the
+two lists match**, so drift fails rather than waits to be noticed.
+
+**Acceptance 4 — `/m` shares, it does not mirror.** `resources/mobile/` has its own
+bundle, but already imports `ownership.js` and `holdingUnits.js` from `resources/js`, so
+a third copy would have been a choice rather than a constraint. Stated in the module's
+docblock, not left to be discovered.
+
+### Tests
+
+`resources/js/constants/__tests__/assetTypes.spec.js` — 18: the server mirror, Rule 9
+spelling, the em-dash refusal, option ordering, and a per-file guard over **all fourteen**
+consumers asserting each reads the shared module and holds no local map or inline option
+list.
+
+**Mutation-verified:** reintroducing a private map in `JointAccountHistory.vue` turns it
+red. No behavioural test of a single screen could see this class of defect — each
+renders a plausible label from its own map, which is how eleven of them disagreed for
+months.
+
+### A test that encoded the disagreement, corrected not deleted
+
+`tests/frontend/components/Investment/HoldingsTable.test.js:151` asserted
+`formatAssetType(null) === 'N/A'`. That was this component's private answer while the
+other copies gave others. Corrected to the em dash the rest of the application renders,
+with the reasoning at the line, and extended to assert `uk_equity` and the
+unknown-value case.
+
+**User-visible change worth naming:** the holdings table now shows "—" where it showed
+"N/A" for a holding with no asset type.
+
+**Regression:** 1,275 frontend tests, all passing.

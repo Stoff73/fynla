@@ -469,6 +469,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { mapState, mapGetters, mapActions } from 'vuex';
 import GiftForm from './GiftForm.vue';
 import estateService from '@/services/estateService';
@@ -720,16 +721,9 @@ export default {
       return categories[category] || category;
     },
 
-    formatAssetType(type) {
-      const types = {
-        property: 'Property',
-        investment: 'Investment',
-        pension: 'Pension',
-        business: 'Business',
-        other: 'Cash/Other',
-      };
-      return types[type] || type;
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     toggleAssetDetails(index) {
       this.$set(this.expandedAssetDetails, index, !this.expandedAssetDetails[index]);

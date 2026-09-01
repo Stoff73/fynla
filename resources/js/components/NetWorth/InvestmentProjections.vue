@@ -488,6 +488,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapActions, mapState, mapGetters } from 'vuex';
 import { coOwnerName, isPrimaryOwner } from '@/utils/ownership';
@@ -1057,14 +1058,9 @@ export default {
       return { individual: 'Individual', joint: 'Joint', trust: 'Trust' }[type] || 'Individual';
     },
 
-    formatAssetType(type) {
-      const types = {
-        equity: 'Equity', equities: 'Equities', fixed_income: 'Fixed Income', bonds: 'Bonds',
-        property: 'Property', real_estate: 'Real Estate', commodities: 'Commodities', cash: 'Cash',
-        alternatives: 'Alternatives', fund: 'Fund', etf: 'ETF', stock: 'Stock', bond: 'Bond', other: 'Other',
-      };
-      return types[type] || type?.charAt(0).toUpperCase() + type?.slice(1).replace(/_/g, ' ') || 'Other';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     formatAllocation(value) {
       return (value || 0).toFixed(1);

@@ -23,14 +23,16 @@
           v-model="selectedAssetType"
           class="border border-horizon-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
+          <!--
+            W-0443. A fourteenth copy of the vocabulary, and it was missing THREE of the
+            ten values — `equity`, `fund` and `etf` — so a user could never filter to
+            those types however many holdings they had of them. Driving the list from
+            the one vocabulary is what makes that impossible rather than unlikely.
+          -->
           <option value="">All Asset Types</option>
-          <option value="uk_equity">UK Equity</option>
-          <option value="us_equity">US Equity</option>
-          <option value="international_equity">International Equity</option>
-          <option value="bond">Bond</option>
-          <option value="cash">Cash</option>
-          <option value="alternative">Alternative</option>
-          <option value="property">Property</option>
+          <option v-for="assetType in assetTypes" :key="assetType.value" :value="assetType.value">
+            {{ assetType.label }}
+          </option>
         </select>
       </div>
 
@@ -379,6 +381,7 @@
 </template>
 
 <script>
+import { ASSET_TYPES, formatAssetType } from '@/constants/assetTypes';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { CHART_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
 import { formatUnits } from '@/utils/holdingUnits';
@@ -408,6 +411,8 @@ export default {
 
   data() {
     return {
+      // W-0443 — the one vocabulary, not a copy of it.
+      assetTypes: ASSET_TYPES,
       selectedAssetType: '',
       selectedAccountId: '',
       sortField: 'security_name',
@@ -546,12 +551,9 @@ export default {
       return ((holding.current_value / this.totalValue) * 100).toFixed(1);
     },
 
-    formatAssetType(type) {
-      if (!type) return 'N/A';
-      return type.split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     getReturnClass(returnPercent) {
       if (returnPercent > 0) return 'text-spring-600';

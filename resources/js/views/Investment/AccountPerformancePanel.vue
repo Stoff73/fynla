@@ -296,6 +296,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -829,25 +830,9 @@ export default {
       this.$emit('change-tab', 'holdings');
     },
 
-    formatAssetType(type) {
-      const types = {
-        equity: 'Equity',
-        equities: 'Equities',
-        fixed_income: 'Fixed Income',
-        bonds: 'Bonds',
-        property: 'Property',
-        real_estate: 'Real Estate',
-        commodities: 'Commodities',
-        cash: 'Cash',
-        alternatives: 'Alternatives',
-        fund: 'Fund',
-        etf: 'ETF',
-        stock: 'Stock',
-        bond: 'Bond',
-        other: 'Other',
-      };
-      return types[type] || type?.charAt(0).toUpperCase() + type?.slice(1).replace(/_/g, ' ') || 'Other';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     getAssetColor(type) {
       return ASSET_COLORS[type] || ASSET_COLORS.other;

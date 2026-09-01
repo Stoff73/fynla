@@ -536,6 +536,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { VOLATILITY_DRAG_NOTE } from '@/utils/projectionCaption';
 import { DEFAULT_DB_NORMAL_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapActions, mapState } from 'vuex';
@@ -911,21 +912,9 @@ export default {
 
     formatUnits,
 
-    formatAssetType(type) {
-      const labels = {
-        equity: 'Equity',
-        uk_equity: 'UK Equity',
-        us_equity: 'US Equity',
-        international_equity: 'Intl Equity',
-        fund: 'Fund',
-        etf: 'ETF',
-        bond: 'Bond',
-        cash: 'Cash',
-        alternative: 'Alternative',
-        property: 'Property',
-      };
-      return labels[type] || type || '—';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     formatDCPensionType(type) {
       const types = {

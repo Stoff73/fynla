@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 31**  ·  closed 2026-08-31: 101
+**Outstanding: 30**  ·  closed 2026-08-31: 102
 
 ---
 
@@ -126,7 +126,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0431** `done` (already fixed; W-0461 added the template half) — The Inheritance Tax rate messages asserted 40%, 36% and 10% as literals while the calculation beside them read the real figures from configuration
 - [x] **W-0433** `done` (already fixed over three passes) — The charitable percentage and the threshold it is compared against are percentages of different things — 0.6% against 10%, where the statutory figure is 0.81%
 - [x] **W-0442** `done` (/m parity via the portfolio contract; browser verification NOT done) — The holdings tables hide what they store — and the investment one has never rendered at all, behind a duplicated v-else-if
-- [ ] **W-0443** `queued` — The holding asset-type vocabulary exists as eleven independent copies across four directories, and nothing makes them agree
+- [x] **W-0443** `done` (14 copies -> one module; filter was missing 3 values; guard mutation-verified) — The holding asset-type vocabulary exists as eleven independent copies across four directories, and nothing makes them agree
 - [x] **W-0453** `done` (5 sites + mutation-verified guard) — A null-defaulting tax getter reaches .toLocaleString() unguarded at two template sites — throws on a cold load, in a fallback block nothing else covers
 - [x] **W-0470** `done` (display half completed) — The controller recomputes the projected net estate on a liabilities figure the projected taxable estate was never struck on, so the two rows disagree on screen
 - [ ] **W-0472** `queued` — The address a user invites their partner on is used once and never stored, so nobody can see who was invited, correct a typo, or re-send

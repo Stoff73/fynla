@@ -372,6 +372,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { mapGetters } from 'vuex';
 import { formatPercentage } from '@/utils/currency';
 import estateService from '@/services/estateService';
@@ -489,17 +490,9 @@ export default {
       return this.sanitizeText(step);
     },
 
-    formatAssetType(type) {
-      const types = {
-        cash: 'Cash',
-        investment: 'Investment',
-        property: 'Property',
-        pension: 'Pension',
-        business: 'Business Interest',
-        other: 'Other Asset',
-      };
-      return types[type] || type;
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     // formatCurrency provided by currencyMixin
   },

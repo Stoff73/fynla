@@ -93,6 +93,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -145,15 +146,9 @@ export default {
       }
     },
 
-    formatAssetType(type) {
-      const types = {
-        property: 'Property',
-        mortgage: 'Mortgage',
-        investment: 'Investment',
-        savings: 'Savings',
-      };
-      return types[type] || type;
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     getTypeClass(type) {
       return `type-${type}`;

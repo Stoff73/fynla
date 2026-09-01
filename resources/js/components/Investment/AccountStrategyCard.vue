@@ -27,6 +27,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -266,19 +267,9 @@ export default {
       }
     },
 
-    formatAssetType(type) {
-      const types = {
-        equity: 'Equity',
-        equities: 'Equities',
-        fixed_income: 'Fixed Income',
-        bonds: 'Bonds',
-        property: 'Property',
-        cash: 'Cash',
-        alternatives: 'Alternatives',
-        other: 'Other',
-      };
-      return types[type] || type?.charAt(0).toUpperCase() + type?.slice(1).replace(/_/g, ' ') || 'Other';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
   },
 };
 </script>

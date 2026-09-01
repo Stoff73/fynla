@@ -176,22 +176,13 @@
 </template>
 
 <script>
+import { ASSET_TYPES } from '@/constants/assetTypes';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import UnmodelledAimNotice from './UnmodelledAimNotice.vue';
 import { allocationErrorMessage, isOverAllocated } from '@/utils/holdingsAllocation';
 
-const ASSET_TYPES = [
-    { value: 'equity', label: 'Equity' },
-    { value: 'uk_equity', label: 'UK Equity' },
-    { value: 'us_equity', label: 'US Equity' },
-    { value: 'international_equity', label: 'International Equity' },
-    { value: 'fund', label: 'Fund' },
-    { value: 'etf', label: 'ETF' },
-    { value: 'bond', label: 'Bond' },
-    { value: 'cash', label: 'Cash' },
-    { value: 'alternative', label: 'Alternative' },
-    { value: 'property', label: 'Property' },
-];
+// W-0443 — the select's options come from the one vocabulary now. This was a private
+// `ASSET_TYPES` const, one of thirteen copies of the same ten values.
 
 export default {
   name: 'InlineHoldingsEditor',

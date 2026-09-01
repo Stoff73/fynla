@@ -141,6 +141,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjectionChart from './InvestmentProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -229,9 +230,9 @@ export default {
       }
     },
 
-    formatAssetType(type) {
-      return type.replace(/_/g, ' ');
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     navigateToTab(tabId) {
       this.$emit('navigate-to-tab', tabId);
