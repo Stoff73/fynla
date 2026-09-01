@@ -280,8 +280,12 @@ class UserProfileService
     /**
      * Get expenditure breakdown including financial commitments.
      * Uses categories sum when entry_mode is 'category', otherwise uses monthly_expenditure.
+     *
+     * Public because this is the one home for "what does this household spend each
+     * month" (W-0531). `ResolvesExpenditure` delegates here rather than re-summing,
+     * so the runway, the risk score and the Expenditure tab cannot disagree.
      */
-    private function getExpenditureBreakdown(User $user): array
+    public function getExpenditureBreakdown(User $user): array
     {
         // Calculate manual expenditure based on entry mode
         if ($user->expenditure_entry_mode === 'category') {
