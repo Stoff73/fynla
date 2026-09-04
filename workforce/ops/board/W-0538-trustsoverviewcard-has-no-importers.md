@@ -142,3 +142,23 @@ This is the W-0538 lesson repeating at one remove: a component that never
 rendered had never had its failure path looked at either.
 
 Tests: 11 across the two files, five of them red before these fixes.
+
+## Re-verified on csjones after the fixes — 2026-09-04
+
+Deployed (backend pulled, `public/build/` rebuilt with `deploy/csjones-fynla/build.sh`
+and uploaded), then driven again.
+
+| Case | Before | After |
+|---|---|---|
+| `peak_earners`, premium, wide | card shown, **2 requests, both 403** | card shown, **1 request, 200** |
+| `peak_earners`, premium, narrow (520px) | card shown | card shown — one instance serves both layouts |
+| `chris@fynla.org`, admin on free tier | card shown saying "No trusts set up" while holding a trust | **no card, and no request at all** |
+
+The request counts are from the network log, not inferred.
+
+**One thing not reproduced live, deliberately:** the "We couldn't load your trusts"
+state. Reaching it now needs a user who passes `hasFullCapability('estate')` and
+is still refused by the endpoint, and after fix 1 that combination no longer
+exists — which is the point of fix 1. Its guard is
+`TrustsOverviewCardLoadFailure.test.js`, which drives the rejected promise
+directly. Stated plainly rather than counted as a browser check.
