@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 29**  ·  closed 2026-08-31: 103
+**Outstanding: 10**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-04 (6 `deferred-ios`, 4 `queued`)
 
 ---
 
@@ -159,6 +159,16 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0504** `done` (all three rings derived; net-worth ring switched Trend→Equity as a decision taken for Azlan; acceptance 3 browser check NOT done) — The /m dashboard donut rings no longer fill to hardcoded constants
 - [x] **W-0506** `done` (99→34 BROKEN by indexing what the docs cite; the item's proposed slash rule was measured and rejected; budgets now advisories; rhythm written) — The consistency sweep's signal quality is fixed so it can be read
 - [x] **W-0527** `done` — Quick succession relief is configured and implemented by nothing
+
+---
+
+## Raised 2026-09-04 — findings from the 2026-09-01 run, not yet worked
+
+- [ ] **W-0532** `queued` — family_module and benefits_child are listed in the pricing comparison and gated by nothing — sold to customers, enforced nowhere
+- [ ] **W-0533** `queued` — The leasehold and tenure configuration has no consumer — and the one calculation that should read it hardcodes its threshold as 80 and is itself rendered nowhere
+- [ ] **W-0534** `queued` — The pension-exclusion sentence about the current column is written in a component, so the free-tier teaser cannot say it
+- [ ] **W-0535** `queued` — CoordinatingAgent is 6,768 lines and 115 methods, and grows with every Fyn tool added — wants a plan, not an opportunistic extraction
+
 
 ---
 
