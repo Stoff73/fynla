@@ -7,6 +7,7 @@ namespace App\Services\Benefits;
 use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\Tiers\TeaserGate;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -26,8 +27,34 @@ class ChildBenefitService
 {
     public function __construct(
         private readonly TaxConfigService $taxConfig,
-        private readonly IncomeDefinitionsService $incomeDefinitions
+        private readonly IncomeDefinitionsService $incomeDefinitions,
+        private readonly TeaserGate $teaserGate
     ) {}
+
+    /**
+     * The zero position — no benefit, no charge. Returned both when the household
+     * has no eligible children and when the tier does not carry `benefits_child`,
+     * because the two are the same thing to every caller: there is no figure.
+     *
+     * @return array{benefit: array, hicbc: array, net_annual_benefit: float}
+     */
+    private function noPosition(): array
+    {
+        return [
+            'benefit' => [
+                'annual_amount' => 0.0,
+                'eligible_children_count' => 0,
+                'breakdown' => [],
+            ],
+            'hicbc' => [
+                'applies' => false,
+                'charge' => 0.0,
+                'net_benefit' => 0.0,
+                'clawback_percentage' => 0.0,
+            ],
+            'net_annual_benefit' => 0.0,
+        ];
+    }
 
     /**
      * Calculate total annual Child Benefit for a user.
@@ -171,6 +198,18 @@ class ChildBenefitService
      */
     public function calculateChildBenefitPosition(User $user, ?float $adjustedNetIncome = null): array
     {
+        // W-0532 — `benefits_child` is named in the pricing comparison and was
+        // enforced nowhere. Gated HERE rather than at the caller, because this is
+        // the one place the position is produced, so a second consumer added later
+        // inherits the gate instead of having to remember it.
+        //
+        // A read, so it withholds rather than throws: the shape returned is the
+        // one this method already returns for a household with no eligible
+        // children, which every caller handles.
+        if (! $this->teaserGate->allows($user, 'benefits_child')) {
+            return $this->noPosition();
+        }
+
         // Calculate the benefit amount
         $benefit = $this->calculateAnnualChildBenefit($user);
 

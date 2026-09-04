@@ -617,16 +617,11 @@
 
       The date is read from configuration, never spelled here (Rule 2).
     -->
-    <div v-if="pensionExcludedFromEstate > 0" class="bg-eggshell-500 rounded-lg p-4 mb-4 text-xs">
-      <p class="text-neutral-500">
-        <span class="font-semibold text-horizon-500">{{ formatCurrency(pensionExcludedFromEstate) }}</span>
-        of pension savings is left out of the figures above, because pension funds sit
-        outside the estate for Inheritance Tax.
-      </p>
-      <p v-if="pensionExclusionEndsLabel" class="text-neutral-500 mt-1">
-        That changes on <span class="font-semibold text-horizon-500">{{ pensionExclusionEndsLabel }}</span>,
-        when unused pots start counting towards the estate. Your bill above does not yet include them.
-      </p>
+    <!-- W-0534 — this sentence used to be written here, which is why the free-tier
+         teaser could not say it: this component sits behind the upgrade gate. The
+         engine publishes it now and both surfaces render the same string (Rule 20). -->
+    <div v-if="pensionExclusionCaveat" class="bg-eggshell-500 rounded-lg p-4 mb-4 text-xs">
+      <p class="text-neutral-500">{{ pensionExclusionCaveat }}</p>
     </div>
 
     <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-eggshell-500 rounded-lg p-4">
@@ -1115,6 +1110,10 @@ export default {
      * W-0171 — when that exclusion ends. Configured, never a literal: a Budget
      * that moves the commencement date moves this sentence with it.
      */
+    pensionExclusionCaveat() {
+      return this.ihtData?.pension_exclusion_caveat || '';
+    },
+
     pensionExclusionEndsLabel() {
       const date = this.ihtData?.pension_exclusion_ends;
 
