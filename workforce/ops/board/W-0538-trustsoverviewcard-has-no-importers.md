@@ -107,3 +107,38 @@ case a `/m` trusts route, nav entry and overview need building, or it described
 what CSJ believed already existed. Flagged to CSJ rather than guessed at — Rule 19
 says a plan silent on `/m` still has `/m` in scope, and this plan is not silent,
 it is mistaken about what is there.
+
+## What the browser verification found — 2026-09-04
+
+The wiring above was deployed to csjones and driven. It worked for the premium
+demo household and was **wrong in three ways** for everyone else. All three are
+fixed; the first two were introduced by the wiring, the third was latent in the
+component and only became visible once it rendered.
+
+**1. The gate mirrored the wrong backend predicate.** `auth/hasCapability`
+mirrors `TeaserGate::allows()`, which bypasses for admins and preview users.
+`/api/estate/trusts` is behind `EnsureFullEstateAccess`, which calls
+`TeaserGate::isFull()` — **no bypass**. So `chris@fynla.org` (admin, free tier)
+was shown the card and the API answered **403**, captured from the network log.
+
+Fixed by adding `auth/hasFullCapability`, which reads the resolved tier's matrix
+alone and so mirrors `isFull()`. `hasCapability` is unchanged and keeps its
+existing callers. The two getters now answer two different questions, and a
+screen gates on whichever one the endpoint behind it enforces.
+
+**2. The card fetched twice per dashboard load.** It had been placed in both
+layout blocks, and both are in the DOM — swapped by media query — so it mounted
+twice. Two GETs of `/api/estate/trusts` on one page view, both 403. Fixed by
+rendering **one** instance outside both blocks, with `.gd-trusts` supplying the
+column gap those blocks give their own children.
+
+**3. The card told the user something false.** `fetchTrusts` catches its error
+and leaves the list empty, and the template read an empty list as
+**"No trusts set up"** — shown to an admin who holds trust id 2. "We could not
+load this" and "you have none" are different sentences, and only one of them is
+a claim about the user's money. The card now distinguishes them.
+
+This is the W-0538 lesson repeating at one remove: a component that never
+rendered had never had its failure path looked at either.
+
+Tests: 11 across the two files, five of them red before these fixes.

@@ -31,6 +31,14 @@
         </p>
       </div>
 
+      <!-- Could not load. NOT the same sentence as "you have none" — only one of
+           those is a claim about the user's money, and the card used to make it
+           whenever the request failed (W-0538). -->
+      <div v-else-if="loadFailed" class="empty-state">
+        <p class="text-sm text-neutral-500">We couldn't load your trusts just now</p>
+        <p class="text-xs text-horizon-400 mt-1">Click to open trust planning</p>
+      </div>
+
       <!-- Empty State -->
       <div v-else class="empty-state">
         <p class="text-sm text-neutral-500">No trusts set up</p>
@@ -62,6 +70,7 @@ export default {
   data() {
     return {
       loading: false,
+      loadFailed: false,
     };
   },
 
@@ -147,9 +156,13 @@ export default {
 
     async loadTrusts() {
       this.loading = true;
+      this.loadFailed = false;
       try {
         await this.fetchTrusts();
       } catch (error) {
+        // The card must not go on to say "No trusts set up": an empty list
+        // because nothing loaded is not an empty list because there is nothing.
+        this.loadFailed = true;
         logger.error('Failed to load trusts:', error);
       } finally {
         this.loading = false;
