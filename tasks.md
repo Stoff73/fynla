@@ -167,6 +167,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0532** `queued` — family_module and benefits_child are listed in the pricing comparison and gated by nothing — sold to customers, enforced nowhere
 - [ ] **W-0533** `queued` — The leasehold and tenure configuration has no consumer — and the one calculation that should read it hardcodes its threshold as 80 and is itself rendered nowhere
 - [ ] **W-0534** `queued` — The pension-exclusion sentence about the current column is written in a component, so the free-tier teaser cannot say it
+- [x] **W-0536** `done` (found browser-testing W-0500 on csjones; root cause in PropertyController::update, not in W-0500's own work; 2 tests added, 278 passed; NOT re-verified in the browser — fix is local) — Any partial update to a property converts it to sole ownership
 - [ ] **W-0535** `queued` — CoordinatingAgent is 6,768 lines and 115 methods, and grows with every Fyn tool added — wants a plan, not an opportunistic extraction
 
 
