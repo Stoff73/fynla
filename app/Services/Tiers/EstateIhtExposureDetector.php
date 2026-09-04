@@ -38,7 +38,7 @@ class EstateIhtExposureDetector
     /**
      * Detect whether the user has a likely Inheritance Tax exposure.
      *
-     * @return array{exposed: bool, headline: string, estimated_liability_gbp: float, unmodelled_relief_caveat: string|null, projected_pension_inclusion_caveat: string|null}
+     * @return array{exposed: bool, headline: string, estimated_liability_gbp: float, unmodelled_relief_caveat: string|null, projected_pension_inclusion_caveat: string|null, pension_exclusion_caveat: string|null}
      */
     public function detect(User $user): array
     {
@@ -91,6 +91,9 @@ class EstateIhtExposureDetector
             // and every demo persona a prospective customer sees — read the figure
             // with neither caveat attached.
             'projected_pension_inclusion_caveat' => $calculation['projected_pension_inclusion_caveat'] ?? null,
+            // W-0534 — the third caveat, and the one the teaser needed most: the
+            // figure beside it is computed WITH this exclusion.
+            'pension_exclusion_caveat' => $calculation['pension_exclusion_caveat'] ?? null,
         ];
     }
 

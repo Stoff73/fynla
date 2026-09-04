@@ -1968,6 +1968,14 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        // W-0532 — the third write path into `family_members`, and it gets the
+        // same gate as the other two. Onboarding is not an exemption.
+        try {
+            app(TeaserGate::class)->requireCapability($user, 'family_module');
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResult($e, $user, $e->getMessage());
+        }
+
         $this->householdProvisioner->ensureFor($user);
 
         $created = [];
@@ -4826,6 +4834,15 @@ class CoordinatingAgent extends BaseAgent
     {
         if ($isPreview) {
             return $this->previewBlocked('family member');
+        }
+
+        // W-0532 — the same gate the controller applies, from the same
+        // implementation. Fyn is a write path like any other and a capability
+        // enforced only on the HTTP route is not enforced.
+        try {
+            app(TeaserGate::class)->requireCapability($user, 'family_module');
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResult($e, $user, $e->getMessage());
         }
 
         $validationError = $this->validateToolInput($input, [

@@ -29,6 +29,9 @@
         <p v-if="teaser.unmodelled_relief_caveat" class="me-caveat">{{ teaser.unmodelled_relief_caveat }}</p>
         <!-- W-0507 — the second caveat the engine publishes with this figure. -->
         <p v-if="teaser.projected_pension_inclusion_caveat" class="me-caveat">{{ teaser.projected_pension_inclusion_caveat }}</p>
+        <!-- W-0534 — the third: the current column's exclusion, which the figure
+             above is computed with. -->
+        <p v-if="teaser.pension_exclusion_caveat" class="me-caveat">{{ teaser.pension_exclusion_caveat }}</p>
         <!--
           W-0467, compliance-lead finding D (2026-08-24): "personalised" is precisely
           the word separating generic guidance from a personal recommendation, and

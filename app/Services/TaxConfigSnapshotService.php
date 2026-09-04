@@ -41,6 +41,15 @@ class TaxConfigSnapshotService
             // has the caller it was written for.
             'property_ownership' => [
                 'joint_ownership_types' => $this->taxConfig->getPropertyOwnership()['joint_ownership_types'] ?? [],
+                // W-0533 — the same crossing for the leasehold bands. `PropertyForm.vue`
+                // hardcoded "less than 80 years" and "less than 60 years" beside a
+                // configured version of both, and `PropertyCalculationService` carried a
+                // third copy of the 80. The form reads these now.
+                'leasehold_valuation_thresholds' => $this->taxConfig->getLeaseholdReform()['valuation_thresholds'] ?? [],
+                // W-0533 — the tenure names and descriptions, for the same reason:
+                // `PropertyForm.vue` hardcoded "Freehold" and "Leasehold" beside a
+                // configured version of both, with descriptions the user never saw.
+                'tenure_types' => $this->taxConfig->getPropertyOwnership()['tenure_types'] ?? [],
             ],
 
             'isa' => [

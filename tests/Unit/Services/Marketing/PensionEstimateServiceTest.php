@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Services\Retirement\StatePensionAgeResolver;
 use App\Models\TaxConfiguration;
 use App\Services\Marketing\PensionEstimateService;
+use App\Services\Retirement\StatePensionAgeResolver;
 use Database\Seeders\TaxConfigurationSeeder;
 
 /**

@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Models\StatePension;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Retirement\StatePensionAgeResolver;
+use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -91,7 +94,7 @@ describe('a recorded forecast wins over anything derived', function () {
  */
 describe('the two scalars are retired, not left beside the schedule', function () {
     it('no longer seeds current_spa or future_spa', function () {
-        $pension = app(\App\Services\TaxConfigService::class)->getPensionAllowances();
+        $pension = app(TaxConfigService::class)->getPensionAllowances();
 
         expect($pension['state_pension'])->not->toHaveKey('current_spa')
             ->and($pension['state_pension'])->not->toHaveKey('future_spa')
@@ -119,8 +122,8 @@ describe('the two scalars are retired, not left beside the schedule', function (
     });
 
     it('refuses to guess when the schedule is missing rather than falling back to a scalar', function () {
-        \App\Models\TaxConfiguration::query()->update(['is_active' => false]);
-        \Illuminate\Support\Facades\Cache::flush();
+        TaxConfiguration::query()->update(['is_active' => false]);
+        Cache::flush();
 
         expect(fn () => app(StatePensionAgeResolver::class)->forDateOfBirth('1985-01-01'))
             ->toThrow(RuntimeException::class);

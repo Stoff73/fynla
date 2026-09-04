@@ -47,16 +47,18 @@ it('returns no score — only currency and a plain string headline', function ()
     $result = app(EstateIhtExposureDetector::class)->detect($u);
 
     // Rule #13: no scores. Keys must be exactly these — no 'score', no 'rating'.
-    // `unmodelled_relief_caveat` joined them for W-0466 and
-    // `projected_pension_inclusion_caveat` for W-0507; each is a sentence or null.
-    // The exact-match is the point: this is the payload a free-tier user's estate
-    // page is built from, so a score sneaking in has one place to be caught.
+    // `unmodelled_relief_caveat` joined them for W-0466,
+    // `projected_pension_inclusion_caveat` for W-0507 and `pension_exclusion_caveat`
+    // for W-0534; each is a sentence or null. The exact-match is the point: this is
+    // the payload a free-tier user's estate page is built from, so a score sneaking
+    // in has one place to be caught. Widen it deliberately, never to make a run green.
     expect(array_keys($result))->toEqual([
         'exposed',
         'headline',
         'estimated_liability_gbp',
         'unmodelled_relief_caveat',
         'projected_pension_inclusion_caveat',
+        'pension_exclusion_caveat',
     ]);
 });
 

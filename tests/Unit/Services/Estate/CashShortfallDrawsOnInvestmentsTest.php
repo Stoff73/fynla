@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Estate\EstateProjectionService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -73,7 +74,7 @@ describe('investments are drawn on when cash runs out', function () {
  */
 describe('the drawdown stops the money compounding from the year it is spent', function () {
     it('costs more than the deficit itself, because the growth goes too', function () {
-        $account = \App\Models\Investment\InvestmentAccount::factory()->create([
+        $account = InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'current_value' => 100000,
             'ownership_type' => 'individual',
@@ -109,7 +110,7 @@ describe('the drawdown stops the money compounding from the year it is spent', f
     });
 
     it('empties the portfolio before reporting anything unmet', function () {
-        \App\Models\Investment\InvestmentAccount::factory()->create([
+        InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'current_value' => 5000,
             'ownership_type' => 'individual',
@@ -134,7 +135,7 @@ describe('the drawdown stops the money compounding from the year it is spent', f
  */
 describe('one investment model, not two', function () {
     it('keeps the plain projection identical to the drawdown path with no deficit', function () {
-        \App\Models\Investment\InvestmentAccount::factory()->create([
+        InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'current_value' => 250000,
             'ownership_type' => 'individual',
@@ -152,7 +153,7 @@ describe('one investment model, not two', function () {
     });
 
     it('honours the configured growth method rather than assuming Monte Carlo (W-0520)', function () {
-        \App\Models\Investment\InvestmentAccount::factory()->create([
+        InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'current_value' => 100000,
             'ownership_type' => 'individual',

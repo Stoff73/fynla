@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Tiers;
 
 use App\Models\User;
+use App\Services\Payment\TierComparisonService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\TierConfigurationStore;
 
 /**
@@ -48,5 +50,33 @@ class TeaserGate
         return $user->is_admin
             || $user->is_preview_user
             || $this->isFull($user, $capabilityKey);
+    }
+
+    /**
+     * Refuse a capability the user's tier was never sold (W-0532).
+     *
+     * The throwing form of `allows()`, so a capability with more than one write
+     * path is enforced from one implementation rather than a copy per caller —
+     * `family_module` has three (the controller, Fyn's `create_family_member`,
+     * and Fyn's onboarding create), and three copies of a gate is how one of
+     * them ends up missing it.
+     *
+     * Throws the same exception `InvestmentAccountStore` throws for
+     * `investments_exotic`, so every existing catch — the controllers' via
+     * `TierLimitResponse`, and CoordinatingAgent's — already handles it and the
+     * client is offered the upgrade rather than a generic failure.
+     */
+    public function requireCapability(User $user, string $capabilityKey): void
+    {
+        if ($this->allows($user, $capabilityKey)) {
+            return;
+        }
+
+        throw new TierLimitExceededException(
+            $capabilityKey,
+            0,
+            0,
+            TierComparisonService::labelFor($capabilityKey).' is part of your plan on a higher tier.'
+        );
     }
 }

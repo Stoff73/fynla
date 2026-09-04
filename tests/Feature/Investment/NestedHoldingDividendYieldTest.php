@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Requests\Retirement\StoreDCPensionRequest;
+use App\Http\Requests\StoreInvestmentAccountRequest;
+use App\Http\Requests\UpdateInvestmentAccountRequest;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -74,9 +77,9 @@ it('refuses a yield outside the range the column can hold', function () {
 
 it('carries the rule on every nested holdings set, not only the one that was tested', function () {
     $requests = [
-        \App\Http\Requests\StoreInvestmentAccountRequest::class,
-        \App\Http\Requests\UpdateInvestmentAccountRequest::class,
-        \App\Http\Requests\Retirement\StoreDCPensionRequest::class,
+        StoreInvestmentAccountRequest::class,
+        UpdateInvestmentAccountRequest::class,
+        StoreDCPensionRequest::class,
     ];
 
     foreach ($requests as $class) {

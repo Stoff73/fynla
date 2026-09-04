@@ -232,8 +232,13 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select tenure type</option>
-                  <option value="freehold">Freehold</option>
-                  <option value="leasehold">Leasehold</option>
+                  <!-- W-0533 — names come from the tax configuration, which carries a
+                       description for each as well. The fallback capitalises the enum
+                       value rather than repeating the configured words, so there is
+                       nothing here that can drift away from the configuration. -->
+                  <option v-for="option in tenureTypeOptions" :key="option.value" :value="option.value" :title="option.description">
+                    {{ option.label }}
+                  </option>
                 </select>
               </div>
 
@@ -260,10 +265,18 @@
                 <label for="lease_expiry_date" class="block text-sm font-medium text-horizon-500 mb-1">Lease Expiry Date</label>
                 <input id="lease_expiry_date" v-model="form.lease_expiry_date" type="date" :min="today" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500" />
               </div>
+              <!-- W-0533 — both bands came from the tax configuration, and both were
+                   written here as literals instead. Rule 2: the numbers come from the
+                   snapshot, and the sentences are built from them so the figure in the
+                   text can never disagree with the figure in the test. -->
               <div v-if="leaseRemainingYears !== null" class="space-y-1">
                 <p class="text-sm text-horizon-500">Remaining lease: <strong>{{ leaseRemainingYears }} years</strong></p>
-                <p v-if="leaseRemainingYears < 80" class="text-xs text-violet-600">Properties with less than 80 years remaining may be difficult to mortgage</p>
-                <p v-if="leaseRemainingYears < 60" class="text-xs text-raspberry-600">Properties with less than 60 years remaining may significantly lose value</p>
+                <p v-if="leaseIsDifficultToMortgage" class="text-xs text-violet-600">
+                  Properties with less than {{ leaseholdThresholds.difficult_to_mortgage }} years remaining may be difficult to mortgage
+                </p>
+                <p v-if="leaseLosesSignificantValue" class="text-xs text-raspberry-600">
+                  Properties with less than {{ leaseholdThresholds.significant_value_loss }} years remaining may significantly lose value
+                </p>
               </div>
             </div>
 
@@ -1289,6 +1302,34 @@ export default {
       const now = new Date();
       const years = Math.floor((expiry - now) / (365.25 * 24 * 60 * 60 * 1000));
       return years > 0 ? years : 0;
+    },
+
+    // W-0533. Empty until the tax-config snapshot has loaded, and the two flags
+    // below are false while it is — so the form shows no band rather than one
+    // built from a number it invented.
+    tenureTypeOptions() {
+      const configured = this.$store.getters['taxConfig/tenureTypes'] || {};
+      const keys = Object.keys(configured).length ? Object.keys(configured) : ['freehold', 'leasehold'];
+
+      return keys.map((value) => ({
+        value,
+        label: configured[value]?.name || (value.charAt(0).toUpperCase() + value.slice(1)),
+        description: configured[value]?.description || '',
+      }));
+    },
+
+    leaseholdThresholds() {
+      return this.$store.getters['taxConfig/leaseholdValuationThresholds'] || {};
+    },
+
+    leaseIsDifficultToMortgage() {
+      const threshold = this.leaseholdThresholds.difficult_to_mortgage;
+      return threshold != null && this.leaseRemainingYears < threshold;
+    },
+
+    leaseLosesSignificantValue() {
+      const threshold = this.leaseholdThresholds.significant_value_loss;
+      return threshold != null && this.leaseRemainingYears < threshold;
     },
 
     spouse() {

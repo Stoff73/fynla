@@ -9,12 +9,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFamilyMemberRequest;
 use App\Http\Requests\UpdateFamilyMemberRequest;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Http\Traits\TierLimitResponse;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\Onboarding\SpouseLinkingService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Tiers\TeaserGate;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -24,11 +27,13 @@ use Illuminate\Support\Facades\RateLimiter;
 class FamilyMembersController extends Controller
 {
     use SanitizedErrorResponse;
+    use TierLimitResponse;
 
     public function __construct(
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly UserProfileService $userProfileService,
-        private readonly HouseholdExpenditureWriter $householdExpenditure
+        private readonly HouseholdExpenditureWriter $householdExpenditure,
+        private readonly TeaserGate $teaserGate,
     ) {}
 
     /**
@@ -60,6 +65,16 @@ class FamilyMembersController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
+
+        // W-0532 — `family_module` is named in the pricing comparison and was
+        // enforced nowhere. Create only, for the reason InvestmentAccountStore
+        // gives for `investments_exotic`: refusing an update would strand a
+        // record a user already holds and could then neither correct nor delete.
+        try {
+            $this->teaserGate->requireCapability($user, 'family_module');
+        } catch (TierLimitExceededException $e) {
+            return $this->tierLimitResponse($e, $e->getMessage(), 'settings');
+        }
 
         // Special handling for spouse relationship
         if ($data['relationship'] === 'spouse' && isset($data['email'])) {
