@@ -82,9 +82,16 @@ that `/m` is deliberately excluded. Full frontend suite: **811 passed, 71 files*
 
 Acceptance 4 asked that *something fails when a component loses its last
 importer*. The guard added here is specific to this card. A repo-wide orphan
-check is the right shape but needs a decision first: it would almost certainly
-find pre-existing orphans and so need an allowlist, which is a separate call.
-Recorded rather than half-built.
+check is the right shape but needs a decision first.
+
+**Measured 2026-09-04: 79 of 522 components under `resources/js/components/` have
+no importer — 15%.** Concentrated in `Investment/` (PlanSections entirely, plus
+PerformanceAttribution, WrapperOptimizer, FeeSavingsCalculator, BenchmarkComparison
+and others), with clusters in `Estate/` and `Savings/`.
+
+So a guard added today fails immediately on 79 pre-existing files. The choice is
+an allowlist that freezes the 79, or a deletion sweep — and 79 files is a
+clean-up project, not a test. That is CSJ's call, and it wants its own item.
 
 ## Adjacent — `/m` has no trusts surface at all
 
