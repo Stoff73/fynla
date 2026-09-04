@@ -115,3 +115,62 @@ it('asks the question on /m and PUTs the answer, rather than leaving it web-only
         ->and($view)->toContain('answerCoOwnerSpouse')
         ->and($view)->toContain('apiPut');
 });
+
+/**
+ * Found by driving `/m` on csjones, 2026-09-04, not by this file — which is the
+ * point. The test above PUTs exactly this and asserts only the column it was
+ * about, so it stayed green while the same request converted a jointly-owned
+ * property to sole ownership: `ownership_type` joint -> individual and the
+ * user's share 50 -> 100, doubling the value carried into the estate.
+ *
+ * `PropertyController::update()` resolves the effective ownership type from the
+ * stored record and never writes it back into the validated payload, so
+ * `PropertyNormaliser::fromForm()` injects its own default ('individual') for
+ * the key the request omitted, and `SharedOwnership::applyTo()` follows it to 100.
+ */
+it('answering the question does not convert the property to sole ownership', function () {
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+
+    $property = Property::factory()->create([
+        'user_id' => $user->id,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+        'joint_owner_id' => null,
+        'joint_owner_name' => 'Ruth Chen',
+        'joint_owner_is_spouse' => null,
+    ]);
+
+    $this->actingAs($user)->putJson("/api/properties/{$property->id}", ['joint_owner_is_spouse' => true])
+        ->assertOk();
+
+    $fresh = $property->fresh();
+
+    expect($fresh->joint_owner_is_spouse)->toBeTrue()
+        ->and($fresh->ownership_type)->toBe('joint')
+        ->and((float) $fresh->ownership_percentage)->toBe(50.0);
+});
+
+it('a partial update keeps a stated split that is not the 50/50 default', function () {
+    // The same root cause with a different tell: the controller only preserves the
+    // stored share when a LINKED joint owner exists, so a shared property whose
+    // co-owner holds no account is re-defaulted to 50 by any update that says
+    // nothing about the split.
+    $user = User::factory()->withActivePremiumSubscription()->create(['tier' => 'premium']);
+
+    $property = Property::factory()->create([
+        'user_id' => $user->id,
+        'ownership_type' => 'tenants_in_common',
+        'ownership_percentage' => 70,
+        'joint_owner_id' => null,
+        'joint_owner_name' => 'Ruth Chen',
+        'joint_owner_is_spouse' => null,
+    ]);
+
+    $this->actingAs($user)->putJson("/api/properties/{$property->id}", ['joint_owner_is_spouse' => false])
+        ->assertOk();
+
+    $fresh = $property->fresh();
+
+    expect($fresh->ownership_type)->toBe('tenants_in_common')
+        ->and((float) $fresh->ownership_percentage)->toBe(70.0);
+});

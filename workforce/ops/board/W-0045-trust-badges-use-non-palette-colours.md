@@ -193,3 +193,48 @@ Building a guard here would reopen a parked decision.
 **Acceptance box 6 remains unticked: no visual confirmation.** The four screens listed in
 "Needs visual confirmation" have not been looked at, by me or anyone. Recorded rather than
 implied.
+
+## Visual confirmation — 2026-09-04, csjones
+
+Driven in the browser as the `peak_earners` demo household, which W-0537 made
+premium for exactly this reason: `/trusts` is premium-gated and this is the only
+persona holding a trust. Colours below are **computed styles read from the live
+page**, not read off a screenshot.
+
+**1. `/trusts` trust card badge row — confirmed.**
+`Discretionary Trust` · `Relevant Property Trust` · `Active`, on one line.
+
+| Chip | Rendered | Token |
+|---|---|---|
+| `.badge.rpt` | `rgb(221,226,239)` on `rgb(31,42,68)` | `light-blue-100` / `horizon-500` |
+| `.badge.active` | `rgb(209,250,229)` on `rgb(4,120,87)` | `spring-100` / `spring-700` |
+| `.badge.inactive` | not rendered — no inactive trust exists | `savannah-100` / `neutral-500` |
+
+All three are distinct grounds. The inactive chip could not be seen because the
+data has no inactive trust; its rule was read at `TrustCard.vue:248-251` instead
+and is recorded here as **not visually confirmed**.
+
+**Wrapping:** the badge container computes `flex-wrap: wrap`, and at viewport
+widths 1440, 700 and 420 the row's `scrollWidth === clientWidth` — it wraps, it
+does not overflow.
+
+**2. Guide panels — confirmed.** `.iht-charges-info` renders
+`rgb(221,226,239)` = `light-blue-100` with its heading in `horizon-500`, legible
+on that ground. The `.rpt-badge` chips inside the guide's trust-type cards are
+the same pair. The surrounding `.trust-type-card` is eggshell and
+`.tax-rates-summary` is `violet-100` — both palette tokens, neither in scope here.
+
+**3. `/trusts/26` — confirmed.** Header carries `.status-badge.active`
+(`spring-100`/`spring-700`) and `.rpt-badge` (`light-blue-100`/`horizon-500`).
+The "Relevant Property Trust - Tax Implications" card computes
+`background rgb(221,226,239)` with a **1px `rgb(108,131,188)` border** —
+`light-blue-100` on `light-blue-500`. Four bullets render, and the divider above
+"Next 10-year anniversary: 1 September 2030" is present.
+
+**4. `/dashboard` trusts overview card — I COULD NOT TEST THIS.**
+`TrustsOverviewCard.vue` has **zero importers**: its only reference anywhere in
+the repo is its own `name: 'TrustsOverviewCard'` property. No dashboard renders
+it, so the `light-blue-500` outline fixed here reaches no screen. Raised as
+**W-0538** rather than dressed up as verified.
+
+Acceptance 1, 2 and 3 are met on screen. Acceptance 4's surface does not exist.

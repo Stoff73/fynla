@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-01 session 1 — board 55 -> 29 outstanding.
-Handover: `handover/September/01/handover-2026-09-01-session-1.md`*
+*Last updated: 2026-09-01 session 2 — board 29 -> 6 outstanding, all iOS.
+Handover: `handover/September/01/handover-2026-09-01-session-2.md`*
 
 ## The board position
 
@@ -10,55 +10,54 @@ live checklist and is **generated** — regenerate it, never hand-edit the count
 
 | | |
 |---|---|
-| items | 327 |
-| **resolved** | **298** |
-| **outstanding** | **29** — 24 medium, 5 low |
+| items | 328 |
+| **resolved** | **322** |
+| **outstanding** | **6** — all `deferred-ios` |
 | critical | **0** |
 | high | **0** |
+| medium / low in scope | **0** |
 
-**77 closed on 31 August, 26 more on 1 September.** The rule is unchanged — **a citation
-is not a verification.** Only reading the code and finding the defect gone counts, and it
-earned its keep again: **W-0346 was stale**, describing an enum and a gate that W-0347 had
-already rebuilt. CSJ stopped the session before working code was rewritten from a board
-description.
+**77 closed on 31 August, 26 on 1 September session 1, 12 more in session 2.** Every
+non-iOS item is closed. The rule is unchanged — **a citation is not a verification** —
+and it earned its keep again twice: **W-0498's three offered classifications were all
+wrong** (it was a Rule 20 duplicate, not dead config), and **W-0506's own proposed fix
+was measured and rejected** (25 of the 41 references its rule would keep were the
+citations it wanted excluded).
 
-**The second lesson of the day: items are consistently bigger than filed.** W-0503 was
-one Tailwind class and turned out to be 31. W-0453 was 2 sites and was 5. W-0424 was one
-broken gate and was three faults across two mechanisms. **The guards found the extras,
-not reading.**
+**The lesson of session 2: verify the instrument before trusting the measurement.** Four
+separate scans reported defects that did not exist — a regex for PHP literals broken by an
+apostrophe in a docblock, a method-name tracker fooled by anonymous closures, a guard that
+matched its own explanatory comment, and a `grep -rl` that counted the file the real check
+deliberately excludes.
 
 ## Next session starts here
 
-- [ ] **BUG — emergency runway is overstated for EVERY mortgaged user, by up to 4.7x.
-      No board id yet; open one first.** `users.monthly_expenditure` excludes mortgage
-      payments by schema, and the runway divides cash by that alone.
-      **The correct total already exists and the runway does not use it:**
-      `UserProfileService::getExpenditureBreakdown():314` sums manual expenditure plus
-      `getFinancialCommitments():994` (mortgage + council tax + utilities +
-      maintenance); the runway path uses `ResolvesExpenditure:34`.
-      Measured on all six personas — `peak_earners` shows **83.3 months against a real
-      17.7**, `retired_couple` **97.2 against 38.2**; commitments exceed manual
-      expenditure for five of six. **Ask CSJ before changing the basis:** it moves the
-      runway headline, the risk score and life-event allocation together, through
-      `SavingsAgent:104`, `AutoRiskCalculator:470` and `LifeEventAllocationService:587`.
-      Full measurement on the W-0488 board file.
-- [ ] **PR #759 — CSJ'S CALL.** Now ~101 commits with today's 33. Open against `dev`,
-      unreviewed.
-- [ ] **Tax-compliance review.** W-0367 (s19), W-0514, W-0508, W-0338, W-0470,
-      W-0104–W-0109. **W-0462 is still the sharpest.** Add today's:
-      **W-0197** (State Pension age is now a cohort schedule, not a scalar — it moves
-      every projection) and **W-0392** (the will screen now states a different estate
-      from the taxable one).
-- [ ] **Browser verification — still nothing checked in a browser, two sessions running.**
-      Today's best walks: **W-0351** (a mixed-rate mortgage's split now displays, web and
-      `/m`), **W-0442** (holdings show units and prices on `/m`), **W-0259** (the median
-      now sits beside the conservative band on three cards).
-- [ ] **Continue the loop on the remaining 29** via `.claude/skills/board-loop/SKILL.md`
-      and `tasks.md`, resuming at **W-0492**.
-- [ ] **Five items are gated on a CSJ decision**, each with a one-line question at the
-      end of its board file: **W-0178** (are repairs deductible — split the capture?),
-      **W-0200** (first-class second life assured?), **W-0426** (is the Letter premium to
-      READ?), **W-0472** (retain the invited address?), **W-0476** (closes with W-0472).
+- [ ] **BROWSER-TEST ON csjones.co/fynla — four items with unverified acceptance.**
+      Nothing has been driven in a browser for three sessions. All of it is now live on
+      csjones, so this is unblocked. Full instructions, per item, in the session-2
+      handover:
+      **W-0504** `/m` dashboard rings (net worth must say "Equity" and the arc must match
+      the number; use `peak_earners`, 11% investments — a persona near 72% proves
+      nothing); **W-0500** the `/m` spouse question on a shared property with an
+      unlinked co-owner, confirmed by reading `properties.joint_owner_is_spouse`, not by
+      screenshot; **W-0034** `/m` Health and lifestyle read AND write;
+      **W-0045** the four Trusts palette screens.
+- [ ] **Raise board items for four findings.** `family_module` and `benefits_child` have
+      zero consumers and are **named in the pricing comparison** — sold and ungated, the
+      same defect as W-0499, and the sharpest of the four. Also `tenure_types` /
+      `leasehold_reform` (configured, read by nothing), `IHTPlanning.vue:620-630` (a true
+      sentence the engine does not publish, so the teaser cannot say it), and
+      `CoordinatingAgent.php` at 6,768 lines.
+- [ ] **Tax-compliance review.** W-0367 (s19), W-0514, W-0508, W-0338, W-0470 remain, plus
+      **W-0518 and W-0498** from session 2 — both carry the reviewer in their front matter
+      and neither was run, because no agents were dispatched.
+- [ ] **Design-lead / quality-lead on W-0497**, chief-of-staff on W-0506. Same reason.
+- [ ] **The six remaining board items are all `deferred-ios`** — W-0044, W-0090, W-0243,
+      W-0311, W-0416, W-0496. They need a native cycle with a Mac running Xcode and the
+      `Fynla-Staging` scheme; the board loop is web and `/m` only.
+- [ ] **The 34 remaining sweep findings — decide, do not chase.** Largely real deletions
+      cited in historical reports, plus build hashes that can never resolve. Rewriting
+      history to satisfy a checker is the failure W-0506 was about.
 
 ## Settled by CSJ — do not re-raise
 
@@ -101,12 +100,16 @@ not reading.**
 
 ## Deploy state
 
-- `dev` carries #750–#758. **Nothing deployed**; csjones and production untouched.
-- **Four migrations not applied anywhere but locally:**
-  `2026_08_29_160000_add_trust_id_to_gifts_table`,
-  `2026_08_29_110000_allow_estate_planning_in_user_assumptions_type`,
-  `2026_08_31_140000_add_iht_paid_on_prior_death_to_life_events`,
-  `2026_08_31_170000_add_bankruptcy_to_lpa_attorneys`.
+- **`dev` is at `c52b51db2`** — PR #759 merged (`--merge --admin`), carrying #750–#758
+  plus both 1 September sessions.
+- **csjones is deployed and verified.** Pulled to `c52b51db2`; **11 migrations applied**,
+  which cleared the four that had been local-only plus session 2's two
+  (`add_second_life_assured_to_life_insurance_policies`,
+  `add_declared_liability_percentage_to_mortgages`). Both bundles rebuilt with
+  `./deploy/csjones-fynla/build.sh` and uploaded. Confirmed live: homepage 200, `/m` 200,
+  and the new `/m` bundle greps positive for this session's work — which is what proves
+  the deploy did not land a stale build.
+- **production untouched.** Nothing from either session is on fynla.org.
 
 ## Tech debt deferred
 
@@ -120,6 +123,13 @@ Full report: `docs/tech-debt-report.md`.
   `&& ! $hasCashHolding` (`:439`), update does not (`:587`). Same asymmetry as W-0321.
 - **No UI field for `lpa_attorneys.is_bankrupt` (W-0105) or the professional
   certificate-provider details (W-0106).** Column, validation and check exist; nothing asks.
+- **`CoordinatingAgent.php` is 6,768 lines** — every Fyn capture handler lives there and it
+  grows with each tool. Wants its own board item, not an opportunistic extraction.
+- **`TaxConfigService::hasSurvivorshipRights()` and `allowsWillOverride()` have zero callers
+  BY DESIGN** (`:828-846`, W-0498) — a first-death question the second-death estate must not
+  ask, recorded with a guard. Listed so a dead-code sweep does not delete them.
+- **`RetirementProjectionService` now takes nine constructor arguments** (W-0516 added the
+  ninth). Correct, but two test files construct it by hand; watch if a tenth appears.
 - **`GiftAnnualExemption` does not model s20, s21 or s22** — each needs a fact the app does
   not record. s21 is W-0525's remaining half.
 - 52 unused private injections outside the TaxConfigService cluster.

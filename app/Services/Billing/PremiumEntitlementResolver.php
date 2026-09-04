@@ -30,7 +30,16 @@ final class PremiumEntitlementResolver
         }
 
         if ($user->is_preview_user) {
-            $resolved = $this->free();
+            // A preview persona's `tier` is a fixture, not a grant. These accounts
+            // are seeded, never billed and can never reach a provider, so reading
+            // the column HERE does not reverse W-0018 — that decision is about
+            // real users, for whom the column stays a query cache and the branch
+            // below remains the only authority.
+            //
+            // CSJ, 2026-09-04: one demo household (David & Sarah Mitchell, the
+            // `peak_earners` persona) resolves premium so a visitor can see what
+            // premium looks like. The rest stay free.
+            $resolved = $user->tier === 'premium' ? $this->previewPremium() : $this->free();
             $selectedRevolut = null;
         } else {
             [$resolved, $selectedRevolut] = $this->resolveLiveProviders($user);
@@ -174,6 +183,22 @@ final class PremiumEntitlementResolver
         $status = strcmp($left->status, $right->status);
 
         return $status !== 0 ? $status : $right->renews <=> $left->renews;
+    }
+
+    /**
+     * Premium for a seeded demo persona. `provider: null` and `renews: false`
+     * because nothing is billing it — this is a fixture, and anything reading
+     * the provider must not be told a real subscription exists.
+     */
+    private function previewPremium(): ResolvedEntitlement
+    {
+        return new ResolvedEntitlement(
+            tier: 'premium',
+            provider: null,
+            status: 'preview',
+            renews: false,
+            periodEndsAt: null,
+        );
     }
 
     private function free(): ResolvedEntitlement

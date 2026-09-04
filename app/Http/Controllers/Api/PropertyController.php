@@ -268,12 +268,20 @@ class PropertyController extends Controller
         $existingProperty = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
 
         $ownershipType = $validated['ownership_type'] ?? $existingProperty->ownership_type;
-        $jointOwnerId = $validated['joint_owner_id'] ?? $existingProperty->joint_owner_id;
 
-        if (SharedOwnership::isShared($ownershipType) && $jointOwnerId) {
+        // The resolved type must go back into the payload, not just into this
+        // variable. `PropertyNormaliser::fromForm()` injects `ownership_type`
+        // whether or not the request carried one, and its default is
+        // 'individual' — so a partial update (the `/m` spouse answer sends one
+        // key) silently converted a shared property to sole ownership and took
+        // the user's share from 50 to 100.
+        $validated['ownership_type'] = $ownershipType;
+
+        if (SharedOwnership::isShared($ownershipType)) {
             // Pass the stored record so an update that says nothing about the
             // split keeps the share already on it rather than re-defaulting to
-            // 50 (W-0040).
+            // 50 (W-0040). This holds whether or not the co-owner has an
+            // account: an unlinked co-owner's stated 70/30 is just as stated.
             $validated = SharedOwnership::applyTo($validated, $ownershipType, $existingProperty);
         } elseif ($ownershipType === 'individual') {
             $validated['ownership_percentage'] = SharedOwnership::INDIVIDUAL_PERCENTAGE;

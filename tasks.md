@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 29**  ·  closed 2026-08-31: 103
+**Outstanding: 11**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-04 (6 `deferred-ios`, 5 `queued`)
 
 ---
 
@@ -149,7 +149,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 ## Low (11)
 
 - [x] **W-0033** `done` (already fixed in fix-batch-G) — ComprehensiveProtectionPlanService reads two user properties that never exist — dead branches, and fixing them would change which source drives protection advice
-- [x] **W-0045** `done` (zero non-palette classes remain; all 10 tokens verified to resolve; visual confirmation still outstanding) — All relevant-property trust surfaces now use palette tokens only
+- [x] **W-0045** `done` (VISUALLY CONFIRMED 2026-09-04 on csjones as the peak_earners demo: acceptances 1-3 met, computed styles read from the live page; acceptance 4 NOT testable — TrustsOverviewCard.vue has no importers, raised as W-0538; the Inactive chip was not rendered by the data) — All relevant-property trust surfaces now use palette tokens only
 - [x] **W-0336** `done` (already fixed; residual is W-0338) — Projected liabilities are taken at 100% for each member while the headline applies the share, so a third-party-shared debt understates tax
 - [x] **W-0481** `done` (two columns, not one) — AssetFactory randomly generates four asset types the column rejects, so any use without an explicit type fails about half the time
 - [ ] **W-0496** `deferred-ios` — The native joint-life rows and the suppressed edit affordance have never been looked at on a screen (code read and correct; the visual check is the item and is iOS-only)
@@ -159,6 +159,19 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0504** `done` (all three rings derived; net-worth ring switched Trend→Equity as a decision taken for Azlan; acceptance 3 browser check NOT done) — The /m dashboard donut rings no longer fill to hardcoded constants
 - [x] **W-0506** `done` (99→34 BROKEN by indexing what the docs cite; the item's proposed slash rule was measured and rejected; budgets now advisories; rhythm written) — The consistency sweep's signal quality is fixed so it can be read
 - [x] **W-0527** `done` — Quick succession relief is configured and implemented by nothing
+
+---
+
+## Raised 2026-09-04 — findings from the 2026-09-01 run, not yet worked
+
+- [ ] **W-0532** `queued` — family_module and benefits_child are listed in the pricing comparison and gated by nothing — sold to customers, enforced nowhere
+- [ ] **W-0533** `queued` — The leasehold and tenure configuration has no consumer — and the one calculation that should read it hardcodes its threshold as 80 and is itself rendered nowhere
+- [ ] **W-0534** `queued` — The pension-exclusion sentence about the current column is written in a component, so the free-tier teaser cannot say it
+- [ ] **W-0538** `queued` — TrustsOverviewCard.vue is rendered by nothing, so the dashboard trusts card W-0045 fixed reaches no screen
+- [x] **W-0537** `done` (CSJ decision 2026-09-04: peak_earners household premium always, rest stay free; users.tier read ONLY in the preview branch so W-0018 holds; adjacent EnsureFullEstateAccess isFull/allows inconsistency recorded not fixed) — One demo household resolves premium so a visitor can see what premium looks like
+- [x] **W-0536** `done` (found browser-testing W-0500 on csjones; root cause in PropertyController::update, not in W-0500's own work; 2 tests added, 278 passed; NOT re-verified in the browser — fix is local) — Any partial update to a property converts it to sole ownership
+- [ ] **W-0535** `queued` — CoordinatingAgent is 6,768 lines and 115 methods, and grows with every Fyn tool added — wants a plan, not an opportunistic extraction
+
 
 ---
 
