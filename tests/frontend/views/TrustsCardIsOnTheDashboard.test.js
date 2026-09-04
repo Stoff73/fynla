@@ -20,19 +20,23 @@ describe('the trusts overview card is reachable', () => {
     expect(dashboard).toContain('components: { TrustsOverviewCard }');
   });
 
-  it('renders in both of the web dashboard layouts, not just the wide one', () => {
-    // The file carries a narrow and a wide block, both in the DOM and swapped by
-    // media query. A card in only one of them is invisible at the other width.
+  it('renders exactly once, because the card fetches on mount', () => {
+    // Both layout blocks are in the DOM and swapped by media query, so a card
+    // placed in each mounts TWICE and makes two API calls per dashboard load.
+    // Measured on csjones: two GETs of /api/estate/trusts on one page view.
     const renders = dashboard.match(/<TrustsOverviewCard\s*\/>/g) || [];
-    expect(renders).toHaveLength(2);
+    expect(renders).toHaveLength(1);
   });
 
-  it('is gated on the capability the trusts endpoint enforces', () => {
-    // /api/estate/trusts sits behind `estate.full`. Without the gate every user
-    // without it takes a 403 on each dashboard load and is shown an empty card
-    // for a module they cannot open.
-    expect(dashboard).toContain("hasCapability']('estate')");
-    expect(dashboard).toContain('v-if="showTrusts"');
+  it('is gated on the capability the endpoint actually enforces', () => {
+    // /api/estate/trusts sits behind `estate.full` -> TeaserGate::isFull(), which
+    // has NO admin or preview bypass. `hasCapability` mirrors allows(), which
+    // does — so gating on it showed the card to an admin the API then 403'd.
+    expect(dashboard).toContain("hasFullCapability']('estate')");
+    expect(dashboard).not.toContain("hasCapability']('estate')");
+    // The single instance sits outside both layout blocks, so it carries their
+    // `!isEmpty` guard as well as the capability one.
+    expect(dashboard).toMatch(/v-if="!isEmpty && showTrusts"/);
   });
 
   it('carries no icon, because a dashboard card is a banned surface', () => {
@@ -48,5 +52,38 @@ describe('the trusts overview card is reachable', () => {
     // here, not by silence.
     const mobileRouter = read('resources/mobile/router.js');
     expect(mobileRouter).not.toContain('TrustsOverviewCard');
+  });
+});
+
+describe('the auth capability getters answer two different questions', () => {
+  // `hasCapability` mirrors TeaserGate::allows() — admin and preview bypass.
+  // `hasFullCapability` mirrors TeaserGate::isFull() — the matrix alone. Screens
+  // must gate on whichever one the endpoint behind them enforces.
+  const getters = () => {
+    const mod = {
+      hasCapability: (state) => (key) => state.user?.is_admin === true
+        || state.user?.is_preview_user === true
+        || state.tierFlags?.capabilities?.[key] === 'full',
+      hasFullCapability: (state) => (key) => state.tierFlags?.capabilities?.[key] === 'full',
+    };
+    return mod;
+  };
+
+  it('an admin on a tier without the capability passes allows() but not isFull()', () => {
+    const state = { user: { is_admin: true }, tierFlags: { capabilities: { estate: 'teaser' } } };
+    expect(getters().hasCapability(state)('estate')).toBe(true);
+    expect(getters().hasFullCapability(state)('estate')).toBe(false);
+  });
+
+  it('a preview persona without the capability behaves the same way', () => {
+    const state = { user: { is_preview_user: true }, tierFlags: { capabilities: { estate: 'teaser' } } };
+    expect(getters().hasCapability(state)('estate')).toBe(true);
+    expect(getters().hasFullCapability(state)('estate')).toBe(false);
+  });
+
+  it('both agree when the tier itself grants it', () => {
+    const state = { user: {}, tierFlags: { capabilities: { estate: 'full' } } };
+    expect(getters().hasCapability(state)('estate')).toBe(true);
+    expect(getters().hasFullCapability(state)('estate')).toBe(true);
   });
 });

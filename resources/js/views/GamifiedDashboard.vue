@@ -124,12 +124,6 @@
           </div>
         </section>
 
-        <!-- W-0538 — same card, the web SPA's narrow layout. This is still the
-             web service; `/m` is resources/mobile/ and is deliberately untouched. -->
-        <section v-if="showTrusts" class="md-panels" aria-labelledby="gdm-trusts-h">
-          <div class="md-section-head"><h3 class="md-section-head__title" id="gdm-trusts-h">Trusts</h3></div>
-          <TrustsOverviewCard />
-        </section>
       </div>
 
       <!-- ===================== DESKTOP (expanded) ===================== -->
@@ -209,15 +203,18 @@
             </a>
           </div>
         </section>
-
-        <!-- W-0538 — the trusts card existed and was rendered by nothing, so the
-             W-0045 palette work on it reached no screen. Web only, per CSJ: `/m`
-             reaches trusts through its own nav, not through a dashboard card. -->
-        <section v-if="showTrusts" aria-labelledby="gdd-trusts-h">
-          <div class="gd-section-head"><h2 id="gdd-trusts-h">Trusts</h2></div>
-          <TrustsOverviewCard />
-        </section>
       </div>
+
+      <!-- W-0538 — the trusts card existed and was rendered by nothing, so the
+           W-0045 palette work on it reached no screen. Web only, per CSJ: `/m`
+           reaches trusts through its own nav, not through a dashboard card.
+           ONE instance, outside both layout blocks: those blocks are both in the
+           DOM and swapped by media query, so a copy in each mounts twice and
+           fetches twice. -->
+      <section v-if="!isEmpty && showTrusts" class="gd-trusts" aria-labelledby="gd-trusts-h">
+        <div class="gd-section-head"><h2 id="gd-trusts-h">Trusts</h2></div>
+        <TrustsOverviewCard />
+      </section>
     </template>
   </div>
 </template>
@@ -292,12 +289,12 @@ export default {
     };
   },
   computed: {
-    // The trusts endpoint sits behind `estate.full`, so a user without the
-    // capability would get a 403 on every dashboard load and be shown an empty
-    // card for a module they cannot open. Gate on the canonical getter, which
-    // exists so a screen never offers what the API will refuse.
+    // `/api/estate/trusts` sits behind `estate.full` -> TeaserGate::isFull(),
+    // which has no admin or preview bypass. `hasCapability` mirrors allows(),
+    // which does — so gating on it showed the card to an admin whose tier lacks
+    // the capability, and the API answered 403 twice per load.
     showTrusts() {
-      return this.$store.getters['auth/hasCapability']('estate');
+      return this.$store.getters['auth/hasFullCapability']('estate');
     },
     activeRecs() {
       return this.buckets[this.cats[this.activeCat].key] || [];
