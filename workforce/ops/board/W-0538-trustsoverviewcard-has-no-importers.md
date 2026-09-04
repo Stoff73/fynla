@@ -78,6 +78,12 @@ and a mounted-component test would have passed throughout. They pin the import
 and registration, both render sites, the capability gate, the absent icon, and
 that `/m` is deliberately excluded. Full frontend suite: **811 passed, 71 files**.
 
+## Carried out into their own items, 2026-09-04
+
+Both of the things left open here now have board items, so neither is buried
+inside a closed one: **W-0539** (`/m` has no trusts surface — deferred by CSJ)
+and **W-0540** (a component can lose its last importer and nothing fails).
+
 ## Still open — the general guard
 
 Acceptance 4 asked that *something fails when a component loses its last
