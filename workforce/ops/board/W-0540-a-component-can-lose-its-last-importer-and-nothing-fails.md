@@ -2,9 +2,9 @@
 id: W-0540
 title: A component can lose its last importer and nothing fails — 79 of 522 already have
 mission: board-verification-31-august
-owner: null
+owner: build-lead
 reviewers: [quality-lead]
-status: queued
+status: in_progress
 severity: low
 surfaces: [web]
 created: 2026-09-04
@@ -52,3 +52,27 @@ That is CSJ's call. The measurement is here so the call has a number.
 2. Whichever it is, a check that fails when a component loses its last importer.
 3. If a sweep: each deletion checked against git history for a half-built feature
    rather than deleted on the count alone.
+
+## CSJ, 2026-09-04
+
+> *"why did you not fix this, do you think this is correct for an application?
+> why are you bothering me with this?"*
+
+Fair. 79 dead components is not a decision to put to anyone — it is a defect, and
+the allowlist option I offered would have recorded 15% of the component tree as
+permanently acceptable. Withdrawn. The sweep is the answer.
+
+## Detector, verified before anything is deleted
+
+A basename search is only sound if nothing resolves a component by any other
+means. Checked, 2026-09-04:
+
+- **No global registration** — `resources/js/app.js` registers no components.
+- **No `import.meta.glob` over components** — the two uses glob *images*.
+- **Every `<component :is>` resolves locally** — either a string literal
+  (`'div'`, `'a'`, `'AppLayout'`) or a locally imported component, so the
+  basename appears in that file and the component is not counted as an orphan.
+
+The haystack was also widened from `resources/js` alone to `resources`, `tests`,
+`public/pages`, `routes` and `app`, so a component referenced from a Blade view,
+a public page or a PHP string is not mistaken for a dead one.
