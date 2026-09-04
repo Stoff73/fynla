@@ -1,7 +1,8 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-01 session 2 — board 29 -> 6 outstanding, all iOS.
-Handover: `handover/September/01/handover-2026-09-01-session-2.md`*
+*Last updated: 2026-09-04 session 1 — the four unverified items are browser-verified,
+and the five raised on 1 September are fixed rather than raised again.
+Handover: `handover/September/04/handover-2026-09-04-session-1.md`*
 
 ## The board position
 
@@ -10,54 +11,68 @@ live checklist and is **generated** — regenerate it, never hand-edit the count
 
 | | |
 |---|---|
-| items | 328 |
-| **resolved** | **322** |
-| **outstanding** | **6** — all `deferred-ios` |
+| items | 337 |
+| **resolved** | **325** |
+| **outstanding** | **12** — 6 `deferred-ios`, 1 `deferred`, 5 `queued` |
 | critical | **0** |
 | high | **0** |
-| medium / low in scope | **0** |
+| medium / low in scope | **5** — W-0532 and W-0533 closed today; W-0540 is blocked, the rest queued |
 
-**77 closed on 31 August, 26 on 1 September session 1, 12 more in session 2.** Every
-non-iOS item is closed. The rule is unchanged — **a citation is not a verification** —
-and it earned its keep again twice: **W-0498's three offered classifications were all
-wrong** (it was a Rule 20 duplicate, not dead config), and **W-0506's own proposed fix
-was measured and rejected** (25 of the 41 references its rule would keep were the
-citations it wanted excluded).
+**77 closed on 31 August, 26 on 1 September session 1, 12 in session 2, and on 4
+September the four items that had never been driven in a browser were verified — which
+found three more defects, two of them created by that session's own wiring.**
 
-**The lesson of session 2: verify the instrument before trusting the measurement.** Four
-separate scans reported defects that did not exist — a regex for PHP literals broken by an
-apostrophe in a docblock, a method-name tracker fooled by anonymous closures, a guard that
-matched its own explanatory comment, and a `grep -rl` that counted the file the real check
-deliberately excludes.
+**The lesson of 4 September, and it is the same one: verify the instrument.** A second
+orphan-component scan reported 72 rather than 79, and it was **wrong** — its seven extra
+"references" were substring collisions with unrelated backend identifiers
+(`calculateHouseholdNetWorth` and `generateSpousalOptimisations` are service methods;
+`AssetLocationOptimizer`, `PerformanceAttribution` and `RebalancingCalculator` are PHP
+classes sharing a name with a dead `.vue`). An earlier count of 32 was also wrong — the
+file was read while the scan was still writing it.
+
+**And a second, sharper one: a component nothing renders had never had its failure path
+looked at either.** The trusts card, once wired in, 403'd twice per page load and told a
+user holding a trust that they had none.
 
 ## Next session starts here
 
-- [ ] **BROWSER-TEST ON csjones.co/fynla — four items with unverified acceptance.**
-      Nothing has been driven in a browser for three sessions. All of it is now live on
-      csjones, so this is unblocked. Full instructions, per item, in the session-2
-      handover:
-      **W-0504** `/m` dashboard rings (net worth must say "Equity" and the arc must match
-      the number; use `peak_earners`, 11% investments — a persona near 72% proves
-      nothing); **W-0500** the `/m` spouse question on a shared property with an
-      unlinked co-owner, confirmed by reading `properties.joint_owner_is_spouse`, not by
-      screenshot; **W-0034** `/m` Health and lifestyle read AND write;
-      **W-0045** the four Trusts palette screens.
-- [ ] **Raise board items for four findings.** `family_module` and `benefits_child` have
-      zero consumers and are **named in the pricing comparison** — sold and ungated, the
-      same defect as W-0499, and the sharpest of the four. Also `tenure_types` /
-      `leasehold_reform` (configured, read by nothing), `IHTPlanning.vue:620-630` (a true
-      sentence the engine does not publish, so the teaser cannot say it), and
-      `CoordinatingAgent.php` at 6,768 lines.
-- [ ] **Tax-compliance review.** W-0367 (s19), W-0514, W-0508, W-0338, W-0470 remain, plus
-      **W-0518 and W-0498** from session 2 — both carry the reviewer in their front matter
-      and neither was run, because no agents were dispatched.
-- [ ] **Design-lead / quality-lead on W-0497**, chief-of-staff on W-0506. Same reason.
-- [ ] **The six remaining board items are all `deferred-ios`** — W-0044, W-0090, W-0243,
-      W-0311, W-0416, W-0496. They need a native cycle with a Mac running Xcode and the
-      `Fynla-Staging` scheme; the board loop is web and `/m` only.
-- [ ] **The 34 remaining sweep findings — decide, do not chase.** Largely real deletions
-      cited in historical reports, plus build hashes that can never resolve. Rewriting
-      history to satisfy a checker is the failure W-0506 was about.
+- [ ] **W-0540 — delete the 79 dead Vue components. BLOCKED ON CSJ: approval for a bulk
+      `git rm`.** The guard is written (`tests/Architecture/EveryComponentIsRenderedSomewhereTest.php`,
+      1.7s, no allowlist) and the list is verified; the blocked command was
+      `xargs git rm -q < dead.txt`. Run the guard to regenerate the list — it prints it on
+      failure. **`Public/CalculatorCard.vue` needs handling, not blind deletion**:
+      `tests/Feature/Public/FreemiumCopyContractTest.php:25` asserts it EXISTS, so move its
+      entry to `'deleted'` and adjust the counts (34 changed -> 33, 3 deleted -> 4). After
+      the sweep run the full frontend suite **and a production build** — a deleted
+      component that something imports fails at build time, not test time.
+- [ ] **The Rule 15 lint vs the grandfather rule — CSJ's call.** The stop hook keys on
+      **changed files, not changed lines**, so four pre-existing emoji hits
+      (`IHTPlanning.vue:747`, `:1938`; `PropertyForm.vue:470`, `:645` — all blame-verified
+      to Jan/Mar 2026 and Nov 2025) stop every session that touches those files. Rule 15
+      grandfathers them, so nothing is owed; the noise is the problem. Options: **(a)
+      narrow the lint to lines within the diff — recommended**, it makes the lint match the
+      rule as written; (b) an explicit allowlist the lint reads, which itself rots; (c)
+      clear the four as a one-off, which contradicts "don't rip them out" and so needs CSJ
+      to say it directly.
+- [ ] **Get `31c2bc4ad` onto `dev`** — the branch is pushed but nothing is on `dev` yet.
+      **`960f23308` must NOT reach `dev`** until the W-0540 sweep; the guard is red by
+      construction. Merging needs a `public/build/` rebuild and upload to csjones.
+- [ ] **W-0535 — CoordinatingAgent, now 6,785 lines** (up 17 today from the two capability
+      guards). CSJ asked "is not shown anywhere?" — correct, it has no user-facing surface.
+      Close it or leave it plan-first; do not extract opportunistically.
+- [ ] **Tax-compliance review.** W-0367 (s19), W-0514, W-0508, W-0338, W-0470, plus
+      **W-0518 and W-0498**, and now **W-0533** (leasehold bands) and **W-0534** (the
+      published exclusion sentence, which changes who is told what).
+- [ ] **Design-lead / quality-lead on W-0497**, chief-of-staff on W-0506. No agents were
+      dispatched on 1 or 4 September.
+- [ ] **The six `deferred-ios` items** — W-0044, W-0090, W-0243, W-0311, W-0416, W-0496.
+      They need a native cycle; the board loop is web and `/m` only.
+- [ ] **W-0539 — `/m` has no trusts surface at all.** No route, no nav entry, only a count
+      row at `Estate.vue:85`. **Deferred by CSJ on 4 September**; listed so it is not
+      rediscovered as a gap.
+- [ ] **The sweep findings — decide, do not chase.** Baseline now recorded: **38 findings,
+      5 advisories at `34ea12401`**, all orphan references in check [1]. The rule is that a
+      *rising* count is the signal, and it now has a number to rise from.
 
 ## Settled by CSJ — do not re-raise
 
@@ -95,21 +110,36 @@ deliberately excludes.
   (`use App\Models\DCPension;`). Pre-existing at `ba67234c4`, not from this session.
 - **Pint re-adds an import for a `{@see}` docblock class reference**, which
   `StoreBoundary` then rejects. Write the reference as plain text in backticks.
-- **`./vendor/bin/pint app/` times out** at 2 minutes — format only changed files.
+- **`./vendor/bin/pint app/` times out** at 2 minutes — format only changed files, and
+  remember it is PHP-only so it does nothing for `.vue`/`.js`. A whole-directory run killed
+  a compound command mid-chain on 4 September, losing the commit that followed it.
   **`pest --filter=""` matches nothing and exits 0**, which looks like a pass.
+- **The design-system lint keys on changed FILES, not changed lines** — see "Next session
+  starts here". Four grandfathered emoji hits stop any session touching `IHTPlanning.vue`
+  or `PropertyForm.vue`.
+- **`ssh-add ~/.ssh/fynlaDev` is needed at the start of a session.** Passphrase-protected
+  and not loaded automatically; csjones SSH returns `Permission denied (publickey)` until
+  it is.
+- **rsync to csjones needs `$HOME`, not `~`, inside the quoted `-e`.** `~` is not expanded
+  there and it fails with `Can't open user config file`.
+- **The playwright MCP timed out** on 4 September (30s). The Chrome extension tools did
+  everything needed, including reading computed styles and network status codes.
+- **A hard browser navigation loses the SPA session** — navigate by clicking nav links.
+  `/m` and the web hold separate token stores, so each needs its own MFA cycle.
 
 ## Deploy state
 
-- **`dev` is at `c52b51db2`** — PR #759 merged (`--merge --admin`), carrying #750–#758
-  plus both 1 September sessions.
-- **csjones is deployed and verified.** Pulled to `c52b51db2`; **11 migrations applied**,
-  which cleared the four that had been local-only plus session 2's two
-  (`add_second_life_assured_to_life_insurance_policies`,
-  `add_declared_liability_percentage_to_mortgages`). Both bundles rebuilt with
-  `./deploy/csjones-fynla/build.sh` and uploaded. Confirmed live: homepage 200, `/m` 200,
-  and the new `/m` bundle greps positive for this session's work — which is what proves
-  the deploy did not land a stale build.
-- **production untouched.** Nothing from either session is on fynla.org.
+- **`dev` is at `41771cca0`** — PRs #760 through #765 merged on 4 September, all
+  `--merge --admin`.
+- **csjones is on `dev` at `41771cca0`**, backend pulled and `public/build/` rebuilt with
+  `./deploy/csjones-fynla/build.sh` and uploaded. Caches cleared with `route:clear`,
+  `cache:clear`, `view:clear`, then `config:cache` only — neither forbidden caching command
+  was run. Verified live in a browser, not just by status code.
+- **The branch is pushed; two commits are NOT on `dev`.** `31c2bc4ad`
+  (W-0532/0533/0534) is mergeable now. `960f23308` (the W-0540 guard) is **red by
+  construction** and must not reach `dev` until the sweep. Merging either needs a
+  `public/build/` rebuild and upload to csjones, not just a `git pull`.
+- **production untouched.** Nothing from 1 or 4 September is on fynla.org.
 
 ## Tech debt deferred
 
@@ -123,8 +153,14 @@ Full report: `docs/tech-debt-report.md`.
   `&& ! $hasCashHolding` (`:439`), update does not (`:587`). Same asymmetry as W-0321.
 - **No UI field for `lpa_attorneys.is_bankrupt` (W-0105) or the professional
   certificate-provider details (W-0106).** Column, validation and check exist; nothing asks.
-- **`CoordinatingAgent.php` is 6,768 lines** — every Fyn capture handler lives there and it
-  grows with each tool. Wants its own board item, not an opportunistic extraction.
+- **`CoordinatingAgent.php` is 6,785 lines** — up 17 on 4 September from the two capability
+  guards, which is exactly the growth path. It is **W-0535** and it is plan-first: a seam
+  decided against the `fyn-architecture` contract before anything moves, or Fyn handlers end
+  up in two homes and Rule 20 breaks.
+- **`tests/Architecture/EveryComponentIsRenderedSomewhereTest.php` is RED by design** until
+  the W-0540 sweep. Committed on the branch, must not reach `dev` before the deletion.
+- **`IHTCalculationService.php` is 2,723 lines.** Watch; do not split without a decided
+  seam — that is how the estate figures diverged before.
 - **`TaxConfigService::hasSurvivorshipRights()` and `allowsWillOverride()` have zero callers
   BY DESIGN** (`:828-846`, W-0498) — a first-death question the second-death estate must not
   ask, recorded with a guard. Listed so a dead-code sweep does not delete them.

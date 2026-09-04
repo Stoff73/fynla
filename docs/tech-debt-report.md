@@ -1,20 +1,8 @@
-# Tech Debt Report — Session 2026-09-01
+# Tech Debt Report — Session 2026-09-04
 
-**Files analysed:** 110 changed across `f3fae45bd..HEAD` (25 commits, the board run)
-**Issues found:** 3
-**Severity breakdown:** 0 critical, 1 warning, 2 suggestions
-
-The pass is close to clean. Every automated convention check came back empty:
-
-| Check | Result |
-|---|---|
-| `declare(strict_types=1)` in every changed PHP file | present in all |
-| Debug leftovers (`dd(`, `dump(`, `console.log`, `var_dump`) | none added |
-| Banned colour classes (`amber-`, `orange-`, `primary-N`, `secondary-N`, `gray-N`) | none added |
-| Hardcoded hex in Vue `<style>` blocks | none added |
-| Hardcoded tax values | none added — the `20000` matches are pension-pot **test fixtures**, not tax constants |
-| New acronyms in user-facing text | none — W-0497 **removed** 20 of them |
-| Grandfathered glyphs (Rule 15 forward-only) | untouched; `git diff` shows zero ✓/✗/⚠ lines added or removed |
+**Files analysed:** 24 source files (13 PHP, 9 Vue, 1 CSS, 1 JS store) plus 11 test files
+**Issues found:** 4
+**Severity breakdown:** 0 critical, 2 warnings, 2 suggestions
 
 ## Critical Issues
 
@@ -22,49 +10,68 @@ None.
 
 ## Warnings
 
-### 1. `app/Agents/CoordinatingAgent.php` — 6,768 lines
-**Category:** Complexity & Maintainability
-**What's wrong:** The file was already far past the 500-line guidance before today; W-0518 added
-~30 lines to `handleCaptureSalarySacrifice()`. Every Fyn capture handler lives here, so the file
-grows with every capture tool and is now the single largest service in the codebase.
-**Suggested fix:** Not a same-day change, and explicitly **not** attempted here — splitting the
-tool dispatcher touches every capture path and the golden-master catalogue. It wants its own
-board item with a plan, not an opportunistic extraction at the end of a session.
+### 1. A failing test is committed on the branch, by design
+
+- **File:** `tests/Architecture/EveryComponentIsRenderedSomewhereTest.php`
+- **Category:** 2 — Dead & Redundant Code (the guard for it)
+- **What's wrong:** The guard fails while the 79 orphaned components exist. It is
+  committed on `chore/board-verification-31-august` and deliberately **not** taken
+  to `dev` — a red test on `dev` helps nobody.
+- **Suggested fix:** It merges with the deletion sweep, not before. If the sweep is
+  abandoned, delete the guard rather than leaving it red or adding an allowlist.
+
+### 2. `CoordinatingAgent` grew again
+
+- **File:** `app/Agents/CoordinatingAgent.php` — **6,785 lines** (was 6,768 when
+  W-0535 was raised on 2026-09-04 morning)
+- **Category:** 4 — Complexity & Maintainability
+- **What's wrong:** Today's two `requireCapability` guards added ~17 lines. The file
+  grows with every capability gated and every Fyn tool added, which is the growth
+  path W-0535 describes.
+- **Suggested fix:** Nothing opportunistic. W-0535 is a plan-first item: a seam has
+  to be decided against the `fyn-architecture` contract before anything moves, or
+  Fyn handlers end up with two homes and Rule 20 breaks.
 
 ## Suggestions
 
-### 2. `app/Services/TaxConfigService.php` — 909 lines, and two methods with no callers
-**Category:** Dead & Redundant Code (judged, not dead)
-**What's wrong:** `hasSurvivorshipRights()` and `allowsWillOverride()` have zero callers.
-**Suggested fix:** None — this was audited under W-0498 and the absence is now a **recorded
-decision** at `:828-846`, with a guard that fails if either appears in
-`EstateAssetAggregatorService`. Listed here only so a future dead-code sweep does not delete
-them believing nobody looked.
+### 3. Rule 15 lint hits in two files touched today — all grandfathered
 
-### 3. `app/Services/Retirement/RetirementProjectionService.php` — 915 lines, 9 constructor args
-**Category:** Complexity & Maintainability
-**What's wrong:** W-0516 added a ninth constructor dependency (`StatePensionAgeResolver`). Two
-test files construct this service by hand and both needed updating, which is the cost of the
-argument list showing up.
-**Suggested fix:** Leave it. The dependency is correct — it is what removed the literal — and the
-alternative (a service locator or a facade) would hide the coupling rather than reduce it. Worth
-watching if a tenth argument appears.
+- **Files:** `resources/js/components/Estate/IHTPlanning.vue:747, :1938`;
+  `resources/js/components/NetWorth/Property/PropertyForm.vue:470, :645`
+- **Category:** 3 — Convention Violations
+- **What's wrong:** Four emoji/Unicode-glyph hits (`✓`, `❌`, `⚠️` twice). The
+  design-system lint fires on any changed file, so touching these files surfaced
+  them.
+- **Verified pre-existing**, none inside today's diff hunks:
+  `IHTPlanning.vue:747` `8c58e2f446` (2026-01-14), `:1938` `ade16f97bf`
+  (2026-03-30), both `PropertyForm.vue` hits `43a04bad4c` (2025-11-15). Today's
+  hunks were 620–624 and 1113–1116; 235–241, 268–271, 274–279 and 1307–1334.
+- **Suggested fix:** Rule 15 is forward-only and grandfathers these, so nothing is
+  owed. Raised for CSJ as a question of whether the lint should exempt unchanged
+  lines rather than whole changed files — see the handover.
 
-## Deliberate simplifications carried forward
+### 4. `IHTCalculationService` is 2,723 lines
 
-Not defects; recorded so they are not "fixed" by someone who does not know why they are there.
+- **File:** `app/Services/Estate/IHTCalculationService.php`
+- **Category:** 4 — Complexity & Maintainability
+- **What's wrong:** Over the 500-line guideline by five times. Today's change added
+  a 30-line private sentence builder and hoisted one computation.
+- **Suggested fix:** Watch rather than act. Unlike `CoordinatingAgent` it is not on
+  a growth path driven by feature count, and splitting a service this central
+  without a decided seam is how the estate figures diverged before.
 
-- `resources/js/components/Estate/AssetForm.vue:303,305` — `individual` and `trust` descriptions
-  stay hardcoded while `joint_tenants` and `tenants_in_common` read tax config. The configured
-  cluster is `joint_ownership_types` and describes joint holdings only; inventing config entries
-  for the two sole-ownership cases would put words in the configuration nobody wrote (W-0498).
-- `app/Services/Stores/Normalisers/PropertyNormaliser.php` — `joint_owner_is_spouse` accepts
-  `true` and **not** `false`, by strict identity. `false` is the value that turns the
-  undivided-share discount on, and an LLM inferring it from narrative is the banned inference
-  (W-0500).
-- `workforce/ops/sweep.sh` — the placeholder filter is a list of literal patterns
-  (`NNNN`, `YYYY`, `<`, `...`, `/.`), not a heuristic. A heuristic that guesses which references
-  are "only citations" was measured and rejected on W-0506.
+## Clean
+
+Checked and found nothing: banned colour classes (`amber-*`, `orange-*`,
+`primary-*`, `secondary-*`, `gray-*`), hardcoded hex outside the palette token
+block, local `formatCurrency`, `console.log`, `dd()`/`dump()`, missing
+`declare(strict_types=1)`, missing `:key` on `v-for`, acronyms in new user-facing
+strings (the published caveat spells out "Inheritance Tax"), and hardcoded tax
+values — today's work removed three of those rather than adding any.
+
+`app()` inside `PropertyResource::toArray()` was checked as a possible new pattern
+and is **not**: `UserResource:155` and `TierConfigurationResource:21` already
+resolve services the same way.
 
 ---
 *Generated by tech-debt-session skill*
