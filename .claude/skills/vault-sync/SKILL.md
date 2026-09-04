@@ -38,26 +38,25 @@ Sync all project documentation to the fynlaBrain Obsidian vault, then verify eve
 
 ---
 
-## Phase 1: Codebase Metrics
+## Phase 1: Codebase Metrics — DO NOT TRACK
 
-Count current codebase metrics and compare with CLAUDE.md:
+**There is no metrics table, in CLAUDE.md or in README.md, and none is to be added.**
 
-```bash
-echo "Vue Components: $(find resources/js/components resources/js/views resources/js/mobile -name '*.vue' 2>/dev/null | wc -l | tr -d ' ')"
-echo "PHP Services: $(find app/Services -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
-echo "Controllers: $(find app/Http/Controllers -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
-echo "Models: $(find app/Models -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
-echo "Vuex Stores: $(find resources/js/store/modules -name '*.js' 2>/dev/null | wc -l | tr -d ' ')"
-echo "Agents: $(find app/Agents -name '*Agent.php' 2>/dev/null | wc -l | tr -d ' ')"
-echo "Migrations: $(find database/migrations -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
-echo "Factories: $(find database/factories -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
-echo "Service dirs: $(find app/Services -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
-echo "API Services: $(find resources/js/services -name '*.js' 2>/dev/null | wc -l | tr -d ' ')"
-```
+CLAUDE.md used to carry one and CSJ removed it **because it drifted**. Home.md still
+records the drift that killed it, from May 2026: *"CLAUDE.md metrics drift (Vue 713 →
+382, PHP Services 240 → 129, Controllers 99 → 51)"*. A count that is only ever correct
+on the day it is written is worse than no count, because it is read as fact.
 
-If any counts changed vs CLAUDE.md metrics table, update them. Also check README.md Quick Stats table.
+This phase previously instructed a comparison against that table. On 2026-09-04 a
+sync agent followed it, found nothing to compare against, and **reported a drift that
+did not exist** — its "CLAUDE.md: 524" was August's commit count in Home.md's Git
+History table, matched by coincidence. The false report reached CSJ.
 
----
+**So: count nothing, compare nothing, and update no metrics table.** If a future
+session genuinely needs a component or service count, it can run `find` itself at the
+moment it needs it, which is the only time such a number is true.
+
+Skip straight to Phase 2.
 
 ## Phase 2: Sync Update Notes to Vault
 
@@ -386,9 +385,7 @@ Based on this session's work, should any new memories be saved? Only suggest if 
 **Version:** v[X.Y.Z] — consistent across [N] locations
 
 ### Metrics
-| Metric | CLAUDE.md | Actual | Status |
-|--------|-----------|--------|--------|
-| [only rows where count differs, or "All metrics current"] |
+Not tracked — see Phase 1. Report this line verbatim and nothing else.
 
 ### Files Synced
 - [N] new files copied to vault

@@ -257,6 +257,31 @@ contention under a large combined run, not a regression.
   co-owner "wife", and `joint_owner_is_spouse` now genuinely `true`. It was
   restored with `saveQuietly()` after the defect corrupted it.
 
+## A correction made after the handover was first written
+
+**The vault-sync agent reported metrics drift against a CLAUDE.md table that does
+not exist, and I relayed it to CSJ without checking.** CSJ caught it: *"why do we
+have metrics in the claude.md, i thought we got rid of this table because of the
+drift?"* — and he was right.
+
+- CLAUDE.md has **no** metrics table and was not touched today. README.md has no
+  Quick Stats table either.
+- The `524` cited as the "CLAUDE.md baseline" is **August 2026's commit count** in
+  Home.md's Git History table — a coincidental number match.
+- Home.md still carries the note that killed the table, from May 2026: *"CLAUDE.md
+  metrics drift (Vue 713 → 382, PHP Services 240 → 129, Controllers 99 → 51)"*.
+
+Nothing was edited, so there is no damage — but the cause was a **stale skill**:
+`.claude/skills/vault-sync/SKILL.md` Phase 1 still instructed a comparison against
+that table, so every future sync would have repeated the false report and one of
+them would eventually have re-added the table CSJ deleted. **Phase 1 is now
+"DO NOT TRACK"**, with the reason and the 2026-09-04 incident recorded in it, and
+the Phase 9 report template no longer asks for a metrics table.
+
+The second-order lesson, which is mine: **a subagent's report is a claim, not a
+result.** `feedback_subagent_accountability` says exactly this and I passed the
+claim through anyway.
+
 ## Tech debt deferred
 
 Full report at `docs/tech-debt-report.md` — 0 critical, 2 warnings, 2 suggestions.
