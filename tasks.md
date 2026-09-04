@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 11**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-04 (6 `deferred-ios`, 5 `queued`)
+**Outstanding: 10**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-04 (6 `deferred-ios`, 4 `queued`)
 
 ---
 
@@ -167,7 +167,7 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [ ] **W-0532** `queued` — family_module and benefits_child are listed in the pricing comparison and gated by nothing — sold to customers, enforced nowhere
 - [ ] **W-0533** `queued` — The leasehold and tenure configuration has no consumer — and the one calculation that should read it hardcodes its threshold as 80 and is itself rendered nowhere
 - [ ] **W-0534** `queued` — The pension-exclusion sentence about the current column is written in a component, so the free-tier teaser cannot say it
-- [ ] **W-0538** `queued` — TrustsOverviewCard.vue is rendered by nothing, so the dashboard trusts card W-0045 fixed reaches no screen
+- [x] **W-0538** `done` (CSJ decision: wire to web dashboard only, not /m; both web layout blocks; gated on hasCapability('estate') because the endpoint is behind estate.full; Rule 15 icon stripped as it lands new; OPEN: the general orphan-component guard, and /m has NO trusts nav or overview today — flagged to CSJ) — TrustsOverviewCard.vue is now rendered by the web dashboard
 - [x] **W-0537** `done` (CSJ decision 2026-09-04: peak_earners household premium always, rest stay free; users.tier read ONLY in the preview branch so W-0018 holds; adjacent EnsureFullEstateAccess isFull/allows inconsistency recorded not fixed) — One demo household resolves premium so a visitor can see what premium looks like
 - [x] **W-0536** `done` (found browser-testing W-0500 on csjones; root cause in PropertyController::update, not in W-0500's own work; 2 tests added, 278 passed; NOT re-verified in the browser — fix is local) — Any partial update to a property converts it to sole ownership
 - [ ] **W-0535** `queued` — CoordinatingAgent is 6,768 lines and 115 methods, and grows with every Fyn tool added — wants a plan, not an opportunistic extraction

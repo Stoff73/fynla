@@ -38,10 +38,10 @@
       </div>
 
       <!-- Tax Info Banner -->
+      <!-- Rule 15 — the icon that used to sit here was removed when this card
+           was wired into the dashboard (W-0538). A dashboard card is a banned
+           surface, and the card had never rendered, so the icon lands new. -->
       <div v-if="hasRelevantPropertyTrusts" class="info-banner">
-        <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
         <span class="info-text">
           6% charge on asset value on {{ nextChargeDate }}
         </span>
@@ -309,13 +309,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.info-icon {
-  width: 20px;
-  height: 20px;
-  @apply text-light-blue-500;
-  flex-shrink: 0;
 }
 
 .info-text {

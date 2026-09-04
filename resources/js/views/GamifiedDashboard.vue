@@ -123,6 +123,13 @@
             </component>
           </div>
         </section>
+
+        <!-- W-0538 — same card, the web SPA's narrow layout. This is still the
+             web service; `/m` is resources/mobile/ and is deliberately untouched. -->
+        <section v-if="showTrusts" class="md-panels" aria-labelledby="gdm-trusts-h">
+          <div class="md-section-head"><h3 class="md-section-head__title" id="gdm-trusts-h">Trusts</h3></div>
+          <TrustsOverviewCard />
+        </section>
       </div>
 
       <!-- ===================== DESKTOP (expanded) ===================== -->
@@ -202,6 +209,14 @@
             </a>
           </div>
         </section>
+
+        <!-- W-0538 — the trusts card existed and was rendered by nothing, so the
+             W-0045 palette work on it reached no screen. Web only, per CSJ: `/m`
+             reaches trusts through its own nav, not through a dashboard card. -->
+        <section v-if="showTrusts" aria-labelledby="gdd-trusts-h">
+          <div class="gd-section-head"><h2 id="gdd-trusts-h">Trusts</h2></div>
+          <TrustsOverviewCard />
+        </section>
       </div>
     </template>
   </div>
@@ -211,6 +226,7 @@
 import api from '@/services/api';
 import logger from '@/utils/logger';
 import { dashboardFigures } from '@/utils/dashboardCards';
+import TrustsOverviewCard from '@/components/Trusts/TrustsOverviewCard.vue';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -250,6 +266,7 @@ const MODULE_ORDER = ['retirement', 'protection', 'savings', 'investment', 'esta
 
 export default {
   name: 'GamifiedDashboard',
+  components: { TrustsOverviewCard },
   data() {
     return {
       loading: true,
@@ -275,6 +292,13 @@ export default {
     };
   },
   computed: {
+    // The trusts endpoint sits behind `estate.full`, so a user without the
+    // capability would get a 403 on every dashboard load and be shown an empty
+    // card for a module they cannot open. Gate on the canonical getter, which
+    // exists so a screen never offers what the API will refuse.
+    showTrusts() {
+      return this.$store.getters['auth/hasCapability']('estate');
+    },
     activeRecs() {
       return this.buckets[this.cats[this.activeCat].key] || [];
     },
