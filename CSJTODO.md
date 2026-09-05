@@ -1,8 +1,9 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-04 session 1 — the four unverified items are browser-verified,
-and the five raised on 1 September are fixed rather than raised again.
-Handover: `handover/September/04/handover-2026-09-04-session-1.md`*
+*Last updated: 2026-09-05 08:25 (session of 2026-09-04, session 2) — W-0540 was stopped
+before deletion and verified properly: 152 unreachable, not 79, and a dozen are a lost,
+still-advertised feature. Report: `September/September4Updates/dead-components-verification-2026-09-04.md`.
+Handover: `handover/September/05/handover-2026-09-05-session-1.md`*
 
 ## The board position
 
@@ -36,15 +37,25 @@ user holding a trust that they had none.
 
 ## Next session starts here
 
-- [ ] **W-0540 — delete the 79 dead Vue components. BLOCKED ON CSJ: approval for a bulk
-      `git rm`.** The guard is written (`tests/Architecture/EveryComponentIsRenderedSomewhereTest.php`,
-      1.7s, no allowlist) and the list is verified; the blocked command was
-      `xargs git rm -q < dead.txt`. Run the guard to regenerate the list — it prints it on
-      failure. **`Public/CalculatorCard.vue` needs handling, not blind deletion**:
-      `tests/Feature/Public/FreemiumCopyContractTest.php:25` asserts it EXISTS, so move its
-      entry to `'deleted'` and adjust the counts (34 changed -> 33, 3 deleted -> 4). After
-      the sweep run the full frontend suite **and a production build** — a deleted
-      component that something imports fails at build time, not test time.
+- [ ] **DECISIONS OWED BY CSJ on W-0540 — ask before anything else.** Report section 10:
+      (a) the advanced investment analytics (`EfficientFrontier`, `CorrelationMatrix`,
+      `PerformanceAttribution`, `AssetLocationOptimizer` and kin): re-mount as an
+      "Optimisation" detail route, or retire the claims in `Help.vue:313,350`, README and
+      vault now and park the capability — recommendation: retire the claims today, decide
+      the re-mount as a specified mission; (b) are the financial statements under
+      `UserProfile/*` still a feature; (c) amortisation schedule and savings rate
+      benchmarking, keep or drop; (d) approve superseded deletions with a per-file read
+      before each directory; (e) approve two new board items — the journey completion dead
+      end (`OnboardingWizard.vue:248` renders a component deleted 20 March) and mounting
+      `Insights/InsightCtaPanel.vue`; (f) approve replacing the guard with the import-graph
+      walk (`September/September4Updates/reach.mjs`) plus the reverse unregistered-tag
+      check. **Nothing in report sections 6.2, 6.6, 6.7 is deleted until (a)–(c) are answered.**
+- [ ] **W-0540 — rewrite the board item.** It says 79 and "delete them"; the truth is 152
+      plus two unrouted views, in four clusters, verified by import graph and against the
+      csjones bundle at `41771cca0`. Withdraw the deletion framing, cite the 12 May
+      conventions review as prior art. No approval needed.
+- [ ] **Close W-0532, W-0533, W-0534 on the board** — fixed at `31c2bc4ad`, still `queued`
+      in `workforce/ops/board/` and `tasks.md`. Step 3 in the code first, then step 9.
 - [ ] **The Rule 15 lint vs the grandfather rule — CSJ's call.** The stop hook keys on
       **changed files, not changed lines**, so four pre-existing emoji hits
       (`IHTPlanning.vue:747`, `:1938`; `PropertyForm.vue:470`, `:645` — all blame-verified
@@ -54,9 +65,10 @@ user holding a trust that they had none.
       rule as written; (b) an explicit allowlist the lint reads, which itself rots; (c)
       clear the four as a one-off, which contradicts "don't rip them out" and so needs CSJ
       to say it directly.
-- [ ] **Get `31c2bc4ad` onto `dev`** — the branch is pushed but nothing is on `dev` yet.
-      **`960f23308` must NOT reach `dev`** until the W-0540 sweep; the guard is red by
-      construction. Merging needs a `public/build/` rebuild and upload to csjones.
+- [ ] **Get `31c2bc4ad` onto `dev`** — cherry-pick it onto a fresh branch off `dev`, PR,
+      admin-merge, rebuild `public/build/` with the csjones script and upload. **Do not PR
+      this branch whole**: `960f23308` (the red guard) sits after it and the sweep it waits
+      for is now gated on the decisions above.
 - [ ] **W-0535 — CoordinatingAgent, now 6,785 lines** (up 17 today from the two capability
       guards). CSJ asked "is not shown anywhere?" — correct, it has no user-facing surface.
       Close it or leave it plan-first; do not extract opportunistically.
