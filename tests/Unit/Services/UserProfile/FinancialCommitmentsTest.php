@@ -19,6 +19,7 @@ use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
 
@@ -31,7 +32,7 @@ beforeEach(function () {
     $this->assetAggregator = app(CrossModuleAssetAggregator::class);
     $taxConfigService = app(TaxConfigService::class);
     $this->taxCalculator = new UKTaxCalculator($taxConfigService);
-    $this->childBenefitService = new ChildBenefitService($taxConfigService, new IncomeDefinitionsService($taxConfigService, app(PropertyService::class)));
+    $this->childBenefitService = new ChildBenefitService($taxConfigService, new IncomeDefinitionsService($taxConfigService, app(PropertyService::class)), app(TeaserGate::class));
     $this->service = new UserProfileService($this->assetAggregator, $this->taxCalculator, $this->childBenefitService, app(PropertyStore::class), app(MortgageStore::class), app(IncomeDefinitionsService::class), app(WillAnalysisService::class), app(TaxConfigService::class));
     $this->user = User::factory()->create();
 });

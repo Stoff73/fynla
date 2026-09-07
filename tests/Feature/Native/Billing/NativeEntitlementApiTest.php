@@ -13,8 +13,10 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\PersonalAccessToken;
 
 beforeEach(function (): void {
-    TierConfiguration::query()->create(tierConfigFixture('free'));
-    TierConfiguration::query()->create(tierConfigFixture('premium'));
+    // The global hook in Pest.php already seeds both tiers; replace rather
+    // than insert, the way the Fyn suites do, so this file's fixture wins.
+    TierConfiguration::updateOrCreate(['tier' => 'free'], tierConfigFixture('free'));
+    TierConfiguration::updateOrCreate(['tier' => 'premium'], tierConfigFixture('premium'));
 });
 
 it('registers canonical entitlement behind the active native session boundary', function (): void {
