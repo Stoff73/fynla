@@ -26,18 +26,15 @@ it('has something in the application reading every configured capability', funct
     expect($capabilities)->not->toBeEmpty();
 
     // Configured, and nothing reads them. Each is a real gap rather than a tolerated
-    // one — measured 2026-09-01 while closing W-0499, and left listed rather than
-    // fixed here because gating a capability nobody has defined is how the wrong
-    // thing gets gated for paying and non-paying users alike.
+    // one — measured 2026-09-01 while closing W-0499.
     //
-    // **`family_module` and `benefits_child` are the sharper two**: like
-    // `investments_exotic` before this test, they are named in the pricing comparison
-    // at `TierComparisonService:28-29` and enforced nowhere, so they are being sold.
+    // `family_module` and `benefits_child` were on this list and are no longer:
+    // both were named in the pricing comparison and enforced nowhere, which is the
+    // `investments_exotic` shape, and both are gated as of W-0532. The two that
+    // remain are not sold anywhere, which is the difference.
     $knownUnconsumed = [
         'future_value_projections',
         'property_buy_to_let_analysis',
-        'benefits_child',
-        'family_module',
     ];
 
     $unconsumed = [];

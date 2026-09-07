@@ -81,6 +81,11 @@ const getters = {
   // Joint ownership (W-0498) — what happens to a jointly-held asset on death, in the
   // configured words. `AssetForm.vue` carried its own copy of these two sentences.
   jointOwnershipTypes: (state) => state.config?.property_ownership?.joint_ownership_types ?? {},
+  // W-0533. Empty until the snapshot arrives, so a consumer must handle that
+  // rather than fall back to a number of its own — a fallback is how the literal
+  // 80 survived in three places.
+  leaseholdValuationThresholds: (state) => state.config?.property_ownership?.leasehold_valuation_thresholds ?? {},
+  tenureTypes: (state) => state.config?.property_ownership?.tenure_types ?? {},
 
   // IHT
   ihtNilRateBand: (state) => state.config?.inheritance_tax?.nil_rate_band ?? null,

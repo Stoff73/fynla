@@ -51,10 +51,21 @@ use Illuminate\Support\Facades\File;
 uses(RefreshDatabase::class);
 
 /** Tax areas whose rules must have consumers. Add one only after auditing it. */
-const GUARDED_AREAS = ['inheritance_tax'];
+const GUARDED_AREAS = ['inheritance_tax', 'property_ownership'];
 
 /*
- * `property_ownership` — audited 2026-09-01 (W-0498) and NOT added, deliberately.
+ * `property_ownership` — ADDED 2026-09-04 (W-0533). The note below is kept because it
+ * records why it was not added on 2026-09-01, and what changed.
+ *
+ * `leasehold_reform` now has a consumer: `PropertyCalculationService` reads both bands
+ * through `getLeaseholdValuationWarnings()`, `PropertyResource` publishes them on the
+ * property, and web and `/m` render them —
+ * `tests/Feature/Property/LeaseholdBandsReachTheUserTest.php` asserts the whole chain.
+ * `tenure_types` is consumed by the same service, which reads `tenure_type` to decide
+ * whether the question arises at all.
+ *
+ * ── the 2026-09-01 note, kept ──────────────────────────────────────────────────
+ * Audited 2026-09-01 (W-0498) and NOT added, deliberately.
  *
  * `joint_ownership_types` is now consumed (TaxConfigSnapshotService → AssetForm.vue) and
  * is covered by `JointOwnershipConfigReachesTheUserTest`, which asserts the consumer

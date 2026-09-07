@@ -123,7 +123,26 @@
                     <dt class="text-sm text-neutral-500">Purchase Price:</dt>
                     <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(property.purchase_price) }}</dd>
                   </div>
+                  <div v-if="leaseRemainingYears !== null" class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                    <dt class="text-sm text-neutral-500">Remaining lease:</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ leaseRemainingYears }} years</dd>
+                  </div>
                 </dl>
+
+                <!-- W-0533 — the configured lease bands, published by the engine on
+                     the property itself so this and `/m` cannot describe the same
+                     lease differently. A 62-year lease used to be met with silence
+                     on every surface. -->
+                <div v-if="leaseholdWarnings.length" class="mt-3 space-y-1" data-testid="property-leasehold-warnings">
+                  <p
+                    v-for="(warning, index) in leaseholdWarnings"
+                    :key="index"
+                    class="text-xs"
+                    :class="warning.level === 'danger' ? 'text-raspberry-600' : 'text-violet-600'"
+                  >
+                    {{ warning.message }}
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -533,6 +552,18 @@ export default {
 
     property() {
       return this.selectedProperty;
+    },
+
+    // W-0533. Both read the engine's published field, so neither this surface nor
+    // `/m` decides what a short lease means. Empty for a freehold, and for a
+    // leasehold with no recorded term — the question does not arise there, which
+    // is not the same as "no warning".
+    leaseholdWarnings() {
+      return this.property?.leasehold_warnings?.warnings || [];
+    },
+
+    leaseRemainingYears() {
+      return this.property?.leasehold_warnings?.remaining_years ?? null;
     },
 
     retirementAge() {

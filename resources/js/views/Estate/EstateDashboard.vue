@@ -61,6 +61,11 @@
           <p v-if="teaserData.projected_pension_inclusion_caveat" class="text-xs text-neutral-500 mt-2">
             {{ teaserData.projected_pension_inclusion_caveat }}
           </p>
+          <!-- W-0534. The current column's exclusion — the largest single adjustment
+               to most estates, and the one the figure above is computed with. -->
+          <p v-if="teaserData.pension_exclusion_caveat" class="text-xs text-neutral-500 mt-2">
+            {{ teaserData.pension_exclusion_caveat }}
+          </p>
         </div>
 
         <div class="bg-eggshell border border-horizon-200 rounded-lg p-6">

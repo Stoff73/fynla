@@ -18,9 +18,9 @@ declare(strict_types=1);
  * A manual fix each time has not held. This asserts the correspondence: a surface
  * that prints an Inheritance Tax figure renders the caveats published with it.
  */
-$caveatKeys = ['unmodelled_relief_caveat', 'projected_pension_inclusion_caveat'];
+$caveatKeys = ['unmodelled_relief_caveat', 'projected_pension_inclusion_caveat', 'pension_exclusion_caveat'];
 
-it('publishes both caveats as engine sentences, not as component copy', function () use ($caveatKeys) {
+it('publishes every caveat as an engine sentence, not as component copy', function () use ($caveatKeys) {
     $service = (string) file_get_contents(app_path('Services/Estate/IHTCalculationService.php'));
 
     foreach ($caveatKeys as $key) {
@@ -28,7 +28,7 @@ it('publishes both caveats as engine sentences, not as component copy', function
     }
 });
 
-it('passes both caveats through the free-tier teaser detector', function () use ($caveatKeys) {
+it('passes every caveat through the free-tier teaser detector', function () use ($caveatKeys) {
     // The teaser is a different component behind the upgrade gate, so it reads the
     // detector rather than the full calculation. A caveat the detector drops cannot
     // reach the surface however carefully the surface is written.
@@ -39,7 +39,7 @@ it('passes both caveats through the free-tier teaser detector', function () use 
     }
 });
 
-it('renders both caveats on every surface that prints the teaser figure', function () use ($caveatKeys) {
+it('renders every caveat on every surface that prints the teaser figure', function () use ($caveatKeys) {
     // Named files rather than a directory walk: these are the two surfaces that print
     // `estimated_liability_gbp`, and a third would have to be added here deliberately.
     $surfaces = [
@@ -58,21 +58,21 @@ it('renders both caveats on every surface that prints the teaser figure', functi
     }
 });
 
-it('writes neither engine sentence into a frontend bundle', function () {
+it('writes no engine sentence into a frontend bundle', function () {
     // The two bundles share no constants, so a copy of either sentence in one of them
     // is a Rule 20 violation waiting to drift. A distinctive fragment of each, taken
     // from where the engine writes it.
     //
-    // Note what this does NOT cover, because the distinction cost a round here:
-    // `IHTPlanning.vue:620-630` carries a component-authored sentence about the
-    // CURRENT column excluding pensions and the configured date that changes. It is a
-    // different statement from either caveat, it is true, and the engine publishes no
-    // equivalent — so it is not duplicated copy. It is worth publishing from the
-    // engine one day so the teaser can say it too; it is not this test's business.
+    // The note that used to sit here recorded a component-authored sentence in
+    // `IHTPlanning.vue` about the CURRENT column excluding pensions — true, not
+    // duplicated copy, and left alone because the engine published no equivalent.
+    // It does now (W-0534), the component renders the published string, and the
+    // third phrase below holds it to that.
     foreach ([base_path('resources/js'), base_path('resources/mobile')] as $root) {
         foreach ([
             'Agricultural Property Relief, and does not apply',
             'It does not include lump sum death benefits',
+            'of pension savings is left out of the figures',
         ] as $phrase) {
             $found = shell_exec(sprintf(
                 'grep -rl %s %s 2>/dev/null',

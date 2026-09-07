@@ -44,6 +44,20 @@
         </div>
       </div>
 
+      <!--
+        W-0533. The lease bands are configured and were read by nothing, while the
+        one calculation that should have read them hardcoded 80 and was rendered on
+        no surface. A user with a 62-year lease was told nothing, anywhere.
+        Sentences come from the engine (`leasehold_warnings`), so this surface and
+        the web one cannot say different things about the same lease.
+      -->
+      <div v-if="leaseholdWarnings.length" class="m-card m-detail-rows" data-testid="property-leasehold-warnings">
+        <p class="m-section-label">Lease length</p>
+        <p v-for="(warning, index) in leaseholdWarnings" :key="index" class="pd-question-note">
+          {{ warning.message }}
+        </p>
+      </div>
+
       <div v-if="property.mortgages?.length" class="m-card m-detail-rows">
         <p class="m-section-label">Mortgages</p>
         <button v-for="mortgage in property.mortgages" :key="mortgage.id" type="button" class="pd-link" @click="openMortgage(mortgage.id)">
@@ -83,6 +97,10 @@ export default {
     sharePercent() { return `${userSharePercent(this.property).toFixed(2)}%`; },
     coOwner() { return coOwnerName(this.property); },
     coOwnerSpouseAnswered() { return this.property?.joint_owner_is_spouse !== null && this.property?.joint_owner_is_spouse !== undefined; },
+
+    // Empty for a freehold, and for a leasehold with no recorded term — the
+    // question does not arise, which is not the same as "no warning".
+    leaseholdWarnings() { return this.property?.leasehold_warnings?.warnings || []; },
 
     // Only where the answer can change a number: a shared property whose co-owner
     // holds no account. A LINKED co-owner is already known to be the spouse or not,

@@ -69,6 +69,35 @@ use Illuminate\Support\Collection;
 class IHTCalculationService
 {
     /**
+     * The current column's pension-exclusion disclosure, as a finished sentence
+     * (W-0534).
+     *
+     * Null where the household holds no defined contribution pension, because there
+     * is then nothing left out and no disclosure to make — the same shape as
+     * `unmodelled_relief_caveat`, which every surface already handles.
+     *
+     * The reversal date comes from configuration and is formatted here rather than
+     * in a component: a component that formats it has to know the date, and Rule 2
+     * says it must not.
+     */
+    private function pensionExclusionCaveat(float $excluded, string $inclusionDate): ?string
+    {
+        if ($excluded <= 0.0) {
+            return null;
+        }
+
+        $sentence = '£'.number_format($excluded, 0).' of pension savings is left out of the figures '
+            .'above, because pension funds sit outside the estate for Inheritance Tax.';
+
+        if ($inclusionDate === '') {
+            return $sentence;
+        }
+
+        return $sentence.' That changes on '.date('j F Y', (int) strtotime($inclusionDate))
+            .', when unused pots start counting towards the estate. Your bill above does not yet include them.';
+    }
+
+    /**
      * Words that mean agricultural land, for the W-0466 caveat trigger.
      *
      * Prefix-matched at a word boundary, so "farm" covers "farmland", "farmhouse"
@@ -498,6 +527,15 @@ class IHTCalculationService
             $dataSharingEnabled
         );
 
+        // W-0534 — computed once, because the figure and the sentence about it must
+        // be the same number. Previously the figure was built inline in the array and
+        // the sentence was written in a component, from a second read of the payload.
+        $pensionExcludedFromEstate = round(
+            (float) $this->pensionStore->forUserByType($user, 'dc')->sum('current_fund_value')
+            + ($poolsSpouse && $spouse ? (float) $this->pensionStore->forUserByType($spouse, 'dc')->sum('current_fund_value') : 0.0),
+            2
+        );
+
         // 10. Build result array with CURRENT and PROJECTED values
         $result = [
             // Current values
@@ -646,12 +684,24 @@ class IHTCalculationService
             //
             // Published as its own term rather than left to be inferred from the
             // gap between what the user owns and what is taxed.
-            'pension_excluded_from_estate' => round(
-                (float) $this->pensionStore->forUserByType($user, 'dc')->sum('current_fund_value')
-                + ($poolsSpouse && $spouse ? (float) $this->pensionStore->forUserByType($spouse, 'dc')->sum('current_fund_value') : 0.0),
-                2
-            ),
+            'pension_excluded_from_estate' => $pensionExcludedFromEstate,
             'pension_exclusion_ends' => (string) ($ihtConfig['pension_iht_inclusion']['effective_date'] ?? ''),
+            // W-0534 — the CURRENT column's version of the same disclosure, published
+            // for the same reason as `unmodelled_relief_caveat` above: the words have
+            // to live where every surface can read them.
+            //
+            // This sentence existed, was true, and was written inside
+            // `IHTPlanning.vue` — a component behind the upgrade gate. So the free
+            // teaser printed an Inheritance Tax figure computed WITH this exclusion and
+            // could not say so, which is the W-0466 F3 shape a third time. Every
+            // preview persona is free tier, so it is also what a prospective customer
+            // saw first.
+            //
+            // The date is read from configuration and never written here (Rule 2).
+            'pension_exclusion_caveat' => $this->pensionExclusionCaveat(
+                (float) $pensionExcludedFromEstate,
+                (string) ($ihtConfig['pension_iht_inclusion']['effective_date'] ?? '')
+            ),
             'projected_unused_pension_basis' => $projectedData['projected_unused_pension_basis'],
             // W-0482 — the W-0363 caveat went with its cause, and these arrived with the
             // fix. `05-perimeter.md` §4: where the picture is incomplete, it is said at

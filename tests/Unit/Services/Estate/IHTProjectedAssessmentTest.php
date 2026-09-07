@@ -14,6 +14,7 @@ use App\Services\Estate\IHTCalculationService;
 use App\Services\Plans\EstatePlanService;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -49,6 +50,9 @@ uses(RefreshDatabase::class);
  */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    // W-0532 — ChildBenefitService gates `benefits_child` through TeaserGate, and
+    // Adjusted Net Income reaches it, so the tier rows must exist here too.
+    $this->seed(TierConfigurationSeeder::class);
     $this->service = app(IHTCalculationService::class);
 });
 

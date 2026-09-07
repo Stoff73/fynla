@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Property;
+use App\Services\Property\PropertyCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -60,6 +61,12 @@ class PropertyResource extends JsonResource
                 $this->tenure_type === 'leasehold',
                 $this->lease_remaining_years
             ),
+            // W-0533 — the configured leasehold bands reach the user here, so web
+            // and `/m` read the same sentences from the same place rather than
+            // each deciding what a short lease means (Rules 2, 19, 20). Null for a
+            // freehold, and for a leasehold whose remaining term is not recorded:
+            // the question does not arise, which is not the same as "no warning".
+            'leasehold_warnings' => app(PropertyCalculationService::class)->leaseholdWarnings($this->resource),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
 
