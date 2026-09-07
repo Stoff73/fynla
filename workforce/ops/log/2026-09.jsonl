@@ -1,2 +1,6 @@
 {"ts":"2026-09-01T16:34:10Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-09-01.md"}
 {"ts":"2026-09-01T16:34:12Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}
+{"ts":"2026-09-02T16:32:44Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-09-02.md"}
+{"ts":"2026-09-02T16:32:46Z","agent":"chief-of-staff","item":"-","event":"slack_posted","channel":"C0BQ7N1CE82"}
+{"ts":"2026-09-04T16:32:47Z","agent":"chief-of-staff","item":"-","event":"brief","file":"workforce/ops/reports/brief-2026-09-04.md"}
+{"ts":"2026-09-04T16:32:49Z","agent":"chief-of-staff","item":"-","event":"slack_failed","channel":"C0BQ7N1CE82"}
