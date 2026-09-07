@@ -52,7 +52,7 @@ afterEach(function (): void {
     TaxConfiguration::query()->where('tax_year', '2019/20')->delete();
 });
 
-it('blocks active entitlement then maps historical identity without rewriting financial history', function () {
+it('maps live and historical identity to premium without rewriting financial history', function () {
     $migration = tierCollapseMigration();
     $migration->down();
 
@@ -76,12 +76,6 @@ it('blocks active entitlement then maps historical identity without rewriting fi
             'status' => 'active',
             'current_period_end' => now()->addMonth(),
         ]);
-
-        expect(fn () => $migration->up())
-            ->toThrow(RuntimeException::class, 'Tier collapse blocked');
-
-        $activeSubscription->delete();
-        $activeUser->forceDelete();
 
         $historicalUser = User::factory()->create([
             'email' => 'tier-collapse-history@example.com',
@@ -108,6 +102,12 @@ it('blocks active entitlement then maps historical identity without rewriting fi
         ]);
 
         $migration->up();
+
+        // CSJ, 2026-09-07: a live paid customer is carried across, not blocked.
+        expect($activeUser->fresh()->tier)->toBe('premium')
+            ->and($activeUser->fresh()->plan)->toBe('premium')
+            ->and($activeSubscription->fresh()->plan)->toBe('premium')
+            ->and($activeSubscription->fresh()->status)->toBe('active');
 
         expect($historicalUser->fresh()->tier)->toBe('premium')
             ->and($historicalUser->fresh()->plan)->toBe('premium')

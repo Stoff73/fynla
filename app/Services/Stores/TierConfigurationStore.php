@@ -19,6 +19,14 @@ class TierConfigurationStore
     public const RETIRED_TIERS = ['tier1', 'tier2', 'tier3'];
 
     /**
+     * The plans sold before the tier scheme existed. CSJ, 2026-09-07: every one
+     * of them confers Premium, and nobody on them loses data or access. Read by
+     * canonicalPlanForEntitlement() (entitlement), TierResolver (grandfathering
+     * of row caps) and TierCollapsePreflight (the collapse may run with these live).
+     */
+    public const LEGACY_PAID_PLANS = ['student', 'standard', 'family', 'pro'];
+
+    /**
      * @return list<string>
      */
     public static function paidTiers(): array
@@ -31,7 +39,7 @@ class TierConfigurationStore
 
     public static function canonicalPlanForEntitlement(string $plan): string
     {
-        return in_array($plan, self::RETIRED_TIERS, true) ? 'premium' : $plan;
+        return in_array($plan, [...self::RETIRED_TIERS, ...self::LEGACY_PAID_PLANS], true) ? 'premium' : $plan;
     }
 
     public function forTier(string $tier): TierConfiguration

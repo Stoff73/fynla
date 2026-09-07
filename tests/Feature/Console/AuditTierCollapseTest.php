@@ -34,6 +34,7 @@ it('prints the stable safe JSON object and exits zero when there are no paid row
         'payload' => [
             'active_paid_subscriptions' => 0,
             'active_paid_users' => 0,
+            'unmapped_paid_subscriptions' => 0,
             'live_provider_agreements' => 0,
             'completed_payments' => 0,
             'retired_tier_user_rows' => 0,
@@ -48,7 +49,7 @@ it('prints the stable safe JSON object and exits zero when there are no paid row
     ]);
 });
 
-it('blocks collapse for each currently entitled real paid subscription', function (string $status) {
+it('reports an entitled paid subscription on a retired tier without blocking, because it maps to premium', function (string $status) {
     $user = User::factory()->create([
         'plan' => 'tier2',
         'tier' => null,
@@ -66,12 +67,13 @@ it('blocks collapse for each currently entitled real paid subscription', functio
     $result = runTierCollapseAudit();
 
     $this->artisan('subscriptions:audit-tier-collapse --json')
-        ->assertExitCode(1);
+        ->assertExitCode(0);
 
-    expect($result['exit_code'])->toBe(1)
+    expect($result['exit_code'])->toBe(0)
         ->and($result['payload'])->toBe([
             'active_paid_subscriptions' => 1,
             'active_paid_users' => 1,
+            'unmapped_paid_subscriptions' => 0,
             'live_provider_agreements' => 0,
             'completed_payments' => 0,
             'retired_tier_user_rows' => 1,
@@ -81,7 +83,7 @@ it('blocks collapse for each currently entitled real paid subscription', functio
             'duplicate_discount_usage_payments' => 0,
             'duplicate_referral_referees' => 0,
             'multiple_pending_checkout_users' => 0,
-            'safe_to_collapse' => false,
+            'safe_to_collapse' => true,
         ]);
 })->with(['active', 'cancelled', 'past_due']);
 
@@ -106,6 +108,7 @@ it('excludes flagged non-real accounts from safety counts but still reports reti
         ->and($result['payload'])->toBe([
             'active_paid_subscriptions' => 0,
             'active_paid_users' => 0,
+            'unmapped_paid_subscriptions' => 0,
             'live_provider_agreements' => 0,
             'completed_payments' => 0,
             'retired_tier_user_rows' => 1,
@@ -152,6 +155,7 @@ it('reports historical completed payments without blocking collapse or changing 
         ->and($result['payload'])->toBe([
             'active_paid_subscriptions' => 0,
             'active_paid_users' => 0,
+            'unmapped_paid_subscriptions' => 0,
             'live_provider_agreements' => 0,
             'completed_payments' => 1,
             'retired_tier_user_rows' => 1,
@@ -168,7 +172,7 @@ it('reports historical completed payments without blocking collapse or changing 
         ->and($payment->fresh()->getAttributes())->toBe($before['payment']);
 });
 
-it('blocks collapse while a real account retains a provider subscription agreement', function () {
+it('reports a retained provider subscription agreement without blocking', function () {
     $user = User::factory()->create([
         'plan' => 'free',
         'tier' => 'free',
@@ -184,12 +188,12 @@ it('blocks collapse while a real account retains a provider subscription agreeme
 
     $result = runTierCollapseAudit();
 
-    expect($result['exit_code'])->toBe(1)
+    expect($result['exit_code'])->toBe(0)
         ->and($result['payload']['live_provider_agreements'])->toBe(1)
-        ->and($result['payload']['safe_to_collapse'])->toBeFalse();
+        ->and($result['payload']['safe_to_collapse'])->toBeTrue();
 });
 
-it('blocks collapse when financial uniqueness preconditions are not met', function () {
+it('reports multiple pending checkouts for one user without blocking', function () {
     $user = User::factory()->create();
     $subscription = Subscription::factory()->pending()->plan('premium')->create([
         'user_id' => $user->id,
@@ -210,7 +214,33 @@ it('blocks collapse when financial uniqueness preconditions are not met', functi
 
     $result = runTierCollapseAudit();
 
-    expect($result['exit_code'])->toBe(1)
+    expect($result['exit_code'])->toBe(0)
         ->and($result['payload']['multiple_pending_checkout_users'])->toBe(1)
-        ->and($result['payload']['safe_to_collapse'])->toBeFalse();
+        ->and($result['payload']['safe_to_collapse'])->toBeTrue();
 });
+
+// CSJ, 2026-09-07: the eight fynla.org customers on the plans sold before the
+// tier scheme keep Premium and lose nothing. The collapse may run with them live.
+it('reports an entitled legacy paid plan without blocking, because it maps to premium', function (string $plan) {
+    $user = User::factory()->create([
+        'plan' => $plan,
+        'tier' => null,
+        'is_preview_user' => false,
+        'is_lifecycle_test_user' => false,
+    ]);
+
+    Subscription::factory()->create([
+        'user_id' => $user->id,
+        'plan' => $plan,
+        'status' => 'active',
+        'current_period_end' => now()->addMonth(),
+    ]);
+
+    $result = runTierCollapseAudit();
+
+    expect($result['exit_code'])->toBe(0)
+        ->and($result['payload']['active_paid_subscriptions'])->toBe(1)
+        ->and($result['payload']['unmapped_paid_subscriptions'])->toBe(0)
+        ->and($result['payload']['retired_tier_subscription_rows'])->toBe(0)
+        ->and($result['payload']['safe_to_collapse'])->toBeTrue();
+})->with(['student', 'standard', 'family', 'pro']);

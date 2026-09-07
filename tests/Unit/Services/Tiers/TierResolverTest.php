@@ -34,14 +34,14 @@ it('resolves a preview user to free for gating', function () {
     expect($this->resolver->resolve($u))->toBe('free');
 });
 
-it('grandfathers a paid legacy subscriber with null tier to free-gating-but-never-narrower (no mechanical map)', function () {
-    // Spec §5.2: legacy paid sub, tier still null pending per-cohort CSJ
-    // conversion decision. Resolver returns 'free' for *gating arithmetic*
-    // but isGrandfathered() flags them so DbTierGate never blocks an
-    // existing-row create (PR 3 consumes this).
+it('resolves a paid legacy subscriber with null tier to premium and still grandfathers the row caps', function () {
+    // CSJ, 2026-09-07 (the per-cohort decision spec §5.2 was waiting for): the
+    // plans sold before the tier scheme confer Premium, so the live legacy
+    // subscription resolves 'premium' through the provider path. The
+    // grandfathering flag stays, so DbTierGate never narrows an existing row.
     $u = User::factory()->create(['plan' => 'pro', 'tier' => null]);
     $u->subscription()->create(['plan' => 'pro', 'status' => 'active', 'amount' => 0]);
-    expect($this->resolver->resolve($u->fresh()))->toBe('free')
+    expect($this->resolver->resolve($u->fresh()))->toBe('premium')
         ->and($this->resolver->isGrandfatheredLegacyPaid($u->fresh()))->toBeTrue();
 });
 
@@ -75,7 +75,9 @@ it('treats a canonical users tier as a migration-cohort marker, not a grant (W-0
 
     expect($this->resolver->isGrandfatheredLegacyPaid($legacy->fresh()))->toBeTrue()
         ->and($this->resolver->isGrandfatheredLegacyPaid($migrated->fresh()))->toBeFalse()
-        // ...and the marker still confers nothing: a legacy 'pro' plan is not a
-        // live provider grant, so gating stays free on both sides of the marker.
-        ->and($this->resolver->resolve($migrated->fresh()))->toBe('free');
+        // ...and the marker still confers nothing on its own: what makes both
+        // sides premium is the live legacy subscription (CSJ, 2026-09-07), which
+        // the provider path resolves whatever the column says.
+        ->and($this->resolver->resolve($migrated->fresh()))->toBe('premium')
+        ->and($this->resolver->resolve($legacy->fresh()))->toBe('premium');
 });
