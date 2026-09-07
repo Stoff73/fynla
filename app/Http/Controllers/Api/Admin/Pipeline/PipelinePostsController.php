@@ -84,8 +84,8 @@ class PipelinePostsController extends Controller
             ], 422);
         }
 
-        $article = $post->pipelineArticle->insightArticle;
-        $finalUrl = $this->resolveFinalUrl($post, $article);
+        $slug = $post->pipelineArticle?->sourceSlug() ?? '';
+        $finalUrl = $this->resolveFinalUrl($post, $slug);
 
         $post->update([
             'destination_url_final' => $finalUrl,
@@ -123,34 +123,32 @@ class PipelinePostsController extends Controller
         return response()->json(['success' => true, 'data' => $post->fresh()]);
     }
 
-    private function resolveFinalUrl(PipelinePost $post, $article): string
+    private function resolveFinalUrl(PipelinePost $post, string $slug): string
     {
         return match ($post->destination_type) {
-            'campaign' => $this->campaignUrl($post, $article),
-            'custom' => $this->customUrl($post),
-            default => $this->links->forArticle($article, $post->platform, $post->clip_index),
+            'campaign' => $this->campaignUrl($post, $slug),
+            'custom' => $this->customUrl($post, $slug),
+            default => $this->links->forArticle($slug, $post->platform, $post->clip_index),
         };
     }
 
-    private function campaignUrl(PipelinePost $post, $article): string
+    private function campaignUrl(PipelinePost $post, string $slug): string
     {
         $campaign = $post->pipelineCampaign ?? PipelineCampaign::find($post->pipeline_campaign_id);
         if ($campaign === null) {
-            return $this->links->forArticle($article, $post->platform, $post->clip_index);
+            return $this->links->forArticle($slug, $post->platform, $post->clip_index);
         }
 
         return $this->links->forCampaign($campaign, $post->platform, $post->clip_index);
     }
 
-    private function customUrl(PipelinePost $post): string
+    private function customUrl(PipelinePost $post, string $slug): string
     {
         $url = $post->destination_url_final;
         if (! is_string($url) || $url === '') {
             $url = $post->destination_url_default;
         }
 
-        $article = $post->pipelineArticle->insightArticle;
-
-        return $this->links->forCustomUrl($url, $post->platform, $article->slug, $post->clip_index);
+        return $this->links->forCustomUrl($url, $post->platform, $slug, $post->clip_index);
     }
 }

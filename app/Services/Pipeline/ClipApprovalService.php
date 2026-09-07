@@ -124,7 +124,10 @@ class ClipApprovalService
     }
 
     /**
-     * Manual reject. The rejected clip is EXCLUDED from the run, not a blocker —
+     * Manual reject. Idempotent on already-rejected rows — a double-click or a
+     * retried request must not dispatch a second RegenerateClipJob (regen_count
+     * is only incremented inside the job, so two dispatches both read it as
+     * under the cap). The rejected clip is EXCLUDED from the run, not a blocker —
      * every approved clip still moves forward. For a SHORT (highlight) clip
      * under the regen cap we dispatch RegenerateClipJob, which uses the
      * rejection reason as feedback to pick a DIFFERENT moment, re-crops, and
@@ -135,6 +138,9 @@ class ClipApprovalService
     {
         if ($approval->status === 'approved' || $approval->status === 'auto_approved') {
             throw new RuntimeException('Cannot reject an already-approved clip.');
+        }
+        if ($approval->status === 'rejected') {
+            return $approval;
         }
 
         $approval->update([

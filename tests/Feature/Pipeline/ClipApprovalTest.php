@@ -102,6 +102,21 @@ it('rejecting a SHORT clip queues a RegenerateClipJob with the feedback', functi
     });
 });
 
+// Regression: reject() guarded only the approved states, so a double-click or a
+// retried request fell through and dispatched a SECOND RegenerateClipJob.
+// regen_count is only incremented inside the job, so both reads saw it under the
+// cap — two ffmpeg runs writing one path, and two pending rows for one clip.
+it('rejecting the same clip twice queues only one regeneration', function () {
+    $article = makePipelineArticle(1);
+    $approval = app(ClipApprovalService::class)->createForArticle($article)[0];
+
+    app(ClipApprovalService::class)->reject($approval->fresh(), 'Weak hook');
+    app(ClipApprovalService::class)->reject($approval->fresh(), 'Weak hook');
+
+    Bus::assertDispatchedTimes(RegenerateClipJob::class, 1);
+    expect($approval->fresh()->rejection_reason)->toBe('Weak hook');
+});
+
 it('rejecting the FULL clip does NOT regenerate', function () {
     $article = makePipelineArticle(2);
     // Second clip is the full clip.

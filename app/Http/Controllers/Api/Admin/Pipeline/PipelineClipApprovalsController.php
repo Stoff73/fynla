@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Admin\Pipeline;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Pipeline\SignedClipDownloadController;
 use App\Models\Pipeline\ClipApproval;
 use App\Models\Pipeline\PipelineArticle;
 use App\Services\Pipeline\ClipApprovalService;
@@ -98,11 +99,10 @@ class PipelineClipApprovalsController extends Controller
     private function summarise(ClipApproval $approval): array
     {
         $article = $approval->pipelineArticle;
-        $insight = $article?->insightArticle;
-        $slug = $insight?->slug ?? '';
+        $slug = $article?->sourceSlug() ?? '';
         $filename = basename((string) $approval->clip_path);
 
-        $previewUrl = ($slug !== '' && preg_match('/^clip-\d{1,3}\.mp4$/', $filename))
+        $previewUrl = ($slug !== '' && preg_match('/^'.SignedClipDownloadController::FILENAME_PATTERN.'$/', $filename))
             ? URL::temporarySignedRoute(
                 'pipeline.clip.download',
                 now()->addMinutes(30),
