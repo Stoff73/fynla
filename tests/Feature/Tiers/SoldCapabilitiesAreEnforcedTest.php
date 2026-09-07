@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\FamilyMember;
+use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
+use App\Services\Payment\TierComparisonService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Tiers\TeaserGate;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -34,7 +37,7 @@ $withoutCapability = function (string $key): User {
 
     // The gate reads the resolved tier's matrix, so withhold it there rather than
     // stubbing the gate — a stubbed gate would pass whether or not it is called.
-    $config = \App\Models\TierConfiguration::where('tier', 'free')->firstOrFail();
+    $config = TierConfiguration::where('tier', 'free')->firstOrFail();
     $matrix = $config->capability_matrix;
     $matrix[$key] = 'none';
     $config->update(['capability_matrix' => $matrix]);
@@ -120,7 +123,7 @@ describe('benefits_child', function () use ($withoutCapability) {
 it('names the capability using the same words the pricing page does', function () {
     // The refusal and the advert must not describe the same thing differently.
     $user = User::factory()->create(['tier' => 'free', 'is_admin' => false, 'is_preview_user' => false]);
-    $config = \App\Models\TierConfiguration::where('tier', 'free')->firstOrFail();
+    $config = TierConfiguration::where('tier', 'free')->firstOrFail();
     $matrix = $config->capability_matrix;
     $matrix['family_module'] = 'none';
     $config->update(['capability_matrix' => $matrix]);
@@ -128,7 +131,7 @@ it('names the capability using the same words the pricing page does', function (
     try {
         app(TeaserGate::class)->requireCapability($user, 'family_module');
         $this->fail('expected the gate to refuse');
-    } catch (\App\Services\Stores\Exceptions\TierLimitExceededException $e) {
-        expect($e->getMessage())->toContain(\App\Services\Payment\TierComparisonService::labelFor('family_module'));
+    } catch (TierLimitExceededException $e) {
+        expect($e->getMessage())->toContain(TierComparisonService::labelFor('family_module'));
     }
 });

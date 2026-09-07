@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
+use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -56,7 +57,7 @@ it('takes the reversal date from configuration, never from a component', functio
     ]);
 
     $caveat = app(IHTCalculationService::class)->calculate($user->fresh())['pension_exclusion_caveat'];
-    $configured = app(\App\Services\TaxConfigService::class)
+    $configured = app(TaxConfigService::class)
         ->getInheritanceTax()['pension_iht_inclusion']['effective_date'] ?? null;
 
     expect($configured)->not->toBeNull()

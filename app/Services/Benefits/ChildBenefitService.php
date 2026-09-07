@@ -7,8 +7,8 @@ namespace App\Services\Benefits;
 use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
-use App\Services\Tiers\TeaserGate;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use Illuminate\Support\Collection;
 
 /**
