@@ -4,7 +4,7 @@ title: A Defined Benefit pension is counted as income in payment from the day it
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: gated
+status: done
 claimed_by: fix-batch-C
 claimed_at: 2026-08-21
 branch: fixes/F-0001-batch-c-retirement-profile-gates.md
@@ -265,3 +265,10 @@ W-0035's fix masks it.
   **Noticed:** `getCompleteProfile()` emits a PHP deprecation from
   `vendor/.../BelongsTo.php:187` ("Using null as an array offset"). Pre-existing,
   unrelated to this change, visible on any tinker call — worth its own item.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and consolidated rather than patched.**
+  `App\Traits\ResolvesIncome::resolvePensionIncomeInPayment()` (app/Traits/ResolvesIncome.php:45)
+  filters on `DBPension::isInPayment($age)` and gates the State Pension on `already_receiving` in
+  the same expression. The three byte-identical private copies — `UserProfileService:325`,
+  `Tax\IncomeDefinitionsService:224`, `PersonalAccountsService:490` — all delegate to it, so the
+  phantom income cannot come back in one service and not the others (Rule 20).

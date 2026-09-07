@@ -4,7 +4,7 @@ title: A linked spouse is assessed as childless, and told she can take more inve
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0024-cycle4-risk-engine-reach-and-fraction.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T21:00:00Z
@@ -96,3 +96,9 @@ a priority"*, and `/risk-profile/factor/dependants` names **William** and **Char
 — her husband's records, reaching her account. Screenshots
 `W-0272-web-sarah-17-risk-profile-after.png`,
 `W-0272-web-sarah-17-dependants-william-charlotte.png`.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `app/Services/Shared/DependantsReach.php`
+  is the one home for "whose children are these", and it stops at `reciprocalLiveSpouse()` — so a
+  linked spouse is assessed against the couple's children rather than as childless, and is no
+  longer told she can take more investment risk because of it. Read by `UserProfileService:887`
+  and cited from `User:601`.

@@ -66,6 +66,12 @@ class DocumentArticle extends Model
         return $query->published()->where('published_at', '<=', now());
     }
 
+    /** Instance mirror of scopeLive() — approved AND the publish time has arrived. */
+    public function isLive(): bool
+    {
+        return $this->isPublished() && ! $this->published_at->isFuture();
+    }
+
     /** Approved but with a publish time still in the future. */
     public function isScheduled(): bool
     {

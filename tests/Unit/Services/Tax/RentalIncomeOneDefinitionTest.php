@@ -30,9 +30,9 @@ beforeEach(function () {
     $this->owner = User::factory()->create(['annual_employment_income' => 120_000]);
     $this->jointOwner = User::factory()->create();
 
-    // £1,800/month let, half-owned. Allowable letting expenses of £320/month
-    // (buildings insurance £35 + service charge £285); a £100/month maintenance
-    // reserve that is NOT an allowable expense sits alongside them.
+    // £1,800/month let, half-owned. Allowable letting expenses of £420/month:
+    // buildings insurance £35, service charge £285 and a £100/month maintenance
+    // reserve, which W-0178 made deductible on CSJ's ruling.
     $this->property = Property::factory()->create([
         'user_id' => $this->owner->id,
         'joint_owner_id' => $this->jointOwner->id,
@@ -55,24 +55,24 @@ describe('one rental figure, one home', function () {
         $fromPropertyService = app(PropertyService::class)->annualRentalTaxPosition($this->owner)['total'];
         $definitions = app(IncomeDefinitionsService::class)->calculate($this->owner->id);
 
-        // (£21,600 rent − £3,840 allowable) × 50% = £8,880. NOT £10,800 gross.
-        expect($fromPropertyService)->toBe(8_880.0)
-            ->and($definitions['components']['rental'])->toBe(8_880.0);
+        // (£21,600 rent − £5,040 allowable) × 50% = £8,280. NOT £10,800 gross.
+        expect($fromPropertyService)->toBe(8_280.0)
+            ->and($definitions['components']['rental'])->toBe(8_280.0);
     });
 
     it('carries that figure into total, adjusted net and threshold income alike', function () {
         $definitions = app(IncomeDefinitionsService::class)->calculate($this->owner->id);
 
-        expect($definitions['total_income'])->toBe(128_880.0)
-            ->and($definitions['adjusted_net_income'])->toBe(128_880.0)
-            ->and($definitions['threshold_income'])->toBe(128_880.0);
+        expect($definitions['total_income'])->toBe(128_280.0)
+            ->and($definitions['adjusted_net_income'])->toBe(128_280.0)
+            ->and($definitions['threshold_income'])->toBe(128_280.0);
     });
 
     it('gives the joint owner the other half from the same definition', function () {
         $definitions = app(IncomeDefinitionsService::class)->calculate($this->jointOwner->id);
 
-        expect(app(PropertyService::class)->annualRentalTaxPosition($this->jointOwner)['total'])->toBe(8_880.0)
-            ->and($definitions['components']['rental'])->toBe(8_880.0);
+        expect(app(PropertyService::class)->annualRentalTaxPosition($this->jointOwner)['total'])->toBe(8_280.0)
+            ->and($definitions['components']['rental'])->toBe(8_280.0);
     });
 });
 
@@ -80,35 +80,49 @@ describe('the figure is the property-business profit, and it moves with the reco
     it('deducts allowable letting expenses', function () {
         $this->property->update(['monthly_service_charge' => 385]);
 
-        // Another £100/month off the rent, halved: £8,880 − £600 = £8,280.
+        // Another £100/month off the rent, halved: £8,280 − £600 = £7,680.
         $definitions = app(IncomeDefinitionsService::class)->calculate($this->owner->id);
 
-        expect(app(PropertyService::class)->annualRentalTaxPosition($this->owner)['total'])->toBe(8_280.0)
-            ->and($definitions['components']['rental'])->toBe(8_280.0);
+        expect(app(PropertyService::class)->annualRentalTaxPosition($this->owner)['total'])->toBe(7_680.0)
+            ->and($definitions['components']['rental'])->toBe(7_680.0);
     });
 
-    it('does not deduct the maintenance reserve, which is not an allowable expense', function () {
+    // This asserted the opposite until 2026-09-01: it pinned the reserve as NOT
+    // deducted, which was the behaviour of the day rather than a rule of law. CSJ
+    // ruled on W-0178 that a rental profit which ignores what the landlord spends
+    // is not a profit figure, so the assertion is inverted rather than deleted —
+    // the figure still has to move with the record, just in the other direction.
+    it('deducts the maintenance reserve (W-0178)', function () {
         $this->property->update(['monthly_maintenance_reserve' => 500]);
 
+        // £400/month more expense, £4,800/year, halved: £8,280 − £2,400 = £5,880.
         expect(app(IncomeDefinitionsService::class)->calculate($this->owner->id)['components']['rental'])
-            ->toBe(8_880.0);
+            ->toBe(5_880.0);
+    });
+
+    it('deducts the uncategorised other monthly costs too (W-0178)', function () {
+        $this->property->update(['other_monthly_costs' => 60]);
+
+        // £720/year more expense, halved: £8,280 − £360 = £7,920.
+        expect(app(IncomeDefinitionsService::class)->calculate($this->owner->id)['components']['rental'])
+            ->toBe(7_920.0);
     });
 
     it('follows the rent', function () {
         $this->property->update(['monthly_rental_income' => 2_000]);
 
-        // (£24,000 − £3,840) × 50% = £10,080.
+        // (£24,000 − £5,040) × 50% = £9,480.
         $definitions = app(IncomeDefinitionsService::class)->calculate($this->owner->id);
 
-        expect(app(PropertyService::class)->annualRentalTaxPosition($this->owner)['total'])->toBe(10_080.0)
-            ->and($definitions['components']['rental'])->toBe(10_080.0);
+        expect(app(PropertyService::class)->annualRentalTaxPosition($this->owner)['total'])->toBe(9_480.0)
+            ->and($definitions['components']['rental'])->toBe(9_480.0);
     });
 
     it('follows the ownership split on both sides at once', function () {
         $this->property->update(['ownership_percentage' => 40.00]);
 
-        // £17,760 profit: 40% to the primary owner, 60% to the joint owner.
-        expect(app(IncomeDefinitionsService::class)->calculate($this->owner->id)['components']['rental'])->toBe(7_104.0)
-            ->and(app(IncomeDefinitionsService::class)->calculate($this->jointOwner->id)['components']['rental'])->toBe(10_656.0);
+        // £16,560 profit: 40% to the primary owner, 60% to the joint owner.
+        expect(app(IncomeDefinitionsService::class)->calculate($this->owner->id)['components']['rental'])->toBe(6_624.0)
+            ->and(app(IncomeDefinitionsService::class)->calculate($this->jointOwner->id)['components']['rental'])->toBe(9_936.0);
     });
 });

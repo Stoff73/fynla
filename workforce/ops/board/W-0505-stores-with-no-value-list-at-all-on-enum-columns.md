@@ -4,7 +4,8 @@ title: The seventh axis — nineteen enum columns have no accepted-value list in
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: low
 surfaces: [web, m, ios]
 created: 2026-08-26T00:00:00Z
@@ -257,3 +258,16 @@ rather than by the request, so it was the field most exposed to a new rule.
 3. **Whether the five dead enum values should be dropped from the column** by
    migration, or wired up properly. Refusing them at the Store is the safe holding
    position, not an answer.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Phailanx
+- **Evidence:** merged in #731
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

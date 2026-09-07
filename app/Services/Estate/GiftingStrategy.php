@@ -256,7 +256,12 @@ class GiftingStrategy
         if ($currentIHTLiability > 0) {
             $recommendations[] = [
                 'strategy' => 'Potentially Exempt Transfers (PETs)',
-                'description' => 'Make larger gifts that become exempt after 7 years',
+                // W-0370 — the same sentence as `GiftingStrategyOptimizer:294`,
+                // and the same configured window behind it. Read here rather than
+                // reusing `analyzePETs()`'s local, which is a different method.
+                'description' => 'Make larger gifts that become exempt after '
+                    .(int) ($this->taxConfig->getPETRules()['years_to_exemption'] ?? 7)
+                    .' years',
                 'potential_savings' => round($currentIHTLiability, 2),
             ];
             $priority[] = [

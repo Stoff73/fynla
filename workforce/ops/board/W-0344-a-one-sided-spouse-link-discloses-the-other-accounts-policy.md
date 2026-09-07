@@ -4,7 +4,7 @@ title: A spouse link claimed from one side only discloses the other account's fi
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0027-cycle4-life-cover-reach.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:55:00Z
@@ -74,3 +74,12 @@ live reciprocal links, 0 one-sided, 0 dead** — no existing user loses cover.
 - 2026-08-23 — Browser cannot verify the blocked states: the persona has no deleted,
   one-sided or unreciprocated link, so there is no screen to look at. Covered by tests and
   mutations M2/M3. Moving to `handoff` with that stated.
+
+- 2026-08-30 build-lead: **CLOSED — fixed, and re-verified 2026-08-29 while doing W-0350.**
+  `LifeCoverReach` requires `User::hasReciprocalSpouseLink()`, now through the promoted
+  `reciprocalLiveSpouse()`, and the write path underneath it was closed by W-0347 so the
+  reciprocity it tests can no longer be forged. Covered by
+  `tests/Feature/Api/SpouseLinkConsentTest.php` and the two suites added under W-0350.
+
+  **This item is also the proof that "no commit names it" is a weak signal.** It appeared
+  in the 2026-08-30 evidence audit as untouched, having been fixed twice.

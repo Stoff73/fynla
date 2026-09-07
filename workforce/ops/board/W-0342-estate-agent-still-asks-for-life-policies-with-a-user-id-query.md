@@ -4,7 +4,7 @@ title: EstateAgent still asks which life policies exist with a user_id query, so
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0027-cycle4-life-cover-reach.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:35:00Z
@@ -121,3 +121,9 @@ reached one of the two reads in this method and not the other.
   phantom gap. **The `/m` estate screen renders no life-cover section at all**, so this fix
   has no visible surface there — stated rather than claimed. Estate caches cleared by hand
   before each reading (W-0381). Moving to `handoff`.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `EstateAgent` no longer asks
+  `LifeInsurancePolicy::where('user_id', $userId)` — it reads through `LifeCoverReach` (injected
+  at :54), which returns the policies covering **this user's life**, their own plus any joint-life
+  policy the linked spouse recorded. So the policy assessment runs for Sarah, and the itemised
+  policies that reach `userContext` and the language model no longer tell it she holds none.

@@ -32,6 +32,19 @@ beforeEach(function () {
     $this->nrb = 325_000.0;
 });
 
+/**
+ * W-0367 — every figure below is now NET of the IHTA 1984 s19 annual exemption.
+ *
+ * A single gift draws £3,000 for its own tax year plus £3,000 carried forward
+ * from the unused year before it, so a lone gift is relieved by £6,000 before
+ * anything else happens to it. Gifts on the same day divide that between them
+ * pro rata (IHTM14143).
+ *
+ * The expectations were re-derived by hand rather than read off the new output,
+ * and each carries its arithmetic. The taper bands, the cumulation rules and the
+ * lifetime credit are all unchanged — only the chargeable value they operate on
+ * has moved.
+ */
 function gift(User $user, string $type, float $value, float $yearsAgo): Gift
 {
     return Gift::factory()->create([
@@ -50,8 +63,10 @@ it('charges nothing on a gift the allowance covers, however recent', function ()
 
     // Taper reduces tax. There is no tax here, so there is nothing to reduce —
     // the gift simply consumes £100,000 of the band.
+    // £100,000 less the £6,000 annual exemption = £94,000 chargeable, all of it
+    // inside the £325,000 band.
     expect($r['failed_gift_tax'])->toBe(0.0)
-        ->and($r['total_nrb_used'])->toBe(100_000.0)
+        ->and($r['total_nrb_used'])->toBe(94_000.0)
         ->and($r['failed_gifts'])->toBe([]);
 });
 
@@ -60,9 +75,10 @@ it('charges the full rate on the excess of a recent gift', function () {
 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
-    // £325,000 covered, £100,000 chargeable, under three years so no taper: 40%.
-    expect($r['failed_gift_tax'])->toBe(40_000.0)
-        ->and($r['failed_gifts'][0]['chargeable_amount'])->toBe(100_000.0)
+    // £425,000 less £6,000 exemption = £419,000. £325,000 covered, £94,000
+    // chargeable, under three years so no taper: 40% = £37,600.
+    expect($r['failed_gift_tax'])->toBe(37_600.0)
+        ->and($r['failed_gifts'][0]['chargeable_amount'])->toBe(94_000.0)
         ->and($r['failed_gifts'][0]['tax_rate_percent'])->toBe(40.0)
         ->and($r['failed_gift_taper_saving'])->toBe(0.0);
 });
@@ -75,11 +91,12 @@ it('tapers the charge by years survived', function (float $yearsAgo, float $expe
     expect($r['failed_gifts'][0]['tax_rate'])->toBe($expectedRate)
         ->and($r['failed_gift_tax'])->toBe($expectedTax);
 })->with([
-    'under 3 years — no relief' => [1.0, 0.40, 40_000.0],
-    '3-4 years — 20% relief' => [3.5, 0.32, 32_000.0],
-    '4-5 years — 40% relief' => [4.5, 0.24, 24_000.0],
-    '5-6 years — 60% relief' => [5.5, 0.16, 16_000.0],
-    '6-7 years — 80% relief' => [6.5, 0.08, 8_000.0],
+    // £94,000 chargeable throughout (£425,000 − £6,000 exemption − £325,000 band).
+    'under 3 years — no relief' => [1.0, 0.40, 37_600.0],
+    '3-4 years — 20% relief' => [3.5, 0.32, 30_080.0],
+    '4-5 years — 40% relief' => [4.5, 0.24, 22_560.0],
+    '5-6 years — 60% relief' => [5.5, 0.16, 15_040.0],
+    '6-7 years — 80% relief' => [6.5, 0.08, 7_520.0],
 ]);
 
 it('drops a gift out entirely once the seven years are survived', function () {
@@ -96,9 +113,9 @@ it('reports what taper actually saved', function () {
 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
-    // £100,000 chargeable: £40,000 at the full rate, £8,000 after taper.
-    expect($r['failed_gift_taper_saving'])->toBe(32_000.0)
-        ->and($r['failed_gifts'][0]['taper_saving'])->toBe(32_000.0);
+    // £94,000 chargeable: £37,600 at the full rate, £7,520 after taper.
+    expect($r['failed_gift_taper_saving'])->toBe(30_080.0)
+        ->and($r['failed_gifts'][0]['taper_saving'])->toBe(30_080.0);
 });
 
 it('cumulates each gift against the seven years before ITSELF, not one running band', function () {
@@ -107,10 +124,11 @@ it('cumulates each gift against the seven years before ITSELF, not one running b
 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
+    // Each gift is relieved by £6,000 in its own tax year: £294,000 and £194,000.
     // Both are inside each other's seven-year lookback (5.5 years apart), so the
-    // recent gift DOES cumulate the older one: band £325,000 − £300,000 = £25,000,
-    // leaving £175,000 chargeable at the full 40% = £70,000.
-    expect($r['failed_gift_tax'])->toBe(70_000.0)
+    // recent gift DOES cumulate the older one: band £325,000 − £294,000 = £31,000,
+    // leaving £163,000 chargeable at the full 40% = £65,200.
+    expect($r['failed_gift_tax'])->toBe(65_200.0)
         ->and(collect($r['failed_gifts'])->firstWhere('gift_value', 200_000.0)['tax_rate_percent'])->toBe(40.0);
 });
 
@@ -139,9 +157,10 @@ it('does not let an out-of-window transfer reduce the death estate\'s allowance'
     // Only the failed £100,000 potentially exempt transfer touches the estate's
     // band. It IS inside the older transfer's reach for its own cumulation, but
     // that is a different question from what the estate may claim.
-    expect($r['nrb_used_by_pets'])->toBe(100_000.0)
+    // £100,000 less £6,000 exemption = £94,000.
+    expect($r['nrb_used_by_pets'])->toBe(94_000.0)
         ->and($r['nrb_used_by_clts'])->toBe(0.0)
-        ->and($r['total_nrb_used'])->toBe(100_000.0)
+        ->and($r['total_nrb_used'])->toBe(94_000.0)
         ->and($r['fourteen_year_rule_applied'])->toBeTrue();
 });
 
@@ -160,10 +179,10 @@ it('credits the lifetime charge already borne by a chargeable lifetime transfer'
     // one rule: additional = max(0, tapered − lifetime), nothing repayable
     // (IHTM14571).
     //
-    // £100,000 chargeable. Tapered at 6.5 years: £8,000. Lifetime charge already
-    // borne at 20%: £20,000. £8,000 < £20,000, so NO ADDITIONAL TAX IS DUE.
+    // £94,000 chargeable. Tapered at 6.5 years: £7,520. Lifetime charge already
+    // borne at 20%: £18,800. £7,520 < £18,800, so NO ADDITIONAL TAX IS DUE.
     expect($r['failed_gifts'][0]['tax_rate'])->toBe(0.08)
-        ->and($r['failed_gifts'][0]['lifetime_tax_credited'])->toBe(20_000.0)
+        ->and($r['failed_gifts'][0]['lifetime_tax_credited'])->toBe(18_800.0)
         ->and($r['failed_gift_tax'])->toBe(0.0);
 });
 
@@ -172,9 +191,9 @@ it('charges only the excess over the lifetime tax when the taper has barely run'
 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
-    // £100,000 chargeable at the full 40% = £40,000, less the £20,000 lifetime
-    // charge = £20,000 additional. Total borne £40,000, which is the death rate.
-    expect($r['failed_gift_tax'])->toBe(20_000.0);
+    // £94,000 chargeable at the full 40% = £37,600, less the £18,800 lifetime
+    // charge = £18,800 additional. Total borne £37,600, which is the death rate.
+    expect($r['failed_gift_tax'])->toBe(18_800.0);
 });
 
 it('stops charging a chargeable lifetime transfer once the tapered rate falls below the lifetime rate', function () {
@@ -217,8 +236,9 @@ it('reads the schedule from configuration rather than a literal', function () {
 
     // Moved to a rate nothing else in the codebase uses. A hardcoded schedule
     // would still answer £8,000.
+    // £94,000 chargeable at the moved 5% band.
     expect(app(FailedGiftTaxCalculator::class)->forMember($this->user, $this->nrb)['failed_gift_tax'])
-        ->toBe(5_000.0);
+        ->toBe(4_700.0);
 });
 
 it('never lets one person\'s gifts reach past their own allowance', function () {
@@ -227,8 +247,10 @@ it('never lets one person\'s gifts reach past their own allowance', function () 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
     // s8A transfers the unused PERCENTAGE of a band, and that cannot go below zero.
+    // £900,000 less £6,000 = £894,000, capped at the £325,000 band, leaving
+    // £569,000 chargeable at 40% = £227,600.
     expect($r['total_nrb_used'])->toBe(325_000.0)
-        ->and($r['failed_gift_tax'])->toBe(230_000.0);
+        ->and($r['failed_gift_tax'])->toBe(227_600.0);
 });
 
 it('does not cumulate a potentially exempt transfer that survived its seven years', function () {
@@ -237,8 +259,10 @@ it('does not cumulate a potentially exempt transfer that survived its seven year
 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
+    // The surviving gift is out of the window entirely; the recent one is
+    // £300,000 less £6,000 exemption = £294,000, inside the £325,000 band.
     expect($r['failed_gift_tax'])->toBe(0.0)
-        ->and($r['total_nrb_used'])->toBe(300_000.0);
+        ->and($r['total_nrb_used'])->toBe(294_000.0);
 });
 
 it('reduces the estate band by the VALUE of in-window transfers, not the band they used', function () {
@@ -247,7 +271,8 @@ it('reduces the estate band by the VALUE of in-window transfers, not the band th
 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
-    expect($r['total_nrb_used'])->toBe(300_000.0);
+    // £300,000 less £6,000 exemption.
+    expect($r['total_nrb_used'])->toBe(294_000.0);
 });
 
 /**
@@ -266,10 +291,11 @@ it('makes two same-day transfers share one nil rate band', function () {
 
     $r = $this->calc->forMember($this->user, $this->nrb);
 
-    // £600,000 given, £325,000 of band, so £275,000 is chargeable. One year, so no
-    // taper: £275,000 at the full 40% death rate.
+    // £600,000 given. The day's £6,000 exemption divides pro rata — £3,000 each —
+    // leaving £594,000 chargeable. £325,000 of band, so £269,000 is chargeable.
+    // One year, so no taper: £269,000 at the full 40% death rate = £107,600.
     expect($r['total_nrb_used'])->toBe(325_000.0)
-        ->and($r['failed_gift_tax'])->toBe(110_000.0);
+        ->and($r['failed_gift_tax'])->toBe(107_600.0);
 });
 
 it('splits the shared band in proportion to value, not equally', function () {
@@ -282,12 +308,14 @@ it('splits the shared band in proportion to value, not equally', function () {
 
     $byValue = collect($r['failed_gifts'])->keyBy('gift_value');
 
-    // £325,000 of band split 75/25: £243,750 and £81,250, leaving £206,250 and
-    // £68,750 chargeable at the full rate.
+    // The day's £6,000 exemption divides 75/25 too — £4,500 and £1,500 — leaving
+    // £445,500 and £148,500. The 75/25 ratio is therefore unchanged, so the band
+    // still splits £243,750 / £81,250, leaving £201,750 and £67,250 chargeable at
+    // the full rate: £80,700 and £26,900.
     expect($byValue[450_000.0]['covered_by_allowance'])->toBe(243_750.0)
-        ->and($byValue[450_000.0]['tax_due'])->toBe(82_500.0)
+        ->and($byValue[450_000.0]['tax_due'])->toBe(80_700.0)
         ->and($byValue[150_000.0]['covered_by_allowance'])->toBe(81_250.0)
-        ->and($byValue[150_000.0]['tax_due'])->toBe(27_500.0);
+        ->and($byValue[150_000.0]['tax_due'])->toBe(26_900.0);
 });
 
 it('charges the same total however the same-day gifts are sized', function () {
@@ -305,7 +333,7 @@ it('charges the same total however the same-day gifts are sized', function () {
     $even = $this->calc->forMember($this->user, $this->nrb);
 
     expect($uneven['failed_gift_tax'])->toBe($even['failed_gift_tax'])
-        ->and($uneven['failed_gift_tax'])->toBe(110_000.0)
+        ->and($uneven['failed_gift_tax'])->toBe(107_600.0)
         ->and($uneven['total_nrb_used'])->toBe($even['total_nrb_used']);
 });
 

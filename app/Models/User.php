@@ -528,6 +528,93 @@ class User extends Authenticatable
     }
 
     /**
+     * The spouse's account when the link is live AND reciprocal — the only spouse
+     * a caller may read financial records from, or write records into.
+     *
+     * **W-0350 — one helper, because five idioms for one question is why the census
+     * that found this needed four agents rather than one grep.** `spouse_id` is a
+     * column written ABOUT the account holder: "I say N is my spouse" is not "N's
+     * records are mine". Reading it raw, or through `liveSpouse()`, answers a
+     * different question — `User` soft-deletes, so `liveSpouse()` already excludes a
+     * deleted partner and buys almost nothing over the raw column for authorization.
+     * **The live hole is the one-sided link, and only reciprocity closes it.**
+     *
+     * Promoted from `LifeCoverReach::coveringSpouse()`, which was the only reader in
+     * the application that got this right first time, and hand-rolled in
+     * `MilestoneDetectionService`, which got it right and wrote it out again.
+     *
+     * **Not for `hasAcceptedSpousePermission()`'s job.** That asks whether the couple
+     * have agreed to share financial data; this asks whether the couple exist. A
+     * reader of financial data wants both, and they are separate questions.
+     *
+     * **Not for `spouseIdRegardlessOfAccountState()`'s job either** — see its docblock
+     * for why "are these two married?" must survive a deleted account.
+     */
+    public function reciprocalLiveSpouse(): ?self
+    {
+        $spouse = $this->liveSpouse();
+
+        if ($spouse === null || ! $this->hasReciprocalSpouseLink($spouse->id)) {
+            return null;
+        }
+
+        return $spouse;
+    }
+
+    /**
+     * May this account's figures be pooled with its spouse's? — **W-0529, CSJ 2026-08-29.**
+     *
+     * ONE derivation of `$dataSharingEnabled`, because there were **eight**, in six
+     * shapes, for one question:
+     *
+     * - `$spouse !== null` alone (`EstateAgent`, twice) — no consent at all, so Fyn
+     *   pooled an estate the screen would not have pooled and quoted a different figure
+     *   from the one the user was looking at. **This is the one CSJ ruled on.**
+     * - `hasAcceptedSpousePermission()` alone (`HouseholdPlanningService`, three times)
+     *   — consent with no check that a spouse is there to consent.
+     * - Four more spellings of "a spouse, and permission", each correct and each
+     *   written out again.
+     *
+     * Reciprocity is folded in because the two questions are one decision at the point
+     * of use: pooling reads the other account's financial records, so it needs both a
+     * link they made too and their consent to share.
+     *
+     * **This answers whether to POOL, not whether they are married.** Callers must keep
+     * resolving the spouse separately and pass it even when this is false — the estate
+     * engine reads `$spouse` for `$isMarried`, and handing it null makes a couple report
+     * as single, which is the misleading artefact W-0154 recorded as a near-miss.
+     */
+    public function sharesFinancialDataWithSpouse(): bool
+    {
+        return $this->financiallySharedSpouse() !== null;
+    }
+
+    /**
+     * The spouse whose financial records this account may read — **W-0530**.
+     *
+     * The same rule as `sharesFinancialDataWithSpouse()` in the shape most callers want,
+     * so a reader asks once instead of resolving the spouse and then asking whether it
+     * may look at them. The boolean is expressed in terms of THIS rather than the other
+     * way round, so there is still one derivation.
+     *
+     * **Financial reads only.** Identity and family reads — who the spouse is, the
+     * couple's children — stop at `reciprocalLiveSpouse()`. `DependantsReach`'s docblock
+     * makes the argument and it is right: the permission gate governs financial data,
+     * and a child is not that. Consent decides what may be READ ABOUT MONEY; reciprocity
+     * decides whether the couple exist at all.
+     */
+    public function financiallySharedSpouse(): ?self
+    {
+        $spouse = $this->reciprocalLiveSpouse();
+
+        if ($spouse === null || ! $this->hasAcceptedSpousePermission()) {
+            return null;
+        }
+
+        return $spouse;
+    }
+
+    /**
      * Get the user's active sessions.
      */
     public function sessions(): HasMany

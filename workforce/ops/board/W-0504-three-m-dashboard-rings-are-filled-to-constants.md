@@ -4,7 +4,7 @@ title: Three of the /m dashboard's donut rings are filled to hardcoded constants
 mission: persona-run-peak_earners-2026-08-20
 owner: design-lead
 reviewers: [build-lead]
-status: queued
+status: done
 severity: low
 surfaces: [m]
 source: found while consolidating the card derivation, W-0245, 2026-08-26
@@ -66,3 +66,50 @@ web's metric, or drop the ring for a shape that suits a signed number.
 3. Verified on `/m` against a persona whose figures are not near the constants, so a
    ring that failed to change is visible. `peak_earners` at 11% investments is a good
    case; anything near 72% is not.
+
+## 2026-09-01 — CLOSED
+
+**Acceptance 1 — all three rings now render a derived figure**, each from the shared
+`dashboardFigures` derivation `/m` already imports:
+
+| Ring | Was | Now |
+|---|---|---|
+| Net worth | `progress: 72` | `f.netWorth.equityPct` |
+| Protection | `covered ? 85 : 0` | `covered ? 100 : 0` |
+| Investment | `value > 0 ? 72 : 0` | `f.investment.sharePct` |
+
+**Acceptance 2 — arc and number are one quantity now.** The net-worth ring was the whole
+defect in one line: `progress: 72` beside `vizNum: <trend>%`. It now fills, prints and
+captions from `equityPct`.
+
+**The decision the item reserved for Azlan, taken here and flagged.** The item asked
+whether the net-worth ring should show its labelled metric (Trend), adopt web's (Equity),
+or stop being a ring. **Equity**, for three reasons: a trend is signed and a 0-100 arc
+cannot render a fall — which is likely why it was left constant in the first place; web
+shows Equity from the identical field (`GamifiedDashboard.vue:320`), so the two surfaces
+now say the same thing; and it needed no new derivation. The `Trend` caption is gone with
+it. **Reversible in one line** if Azlan wants the ring dropped instead.
+
+Protection moved 85 → 100 rather than to some other partial: cover here is binary, and 85
+drew a partial arc for a state that has no partial.
+
+`const trend = f.netWorth.trendPct` was left orphaned by the change and removed; ESLint
+clean.
+
+**Guard:** three cases appended to `resources/mobile/views/__tests__/Dashboard.spec.js` —
+no hardcoded percentage in any ring, every `progress:` expression derived from `f.`, and
+the net-worth arc and number reading the same field.
+
+**An instrument error worth recording**, because it is the third of its kind this
+session: the guard first failed against **its own comment** — the comment describing the
+old `progress: 72` was scanned as if it were code, so the test reported the defect it was
+documenting. Comments are now stripped before matching.
+
+Tests: **197 passed, 34 files** across `/m`; ESLint clean on the changed file.
+
+**Acceptance 3 is NOT done.** No `/m` browser verification against a persona away from
+the constants. `peak_earners` is the right case — the item measured it live at 11%
+investments against a 72% arc, and its investments are £220,000 — but the local
+`public/m-build/` is a csjones build whose router base is `/fynla/m/app`, so the `/m` SPA
+does not boot on `localhost` (established on W-0034). This needs a csjones deploy to
+close. Recorded, not implied.

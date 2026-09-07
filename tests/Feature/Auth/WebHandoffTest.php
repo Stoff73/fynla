@@ -176,8 +176,13 @@ it('keeps the destination allowlist in step with the native mirror', function ()
         WebHandoffDestination::cases()
     ))->toBe([
         'admin', 'subscription', 'settings', 'privacy', 'notifications', 'estate_will',
-        'estate_iht', 'risk_profile',
+        'estate_iht', 'risk_profile', 'estate_lpa',
     ]);
+    // W-0110. `estate_lpa` is deliberately NOT in the native mirror yet: CSJ ruled
+    // on 2026-08-31 that iOS is out of scope for the board loop, so the Swift case
+    // is deferred to the iOS backlog beside W-0044. Native cannot send a case it
+    // does not have, so the gap is a missing route on native — not a 422 — and it
+    // is recorded on W-0110 rather than hidden here.
 });
 
 // Swift derives an enum's raw value from the case name unless told otherwise, so a
@@ -229,4 +234,24 @@ it('issues the risk profile handoff neither mobile surface has a screen for', fu
 // somewhere else is a handoff to the wrong screen, and nothing above would catch it.
 it('lands the risk profile handoff on the web screen that holds the factor breakdown', function (): void {
     expect(WebHandoffDestination::RISK_PROFILE->path())->toBe('/risk-profile');
+});
+
+/**
+ * W-0110. `/m` had no Lasting Power of Attorney screen and no destination to send
+ * anyone to, while Fyn wrote the record from that same device. The estate card now
+ * hands off here, so the destination has to be on the server's allowlist and has to
+ * land on the screen that actually holds the instrument.
+ */
+it('issues a handoff to the Lasting Power of Attorney screen', function (): void {
+    expect(WebHandoffDestination::ESTATE_LPA->path())->toBe('/estate/power-of-attorney');
+
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/v1/mobile/web-handoffs', [
+        'destination' => 'estate_lpa',
+    ])->assertCreated()->assertJsonPath('success', true);
+
+    expect(WebHandoff::query()->sole()->destination)
+        ->toBe(WebHandoffDestination::ESTATE_LPA);
 });

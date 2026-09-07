@@ -67,8 +67,12 @@ const getters = {
             return parseFloat(resolved) || 0;
         }
 
+        // Null, not 0. With no monthly figure there is no runway to state, and
+        // saying "0 months" to a household holding cash is the alarming error
+        // W-0495 exists to remove. The backend now sends null for the same
+        // reason, so both branches agree.
         const monthlyExpenditure = getters.monthlyExpenditure;
-        if (!monthlyExpenditure) return 0;
+        if (!monthlyExpenditure) return null;
 
         return getters.emergencyFundTotal / monthlyExpenditure;
     },
@@ -217,7 +221,21 @@ const actions = {
         }
     },
 
-    // Analyse savings
+    /**
+     * Analyse savings against a supplied scenario.
+     *
+     * **No SPA caller, and that is correct, not a gap (W-0335).** The savings
+     * analysis now arrives with `/api/savings` itself — `SavingsController::index()`
+     * composes `emergency_fund` and the expenditure summary into the same payload
+     * as the accounts — so the screens have the figures without a second round
+     * trip, and dispatching this as well would be a second mechanism for one
+     * number (Rule 20).
+     *
+     * `POST /savings/analyze` stays because it takes a SCENARIO: it answers "what
+     * if my expenditure were X", which the index payload cannot. Recorded here
+     * because an action with no callers reads exactly like an unwired capability
+     * to the next sweep, and this one is not.
+     */
     async analyseSavings({ commit }, data) {
         commit('setLoading', true);
         commit('setError', null);

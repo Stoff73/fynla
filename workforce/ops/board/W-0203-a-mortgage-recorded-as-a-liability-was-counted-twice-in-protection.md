@@ -4,7 +4,7 @@ title: A mortgage recorded in the liabilities table was counted twice in the pro
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0019-cycle2-ownership-applied-one-side-only.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-08-22T03:40:00Z
@@ -100,3 +100,11 @@ profile has always presented them alongside the mortgages table. Summing them in
    accounts — **NOT done, by instruction. This is the one acceptance criterion with no
    persona coverage**, because the household holds no liability rows. It needs a
    deliberately constructed case.
+
+- 2026-08-30 build-lead: **CLOSED — already fixed, verified against the code.**
+  `CoverageGapAnalyzer::calculateDebtProtectionNeed()` no longer sums the two tables
+  beside each other; it returns `AssetAggregator::calculateLiabilityTotals()`, a single
+  reader that counts each liability once and at the user's share. `ProtectionAgent` holds
+  no raw `liabilities()->sum()` / `mortgages()->sum()` pair either. The item's own Intent
+  said it "was fixed in the same change" as W-0187 and it was never restamped, so it has
+  been sitting in the outstanding count ever since.

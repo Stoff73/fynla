@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
 owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m]
@@ -80,3 +80,48 @@ held a record with no user attached, so the retention question had never had to 
   native app runs any analytics or attribution that would need an equivalent consent —
   because if it does, it has no mechanism for it, and if it does not, there is nothing to
   ask. Worth a look before native ships anything with tracking in it.
+
+---
+
+## Closed 2026-09-01 — a derived lifetime, on the command that already does this job
+
+**Acceptance 1 — the lifetime exists and something enforces it.**
+`CleanupPendingRegistrations::purgeUnclaimableConsents()` deletes a row with no
+`user_id`, a live `subject_token`, no `superseded_at`, and a `created_at` older than
+the lifetime.
+
+**Acceptance 2 — the number is derived, and the reason is written at the constant.**
+365 days, read from `CookieConsentService::LIFETIME_DAYS` (made public for this, with
+the reason in its docblock at `:52-61`). **It is not a chosen retention period.** The
+row is claimable only by a browser that can still present the token, and the cookie
+carrying it expires after exactly that many days — so past it the row cannot become
+anyone's consent by any route. Reading the constant rather than repeating the number
+means extending the cookie extends the claim window with it, and the two cannot drift.
+
+**Acceptance 3 — no parallel mechanism.** It rides `registrations:cleanup`, the shape
+the item named: already hourly in `app/Console/Kernel.php:28`, already removing stale
+pre-account state, already carrying `--dry-run`. No new command, no new schedule entry.
+
+**Acceptance 4 — claiming still works, tested at the boundary.** A row at
+`LIFETIME_DAYS - 1` survives the purge and then claims successfully. The test forces
+`created_at` with `saveQuietly()` — written naively it passes because Eloquent stamps
+the row as one second old and the boundary is never reached.
+
+**Acceptance 5 — evidence is not destroyed, and this needed a schema change.**
+F-0007 leaves a row unclaimed where the account already holds the same type and
+version, because deleting either would destroy evidence. That row has a null `user_id`
+and a live token — **indistinguishable in the database from an abandoned visitor's**.
+A purge that could not tell them apart would have broken F-0007's principle while
+enforcing its retention.
+
+`superseded_at` is the distinction (`2026_09_01_090000_add_superseded_at_to_user_consents.php`),
+set by `UserConsent::claimAnonymousConsents()` at the point it deliberately skips a row
+(`:176-186`), and never otherwise. **Mutation-verified:** removing
+`whereNull('superseded_at')` from the purge turns the evidence test red.
+
+**Acceptance 6 — W-0050 and W-0155 untouched.** Nothing here reopens the cookie-wall
+question or depends on a withdrawal interface.
+
+**Tests:** `tests/Feature/Consent/CookieConsentTest.php` — 4 new, 19 passing in the
+file: the unclaimable row deleted, the boundary row kept and then claimed, the evidence
+row kept, and a claimed row untouched at 900 days.

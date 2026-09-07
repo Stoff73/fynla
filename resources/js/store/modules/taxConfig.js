@@ -78,12 +78,24 @@ const getters = {
   badrRate: (state) => state.config?.capital_gains_tax?.badr_rate ?? null,
   badrLifetimeLimit: (state) => state.config?.capital_gains_tax?.badr_lifetime_limit ?? null,
 
+  // Joint ownership (W-0498) — what happens to a jointly-held asset on death, in the
+  // configured words. `AssetForm.vue` carried its own copy of these two sentences.
+  jointOwnershipTypes: (state) => state.config?.property_ownership?.joint_ownership_types ?? {},
+  // W-0533. Empty until the snapshot arrives, so a consumer must handle that
+  // rather than fall back to a number of its own — a fallback is how the literal
+  // 80 survived in three places.
+  leaseholdValuationThresholds: (state) => state.config?.property_ownership?.leasehold_valuation_thresholds ?? {},
+  tenureTypes: (state) => state.config?.property_ownership?.tenure_types ?? {},
+
   // IHT
   ihtNilRateBand: (state) => state.config?.inheritance_tax?.nil_rate_band ?? null,
   ihtResidenceNilRateBand: (state) => state.config?.inheritance_tax?.residence_nil_rate_band ?? null,
   ihtRnrbTaperThreshold: (state) => state.config?.inheritance_tax?.rnrb_taper_threshold ?? null,
   ihtStandardRate: (state) => state.config?.inheritance_tax?.standard_rate ?? null,
   ihtReducedRate: (state) => state.config?.inheritance_tax?.reduced_rate ?? null,
+  // W-0515 — when unused defined contribution pots start counting towards the
+  // estate. Configured, so a Budget that moves it moves every sentence naming it.
+  ihtPensionInclusionDate: (state) => state.config?.inheritance_tax?.pension_inclusion_date ?? null,
 
   // Dividend tax
   dividendAllowance: (state) => state.config?.dividend_tax?.allowance ?? null,

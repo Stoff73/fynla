@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0009-batch-i-onboarding-spouse.md
 owner: build-lead
 claimed_by: fix-batch-I
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T19:20:00Z
@@ -203,3 +203,10 @@ Storage is unchanged for every existing row and every consumer. Display now read
 "partner" and "step child". The old consequence — "a partner displays as Other
 Dependent" — no longer applies on the family surfaces, and survives only on the
 two formatters raised as W-0115.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.**
+  `2026_08_21_200000_add_stated_relationship_to_family_members_table` adds the column that holds
+  what the user actually chose, so `partner` and `step_child` are stored (as `other_dependent` and
+  `child` in the narrow enum) *and* rendered back as what the user said. The 500 on the
+  truncated enum is gone, and the migration's own docblock records why storing the enum value
+  alone would tell someone their partner is a dependent.

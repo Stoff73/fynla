@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [tax-compliance-reviewer]
-status: gated
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web]
@@ -110,3 +110,19 @@ estate", and the response mixes their outputs.
   a Total Liabilities of £0. The totals are right and the detail beneath them is not.
   Rebuilding `IHTFormattingService::formatLiabilitiesBreakdown()` on
   `projectMemberLiabilities()` is the other half of this item and is **not done**.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed. The tax-affecting half was already done; the display half, which the comment itself named as remaining, is now done too.**
+
+  **Already fixed (W-0470/W-0465 F5, F6):** `IHTController:78` no longer overwrites the engine's figures with the display breakdown's, and the comment there records why in the direction that matters — the breakdown's liability figure is systematically LARGER, and a larger liability means a smaller taper base, less taper, more residence band surviving, **less tax**. Adopting it to make the column reconcile would have moved tax the wrong way (tax-compliance-reviewer, round four).
+
+  **The residual, closed here.** That comment ended *"rebuilding those on the projection is the remaining half of W-0470"*, and the rows were still not projected:
+  - Mortgages: `($ageAtDeath >= 70) ? 0 : $userShare` — a hardcoded age reading no maturity date, so a mortgage running to 75 vanished at 70 and one repaid at 60 was shown in full at 69.
+  - Every other liability: `'projected_balance' => $userShare` — **never amortised at all**, so a loan repaid years before death printed at full value inside a projected column.
+
+  Both now call `EstateProjectionService::projectSingleLiability()` — **the engine's own method, made public rather than reimplemented**, which is the whole point: the rows printed beside a projected total are now projected by the rule that produced it (Rule 20). It reads the real maturity date, amortises to it, and returns zero for a debt ending before death (IHTA 1984 s5(3), s162, s175A).
+
+  **One judgement recorded at the line:** `$retirementAge` is consulted only where a liability has no end date, and it falls back to `$ageAtDeath` — meaning *"not cleared before death"*. That is the conservative reading; assuming an unknown debt clears early would shrink the estate and the tax with it, which is the same wrong direction the F5/F6 fix refused.
+
+  **Tested:** 199 IHT, formatting and liability tests pass (672 assertions); the 7 persona locks unmoved at £1,728,780 / £343,512. Pint clean.
+
+  **NOT DONE.** No `tax-compliance-reviewer` pass. The engine's figures are unchanged so the BILL cannot move, but the displayed liability rows now can.

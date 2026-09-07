@@ -4,7 +4,8 @@ title: The /m stylesheet hardcodes non-palette hex and invents two neutral shade
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0005-design-lead-palette-and-copy.md
 owner: design-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: low
 surfaces: [m]
 source: found by design-lead during the W-0045 palette sweep, 2026-08-21
@@ -234,3 +235,16 @@ contract holds without edit.
   consume this stylesheet, so no parity obligation — stated rather than assumed.
 - One console error on `/m`, pre-existing and unrelated: `403` on
   `POST /api/ai-chat/onboarding/start` in a preview session.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Phailanx
+- **Evidence:** merged in #718; commit `1126f32fb` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

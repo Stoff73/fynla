@@ -8,9 +8,9 @@ use App\Models\BusinessInterest;
 use App\Models\CashAccount;
 use App\Models\Chattel;
 use App\Models\Estate\Asset;
-use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use App\Services\Shared\DependantsReach;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -19,6 +19,8 @@ class ProfileCompletenessChecker
 {
     public function __construct(
         private readonly PropertyStore $propertyStore,
+        // W-0275 — the one home for reaching a household's family (Rule 20).
+        private readonly DependantsReach $dependantsReach,
     ) {}
 
     /**
@@ -158,22 +160,17 @@ class ProfileCompletenessChecker
         // even if they earn their own income (not marked is_dependent)
         $hasSpouse = ! is_null($user->liveSpouseId());
 
-        // Check if user has dependent children
-        $hasChildren = $user->familyMembers()
-            ->where('is_dependent', true)
-            ->where('relationship', '!=', 'spouse')
-            ->exists();
+        // W-0275 acceptance 2. This was the second hand-rolled spouse traversal, and
+        // it reached the spouse on raw `liveSpouseId()` rather than reciprocally — so a
+        // one-sided link let one account read the other's rows while the other could
+        // not read back (the W-0350 axis `DependantsReach` already answers).
+        //
+        // It also had its own idea of which relationships count: the user's own side
+        // took everything except a spouse, the spouse's side took only children and
+        // step-children. Two rules for one question.
+        $hasChildren = $this->dependantsReach->dependantsOf($user)->isNotEmpty();
 
-        // Also check if spouse has dependent children (shared between linked accounts)
-        $spouseHasChildren = false;
-        if ($liveSpouseId = $user->liveSpouseId()) {
-            $spouseHasChildren = FamilyMember::where('user_id', $liveSpouseId)
-                ->where('is_dependent', true)
-                ->whereIn('relationship', ['child', 'step_child'])
-                ->exists();
-        }
-
-        return $hasSpouse || $hasChildren || $spouseHasChildren;
+        return $hasSpouse || $hasChildren;
     }
 
     /**

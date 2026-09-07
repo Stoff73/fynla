@@ -430,6 +430,10 @@ class InvestmentController extends Controller
                             'allocation_percent' => $holdingData['allocation_percent'],
                             'cost_basis' => $holdingData['cost_basis'] ?? null,
                             'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                            // W-0324. Adding the validation rule alone would have left
+                            // the value validated and still discarded — the write never
+                            // mentioned this column. Both halves are the fix.
+                            'dividend_yield' => $holdingData['dividend_yield'] ?? null,
                             'current_value' => $currentValue,
                         ]));
                     }
@@ -579,6 +583,8 @@ class InvestmentController extends Controller
                     'allocation_percent' => $holdingData['allocation_percent'],
                     'cost_basis' => $holdingData['cost_basis'] ?? null,
                     'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                    // W-0324 — same as the create path above.
+                    'dividend_yield' => $holdingData['dividend_yield'] ?? null,
                     'current_value' => $currentValue,
                 ]));
             }

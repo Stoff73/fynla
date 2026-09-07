@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0032-cycle4-rate-literals-and-the-charitable-denominator.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: gated
+status: done
 claimed_by: build-lead
 severity: medium
 surfaces: [web]
@@ -136,3 +136,15 @@ whole point of closing C2. But the input and the output now carry the same words
 and different values. **Label the output so it is not read as an echo of the
 input.** No fixture reaches it: `iht_profiles` holds 0 rows with
 `charitable_giving_percent > 0` (of 2). Any user can reach it.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed. It took three passes, and the record of why is the valuable part.**
+
+  **The original fault:** the card divided the legacy by the **NET ESTATE** while the threshold beside it in every message is 10% of the **BASELINE** — so the sentence invited the user to compare two percentages of different things. On the peak_earners household it showed **0.6% against a 10% threshold where the statutory figure is 0.81%**.
+
+  **Pass two, W-0452.** Pointing this card at the baseline was not enough: `EstatePlanService` was still computing its own percentage from a baseline `EstateAgent` had struck on the INDIVIDUAL's net estate — **matching denominators in name and not in value**, which is how one page published 4.2% while this one published 0.8% for the same household. That second division is gone, and the one computed after both branches is now the only division producing this percentage anywhere in the application, read by both surfaces.
+
+  **Pass three, C2 of the 2026-08-23 verdict.** W-0433's own fix lived INSIDE the recorded-bequest branch, so `charitable_giving_percent` had **two definitions depending on which branch ran** — a percentage of the baseline when a will recorded a legacy, and the user's typed profile figure, a percentage of the net estate, when it did not. Both were then quoted against a baseline threshold in the same sentence. **A fix placed inside one branch of the condition it was fixing.**
+
+  Also settled here: `$charitableAmount` is the pooled s23(1) exemption the caller deducts; `$rateTestAmount` is what the 10% test compares — the survivor's alone. Equal for a single person, different for a household where both spouses left a legacy, and the messages quote the rate-test figure because that is the comparison they describe.
+
+  **Tested:** 97 charitable tests pass, 289 assertions.

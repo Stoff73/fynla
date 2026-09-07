@@ -3,7 +3,8 @@ id: W-0043
 title: One shared mortgage names no counterparty — half a real liability belongs to nobody
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 claimed: 2026-08-26
 claimed_by: null
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
@@ -182,3 +183,16 @@ mortgages, properties and Fyn's create path can all still orphan a row.
 Acceptance 1 (CSJ's, and now narrower — see above) and acceptance 3 (a repair
 migration, which is unnecessary for seeded data and premature for prod until it is
 swept).
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Icecube-acc
+- **Evidence:** merged in #727; commit `8a91d70d2` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

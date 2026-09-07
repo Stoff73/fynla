@@ -4,7 +4,8 @@ title: The web and /m dashboards duplicate the whole card-building computed, so 
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: medium
 surfaces: [web, m]
 created: 2026-08-22T20:50:00Z
@@ -153,3 +154,16 @@ item.
 `/m` by relative path, which is the precedent this item was told to follow. **Not
 amended here** — it is a shared conventions doc and correcting it is a separate
 change from the one this item asked for.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Phailanx
+- **Evidence:** merged in #731
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

@@ -4,7 +4,7 @@ title: The estate column does not add up — four allowance rows summing to £1,
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0015-cycle1-estate-tax-figures.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T20:10:00Z
@@ -208,3 +208,8 @@ exposed the wrong nil rate band are not shown as components.
   against**, unchanged from cycle 1's finding (W-0138).
 
   Regression: `tests/Unit/Services/Estate/` 284 passed (922 assertions).
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `IHTPlanning.vue:1542-1543` and
+  `:1565-1566` map `nrb_spouse_modelled` and `nrb_gift_deduction` into `nrbFromSpouseModelled`
+  and `nrbGiftDeduction` on both the current and projected columns, so the £150,000 deduction row
+  renders and the rows sum. The hand-written mapping that dropped them is gone.

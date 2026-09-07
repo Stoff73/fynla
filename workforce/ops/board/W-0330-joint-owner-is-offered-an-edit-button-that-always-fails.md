@@ -4,7 +4,7 @@ title: A joint owner is shown Edit and Delete buttons on a shared investment acc
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-23T00:10:00Z
@@ -72,3 +72,15 @@ assuming.
   *should* be able to edit shared records is a separate product question and is
   NOT what this item asks — it asks only that the interface stop offering an action
   it will refuse.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **The backend rule was right and is unchanged.** `InvestmentController:498` refuses any update where `$account->user_id !== $user->id`, so a joint owner's Edit or Delete failed at the API. What was wrong is that the UI offered the control anyway: `InvestmentProjections.vue:47-61` rendered both buttons unconditionally, so a co-owner got a dead end that failed with no explanation on screen.
+
+  `canManageAccount` now gates them, and it asks the SAME question the server does rather than inventing a second rule — `isPrimaryOwner()` from `@/utils/ownership`, which prefers the API's own `is_primary_owner` flag and falls back to comparing `user_id` with the viewer. A helper already existed for exactly this; adding a local check would have been the second mechanism (Rule 20).
+
+  **The control is replaced, not merely removed.** A button that silently vanishes reads as a bug to the person it vanished for, so the co-owner is told *"[Name] manages this account"*, using `coOwnerName()` from the same utility. That is the difference between a restriction and a glitch.
+
+  **Tested:** 821 frontend tests pass, including the 744 component tests.
+
+  **NOT DONE.** Not browser-verified — `public/build/` is a csjones build, and this is precisely the kind of change that wants a second account logged in to confirm. The equivalent affordance on `/m` and native was not checked; **W-0496 already covers the native side** and is not double-counted here.

@@ -15,6 +15,7 @@ use App\Services\Estate\PersonalizedGiftingStrategyService;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 use App\Services\Estate\TrustService;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -78,7 +79,9 @@ class GiftingController extends Controller
             // Get IHT profile
             $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
             if (! $ihtProfile) {
-                $isMarried = in_array($user->marital_status, ['married']);
+                // W-0508 — a civil partnership pools for gifting exemptions and
+                // the transferable band exactly as a marriage does.
+                $isMarried = HouseholdPooling::hasSpousalStatus($user);
                 $ihtConfig = $this->taxConfig->getInheritanceTax();
                 $defaultSpouseNRB = $isMarried ? $ihtConfig['nil_rate_band'] : 0;
 
@@ -269,7 +272,9 @@ class GiftingController extends Controller
             // Get IHT profile
             $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
             if (! $ihtProfile) {
-                $isMarried = in_array($user->marital_status, ['married']);
+                // W-0508 — a civil partnership pools for gifting exemptions and
+                // the transferable band exactly as a marriage does.
+                $isMarried = HouseholdPooling::hasSpousalStatus($user);
                 $ihtConfig = $this->taxConfig->getInheritanceTax();
                 $defaultSpouseNRB = $isMarried ? $ihtConfig['nil_rate_band'] : 0;
 

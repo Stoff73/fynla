@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0029-cycle4-wills-and-estate-figures.md
 owner: build-lead
 reviewers: [quality-lead, compliance-lead]
-status: gated
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-08-23T00:40:00Z
@@ -158,3 +158,8 @@ Screenshots:
 - 2026-08-23 build-lead: fixed and applied locally.
   `tests/Unit/Services/Estate/MirrorWillPartyRepairTest.php` — 13 cases.
   Not self-certified — handed to quality-lead.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** This was residue, not an unlanded
+  fix, and the backfill exists: `app/Console/Commands/BackfillMirrorWillParties.php` repairs mirror
+  wills generated before W-0024, with the reasoning at `WillDocumentService:654` and the repair
+  pinned by `tests/Unit/Services/Estate/MirrorWillPartyRepairTest.php`. W-0024 stays fixed.

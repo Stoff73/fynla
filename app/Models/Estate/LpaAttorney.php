@@ -19,6 +19,8 @@ class LpaAttorney extends Model
         'attorney_type',
         'full_name',
         'date_of_birth',
+        // W-0105 — MCA 2005 s13(8). Nullable: not asked is not the same as no.
+        'is_bankrupt',
         'address_line_1',
         'address_line_2',
         'address_city',
@@ -29,6 +31,7 @@ class LpaAttorney extends Model
     ];
 
     protected $casts = [
+        'is_bankrupt' => 'boolean',
         'date_of_birth' => 'date',
         'sort_order' => 'integer',
     ];

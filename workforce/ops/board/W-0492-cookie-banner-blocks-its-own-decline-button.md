@@ -3,7 +3,7 @@ id: W-0492
 title: The E2E consent fixture seeds a key nothing reads, so the banner blocks every landing-page test
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: review
+status: done
 severity: medium
 surfaces: [web, m]
 source: found during W-0001 browser verification, 2026-08-25
@@ -94,3 +94,19 @@ ESLint clean on both changed files.
   verification codes and an E2E database, none available here. The substitution is
   mechanical and the key they replaced is read by nothing, so it cannot regress
   behaviour — but it is unrun.
+
+## 2026-09-01 — CLOSED
+
+Re-read in the code rather than taken from the note above. `seedCookieConsent()` is the
+one home at `tests/E2E/fixtures/app.js:21-25` and writes the real `fyn_cookie_consent`
+cookie through an init script; the auto-fixture uses it at `:29`; the seven call sites in
+`tests/E2E/journeys/user-reported-campaign-regressions.spec.js` use it too. A grep for
+`localStorage.setItem('cookie_consent'` across `tests/` returns **zero**. ESLint clean on
+both files.
+
+**The three gaps the note recorded are still gaps, and are not closed here** — they are
+about the E2E environment, not this fix: the smoke run's intermittency under load, the
+`scripts/e2e/serve.sh` database-name refusal (W-0493), and the six journey call sites
+being unrun. The substitution is mechanical and the key it replaced is read by nothing,
+so it cannot change behaviour, but it remains unexecuted and is recorded as such rather
+than implied to have passed.

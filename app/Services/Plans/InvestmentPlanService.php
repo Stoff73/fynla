@@ -25,7 +25,6 @@ use App\Services\Investment\Recommendation\SpouseOptimisationService;
 use App\Services\Investment\Recommendation\TransferRecommendationService;
 use App\Services\Investment\Recommendation\UserContextBuilder;
 use App\Services\Stores\SavingsStore;
-use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -52,7 +51,6 @@ class InvestmentPlanService extends BasePlanService
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly PlanConfigService $planConfig,
         private readonly DisposableIncomeAccessor $incomeAccessor,
-        private readonly TaxConfigService $taxConfig,
         private readonly InvestmentActionDefinitionService $actionDefinitionService,
         private readonly RecommendationPersonaliser $personaliser,
         private readonly UserContextBuilder $userContextBuilder,

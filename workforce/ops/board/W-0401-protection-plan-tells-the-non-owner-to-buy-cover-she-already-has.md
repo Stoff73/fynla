@@ -4,7 +4,7 @@ title: The coordination plan tells the non-owning spouse to buy debt cover she a
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0028-cycle4-m-protection-gap-reach.md
 owner: build-lead (fix-cycle4-mprotection)
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T03:40:00Z
@@ -136,3 +136,10 @@ income-protection recommendation.
 12 assertions**. Pint clean; the new `use` import survived the formatter (verified).
 
 Branch doc: `workforce/branches/fixes/F-0028-cycle4-m-protection-gap-reach.md` §11
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.**
+  `ProtectionStrategySource:76` records that this fourth caller of
+  `CoverageGapAnalyzer::calculateTotalCoverage()` no longer passes the plain `user_id` relation
+  and no longer reports `debt_protection_gap = 0` for a non-owning spouse. Pinned by
+  `tests/Unit/Services/Coordination/ComposedProtectionPlanTest.php` — *"the plan recommended cover
+  the non-owner already holds"*. The coordination plan stops telling her to buy what she has.

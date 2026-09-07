@@ -4,7 +4,7 @@ title: The Income Definitions panel shows a chain of labelled steps whose arithm
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0020-cycle2-auditability-figures-the-user-cannot-check.md
 owner: build-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-22T00:35:00Z
@@ -163,3 +163,16 @@ rather than an operation.
 
   Regression: `tests/Unit/Services/Tax/` + `AnnualAllowanceCheckerTest` 209 passed
   (591 assertions); `pension_arrangement` is an additive key.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  The panel's arithmetic works because the two things that made it look broken were both corrected, and both are recorded at the line:
+
+  1. **One quantity had two names.** `IncomeDefinitionsPanel.vue:19-23` — the deduction was labelled *"Less pension relief"* at the top and the identical figure *"Less employee pension contributions"* lower down. **The same £11,600 under two names**, which is most of why the column read as two deductions rather than one. `pension_relief` IS the employee contribution in `IncomeDefinitionsService`; one quantity, one name.
+  2. **The steps are not one running column, and now say so.** `IncomeDefinitionsService:97` records that Threshold Income (FA 2004 s228ZA) **branches from TOTAL income**, not from the Adjusted Net Income shown above it, and that the employee contribution it deducts is the same one taken at step 2 — **deducted once across the two, never twice**. Presenting five independently-defined statutory figures as a single running subtraction is what made the arithmetic appear not to reconcile; it reconciles, but not down the page.
+
+  Acceptance 2 is met at `:148`, which publishes the arrangement the deduction was made under — net pay versus salary sacrifice — so the reader can tell which rule produced the number.
+
+  **Tested:** 25 income-definitions tests pass, 71 assertions.
+
+  Directly related and fixed today: **W-0424**, which made that £11,600 reach the spending side at all — until this morning it was £0 in both mechanisms.

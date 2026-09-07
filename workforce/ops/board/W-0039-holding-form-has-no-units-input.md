@@ -3,7 +3,7 @@ id: W-0039
 title: The holding form has no quantity/units input — every holding's unit count is unenterable
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 claimed: 2026-08-21T12:15:00Z
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
@@ -125,3 +125,9 @@ the edit path had to work before units could be saved through it.
   holdings with allocation only, so units are entered via the Details form. If
   the tester finds that flow awkward for ten holdings, that is a UX item, not a
   data one.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `App\Support\HoldingValuation::reconcile()`
+  (app/Support/HoldingValuation.php:109) is the single home; `InvestmentController` calls it on six
+  sites, and neither `storeHolding` nor `updateHolding` carries its own
+  `quantity = current_value / current_price` copy any more. Units are the fact, value derived, per
+  the recorded decision on acceptance 4.

@@ -22,6 +22,11 @@ enum WebHandoffDestination: string
     // risk route to send anyone to, so it hands off to the web screen that holds the
     // breakdown, the same shape as ESTATE_IHT directly above.
     case RISK_PROFILE = 'risk_profile';
+    // W-0110. Fyn writes a Lasting Power of Attorney from every surface
+    // (`create_power_of_attorney` is in both tool catalogues), and only web can read
+    // one back. Rather than leave a write with no read, `/m` hands off to the web
+    // screen that holds the instrument — the same shape as ESTATE_IHT above.
+    case ESTATE_LPA = 'estate_lpa';
 
     public function path(): string
     {
@@ -34,6 +39,7 @@ enum WebHandoffDestination: string
             self::ESTATE_WILL => '/estate/will-builder',
             self::ESTATE_IHT => '/estate/inheritance-tax',
             self::RISK_PROFILE => '/risk-profile',
+            self::ESTATE_LPA => '/estate/power-of-attorney',
         };
     }
 }

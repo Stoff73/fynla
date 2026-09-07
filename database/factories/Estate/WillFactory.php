@@ -22,8 +22,13 @@ class WillFactory extends Factory
         return [
             'user_id' => User::factory(),
             'has_will' => $hasWill,
-            'spouse_primary_beneficiary' => $hasWill ? fake()->boolean(80) : null,
-            'spouse_bequest_percentage' => $hasWill ? fake()->randomElement([50.00, 75.00, 100.00]) : null,
+            // `wills.spouse_primary_beneficiary` is NOT NULL. Emitting null for a
+            // user without a will made this factory fail whenever `has_will` came up
+            // false — and made withoutWill() fail every time.
+            'spouse_primary_beneficiary' => $hasWill && fake()->boolean(80),
+            // `wills.spouse_bequest_percentage` is NOT NULL DEFAULT 100.00 for the same
+            // reason as the line above: null here failed every time `has_will` came up false.
+            'spouse_bequest_percentage' => $hasWill ? fake()->randomElement([50.00, 75.00, 100.00]) : 100.00,
             'executor_name' => $hasWill ? fake()->name() : null,
             'executor_notes' => $hasWill ? fake()->optional(0.3)->sentence() : null,
             'will_last_updated' => $hasWill ? fake()->dateTimeBetween('-5 years', 'now') : null,
@@ -51,8 +56,8 @@ class WillFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'has_will' => false,
-            'spouse_primary_beneficiary' => null,
-            'spouse_bequest_percentage' => null,
+            'spouse_primary_beneficiary' => false,
+            'spouse_bequest_percentage' => 100.00,
             'executor_name' => null,
             'executor_notes' => null,
             'will_last_updated' => null,

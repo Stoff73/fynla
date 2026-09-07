@@ -152,6 +152,29 @@ class PropertyNormaliser
             $canonical['tenure_type'] = $this->canonicalTenureType($toolParams['tenure_type']);
         }
 
+        // W-0500 — `joint_owner_is_spouse`, and ONLY the value that cannot reduce a
+        // tax figure.
+        //
+        // `PropertyStore::validateCanonical()` accepts this field and its comment says
+        // Fyn is `/m`'s only write path, so this rule decides whether `/m` can record
+        // the answer at all. The normaliser dropped it, so the codebase stated an
+        // intent it did not implement. Carrying it wholesale would have been worse:
+        // `false` is the value that turns the undivided-share discount ON, and an LLM
+        // reading "I own it with Ruth" and concluding "not the spouse" is exactly the
+        // inference `UndividedShareDiscount`'s docblock forbids — measured, not
+        // stylistic, on live data where a co-owner named "wife" belongs to a user
+        // marked single.
+        //
+        // So `true` passes and `false` does not. `true` is a no-op for the discount
+        // (IHTA 1984 s161 already denies it between spouses), so the model can confirm
+        // a spousal co-owner and can never grant a discount. The negative comes only
+        // from the structured question on the surface — `/m`'s property detail asks it
+        // directly and PUTs the answer — which is CSJ's direction of 2026-08-26: from
+        // a question the user answers, never from the model's reading of conversation.
+        if (array_key_exists('joint_owner_is_spouse', $toolParams) && $toolParams['joint_owner_is_spouse'] === true) {
+            $canonical['joint_owner_is_spouse'] = true;
+        }
+
         // is_joint shorthand → ownership_type='joint'.
         if (! isset($toolParams['ownership_type']) && ! empty($toolParams['is_joint'])) {
             $canonical['ownership_type'] = 'joint';

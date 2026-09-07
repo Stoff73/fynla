@@ -1963,6 +1963,11 @@ it('SavingsActionDefinitionService::evaluateSpouseISACoordination spouse cash-IS
     $spouse = User::factory()->create(['is_preview_user' => false]);
     $user->spouse_id = $spouse->id;
     $user->save();
+    // W-0350 — reciprocal. This reads the SPOUSE'S savings to coordinate ISA
+    // allowances, and the fixture named them one-sidedly because that was all the
+    // old guard needed. The parity this test is about is unaffected.
+    $spouse->spouse_id = $user->id;
+    $spouse->save();
 
     $taxYear = app(TaxConfigService::class)->getTaxYear();
 

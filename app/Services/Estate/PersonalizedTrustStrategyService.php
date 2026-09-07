@@ -184,7 +184,13 @@ class PersonalizedTrustStrategyService
         $lifetimeCharge = $excessOverNRB * $cltLifetimeRate;
         $lifetimeChargeIfSettlorPays = $excessOverNRB * $cltSettlorRate;
 
-        // Potential additional charge if death within 7 years
+        // W-0523 — the EXCESS only, and the band consumption is not charged here.
+        //
+        // **CSJ, 2026-08-29: "it would cost the excess, don't double count the nrb".**
+        // A transfer within the band bears no tax of its own. It does consume the band,
+        // and that consumption is a real cost — but it is charged in the ESTATE, where
+        // the transferor's nil rate band is withheld for seven years, not a second time
+        // here. Charging it in both places bills one band twice.
         $potentialDeathCharge = ($excessOverNRB * $ihtRate) - $lifetimeCharge; // 40% less 20% already paid
 
         $implementation = [
@@ -214,9 +220,9 @@ class PersonalizedTrustStrategyService
         })->toArray();
 
         return [
-            'strategy_name' => 'Immediate Discretionary Trust (CLT)',
+            'strategy_name' => 'Immediate Discretionary Trust (a Chargeable Lifetime Transfer, or CLT)',
             'priority' => 1,
-            'description' => 'Transfer liquid assets into a discretionary trust using your available Nil Rate Band',
+            'description' => 'Transfer liquid assets into a discretionary trust using your available Nil Rate Band (NRB) — the amount that passes free of Inheritance Tax (IHT)',
             'amount' => $amountToTrust,
             'iht_saving_potential' => min($amountToTrust, $availableNRB) * $ihtRate, // Saving: IHT rate on amount within NRB
             'lifetime_tax_charge' => $lifetimeCharge,
@@ -292,13 +298,16 @@ class PersonalizedTrustStrategyService
         $implementation[] = ($cyclesNeeded + 3).'. **Total removed from estate**: £'.number_format($totalOverLifetime, 0).' over '.(($cyclesNeeded - 1) * 7).' years';
 
         return [
-            'strategy_name' => 'Multi-Cycle CLT Strategy',
+            'strategy_name' => 'Multi-Cycle Chargeable Lifetime Transfer (CLT) Strategy',
             'priority' => 2,
-            'description' => 'Use multiple 7-year cycles to maximize NRB usage for larger estates',
+            'description' => 'Use multiple 7-year cycles to maximise use of your Nil Rate Band (NRB) — the amount that passes free of Inheritance Tax (IHT) — for larger estates',
             'amount' => $totalOverLifetime,
             'iht_saving_potential' => $ihtSaving,
-            'lifetime_tax_charge' => 0, // Assuming each cycle stays within NRB
-            'potential_death_charge' => $this->calculateMultiCycleDeathCharge($schedule, $yearsUntilDeath),
+            // W-0523 — summed from the schedule rather than assumed nil. Each cycle
+            // stays within its band on the seven-year cadence, so this is still 0 there;
+            // it stops being 0 the moment a cycle is priced against a cumulated band.
+            'lifetime_tax_charge' => array_sum(array_column($schedule, 'immediate_charge')),
+            'potential_death_charge' => $this->calculateMultiCycleDeathCharge($schedule),
             'time_frame' => (($cyclesNeeded - 1) * 7).' years ('.$cyclesNeeded.' cycles)',
             'risk_level' => 'Medium',
             'suitable_for' => 'Large estates exceeding £'.number_format($availableNRB, 0),
@@ -326,16 +335,39 @@ class PersonalizedTrustStrategyService
      */
     private function buildCLTCycleSchedule(float $amountPerCycle, int $cycles, float $nrb): array
     {
+        $cltLifetimeRate = $this->taxConfig->getCLTLifetimeRate();
         $schedule = [];
 
         for ($i = 0; $i < $cycles; $i++) {
             $year = $i * 7;
+
+            // W-0523 — IHTA 1984 s7(1). The band available to a transfer is the nil
+            // rate band less the chargeable transfers made in the seven years ENDING
+            // WITH it, so a cycle's band depends on the cycles before it. On the
+            // seven-year cadence every earlier cycle has just aged out and each gets a
+            // full band — which is what the old flat `$nrb` happened to produce — but
+            // it was an assumption, not a calculation, and a schedule spaced any
+            // tighter was priced as though the band replenished anyway.
+            //
+            // **Rolling cumulation, CSJ 2026-08-29**, chosen over a fresh band per
+            // cycle and over one band for the whole schedule.
+            $cumulated = 0.0;
+            foreach ($schedule as $prior) {
+                if ($year - $prior['year'] < 7) {
+                    $cumulated += $prior['amount'];
+                }
+            }
+
+            $bandAvailable = max(0.0, $nrb - $cumulated);
+            $chargeable = max(0.0, $amountPerCycle - $bandAvailable);
+
             $schedule[] = [
                 'cycle' => $i + 1,
                 'year' => $year,
                 'amount' => (float) $amountPerCycle,
-                'nrb_available' => (float) $nrb,
-                'immediate_charge' => 0.0, // Within NRB
+                'nrb_available' => $bandAvailable,
+                'chargeable_amount' => $chargeable,
+                'immediate_charge' => $chargeable * $cltLifetimeRate,
                 'description' => 'Transfer £'.number_format($amountPerCycle, 0)." in year $year",
             ];
         }
@@ -344,56 +376,51 @@ class PersonalizedTrustStrategyService
     }
 
     /**
-     * Calculate potential death charge for multi-cycle strategy
+     * Calculate potential death charge for the multi-cycle strategy, on a death-now
+     * basis worked from the date the user is calculating.
      */
-    private function calculateMultiCycleDeathCharge(array $schedule, int $yearsUntilDeath): float
+    private function calculateMultiCycleDeathCharge(array $schedule): float
     {
-        $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $totalCharge = 0;
+        // W-0523 — three things were wrong here, and every one of them ran the same way,
+        // so the cost of a strategy the app RECOMMENDS was overstated and the
+        // overstatements compounded.
+        //
+        // 1. It charged the GROSS amount, with no nil rate band, while
+        //    `buildImmediateCLTStrategy()` four hundred lines above charged only the
+        //    excess over it. Two paths, one question, two answers.
+        // 2. No credit for the 20% paid on the way in.
+        // 3. It was worked at PROJECTED LIFE EXPECTANCY. With death twenty years out
+        //    every cycle had aged past seven years, the tapered rate came back nil, and
+        //    the user was shown a £0 risk — for a transfer they are being told to make
+        //    today, that they could fail by dying tomorrow.
+        //
+        // **CSJ, 2026-08-29: the excess, and death NOW.** The band consumed by a
+        // transfer is not charged here — it is charged in the ESTATE, whose nil rate
+        // band is withheld for seven years by `FailedGiftTaxCalculator`. Charging it in
+        // both places would bill one band twice. And "potential" is worked from the date
+        // the user is calculating, not from projected death, which is the basis the
+        // estate module already answers on: `current` beside `projected`.
+        //
+        // On the seven-year cadence every cycle sits inside its own replenished band, so
+        // this is nil and the whole cost of dying early shows up as a smaller nil rate
+        // band in the estate. It stops being nil the moment a cycle is priced against a
+        // cumulated band.
+        //
+        // Only transfers ALREADY MADE are at risk; a cycle scheduled for year 7 cannot
+        // fail if death is now, because it has not happened.
+        $deathNowRate = $this->taxConfig->getGiftTaxRate(0, 'clt');
+        $totalCharge = 0.0;
 
         foreach ($schedule as $cycle) {
-            $yearsFromTransfer = $yearsUntilDeath - $cycle['year'];
-
-            // If death occurs within 7 years of this transfer
-            if ($yearsFromTransfer < 7) {
-                $charge = $cycle['amount'] * $ihtRate;
-
-                // Apply taper relief if 3-7 years
-                if ($yearsFromTransfer >= 3) {
-                    $taperRate = $this->getTaperReliefRate($yearsFromTransfer);
-                    $charge = $charge * ($taperRate / 100);
-                }
-
-                $totalCharge += $charge;
+            if ($cycle['year'] !== 0) {
+                continue;
             }
+
+            // Floored at zero — s7 gives no refund of the lifetime charge.
+            $totalCharge += max(0.0, ((float) $cycle['chargeable_amount'] * $deathNowRate) - (float) $cycle['immediate_charge']);
         }
 
         return $totalCharge;
-    }
-
-    /**
-     * Get taper relief rate based on years since transfer
-     */
-    private function getTaperReliefRate(int $years): int
-    {
-        if ($years < 3) {
-            return 100;
-        } // Full 40%
-        if ($years < 4) {
-            return 80;
-        }  // 32%
-        if ($years < 5) {
-            return 60;
-        }  // 24%
-        if ($years < 6) {
-            return 40;
-        }  // 16%
-        if ($years < 7) {
-            return 20;
-        }  // 8%
-
-        return 0;                // 0% (fully exempt)
     }
 
     /**
@@ -417,7 +444,7 @@ class PersonalizedTrustStrategyService
         return [
             'strategy_name' => 'Loan Trust Strategy',
             'priority' => 3,
-            'description' => 'Lend assets to a trust - loan stays in estate but future growth is IHT-free',
+            'description' => 'Lend assets to a trust - the loan stays in your estate but future growth is free of Inheritance Tax (IHT)',
             'amount' => (float) $loanAmount,
             'iht_saving_potential' => (float) $ihtSaving,
             'lifetime_tax_charge' => 0.0, // No immediate charge (it's a loan, not a gift)
@@ -489,7 +516,7 @@ class PersonalizedTrustStrategyService
         return [
             'strategy_name' => 'Discounted Gift Trust',
             'priority' => 4,
-            'description' => 'Gift assets to trust but retain income rights - reduces the chargeable gift value',
+            'description' => 'Gift assets to a trust but retain income rights - reduces the value of the Chargeable Lifetime Transfer (CLT), and so the Inheritance Tax (IHT) it attracts',
             'amount' => $giftValue,
             'chargeable_amount' => $cltValue,
             'discount_value' => $discountValue,
@@ -559,7 +586,7 @@ class PersonalizedTrustStrategyService
         return [
             'strategy_name' => 'Property Trust Planning',
             'priority' => 5,
-            'description' => 'Alternative approaches for your main residence to mitigate IHT',
+            'description' => 'Alternative approaches for your main residence to mitigate Inheritance Tax (IHT)',
             'amount' => $propertyValue,
             'iht_saving_potential' => 0, // Cannot be directly calculated
             'lifetime_tax_charge' => 0,
@@ -572,8 +599,8 @@ class PersonalizedTrustStrategyService
                 '**Option A: Downsizing Strategy**',
                 '1. Wait until dependants leave home',
                 '2. Downsize to smaller property',
-                '3. Gift released equity using PET/CLT strategies above',
-                '4. Claim RNRB on remaining property value',
+                '3. Gift released equity using the Potentially Exempt Transfer (PET) and Chargeable Lifetime Transfer (CLT) strategies above',
+                '4. Claim the Residence Nil Rate Band (RNRB) on the remaining property value',
                 '',
                 '**Option B: Life Interest Trust in Will**',
                 '1. Leave property in trust via Will (not lifetime)',
@@ -583,7 +610,7 @@ class PersonalizedTrustStrategyService
                 '',
                 '**Option C: Shared Ownership**',
                 '1. Gift % ownership to adult children',
-                '2. They pay market rent for their share (avoid GROB)',
+                '2. They pay market rent for their share, so the gift is not a gift with reservation of benefit (GROB)',
                 '3. Gradual transfer over time',
                 '4. Complex and may not save significant IHT',
                 '',
@@ -678,7 +705,7 @@ class PersonalizedTrustStrategyService
     private function calculateEffectivenessRating(array $impact, float $currentIHTLiability): string
     {
         if ($currentIHTLiability == 0) {
-            return 'N/A - No IHT liability';
+            return 'N/A - No Inheritance Tax liability';
         }
 
         $savingPercentage = ($impact['net_saving'] / $currentIHTLiability) * 100;

@@ -15,6 +15,7 @@ use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -73,8 +74,8 @@ beforeEach(function () {
         ]);
 
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
-    $childBenefitService = new ChildBenefitService($mockTaxConfig, new IncomeDefinitionsService($mockTaxConfig, app(PropertyService::class)));
-    $this->service = new UserProfileService($aggregator, $taxCalculator, $childBenefitService, app(PropertyStore::class), app(MortgageStore::class), app(IncomeDefinitionsService::class), app(WillAnalysisService::class));
+    $childBenefitService = new ChildBenefitService($mockTaxConfig, new IncomeDefinitionsService($mockTaxConfig, app(PropertyService::class)), app(TeaserGate::class));
+    $this->service = new UserProfileService($aggregator, $taxCalculator, $childBenefitService, app(PropertyStore::class), app(MortgageStore::class), app(IncomeDefinitionsService::class), app(WillAnalysisService::class), app(TaxConfigService::class));
 
     // Create a household
     $this->household = Household::factory()->create();

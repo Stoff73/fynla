@@ -123,6 +123,7 @@
             </component>
           </div>
         </section>
+
       </div>
 
       <!-- ===================== DESKTOP (expanded) ===================== -->
@@ -203,6 +204,17 @@
           </div>
         </section>
       </div>
+
+      <!-- W-0538 — the trusts card existed and was rendered by nothing, so the
+           W-0045 palette work on it reached no screen. Web only, per CSJ: `/m`
+           reaches trusts through its own nav, not through a dashboard card.
+           ONE instance, outside both layout blocks: those blocks are both in the
+           DOM and swapped by media query, so a copy in each mounts twice and
+           fetches twice. -->
+      <section v-if="!isEmpty && showTrusts" class="gd-trusts" aria-labelledby="gd-trusts-h">
+        <div class="gd-section-head"><h2 id="gd-trusts-h">Trusts</h2></div>
+        <TrustsOverviewCard />
+      </section>
     </template>
   </div>
 </template>
@@ -211,6 +223,7 @@
 import api from '@/services/api';
 import logger from '@/utils/logger';
 import { dashboardFigures } from '@/utils/dashboardCards';
+import TrustsOverviewCard from '@/components/Trusts/TrustsOverviewCard.vue';
 
 const ICON = {
   saveTax: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -250,6 +263,7 @@ const MODULE_ORDER = ['retirement', 'protection', 'savings', 'investment', 'esta
 
 export default {
   name: 'GamifiedDashboard',
+  components: { TrustsOverviewCard },
   data() {
     return {
       loading: true,
@@ -275,6 +289,13 @@ export default {
     };
   },
   computed: {
+    // `/api/estate/trusts` sits behind `estate.full` -> TeaserGate::isFull(),
+    // which has no admin or preview bypass. `hasCapability` mirrors allows(),
+    // which does — so gating on it showed the card to an admin whose tier lacks
+    // the capability, and the API answered 403 twice per load.
+    showTrusts() {
+      return this.$store.getters['auth/hasFullCapability']('estate');
+    },
     activeRecs() {
       return this.buckets[this.cats[this.activeCat].key] || [];
     },

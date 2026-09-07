@@ -4,7 +4,7 @@ title: Collapsing "Additional information" and pressing Update replaced every ho
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-22T22:50:00Z
@@ -126,3 +126,37 @@ key is there at all. Verified to fail against the pre-fix code.
 
   Acceptance 1 and 2 are now browser-verified. **Acceptance 3 and 4 — the
   controller's contract for an empty array — remain open.**
+
+- 2026-08-31 build-lead: **VERIFIED PARTIAL against `dev` — the two frontend criteria are ticked
+  and hold; the two open ones are a CONTRACT DECISION, not unstarted work.**
+  **Confirmed still true at the controller:** `InvestmentController:568` runs the sync on
+  `if ($holdings !== null)`, so "clear them all" (`[]`) and "say nothing about them" (absent) are
+  still indistinguishable in effect from the client's side, and `:585-597` still auto-creates a
+  100% `Cash` holding for whatever allocation is unaccounted for. A client that legitimately posts
+  `[]` gets a full-value Cash row.
+  **This is the question, and it is CSJ's:** should emptying an account's holdings leave it with
+  none, or with a 100% Cash row? It governs every write path — form, Fyn capture, native — so it
+  should not be settled inside a form fix. Recorded rather than decided.
+
+- 2026-08-31 build-lead: **CLOSED — the two open criteria were already answered by a rule CSJ
+  considers settled, and I turned it into a question that did not need asking.**
+
+  CSJ, 2026-08-31: *"the account is empty? how can you have a cash row? there is no cash, no
+  assets, nothing? the account shows 0, which as per the rule if there are no holdings the account
+  will show cash, with a zero, I thought this was clear?"*
+
+  **The rule: unallocated value is Cash.** The code implements it. `InvestmentController:585-597`
+  computes `$totalAllocated` and creates a Cash holding for the remainder at
+  `($account->current_value * $remainderPercent) / 100`. Empty the holdings and `$totalAllocated`
+  is 0, so `$remainderPercent` is 100 and the Cash row carries the whole account value — which is
+  zero when the account is zero. Criteria 3 and 4 are therefore satisfied, not open: "what does an
+  empty holdings array mean" has an answer, and "is auto-creating Cash right" was decided.
+  Criteria 1 and 2 were already ticked and still hold.
+
+  **Adjacent, reported not fixed — the two write paths disagree about a Cash row the user entered
+  themselves.** `InvestmentController:439` (create) guards with `&& ! $hasCashHolding`, so it will
+  not add an automatic Cash row when the payload already contains one. `:587` (update) has **no
+  such guard**. Post 70% equities and 20% Cash through update and the account ends with TWO Cash
+  rows — the user's at 20% and an automatic one at 10%. Same rule, two implementations, one of
+  them missing a condition. Not folded in here because it is a different defect from the one this
+  item reported, and W-0322's own framing was about a destructive delete rather than a duplicate.

@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
-status: gated
+status: done
 severity: medium
 surfaces: [m]
 source: CSJ direction 2026-08-21 ("/m needs it"), after fix-batch-C found zero /m references while fixing W-0006
@@ -127,3 +127,17 @@ validation accepts three values the column cannot hold — resolve that first or
   been seen in a real browser by anyone**, and I am not claiming otherwise. It needs
   either a sanctioned local mobile build or a csjones deploy, both of which are the
   coordinator's call, not mine.
+
+- 2026-09-01 board-loop: **CLOSED.** Code re-read at the cited lines, not taken on
+  trust: `resources/mobile/views/PersonalInformation.vue:66-73` renders the section,
+  `:196-221` writes through `PUT /api/user/profile/personal` — the desktop endpoint
+  and the desktop request class, so W-0006's `prepareForValidation` trap is inherited
+  rather than copied. Tests re-run: 17 passed (7 section, 10 parity).
+
+  **Acceptance 7 stays NOT DONE, and the reason is now concrete rather than
+  "coordinator's call".** `public/m-build/` on this machine is a **csjones** build:
+  its router base is `/fynla/m/app`, so `localhost:8000/m/app/login` redirects to
+  `/fynla/m/app/m/app/login` and the SPA never boots. Verifying locally means
+  rebuilding the mobile bundle with the local base path, which both overwrites the
+  csjones-targeted bundle on disk and is the mixed-build decision CLAUDE.md reserves
+  for CSJ. So: no browser drive, and I am not claiming one. It needs a csjones deploy.

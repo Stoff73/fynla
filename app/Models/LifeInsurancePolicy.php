@@ -42,6 +42,8 @@ class LifeInsurancePolicy extends Model
         'is_mortgage_protection',
         'beneficiaries',
         'joint_life',
+        'joint_life_with_user_id',
+        'joint_life_with_name',
     ];
 
     /**

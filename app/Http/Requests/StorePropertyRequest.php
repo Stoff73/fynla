@@ -43,6 +43,11 @@ class StorePropertyRequest extends FormRequest
     {
         $validator->after(function ($v) {
             $this->validateSharedOwnershipSplit($v, $this->input('ownership_type'), $this->input('ownership_percentage'));
+
+            // W-0142 — a shared property must name who it is shared with. The
+            // chattel requests have refused this since W-0025; properties and
+            // mortgages never did.
+            $this->validateSharedOwnershipCounterparty($v, $this->input('ownership_type'), $this->all());
         });
     }
 
@@ -116,6 +121,10 @@ class StorePropertyRequest extends FormRequest
             'mortgage_joint_owner_id' => ['nullable', 'exists:users,id'],
             'mortgage_joint_owner_name' => ['nullable', 'string', 'max:255'],
             'mortgage_ownership_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            // W-0483 — the declared borrowing share, where it differs from the share
+            // of the property. Nullable: absent means nobody has said, and the
+            // property securing the mortgage stays authoritative (W-0228).
+            'mortgage_declared_liability_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
 
             // Rental (for BTL)
             'rental_income' => ['nullable', 'numeric', 'min:0'],

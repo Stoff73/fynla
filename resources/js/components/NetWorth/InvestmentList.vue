@@ -260,7 +260,7 @@
     </div>
 
     <!-- Open Banking Affordance — shown only when the Premium affordance flag is true. -->
-    <div v-if="openApiAffordance && !selectedAccount" class="mt-6 bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
+    <div v-if="openApiAffordance && !selectedAccount" class="mt-6 bg-light-blue-100 rounded-lg border border-light-blue-100 p-6">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-base font-semibold text-horizon-500">Connect via Open Banking — coming soon</h3>

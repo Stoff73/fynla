@@ -4,7 +4,7 @@ title: An investment account whose holdings exceed 100% allocation cannot be sav
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0025-cycle4-validation-vs-schema-range.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-22T21:40:00Z
@@ -129,3 +129,11 @@ account already at 100% and was accepted.
   submit was blocked while the text comes from a live computed sharing the
   editor's single source; both now clear the instant the total returns to 100,
   re-verified live at 106.2% → 100%.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.**
+  `InlineHoldingsEditor.vue:57` sets the allocation input's native `max` to **100**, not
+  "100 minus the other holdings", with the reasoning recorded in place: the headroom form encoded
+  a constraint about the whole set on each individual input, and a native `max` that a field's own
+  current value already breaches cannot be satisfied where it stands — so `reportValidity()`
+  failed silently and the account became uneditable. Over-allocation is now surfaced (:145) rather
+  than blocking the submit. The shared rule lives in `resources/js/utils/holdingsAllocation.js`.

@@ -277,8 +277,11 @@ it('memoises the selected Revolut source and clears it on invalidation', functio
         ->and($resolver->selectedRevolutSubscriptionFor($user)?->id)->toBe($laterWinner->id);
 });
 
-it('keeps preview users Free even when provider records and stale tier claim Premium', function (): void {
-    $user = User::factory()->create(['tier' => 'premium', 'is_preview_user' => true]);
+// W-0537 (CSJ, 2026-09-04): a preview persona's tier column is the fixture that
+// decides its entitlement. Provider records still count for nothing, so a Free
+// persona stays Free whatever a grant or subscription row claims.
+it('keeps preview users Free even when provider records claim Premium', function (): void {
+    $user = User::factory()->create(['tier' => 'free', 'is_preview_user' => true]);
     createTaskThreeAppleGrant($user);
     Subscription::factory()->plan('premium')->create(['user_id' => $user->id]);
 

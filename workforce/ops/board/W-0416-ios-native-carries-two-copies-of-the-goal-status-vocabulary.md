@@ -4,7 +4,7 @@ title: iOS native carries two copies of the goal status vocabulary and cannot sa
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
-status: queued
+status: deferred-ios
 severity: medium
 surfaces: [ios]
 created: 2026-08-23T03:00:00Z
@@ -61,3 +61,14 @@ Deliberately **not** folded into F-0029. That batch was scoped to web and `/m`; 
 change plus a device build is a different verification loop, and claiming iOS parity
 without running one would be exactly the "verified" claim `feedback_never_claim_verified`
 forbids.
+
+---
+
+## Deferred 2026-09-01 — iOS is out of scope for the board loop
+
+CSJ ruled on 2026-08-31 that the board loop covers web and `/m` only, and every iOS
+item defers rather than being worked. This item's `surfaces` is `[ios]` alone, so all
+of it defers. No Swift was changed and nothing was verified on a simulator.
+
+The backend and `/m` halves named in the item are unaffected and remain available to
+whoever picks the native work up.

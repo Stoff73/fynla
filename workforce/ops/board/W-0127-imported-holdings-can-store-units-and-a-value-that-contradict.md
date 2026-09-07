@@ -4,7 +4,7 @@ title: An imported holding can store units and a value that contradict each othe
 mission: M-0002-persona-fidelity
 owner: product-lead
 reviewers: [build-lead]
-status: queued
+status: done
 claimed: null
 handoff_to: null
 branch: null
@@ -88,3 +88,17 @@ a new place and the answer is not obvious."*
 
 W-0126 is complete without this. The four routing sites are done and this is the only
 holding write path still not reading the shared class.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  **The reconciliation was not wrong; the silence was.** `HoldingValuation::reconcile()` resolves units, price and value by precedence — where units are supplied they win and the value follows from them. **That is right for a FORM**, where a user edits one field at a time and expects the others to follow.
+
+  **It is wrong for an IMPORT**, which supplies all three at once from a statement. There, a value disagreeing with units × price is not a stale derived figure to be refreshed — **it is a contradiction in the source data**, and silently overwriting it discards the only evidence the import was wrong. The user then reconciles against their platform, sees a figure Fynla computed rather than the one their provider sent, and has no way to tell which it is.
+
+  **Refused at the boundary, not inside `reconcile()`** — that is a pure function with thirteen callers and no business raising errors, and changing its contract would have touched every one of them. `App\Http\Traits\ValidatesHoldingValuation` is shared by `StoreHoldingRequest` and `UpdateHoldingRequest`, so create and update cannot drift — the asymmetry that produced **W-0321** in the same module today.
+
+  The message names the arithmetic rather than just refusing: *"100.0000 × £10.0000 is £1,000.00, not £5,000.00. Send whichever two are correct."* An importer needs to know which figure to change.
+
+  **One per cent of tolerance**, because rounding in a provider's own export is ordinary and failing on a penny would refuse good data — a worse defect than the one this closes. There is a test for it.
+
+  **Tested:** `HoldingValuationContradictionTest` — 4 passed, covering the contradiction, agreement, provider rounding, and the two-of-three form case where no contradiction can exist. 611 investment tests pass, 2,004 assertions. Pint clean.

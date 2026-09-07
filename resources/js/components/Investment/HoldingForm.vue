@@ -125,16 +125,15 @@
                 class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 :class="{ 'border-raspberry-500': errors.asset_type }"
               >
+                <!--
+                  W-0443. These were ten hardcoded options — a thirteenth copy of the
+                  vocabulary, and the one a user picks FROM, so a value missing here
+                  could never be entered however the column was defined.
+                -->
                 <option value="">Select asset type</option>
-                <option value="uk_equity">UK Equity</option>
-                <option value="us_equity">US Equity</option>
-                <option value="international_equity">International Equity</option>
-                <option value="fund">Fund</option>
-                <option value="etf">ETF</option>
-                <option value="bond">Bond</option>
-                <option value="cash">Cash</option>
-                <option value="alternative">Alternative</option>
-                <option value="property">Property</option>
+                <option v-for="assetType in assetTypes" :key="assetType.value" :value="assetType.value">
+                  {{ assetType.label }}
+                </option>
               </select>
               <p v-if="errors.asset_type" class="mt-1 text-sm text-raspberry-600">{{ errors.asset_type }}</p>
             </div>
@@ -350,6 +349,7 @@
 </template>
 
 <script>
+import { ASSET_TYPES } from '@/constants/assetTypes';
 import UnmodelledAimNotice from './UnmodelledAimNotice.vue';
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -406,6 +406,8 @@ export default {
 
   data() {
     return {
+      // W-0443 — the one vocabulary, not a copy of it.
+      assetTypes: ASSET_TYPES,
       formData: {
         investment_account_id: '',
         security_name: '',

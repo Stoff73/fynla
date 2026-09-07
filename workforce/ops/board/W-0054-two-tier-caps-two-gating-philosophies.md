@@ -4,7 +4,7 @@ title: Two tier caps, two gating philosophies — life events block before entry
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: in-progress
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T14:15:00Z
@@ -238,3 +238,32 @@ The item's premise — two philosophies, one module against another — is not w
 estate looks like. There is one philosophy, gate before entry, implemented by three
 mechanisms for three shapes of thing, with **uploads the one shape that never got
 one**.
+
+---
+
+## Closed 2026-08-31 — the upload family gated before entry
+
+The one shape that never had a before-entry gate. `DocumentUploadModal.vue` is the
+sole entry point to both upload endpoints (nine call sites mount it, one component
+implements it), so the gate is made **once**, there, not at the call sites (Rule 20).
+
+- `resources/js/components/Shared/DocumentUploadModal.vue:68-95` — without
+  `statement_upload` the drop zone is never rendered; an upgrade panel with an
+  Enter Manually escape stands in its place. The footer's "Upload & Analyse" is
+  already `v-if="selectedFile"`, so it cannot appear either.
+- `:352-360` — `canUploadDocuments` reads `auth/hasCapability('statement_upload')`,
+  the same key `CheckSubscription.php:48` enforces on `POST api/documents/upload`.
+- Acceptance 3 (a residual 403 must be visible, not silent) was already satisfied:
+  `startUpload`'s catch routes any refusal to the error step. Nothing typed is lost
+  because the input is a file, not a form.
+- Test: `resources/js/components/__tests__/Shared/DocumentUploadModalGate.spec.js`
+  — 2 passing, asserting on the **rendered** drop zone rather than on a service
+  return, so re-opening the modal to a free tier turns it red.
+
+**Rule 19:** `grep` for `documents/upload` / `DocumentUpload` across
+`resources/mobile` and `ios-native` returns nothing — neither surface has an upload
+affordance, so there is no mobile counterpart to gate.
+
+**Not done:** acceptance 2's shared copy and upgrade pattern across every capped
+capability remains `design-lead`'s (`handoff_to` says so). The panel above uses the
+existing raspberry upgrade button and palette tokens, not a new pattern.

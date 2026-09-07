@@ -4,7 +4,7 @@ title: There is no Lasting Power of Attorney surface on /m or iOS, yet Fyn can c
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [product-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [m, ios]
 created: 2026-08-21T17:49:00Z
@@ -69,3 +69,52 @@ walk into this.
 
 - 2026-08-21 fix-batch-G: this answers W-0100 acceptance 4 in full. Verified by
   absence-grep across all three client trees, not assumed from W-0044.
+
+---
+
+## Closed 2026-08-31 — the handoff, plus the vocabulary consolidated
+
+Acceptance 2 said recommend the handoff first, so that is what was built.
+
+**Acceptance 1 — the write no longer has no read.** `/m`'s estate screen now reads
+`GET api/estate/lpa`, the same endpoint the web store reads, and shows every recorded
+instrument with its status:
+`resources/mobile/views/modules/Estate.vue:117-137` (the card),
+`:181-188` (`openLpaOnWeb`), `:216-220` (the fetch). A household with none recorded is
+told so in words rather than shown an empty card.
+
+**Acceptance 3 — `WebHandoffDestination` gains its case.**
+`app/Enums/WebHandoffDestination.php:25-29,42` — `ESTATE_LPA` → `/estate/power-of-attorney`,
+the same shape as `ESTATE_IHT`.
+
+**Rule 20 — the vocabulary had already drifted, so consolidating it was part of the
+fix.** Four web components each carried their own copy of the instrument's name, and
+they did not agree: `IHTPlanning.vue` said "Property & Financial" where the summary and
+detail cards said "Property & Financial Affairs". A fifth copy on `/m` would have made
+it five. The label is now served with the record:
+`app/Models/Estate/LastingPowerOfAttorney.php:157-190` (`type_label`, `status_label`,
+`$appends` at `:29-37`), read by `LpaSummaryCard.vue:95-101`, `LpaDetailView.vue:100-106`,
+`IHTPlanning.vue:843-852`, `PowerOfAttorneyTab.vue:125` and `/m`.
+
+### Tests — the diff only
+
+- `tests/Feature/Estate/LpaControllerTest.php` — 2 new (payload carries both labels).
+  **Mutation-verified:** emptying `$appends` turns both red.
+- `tests/Feature/Auth/WebHandoffTest.php` — 15 passing, including the new
+  `estate_lpa` handoff and the updated allowlist guard.
+- `resources/mobile/views/modules/__tests__/EstateLpa.spec.js` — 3 new (read-back,
+  the empty case, the handoff call).
+- Regression: 24 web Estate specs, 28 LPA PHP tests, 47 Fyn-tool and compliance tests.
+
+## Not done — iOS, deferred
+
+CSJ ruled on 2026-08-31 that the board loop is web and `/m` only. So:
+
+- **The native mirror of `WebHandoffDestination` was not updated.** The allowlist
+  guard at `tests/Feature/Auth/WebHandoffTest.php:173-186` records this explicitly at
+  the line rather than hiding it. Native cannot send a case it does not have, so the
+  residue is a missing route on native — the same gap as **W-0044**, and it should be
+  picked up with it.
+- **Native has no LPA read surface**, unchanged by this item.
+
+**Surfaces covered (acceptance 4):** web ✔ (already), `/m` ✔ (new), iOS ✘ (deferred).

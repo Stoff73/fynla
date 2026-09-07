@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Investment\AssetLocation\AccountTypeRecommender;
 use App\Services\Investment\AssetLocation\AssetLocationOptimizer;
 use App\Services\Investment\AssetLocation\TaxDragCalculator;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +31,9 @@ class AssetLocationController extends Controller
         private readonly AssetLocationOptimizer $optimizer,
         private readonly TaxDragCalculator $taxDragCalculator,
         private readonly AccountTypeRecommender $recommender,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge
     ) {}
 
     /**
@@ -255,7 +258,9 @@ class AssetLocationController extends Controller
         $higherRateThreshold = $this->requireTaxValue($incomeTax['bands'][0]['upper_limit'] ?? null, 'income_tax.bands.0.upper_limit');
 
         $isaAllowance = $this->requireTaxValue($this->taxConfig->getISAAllowances()['annual_allowance'] ?? null, 'isa.annual_allowance');
-        $retirementAge = (int) $this->requireTaxValue($this->taxConfig->get('pension.state_pension.current_spa'), 'pension.state_pension.current_spa');
+        // W-0197. Was `current_spa`, one number for every cohort; the schedule now
+        // answers for this user's own birth year.
+        $retirementAge = $this->statePensionAge->forUser($user);
         $expectedReturn = (float) $this->requireTaxValue($this->taxConfig->get('assumptions.investment_growth.balanced_portfolio'), 'assumptions.investment_growth.balanced_portfolio');
         $basicRate = (float) $this->requireTaxValue($this->taxConfig->get('income_tax.bands.0.rate'), 'income_tax.bands.0.rate');
 

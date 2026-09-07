@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
-status: gated
+status: done
 severity: medium
 surfaces: [web, m, ios]
 source: found by fix-batch-C while fixing W-0006, 2026-08-21
@@ -105,3 +105,11 @@ Diploma", not "HND").
   wording for one field across surfaces is a worse failure than the acronym.
   Spelling it out changes copy on a persona-tested page and belongs to CSJ — raising
   it rather than deciding it. One decision would fix all three surfaces at once.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `ProfileEnums::EDUCATION_LEVELS` and the `users.education_level` column now hold the same six values exactly — `secondary`, `a_level`, `undergraduate`, `postgraduate`, `professional`, `other` — so the validation rule can no longer accept a value the column rejects, and the latent 500 for a Fyn write is gone.
+
+  **The durable half already exists**, which is what makes this closable rather than merely currently-true: `tests/Unit/Database/ProfileEnumColumnsTest.php` pins each constant to its column, so a rule drifting from its enum fails there rather than at a user's save. 4 passed, 7 assertions.
+
+  Same class as W-0481 and the `scheme_type` allowlist found under W-0424 — a permitted-value list that the column cannot honour. This one is guarded; those two were not, and both have guards now.

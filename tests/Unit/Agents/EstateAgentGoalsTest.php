@@ -9,6 +9,7 @@ use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\EstateDataReadinessService;
+use App\Services\Estate\FutureValueCalculator;
 use App\Services\Estate\GiftingStrategyOptimizer;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\LifeCoverCalculator;
@@ -82,7 +83,11 @@ beforeEach(function () {
         $this->personaliser,
         $this->readinessService,
         $this->lifeCoverCalculator,
-        app(LifeCoverReach::class)
+        app(LifeCoverReach::class),
+        // W-0198 — the estate agent no longer combines the two life-expectancy columns
+        // itself; it asks the one resolver, like retirement and decumulation do. Real,
+        // not mocked: the resolution IS the behaviour under test elsewhere in the file.
+        app(FutureValueCalculator::class)
     );
 
     Cache::flush();

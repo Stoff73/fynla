@@ -8,6 +8,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Protection\LifeCoverReach;
 use App\Services\Settings\AssumptionsService;
+use App\Support\HouseholdPooling;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -52,8 +53,10 @@ class LifeCoverCalculator
 
         $userAge = Carbon::parse($user->date_of_birth)->age;
 
-        // If spouse exists and married, calculate joint life second death
-        $isJointPolicy = $spouse !== null && $user->marital_status === 'married';
+        // A joint life second death policy is the household's, so it takes the
+        // household rule — a civil partnership is a marriage throughout Inheritance
+        // Tax and was being quoted single life cover here (W-0480).
+        $isJointPolicy = $spouse !== null && HouseholdPooling::hasSpousalStatus($user);
         $spouseAge = null;
 
         if ($isJointPolicy && $spouse->date_of_birth) {
@@ -423,14 +426,10 @@ class LifeCoverCalculator
      */
     private function getInvestmentReturnRate(User $user): float
     {
-        $assumptions = $this->assumptionsService->getEstateAssumptions($user);
-
-        if (($assumptions['investment_growth_method'] ?? 'monte_carlo') === 'custom'
-            && isset($assumptions['custom_investment_rate'])) {
-            return (float) $assumptions['custom_investment_rate'] / 100;
-        }
-
-        return 0.047;
+        // W-0334. This was a byte-identical copy of the rule in the other consumer,
+        // hardcoded fallback included. They agreed only by transcription, which is the
+        // arrangement that let the setting be honoured here and ignored there.
+        return $this->assumptionsService->investmentGrowthRateFor($user);
     }
 
     /**
@@ -449,7 +448,7 @@ class LifeCoverCalculator
     public function assessExistingPolicies(Collection $policies, User $user): array
     {
         $warnings = [];
-        $isMarried = in_array($user->marital_status, ['married'], true);
+        $isMarried = HouseholdPooling::hasSpousalStatus($user);
 
         foreach ($policies as $policy) {
             // Check trust status

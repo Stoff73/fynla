@@ -149,7 +149,17 @@ describe('HoldingsTable', () => {
     const wrapper = mountTable();
 
     expect(wrapper.vm.formatAssetType('international_equity')).toBe('International Equity');
-    expect(wrapper.vm.formatAssetType(null)).toBe('N/A');
+
+    // W-0443. Was 'N/A' — this component's own private map said so while the other ten
+    // copies said other things, and the em dash is what the rest of the application
+    // renders for an absent value. The vocabulary has one home now, so the absent case
+    // has one answer too; this assertion encoded the disagreement.
+    expect(wrapper.vm.formatAssetType(null)).toBe('—');
+
+    // And an unrecognised value is NOT title-cased into a plausible label. That is how
+    // 'Uk Equity' reached a screen.
+    expect(wrapper.vm.formatAssetType('uk_equity')).toBe('UK Equity');
+    expect(wrapper.vm.formatAssetType('some_new_type')).toBe('—');
   });
 
   it('uses semantic palette classes for positive, negative, and neutral returns', () => {

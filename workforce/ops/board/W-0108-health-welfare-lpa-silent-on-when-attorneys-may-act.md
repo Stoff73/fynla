@@ -4,7 +4,7 @@ title: The health and welfare Lasting Power of Attorney document is silent on wh
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T17:47:00Z
@@ -152,3 +152,17 @@ found it, not because it is breaking anything today.
   health and welfare branch, and that it does **not** render on the property branch,
   where the donor's election belongs. A one-sided test lets the two branches converge
   later, which is how the conflation this item records arose in the first place.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  `checkWhenAttorneysCanAct()` was gated to `isPropertyFinancial()` — correctly, because there the timing is a genuine CHOICE the donor makes. Health and welfare therefore said nothing about timing at all, **and that is the type where the answer is fixed by statute: Mental Capacity Act 2005 s11(7)(a).**
+
+  **The asymmetry is the defect.** The instrument with a real decision to record asked for one; the instrument with a binding restriction was silent. A donor who creates both — which is the common case — would reasonably infer from the contrast that their health attorneys can act whenever, **which is the opposite of the position.**
+
+  `checkHealthWelfareTiming()` states it: *"A health and welfare Lasting Power of Attorney can only be used after you have lost the mental capacity to make a decision yourself. Unlike a property and financial affairs Lasting Power of Attorney, this is fixed by law and is not something you can change."*
+
+  **Stated, not asked, and there is deliberately no field.** This is not a preference the donor can set, and offering it as one would imply a latitude the Act does not give — which is why it is a `pass` carrying the fact rather than a question that can fail. A test asserts it does NOT appear on a property LPA, where `when_can_act` already asks the question; stating a fixed rule beside a live question would contradict it.
+
+  **Tested:** `LpaComplianceServiceTest` — 40 passed, 167 assertions; 98 LPA tests pass overall, 367 assertions. Pint clean.
+
+  **NOT DONE.** No `compliance-lead` review — user-facing copy stating a legal restriction.

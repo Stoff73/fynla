@@ -4,7 +4,7 @@ title: Goals reports a "Current Net Worth" that is wrong on both accounts in opp
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0021
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-22T01:40:00Z
@@ -269,3 +269,12 @@ As instructed. `$netWorth['liabilities_breakdown']` is consumed exactly as befor
 part of W-0226.**
 
 **Suite now 7 passing (13 assertions).**
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and consolidated rather than corrected.**
+  `GoalsProjectionService:262-285` records that this was a **fourth** implementation of "what does
+  this user owe on mortgages" wrong in both halves at once — reach (`forUserPrimaryOnly`, so a
+  joint owner who borrows on nothing saw zero) and fraction (`outstanding_balance` at face value).
+  Both now come from the F-0019 homes: reach from `CrossModuleAssetAggregator::getMortgages()`,
+  fraction from `CalculatesOwnershipShare::calculateUserMortgageShare()`. Pinned by
+  `tests/Feature/Goals/GoalsNetWorthMatchesDashboardTest.php`, which asserts parity with the
+  dashboard rather than a literal.

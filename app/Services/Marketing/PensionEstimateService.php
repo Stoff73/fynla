@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Marketing;
 
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\TaxConfigService;
 
 /**
@@ -73,7 +74,8 @@ class PensionEstimateService
 
     /**
      * Fallback State Pension age when TaxConfigService does not expose one.
-     * The canonical value is sourced from pension.state_pension.future_spa
+     * The canonical value comes from the statutory State Pension age schedule
+     * (W-0197), resolved for the visitor's own age band
      * (seeded as 67 — rising from 66 between April 2026 and April 2028).
      * This const is used only if that key is absent from the database config.
      */
@@ -88,7 +90,11 @@ class PensionEstimateService
     /** Default pot band when the provided key is absent or unrecognised. */
     private const DEFAULT_POT_BAND = 'none';
 
-    public function __construct(private readonly TaxConfigService $taxConfig) {}
+    public function __construct(
+        private readonly TaxConfigService $taxConfig,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge
+    ) {}
 
     /**
      * Produce a banded projected-pot estimate from funnel answers.
@@ -120,7 +126,7 @@ class PensionEstimateService
         $ageMidpoint = self::AGE_MIDPOINTS[$ageBand];
         $incomeMidpoint = (float) self::INCOME_MIDPOINTS[$incomeBand];
         $potMidpoint = (float) self::POT_MIDPOINTS[$potBand];
-        $retirementAge = $this->retirementAge();
+        $retirementAge = $this->retirementAge((int) $ageMidpoint);
         $alreadyRetired = $employment === 'retired';
 
         // Non-contributors (retired or not-employed) make no further contributions.
@@ -207,16 +213,17 @@ class PensionEstimateService
     }
 
     /**
-     * The target retirement age for the projection, sourced from TaxConfigService
-     * where available. The seeder exposes this as pension.state_pension.future_spa
-     * (currently 67 — scheduled to rise from 66 between April 2026 and April 2028).
-     * Falls back to DEFAULT_STATE_PENSION_AGE when the key is absent.
+     * The target retirement age for the projection.
+     *
+     * W-0197. This was the ONLY reader of `future_spa` — every other consumer read
+     * `current_spa` — so a visitor could be given one State Pension age by this
+     * estimate and a different one by the retirement module after they registered,
+     * for the same person. Both keys are retired; this resolves against the statutory
+     * schedule like everything else, from the age band the visitor selected.
      */
-    private function retirementAge(): int
+    private function retirementAge(int $currentAge): int
     {
-        $pension = $this->taxConfig->getPensionAllowances();
-
-        return (int) ($pension['state_pension']['future_spa'] ?? self::DEFAULT_STATE_PENSION_AGE);
+        return $this->statePensionAge->forCurrentAge($currentAge);
     }
 
     /**

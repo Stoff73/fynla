@@ -3,7 +3,7 @@ id: W-0041
 title: Every chattel delete succeeds and then returns 500 — the user is shown an error for a completed action
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 claimed: 2026-08-21T13:00:00Z
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
@@ -155,3 +155,8 @@ it, which was correct under its scope, and flagged the one-line nature.
 
   Tests: `tests/Feature/Estate/BequestDeleteResponseTest.php` — 200 + body,
   will-document-linked row, and cross-user isolation.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `ChattelController::destroy()` returns
+  `response()->json(['success' => true, ...])` against its declared `: JsonResponse`, matching the
+  house convention (`SavingsController::destroyAccount`, `PropertyController::destroy`). The
+  `noContent()` that deleted the row and then threw is gone, with the reasoning recorded at :208-214.

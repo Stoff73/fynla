@@ -5,7 +5,8 @@ mission: w-0368-undivided-share-discount
 branch: null
 owner: build-lead
 reviewers: [quality-lead]
-status: review
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: high
 surfaces: [web, m, ios]
@@ -186,3 +187,16 @@ means the same knowledge lives in two consumers instead of one store. Deciding
 whether stores should own eager-loading outright is bigger than this item.
 
 758 passed across NetWorth, Stores, Estate and Estate services.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `bde799b11` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

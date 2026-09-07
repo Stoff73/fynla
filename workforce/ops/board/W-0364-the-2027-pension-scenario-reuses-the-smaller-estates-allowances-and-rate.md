@@ -4,7 +4,8 @@ title: The 2027 pension scenario adds the pension pots to the estate but reuses 
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: gated
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -70,3 +71,16 @@ pension crosses £2,000,000 only once the pension is added, so the band must tap
 and the increase must exceed a flat 40% of the pot; and a household far below the
 threshold gains no invented bill. **Mutation-checked**: restoring the old arithmetic
 reds the taper case. Estate + agents 595 green.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #714; commit `2e9d490d0` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

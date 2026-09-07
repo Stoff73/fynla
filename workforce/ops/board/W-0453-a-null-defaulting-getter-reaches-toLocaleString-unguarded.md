@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0032-cycle4-rate-literals-and-the-charitable-denominator.md
 owner: null
 reviewers: [quality-lead]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web]
@@ -88,3 +88,21 @@ it is intermittent and why no fixture has ever produced it.
 - **`IHTPlanning.vue:599`'s configured-rate interpolation, added by F-0032, is in
   this same suppressed block and is therefore unverified on screen.** Covered by
   tests only, stated in `F-0032` §7.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed. Five sites, not two.**
+
+  Every `taxConfig` getter is `state.config?.…?.x ?? null` **by design** — an unconfigured tax value must not silently become a number. The consequence is that any template calling `.toLocaleString()` directly on one throws a TypeError before the configuration hydrates, and **a render error blanks the whole component**: the user sees nothing rather than a wrong figure, which is why this surfaced as a console error rather than a visible defect.
+
+  **The item named two. There were five**, while three OTHER sites already used `|| 0`:
+
+  - `TrustPlanningStrategy.vue:44` — `ihtNilRateBand`
+  - `GiftForm.vue:79` and `:112` — `annualGiftExemption`
+  - `IHTPlanning.vue:332` and `:655` — `annualGiftExemption`
+
+  **The guard pattern already existed and had simply been applied inconsistently** (`GiftForm.vue:187`, `GiftingStrategy.vue:43`, `TrustsDashboard.vue:122`), which is the shape that always comes back — there is nothing to discover, only something to remember, and remembering is what fails.
+
+  **So the durable half is the guard, not the five edits.** `tests/frontend/design/taxGetterNullSafety.test.js` walks both bundles and fails on any of fourteen nullable tax getters reaching `.toLocaleString()` without `|| 0`, `??` or `Number()` in front. **Mutation-verified:** un-guarding a single site turns it red; restoring turns it green.
+
+  `|| 0` rather than suppressing the line, matching the three sites that were already right: a transient £0 that corrects the moment the configuration loads is better than a blank component, and the getters hydrate on app boot.
+
+  **Tested:** 821 frontend tests pass.

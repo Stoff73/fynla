@@ -327,7 +327,16 @@ class TaxSettingsController extends Controller
             'nil_rate_band' => sprintf('£%s (transferable between spouses)', number_format((int) ($iht['nil_rate_band'] ?? 0))),
             'residence_nil_rate_band' => sprintf('£%s (for main residence, transferable)', number_format((int) ($iht['residence_nil_rate_band'] ?? 0))),
             'standard_rate' => sprintf('%g%%', ((float) ($iht['standard_rate'] ?? 0)) * 100),
-            'reduced_rate' => sprintf('%g%% (if 10%%+ to charity)', ((float) ($iht['reduced_rate'] ?? 0.36)) * 100),
+            // W-0461 tenth instance. Two defects in one line: a `?? 0.36`
+            // fallback and a hardcoded 10%% threshold, on the admin screen that
+            // renders the tax settings themselves. The key was wrong as well —
+            // the config seeds `reduced_rate_charity`, so `reduced_rate` never
+            // matched and the literal was the only thing producing the figure.
+            'reduced_rate' => sprintf(
+                '%g%% (if %g%%+ to charity)',
+                ((float) ($iht['reduced_rate_charity'] ?? 0)) * 100,
+                ((float) ($iht['charity_threshold_percent'] ?? 0)) * 100,
+            ),
             'pets' => 'Potentially Exempt Transfers — 7-year rule with taper relief',
             'taper_relief' => 'Years 3-7: tapered reduction in IHT (see active config for exact percentages)',
         ];

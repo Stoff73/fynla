@@ -3,7 +3,7 @@ id: W-0101
 title: The will document renderer draws the testator's and both witnesses' signatures in a script font — live on production
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 severity: high
@@ -320,3 +320,10 @@ a signature" — implemented in two renderers, fixed in one.
   wording. **That is the §1.3 "do not reason across" point made mechanical** — an instrument
   with a prescribed form and one without cannot take the same disclaimer, and the test is what
   stops the sibling's treatment being copied over later by someone tidying.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `willDocumentRenderer.js` draws no
+  signature for anyone: neither the testator's name on `signed_date` nor a witness name on a
+  witness row survives, and the `.signed-name` script-font rule is gone. The file's own docblock
+  at :8 records what was removed and why. One behaviour — Fynla never draws a signature — now in
+  both renderers, closing the Rule 20 half of the finding left open when W-0100 fixed only the
+  Lasting Power of Attorney generator.

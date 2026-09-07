@@ -26,6 +26,14 @@ class LastingPowerOfAttorney extends Model
 
     protected $table = 'lasting_powers_of_attorney';
 
+    /**
+     * W-0110. Appended so every consumer of the record — the web store, `/m`, and
+     * anything reading `toArray()` — gets the same words for the same instrument.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['type_label', 'status_label'];
+
     protected $fillable = [
         'user_id',
         'lpa_type',
@@ -41,6 +49,7 @@ class LastingPowerOfAttorney extends Model
         'attorney_decision_type',
         'jointly_for_some_details',
         'when_attorneys_can_act',
+        'appointment_survives_dissolution',
         'preferences',
         'instructions',
         'life_sustaining_treatment',
@@ -61,6 +70,9 @@ class LastingPowerOfAttorney extends Model
         'donor_date_of_birth' => 'date',
         'registration_date' => 'date',
         'is_registered_with_opg' => 'boolean',
+        // W-0152. Cast, not defaulted — null stays null so an unanswered s13(11)
+        // election never renders as a decision the donor made.
+        'appointment_survives_dissolution' => 'boolean',
         'certificate_provider_known_years' => 'integer',
         'completed_at' => 'datetime',
     ];
@@ -149,5 +161,35 @@ class LastingPowerOfAttorney extends Model
     public function isHealthWelfare(): bool
     {
         return $this->lpa_type === 'health_welfare';
+    }
+
+    /**
+     * W-0110. The one home for the instrument's name. Four surfaces printed it and
+     * they did not agree — IHTPlanning.vue said "Property & Financial" where the
+     * summary and detail cards said "Property & Financial Affairs", and `/m` had no
+     * copy at all because it has no LPA screen. Serving the label with the record
+     * means a surface cannot invent a fifth wording (Rule 20).
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->lpa_type) {
+            'property_financial' => 'Property & Financial Affairs',
+            'health_welfare' => 'Health & Welfare',
+            default => (string) $this->lpa_type,
+        };
+    }
+
+    /**
+     * W-0110. Same reasoning as {@see getTypeLabelAttribute()} for the status word.
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'draft' => 'Draft',
+            'completed' => 'Completed',
+            'registered' => 'Registered',
+            'uploaded' => 'Uploaded',
+            default => (string) $this->status,
+        };
     }
 }

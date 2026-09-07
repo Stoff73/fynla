@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [product-lead, compliance-lead]
-status: open
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web, m, ios]
@@ -80,3 +80,54 @@ answer decides whether the pricing page currently describes the product accurate
 - **W-0054** — the gating-philosophy audit that found this.
 - **W-0463 / W-0498** — the same "configured and unread" shape, without the
   customer-facing half.
+
+## 2026-09-01 — CLOSED. Defined from what was recorded, then gated.
+
+**Acceptance 1 — defined, and not guessed.** The item said nothing in the code says what
+`investments_exotic` means. Something does, one directory over:
+`tests/Persona/20-08-2026_run/PASS-PLAYBOOK.md:51` records it as **Venture Capital Trust
+and Enterprise Investment Scheme**, and `R-12-batch-a-confirmation-and-regression.md:136`
+uses that reading against a persona's VCT holding. The definition now lives where the
+next reader will find it — `InvestmentAccountStore::EXOTIC_ACCOUNT_TYPES`, with the
+provenance at the line. Nothing was added beyond what was recorded: `private_company`
+and `crowdfunding` are plausible members and are **not** included, because gating on a
+guess restricts paying and non-paying users alike.
+
+`tax_relief_type` is read alongside `account_type`, because the relief is the thing being
+claimed and it can be attached to an account of any type — gating only the type would
+leave the door open. `EstateController:148` already reads the pair the same way.
+
+**Acceptance 2 — enforced, in the Store.** `InvestmentAccountStore::enforceExoticCapability()`,
+called from `create()`. Not a route gate: this is a property of the record, not a
+destination, and web, `/m` and Fyn all write through the Store and through nothing else —
+a route gate would have to be added three times and would still miss Fyn. It composes
+from `TeaserGate::allows()`, the existing one home for "may this user use this
+capability", including its admin and preview bypass.
+
+**Create only, deliberately** (acceptance 4). Nothing gated this until now, so a Free
+user may already hold such a record; refusing an *update* would strand a record they
+could then neither correct nor delete. Switching the gate on takes nothing away from
+anyone, which is the answer to "establish whether any free user relied on it" — the
+question is moot when the gate only refuses new writes.
+
+**Acceptance 3 — a guard, generalised rather than a single-key exception.**
+`tests/Feature/Tiers/EveryCapabilityHasAConsumerTest.php` compares the capability matrix
+against the application and fails on any capability nothing reads. It would have caught
+this on the day it landed.
+
+**It found two more of the same defect, and they are worse than the tidy kind.**
+`family_module` and `benefits_child` have **zero consumers** and are **named in the
+pricing comparison** (`TierComparisonService:28-29`) — sold and ungated, exactly as
+`investments_exotic` was. `future_value_projections` and `property_buy_to_let_analysis`
+are also unconsumed but are not advertised. All four are listed as known exceptions with
+that reasoning at the line, and **reported rather than fixed here** — defining a
+capability nobody has defined is how the wrong thing gets gated.
+
+Tests: `ExoticInvestmentsAreGatedTest` 6 passed (free refused on type, free refused on
+relief, premium allowed, ordinary types untouched, Fyn gated by the same rule, and the
+exception naming the capability so the client can offer the upgrade);
+`EveryCapabilityHasAConsumerTest` 2 passed. Suites: **171 passed** Tiers + Investment
+feature, **569 passed** across the wider Investment filter.
+
+**Not done:** no browser drive, and no change to either piece of customer-facing copy —
+it is now accurate, because the capability it names is enforced.

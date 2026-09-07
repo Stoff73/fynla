@@ -15,7 +15,9 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\IntestacyCalculator;
+use App\Services\Estate\WillDocumentService;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
+use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -77,7 +79,11 @@ class WillController extends Controller
 
         // If no will exists, create default
         if (! $will) {
-            $isMarried = in_array($user->marital_status, ['married']) && $user->spouse_id !== null;
+            // W-0508 — a civil partnership is spousal for every Inheritance Tax
+            // purpose (IHTA 1984 s18 as extended by the Civil Partnership Act
+            // 2004). Reading `['married']` alone showed a civil partner a
+            // single-person will position.
+            $isMarried = HouseholdPooling::hasSpousalStatus($user) && $user->spouse_id !== null;
             $will = Will::create([
                 'user_id' => $user->id,
                 'spouse_primary_beneficiary' => $isMarried,
@@ -164,6 +170,7 @@ class WillController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [],
+                'residuary_note' => WillDocumentService::BEQUESTS_EXCLUDE_RESIDUARY_NOTE,
             ]);
         }
 
@@ -172,6 +179,13 @@ class WillController extends Controller
         return response()->json([
             'success' => true,
             'data' => $bequests,
+            // W-0398. This table holds SPECIFIC gifts only — the residuary is
+            // deliberately document-only, for the reason at
+            // `WillDocumentService::BEQUESTS_EXCLUDE_RESIDUARY_NOTE`. Without saying so,
+            // a count of these rows reads as the whole of the will, and a household
+            // whose children inherit the residue reads as though they are unprovided
+            // for. Served here so web and `/m` say the same thing from one source.
+            'residuary_note' => WillDocumentService::BEQUESTS_EXCLUDE_RESIDUARY_NOTE,
         ]);
     }
 

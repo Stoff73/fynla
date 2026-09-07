@@ -28,6 +28,20 @@
 
 import { BLANK_DATE_RULE, SIGNATURE_NOT_RECORDED, blankSignatureLine } from './documentSignatures';
 
+/**
+ * W-0108 established the register for a statement the donor does not get to make:
+ * out of the document's first person, visibly not one of their elections, and
+ * attributed to the Act. W-0152 is the second statement to need it, so it lives
+ * here once rather than being restyled at each site (Rule 20).
+ *
+ * The class carries the treatment so it survives print — the same rendered string
+ * serves the on-screen view and the print stylesheet from this one place, and a
+ * screen-only treatment would fail silently on paper.
+ */
+function statutoryNote(text) {
+  return `<p class="clause clause-statutory"><em>This is not a choice, and nothing here was entered by the donor. ${escapeHtml(text)}</em></p>`;
+}
+
 function escapeHtml(text) {
   if (!text) return '';
   const div = document.createElement('div');
@@ -180,6 +194,36 @@ export function renderLpaDocument(lpa) {
     } else {
       html += `<p class="clause">Not specified.</p>`;
     }
+  }
+
+  // Section 6: Dissolution of a marriage or civil partnership (both types).
+  //
+  // W-0152. Two different things sit in one section on purpose: a rule the donor
+  // does not get to choose, and an election the donor does.
+  //
+  // The default is Mental Capacity Act 2005 s13(6)(c) and applies whatever the
+  // donor thinks about it, so it is stated in the not-a-choice register W-0108
+  // established — out of the document's first person, visibly not entered by the
+  // donor, and attributed to the Act.
+  //
+  // The opt-out is s13(11) and is the donor's alone. An unanswered election must
+  // never render as an answer: that was the W-0100 defect, where an unanswered
+  // `when_attorneys_can_act` silently became "only when I have lost mental
+  // capacity" — a legally operative choice nobody made. Hence the explicit
+  // no-election branch rather than a fall-through.
+  html += `<h3>SECTION 6 — DISSOLUTION OF A MARRIAGE OR CIVIL PARTNERSHIP</h3>`;
+  html += statutoryNote(
+    'The Mental Capacity Act 2005 provides that if a marriage or civil partnership '
+    + 'between the donor and an attorney is dissolved or annulled, that attorney\'s '
+    + 'appointment is terminated, unless the instrument provides otherwise '
+    + '(section 13(6)(c) and section 13(11)).'
+  );
+  if (lpa.appointment_survives_dissolution === true) {
+    html += `<p class="clause">I direct that the appointment of an attorney is <strong>not</strong> terminated by the dissolution or annulment of a marriage or civil partnership between us.</p>`;
+  } else if (lpa.appointment_survives_dissolution === false) {
+    html += `<p class="clause">I make no provision to the contrary. The appointment of an attorney married to me, or in a civil partnership with me, <strong>ends</strong> if that marriage or civil partnership is dissolved or annulled.</p>`;
+  } else {
+    html += `<p class="clause">Not specified.</p>`;
   }
 
   // Certificate Provider

@@ -4,7 +4,7 @@ title: The two logins still project household estates £103,206 apart — W-0135
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0018
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web]
 created: 2026-08-22T00:35:00Z
@@ -84,3 +84,9 @@ first; this may close with it.**
 1. Both logins project the same household estate and the same projected tax.
 2. The current-year column stays at £846,780 / £338,712 — regression check.
 3. Verified in a browser on both accounts and both screens.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `EstateProjectionService:446-448`
+  computes **one** horizon for the household, viewer-framed, "so that neither member's own ages
+  can move it", and `IHTCalculationService:698` fixes the age at death on the same basis. Spouse
+  liabilities pool through `HouseholdPooling::poolsSpouse()` in the spouse's own age frame
+  (W-0374). The two accounts no longer project different households.

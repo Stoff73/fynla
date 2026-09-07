@@ -4,7 +4,7 @@ title: Investment account modal reports £0 Cash ISA usage — overstates remain
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-20T22:20:00Z
 claimed: 2026-08-21T10:30:00Z
@@ -227,3 +227,11 @@ Report: `reports/R-01-pass-a-entry.md`.
   history, which reads its own endpoint and is unaffected. iOS not checked.
 
 - 2026-08-21 build-lead: batch handover (CLAUDE.md Rule 22) — `workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md`. Carries the dispatch verbatim, the joint-share consolidation reasoning, decisions taken, dead ends ruled out, and environment state.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  `resources/js/mixins/isaAllowanceMixin.js` exists for this defect and names it in its own docblock. It is the one home for reading a user's ISA allowance position in a form, and it fixed the cause rather than the symptom: the panel read £0 on a cold load of `/net-worth/investments` because the allowance only ever loaded as a **side effect of the savings screen's bulk fetch**, and the two modals reached the numbers three different ways — the savings modal read the store getters, the investment modal read them and then hand-threaded prop copies down to `StandardInvestmentFields`.
+
+  The mixin exposes `cashISAUsed` and `totalStocksISAUsed` from the single store getters with no prop copies, and its `created()` dispatches `savings/ensureISAAllowance` — idempotent, so the savings screens pay nothing for it. `AccountForm.vue:225` mixes it in, and `:651` composes `totalISAUsed` from those getters plus this account's own subscription, so the over-subscription guard now has a real total to fire on.
+
+  **Tested:** `tests/frontend/store/savingsIsaAllowance.test.js` — 6 passed, including the cold-load path and the case where the allowance cannot be fetched.

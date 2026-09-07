@@ -4,7 +4,7 @@ title: Rental income from a jointly-owned buy-to-let reaches only the primary ow
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0019-cycle2-ownership-applied-one-side-only.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T21:50:00Z
@@ -263,3 +263,11 @@ in `resources/mobile/` and `ios-native/`), so both inherit the fix with no clien
 change. Nothing on `/m` has no counterpart here.
 
 **Not done: browser verification, by instruction.**
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.**
+  `app/Listeners/Property/SyncOwnerRentalIncome.php` recomputes `users.annual_rental_income` for
+  **every user the record reaches**, not just the acting one, so a joint buy-to-let's rent no
+  longer stops at the owner who entered it. Wired at `EventServiceProvider:86`, reacting to the
+  `PropertyStore` domain event — the established shape, chosen over an Eloquent observer that
+  would have put the model inside `app/Observers/`. The figure written is the rental profit at the
+  user's share, from `PropertyService::annualRentalTaxPosition()`.

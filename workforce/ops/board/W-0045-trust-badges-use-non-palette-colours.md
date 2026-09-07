@@ -4,7 +4,7 @@ title: All three relevant-property trust surfaces use non-palette blue-* and gre
 mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0005-design-lead-palette-and-copy.md
 owner: design-lead
-status: gated
+status: done
 severity: low
 surfaces: [web, m]
 source: flagged by design-lead during W-0021 review, 2026-08-21; deliberately not bundled into that fix
@@ -157,3 +157,84 @@ David (16) and Sarah (17) were not touched.
   `light-blue-700` token or restating the Info badge against an existing pair — a
   design-system amendment, which is Azlan's, not a code fix.
   Unpark with W-0048.
+
+## 2026-09-01 — CLOSED
+
+Verified in the code, not from the notes above. A sweep of
+`resources/js/components/Trusts/*.vue` and `resources/js/views/Trusts/*.vue` for
+`(blue|green|red|teal|gray|grey|amber|orange|primary|secondary)-NNN`, anchored so it
+cannot match inside `light-blue-`, returns **zero**. The replacing tokens are at:
+
+- `TrustCard.vue:239` — `bg-light-blue-100`
+- `TrustsDashboard.vue:763, 769`
+- `TrustDetailView.vue:470, 662, 677, 706, 714` — including
+  `border-t border-light-blue-500/20`, which replaced the hardcoded
+  `rgba(59, 130, 246, 0.2)` divider the mapping named
+- `TrustsOverviewCard.vue:279, 308, 317`
+
+The only `rgba()` left in the module are three `rgba(0, 0, 0, 0.1)` box-shadows —
+neutral shadows, not palette colours, and not in the item's mapping.
+
+**Tokens verified to resolve, not asserted.** The mapping's claim that every combination
+compiles was re-checked against `tailwind.config.js` by importing it: `light-blue-100`
+#DDE2EF, `light-blue-500` #6C83BC, `spring-100/600/700`, `raspberry-50/200/600/700`,
+`horizon-500` #1F2A44 — all ten present. This matters more than a normal assertion here,
+because a token that does not exist is a **build error**, not a lint warning — the exact
+trap the item recorded about the guide's `text-light-blue-700`.
+
+**No tests were re-run, because none exist.** No spec covers these four components and
+there is no palette lint. That is not an oversight to fix here: the item's own root-cause
+note explains why nothing catches this class of breach — `tailwind.config.js:9-12`
+safelists `blue-*`, `green-*`, `teal-*` and `red-*` — and CSJ **parked** that work
+explicitly on 2026-08-21 (*"this is parked for now, low priority, getting the system
+working is key"*), tracked as W-0048 with 807 occurrences still outstanding elsewhere.
+Building a guard here would reopen a parked decision.
+
+**Acceptance box 6 remains unticked: no visual confirmation.** The four screens listed in
+"Needs visual confirmation" have not been looked at, by me or anyone. Recorded rather than
+implied.
+
+## Visual confirmation — 2026-09-04, csjones
+
+Driven in the browser as the `peak_earners` demo household, which W-0537 made
+premium for exactly this reason: `/trusts` is premium-gated and this is the only
+persona holding a trust. Colours below are **computed styles read from the live
+page**, not read off a screenshot.
+
+**1. `/trusts` trust card badge row — confirmed.**
+`Discretionary Trust` · `Relevant Property Trust` · `Active`, on one line.
+
+| Chip | Rendered | Token |
+|---|---|---|
+| `.badge.rpt` | `rgb(221,226,239)` on `rgb(31,42,68)` | `light-blue-100` / `horizon-500` |
+| `.badge.active` | `rgb(209,250,229)` on `rgb(4,120,87)` | `spring-100` / `spring-700` |
+| `.badge.inactive` | not rendered — no inactive trust exists | `savannah-100` / `neutral-500` |
+
+All three are distinct grounds. The inactive chip could not be seen because the
+data has no inactive trust; its rule was read at `TrustCard.vue:248-251` instead
+and is recorded here as **not visually confirmed**.
+
+**Wrapping:** the badge container computes `flex-wrap: wrap`, and at viewport
+widths 1440, 700 and 420 the row's `scrollWidth === clientWidth` — it wraps, it
+does not overflow.
+
+**2. Guide panels — confirmed.** `.iht-charges-info` renders
+`rgb(221,226,239)` = `light-blue-100` with its heading in `horizon-500`, legible
+on that ground. The `.rpt-badge` chips inside the guide's trust-type cards are
+the same pair. The surrounding `.trust-type-card` is eggshell and
+`.tax-rates-summary` is `violet-100` — both palette tokens, neither in scope here.
+
+**3. `/trusts/26` — confirmed.** Header carries `.status-badge.active`
+(`spring-100`/`spring-700`) and `.rpt-badge` (`light-blue-100`/`horizon-500`).
+The "Relevant Property Trust - Tax Implications" card computes
+`background rgb(221,226,239)` with a **1px `rgb(108,131,188)` border** —
+`light-blue-100` on `light-blue-500`. Four bullets render, and the divider above
+"Next 10-year anniversary: 1 September 2030" is present.
+
+**4. `/dashboard` trusts overview card — I COULD NOT TEST THIS.**
+`TrustsOverviewCard.vue` has **zero importers**: its only reference anywhere in
+the repo is its own `name: 'TrustsOverviewCard'` property. No dashboard renders
+it, so the `light-blue-500` outline fixed here reaches no screen. Raised as
+**W-0538** rather than dressed up as verified.
+
+Acceptance 1, 2 and 3 are met on screen. Acceptance 4's surface does not exist.

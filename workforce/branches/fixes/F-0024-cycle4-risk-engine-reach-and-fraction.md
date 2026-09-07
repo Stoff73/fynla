@@ -684,7 +684,7 @@ most valuable thing this census carries.
 | **W-0277** the SavingsStore allowlist now names a class that does not touch the model | low | Shared boundary config; editing it mid-run is a collision. |
 | **W-0278** `LifeCoverReach` reads a deleted partner's policies | medium | Found by reading it as the model for `DependantsReach`. Not raised by any tester. |
 | **W-0279** `/risk-profile` has no `/m` counterpart | low | Rule 19 gap in the product, not in these items. `/m` shows the risk level with no route to the nine factors behind it. |
-| **W-0280** the `where('user_id', $user` census | high | Contains an inheritance tax **double count** (§10) that is a different failure from the rest. |
+| **W-0280** the `where('user_id', $user` census | high | ~~Contains an inheritance tax **double count** (§10)~~ **CORRECTED 2026-09-01 (W-0337): there is no double count and there cannot be one.** A row carries exactly one `user_id`, so the user's query and the spouse's are disjoint and no row matches both. The failure is the same **reach and fraction** disease as the rest of the cycle — a member's own record taken whole, their share of the other member's record not taken at all — with the two errors CANCELLING at household level. Measured 2026-09-01: a £95,000 joint account reads 100% on the recorder's side and 0% on the other's; household total £305,000 is correct, both member figures are wrong. **Classify by reach and fraction, never by double count.** |
 
 ## 11. Environment
 

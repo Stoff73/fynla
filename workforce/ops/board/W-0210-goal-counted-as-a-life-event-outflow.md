@@ -4,7 +4,7 @@ title: A goal is counted and labelled as a life event — Sarah has zero life ev
 mission: persona-run-peak_earners-2026-08-20
 branch: F-0021
 owner: build-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-22T01:45:00Z
@@ -145,3 +145,15 @@ that 0.0 is less than 0.0."* I had written the fixture variant and the clamp var
 one assertion. Fixed by giving the household £900,000 so the outflow is visible above the
 floor, plus a guard asserting the baseline is greater than zero so the probe cannot
 silently sink back onto the floor.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `GoalsProjectionService::buildSummary()` (`:470-492`) records the cause and the fix. The card is titled *"Life Events"*, so it must count life events; it was partitioning by `impact`, and `buildEventsArray()` stamps **every goal** with `impact => 'expense'`. So a goal — money the user is saving TOWARDS — was counted and totalled as a cash outflow event.
+
+  **The measured effect on the persona, which is what makes it one cause rather than two bugs:** Sarah, with a single £400,000 savings target and no life events at all, read *"1 cash outflow events £400K"*. David read *"9 cash outflow events £1.1M"* against 6 real events worth £355,000 — **the difference being his three goals.** One cause, both accounts, not a double count.
+
+  Fixed by asking `LifeEventService` for the answer instead of deriving a fifth one, which also picked up **W-0207** on the same line: nothing had excluded events that already happened, so a 2020 inheritance sat inside a forward-looking total.
+
+  **The projection arithmetic is deliberately untouched** — goals still land as outflows in the yearly data, because that is what the chart models. Only the labelled COUNT stopped calling a goal a life event. Changing the chart as well would have been a second, unasked-for change dressed as part of the fix.
+
+  **Tested:** 276 goal and projection tests pass, 768 assertions.

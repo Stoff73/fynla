@@ -9,6 +9,7 @@ use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Bequest;
+use App\Models\Estate\Gift;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
@@ -125,6 +126,24 @@ class PremiumTestPersonaSeeder extends Seeder
         foreach ([
             Bequest::class,
             Will::class,
+            // W-0528 — `Gift` was missing from this list while `Trust` was in it.
+            //
+            // A settlement into a trust writes a chargeable lifetime transfer through
+            // `TrustObserver`, and a query-builder delete fires no model events, so the
+            // observer never cleaned up and the next `Trust::updateOrCreate()` wrote
+            // ANOTHER one. Four seeder runs left four identical £150,000 transfers
+            // against one trust, capping the household's gift deduction at the whole
+            // nil rate band instead of £150,000 and overstating its inheritance tax by
+            // £70,000 — £413,512 against the correct £343,512.
+            //
+            // **What actually stops it is the `gifts.trust_id` foreign key** added in
+            // the same item: `cascadeOnDelete` takes the gift with the trust row at the
+            // database level, which a mass delete cannot bypass the way it bypasses an
+            // observer. Verified — the duplicate-settlement test passes with this line
+            // reverted. This entry is here because a purge that names `Trust` and not
+            // `Gift` reads as an oversight whatever the foreign key does behind it, and
+            // it covers gifts with no trust to cascade from.
+            Gift::class,
             Trust::class,
             Chattel::class,
             LifeInsurancePolicy::class,

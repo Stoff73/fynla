@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Exceptions\FinancialCalculationException;
-use App\Models\FamilyMember;
 use App\Models\User;
+use App\Services\Shared\DependantsReach;
 
 class IntestacyCalculator
 {
@@ -15,6 +15,11 @@ class IntestacyCalculator
     /**
      * Calculate how estate would be distributed under UK intestacy rules
      */
+    public function __construct(
+        // W-0275 — the one home for reaching a household's family (Rule 20).
+        private readonly DependantsReach $dependantsReach
+    ) {}
+
     public function calculateDistribution(int $userId, float $estateValue): array
     {
         $user = User::find($userId);
@@ -25,7 +30,18 @@ class IntestacyCalculator
 
         // Check if married - either by spouse_id OR by having a spouse in family_members
         $hasLinkedSpouse = in_array($user->marital_status, ['married', 'civil_partnership']) && $user->liveSpouseId() !== null;
-        $familyMembers = FamilyMember::where('user_id', $userId)->get();
+        // W-0275 acceptance 3 — routed DELIBERATELY, not mechanically.
+        //
+        // Intestacy distributes under the Administration of Estates Act 1925 to
+        // CHILDREN, not to dependants: a grown, self-supporting child inherits exactly
+        // as a dependent one does. So this reads the household's family without the
+        // `is_dependent` filter — using `dependantsOf()` here would disinherit the
+        // children of every household that recorded them honestly.
+        //
+        // The reach itself is the same defect as everywhere else: `user_id` records who
+        // TYPED the row, so the parent who did not do the data entry had their children
+        // omitted from their own intestacy distribution.
+        $familyMembers = $this->dependantsReach->householdFamilyOf($user);
         $hasSpouseFamilyMember = $familyMembers->where('relationship', 'spouse')->count() > 0;
 
         $isMarried = $hasLinkedSpouse || $hasSpouseFamilyMember;

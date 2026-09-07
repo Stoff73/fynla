@@ -20,7 +20,10 @@ use Illuminate\Support\Collection;
 class PensionContributionOptimizer
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        // W-0516 — State Pension age is a birth cohort, not a constant. Every literal
+        // 67 in this module resolved from here instead.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -131,7 +134,7 @@ class PensionContributionOptimizer
         // Only subtract state pension if user retires at or after state pension age
         $userId = $profile->user_id;
         $statePension = app(PensionStore::class)->statePension(User::findOrFail($userId));
-        $statePensionAge = $statePension ? ($statePension->state_pension_age ?? 67) : 67;
+        $statePensionAge = $this->statePensionAge->forUser(User::findOrFail($userId));
         $retiresBeforeSPA = $profile->target_retirement_age < $statePensionAge;
 
         $statePensionIncome = 0;

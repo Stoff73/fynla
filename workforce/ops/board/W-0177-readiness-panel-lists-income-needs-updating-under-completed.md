@@ -4,7 +4,7 @@ title: The readiness panel lists "Income needs updating" under COMPLETED while r
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0017-cycle1-tax-income-and-allowances.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web]
 created: 2026-08-21T23:55:00Z
 claimed: 2026-08-22T20:15:00Z
@@ -101,3 +101,13 @@ including the `protection` module and an ordinary missing field still reporting.
 surface inherits it.
 
 Not done: browser verification, by instruction.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  The panel no longer contradicts itself. `ModuleDataRequirementsService` now separates a **staleness flag** from a **piece of data**, which is the actual distinction the defect turned on.
+
+  `FLAG_REQUIREMENTS` (`:610`) names `income_needs_update` and its docblock names this item: the flag is raised when a user's employment status changes and asks them to REVISIT a figure — it is not something they supply once and are done with. `getRequirementsForModule()` at `:644-647` skips a satisfied flag outright rather than counting it as completed: *"a satisfied flag is not a completed requirement — it is nothing at all."* When the flag is down there is nothing to say, so "Income needs updating" cannot appear under COMPLETED beside "OUTSTANDING (0) — All items complete".
+
+  A raised flag still appears, under missing.
+
+  **Tested:** `tests/Unit/Services/UserProfile/FlagRequirementCompletionTest.php` — 6 passed. It covers the lowered flag (absent from filled, and not counted), the raised flag (present under missing, on protection as well as profile, and dropping off the panel the moment it is cleared), and that ordinary requirements are untouched.

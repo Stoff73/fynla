@@ -4,7 +4,7 @@ title: Product call — how much of someone else's contract should the other lif
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0027-cycle4-life-cover-reach.md
 owner: build-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-23T00:40:00Z
@@ -59,3 +59,37 @@ null decodes cleanly and does not break the policy list.
   `policy_number: null`, `beneficiaries: null`, `sum_assured: 500000`,
   `is_own_policy: false`. Moving to `handoff`; the open half (premium, dates, rates) stays
   for CSJ.
+
+## 2026-09-01 — CLOSED. CSJ ruled: all of it.
+
+CSJ's ruling, on the board: *"CSJ says all, if there is a shared account, show the
+life policy to the other user."* That answers acceptance 1 and 2 together, and in the
+opposite direction to team-lead's interim line.
+
+**What changed.** `app/Http/Resources/Protection/LifeInsurancePolicyResource.php` no
+longer nulls `policy_number` or `beneficiaries` for the other life assured. The reason
+the line was drawn is kept at the code — a policy number is effectively a credential,
+and `beneficiaries` is free text commonly naming the couple's children — so the next
+reader sees that it was overruled rather than never considered. Acceptance 2's open
+list (premium, dates, term, indexation, start value, decreasing rate) was already
+shipping and stays shipping; "all" closes that question rather than leaving it.
+
+**Read is now total; write is unchanged.** `is_own_policy` still separates them, and
+every surface gate that reads it — `PolicyDetail.vue:360`, `PolicyCard.vue:132`,
+`/m` `ProtectionPolicy.vue:224` — controls an **edit affordance**, not a field. So no
+surface hides the newly-visible fields and none needed changing. Acceptance 3 is
+answered by inspection: `/m` rendered `policy_number || '—'` and hid the beneficiaries
+block on falsy, both of which simply populate now; the native fields are `String?`.
+
+**The test that encoded the old answer** —
+`tests/Feature/Protection/LifeCoverReachSpouseLinkStatesTest.php:233` asserted the two
+fields were null for the non-owner. Inverted rather than deleted, and widened: it now
+pins that read reaches everything **and** that `is_own_policy` is still false, because
+those two are exactly what a careless "show her the policy" would conflate. The
+premium note at `:195` recorded a question W-0383 had left open; it now records that
+CSJ closed it.
+
+Tests: **95 passed** across `tests/Feature/Protection/` and the protection gap
+presentation test.
+
+**Not done:** no browser drive from the spouse's account.

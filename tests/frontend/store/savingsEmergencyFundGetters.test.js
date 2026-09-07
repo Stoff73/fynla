@@ -160,7 +160,11 @@ describe('months of runway', () => {
     expect(runwayFor(stateFor(coOwnerAccounts))).toBeCloseTo(25.53, 2);
   });
 
-  it('is zero only when there is no expenditure to run through', () => {
-    expect(runwayFor(stateFor(coOwnerAccounts, null, 0))).toBe(0);
+  it('cannot state a runway when there is no expenditure to run through', () => {
+    // W-0495. This asserted 0, which is the defect as a contract: dividing by
+    // nothing is not "no runway", it is "no answer". Zero is a claim, and a
+    // household holding £31,280 in cash was told it had none — the alarming
+    // direction, and enough to raise a false "build your emergency fund".
+    expect(runwayFor(stateFor(coOwnerAccounts, null, 0))).toBeNull();
   });
 });

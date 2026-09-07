@@ -17,6 +17,7 @@ class Gift extends Model
 
     protected $fillable = [
         'user_id',
+        'trust_id',
         'gift_date',
         'recipient',
         'gift_type',
@@ -38,5 +39,16 @@ class Gift extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The trust settlement that wrote this gift, if any.
+     *
+     * W-0528 — NULL means the user entered the gift themselves, and `TrustObserver`
+     * must leave it alone.
+     */
+    public function trust(): BelongsTo
+    {
+        return $this->belongsTo(Trust::class);
     }
 }

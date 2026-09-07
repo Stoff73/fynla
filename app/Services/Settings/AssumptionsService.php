@@ -7,6 +7,8 @@ namespace App\Services\Settings;
 use App\Models\Investment\Holding;
 use App\Models\User;
 use App\Models\UserAssumption;
+use App\Services\Retirement\RetirementAgeResolver;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,17 +25,31 @@ class AssumptionsService
 
     private const DEFAULT_COMPOUND_PERIODS = 12;
 
-    private const DEFAULT_RETIREMENT_AGE = 68;
+    /**
+     * W-0196. Was a private 68 — one of the two outliers against the 67 anchored by
+     * W-0036. Reads the one home now.
+     *
+     * NOTE the conflation at the only call site below: it is used as a fallback for
+     * STATE PENSION age, which is a different question with a different answer
+     * (legislated by cohort — W-0197, W-0516). Left pointing here so the number stops
+     * disagreeing with everything else, but W-0516 owns replacing it properly.
+     */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
 
     private const DEFAULT_INVESTMENT_GROWTH_METHOD = 'monte_carlo';
 
+    /** W-0334 — the fallback both copies of this rule carried, now in one place. */
+    private const DEFAULT_INVESTMENT_GROWTH_RATE = 0.047;
+
     private const VALID_ASSUMPTION_TYPES = ['pensions', 'investments', 'estate_planning'];
 
     public function __construct(
         private readonly RiskPreferenceService $riskService,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge
     ) {}
 
     /**
@@ -421,7 +437,36 @@ class AssumptionsService
             }
         }
 
-        return (int) $this->taxConfig->get('pension.state_pension.current_spa', self::DEFAULT_RETIREMENT_AGE);
+        // W-0197. Was `current_spa` with a RETIREMENT-age default behind it — two
+        // different questions answering each other. Both are now resolved by the
+        // service that owns them.
+        return $this->statePensionAge->forDateOfBirth($user->date_of_birth);
+    }
+
+    /**
+     * W-0334 — the one home for "what annual growth rate does this user's assumption
+     * imply", and the one place `investment_growth_method` is interpreted.
+     *
+     * `EstateProjectionService::getFallbackGrowthRate()` and
+     * `LifeCoverCalculator::getInvestmentReturnRate()` were **byte-identical copies**
+     * of this rule, hardcoded 4.7% fallback included. They agreed only because one was
+     * copied from the other — and that arrangement is exactly what produced a setting
+     * honoured by life-cover sizing and silently ignored by the estate projection,
+     * which is the defect this item records.
+     *
+     * The default is the same 4.7% both copies carried; it lives here now so a change
+     * cannot reach one consumer and not the other (Rule 20).
+     */
+    public function investmentGrowthRateFor(User $user): float
+    {
+        $assumptions = $this->getEstateAssumptions($user);
+
+        if (($assumptions['investment_growth_method'] ?? self::DEFAULT_INVESTMENT_GROWTH_METHOD) === 'custom'
+            && isset($assumptions['custom_investment_rate'])) {
+            return (float) $assumptions['custom_investment_rate'] / 100;
+        }
+
+        return self::DEFAULT_INVESTMENT_GROWTH_RATE;
     }
 
     /**

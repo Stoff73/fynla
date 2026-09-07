@@ -8,6 +8,7 @@ use App\Events\Eval\GateChecked;
 use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
+use App\Support\HouseholdPooling;
 
 class ProtectionDataReadinessService
 {
@@ -418,7 +419,9 @@ class ProtectionDataReadinessService
     private function hasSpouseIncome(User $user): bool
     {
         // Only relevant for married/partnered users
-        if (! in_array($user->marital_status, ['married'], true)) {
+        // W-0508 — one canonical spousal test, so protection readiness cannot
+        // disagree with the estate module about whether a household has a spouse.
+        if (! HouseholdPooling::hasSpousalStatus($user)) {
             // Not married — this check is not applicable, so mark as passed
             return true;
         }

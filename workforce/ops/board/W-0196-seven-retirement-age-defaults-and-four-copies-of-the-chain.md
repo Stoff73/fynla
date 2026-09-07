@@ -4,7 +4,7 @@ title: Seven retirement-age defaults and four copies of the priority chain — 6
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-22T07:30:00Z
@@ -126,3 +126,64 @@ retirements for the same person.
   `tests/frontend/components/NetWorth/PensionDetailInline.test.js`.
 
   Evidence and the mutation table: `workforce/branches/fixes/F-0032-cycle4-pension-holdings-entry-and-display.md`.
+
+---
+
+## Closed 2026-09-01 — one home, both languages, and a guard that reads the files
+
+**The one home:** `app/Services/Retirement/RetirementAgeResolver.php`, holding the
+default and the priority chain, with the reasoning for both in its class docblock.
+Frontend mirror: `resources/js/constants/retirementAge.js`, cross-referenced the way
+W-0109 did it for the OPG fee.
+
+**67 wins.** It was already anchored — `DBPension::DEFAULT_NORMAL_RETIREMENT_AGE` is
+deliberately the same 67 as `PensionProjector`'s so a pension cannot count as income
+from one age while being projected forward from another (W-0036). **68 was the outlier,
+not the pair**, so `AssumptionsService` and `GoalsProjectionService` moved to 67.
+
+**The chain order: retirement profile → user record → DC pension → assumed.** Two of
+the four copies read `users.target_retirement_age` first and so preferred the staler
+source; W-0035 made `retirement_profiles.target_retirement_age` the canonical write
+target for every surface, including Fyn. `HouseholdCashFlowProjector` already had the
+right order, and it is now the order everyone gets.
+
+### Consolidated
+
+- **Seven constants -> one.** `AssumptionsService`, `GoalsProjectionService`,
+  `RequiredCapitalCalculator`, `RetirementProjectionService`, `RetirementIncomeService`,
+  `PensionProjector` and `DBPension::DEFAULT_NORMAL_RETIREMENT_AGE` all reference
+  `RetirementAgeResolver::DEFAULT_RETIREMENT_AGE`. One literal `67` remains in the
+  codebase, in the one home.
+- **Four chains -> one**, plus a fifth this item did not list: `RetirementIncomeService`
+  used a PARTIAL chain in three places (retirement profile or the default, never the
+  user record or a pension), so a household whose only stated age was on a pension was
+  projected from 67 there and from the pension everywhere else.
+- **Twelve frontend literals -> one import**, across the eleven components the item
+  listed plus `ExpenditureForm.vue:752`, which held two more 65s the item did not know
+  about.
+
+### Guards — mutation-verified, both of them
+
+- `tests/Unit/Services/Retirement/RetirementAgeResolverTest.php` — 9 tests. Every chain
+  case uses **three mutually distinct ages** (profile 62, user 58, pension 55), because
+  the trap this item flagged is real: on the live database one persona's user column and
+  their pension age are the same number, so a test on persona data cannot tell the right
+  source from the wrong one. One test reads the six service files and fails if any
+  re-declares a numeric literal.
+- `resources/js/constants/__tests__/retirementAge.spec.js` — 13 tests that **read the
+  component files**. Every existing frontend test asserts on service output, which is
+  exactly why nine hardcoded fallbacks survived four previous sweeps.
+  **Mutation:** restoring `|| 68` in `CapitalAdequacyTab.vue` turns it red.
+
+### Deliberately NOT folded in
+
+`state_pension_age || 67` appears in several of the same components. **State Pension
+age is legislated by cohort and is a different question with a different answer** —
+W-0197 and W-0516 own it. The frontend guard's filter excludes those lines explicitly
+so a future reader does not "tidy" the two numbers together.
+
+**Regression:** 370 unit (retirement, goals, tax), 515 (estate + retirement feature),
+188 component specs, 811 `tests/frontend`. All green.
+
+**Rule 19:** `resources/mobile` carries no retirement-age literal, so there is no `/m`
+counterpart to consolidate. iOS is out of scope for the board loop.

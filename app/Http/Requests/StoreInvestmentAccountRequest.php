@@ -111,6 +111,13 @@ class StoreInvestmentAccountRequest extends FormRequest
             // it to decimal(7,4), which is what makes `max:100` true here rather
             // than merely written down. Keep all four in step (Rule 20).
             'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
+            // W-0324. `validated()` passes exactly the keys with rules and drops the
+            // rest, so a dividend yield sent in a nested holdings array was silently
+            // discarded and the save reported success. The standalone
+            // `Investment\StoreHoldingRequest:55` has always had this rule; the nested
+            // sets did not, which is a rule-versus-schema disagreement on the PRESENCE
+            // axis rather than the range axis a previous sweep looked for.
+            'holdings.*.dividend_yield' => 'nullable|numeric|min:0|max:100',
         ];
     }
 
@@ -300,6 +307,34 @@ class StoreInvestmentAccountRequest extends FormRequest
     /**
      * Configure the validator instance.
      */
+    /**
+     * The 100% ceiling on a holdings allocation — the one home for it.
+     *
+     * **W-0321.** This rule lived only in the CREATE request. Update carried the
+     * per-holding `max:100` but nothing summing them, so an account created at
+     * 100% could be pushed past it by an edit: create refused what update
+     * accepted, for the same account and the same numbers.
+     *
+     * Static and shared rather than duplicated, because two copies of a
+     * validation rule drift the moment one is touched — and the drift here was
+     * silent, since neither request had any reason to mention the other.
+     *
+     * @param  array<int, array<string, mixed>>|null  $holdings
+     */
+    public static function validateHoldingsAllocation($validator, ?array $holdings): void
+    {
+        if ($holdings === null || ! is_array($holdings)) {
+            return;
+        }
+
+        if (collect($holdings)->sum('allocation_percent') > 100) {
+            $validator->errors()->add(
+                'holdings',
+                'Total allocation percentage cannot exceed 100%.'
+            );
+        }
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
@@ -307,15 +342,7 @@ class StoreInvestmentAccountRequest extends FormRequest
             // rather than rewritten (W-0040).
             $this->validateSharedOwnershipSplit($validator, $this->input('ownership_type'), $this->input('ownership_percentage'));
 
-            if ($this->has('holdings') && is_array($this->holdings)) {
-                $totalAllocation = collect($this->holdings)->sum('allocation_percent');
-                if ($totalAllocation > 100) {
-                    $validator->errors()->add(
-                        'holdings',
-                        'Total allocation percentage cannot exceed 100%.'
-                    );
-                }
-            }
+            self::validateHoldingsAllocation($validator, $this->has('holdings') ? $this->holdings : null);
         });
     }
 }

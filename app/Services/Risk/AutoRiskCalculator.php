@@ -497,7 +497,10 @@ class AutoRiskCalculator
             'display_name' => 'Emergency Fund',
             'level' => $level,
             'value' => $value,
-            'raw_value' => round($runwayMonths, 1),
+            // Null where it could not be worked out, matching `value` above,
+            // which already says "Not calculated" (W-0495). Rounding a null to
+            // 0.0 would re-assert the zero this branch deliberately refuses.
+            'raw_value' => $runwayMonths === null ? null : round($runwayMonths, 1),
             'description' => $description,
             'disclosure' => null,
             'icon' => 'cash',
@@ -507,7 +510,7 @@ class AutoRiskCalculator
                 // is what the surfaces beside it have always shown.
                 'emergency_fund_total' => round($cashTotal, 2),
                 'monthly_expenditure' => round($monthlyExpenditure, 2),
-                'runway_months' => round($runwayMonths, 1),
+                'runway_months' => $runwayMonths === null ? null : round($runwayMonths, 1),
             ],
         ];
     }

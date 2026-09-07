@@ -108,7 +108,7 @@
         <button
           v-preview-disabled="'upload'"
           type="button"
-          class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+          class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
           @click="showUploadModal = true"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +148,6 @@
 <script>
 import { ref, onMounted } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
@@ -161,7 +160,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     PolicyFormModal,
     DocumentUploadModal,
   },
@@ -310,7 +308,7 @@ export default {
         }
 
         await loadPolicies();
-      } catch (err) {
+      } catch {
         error.value = 'Failed to delete policy';
       }
     }
@@ -373,7 +371,7 @@ export default {
 
         closeForm();
         await loadPolicies();
-      } catch (err) {
+      } catch {
         error.value = 'Failed to save policy';
       }
     }
@@ -390,7 +388,7 @@ export default {
       emit('skip', 'protection_policies');
     };
 
-    const handleDocumentSaved = async (savedData) => {
+    const handleDocumentSaved = async () => {
       showUploadModal.value = false;
 
       // If user uploads a policy doc, automatically uncheck "has_no_policies"

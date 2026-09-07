@@ -90,7 +90,15 @@ it('lets Fyn name an off-platform co-owner, which is the only write path on /m',
 
     foreach (['create_savings_account', 'create_investment_account'] as $name) {
         $tool = collect($tools)->first(fn (array $t) => ($t['function']['name'] ?? $t['name'] ?? '') === $name);
-        $props = $tool['function']['parameters']['properties'] ?? $tool['input_schema']['properties'] ?? [];
+        // `getTools()` returns the FLAT `{name, description, parameters}` shape, so
+        // this read `function.parameters.properties` and `input_schema.properties`,
+        // missed on both, and reported a field that IS in the catalogue as absent —
+        // the same Decoy `SharedGoalIsOneWholeGoalTest` carried (tests/CLAUDE.md §4).
+        // Flat first, with the provider-wrapped shapes kept as fallbacks.
+        $props = $tool['parameters']['properties']
+            ?? $tool['function']['parameters']['properties']
+            ?? $tool['input_schema']['properties']
+            ?? [];
 
         expect($tool)->not->toBeNull("{$name} is missing from the catalogue")
             ->and($props)->toHaveKey('joint_owner_name');

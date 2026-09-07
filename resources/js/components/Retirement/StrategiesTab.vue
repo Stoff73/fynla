@@ -245,6 +245,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapState, mapActions } from 'vuex';
 import StrategyCard from './StrategyCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -273,7 +274,7 @@ export default {
     },
 
     retirementAge() {
-      return this.strategies?.current_status?.retirement_age || 68;
+      return this.strategies?.current_status?.retirement_age || DEFAULT_RETIREMENT_AGE;
     },
 
     yearsToRetirement() {

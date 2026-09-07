@@ -4,7 +4,8 @@ title: The "estate exceeds the nil-rate band" recommendation estimates the estat
 mission: w-0368-undivided-share-discount
 branch: null
 owner: build-lead
-status: review
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-26T00:00:00Z
@@ -182,3 +183,16 @@ re-baseline.
 
 **Worth a tax-compliance eye**, since it changes a published Inheritance Tax figure:
 1,298 passed across Estate, Estate services, Agents, AI and Stores; 177 Architecture.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Icecube-acc
+- **Evidence:** merged in #728; commit `6787463fe` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

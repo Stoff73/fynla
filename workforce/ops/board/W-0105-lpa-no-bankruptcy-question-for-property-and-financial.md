@@ -4,7 +4,7 @@ title: No bankruptcy question exists for a property and financial affairs Lastin
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-21T17:44:00Z
@@ -148,3 +148,21 @@ questioning before building.
   Acceptance 3 says the disclosure route means one entry and **this item closes**. I
   ruled the route; I have **not** changed this item's status, and closing it is
   team-lead's.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed.**
+
+  The question was not merely unasked in the UI — **there was no column, no field and no check at all.** An instrument naming a bankrupt attorney was presented to the user as compliant and would have been refused registration by the Office of the Public Guardian.
+
+  **Mental Capacity Act 2005 s13(8)-(9), and the restriction is TYPE-DEPENDENT** — which is the whole reason a blanket bar would have been wrong. A bankrupt person cannot act as attorney for **property and financial affairs**, but may perfectly well act for **health and welfare**. Disqualifying them there would invent a restriction the statute does not impose, and there is a test asserting exactly that.
+
+  **Built:** `lpa_attorneys.is_bankrupt`, nullable; `LpaAttorney` fillable and cast; `attorneys.*.is_bankrupt` validated on both the store and update requests; `checkAttorneyBankruptcy()` registered in `checkCompliance()`.
+
+  **Nullable is load-bearing and the migration says so.** *"Not asked"* is a different fact from *"not bankrupt"*; a `NOT NULL DEFAULT false` would turn an unanswered question into a declaration nobody made, on an instrument the OPG can refuse.
+
+  **Unanswered is a WARNING, not a failure** — the donor may simply not have been asked, and the application has only just begun asking. Failing on silence would fail **every instrument created before this field existed**. A confirmed bankruptcy fails, and names who.
+
+  **One existing test had to change and it was right to:** *"reports no issues found when every check passes"* asserted zero warnings on a fixture whose attorneys predate the field. A COMPLETE property LPA now answers this question, so the fixture states `is_bankrupt => false` rather than inheriting silence. The test's subject — a finished instrument producing no issues — is unchanged.
+
+  **Tested:** `LpaComplianceServiceTest` — 35 passed, 157 assertions, covering the property failure naming the attorney, the health-and-welfare pass, the unanswered warning and the confirmed pass. 95 LPA tests pass overall, 361 assertions. Pint clean.
+
+  **NOT DONE.** No UI field yet — the column, validation and check exist, but nothing on screen asks the question. Not browser-verified. `/m` and iOS have no LPA surface at all, which is **W-0110**.

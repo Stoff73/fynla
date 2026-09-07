@@ -113,7 +113,15 @@ it('lets Fyn set essential and shared ownership, which is the only goal write pa
     $tool = collect(app(AiToolDefinitions::class)->getTools())
         ->first(fn (array $t) => ($t['function']['name'] ?? $t['name'] ?? '') === 'create_goal');
 
-    $props = $tool['function']['parameters']['properties'] ?? $tool['input_schema']['properties'] ?? [];
+    // Three shapes, because the catalogue's is provider-dependent and this assertion
+    // must fail when the FIELDS are missing, never when the wrapper differs.
+    // `AiToolDefinitions::getTools()` returns the flat `{name, description, parameters}`
+    // form; reading only the `function`-wrapped and `input_schema` forms found an empty
+    // array and reported the fields missing while every one of them was present.
+    $props = $tool['parameters']['properties']
+        ?? $tool['function']['parameters']['properties']
+        ?? $tool['input_schema']['properties']
+        ?? [];
 
     expect($tool)->not->toBeNull('create_goal is missing from the catalogue')
         ->and($props)->toHaveKey('is_essential')

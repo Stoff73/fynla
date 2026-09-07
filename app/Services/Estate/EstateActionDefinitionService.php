@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
-use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
 use Carbon\Carbon;
@@ -33,7 +32,6 @@ class EstateActionDefinitionService
     use StructuredLogging;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig,
         private readonly PropertyStore $propertyStore,
         private readonly MortgageStore $mortgageStore,
         private readonly IHTCalculationService $ihtCalculator,
@@ -183,7 +181,7 @@ class EstateActionDefinitionService
         // accepted permission. There is no `data_sharing_enabled` column; inventing
         // one here would have been a fifth answer to a question already settled.
         $spouse = $user->liveSpouse();
-        $dataSharingEnabled = $spouse !== null && $user->hasAcceptedSpousePermission();
+        $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
 
         $iht = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
 

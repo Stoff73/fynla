@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: main-inference
 reviewers: [tax-compliance-reviewer]
-status: gated
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -101,3 +102,16 @@ residual reds 4 of 6.** Estate unit 351 green. Pint clean.
 `W-0481` was widened on the way through: `AssetFactory` randomises **two** fields into
 values their columns reject — `asset_type` (four of eight) and `ownership_type`
 (`tenants_in_common`, which is property-only).
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #714; commit `c031d31b7` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

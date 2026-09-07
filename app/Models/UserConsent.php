@@ -71,6 +71,7 @@ class UserConsent extends Model
         'consented',
         'consented_at',
         'withdrawn_at',
+        'superseded_at',
         'ip_address',
         'user_agent',
     ];
@@ -79,6 +80,7 @@ class UserConsent extends Model
         'consented' => 'boolean',
         'consented_at' => 'datetime',
         'withdrawn_at' => 'datetime',
+        'superseded_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -173,6 +175,15 @@ class UserConsent extends Model
                 ->exists();
 
             if ($alreadyHeld) {
+                // W-0156. Marked, not merely skipped. Without this the retained
+                // row is indistinguishable from an abandoned visitor's, and the
+                // unclaimed-consent purge would destroy evidence of a decision
+                // that was actually made — breaking F-0007's own principle while
+                // enforcing its retention.
+                // The return count is claims, and a superseded row is not one, so
+                // $claimed is deliberately left alone.
+                $row->update(['superseded_at' => now()]);
+
                 continue;
             }
 

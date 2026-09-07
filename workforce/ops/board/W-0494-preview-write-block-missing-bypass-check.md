@@ -3,7 +3,7 @@ id: W-0494
 title: Four Architecture tests compare native filesystem paths and fail only on Windows
 mission: M-0001-state-truth
 owner: build-lead
-status: review
+status: done
 severity: medium
 surfaces: [web, m]
 source: surfaced by the Architecture suite while running W-0001's gates, 2026-08-25
@@ -91,3 +91,34 @@ unaltered on the platform CI runs.
   no application, authorisation or preview-mode code. The reviewer attached when
   this was mis-filed has been removed.
 - **No browser verification.** Nothing user-facing changed.
+
+## 2026-09-01 — CLOSED, and the suite is now actually green
+
+All four normalisations re-read in the code, not taken from the note:
+`PreviewBlockSitesCheckBypassTest.php:71`, both `StoreBoundary` tests at `:78-80` /
+`:68-70`, and `OnlineReadinessDocumentsTest.php:31-34`. Each collapses to a no-op where
+`DIRECTORY_SEPARATOR` is `/`.
+
+**The suite was still red on something else, and the point of this item is that a red
+Architecture suite teaches developers to disregard it — so it is fixed here rather than
+left for the next reader to skip past.**
+`Tests\Architecture\StoreBoundary` failed on
+`app/Services/UserProfile/UserProfileService.php:8` — `use App\Models\DCPension;`,
+present since before this board run. The import existed solely for two private static
+helpers, `monthlyEmployeeContribution()` and `isSalaryDeductedPension()` (W-0424), which
+are pension-domain rules living on a profile service.
+
+They now live in `app/Services/Retirement/PensionContributionRule.php` — a class that
+takes a pension the caller already fetched through `PensionStore` and answers a question
+about it, with no query and no mutation. Added to `PensionStoreBoundaryTest`'s allowlist
+in the same category as `PensionDerivedColumnCalculator`, with the reason at the line.
+`UserProfileService` no longer imports the model at all, which is the honest fix rather
+than allowlisting a two-thousand-line service.
+
+**Architecture suite: 151 passed, 1 skipped, 0 failed** — first clean run of this suite
+in the board's records. Affected families re-run: **826 passed** across UserProfile /
+Pension / Expenditure.
+
+**Gaps unchanged:** the Windows fixes are still portable by inspection rather than run on
+Windows; CI (Ubuntu) confirms the Linux side. No security review warranted, no browser
+verification — nothing user-facing changed.

@@ -13,6 +13,7 @@ use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\EstateDataReadinessService;
+use App\Services\Estate\FutureValueCalculator;
 use App\Services\Estate\GiftingStrategyOptimizer;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\LifeCoverCalculator;
@@ -51,7 +52,9 @@ class EstateAgent extends BaseAgent
         private readonly RecommendationPersonaliser $personaliser,
         private readonly EstateDataReadinessService $readinessService,
         private readonly LifeCoverCalculator $lifeCoverCalculator,
-        private readonly LifeCoverReach $lifeCoverReach
+        private readonly LifeCoverReach $lifeCoverReach,
+        // W-0198 — the one home for how long this person expects to live.
+        private readonly FutureValueCalculator $futureValue
     ) {}
 
     /**
@@ -149,8 +152,17 @@ class EstateAgent extends BaseAgent
                 $effectiveTaxRate = 0;
 
                 try {
-                    $spouse = $user->spouse;
-                    $dataSharingEnabled = $spouse !== null;
+                    // W-0350 — reciprocal only.
+                    //
+                    // NOTE, not fixed here: `$dataSharingEnabled` is derived from the
+                    // link's existence, while `IHTController` derives the same flag
+                    // from `hasAcceptedSpousePermission()`. Two mechanisms, one
+                    // question — so Fyn can quote a different estate figure from the
+                    // one on screen. Aligning them changes the pooled figure for the
+                    // 8 of 12 reciprocal couples with no permission row, which is a
+                    // visible tax change and CSJ's call, not a side effect of this fix.
+                    $spouse = $user->reciprocalLiveSpouse();
+                    $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
                     $ihtCalculation = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
                     $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
                     $effectiveTaxRate = $ihtCalculation['effective_rate'] ?? 0;
@@ -182,7 +194,11 @@ class EstateAgent extends BaseAgent
                     $currentAge = $user->date_of_birth
                         ? (int) $user->date_of_birth->diffInYears(now())
                         : self::DEFAULT_CURRENT_AGE;
-                    $lifeExpectancy = $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY;
+                    // W-0198. Was `override ?? 85` — it could not see the figure the
+                    // user typed in the retirement module at all, so a household that
+                    // set one there was projected to 85 here and to their own number
+                    // in retirement.
+                    $lifeExpectancy = $this->futureValue->getLifeExpectancy($user)['death_age'];
                     $yearsUntilDeath = max(1, $lifeExpectancy - $currentAge);
                     $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
                     $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
@@ -381,7 +397,8 @@ class EstateAgent extends BaseAgent
                         'goal_liquidity' => $goalLiquidity,
                         'profile' => [
                             'current_age' => $currentAge,
-                            'life_expectancy' => $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY,
+                            // W-0198 — same resolver as every other consumer.
+                            'life_expectancy' => $this->futureValue->getLifeExpectancy($user)['death_age'],
                             'marital_status' => $user->marital_status,
                             'has_dependents' => ($user->familyMembers()->where('relationship', 'child')->count() > 0),
                             'has_spouse' => $user->spouse !== null,
@@ -1709,8 +1726,10 @@ class EstateAgent extends BaseAgent
 
         $ihtLiability = 0;
         try {
-            $spouse = $user->spouse;
-            $dataSharingEnabled = $spouse !== null;
+            // W-0529 — one derivation. This pooled on the link alone, so Fyn quoted a
+            // different estate figure from the one on the screen.
+            $spouse = $user->reciprocalLiveSpouse();
+            $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
             $result = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
             $ihtLiability = $result['iht_liability'] ?? 0;
         } catch (\Exception $e) {

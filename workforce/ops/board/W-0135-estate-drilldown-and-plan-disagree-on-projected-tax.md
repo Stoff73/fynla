@@ -4,7 +4,7 @@ title: Two estate screens give different projected Inheritance Tax for the same 
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0015-cycle1-estate-tax-figures.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T20:15:00Z
@@ -148,3 +148,8 @@ is quantified against a number the drill-down contradicts.
   **⚠️ Clear the cache before re-measuring.** `EstateAgent::analyze()` caches its whole
   result and the first `/plans/estate` read after this change returned the PRE-FIX
   figures (taxable £3,467,510.13, tax £1,387,004.05). `php artisan cache:clear`.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `app/Services/Plans/EstatePlanService.php:419-426`
+  records the removal in place: the projected taxable estate and tax are no longer recomputed there,
+  and `:485-492` passes `$ihtCalc`'s own projected figures through. One question, one mechanism, one
+  answer across `/estate/inheritance-tax` and `/plans/estate`.

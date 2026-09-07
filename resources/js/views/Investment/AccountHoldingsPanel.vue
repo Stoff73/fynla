@@ -90,6 +90,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -195,21 +196,9 @@ export default {
       return this.fundValue * ((parseFloat(holding.allocation_percent) || 0) / 100);
     },
 
-    formatAssetType(type) {
-      const types = {
-        equity: 'Equity',
-        uk_equity: 'UK Equity',
-        us_equity: 'US Equity',
-        international_equity: 'Int\'l Equity',
-        bond: 'Bond',
-        fund: 'Fund',
-        etf: 'ETF',
-        cash: 'Cash',
-        alternative: 'Alternative',
-        property: 'Property',
-      };
-      return types[type] || type?.charAt(0).toUpperCase() + type?.slice(1) || 'Other';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
   },
 };
 </script>

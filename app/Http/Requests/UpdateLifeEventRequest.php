@@ -26,6 +26,12 @@ class UpdateLifeEventRequest extends FormRequest
             'event_type' => 'sometimes|string|in:inheritance,gift_received,bonus,redundancy_payment,property_sale,business_sale,pension_lump_sum,lottery_windfall,large_purchase,home_improvement,wedding,education_fees,gift_given,medical_expense,custom_income,custom_expense',
             'description' => 'nullable|string|max:1000',
             'amount' => 'sometimes|numeric|min:0.01|max:999999999.99',
+            // W-0527 — IHTA 1984 s141, quick succession relief. Nullable and
+            // `min:0` rather than `min:0.01`: a stated zero ("no tax was paid")
+            // is a real answer and must reach the column, where NULL means the
+            // user has not said. The range matches the `decimal(15,2)` it lands
+            // in, so validation and column agree.
+            'iht_paid_on_prior_death' => 'sometimes|nullable|numeric|min:0|max:9999999999999.99',
             'impact_type' => 'nullable|string|in:income,expense',
             'expected_date' => 'sometimes|date',
             'certainty' => 'nullable|string|in:confirmed,likely,possible,speculative',

@@ -63,7 +63,7 @@
 
                   <div class="detail-row">
                     <span class="detail-label">Retirement Age</span>
-                    <span class="detail-value">{{ pension.retirement_age || currentUser?.target_retirement_age || 67 }}</span>
+                    <span class="detail-value">{{ pension.retirement_age || currentUser?.target_retirement_age || DEFAULT_RETIREMENT_AGE }}</span>
                   </div>
 
                   <div class="detail-row">
@@ -163,7 +163,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('pension_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,7 +294,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('investment_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,7 +370,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-100 text-horizon-500 rounded-button hover:bg-light-blue-100 transition-colors text-sm font-medium"
             @click="openUploadModal('savings_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -499,6 +499,7 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
@@ -510,7 +511,6 @@ import DCPensionForm from '@/components/Retirement/DCPensionForm.vue';
 import DBPensionForm from '@/components/Retirement/DBPensionForm.vue';
 import StatePensionForm from '@/components/Retirement/StatePensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import propertyService from '@/services/propertyService';
 import investmentService from '@/services/investmentService';
@@ -534,7 +534,6 @@ export default {
     DBPensionForm,
     StatePensionForm,
     DocumentUploadModal,
-    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip', 'sidebar-update'],
@@ -724,7 +723,7 @@ export default {
           loadSavingsAccounts(),
           loadUserAddress(),
         ]);
-      } catch (err) {
+      } catch {
         // Data loading errors are handled in individual methods
       }
 
@@ -765,7 +764,7 @@ export default {
             await retirementService.deleteDBPension(id);
           }
           await loadPensions();
-        } catch (err) {
+        } catch {
           error.value = 'Failed to delete pension';
         }
       }
@@ -797,7 +796,7 @@ export default {
 
         closePensionForm();
         await loadPensions();
-      } catch (err) {
+      } catch {
         error.value = 'Failed to save pension. Please try again.';
       }
     }
@@ -807,7 +806,7 @@ export default {
       try {
         const response = await propertyService.getProperties();
         properties.value = Array.isArray(response) ? response : (response.data?.properties || response.data || []);
-      } catch (err) {
+      } catch {
         // Properties loading failed silently - will show empty list
       }
     }
@@ -819,7 +818,7 @@ export default {
         // API returns { success, data: { property } }
         editingProperty.value = response.data?.property || response.property || response;
         showPropertyForm.value = true;
-      } catch (err) {
+      } catch {
         // Fallback to cached data if API fails
         editingProperty.value = property;
         showPropertyForm.value = true;
@@ -832,7 +831,7 @@ export default {
         try {
           await propertyService.deleteProperty(id);
           await loadProperties();
-        } catch (err) {
+        } catch {
           error.value = 'Failed to delete property';
         }
       }
@@ -878,7 +877,7 @@ export default {
 
         closePropertyForm();
         await loadProperties();
-      } catch (err) {
+      } catch {
         error.value = 'Failed to save property. Please try again.';
       }
     }
@@ -888,7 +887,7 @@ export default {
       try {
         const response = await investmentService.getInvestmentData();
         investments.value = response.data?.accounts || [];
-      } catch (err) {
+      } catch {
         // Investments loading failed silently - will show empty list
       }
     }
@@ -904,7 +903,7 @@ export default {
         try {
           await investmentService.deleteAccount(id);
           await loadInvestments();
-        } catch (err) {
+        } catch {
           error.value = 'Failed to delete investment account';
         }
       }
@@ -941,7 +940,7 @@ export default {
       try {
         const response = await savingsService.getSavingsData();
         savingsAccounts.value = response.data?.accounts || [];
-      } catch (err) {
+      } catch {
         // Savings loading failed silently - will show empty list
       }
     }
@@ -959,7 +958,7 @@ export default {
           county: address.county || '',
           postcode: address.postcode || '',
         };
-      } catch (err) {
+      } catch {
         // Address loading failed silently - auto-populate won't work
       }
     }
@@ -975,7 +974,7 @@ export default {
         try {
           await savingsService.deleteAccount(id);
           await loadSavingsAccounts();
-        } catch (err) {
+        } catch {
           error.value = 'Failed to delete savings account';
         }
       }
@@ -997,7 +996,7 @@ export default {
 
         closeSavingsForm();
         await loadSavingsAccounts();
-      } catch (err) {
+      } catch {
         error.value = 'Failed to save savings account. Please try again.';
       }
     }
@@ -1013,7 +1012,7 @@ export default {
       uploadDocumentType.value = null;
     }
 
-    async function handleDocumentSaved(savedData) {
+    async function handleDocumentSaved() {
       // Capture type before closing (closeUploadModal nulls it)
       const type = uploadDocumentType.value;
       closeUploadModal();
@@ -1165,19 +1164,6 @@ export default {
       return account.full_balance ?? account.current_balance ?? 0;
     };
 
-    const getUserSavingsShare = (account) => {
-      // Single-record pattern: Use user_share from API if available
-      if (account.user_share !== undefined) {
-        return account.user_share;
-      }
-      // Fallback: calculate from full balance
-      const fullBalance = getFullSavingsBalance(account);
-      if (account.ownership_type === 'joint' && account.ownership_percentage) {
-        return fullBalance * (account.ownership_percentage / 100);
-      }
-      return fullBalance;
-    };
-
     const formatInterestRate = (rate) => {
       // Rate is stored as a percentage (e.g., 4.55 = 4.55%)
       // Display directly without multiplying
@@ -1204,6 +1190,8 @@ export default {
     };
 
     return {
+      // W-0196 — the template reads the one home, not a literal.
+      DEFAULT_RETIREMENT_AGE,
       stepTitle,
       stepDescription,
       activeTab,

@@ -288,8 +288,35 @@ class TaxConfigurationSeeder extends Seeder
                     'full_new_state_pension' => 11973.00,
                     'qualifying_years' => 35,
                     'minimum_qualifying_years' => 10,
-                    'current_spa' => 66,                         // Current State Pension Age
-                    'future_spa' => 67,                          // Rising to 67 between April 2026 and April 2028; further rise to 68 planned 2044-2046
+                    // W-0197. `current_spa` and `future_spa` are RETIRED. They were two
+                    // snapshots of a moving statutory schedule, and choosing between
+                    // them could never be right for a projection running decades out:
+                    // a 46-year-old and a 26-year-old do not share a State Pension age,
+                    // and one scalar gave them one. Four services read 66 and one read
+                    // 67, so a household could be told two different State Pension ages
+                    // for the same person by two different modules.
+                    //
+                    // The schedule below is read by StatePensionAgeResolver, which takes
+                    // a date of birth and returns the age that applies to THAT cohort.
+                    // Each band is `from` (inclusive) to `to` (inclusive, null = open
+                    // ended), by date of birth, with the age that cohort reaches.
+                    //
+                    // Sources: Pensions Act 1995 Sch 4, Pensions Act 2007, Pensions Act
+                    // 2011 and Pensions Act 2014 s26. The 2044-2046 rise to 68 is
+                    // legislated (Pensions Act 2007 as amended); the review that could
+                    // bring it forward has not changed the statute, so the statute is
+                    // what is modelled.
+                    'age_schedule' => [
+                        ['from' => null,         'to' => '1954-10-05', 'age' => 66],
+                        ['from' => '1954-10-06', 'to' => '1960-04-05', 'age' => 66],
+                        // Pensions Act 2014 s26 — the rise to 67 phases in for those
+                        // born 6 Apr 1960 to 5 Apr 1977, reaching a flat 67 thereafter.
+                        ['from' => '1960-04-06', 'to' => '1977-04-05', 'age' => 67],
+                        ['from' => '1977-04-06', 'to' => '1978-04-05', 'age' => 67],
+                        // Pensions Act 2007 — rise to 68 between 2044 and 2046.
+                        ['from' => '1978-04-06', 'to' => '1979-04-05', 'age' => 68],
+                        ['from' => '1979-04-06', 'to' => null,         'age' => 68],
+                    ],
                 ],
 
                 // Salary sacrifice configuration
@@ -417,11 +444,18 @@ class TaxConfigurationSeeder extends Seeder
                 // 14-Year Rule (Extended Cumulation)
                 // Failed PETs can affect CLT tax even beyond 7 years
                 // =================================================================
+                // W-0526 — the three window numbers that used to sit here
+                // (`lookback_for_failed_pets`, `lookback_for_clts`,
+                // `maximum_window: 14`) were a SECOND configured home for a rule
+                // `chargeable_lifetime_transfers` already states, and nothing read
+                // them. `maximum_window` was the worst of the three: it is the SUM
+                // of the other two, so a lookback edited to 5 left a stored 14
+                // contradicting it. `TaxConfigService::getFourteenYearRule()` now
+                // derives all three from the CLT block. What stays here is the
+                // prose, which is the one thing this block can own without going
+                // stale against arithmetic it does not perform.
                 'fourteen_year_rule' => [
                     'applies_to' => 'clt_with_prior_failed_pet', // When calculating CLT tax at death
-                    'lookback_for_failed_pets' => 7,             // Look back 7 years from CLT for failed PETs
-                    'lookback_for_clts' => 7,                    // Look back 7 years from death for CLTs
-                    'maximum_window' => 14,                      // Total maximum window is 14 years
                     'description' => 'When calculating IHT on a CLT made within 7 years of death, any failed PETs made in the 7 years before that CLT reduce the NRB available',
                     'calculation_steps' => [
                         '1. Identify all CLTs made within 7 years of death',
@@ -578,8 +612,16 @@ class TaxConfigurationSeeder extends Seeder
 
                 // Normal Expenditure from Income - UNLIMITED if conditions met
                 'normal_expenditure_from_income' => [
-                    'limit' => null,                             // Unlimited
+                    'limit' => null,                             // Unlimited — s21 sets no cap
                     'immediately_exempt' => true,
+                    // W-0525 — the two numbers the gifting strategies act on.
+                    // Neither is in the legislation: the fraction is a deliberate
+                    // conservatism against the "standard of living" test, and the
+                    // minimum is where a standing order stops being worth the
+                    // record-keeping s21 demands. They were hardcoded in two
+                    // services and configured in neither.
+                    'safe_surplus_fraction' => 0.5,
+                    'minimum_annual_gift' => 1000,
                     'conditions' => [
                         'from_income_not_capital' => true,       // Must be from income, not capital
                         'regular_pattern' => true,               // Must be regular/habitual

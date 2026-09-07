@@ -18,6 +18,21 @@ use Illuminate\Support\Facades\Crypt;
  * CashAccount tracks current/transactional accounts for cash flow analysis.
  * It is NOT part of the savings recommendation engine.
  * Savings accounts are managed via the SavingsAccount model.
+ *
+ * **Settled by CSJ, 2026-08-28 (W-0489).** Three files used to disagree about what this
+ * table is for. `migrate:savings-to-cash` believed it REPLACED `savings_accounts` and
+ * copied every row across; this docblock and `HouseholdPlanningService` both said the
+ * opposite, and the service sums the two tables as separate asset classes — which is only
+ * correct if they are separate things.
+ *
+ * They are separate things. **A current account is not a savings account**, and the two
+ * tables are never copies of one another. The command was the odd voice out and has been
+ * deleted; nothing in the application copies a row from one table to the other, and
+ * nothing should.
+ *
+ * That is what makes `HouseholdPlanningService` adding both totals correct rather than a
+ * double count. It was one `php artisan migrate:savings-to-cash` away from being wrong
+ * for every household in the app.
  */
 class CashAccount extends Model
 {

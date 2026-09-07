@@ -4,7 +4,7 @@ title: Dead-end — a user whose only pension is Defined Benefit cannot add any 
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-20T23:05:00Z
 claimed: 2026-08-21T09:10:00Z
@@ -185,3 +185,13 @@ Report: `reports/R-01-pass-a-entry.md`.
   environment state (no throwaway user was created — nothing to tear down), and
   the full W-0018 argument. Every Pest run re-verified under
   `DB_DATABASE=laravel_testing_c` after the shared-database deadlocks.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  The dead end is gone. `resources/js/components/NetWorth/PensionList.vue:380-386` carries the fix and names this item in the comment: the inline **Add Pension** and **Upload Statement** CTAs now sit at `:387-411` as a sibling of the projections branches, not inside them.
+
+  That is the root cause, not a symptom. The controls used to live inside the pension-cards column, which renders only when `projections.pension_pot_projection.dc_pension_count` is non-zero (`:75`) — so a user whose only pension was Defined Benefit fell into the `v-else-if` guaranteed-income branch and lost every control, while the completeness banner on the same page still asked for a money-purchase pension and a State Pension forecast. Sarah could not provide either.
+
+  A second entry point also exists for the empty state at `:56`, so the page is reachable from both directions.
+
+  **Tested:** the retirement component suite — 19 passed (`RetirementTargetCard.spec.js` 10, `DbPensionFields.spec.js` 9).

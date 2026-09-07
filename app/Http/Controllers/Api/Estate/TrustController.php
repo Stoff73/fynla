@@ -19,6 +19,7 @@ use App\Services\Estate\TrustService;
 use App\Services\TaxConfigService;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
 use App\Services\Trust\TrustAssetAggregatorService;
+use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -183,7 +184,11 @@ class TrustController extends Controller
         // Create default profile if missing
         if (! $ihtProfile) {
             // For married users, default to full spouse NRB (£325,000)
-            $isMarried = in_array($user->marital_status, ['married']);
+            // W-0508. `:207` below already resolves the spouse through
+            // `HouseholdPooling::hasSpousalStatus()` (W-0480 F2), so this line
+            // gave a civil partner the corrected calculation and a single-person
+            // default profile IN ONE REQUEST. One rule, one reader.
+            $isMarried = HouseholdPooling::hasSpousalStatus($user);
             $ihtConfig = $this->taxConfig->getInheritanceTax();
             $defaultSpouseNRB = $isMarried ? $ihtConfig['nil_rate_band'] : 0;
 
@@ -198,8 +203,12 @@ class TrustController extends Controller
         }
 
         // Use the simplified IHT calculation service
-        $spouse = ($user->marital_status === 'married' && $user->spouse_id) ? User::find($user->spouse_id) : null;
-        $dataSharingEnabled = $spouse && $user->hasAcceptedSpousePermission();
+        // W-0480 F2 — the same line as `ComprehensiveEstatePlanService`, feeding the same
+        // `calculate()`. Left reading `['married']` alone, it handed a civil partnership a
+        // null spouse and so a single-person Inheritance Tax liability on this screen,
+        // beside the corrected one on the next.
+        $spouse = (HouseholdPooling::hasSpousalStatus($user) && $user->spouse_id) ? User::find($user->spouse_id) : null;
+        $dataSharingEnabled = $spouse !== null && $user->sharesFinancialDataWithSpouse();
 
         $ihtCalculation = $this->ihtCalculationService->calculate($user, $spouse, $dataSharingEnabled);
 

@@ -4,7 +4,8 @@ title: Mortgage created via the property wizard hardcodes a 300-month term and d
 mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: build-lead
-status: gated
+status: done
+closed: 2026-08-29
 surfaces: [web, m, ios]
 created: 2026-08-20T23:35:00Z
 claimed: 2026-08-21T10:30:00Z
@@ -276,3 +277,16 @@ Report: `reports/R-01-pass-a-entry.md`.
   and `/m` and native have no property form — their only create door is Fyn, whose
   `handleCreateProperty` accepts five mortgage fields, not the nine. **The wizard fix does not
   reach them.**
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `bc9156718` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

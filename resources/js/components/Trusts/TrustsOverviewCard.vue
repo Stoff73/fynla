@@ -31,6 +31,14 @@
         </p>
       </div>
 
+      <!-- Could not load. NOT the same sentence as "you have none" — only one of
+           those is a claim about the user's money, and the card used to make it
+           whenever the request failed (W-0538). -->
+      <div v-else-if="loadFailed" class="empty-state">
+        <p class="text-sm text-neutral-500">We couldn't load your trusts just now</p>
+        <p class="text-xs text-horizon-400 mt-1">Click to open trust planning</p>
+      </div>
+
       <!-- Empty State -->
       <div v-else class="empty-state">
         <p class="text-sm text-neutral-500">No trusts set up</p>
@@ -38,10 +46,10 @@
       </div>
 
       <!-- Tax Info Banner -->
+      <!-- Rule 15 — the icon that used to sit here was removed when this card
+           was wired into the dashboard (W-0538). A dashboard card is a banned
+           surface, and the card had never rendered, so the icon lands new. -->
       <div v-if="hasRelevantPropertyTrusts" class="info-banner">
-        <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
         <span class="info-text">
           6% charge on asset value on {{ nextChargeDate }}
         </span>
@@ -62,6 +70,7 @@ export default {
   data() {
     return {
       loading: false,
+      loadFailed: false,
     };
   },
 
@@ -147,9 +156,13 @@ export default {
 
     async loadTrusts() {
       this.loading = true;
+      this.loadFailed = false;
       try {
         await this.fetchTrusts();
       } catch (error) {
+        // The card must not go on to say "No trusts set up": an empty list
+        // because nothing loaded is not an empty list because there is nothing.
+        this.loadFailed = true;
         logger.error('Failed to load trusts:', error);
       } finally {
         this.loading = false;
@@ -309,13 +322,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.info-icon {
-  width: 20px;
-  height: 20px;
-  @apply text-light-blue-500;
-  flex-shrink: 0;
 }
 
 .info-text {

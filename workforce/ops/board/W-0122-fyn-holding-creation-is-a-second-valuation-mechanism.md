@@ -3,7 +3,7 @@ id: W-0122
 title: Fyn's holding creation carries a second copy of the units/price/value rule and never writes a unit count
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 claimed: 2026-08-21T19:25:00Z
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
@@ -126,3 +126,9 @@ line-for-line duplicate of its cost-basis branch in
   judged W-0122 explicitly out of W-0121's scope and declined to slip a Fyn tool change
   into a red-suite repair at the final gate. That was the right call and the separation
   stands.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `CoordinatingAgent:3332` calls
+  `HoldingValuation::reconcile($payload)` — Fyn's `create_holding` reads the same home the two
+  controller paths read, so a holding entered by talking to Fyn and one entered through the form
+  are the same shape. The inline allocation-percentage valuation is gone. Rule 20 satisfied by
+  consolidation, not by keeping two copies in step.

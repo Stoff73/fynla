@@ -130,12 +130,16 @@ describe('F1 — one household, one bill', function () {
             $result = $this->service->calculate($user, $spouse, true);
 
             expect($result['total_net_estate'])->toBe(1_234_280.0)
-                ->and($result['nrb_available'])->toBe(500_000.0)      // 650,000 − 150,000
+                // W-0367 — the £150,000 settlement is relieved by £6,000 of s19
+                // annual exemption (£3,000 for its year, £3,000 carried), so the
+                // deduction is £144,000. 650,000 − 144,000.
+                ->and($result['nrb_available'])->toBe(506_000.0)
                 ->and($result['rnrb_available'])->toBe(350_000.0)
-                ->and($result['total_allowances'])->toBe(850_000.0)
+                ->and($result['total_allowances'])->toBe(856_000.0)
                 ->and($result['charitable_deduction'])->toBe(20_000.0) // both wills
-                ->and($result['taxable_estate'])->toBe(364_280.0)
-                ->and($result['iht_liability'])->toBe(145_712.0);
+                // £6,000 lower than before, matching the larger band (W-0367).
+                ->and($result['taxable_estate'])->toBe(358_280.0)
+                ->and($result['iht_liability'])->toBe(143_312.0);
         }
     });
 
@@ -145,8 +149,8 @@ describe('F1 — one household, one bill', function () {
         foreach ([[$david, $sarah], [$sarah, $david]] as [$user, $spouse]) {
             $result = $this->service->calculate($user, $spouse, true);
 
-            expect($result['nrb_gift_deduction'])->toBe(150_000.0)
-                ->and($result['nrb_deduction']['clts_in_7_years'])->toBe(150_000.0);
+            expect($result['nrb_gift_deduction'])->toBe(144_000.0)
+                ->and($result['nrb_deduction']['clts_in_7_years'])->toBe(144_000.0);
         }
     });
 
@@ -205,7 +209,7 @@ describe('F2 — the allowance breakdown reconciles', function () {
 
         expect($r['nrb_individual'])->toBe(325_000.0)
             ->and($r['nrb_spouse_modelled'])->toBe(325_000.0)
-            ->and($r['nrb_gift_deduction'])->toBe(150_000.0);
+            ->and($r['nrb_gift_deduction'])->toBe(144_000.0);
     });
 
     /**
@@ -231,10 +235,10 @@ describe('F3 — allowances cover only the estates being taxed', function () {
         $shared = $this->service->calculate($david, $sarah, true);
         $unshared = $this->service->calculate($david, $sarah, false);
 
-        expect($shared['nrb_available'])->toBe(500_000.0)
-            ->and($unshared['nrb_available'])->toBe(175_000.0)   // 325,000 − 150,000 of gifts
+        expect($shared['nrb_available'])->toBe(506_000.0)
+            ->and($unshared['nrb_available'])->toBe(181_000.0)   // 325,000 − 144,000 of gifts
             ->and($unshared['nrb_spouse_modelled'])->toBe(0.0)
-            ->and($unshared['rnrb_available'])->toBeLessThanOrEqual(175_000.0);
+            ->and($unshared['rnrb_available'])->toBeLessThanOrEqual(181_000.0);
     });
 
     it('produces a bill on an estate that previously escaped entirely', function () {
@@ -285,9 +289,11 @@ describe('the per-person cap on gifts (IHTA 1984 s8A)', function () {
 
         $result = $this->service->calculate($david, $sarah, true);
 
-        // David capped at 325,000, Sarah's 100,000 uncapped → 425,000.
-        expect($result['nrb_gift_deduction'])->toBe(425_000.0)
-            ->and($result['nrb_available'])->toBe(225_000.0);
+        // W-0367 — each gift is relieved by £6,000 first. David's £400,000
+        // becomes £394,000 and is still capped at his own £325,000 band; Sarah's
+        // £100,000 becomes £94,000 and is uncapped → £419,000.
+        expect($result['nrb_gift_deduction'])->toBe(419_000.0)
+            ->and($result['nrb_available'])->toBe(231_000.0);
     });
 });
 
@@ -323,12 +329,13 @@ describe('the nil-rate-band footnote states the band actually applied', function
 
         $result = $this->service->calculate($david, $sarah, true);
 
-        // £325,000 each, less the £150,000 chargeable lifetime transfer, is £500,000 —
-        // every figure in the sentence, and they reconcile by hand.
+        // £325,000 each, less the £144,000 net chargeable transfer (the £150,000
+        // settlement after its £6,000 s19 exemption), is £506,000 — every figure
+        // in the sentence, and they reconcile by hand.
         expect($result['nrb_message'])
-            ->toContain('£500,000 applied')
+            ->toContain('£506,000 applied')
             ->toContain('£325,000 each')
-            ->toContain('less £150,000 of allowance used by gifts made within the last 7 years');
+            ->toContain('less £144,000 of allowance used by gifts made within the last 7 years');
     });
 
     it('says applied rather than available when nothing has been deducted', function () {
@@ -375,7 +382,8 @@ describe('the nil-rate-band footnote states the band actually applied', function
 
         preg_match('/of £([\d,]+) applied/', $result['nrb_message'], $matches);
 
-        expect($result['nrb_available'])->toBe(175_000.0)
+        // 325,000 − 144,000, the settlement net of its s19 exemption (W-0367).
+        expect($result['nrb_available'])->toBe(181_000.0)
             ->and((float) str_replace(',', '', $matches[1]))->toBe($result['nrb_available'])
             ->and($result['nrb_message'])->not->toContain('modelled on second death');
     });

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\User;
 use App\Services\Estate\LifePolicyStrategyService;
+use App\Support\HouseholdPooling;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,7 +43,11 @@ class LifePolicyController extends Controller
 
             // ========== REUSE EXISTING IHT PLANNING DATA ==========
             // Get IHT planning data (second death for married, standard for single)
-            $isMarried = $user->marital_status === 'married' && $user->liveSpouseId() !== null;
+            // W-0480 F5 — this selects the second-death Inheritance Tax basis and whether
+            // the partner's age and gender reach the premium calculation at all. It is the
+            // LIVE life-cover path; `LifeCoverCalculator::calculateLifeCoverRecommendations()`
+            // has no production caller, so fixing that alone moved no user's figure.
+            $isMarried = HouseholdPooling::hasSpousalStatus($user) && $user->liveSpouseId() !== null;
 
             if ($isMarried) {
                 // For married users, use second death IHT calculation

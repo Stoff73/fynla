@@ -32,6 +32,17 @@ class TierComparisonService
     ];
 
     /**
+     * The customer-facing name for a capability, for wherever it has to be named
+     * outside this page — a refusal message, say. One home for the wording, so a
+     * gate and the pricing comparison cannot describe the same thing differently
+     * (W-0532).
+     */
+    public static function labelFor(string $capabilityKey): string
+    {
+        return self::FEATURES[$capabilityKey]['label'] ?? $capabilityKey;
+    }
+
+    /**
      * @return list<array{key: string, label: string, included: bool, availability: string}>
      */
     public function featuresFor(array $matrix, array $caps): array

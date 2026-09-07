@@ -4,7 +4,7 @@ title: /api/savings returns 'analysis' => null as a placeholder, nothing dispatc
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web]
 created: 2026-08-22T23:25:00Z
@@ -73,3 +73,17 @@ of the resolver chain, on one household** — which is why the runway had to be 
 rather than divided client-side.
 
 Tests: `tests/Feature/Savings/SavingsEmergencyFundPayloadTest.php` (3).
+
+- 2026-08-31 build-lead: **CLOSED — two of the three links were already repaired, and the third is correct behaviour, not a dead link.**
+
+  Checked each of the three the item chained together:
+
+  1. **`'analysis' => null` placeholder — FIXED.** `SavingsController::index()` now composes a real analysis into the payload: `monthly_expenditure`, `expenditure_source`, and `emergency_fund.runway_months`/`target` (`:167-185`), inside a `try` that reports and degrades rather than failing the page.
+  2. **The store committing `responseData.analysis` — FIXED.** `savings.js:247` commits `responseData` itself, and the comment at `:242-246` names this item and gives the proof: the guard three lines above already read `can_proceed` and `readiness_checks` off `responseData` directly, so `.analysis` was committing `undefined` on every call.
+  3. **Nothing dispatches `analyseSavings` — TRUE, AND CORRECT.** It follows from fixing (1). The analysis arrives with `/api/savings`, so the screens have the figures without a second round trip, and dispatching this as well would be a second mechanism for one number (Rule 20).
+
+  **`POST /savings/analyze` is kept, and the reason is recorded at the line.** It takes a SCENARIO — it answers *"what if my expenditure were X"* — which the index payload cannot. Deleting it would remove a capability the index does not replace.
+
+  **The comment matters as much as the code here.** An action with no callers reads exactly like an unwired capability to the next sweep, which is the trap W-0463 exists to name — its accessors looked identical. This one is documented as deliberate so it is not re-filed.
+
+  **Tested:** 29 frontend store tests pass.

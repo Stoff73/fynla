@@ -356,6 +356,9 @@ describe('WillDocumentService', function () {
                 'surname' => 'Carter',
                 'spouse_id' => $spouse->id,
             ]);
+            // W-0350 — reciprocal. A mirror will is written INTO the spouse's account,
+            // so it now needs a link both parties made, not one this account claimed.
+            $spouse->update(['spouse_id' => $user->id]);
 
             $primary = WillDocument::factory()->create([
                 'user_id' => $user->id,
@@ -386,7 +389,7 @@ describe('WillDocumentService', function () {
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             expect(fn () => $this->service->generateMirrorWill($doc))
-                ->toThrow(RuntimeException::class, 'no spouse found');
+                ->toThrow(RuntimeException::class, 'no reciprocally linked spouse');
         });
     });
 
@@ -760,5 +763,35 @@ describe('WillDocumentService', function () {
             expect($second->id)->toBe($first->id);
             expect(WillDocument::where('user_id', $first->user_id)->count())->toBe(1);
         });
+    });
+});
+
+/**
+ * W-0153. The refusal opened "A will cannot appoint its own testator as executor" —
+ * a legal rule in Fynla's own voice with no source, sitting beside a
+ * powers-of-attorney equivalent that cites its Act and paragraph. Nothing required
+ * a legal statement in user-facing copy to carry its source, so the two instruments
+ * diverged in silence.
+ *
+ * This test is the requirement, not the wording: whoever rewrites the sentence has to
+ * keep it checkable, and has to keep it a description of the office rather than an
+ * invented prohibition.
+ */
+describe('a legal statement in user-facing copy carries its source (W-0153)', function () {
+    it('attributes the executor rule to the provision that defines the office', function () {
+        expect(WillDocumentService::EXECUTOR_IS_TESTATOR_MESSAGE)
+            ->toContain('Administration of Estates Act 1925, section 25');
+    });
+
+    it('describes what an executor is rather than asserting an unattributable ban', function () {
+        expect(WillDocumentService::EXECUTOR_IS_TESTATOR_MESSAGE)
+            ->not->toContain('A will cannot appoint')
+            ->and(WillDocumentService::EXECUTOR_IS_TESTATOR_MESSAGE)
+            ->toContain('administers it after the testator has died');
+    });
+
+    it('still tells the user what to do about it', function () {
+        expect(WillDocumentService::EXECUTOR_IS_TESTATOR_MESSAGE)
+            ->toContain('Name the person who will carry out your wishes.');
     });
 });

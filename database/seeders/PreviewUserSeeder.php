@@ -314,6 +314,16 @@ class PreviewUserSeeder extends Seeder
     }
 
     /**
+     * The one demo household that shows what premium looks like (CSJ, 2026-09-04).
+     * Every other persona stays free, so a visitor can compare the two.
+     *
+     * `users.tier` grants nothing for a real user (W-0018) — it is read as an
+     * entitlement ONLY inside the preview branch of PremiumEntitlementResolver,
+     * where the account is a seeded fixture that can never reach a provider.
+     */
+    private const PREMIUM_DEMO_PERSONA = 'peak_earners';
+
+    /**
      * Create the primary preview user.
      */
     private function createUser(array $userData, string $personaId, ?array $expenditureData = null): User
@@ -323,6 +333,7 @@ class PreviewUserSeeder extends Seeder
         // Set preview user flags (bypassing guarded)
         $user->is_preview_user = true;
         $user->preview_persona_id = $personaId;
+        $user->tier = $personaId === self::PREMIUM_DEMO_PERSONA ? 'premium' : null;
 
         // Basic info - using new separate name fields
         $user->first_name = $userData['first_name'] ?? null;
@@ -452,6 +463,8 @@ class PreviewUserSeeder extends Seeder
         // Set preview user flags
         $spouse->is_preview_user = true;
         $spouse->preview_persona_id = "{$personaId}_spouse";
+        // The household is premium, not the account: Sarah sees what David sees.
+        $spouse->tier = $personaId === self::PREMIUM_DEMO_PERSONA ? 'premium' : null;
 
         // Basic info - using new separate name fields
         $spouse->first_name = $spouseData['first_name'] ?? null;

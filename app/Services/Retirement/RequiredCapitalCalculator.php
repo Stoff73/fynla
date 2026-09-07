@@ -24,12 +24,14 @@ class RequiredCapitalCalculator
 {
     private const DEFAULT_FEE_RATE = 0.01; // 1% default fees
 
-    private const DEFAULT_RETIREMENT_AGE = 67;
+    /** W-0196 — one home for the default; see {@see RetirementAgeResolver}. */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     public function __construct(
         private readonly AssumptionsService $assumptionsService,
         private readonly TaxConfigService $taxConfig,
-        private readonly UserProfileService $userProfileService
+        private readonly UserProfileService $userProfileService,
+        private readonly RetirementAgeResolver $retirementAge
     ) {}
 
     /**
@@ -184,28 +186,13 @@ class RequiredCapitalCalculator
     }
 
     /**
-     * Get user's retirement age from profile or pensions.
+     * W-0196. This was one of four copies of the chain, and one of the two that read
+     * `users.target_retirement_age` before the retirement profile — so it preferred
+     * the staler of the two sources. The order now lives in one place.
      */
     private function getRetirementAge(User $user): int
     {
-        // First check user profile
-        if ($user->target_retirement_age) {
-            return $user->target_retirement_age;
-        }
-
-        // Then check retirement profile
-        if ($user->retirementProfile?->target_retirement_age) {
-            return $user->retirementProfile->target_retirement_age;
-        }
-
-        // Then check DC pensions
-        foreach ($user->dcPensions as $pension) {
-            if ($pension->retirement_age) {
-                return $pension->retirement_age;
-            }
-        }
-
-        return self::DEFAULT_RETIREMENT_AGE;
+        return $this->retirementAge->forUser($user);
     }
 
     /**

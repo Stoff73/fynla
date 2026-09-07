@@ -65,8 +65,23 @@
               The Wills Act 1837 does not set an age for witnesses. Suggesting adults is
               Fynla's guidance, not a legal requirement.
             </p>
+            <!-- W-0157. This read "their inheritance is automatically void". Section 15
+                 of the Wills Act 1837 does void such a gift, but the section carries
+                 amendments — including section 1 of the Wills Act 1968 — and registry
+                 row A14 records, dated 2026-08-21, that a flat "automatically void" does
+                 not reflect them. A user with three witnesses, one of them a beneficiary,
+                 would have read this and believed a gift destroyed that the 1968
+                 amendment may preserve. The word carrying the risk was "automatically".
+                 What Fynla may say is what the provision says and that it is amended;
+                 how the amendments apply to a particular will is a determination
+                 05-perimeter.md §7.3 forbids, so the copy stops there and gives the
+                 action that makes the question moot instead. -->
             <p class="text-xs text-raspberry-600 mt-2">
-              If a beneficiary or their spouse witnesses your will, their inheritance is automatically void.
+              A gift to someone who witnesses your will, or to their spouse or civil partner,
+              is void under section 15 of the Wills Act 1837. That section has been amended
+              since — including by section 1 of the Wills Act 1968 — and Fynla cannot tell you
+              how those amendments apply to your will. Choose witnesses who inherit nothing
+              under it and the question does not arise.
             </p>
           </div>
         </div>

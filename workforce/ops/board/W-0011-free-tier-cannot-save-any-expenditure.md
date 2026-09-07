@@ -4,7 +4,7 @@ title: Free-tier users cannot save monthly expenditure at all — Simple View al
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-20T23:20:00Z
 claimed: 2026-08-21T09:10:00Z
@@ -222,3 +222,13 @@ Report: `reports/R-01-pass-a-entry.md`.
   environment state (no throwaway user was created — nothing to tear down), and
   the full W-0018 argument. Every Pest run re-verified under
   `DB_DATABASE=laravel_testing_c` after the shared-database deadlocks.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  A free-tier user can record monthly expenditure again. `UserProfileController::guardDetailedExpenditure()` (`:546-569`) names this item in its docblock and fixes the cause rather than the symptom.
+
+  The cause was that **the Expenditure form builds one payload for both modes**, so Simple View arrived carrying all 22 category keys as zeros — and the guard denied on key PRESENCE, which locked free users out of recording any expenditure at all. It now strips the category keys in place for a simple-entry request (`:566-571`, both `request` and `query` bags, then merges `use_simple_entry`) and returns the 403 only for a genuinely detailed submission (`:559-561`). `isSimpleExpenditureEntry()` accepts either `use_simple_entry` or `expenditure_entry_mode === 'simple'`, which are the two shapes the form sends.
+
+  **This also makes the tiers consistent across surfaces**, which the item asked for: `CoordinatingAgent::update_profile` already wrote a simple monthly total for any tier on /m and native, and only `set_expenditure` — the category tool — checks `expenditure_detailed` (`CoordinatingAgent:5226`). Web now behaves the same way.
+
+  **Tested:** 114 passed, 314 assertions across the expenditure suites, including the shared-household and surviving-spouse paths.

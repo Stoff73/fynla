@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Traits;
 
 use App\Models\User;
+use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
 trait ResolvesIncome
@@ -100,7 +101,10 @@ trait ResolvesIncome
             $interestIncome,
             $otherIncome,
             $pensionContributions,
-            $giftAidGross
+            $giftAidGross,
+            // W-0511 — the allowance is given at s23 Step 3, so it belongs to the tax
+            // calculation and not to any figure upstream of it.
+            $this->getTaxConfig()->blindPersonsAllowanceFor($user)
         );
 
         return (float) ($taxResult['net_income'] ?? 0);
@@ -114,5 +118,16 @@ trait ResolvesIncome
     protected function getIncomeTaxCalculator(): UKTaxCalculator
     {
         return $this->taxCalculator;
+    }
+
+    /**
+     * Get the TaxConfigService instance — W-0511.
+     *
+     * Resolved rather than injected because a trait has no constructor of its own.
+     * Override where the consumer already holds one under a different name.
+     */
+    protected function getTaxConfig(): TaxConfigService
+    {
+        return app(TaxConfigService::class);
     }
 }

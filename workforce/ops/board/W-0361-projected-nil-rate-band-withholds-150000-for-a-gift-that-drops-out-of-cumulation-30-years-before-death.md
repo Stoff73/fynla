@@ -4,7 +4,8 @@ title: The projected nil rate band withholds £150,000 for a chargeable transfer
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: gated
+status: done
+closed: 2026-08-29
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-23T01:05:00Z
@@ -67,3 +68,16 @@ Guard: `ProjectedNilRateBandUsesDeathDateTest` — a gift charged in the current
 and NOT in the projected one for a young household, and still charged for a household
 whose modelled death falls inside the window. **Mutation-checked**: reverting to the
 current column's band reds it. Estate 491, agents/plans/tax/tiers 410 — green.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`gated`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** merged in #714; commit `3bcccc9a7` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

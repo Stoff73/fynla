@@ -165,6 +165,20 @@ class UserProfileController extends Controller
             'annual_expenditure' => 'nullable|numeric|min:0',
             'use_simple_entry' => 'nullable|boolean',
             'use_separate_expenditure' => 'nullable|boolean',
+            // W-0413 — `rent` and `utilities` were the two the list skipped, and
+            // `$request->validate()` returns ONLY what it validated, so both were
+            // dropped before the write. Everything else was already in place:
+            // the columns exist on `users`, the model casts them (`User:176-177`),
+            // the form collects them (`ExpenditureForm.vue:1415-1416`) and
+            // `CoordinatingAgent:5236` lists them among the expenditure fields.
+            // Only the rule was missing, so the fields silently went nowhere.
+            //
+            // They are shown to RENTERS only — hidden once a main residence
+            // exists (`ExpenditureForm.vue:1426`), because a homeowner's housing
+            // costs are entered against the property. So the people losing this
+            // data were exactly the ones with no property record to hold it.
+            'rent' => 'nullable|numeric|min:0',
+            'utilities' => 'nullable|numeric|min:0',
             'food_groceries' => 'nullable|numeric|min:0',
             'transport_fuel' => 'nullable|numeric|min:0',
             'healthcare_medical' => 'nullable|numeric|min:0',
@@ -282,7 +296,18 @@ class UserProfileController extends Controller
         // Only allow access to a LIVE spouse's data. The link survives the
         // partner deleting their account — retention — but this endpoint returns
         // their profile, so it must stop answering once they are gone (D5).
-        if ($currentUser->liveSpouseId() !== $userId) {
+        //
+        // W-0350 — and RECIPROCAL. `User` soft-deletes, so the live test was already
+        // most of what `liveSpouseId()` bought here; what it never answered is whether
+        // the named account named this one back.
+        //
+        // W-0530 — and CONSENTED. `UserResource` carries `annual_employment_income`,
+        // `annual_rental_income`, `annual_dividend_income`, the expenditure columns and
+        // the rest, so "their entire profile" is a financial disclosure however it reads
+        // from the method name.
+        $reciprocalSpouse = $currentUser->financiallySharedSpouse();
+
+        if ($reciprocalSpouse === null || $reciprocalSpouse->id !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,
@@ -337,7 +362,9 @@ class UserProfileController extends Controller
     public function getSpouseFinancialCommitments(Request $request): JsonResponse
     {
         $user = $request->user();
-        $spouse = $user->spouse;
+        // W-0350/W-0530 — reciprocal AND consented; this endpoint returns the OTHER
+        // account's financial commitments.
+        $spouse = $user->financiallySharedSpouse();
 
         if (! $spouse) {
             return response()->json([
@@ -396,7 +423,16 @@ class UserProfileController extends Controller
 
         // Only allow updating a LIVE spouse's expenditure. A retained record
         // must not stay writable by someone who can no longer see it (D5).
-        if ($currentUser->liveSpouseId() !== $userId) {
+        //
+        // **W-0350 — RECIPROCAL, not merely live.** `liveSpouseId()` answers "is the
+        // account I named still there?", which `User`'s soft deletes largely answer
+        // anyway. It does not answer "did they name me back". Naming someone as your
+        // spouse was enough to overwrite twenty-one expenditure columns in their
+        // account — a write into someone else's records, which the census ranks above
+        // any read of them.
+        $reciprocalSpouse = $currentUser->reciprocalLiveSpouse();
+
+        if ($reciprocalSpouse === null || $reciprocalSpouse->id !== $userId) {
             Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,
@@ -409,7 +445,7 @@ class UserProfileController extends Controller
             ], 403);
         }
 
-        $spouse = User::findOrFail($userId);
+        $spouse = $reciprocalSpouse;
 
         $validated = $request->validate([
             'monthly_expenditure' => 'nullable|numeric|min:0',

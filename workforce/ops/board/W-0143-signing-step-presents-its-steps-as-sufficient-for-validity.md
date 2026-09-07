@@ -4,7 +4,7 @@ title: The will builder's signing step tells the user these steps make their wil
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [compliance-lead, design-lead]
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 severity: medium
@@ -209,3 +209,15 @@ read as a boast; these read as guidance, and both assert a property of the objec
 
   **Not done:** not browser-verified — a persona-tester closes Rule 14's loop, and
   `persona-passA3` has been on this surface. No commit, no PR, no deploy.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  The claim is gone and the reasoning is recorded at `resources/js/utils/willDocumentRenderer.js:315-318`, which is worth restating because it is a point of logic rather than of wording:
+
+  > Signing and witnessing are a **NECESSARY** condition of validity. *"This will is only legally valid once properly signed and witnessed"* states a **SUFFICIENT** one — its converse. A will can be correctly signed and witnessed and still fail for want of capacity, for undue influence, or because a later will revoked it.
+
+  So the old sentence told a user that completing the steps on screen made their will good, which Fynla cannot know and is not entitled to say.
+
+  **The guard exists and is the durable half:** `resources/js/utils/__tests__/willDocumentRenderer.spec.js` — 9 passed, including a case named *"no longer states that the will is legally valid once signed and witnessed"*, which fails if the claim is reinstated.
+
+  Related, fixed yesterday: **W-0157** corrected the neighbouring *"automatically void"* statement on the same step to name the Wills Act 1968 amendment, and was browser-verified end to end through the wizard.

@@ -375,9 +375,8 @@ class EstatePlanService extends BasePlanService
         $profile = $data['profile'] ?? [];
 
         // Determine spouse and data sharing status
-        $hasLinkedSpouse = $user->liveSpouseId() !== null;
         $spouse = $user->liveSpouse();
-        $dataSharingEnabled = $hasLinkedSpouse && $user->hasAcceptedSpousePermission();
+        $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
 
         // Gather assets for formatting service (same as IHTController)
         $userAssets = $this->assetAggregator->gatherUserAssets($user);
@@ -608,7 +607,9 @@ class EstatePlanService extends BasePlanService
 
             // Display flags
             'data_sharing_enabled' => $dataSharingEnabled,
-            'has_linked_spouse' => $hasLinkedSpouse && $spouse !== null,
+            // W-0529 — `$spouse` IS `liveSpouse()`, so the old conjunction with
+            // `liveSpouseId() !== null` was asking the same question twice.
+            'has_linked_spouse' => $spouse !== null,
 
             // Messages for below the table
             'iht_rate_type' => $appliedRateType,

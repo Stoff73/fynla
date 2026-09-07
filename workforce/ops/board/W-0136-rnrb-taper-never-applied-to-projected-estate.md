@@ -4,7 +4,7 @@ title: The residence nil rate band taper is never applied to the projected estat
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0015-cycle1-estate-tax-figures.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T20:20:00Z
@@ -423,3 +423,8 @@ home would get a wrong projected band out of an otherwise-correct fix.
   result, and the first `/plans/estate` read after this change served the PRE-FIX
   figures. `php artisan cache:clear`. Anyone who skips this will read £1,387,004 and
   conclude the fix failed.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `IHTCalculationService::assessTaxPosition(float $netEstate, float $residenceNetValue, array $ctx)`
+  (app/Services/Estate/IHTCalculationService.php:1071) is the one mechanism, called for the current
+  and the projected estate alike, so the residence-band taper, the charitable test and the rate are
+  each evaluated against the estate they apply to.

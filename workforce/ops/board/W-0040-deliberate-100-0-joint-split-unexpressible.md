@@ -4,7 +4,7 @@ title: A deliberate 100/0 joint split is unexpressible, and three acceptance cri
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [product-lead]
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed: 2026-08-21T19:05:00Z
@@ -329,3 +329,16 @@ asserts the ruled behaviour and says what it used to assert and why:
 - **Not browser-verified by me** — a persona-tester closes Rule 14's loop.
 - `/m` has no asset-entry forms, so nothing there states a share; the rule is
   server-side and reaches every surface through the one boundary.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed. The item's three contradictory acceptance criteria were settled by CSJ's ruling, and the code now states it.**
+
+  **The ruling: a 100/0 split IS individual ownership.** So the split is not "unexpressible" — it is expressible as `individual`, which is what it actually is.
+
+  `ValidatesSharedOwnership::validateSharedOwnershipSplit()` refuses a stated 0 or 100 on a shared type and **names the route instead of just rejecting**: *"A shared asset is split between two owners, so your share must be above 0% and below 100%. If you own all of it, choose individual ownership."* A validation message that says what to do instead is the difference between a rule and a dead end.
+
+  Two supporting decisions are in place and worth keeping visible:
+
+  - **A stated share is never rewritten.** `SharedOwnership::primaryOwnerPercentage()` distinguishes a share the caller ASSERTED from one they said nothing about. A submitted 100 on a shared asset used to be read as "the individual default a form never cleared" and silently rewritten to 50 — so a caller saying *"I own all of it"* was told 201 and stored as *"I own half"*, while a caller saying 0 was refused. Nobody chose that asymmetry; it fell out of the coercion.
+  - **A partial update keeps the stored share.** `SharedOwnership::applyTo()` takes the existing record, so an update from a form with no share input cannot rewrite a stored 70 to 50.
+
+  **Tested:** 176 ownership tests pass, 480 assertions.

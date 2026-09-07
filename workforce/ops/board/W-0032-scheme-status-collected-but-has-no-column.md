@@ -4,7 +4,7 @@ title: scheme_status is collected by both pension forms and silently discarded o
 mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: fix-batch-E
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: branches/fixes/F-0004-batch-e-retirement-income.md
@@ -131,3 +131,16 @@ already consumes), and `DBPension`, `PensionNormaliser`, `PensionStore` and
 (`app/Http/Requests/Concerns/ValidatesSharedOwnership.php`, untracked, ×2; and
 `SavingsController.php:369` querying `SavingsAccount` directly). Pension families
 re-run green after the move.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `scheme_status` survives the round trip on the Defined Benefit path, which is the only one that has the column:
+
+  - **Column:** `db_pensions.scheme_status` exists (`dc_pensions` does not have it, and correctly so — a scheme status is a Defined Benefit concept).
+  - **Validation:** `StoreDBPensionRequest:48` — `nullable|in:` against `PensionEnums::SCHEME_STATUSES`, so the rule is generated from the constant rather than a second hand-written list.
+  - **Persistence:** `DBPension.php:45` carries it in `$fillable`, so `validated()` reaches the column.
+  - **Both write paths covered:** `RetirementController::storeDBPension()` (`:585`) and `updateDBPension()` (`:615`) take the **same** request class, so an edit cannot drift from a create — which is the asymmetry that produced W-0321 and the `InvestmentController` Cash-row defect.
+
+  **Tested:** 24 Defined Benefit pension tests pass, 56 assertions.
+
+  Related and already closed today: **W-0017** put the four missing Defined Benefit fields into both forms, so the value now has a control to be entered from as well as a column to land in.

@@ -4,7 +4,8 @@ title: Savings and investment accounts have no joint_owner_name column, so a sha
 mission: M-0002-persona-fidelity
 owner: build-lead
 reviewers: [product-lead]
-status: review
+status: done
+closed: 2026-08-29
 claimed: 2026-08-26
 claimed_by: null
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
@@ -102,3 +103,16 @@ a name now would delete a working state under cover of adding a capability.
 Enforcement belongs with **W-0142**, which is where `namesCounterparty()` gets
 extended past chattels. The column existing is its precondition, and that is what
 this delivered.
+
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`review`.
+
+- **Delivered by:** Icecube-acc
+- **Evidence:** merged in #727; commit `b75f0c6f9` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

@@ -10,11 +10,13 @@ use App\Models\Estate\LpaNotificationPerson;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class LpaService
 {
     public function __construct(
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly LpaComplianceService $compliance
     ) {}
 
     /**
@@ -66,6 +68,8 @@ class LpaService
                 $this->syncNotificationPersons($lpa, $data['notification_persons']);
             }
 
+            $this->refuseDisqualifiedCompletion($lpa);
+
             $this->invalidateCache($user->id);
 
             return $lpa->load(['attorneys', 'notificationPersons']);
@@ -97,10 +101,44 @@ class LpaService
                 $this->syncNotificationPersons($lpa, $data['notification_persons'] ?? []);
             }
 
+            $this->refuseDisqualifiedCompletion($lpa->fresh(['attorneys']));
+
             $this->invalidateCache($lpa->user_id);
 
             return $lpa->fresh(['attorneys', 'notificationPersons']);
         });
+    }
+
+    /**
+     * W-0145. The will builder refuses to complete a will whose executor is the
+     * testator (W-0024); this instrument recorded the equivalent conflict and saved
+     * anyway. Both statutory limbs now refuse, and only those two — see
+     * {@see LpaCheckPolicy::COMPLETION_BLOCKING_KEYS} for why the other three
+     * party-role conflicts stay warnings.
+     *
+     * Called inside the transaction, so the refusal rolls the write back and the
+     * instrument is left as it was — editable, not locked.
+     *
+     * Deliberately NOT called from {@see markAsRegistered()}: that records that the
+     * Office of the Public Guardian HAS registered the instrument, which is a fact
+     * about the world rather than a claim Fynla is making, and refusing to record it
+     * would leave the user unable to say what has already happened.
+     *
+     * @throws ValidationException
+     */
+    private function refuseDisqualifiedCompletion(LastingPowerOfAttorney $lpa): void
+    {
+        if (! in_array($lpa->status, ['completed', 'registered'], true)) {
+            return;
+        }
+
+        $refusal = LpaCheckPolicy::completionRefusal(
+            $this->compliance->checkCompliance($lpa)['checks']
+        );
+
+        if ($refusal !== null) {
+            throw ValidationException::withMessages(['status' => $refusal]);
+        }
     }
 
     /**

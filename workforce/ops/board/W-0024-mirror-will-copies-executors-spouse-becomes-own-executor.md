@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0003-batch-b-estate-wills.md
 owner: build-lead
 reviewers: [compliance-lead]
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T09:15:00Z
@@ -298,3 +298,8 @@ Report: `reports/R-06-mirror-will-test.md`.
   partner has a middle name recorded. `estate:backfill-mirror-parties` is the
   remedy for both. Still not run against production — the `ssh-fynla` MCP is
   production and cycle 4 is local-only.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `WillDocumentService::swapPartiesForMirror()`
+  (app/Services/Estate/WillDocumentService.php:896) is the one helper; executors, guardians and
+  the residuary estate are all swapped through it, and the relationship is recomputed on swap.
+  The item was stamped FIXED on 2026-08-21 and never restamped.

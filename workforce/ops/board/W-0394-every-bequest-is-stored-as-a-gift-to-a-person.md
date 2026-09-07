@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0029-cycle4-wills-and-estate-figures.md
 owner: build-lead
 reviewers: [quality-lead, tax-compliance-reviewer]
-status: gated
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-08-23T00:55:00Z
@@ -127,9 +127,9 @@ on both — **no user-visible figure moved**, which is the correct outcome.
       recorded.
 - [x] Mutation-tested in both directions (rules removed; controller call removed)
       — each turns a disjoint subset red.
-- [ ] `tax-compliance-reviewer` to confirm the indicator list is a defensible
-      fallback for the reduced-rate test, given it now also decides what is
-      STORED rather than only what is derived.
+- [x] The indicator list confirmed defensible — **at write time only**. It was
+      not defensible at read time, and that was fixed rather than signed off.
+      See the 2026-09-01 note below.
 
 
 ### Browser verification — 2026-08-23, localhost:8000, Playwright
@@ -166,3 +166,47 @@ Screenshots:
   "this is a charity", so a user whose charity the name list does not know cannot
   state it through the web form — only through the API. Adding a field to that
   form is a design change outside this batch's scope. Flagging, not building.
+
+## 2026-09-01 — CLOSED, and the last acceptance changed the code.
+
+Both root causes were re-read at their current lines rather than taken from the
+notes: `StoreBequestRequest.php:38-39` and `UpdateBequestRequest.php:38-39` carry
+the rules, and `WillDocumentService.php:916` sets
+`Bequest::inferBeneficiaryType($beneficiary)`. Both write paths store the
+classification, as the acceptance says.
+
+**The open acceptance — is the name list a defensible fallback for the reduced-rate
+test now that it also decides what is stored?** Reviewed here, and the answer was
+**no while it ran at read time**, so the review produced a fix rather than a sign-off.
+
+`isCharitable()` consulted `nameLooksCharitable()` **after** checking the stored type,
+so the list overrode an explicit answer. The list holds generic words — `foundation`,
+`shelter`, `heart` — and one that is a common surname, `macmillan`. A user who chose
+Individual for a gift to a person or a company whose name contains one of those was
+reclassified as charitable. That inflates the charitable total feeding
+`IHTCalculationService:1676`, which decides the 36% reduced rate under IHTA 1984
+Sch 1A, so the error **understates** the tax bill — the one direction a tax figure
+must never be wrong in — and the user could not correct it, because the field they
+would have corrected was the field being ignored.
+
+`app/Models/Estate/Bequest.php:88-95` now trusts the stored type and the registration
+number and stops. The list stays exactly where it is defensible: at write time,
+filling a silence, in `inferBeneficiaryType()`. Where a legacy row was never repaired
+the error now runs the other way — charitable total understated, tax bill overstated,
+visible on screen and correctable by setting the type. `bequests:backfill-will`
+repairs the known rows.
+
+**Guard:** `tests/Unit/Models/Estate/CharitableClassificationBelievesTheRecordTest.php`
+— 6 passed, including one that reads the body of `isCharitable()` and fails if
+`nameLooksCharitable` reappears in it. Mutation-verified: restoring the read-time
+fallback turns 2 of 6 red. Family suite: **123 passed**.
+
+**Adjacent defect fixed because it blocked the run:**
+`database/factories/Estate/WillFactory.php:25` wrote `null` into
+`wills.spouse_primary_beneficiary`, which is `NOT NULL DEFAULT 1`. It failed whenever
+`has_will` came up false — about 30% of runs — and `withoutWill()` failed every time.
+Now emits `false`. Reported here rather than fixed silently.
+
+**Not done:** no browser drive. The earlier browser verification on this item
+(2026-08-23) covered the write paths and still stands; the change here is a read-time
+classification with no new interface.

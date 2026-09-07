@@ -5,7 +5,8 @@ mission: persona-run-peak_earners-2026-08-20
 branch: estate-copy-and-m-handoff
 owner: null
 reviewers: [quality-lead]
-status: handoff
+status: done
+closed: 2026-08-29
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -100,3 +101,15 @@ gated on it, so a couple's joint goals projection has never run.
 - 2026-08-24 — 66 tests pass across `tests/Feature/Goals` and `tests/Unit/Services/Goals`.
   Pint clean.
 
+## Closed — 2026-08-29 (board reconciliation)
+
+**Marked done from `dev` history, not from a fresh re-test.** Previous status was
+`handoff`.
+
+- **Delivered by:** Stoff73
+- **Evidence:** commit `f6810f963` on `dev`
+
+The board had drifted: the work landed on `dev` but the item was never restamped. This
+records the evidence rather than deleting the item, so the fix can be re-checked against
+it later. **If a re-test finds this unfixed, reopen it — a `done` here means "the change
+is on `dev`", not "someone has re-verified the behaviour since."**

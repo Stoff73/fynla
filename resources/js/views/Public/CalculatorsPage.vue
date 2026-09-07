@@ -366,7 +366,7 @@
 
               <!-- CTA -->
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Model your mortgage alongside your full financial picture in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -907,7 +907,7 @@
 
               <!-- CTA -->
               <div class="mt-4">
-                <router-link to="/stage/starting-out" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/starting-out" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Factor your student loan into your full financial plan in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1046,7 +1046,7 @@
 
               <!-- CTA -->
               <div class="mt-4">
-                <router-link to="/stage/starting-out" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/starting-out" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Set and track your savings goals in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1144,7 +1144,7 @@
                 <p class="text-sm text-violet-700">Lenders assess affordability differently — this is a guide only. Your actual borrowing will depend on credit history, outgoings, and lender criteria.</p>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>See how a mortgage fits into your full financial plan in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1225,7 +1225,7 @@
                 <p class="text-sm text-violet-700">Non-UK resident surcharge of 2% has been applied to all bands.</p>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Factor stamp duty into your home buying plan in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1309,7 +1309,7 @@
                 <apexchart type="area" height="220" :options="compoundChartOptions" :series="compoundChartSeries" />
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>See your investments in the context of your full financial picture in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1377,7 +1377,7 @@
                 <p class="text-sm text-violet-700">The APR (Annual Percentage Rate) may differ from the interest rate as it includes any fees. Always check the APR when comparing loan offers.</p>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>See how debt fits into your financial picture in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1475,7 +1475,7 @@
                 </div>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/enjoying-your-wealth" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/enjoying-your-wealth" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Plan your pension withdrawals in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1570,7 +1570,7 @@
                 </div>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/planning-your-future" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
+                <router-link to="/stage/planning-your-future" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-500 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Track your pension contributions in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>

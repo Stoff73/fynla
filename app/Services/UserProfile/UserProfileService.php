@@ -19,11 +19,13 @@ use App\Services\Benefits\ChildBenefitService;
 use App\Services\Estate\WillAnalysisService;
 use App\Services\Gamification\PointsService;
 use App\Services\Property\PropertyService;
+use App\Services\Retirement\PensionContributionRule;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Tax\IncomeDefinitionsService;
+use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
@@ -42,6 +44,8 @@ class UserProfileService
         private readonly MortgageStore $mortgageStore,
         private readonly IncomeDefinitionsService $incomeDefinitions,
         private readonly WillAnalysisService $willAnalysis,
+        // W-0511 — the Blind Person's Allowance entitlement is answered in one place.
+        private readonly TaxConfigService $taxConfig,
     ) {}
 
     /**
@@ -115,6 +119,16 @@ class UserProfileService
             'expenditure' => [
                 'monthly_expenditure' => $user->monthly_expenditure,
                 'annual_expenditure' => $user->annual_expenditure,
+                // W-0413 — OUTSIDE `categories`, deliberately. That block is
+                // gated on detailed-expenditure entitlement and is absent
+                // entirely for a summary-only profile, whereas these two are
+                // shown to any user with no main residence
+                // (`ExpenditureForm.vue:1426`) because a homeowner enters housing
+                // costs against the property. Putting them inside would hide a
+                // renter's rent behind a Premium gate, which is where W-0011
+                // found free-tier users and put them back.
+                'rent' => $user->rent,
+                'utilities' => $user->utilities,
                 'categories' => [
                     'food_groceries' => $user->food_groceries,
                     'transport_fuel' => $user->transport_fuel,
@@ -266,8 +280,12 @@ class UserProfileService
     /**
      * Get expenditure breakdown including financial commitments.
      * Uses categories sum when entry_mode is 'category', otherwise uses monthly_expenditure.
+     *
+     * Public because this is the one home for "what does this household spend each
+     * month" (W-0531). `ResolvesExpenditure` delegates here rather than re-summing,
+     * so the runway, the risk score and the Expenditure tab cannot disagree.
      */
-    private function getExpenditureBreakdown(User $user): array
+    public function getExpenditureBreakdown(User $user): array
     {
         // Calculate manual expenditure based on entry mode
         if ($user->expenditure_entry_mode === 'category') {
@@ -349,16 +367,12 @@ class UserProfileService
     {
         $totalContributions = 0.0;
 
-        // Sum employee contributions from occupational/workplace pensions
         foreach ($user->dcPensions as $pension) {
-            // Only include workplace/occupational pensions (not SIPPs which are personal contributions)
-            if (in_array($pension->scheme_type, ['workplace', 'occupational', 'auto_enrolment'])) {
-                // Calculate from percentage if available
-                if ($pension->employee_contribution_percent && $pension->annual_salary) {
-                    $monthlyContribution = ($pension->annual_salary * $pension->employee_contribution_percent / 100) / 12;
-                    $totalContributions += $monthlyContribution * 12;
-                }
+            if (! PensionContributionRule::isSalaryDeducted($pension)) {
+                continue;
             }
+
+            $totalContributions += PensionContributionRule::monthlyEmployee($pension) * 12;
         }
 
         return $totalContributions;
@@ -444,8 +458,10 @@ class UserProfileService
      */
     private function spouseIncomeSources(User $user): ?array
     {
-        if ($user->spouse) {
-            return $this->incomeSources($user->spouse, 'spouse');
+        // W-0350/W-0530 — reciprocal AND consented; this returns the other account's
+        // income sources.
+        if ($spouse = $user->financiallySharedSpouse()) {
+            return $this->incomeSources($spouse, 'spouse');
         }
 
         $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)
@@ -558,7 +574,10 @@ class UserProfileService
             $dividendIncome,
             $trustType,
             $pensionContributions,
-            $section24Credit
+            $section24Credit,
+            // W-0511 — given at s23 Step 3, so it belongs to the tax calculation and
+            // to nothing upstream of it.
+            $this->taxConfig->blindPersonsAllowanceFor($user)
         );
 
         // Get simple calculation for backwards compatibility. Pension contributions
@@ -575,7 +594,9 @@ class UserProfileService
             $interestIncome,
             $trustIncome + $pensionIncome + $otherIncome,
             $pensionContributions,
-            $giftAidGross
+            $giftAidGross,
+            // W-0511 — the simple path must reach the same figure as the detailed one.
+            $this->taxConfig->blindPersonsAllowanceFor($user)
         );
 
         // Calculate expenditure once (includes financial commitments to match Expenditure tab)
@@ -872,7 +893,14 @@ class UserProfileService
         // for regulatory purposes but must stop being visible to their partner,
         // and this payload was still handing them over — tagged owner: 'spouse'
         // alongside a spouse field the same payload had already nulled out.
-        $liveSpouseId = $user->liveSpouseId();
+        //
+        // W-0350 — and RECIPROCAL. These are the spouse's CHILDREN: names, dates of
+        // birth and National Insurance numbers, of minors. `DependantsReach`'s docblock
+        // argues the permission gate governs financial data and children are not that —
+        // which is an argument about CONSENT, a different axis from whether the link is
+        // genuine. Reciprocity does not make children financial data and does not hide
+        // a real parent's children.
+        $liveSpouseId = $user->reciprocalLiveSpouse()?->id;
         if ($liveSpouseId) {
             $spouseFamilyMembers = FamilyMember::where('user_id', $liveSpouseId)
                 ->where('relationship', 'child')  // Only children, not spouse record
@@ -928,7 +956,12 @@ class UserProfileService
         // Note: DC Pensions are always individual - no joint ownership support
         $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
         foreach ($dcPensions as $pension) {
-            if ($pension->monthly_contribution_amount > 0) {
+            // W-0424 — the one home for "how much does this pension take each
+            // month", so a percentage-only record is no longer invisible to the
+            // spending side. `monthly_contribution_amount > 0` was the whole gate.
+            $monthlyContribution = PensionContributionRule::monthlyEmployee($pension);
+
+            if ($monthlyContribution > 0) {
                 // Apply ownership filter - DC pensions are always individual
                 if (! $this->shouldIncludeByOwnership(false, $ownershipFilter)) {
                     continue;
@@ -938,7 +971,7 @@ class UserProfileService
                     'id' => $pension->id,
                     'name' => $pension->scheme_name ?? 'DC Pension',
                     'type' => 'dc_pension',
-                    'monthly_amount' => $pension->monthly_contribution_amount,
+                    'monthly_amount' => $monthlyContribution,
                     'is_joint' => false,
                     'ownership_type' => 'individual',
                 ];

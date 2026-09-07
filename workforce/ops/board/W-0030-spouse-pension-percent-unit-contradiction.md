@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 source: found by fix-batch-C while fixing W-0017, 2026-08-21; deliberately not fixed there (different entry path, needs a recorded convention decision)
@@ -148,3 +148,8 @@ Fyn, and document import feeds the same column.
   access, and out of scope. The migration handles them on deploy, and the log lines
   are the evidence. Someone with access should still check the count beforehand so
   the deploy is not a surprise.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `DBPensionMapper::parseSpousePercent()`
+  now calls `parsePercentagePoints()`, and its docblock records the decision the item asked for:
+  percentage points is canonical, on the weight of five sites against two. The "DB stores as decimal"
+  comment that caused the hundredfold understatement is gone.

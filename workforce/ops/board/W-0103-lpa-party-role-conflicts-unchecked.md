@@ -3,7 +3,7 @@ id: W-0103
 title: Nothing stops a Lasting Power of Attorney donor being their own attorney or their own certificate provider, or one person holding two attorney roles
 mission: M-0002-persona-fidelity
 owner: build-lead
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 claimed_by: fix-batch-G
@@ -267,3 +267,11 @@ with the primary appointment".
   you should have the choice rather than inherit my silence. If you want it broadened,
   the title (*"The names in each role are different"*) already covers all five and only
   the description needs a line.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and built as one check rather than
+  three.** `app/Services/Estate/LpaCheckPolicy.php:77-81` states the reliability limit on name
+  comparison ONCE and records that it covers W-0102, **all three W-0103 conflicts**, and the
+  W-0151 cross-instrument check — donor-as-attorney, donor-as-certificate-provider, and a person
+  appearing as both primary and replacement attorney. `LpaComplianceService` carries the
+  certificate-provider checks. This extended W-0102's check, as the item asked, instead of adding
+  a parallel one.

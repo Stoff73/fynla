@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web]
@@ -204,3 +204,74 @@ The frontend scope gap recorded here is folded into **W-0463** acceptance 2. Thi
 found that both Rule 2 sweeps read PHP and one Vue file; W-0463 adds the other half —
 a configured rule with NO consumer emits no literal to find and no output to move, so
 it is invisible to `RateLiteralsComeFromConfigurationTest` as well as to a grep.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev` — ALL NINE instances stand, the
+  acceptance's own criterion 1 is not met, and instance 6 has GROWN.**
+
+  **The five LIVE instances, each still literal:**
+  1. `IHTPlanning.vue:246` — *"The **10%** test that decides the reduced rate…"*
+  2. `EstateCurrentSituation.vue:83` — *"Threshold for **36%** Rate"*
+  3. `planPrintMixin.js:2290` — the same label, second mechanism (Rule 20). The comment at
+     `EstateCurrentSituation.vue:103` now acknowledges the duplicate and it is still a duplicate.
+  4. `IHTPlanning.vue:621` — *"the Home Allowance (up to **£175,000**)"*
+  5. `TrustPlanningStrategy.vue:52` and `:165` — *"40% death rate"*, *"If Death Within 7 Years (40%)"*
+
+  **The four DEAD instances also stand**, in components nothing mounts:
+  `IHTMitigationStrategies.vue:164` (still the wrong statement of law — "10% **of estate**") and
+  `:167`; `GiftingTimelineChart.vue:61`/`:69`.
+
+  **Instance 6 is now WORSE than filed.** `EstateOverviewCard.vue` carries
+  `this.futureTaxableEstate * 0.40` at **:158 AND :169** — two sites, not one. A rate in
+  arithmetic in the frontend, computing a displayed liability, and still the class a prose sweep
+  is structurally blind to.
+
+  **Criterion 1 — "a guard that moves a configured rate and asserts on a rendered Vue template" —
+  is NOT met, and this criterion IS the item.** The nearest thing,
+  `tests/frontend/components/Estate/IHTPlanningRateLabel.test.js`, belongs to W-0132: it calls
+  `IHTPlanning.computed.ihtRateLabel` directly, deliberately not through a mount, and asserts on
+  the FIELD the label reads. It moves no configured rate and renders no template. Re-hardcoding
+  any of the nine still leaves the whole suite green.
+
+  **Convergence worth recording:** W-0432 was re-measured the same day and its only two survivors
+  are this item's instances 4 and the admin-facing `TaxSettingsController:330` tenth instance. The
+  charitable rate family is now down to ONE remaining set, owned here.
+
+- 2026-08-31 build-lead: **CLOSED — all nine instances resolved and criterion 1 met.**
+
+  **Criterion 1, which the item says IS the item — a guard that moves a configured rate and
+  asserts on a RENDERED Vue template — now exists:**
+  `tests/frontend/components/Estate/RateLiteralsInRenderedTemplates.test.js`. It mounts the
+  components with 31% standard / 29% reduced / £190,000 residence band and asserts on
+  `wrapper.text()`. **Mutation-verified:** re-hardcoding `£175,000`, `Threshold for 36% Rate`
+  (screen), `Threshold for 36% Rate` (print) and `40% death rate` each turns a distinct test red.
+
+  **The five LIVE instances (criterion 2):**
+  1. `IHTPlanning.vue:246` — now `{{ charitableThresholdLabel }}`, derived from the payload's
+     own `charitable_threshold` / `charitable_baseline`.
+  2. `EstateCurrentSituation.vue:83` — now `{{ charitableThresholdRateLabel }}`.
+  3. `planPrintMixin.js:2291` — calls the same composer. **Criterion 3 met:** both mechanisms
+     import `charitableThresholdRateLabel` from `resources/js/utils/estateRateLabels.js`, the
+     one source. The `EstateCurrentSituation.vue:103` comment that recorded the duplicate as
+     outstanding was corrected in the same edit.
+  4. `IHTPlanning.vue:621` — now `{{ formatCurrency(ihtResidenceNilRateBand) }}`. The W-0399
+     C4 item 4 survivor, named by two verdicts, is gone.
+  5. `TrustPlanningStrategy.vue:52` and `:165` — both now `{{ ihtStandardRateLabel }}`,
+     a computed over the `ihtStandardRate` getter.
+
+  **Criteria 5 and 6 — CSJ decided 2026-08-31: delete all three dead components.** Reachability
+  re-confirmed by grep across `resources/js` and `resources/mobile` — zero references to any of
+  them outside their own definitions. Deleted with their tests:
+  `EstateOverviewCard.vue` (instance 6, the rate in arithmetic, which had GROWN to :158 and :169),
+  `IHTMitigationStrategies.vue` (instances 7 and 8 — the wrong statement of law goes with the
+  file, and criterion 6's `charitable_amount_required` `v-if` with it; grep confirmed the key was
+  published by nothing), and `GiftingTimelineChart.vue` (instance 9).
+  **Criterion 7 is moot** — item 7's statement of law was deleted rather than re-worded, so there
+  is no statutory statement left to rule on.
+
+  **The tenth instance, `TaxSettingsController:330`, was WORSE than filed.** It read
+  `$iht['reduced_rate']`, but `TaxConfigurationSeeder:329` seeds `reduced_rate_charity` — the key
+  never matched, so the `?? 0.36` literal was the ONLY thing producing that figure. The admin Tax
+  Settings screen was ignoring the admin's own setting. Both the key and the hardcoded `10%+`
+  threshold are fixed; the threshold now reads `charity_threshold_percent`.
+
+  Commit `ad048def1`. 1,234 frontend tests green; 137 tax-config PHP tests green.

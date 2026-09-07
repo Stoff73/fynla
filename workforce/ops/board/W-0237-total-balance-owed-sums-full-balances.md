@@ -4,7 +4,7 @@ title: "Total Balance Owed" sums full balances with no share applied — £365,0
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0022-cycle4-dashboard-module-totals-and-cache.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T18:45:00Z
@@ -94,3 +94,10 @@ the figure and its own components now agree on one screen.
 none**, asserting the answer moves when the share moves (50% → 75% moves £10,000 →
 £15,000). Without that row every assertion over the non-mortgage path would pass
 trivially.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and the share is computed server-side
+  rather than in the component.** `LiabilitiesList.vue:202` sums `l.user_share` (falling back to
+  `current_balance`), emitted by `LiabilityResource:36` from the one server reader — so the
+  client-side `balance * ownership_percentage / 100` that showed the co-owner the *other* party's
+  share is gone. `current_balance` is still shown against an individual row, correctly, because
+  that is what is owed on the debt.

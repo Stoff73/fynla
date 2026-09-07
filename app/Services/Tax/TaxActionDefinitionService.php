@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
 
@@ -24,6 +26,7 @@ use App\Traits\StructuredLogging;
  */
 class TaxActionDefinitionService
 {
+    use CalculatesOwnershipShare;
     use FormatsCurrency;
     use StructuredLogging;
 
@@ -167,7 +170,7 @@ class TaxActionDefinitionService
         User $user,
         int $priority
     ): array {
-        if ($user->marital_status !== 'married' || ! $user->liveSpouseId()) {
+        if (! HouseholdPooling::hasSpousalStatus($user) || ! $user->liveSpouseId()) {
             return [];
         }
 
@@ -192,9 +195,16 @@ class TaxActionDefinitionService
         $rateDifference = ($higherRate - $lowerRate) / 100;
 
         // Conservative estimate: shift 10% of investment income
-        $giaValue = (float) InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'gia')
-            ->sum('current_value');
+        // W-0280, measured — same defect as TaxOptimisationService. The action is an
+        // inter-spouse transfer, so telling the recording spouse they hold the whole
+        // joint account and the other that they hold none of it gets both sides wrong.
+        $giaValue = (float) $this->atUserShare(
+            InvestmentAccount::query()
+                ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+                ->where('account_type', 'gia')
+                ->get(),
+            $user->id
+        )->sum('current_value');
         $estimatedInvestmentIncome = $giaValue * 0.04;
         $potentialSaving = round($estimatedInvestmentIncome * $rateDifference, 2);
 

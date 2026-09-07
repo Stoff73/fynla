@@ -3,9 +3,9 @@ procedure_id: 'campaign.tool.capture_salary_sacrifice'
 kind: tool_schema
 module: campaign
 provider: xai
-version: 2
+version: 3
 active: true
-effective_from: 2026-06-02
+effective_from: 2026-09-01
 ---
 
 ```json
@@ -32,12 +32,28 @@ effective_from: 2026-06-02
                     "null"
                 ],
                 "description": "Optional. Share of the employer National Insurance saving rebated back into the pension as a fraction between 0 and 1 (e.g. 0.5 for 50%)."
+            },
+            "employment_income_basis": {
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "enum": [
+                            "gross",
+                            "post_sacrifice"
+                        ]
+                    },
+                    {
+                        "type": "null"
+                    }
+                ],
+                "description": "Only when salary_sacrifice is true: whether the employment income already on file is \"gross\" (the full salary, including the pay given up) or \"post_sacrifice\" (what actually reaches the payslip). Ask the user \"Is that figure before or after the pay you give up?\" and send their answer. It decides whether their Annual Allowance is reduced. Send null if they have not said, or if salary_sacrifice is false."
             }
         },
         "required": [
             "pension_id",
             "salary_sacrifice",
-            "employer_ni_rebate_pct"
+            "employer_ni_rebate_pct",
+            "employment_income_basis"
         ],
         "additionalProperties": false
     },

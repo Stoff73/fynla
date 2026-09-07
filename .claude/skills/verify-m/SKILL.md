@@ -7,6 +7,19 @@ description: Verify the /m mobile-web pathway (Rule 19 — "done" = web AND /m).
 
 **Trap first:** a cold Playwright `goto('https://csjones.co/fynla/m')` shows the public landing or "could not load dashboard" (greeting "Good …, there" = no user). The desktop→/m bridge (`mScaffoldBridge.js`, localStorage `m_scaffold_token`) only adopts the token in the real funnel/in-app flow — never on a fresh automated nav. Do not burn cycles on it.
 
+**Establish WHICH ACCOUNT you are on from `GET /api/auth/user`, never from `localStorage`.**
+
+`fynla-state.auth.user` is a persisted Vuex snapshot. **The server answers to the TOKEN, not to that store**, and the two can name different people. Measured at the start of the W-0341 pass:
+
+```
+localStorage fynla-state.auth.user   ->  sarah.jones@example.com  (17)
+GET /api/auth/user with the token    ->  david.jones@example.com  (16)
+```
+
+The page rendered David's data throughout — greeting "Good morning, David", £700,000 of cover — while the store said Sarah. **Reading the store nearly produced a false pass on the wrong account's figures** (W-0385).
+
+The app's own `login` clears the store and resets every module before authenticating (`store/modules/auth.js:85-95`), so this is not a product defect. It is what happens when a token is injected directly — which is exactly what the scaffold-token path does, and therefore exactly the situation you are in when verifying `/m`.
+
 `/m` serves the **built** bundle (`public/m-build/`, no HMR) — confirm the bundle on csjones actually contains the change before testing (a stale bundle has cost a full debugging session before). Never use the `ssh-fynla` MCP for csjones — that is PROD; csjones SSH is `ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co` (check `ssh-add -l`; if locked, ask CSJ for the passphrase).
 
 ## Path 1 — UI verification (log in on /m directly)

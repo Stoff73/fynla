@@ -4,7 +4,7 @@ title: Google Analytics falls back to the hardcoded production measurement ID, s
 mission: M-0002-persona-fidelity
 owner: build-lead
 claimed_by: fix-batch-F
-status: gated
+status: done
 handoff_to: quality-lead
 certification: CANNOT CERTIFY 2026-08-23 quality-lead — see ops/handoffs/quality-lead/cycle4-certification-2026-08-23.md
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
@@ -135,3 +135,8 @@ window applies to local development and every automated run that accepted cookie
 
 **Not verified by me:** no browser verification — a persona-tester closes Rule 14's
 loop independently, per my dispatch.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `resources/js/utils/cookieConsent.js:22`
+  reads `import.meta.env.VITE_GA_ID || ''` and `:145` returns early when `GA_ID` is empty, so an
+  environment without the variable loads no tag at all. The hardcoded production measurement ID
+  `G-3Y8DL3QB09` appears nowhere in the file. It fails closed, as the acceptance asked.

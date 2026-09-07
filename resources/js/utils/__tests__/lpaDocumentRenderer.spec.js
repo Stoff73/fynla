@@ -129,3 +129,55 @@ describe('renderLpaDocument — elections the donor has not made', () => {
     expect(html).not.toContain('do not</strong> give my attorneys authority');
   });
 });
+
+/**
+ * W-0152. Mental Capacity Act 2005 s13(6)(c) terminates a spouse attorney's
+ * appointment on divorce and s13(11) lets the instrument provide otherwise. Fynla
+ * offered neither the election nor any mention of the default, so a donor who wanted
+ * the appointment to survive had no way to say so, and a donor who did not want it to
+ * survive was never told that it already does not.
+ *
+ * The default is stated in the not-a-choice register; the election is the donor's and
+ * must never be written for them — that was W-0100's defect on the timing election.
+ */
+describe('W-0152 — dissolution of a marriage or civil partnership', () => {
+  const base = {
+    lpa_type: 'property_financial',
+    donor_full_name: 'Tomas Weber',
+    certificate_provider_name: 'Priya Shah',
+    attorneys: [],
+  };
+
+  it('states the statutory default out of the donor\'s voice, on both instrument types', () => {
+    ['property_financial', 'health_welfare'].forEach((lpa_type) => {
+      const html = renderLpaDocument({ ...base, lpa_type });
+
+      expect(html).toContain('SECTION 6 — DISSOLUTION OF A MARRIAGE OR CIVIL PARTNERSHIP');
+      expect(html).toContain('This is not a choice, and nothing here was entered by the donor.');
+      expect(html).toContain('section 13(6)(c) and section 13(11)');
+      expect(html).toContain('clause-statutory');
+    });
+  });
+
+  it('writes the express direction only when the donor made it', () => {
+    const html = renderLpaDocument({ ...base, appointment_survives_dissolution: true });
+
+    expect(html).toContain('I direct that the appointment of an attorney is <strong>not</strong> terminated');
+  });
+
+  it('records the donor choosing to leave the law as it stands', () => {
+    const html = renderLpaDocument({ ...base, appointment_survives_dissolution: false });
+
+    expect(html).toContain('I make no provision to the contrary');
+  });
+
+  it('never turns an unanswered election into an answer', () => {
+    [undefined, null].forEach((value) => {
+      const html = renderLpaDocument({ ...base, appointment_survives_dissolution: value });
+
+      expect(html).toContain('SECTION 6 — DISSOLUTION OF A MARRIAGE OR CIVIL PARTNERSHIP');
+      expect(html).not.toContain('I direct that the appointment of an attorney is');
+      expect(html).not.toContain('I make no provision to the contrary');
+    });
+  });
+});

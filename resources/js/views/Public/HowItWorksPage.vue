@@ -224,7 +224,7 @@
           </div>
         </div>
         <div class="text-center mt-10">
-          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="inline-flex px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Explore demo</a>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="inline-flex px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-500 transition-colors">Explore demo</a>
         </div>
       </div>
     </section>
@@ -238,7 +238,7 @@
         <p class="text-sm text-neutral-500 max-w-lg mx-auto mb-6">That's all it takes to see your complete financial picture. Start with the demo, or create your Free account.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">Try the free demo</a>
-          <router-link to="/register" class="px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Create your free account</router-link>
+          <router-link to="/register" class="px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-500 transition-colors">Create your free account</router-link>
         </div>
       </div>
     </section>

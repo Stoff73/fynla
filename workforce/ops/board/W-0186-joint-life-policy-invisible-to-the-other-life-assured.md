@@ -4,7 +4,7 @@ title: A joint-life protection policy is invisible to the other life assured —
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0019-cycle2-ownership-applied-one-side-only.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T00:30:00Z
@@ -229,3 +229,11 @@ with David Jones" line: `ProtectionModels.swift:216-238` decodes `in_trust` but 
 plus a row in the view. Raised as **W-0201** rather than folded in silently.
 
 **Not done: browser verification, by instruction.**
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and consumed on every surface rather
+  than patched on one.** `App\Services\Protection\LifeCoverReach` owns "which lives does this
+  policy reach", and its readers are `EstateAgent:54`, `ProtectionAgent:35`,
+  `LifeInsurancePolicyResource:17` and `IHTController:265`
+  (`householdCoverInTrust()`). A joint-life policy is therefore visible to both lives assured, so
+  Sarah is no longer told she has no protection on one screen and £500,000 of cover in trust from
+  zero policies on another.

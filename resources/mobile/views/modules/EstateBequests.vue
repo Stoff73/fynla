@@ -22,6 +22,11 @@
         <p class="m-section-label" style="margin-top:0">
           {{ bequests.length }} {{ bequests.length === 1 ? 'bequest' : 'bequests' }}
         </p>
+        <!--
+          W-0398. The count is accurate about the table and was misleading about the
+          will: the residue, and anyone named to inherit it, is document-only.
+        -->
+        <p v-if="residuaryNote" class="meb-residuary">{{ residuaryNote }}</p>
         <div v-for="bequest in bequests" :key="bequest.id" class="meb-item">
           <p class="meb-item__name">{{ bequest.beneficiary_name || 'Unnamed beneficiary' }}</p>
           <p class="meb-item__gift">{{ giftDescription(bequest) }}</p>
@@ -62,7 +67,7 @@ function formatCurrency(value) {
 export default {
   name: 'MobileEstateBequests',
   components: { MobileChrome },
-  data: () => ({ loading: true, error: '', bequests: [], openingWeb: false, handoffError: '' }),
+  data: () => ({ loading: true, error: '', bequests: [], openingWeb: false, handoffError: '', residuaryNote: ''}),
   async created() { await this.load(); },
   methods: {
     goBack() { this.$router.push({ name: 'm-estate' }); },
@@ -91,6 +96,9 @@ export default {
           return;
         }
         this.bequests = data?.data || [];
+        // W-0398 — served with the payload so this screen and the web one say the same
+        // thing about what the list does NOT contain.
+        this.residuaryNote = data?.residuary_note || '';
       } catch {
         this.error = 'Network error. Please try again.';
       } finally {
@@ -119,4 +127,5 @@ export default {
 .meb-item__gift { font-size: 14px; color: var(--neutral-600); margin: 4px 0 0; }
 .meb-item__conditions { font-size: 13px; color: var(--neutral-600); margin: 4px 0 0; }
 .meb-note { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin: 0 0 16px; }
+.meb-residuary { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin: 8px 0 0; }
 </style>

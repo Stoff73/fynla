@@ -15,8 +15,10 @@ use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\TeaserGate;
+use App\Support\HouseholdPooling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class IHTController extends Controller
 {
@@ -46,9 +48,8 @@ class IHTController extends Controller
 
         try {
             // Determine user scenario
-            $hasLinkedSpouse = $user->liveSpouseId() !== null;
             $spouse = $user->liveSpouse();
-            $dataSharingEnabled = $hasLinkedSpouse && $user->hasAcceptedSpousePermission();
+            $dataSharingEnabled = $user->sharesFinancialDataWithSpouse();
 
             // Calculate IHT using the simplified service
             $calculation = $this->ihtCalculationService->calculate($user, $spouse, $dataSharingEnabled);
@@ -184,9 +185,9 @@ class IHTController extends Controller
                     // (Rule 20): web and `/m` ship separate bundles that share no
                     // constants, and `/m` computes nothing.
                     'unmodelled_relief_caveat' => $calculation['unmodelled_relief_caveat'] ?? null,
+                    'projected_pension_inclusion_caveat' => $calculation['projected_pension_inclusion_caveat'] ?? null,
                     // W-0363 — published to every surface, not just the one that
                     // happened to be open when it was written (Rule 19/20).
-                    'projected_pension_exclusion_caveat' => $calculation['projected_pension_exclusion_caveat'] ?? null,
                 ],
                 'projected' => [
                     'net_estate' => $calculation['projected_net_estate'],
@@ -287,7 +288,9 @@ class IHTController extends Controller
         $this->requireFullEstate($user);
 
         $validated = $request->validate([
-            'marital_status' => ['nullable', 'string', 'in:single,married,widowed,divorced'],
+            // W-0509 — read from the one list rather than restated here. The literal
+            // this replaces predated civil partnerships and 422'd them.
+            'marital_status' => ['nullable', 'string', Rule::in(HouseholdPooling::ALL_MARITAL_STATUSES)],
             'has_spouse' => ['nullable', 'boolean'],
             'own_home' => ['nullable', 'boolean'],
             'home_value' => ['nullable', 'numeric', 'min:0'],

@@ -124,18 +124,38 @@ class NetWorthService
     }
 
     /**
-     * Calculate liabilities breakdown by type
+     * Calculate liabilities breakdown by type, **at this user's share of each**.
      *
      * Returns an array with keys: loans, credit_cards, other
      * (mortgages are calculated separately via CrossModuleAssetAggregator)
      *
-     * Each user has their own liability records. For joint liabilities,
-     * reciprocal records exist with each owner's share stored in current_balance.
+     * **W-0226 — the sixth mechanism answering "what does this user owe", and the
+     * last one still answering it wrong.**
+     *
+     * This read `Liability::where('user_id', $userId)` and summed `current_balance`
+     * at face value, so a joint loan was charged WHOLLY to whoever recorded it and
+     * the co-owner was shown none of it — both halves of the same failure W-0187
+     * fixed for the protection need, W-0206 for the goals projection and W-0173 for
+     * rental income.
+     *
+     * **The docblock here used to assert the opposite, and that is why nobody
+     * looked.** It said "For joint liabilities, reciprocal records exist with each
+     * owner's share stored in current_balance". That is not how this application
+     * models joint records: `App\Models\Estate\Liability` is fillable on
+     * `ownership_type`, `ownership_percentage` and `joint_owner_id` and has a
+     * `joint_owner_id` relation — ONE record carrying a share, per Rule 6. A reader
+     * checking whether this had been dealt with found a note saying it had, and
+     * stopped. Corrected here rather than left as a second completion claim.
+     *
+     * Reach from `forUserOrJoint()`, fraction from `calculateUserShare()` — the same
+     * two homes `CrossModuleAssetAggregator::calculateLiabilityTotals()` uses, so a
+     * share belonging to someone with no account here reduces this user's figure
+     * without being credited to anybody.
      */
     private function calculateLiabilitiesBreakdown(int $userId): array
     {
-        // Get all liabilities from the liabilities table for this user
-        $liabilities = Liability::where('user_id', $userId)->get();
+        // Every liability this user is a party to — as recorder OR as joint owner.
+        $liabilities = Liability::forUserOrJoint($userId)->get();
 
         $breakdown = [
             'mortgages' => 0.0, // Will be filled with property mortgages
@@ -145,7 +165,8 @@ class NetWorthService
         ];
 
         foreach ($liabilities as $liability) {
-            $balance = $liability->current_balance ?? 0;
+            // The user's OWN share, not the whole balance (W-0226).
+            $balance = $this->calculateUserShare($liability, $userId);
 
             // Map granular liability types to display categories
             switch ($liability->liability_type) {

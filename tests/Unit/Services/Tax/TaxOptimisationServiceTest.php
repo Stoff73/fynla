@@ -195,6 +195,42 @@ describe('generateStrategies', function () {
             ->and($spousalStrategy['details']['spouse_tax_band'])->toBe('basic');
     });
 
+    it('prices Marriage Allowance from configuration, rounded up as the statute requires', function () {
+        // ITA 2007 s55C(2) rounds the transferable amount UP to the nearest £10, so it
+        // is £1,260 against a £12,570 personal allowance, not £1,257. At the basic rate
+        // that is £252.00, not £251.40. Both figures come from `TaxConfigService`
+        // (Rule 2); the assertion derives the expected saving from the same config
+        // rather than pinning a year's number, so a rate change does not redden it.
+        // Raised as F10 and F12 by the `tax-compliance-reviewer` gate on W-0480.
+        $spouse = User::factory()->create([
+            'annual_employment_income' => 5000, // below the personal allowance
+            'marital_status' => 'married',
+        ]);
+
+        $user = User::factory()->create([
+            'annual_employment_income' => 30000, // basic rate
+            'marital_status' => 'married',
+            'spouse_id' => $spouse->id,
+        ]);
+
+        $spouse->update(['spouse_id' => $user->id]);
+
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $expected = round(
+            (float) $incomeTax['marriage_allowance']['amount'] * (float) $incomeTax['bands'][0]['rate'],
+            2
+        );
+
+        $strategy = collect($this->service->generateStrategies($user)['strategies'])
+            ->firstWhere('type', 'spousal_optimisation');
+
+        expect($strategy)->not->toBeNull()
+            ->and($strategy['estimated_annual_saving'])->toBe($expected)
+            ->and($expected)->toBeGreaterThan(
+                round((float) $incomeTax['personal_allowance'] * 0.10 * (float) $incomeTax['bands'][0]['rate'], 2)
+            );
+    });
+
     it('does not generate spousal strategy for single users', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 80000,

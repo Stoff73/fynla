@@ -515,6 +515,27 @@ class EstateController extends Controller
     /**
      * Update a gift
      */
+    /**
+     * W-0528 — a settlement into a trust is the trust's record, not a free-standing gift.
+     *
+     * The chargeable lifetime transfer written by `TrustObserver` is what withholds the
+     * settlor's nil rate band for seven years. Editing or deleting it here released or
+     * moved that band while the trust still stood — and the next edit to the trust put
+     * it straight back, so the two records fought and the estate answered differently
+     * depending on which had been touched last. One record, one owner: the trust.
+     */
+    private function refuseIfTrustOwnsTheGift(Gift $gift, string $verb): ?JsonResponse
+    {
+        if ($gift->trust_id === null) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $verb.' the trust "'.$gift->recipient.'" instead — this record is its settlement, and it follows whatever you change there.',
+        ], 422);
+    }
+
     public function updateGift(UpdateGiftRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
@@ -524,6 +545,10 @@ class EstateController extends Controller
             $gift = Gift::where('id', $id)
                 ->where('user_id', $user->id)
                 ->firstOrFail();
+
+            if ($refusal = $this->refuseIfTrustOwnsTheGift($gift, 'Edit')) {
+                return $refusal;
+            }
 
             $gift->update($validated);
 
@@ -556,6 +581,10 @@ class EstateController extends Controller
             $gift = Gift::where('id', $id)
                 ->where('user_id', $user->id)
                 ->firstOrFail();
+
+            if ($refusal = $this->refuseIfTrustOwnsTheGift($gift, 'Delete')) {
+                return $refusal;
+            }
 
             $gift->delete();
 

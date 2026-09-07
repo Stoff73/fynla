@@ -39,6 +39,12 @@ const getters = {
   hasCapability: (state) => (capabilityKey) => state.user?.is_admin === true
     || state.user?.is_preview_user === true
     || state.tierFlags?.capabilities?.[capabilityKey] === 'full',
+  // Mirrors TeaserGate::isFull() — the resolved tier's matrix ALONE, with no
+  // admin or preview bypass. Not every endpoint enforces allows(): the estate
+  // sub-routes go through EnsureFullEstateAccess, which calls isFull(). A screen
+  // in front of one of those must gate on this, or it offers an admin a card the
+  // API then refuses with a 403 (W-0538, measured on csjones).
+  hasFullCapability: (state) => (capabilityKey) => state.tierFlags?.capabilities?.[capabilityKey] === 'full',
 };
 
 const actions = {

@@ -8,6 +8,7 @@ use App\Models\Goal;
 use App\Models\LifeEvent;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Retirement\RetirementAgeResolver;
 use App\Services\Settings\AssumptionsService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UKTaxCalculator;
@@ -32,7 +33,11 @@ class GoalsProjectionService
 {
     use CalculatesOwnershipShare, ResolvesIncome;
 
-    private const DEFAULT_RETIREMENT_AGE = 68;
+    /**
+     * W-0196. Was a private 68 — the second of the two outliers against the 67
+     * anchored by W-0036. Reads the one home now.
+     */
+    private const DEFAULT_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     private const DEFAULT_PROJECTION_END_AGE = 90;
 
@@ -43,7 +48,9 @@ class GoalsProjectionService
         private readonly LifeEventService $lifeEventService,
         private readonly AssumptionsService $assumptionsService,
         private readonly UKTaxCalculator $taxCalculator,
-        private readonly CrossModuleAssetAggregator $assetAggregator
+        private readonly CrossModuleAssetAggregator $assetAggregator,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        private readonly RetirementAgeResolver $retirementAge
     ) {}
 
     /**
@@ -611,13 +618,13 @@ class GoalsProjectionService
     }
 
     /**
-     * Get retirement age.
+     * W-0196. The fourth copy of the chain: it read the user record first, skipped
+     * DC pensions entirely, and separately `max()`ed the result against its own 68 —
+     * three ways of disagreeing with the other three copies at once.
      */
     private function getRetirementAge(User $user): int
     {
-        return $user->target_retirement_age
-            ?? $user->retirementProfile?->target_retirement_age
-            ?? self::DEFAULT_RETIREMENT_AGE;
+        return $this->retirementAge->forUser($user);
     }
 
     /**

@@ -444,7 +444,9 @@ class UserContextBuilder
             return null;
         }
 
-        if (! $user->liveSpouseId()) {
+        // W-0350/W-0530 — reciprocal AND consented; this builds the household's
+        // investment context from both accounts' figures.
+        if ($user->financiallySharedSpouse() === null) {
             return null;
         }
 

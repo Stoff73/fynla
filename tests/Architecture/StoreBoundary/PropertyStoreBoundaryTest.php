@@ -91,6 +91,10 @@ $propertyConsumers = [
     //  - PreviewGamificationSeeder issues read-only per-persona counts
     //    (Property::query()->count()) to derive seeded point awards;
     //    writes only gamification tables.
+    //  - PremiumTestPersonaSeeder builds the `peak_earners` premium household with
+    //    direct updateOrCreate (idempotent reseed) and force-delete on reset. Run by
+    //    hand against local and staging only; never a runtime write path.
+    'Database\Seeders\PremiumTestPersonaSeeder',
     'Database\Seeders\PreviewUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
     'Database\Seeders\PreviewGamificationSeeder',

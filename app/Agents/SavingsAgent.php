@@ -336,6 +336,11 @@ class SavingsAgent extends BaseAgent
         $recommendations = [];
 
         // Emergency Fund Recommendations
+        //
+        // A null score means the runway could not be worked out at all, because
+        // no expenditure is recorded (W-0495). `?? 100` reads it as "nothing to
+        // raise", which is right: telling a household to build a fund we have
+        // not measured is the false recommendation this item exists to stop.
         if (($analysisData['emergency_fund']['adequacy']['adequacy_score'] ?? 100) < 100) {
             $shortfall = $analysisData['emergency_fund']['adequacy']['shortfall'] ?? 0;
             $monthlyTopUp = $this->emergencyFundCalculator->calculateMonthlyTopUp(
@@ -641,8 +646,10 @@ class SavingsAgent extends BaseAgent
             ->where('status', 'active')
             ->exists();
 
-        $runwayMonths = $analysisData['emergency_fund']['runway_months'] ?? 0;
-        if (! $hasEmergencyFundGoal && $runwayMonths < 3) {
+        // Null runway = not measurable, not "zero months" (W-0495). Suggesting a
+        // three-month goal off an unmeasured runway is the same false alarm.
+        $runwayMonths = $analysisData['emergency_fund']['runway_months'] ?? null;
+        if (! $hasEmergencyFundGoal && $runwayMonths !== null && $runwayMonths < 3) {
             $monthlyExpenditure = $analysisData['summary']['monthly_expenditure'] ?? 0;
             $targetAmount = $monthlyExpenditure * 3;
             if ($targetAmount > 0) {

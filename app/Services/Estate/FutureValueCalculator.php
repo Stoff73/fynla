@@ -7,6 +7,7 @@ namespace App\Services\Estate;
 use App\Models\User;
 use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -35,16 +36,37 @@ class FutureValueCalculator
 
         $currentAge = Carbon::parse($user->date_of_birth)->age;
 
-        // User override takes precedence over actuarial lookup
-        if ($user->life_expectancy_override !== null) {
-            $yearsRemaining = max(1, $user->life_expectancy_override - $currentAge);
+        // W-0198 — the stated precedence, and the ONE place it is stated.
+        //
+        // Two columns held this one fact and four call sites combined them
+        // differently: retirement and decumulation read
+        // `override ?? retirement_profiles.life_expectancy ?? 85`, the estate agent
+        // read `override ?? 85`, and this method read `override ?? actuarial tables`.
+        // So a household that had filled in the retirement profile but not the
+        // override was told one life expectancy by the retirement module and another
+        // by the estate — and the horizon scales the estate, the tax on it, life-cover
+        // sizing and every decumulation plan.
+        //
+        // Order: the override the user typed on their profile, then the figure they
+        // typed in the retirement module, then the Office for National Statistics
+        // tables. **Both of the first two are the user's own statement and beat
+        // anything derived** (acceptance 3); the override wins between them because it
+        // is the more deliberate of the two — it exists only when someone has gone to
+        // Personal Information to set it.
+        $stated = $user->life_expectancy_override
+            ?? $user->retirementProfile?->life_expectancy;
+
+        if ($stated !== null) {
+            $yearsRemaining = max(1, (int) $stated - $currentAge);
 
             return [
                 'years_remaining' => (float) $yearsRemaining,
-                'death_age' => $user->life_expectancy_override,
+                'death_age' => (int) $stated,
                 'death_year' => now()->year + $yearsRemaining,
                 'current_age' => $currentAge,
-                'source' => 'user_override',
+                'source' => $user->life_expectancy_override !== null
+                    ? 'user_override'
+                    : 'retirement_profile',
             ];
         }
 
@@ -58,6 +80,45 @@ class FutureValueCalculator
             'death_year' => now()->year + (int) round($lifeExpectancy),
             'current_age' => $currentAge,
         ];
+    }
+
+    /**
+     * W-0198 — how long this person's spouse expects to live.
+     *
+     * `retirement_profiles.spouse_life_expectancy` was captured, prompted for when the
+     * user is married, and **read by nobody as a number**: the two call sites used it
+     * only as `!== null` to mean "has a spouse". So the figure the user typed was
+     * discarded, and a married user who left it blank was treated as single by the
+     * annuity comparison.
+     *
+     * Precedence mirrors {@see getLifeExpectancy()}: a linked spouse with their own
+     * account is resolved as themselves — their override and their retirement profile
+     * are their own statements — and only an unlinked partner falls to the figure the
+     * primary user typed on their behalf.
+     */
+    public function getSpouseLifeExpectancy(User $user): ?int
+    {
+        if ($user->spouse) {
+            return $this->getLifeExpectancy($user->spouse)['death_age'];
+        }
+
+        $stated = $user->retirementProfile?->spouse_life_expectancy;
+
+        return $stated !== null ? (int) $stated : null;
+    }
+
+    /**
+     * W-0198. Whether there is a spouse at all is a question about the household, not
+     * about whether one optional field was filled in. Both call sites inferred it from
+     * `spouse_life_expectancy !== null`, so a married user who had not entered that
+     * number was compared against a single-life annuity.
+     *
+     * Includes civil partnerships — reading `['married']` alone is the W-0508 defect.
+     */
+    public function hasSpouse(User $user): bool
+    {
+        return $user->spouse_id !== null
+            || in_array($user->marital_status, HouseholdPooling::POOLING_MARITAL_STATUSES, true);
     }
 
     /**

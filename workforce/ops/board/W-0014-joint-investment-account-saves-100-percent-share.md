@@ -4,7 +4,7 @@ title: Joint investment accounts save a 100% owner share — spouse gets nothing
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-21T00:05:00Z
 claimed: 2026-08-21T10:30:00Z
@@ -190,3 +190,13 @@ Report: `reports/R-02-pass-a-verification.md` RED-1, RED-2.
   47500 with `is_primary_owner: false`. Plus `tests/Unit/Support/SharedOwnershipTest.php`.
 
 - 2026-08-21 build-lead: batch handover (CLAUDE.md Rule 22) — `workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md`. Carries the dispatch verbatim, the joint-share consolidation reasoning, decisions taken, dead ends ruled out, and environment state.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  The 100% write is gone and the rule has one home. `app/Support/SharedOwnership.php` names the damage this item did, at `:110`: *"a legacy shared row stored at 100 (the damage W-0014 did) is a value nobody stated"*.
+
+  `primaryOwnerPercentage()` (`:73-82`) returns `DEFAULT_PERCENTAGE` (50) for a shared type where the caller states no share, and `INDIVIDUAL_PERCENTAGE` (100) only where the type is not shared. `applyTo()` (`:99`) refuses to inherit a stored 100 onto an account being converted to joint, so the legacy damage does not propagate through an edit. `InvestmentController:517-525` routes both the shared and the individual branch through it, and `:521` passes the stored record so an update that says nothing about the split keeps the share already on it (W-0040).
+
+  The asymmetry that caused it is recorded in the docblock and is worth keeping: a submitted 100 on a shared asset used to be read as *"the individual default a form never cleared"* and rewritten to 50, while a submitted 0 was refused. Per CSJ's ruling a stated 100/0 IS individual ownership, so a stated 100 is now kept and `isValidSharedSplit()` refuses a non-split at the validation layer rather than rewriting it silently.
+
+  **Tested:** 352 passed, 1,003 assertions across the ownership suites, including the architecture guard that no string `'sole'` is used as an `ownership_type`.

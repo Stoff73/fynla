@@ -124,6 +124,7 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { mapGetters, mapState } from 'vuex';
 
@@ -320,25 +321,9 @@ export default {
       return types[type] || 'Individual';
     },
 
-    formatAssetType(type) {
-      const types = {
-        equity: 'Equity',
-        uk_equity: 'UK Equity',
-        us_equity: 'US Equity',
-        international_equity: 'International Equity',
-        fixed_income: 'Fixed Income',
-        bond: 'Bond',
-        property: 'Property',
-        commodities: 'Commodities',
-        cash: 'Cash',
-        alternatives: 'Alternatives',
-        alternative: 'Alternative',
-        fund: 'Fund',
-        etf: 'ETF',
-        other: 'Other',
-      };
-      return types[type] || type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
   },
 };
 </script>

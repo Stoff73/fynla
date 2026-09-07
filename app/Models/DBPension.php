@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Constants\PensionEnums;
 use App\Models\Concerns\AwardsDataEntryPoints;
+use App\Services\Retirement\RetirementAgeResolver;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -83,11 +84,12 @@ class DBPension extends Model
     /**
      * Default scheme retirement age when the pension does not record one.
      *
-     * Deliberately the same 67 as PensionProjector::DEFAULT_RETIREMENT_AGE: if the
-     * two disagreed, a pension could count as income from one age while being
-     * projected forward from another.
+     * Deliberately the same as the household default: if the two disagreed, a pension
+     * could count as income from one age while being projected forward from another
+     * (W-0036). W-0196 turned that agreement from a comment into a reference — the
+     * value cannot now be changed in one place and not the other.
      */
-    public const DEFAULT_NORMAL_RETIREMENT_AGE = 67;
+    public const DEFAULT_NORMAL_RETIREMENT_AGE = RetirementAgeResolver::DEFAULT_RETIREMENT_AGE;
 
     /**
      * Is this pension actually paying out yet?

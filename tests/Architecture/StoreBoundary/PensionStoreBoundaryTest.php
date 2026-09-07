@@ -36,6 +36,11 @@ $pensionConsumers = [
     // columns. No queries, no mutations — conceptually an internal of
     // the store.
     'App\Services\Stores\Recalc\PensionDerivedColumnCalculator',
+    // The two employee-contribution rules (W-0424). Takes a pension instance the
+    // caller already fetched through PensionStore and reads its properties — no
+    // queries, no mutations, same category as the calculator above. Lives here
+    // rather than on UserProfileService, which is what this boundary was red about.
+    'App\Services\Retirement\PensionContributionRule',
     // One-off backfill of the canonical derived columns for existing
     // rows: reads via DCPension/DBPension/StatePension::chunkById and
     // forceFill/saveQuietly the derived columns only — a migration-style
@@ -94,6 +99,10 @@ $pensionConsumers = [
     //  - PreviewGamificationSeeder issues read-only per-persona counts
     //    (DCPension/DBPension::query()->count()) to derive seeded point
     //    awards; writes only gamification tables.
+    //  - PremiumTestPersonaSeeder builds the `peak_earners` premium household with
+    //    direct updateOrCreate (idempotent reseed) and force-delete on reset. Run by
+    //    hand against local and staging only; never a runtime write path.
+    'Database\Seeders\PremiumTestPersonaSeeder',
     'Database\Seeders\PreviewUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
     'Database\Seeders\PreviewGamificationSeeder',

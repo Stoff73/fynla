@@ -83,7 +83,7 @@ class PipelineArticle extends Model
         }
 
         if ($this->documentArticle !== null) {
-            return $this->documentArticle->isPublished();
+            return $this->documentArticle->isLive();
         }
 
         return false;

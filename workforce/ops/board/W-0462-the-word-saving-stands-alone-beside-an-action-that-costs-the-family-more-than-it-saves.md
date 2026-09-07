@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: null
 reviewers: [compliance-lead, tax-compliance-reviewer]
-status: queued
+status: done
 claimed_by: null
 severity: high
 surfaces: [web]
@@ -120,3 +120,27 @@ asks whether the sentence is internally consistent — do the printed figures
 subtract to the printed answer. **All of them pass on a sentence that recommends
 a value-destroying action, because arithmetic consistency and advice quality are
 different properties** and nothing in the batch tested the second.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`.** `grep -rn 'W-0462'` across `app/`,
+  `resources/` and `tests/` returns **nothing**, so no work has been done on this item.
+  The engine half the reviewer asked for **does** exist — `WillAnalysisService:144-149` publishes
+  `taxable_estate`, `taxable_estate_if_qualifying`, `tax_at_standard_rate` and
+  `tax_at_reduced_rate` beside `potential_saving`, with a docblock saying they are there "so every
+  sentence that quotes the saving can print its own working". **No sentence uses them.** The
+  disclosure the gate required — that the recommended action leaves the beneficiaries £37,890.72
+  worse off on user 16 — is still absent from every surface. The figure remains correct; the
+  disclosure is still missing.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed, except the compliance gate.**
+
+  **The cost is now beside the saving, as a FIGURE.** The item is explicit that a disclaimer does not discharge it, so the card states the change in what the beneficiaries actually receive: *"Your beneficiaries would receive £37,891 less, because the gift leaves the estate as well. The tax saving is smaller than the gift."* Both statements are true and now both are on the page.
+
+  **Acceptance 2 — the break-even is encoded, and 6.25% is nowhere written down.** `charitable_residue_effect` = `(r_s − r_r)·E − S·(1 − r_r)` and `charitable_break_even_shortfall` = `E·(r_s − r_r)/(1 − r_r)`, both from `$standardRate` and `$reducedRate` as already resolved in `assessTaxPosition()`. The 6.25% constant holds **only** at 40/36; a test moves the rates to 31/29 and asserts the break-even becomes 2.82% of the estate, so a hardcoded `0.0625` fails.
+
+  **Acceptance 3 — one home.** Published from `assessTaxPosition()`, the same method and the same return array as `charitable_rate_saving`, so the saving and its cost cannot disagree and no surface composes its own version. The client reads it and does not recompute.
+
+  **Verification against the gate's own arithmetic:** the test reproduces £858,780 chargeable and a £112,878 shortfall to **−£37,890.72**, to the penny, which is the figure the reviewer measured end to end. Also pinned: better off below the break-even, exactly even at it, and the rate-move case.
+
+  **Tested:** `tests/Unit/Services/Estate/CharitableResidueEffectTest.php` — 5 passed; 143 estate component tests; 7 persona locks unmoved. Pint clean.
+
+  **NOT DONE — acceptance 4, and it is the one that gates shipping.** No `compliance-lead` review of the wording. The item is right that this is a Consumer Duty question before it is a tax one, and I have written customer-facing copy about a benefit figure with a cost attached. **The wording should not ship without that review.** Acceptance 5 is also unmet: not verified on either spouse's session, and not on a household below the break-even — peak_earners sits at 13.1% against a 6.25% line, so it can only demonstrate the losing case.

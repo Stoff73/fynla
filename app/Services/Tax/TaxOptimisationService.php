@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Support\HouseholdPooling;
+use App\Traits\CalculatesOwnershipShare;
 use App\Traits\ResolvesIncome;
 
 /**
@@ -20,6 +22,7 @@ use App\Traits\ResolvesIncome;
  */
 class TaxOptimisationService
 {
+    use CalculatesOwnershipShare;
     use ResolvesIncome;
 
     public function __construct(
@@ -119,9 +122,18 @@ class TaxOptimisationService
         $remaining = max(0, $isaAllowance - $totalUsed);
 
         // Check if user has non-ISA accounts that could benefit
-        $giaValue = InvestmentAccount::where('user_id', $user->id)
-            ->where('account_type', 'gia')
-            ->sum('current_value');
+        // W-0280, measured. A jointly-held general investment account was counted at
+        // 100% for whichever spouse recorded it and at 0% for the other — £95,000 of a
+        // £95,000 account on one side, nothing on the other. This figure drives an
+        // INDIVIDUAL action (a Bed & ISA or an inter-spouse transfer), so the member's
+        // own share is the right quantity, and neither 100% nor 0% is it.
+        $giaValue = $this->atUserShare(
+            InvestmentAccount::query()
+                ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+                ->where('account_type', 'gia')
+                ->get(),
+            $user->id
+        )->sum('current_value');
 
         $nonISASavings = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
@@ -381,7 +393,7 @@ class TaxOptimisationService
 
     private function buildSpousalStrategy(User $user, float $grossIncome, string $taxBand): ?array
     {
-        if ($user->marital_status !== 'married' || ! $user->liveSpouseId()) {
+        if (! HouseholdPooling::hasSpousalStatus($user) || ! $user->liveSpouseId()) {
             return null;
         }
 
@@ -413,7 +425,15 @@ class TaxOptimisationService
 
         $lowerEarnerIncome = $grossIncome >= $spouseIncome ? $spouseIncome : $grossIncome;
         if ($lowerEarnerIncome < $personalAllowance && $higherBand === 'basic') {
-            $marriageAllowanceSaving = round($personalAllowance * 0.10 * 0.20, 2); // 10% of PA at 20%
+            // The transferable amount is NOT 10% of the personal allowance: ITA 2007
+            // s55C(2) rounds it UP to the nearest £10, so 2025/26 is £1,260 against a
+            // £12,570 allowance, not £1,257. Both the amount and the rate it saves at
+            // come from configuration (Rule 2) — `income_tax.marriage_allowance.amount`
+            // is the same figure the public allowances page publishes.
+            $marriageAllowanceAmount = (float) ($incomeTaxConfig['marriage_allowance']['amount']
+                ?? round($personalAllowance * 0.10 / 10) * 10);
+            $basicRate = (float) ($incomeTaxConfig['bands'][0]['rate'] ?? 0.20);
+            $marriageAllowanceSaving = round($marriageAllowanceAmount * $basicRate, 2);
             $estimatedSaving += $marriageAllowanceSaving;
             $actions[] = 'Apply for Marriage Allowance to transfer unused personal allowance';
         }

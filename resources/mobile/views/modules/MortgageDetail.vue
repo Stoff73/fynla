@@ -25,9 +25,38 @@ export default {
   computed: {
     recordId() { return Number(this.$route.params.id); }, heading() { return this.mortgage?.lender_name || this.mortgage?.lender || 'Mortgage'; }, canEdit() { return this.mortgage?.is_primary_owner !== false; },
     contextualRequest() { if (!this.canEdit || !Number.isInteger(this.recordId) || this.recordId < 1) return null; return buildContextualConversationRequest({ action: 'edit', resourceType: 'mortgage', resourceId: this.recordId, currentDestination: { screen: 'mortgage_detail', params: { mortgage_id: this.recordId }, fallback: 'net_worth' }, origin: { kind: 'surface_action' } }); },
+    // W-0351. A mixed-rate mortgage's split had no row on EITHER surface: web gated on
+    // fields the API never sent, and `/m` had no row at all. The API serves them now,
+    // so both surfaces state the same fact (Rule 19). The split is the label and the
+    // rate is the value, exactly as the web detail view renders it.
     rows() { return [
-      { key: 'Type', value: label(this.mortgage.mortgage_type) }, { key: 'Ownership', value: label(this.mortgage.ownership_type) }, { key: 'Monthly payment', value: fmt(this.mortgage.monthly_payment) }, { key: 'Interest rate', value: this.rate(this.mortgage.interest_rate) }, { key: 'Rate type', value: label(this.mortgage.rate_type) }, { key: 'Remaining term', value: this.mortgage.remaining_term_months == null ? '—' : `${this.mortgage.remaining_term_months} months` }, { key: 'Maturity date', value: date(this.mortgage.maturity_date) },
+      { key: 'Type', value: label(this.mortgage.mortgage_type) }, { key: 'Ownership', value: label(this.mortgage.ownership_type) }, { key: 'Monthly payment', value: fmt(this.mortgage.monthly_payment) }, { key: 'Interest rate', value: this.rate(this.mortgage.interest_rate) }, { key: 'Rate type', value: label(this.mortgage.rate_type) },
+      ...this.mixedRateRows,
+      ...this.declaredLiabilityRows,
+      { key: 'Remaining term', value: this.mortgage.remaining_term_months == null ? '—' : `${this.mortgage.remaining_term_months} months` }, { key: 'Maturity date', value: date(this.mortgage.maturity_date) },
     ]; },
+    // W-0483. A mortgage's share follows the property securing it unless someone has
+    // declared otherwise, and `/m` showed only "Ownership: Joint" — so a household
+    // where one person borrowed alone read here as sharing the debt. No row where
+    // nothing was declared: the Ownership row above is then the whole truth.
+    declaredLiabilityRows() {
+      const declared = this.mortgage?.declared_liability_percentage;
+      if (declared == null) return [];
+
+      return [{ key: 'Your share of the borrowing', value: `${Number(declared).toFixed(2)}%` }];
+    },
+
+    mixedRateRows() {
+      if (this.mortgage?.rate_type !== 'mixed') return [];
+      const rows = [];
+      if (this.mortgage.fixed_rate_percentage != null) {
+        rows.push({ key: `Fixed (${Number(this.mortgage.fixed_rate_percentage).toFixed(2)}%)`, value: this.rate(this.mortgage.fixed_interest_rate) });
+      }
+      if (this.mortgage.variable_rate_percentage != null) {
+        rows.push({ key: `Variable (${Number(this.mortgage.variable_rate_percentage).toFixed(2)}%)`, value: this.rate(this.mortgage.variable_interest_rate) });
+      }
+      return rows;
+    },
   },
   async created() { await this.load(); },
   methods: {

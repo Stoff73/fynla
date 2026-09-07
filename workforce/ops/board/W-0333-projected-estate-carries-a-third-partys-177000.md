@@ -4,7 +4,7 @@ title: The projected estate carries £177,000 belonging to a third party, and th
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0026-cycle4-iht-projection-ownership-and-savings-getters.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T23:25:00Z
@@ -98,3 +98,11 @@ Guarded by `tests/Unit/Services/Estate/IHTProjectionOwnershipTest.php` and by th
 rewritten case in `tests/Feature/Stores/PropertyReadConsumerParityTest.php`.
 Mutation-tested against BOTH historical states — the May defect and the pre-May
 double count — and each turns the suite red in a different place.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and it completes `5278a2457` rather
+  than reversing it.** `EstateProjectionService:363-385` sets out the three approaches and the two
+  failure modes explicitly — `forUser` on both sides double-counts a joint property, `user_id` at
+  100% lets a third party in, **reach + share per member does neither** — and takes the third.
+  Mike Barrett's £177,000 is out of the household's projected estate. Pinned by
+  `tests/Unit/Services/Estate/IHTProjectionOwnershipTest.php:331` and
+  `tests/Feature/Stores/PropertyReadConsumerParityTest.php`.

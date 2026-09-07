@@ -296,6 +296,8 @@
 </template>
 
 <script>
+import { formatAssetType } from '@/constants/assetTypes';
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import investmentService from '@/services/investmentService';
@@ -358,7 +360,7 @@ export default {
 
     // Calculate years to retirement
     yearsToRetirement() {
-      const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || 68;
+      const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
       const currentAge = this.currentUser?.date_of_birth
         ? Math.floor((new Date() - new Date(this.currentUser.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))
         : null;
@@ -828,25 +830,9 @@ export default {
       this.$emit('change-tab', 'holdings');
     },
 
-    formatAssetType(type) {
-      const types = {
-        equity: 'Equity',
-        equities: 'Equities',
-        fixed_income: 'Fixed Income',
-        bonds: 'Bonds',
-        property: 'Property',
-        real_estate: 'Real Estate',
-        commodities: 'Commodities',
-        cash: 'Cash',
-        alternatives: 'Alternatives',
-        fund: 'Fund',
-        etf: 'ETF',
-        stock: 'Stock',
-        bond: 'Bond',
-        other: 'Other',
-      };
-      return types[type] || type?.charAt(0).toUpperCase() + type?.slice(1).replace(/_/g, ' ') || 'Other';
-    },
+    // W-0443 — one vocabulary, in one module. This was a private map;
+    // eleven of them disagreed, and one rendered `uk_equity` as "Uk Equity".
+    formatAssetType,
 
     getAssetColor(type) {
       return ASSET_COLORS[type] || ASSET_COLORS.other;

@@ -4,7 +4,7 @@ title: The "80% Probability" band was a straight line between two neighbours, th
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0024-cycle4-investment-projection.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-22T20:00:00Z
@@ -55,3 +55,10 @@ Three mechanisms implemented this: the investment service, a near-identical priv
 - `MonteCarloResults.vue`'s client-side interpolation fallback deleted.
 - Guarded by `tests/Unit/Services/Shared/ProbabilityBandExtractionTest.php`, using a skewed
   distribution where the measured 20th is nowhere near the interpolant.
+
+- 2026-08-30 build-lead: **CLOSED — already fixed, verified against the code.** The three
+  faults were the interpolated 20th percentile (`p10 + (p25 − p10) × 0.67`), the
+  extrapolated 5th (`p10 − (p25 − p10) × 0.33`) and the 30%/10% smoothing of years 1 and 2.
+  **None of those constants exists anywhere in `MonteCarloSimulator`,
+  `RetirementProjectionService` or `MonteCarloResults.vue`** — percentiles are taken from
+  the simulated distribution. Never restamped.

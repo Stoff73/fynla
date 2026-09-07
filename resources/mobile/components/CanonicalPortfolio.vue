@@ -13,6 +13,18 @@
             <span>{{ pct(holding.wrapper_percentage) }} of this account</span>
             <span>{{ pct(holding.whole_relevant_portfolio_percentage) }} of your relevant portfolio</span>
           </div>
+          <!--
+            W-0442 acceptance 3. Units, purchase price, current price and purchase date
+            are captured and stored, shown on both web tables, and were invisible here —
+            the portfolio contract did not carry them until this item, so no template
+            change alone could have fixed it.
+          -->
+          <div v-if="hasCaptureFacts(holding)" class="cp-meta">
+            <span>{{ units(holding.quantity) }} units</span>
+            <span v-if="holding.purchase_price != null">Bought at {{ price(holding.purchase_price) }}</span>
+            <span v-if="holding.current_price != null">Now {{ price(holding.current_price) }}</span>
+            <span v-if="holding.purchase_date">Since {{ holding.purchase_date }}</span>
+          </div>
           <div v-if="holding.classified_exposure?.length" class="cp-chips">
             <span v-for="exposure in holding.classified_exposure" :key="exposure.asset_class" class="cp-chip">
               {{ label(exposure.asset_class) }} {{ pct(exposure.holding_percentage) }}
@@ -88,6 +100,7 @@
 
 <script>
 import { defineComponent } from 'vue';
+import { formatUnits } from '../../js/utils/holdingUnits.js';
 
 function currency(value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
@@ -164,6 +177,24 @@ export default {
   },
   methods: {
     fmt: currency,
+    // W-0442 — the SAME formatter the two web tables use, imported rather than
+    // reimplemented: it distinguishes "no unit count recorded" from "zero units held",
+    // and a second copy here would be free to lose that distinction (Rule 20).
+    units: formatUnits,
+    // Pence matter on a unit price in a way they do not on an account balance, so this
+    // is deliberately not `currency`, whose maximumFractionDigits is 0.
+    price(value) {
+      if (value == null || Number.isNaN(Number(value))) return '—';
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 4,
+      }).format(Number(value));
+    },
+    hasCaptureFacts(holding) {
+      return holding.quantity != null
+        || holding.purchase_price != null
+        || holding.current_price != null
+        || !!holding.purchase_date;
+    },
     pct(value, digits = 1) {
       if (value == null || Number.isNaN(Number(value))) return '—';
       return `${Number(value).toFixed(digits)}%`;

@@ -91,6 +91,15 @@ class MortgageService
             $property,
         );
 
+        // W-0483 — the DECLARED borrowing share, which is a different question from
+        // the share above. That one asks "how is the asset held" and inherits from the
+        // property; this one asks "who borrowed", is never inherited, and is only
+        // present because someone ticked a box to say the two differ. Passed through
+        // rather than defaulted, so null keeps the property authoritative.
+        if (array_key_exists('mortgage_declared_liability_percentage', $validated)) {
+            $mortgageData['declared_liability_percentage'] = $validated['mortgage_declared_liability_percentage'];
+        }
+
         // Add joint borrower fields if applicable.
         $mortgageJointOwnerId = $validated['mortgage_joint_owner_id'] ?? null;
         $mortgageJointOwnerName = $validated['mortgage_joint_owner_name'] ?? null;

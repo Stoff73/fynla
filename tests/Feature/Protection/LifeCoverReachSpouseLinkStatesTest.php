@@ -192,12 +192,11 @@ it('still covers both lives when a spouse permission row is refused', function (
     // from someone that their life is insured. The failure mode of the opposite call is
     // worse: a person insured and never told, by an application that holds the fact.
     //
-    // **Considered and not taken:** withholding `premium_amount` / `annual_premium`
-    // from the other life assured, extending the W-0383 line that already withholds
-    // `policy_number` and `beneficiaries`. A premium is money leaving the owner's
-    // account rather than a fact about the reader's life. Declined as part of decision
-    // A; recorded because W-0383 drew that line without considering the premium, and a
-    // compliance sweep should find the question rather than re-discover it.
+    // **Considered and not taken, then overtaken:** withholding `premium_amount` /
+    // `annual_premium` from the other life assured, extending the W-0383 line that
+    // withheld `policy_number` and `beneficiaries`. CSJ closed the whole question on
+    // 2026-09-01 in the other direction — the other life assured sees the entire
+    // policy — so there is no line left to extend.
     //
     // A `rejected` row is used because the enum has no `revoked` member —
     // `spouse_permissions.status` is `enum('pending','accepted','rejected')`, so
@@ -224,26 +223,31 @@ it('still covers both lives when no permission was ever granted', function () {
 });
 
 /**
- * W-0382 / W-0383 — reaching a policy answers "am I covered". It is not a licence to
- * read the whole contract, nor an instruction to act on someone else's.
+ * W-0382 / W-0383 — reaching a policy answers "am I covered", and CSJ ruled on
+ * 2026-09-01 that it also licenses the contract: *"if there is a shared account, show
+ * the life policy to the other user"*.
  *
- * Both of these were opened by the reach itself: before it, the other life assured saw
- * no policy at all, so neither branch was reachable. **Unreachable is not absent.**
+ * This assertion was the opposite until that ruling. It is inverted rather than
+ * deleted, because the branch still has to be pinned: the other life assured must see
+ * the whole policy AND must still not be offered an edit she cannot perform (W-0382),
+ * and those two are easy to conflate. Read is now total; write is still `user_id`.
  */
-it('withholds the contract details the other life assured has no use for', function () {
+it('gives the other life assured the whole policy, and still no edit affordance', function () {
     $asSpouse = $this->actingAs($this->spouse)->getJson('/api/protection')
         ->assertOk()->json('data.policies.life_insurance');
 
     $joint = collect($asSpouse)->firstWhere('id', $this->jointPolicy->id);
 
     expect($joint)->not->toBeNull()
-        ->and($joint['is_own_policy'])->toBeFalse()
-        // She is covered, and she can see by whom and for how much.
+        // Read reaches everything...
         ->and((float) $joint['sum_assured'])->toBe(500000.0)
         ->and($joint['provider'])->toBe('Vitality')
-        // She cannot read his policy number or his free-text beneficiaries.
-        ->and($joint['policy_number'])->toBeNull()
-        ->and($joint['beneficiaries'])->toBeNull();
+        ->and($joint['policy_number'])->toBe($this->jointPolicy->policy_number)
+        ->and($joint['beneficiaries'])->toBe($this->jointPolicy->beneficiaries)
+        // ...and write does not. The write path is scoped to `user_id`, so surfaces
+        // read this to present the policy without an Edit button rather than offering
+        // one that returns 404.
+        ->and($joint['is_own_policy'])->toBeFalse();
 });
 
 it('still gives the owner every field of their own policy', function () {

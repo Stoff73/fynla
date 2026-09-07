@@ -24,6 +24,10 @@ class IHTFormattingService
     public function __construct(
         private readonly MortgageStore $mortgageStore,
         private readonly HouseholdCashFlowProjector $cashFlowProjector,
+        // W-0470 — the engine's own liability projection, so the rows printed
+        // beside a projected total are projected by the same rule that produced
+        // it. This service used to carry its own.
+        private readonly EstateProjectionService $estateProjection,
     ) {}
 
     /**
@@ -357,6 +361,14 @@ class IHTFormattingService
         User $user,
         int $ageAtDeath
     ): array {
+        // W-0470 — the two terms `projectSingleLiability()` needs beside the
+        // horizon. `$retirementAge` is only consulted where a liability has no
+        // end date at all; falling back to `$ageAtDeath` there means "not cleared
+        // before death", which is the conservative reading — assuming an unknown
+        // debt clears early would shrink the estate and the tax with it.
+        $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : $ageAtDeath;
+        $retirementAge = (int) ($user->target_retirement_age ?? $ageAtDeath);
+
         $mortgagesFormatted = [];
         $liabilitiesFormatted = [];
         $mortgagesTotal = 0;
@@ -376,8 +388,23 @@ class IHTFormattingService
                     continue;
                 }
 
-                // Mortgages are assumed to be paid off by age 70
-                $projectedBalance = ($ageAtDeath >= 70) ? 0 : $userShare;
+                // W-0470 — the engine's projection, not a binary cliff.
+                //
+                // This was `($ageAtDeath >= 70) ? 0 : $userShare`: a hardcoded
+                // age, off a hardcoded horizon, reading no maturity date — so a
+                // mortgage running to 75 vanished at 70 and one repaid at 60 was
+                // still shown in full at 69. `projectSingleLiability()` reads the
+                // real maturity date, amortises to it, and returns zero for a
+                // debt that ends before death (IHTA 1984 s5(3), s162, s175A).
+                $maturity = $mortgage->maturity_date;
+                $projectedBalance = $this->estateProjection->projectSingleLiability(
+                    $userShare,
+                    $maturity instanceof \DateTimeInterface ? $maturity->format('Y-m-d') : $maturity,
+                    $currentAge,
+                    $retirementAge,
+                    max(0, $ageAtDeath - $currentAge),
+                    now()->year
+                );
 
                 $mortgagesFormatted[] = [
                     'property_address' => $propertyName,
@@ -407,7 +434,19 @@ class IHTFormattingService
                     'institution' => $liability->liability_name ?? ucwords(str_replace('_', ' ', $liability->liability_type)),
                     'current_balance' => $userShare,
                     'full_balance' => (float) $liability->current_balance,
-                    'projected_balance' => $userShare,
+                    // W-0470 — was `$userShare`, never amortised at all, so a
+                    // loan repaid years before death was printed at full value
+                    // inside a projected column.
+                    'projected_balance' => $this->estateProjection->projectSingleLiability(
+                        $userShare,
+                        $liability->maturity_date instanceof \DateTimeInterface
+                            ? $liability->maturity_date->format('Y-m-d')
+                            : ($liability->maturity_date ?? $this->estateProjection->estimatePayoffDate($liability)),
+                        $currentAge,
+                        $retirementAge,
+                        max(0, $ageAtDeath - $currentAge),
+                        now()->year
+                    ),
                     'is_joint' => $isShared,
                     'ownership_percentage' => $isShared
                         ? ($liability->user_id === $user->id

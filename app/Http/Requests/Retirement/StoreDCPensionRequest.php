@@ -107,6 +107,8 @@ class StoreDCPensionRequest extends FormRequest
             // arbitrary difference, not a product decision. W-0263 widened the
             // column to decimal(7,4), so 100 is now true rather than aspirational.
             'holdings.*.ocf_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            // W-0324 — same rule as the investment account requests.
+            'holdings.*.dividend_yield' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'holdings.*.cost_basis' => ['nullable', 'numeric', 'min:0'],
         ];
 

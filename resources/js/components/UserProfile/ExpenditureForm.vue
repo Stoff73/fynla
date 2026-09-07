@@ -749,7 +749,7 @@
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Retired Monthly Expenditure</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
-              Based on retirement at age {{ retirementInfo.userRetirementAge || 65 }}{{ isMarried ? `, spouse at ${retirementInfo.spouseRetirementAge || 65}` : '' }}
+              Based on retirement at age {{ retirementInfo.userRetirementAge || DEFAULT_RETIREMENT_AGE }}{{ isMarried ? `, spouse at ${retirementInfo.spouseRetirementAge || DEFAULT_RETIREMENT_AGE}` : '' }}
             </p>
           </div>
           <button type="button" @click="isEditingRetired = true" class="btn-secondary">
@@ -1288,6 +1288,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import api from '@/services/api';
@@ -2432,6 +2433,8 @@ export default {
     });
 
     return {
+      // W-0196 — the template reads the one home, not a literal.
+      DEFAULT_RETIREMENT_AGE,
       activeBudgetTab,
       activePersonTab,
       isEditing,

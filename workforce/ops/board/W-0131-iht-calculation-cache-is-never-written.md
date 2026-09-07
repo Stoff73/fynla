@@ -4,7 +4,7 @@ title: The Inheritance Tax calculation cache is never written — `persist` is n
 mission: persona-run-peak_earners-2026-08-20
 branch: null
 owner: build-lead
-status: queued
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T15:10:00Z
@@ -128,3 +128,19 @@ still 0.
   settled by the same decision.
 - Nothing here argues the fingerprint was wasted work. It is the difference between a
   cache that would be wrong when switched on and one that would be right.
+
+- 2026-08-31 build-lead: **FIXED AND TESTED — closed, and all THREE arms of the mechanism were inert, not just the write.**
+
+  Confirmed against the code before changing anything:
+
+  - **Nothing writes.** `grep -rn 'persist: true' app/` returns the docblock at `:125` and nothing else. Wave 2.4 made persistence opt-in and no production caller ever opted in.
+  - **Nothing invalidates.** `invalidateCache()` (`:2582`) has zero callers.
+  - **But the READ ran on every call.** `:149` called `getCachedCalculation()` unconditionally — a query plus a hash computation over assets and liabilities — on **every estate calculation, on every surface**, and it could not possibly hit, because the row it looks for is never written.
+
+  So the cost was real and the benefit was structurally zero. That is worse than an unused cache: an unused cache costs nothing.
+
+  **The read is now gated on `$persist`, the same flag that governs the write, rather than deleted.** The table is an audit trail as well as a cache — `iht_calculations` is what a snapshot is captured INTO — so a caller that opts in still gets both halves and the hash check still guards staleness for them, while a read flow now pays for neither. Deleting the mechanism would have thrown away the audit capability the docblock is explicit about.
+
+  **The intended writer named in the docblock — "immediately after a trust create/update" — was checked and is NOT the site to wire.** `TrustController:213` calls `calculate()` on the trust STRATEGY VIEW, which is a read; passing `persist` there would write a row on every page load, which is the behaviour Wave 2.4 removed. Left for a genuine mutation point rather than attached to the nearest call that mentions trusts.
+
+  **Tested:** `IHTCalculationPersistTest` — 3 passed, including that the default path writes nothing and that a pre-refactor row is recomputed rather than served; 123 IHT and trust tests, 477 assertions; the 7 persona locks unmoved at £1,728,780 / £343,512. Pint clean.

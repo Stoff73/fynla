@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0033-cycle4-the-charitable-saving-and-the-percentage-denominator.md
 owner: build-lead
 reviewers: [tax-compliance-reviewer, quality-lead]
-status: gated
+status: done
 claimed_by: fix-cycle4-figures
 severity: high
 surfaces: [web]
@@ -132,3 +132,16 @@ docblock describing it. **Documenting a blind spot does not inoculate you agains
 it.**
 
 Branch doc: `workforce/branches/fixes/F-0033-cycle4-the-charitable-saving-and-the-percentage-denominator.md`
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and the subtraction now comes out.**
+  `EstateAgent:797-817` records the defect and the fix in place: both bills, both bases and the
+  saving all come from the one definition in `IHTCalculationService::assessTaxPosition()`, so the
+  subtraction a reader performs on the sentence IS the subtraction the application performed.
+  The second bill names its own base — increasing the gift lowers the rate AND removes the gift
+  from the estate, so 36% is charged on a smaller estate than 40% was, which is why a sentence
+  printing one base for two bills could never be made to add up.
+  `WillAnalysisService:144-149` publishes `taxable_estate`, `taxable_estate_if_qualifying`,
+  `tax_at_standard_rate` and `tax_at_reduced_rate` so any sentence quoting the saving can print
+  its working.
+  **C1 is closed too** (`EstateAgent:758`): the sentences now name the SURVIVOR whose position the
+  figures describe, not whoever is logged in.

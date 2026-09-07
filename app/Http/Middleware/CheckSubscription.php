@@ -170,11 +170,38 @@ class CheckSubscription
         }
 
         // Read-only excluded: only safe methods (GET, HEAD, OPTIONS)
+        //
+        // W-0426 — a capability-mapped path is never read-only-excluded. The two
+        // lists overlap: `READ_ONLY_EXCLUDED_PATHS` holds the wide prefix
+        // `api/user/`, and `letter_to_spouse` is mapped to
+        // `api/user/letter-to-spouse` beneath it. Because this method runs BEFORE
+        // checkCapability(), the capability gated the PUT and nothing else — a Free
+        // user could read the whole letter, generated prose and every figure in it,
+        // while being blocked from editing it.
+        //
+        // Excluding the mapped prefixes rather than narrowing `api/user/` keeps the
+        // reason the exclusion exists intact — a churned paid user must still reach
+        // their profile, settings and the subscription tab — and makes the rule
+        // general: any capability added under an excluded prefix is gated from the
+        // moment it is mapped, rather than silently write-only until someone
+        // compares the two lists again.
         if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
             foreach (self::READ_ONLY_EXCLUDED_PATHS as $excluded) {
                 if (str_starts_with($path, $excluded)) {
-                    return true;
+                    return ! $this->isCapabilityMapped($path);
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /** Does this path sit under a prefix that requires a capability grant? */
+    private function isCapabilityMapped(string $path): bool
+    {
+        foreach (array_keys(self::CAPABILITY_ROUTE_MAP) as $prefix) {
+            if (str_starts_with($path, $prefix)) {
+                return true;
             }
         }
 

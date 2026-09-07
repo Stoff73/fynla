@@ -4,7 +4,7 @@ title: The Personal Allowance is correctly tapered to £0 but the basic-rate ban
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0017-cycle1-tax-income-and-allowances.md
 owner: build-lead
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T23:40:00Z
@@ -219,3 +219,10 @@ counterpart; `/m` and iOS inherit through `income_occupation`.
 
 Not done: browser verification on either surface, by instruction — the tester closes that
 loop.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`, and the geometry is now stated the
+  right way round.** `App\Services\Tax\IncomeTaxBands` is the one home: the basic-rate band WIDTH
+  is the constant and £50,270 is derived from it, so `basicRateBandWidth()` (:111) does not grow
+  when the allowance tapers. The class docblock records the exact defect — holding £50,270 fixed
+  taxed the whole withdrawn allowance at 20% instead of 40%, £2,514 per person, in the direction
+  that flatters. Every threshold, rate and taper parameter reads from `TaxConfigService` (Rule 2).

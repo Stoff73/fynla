@@ -12,16 +12,42 @@ describe('EmergencyFundCalculator', function () {
             expect($runway)->toBe(6.0);
         });
 
-        it('returns zero when monthly expenditure is zero', function () {
+        // W-0495. These two asserted 0.0, which is the defect written down as a
+        // contract: a household with £12,000 of cash and no recorded spending
+        // was told it had ZERO months of cover, and every consumer that treats a
+        // low runway as urgent then raised a false alarm against it. "Cannot be
+        // calculated" is null; "no runway at all" is 0.0. They are different
+        // answers and the caller must be able to tell them apart.
+        it('cannot state a runway when no expenditure is recorded', function () {
             $calculator = new EmergencyFundCalculator;
             $runway = $calculator->calculateRunway(12000, 0);
-            expect($runway)->toBe(0.0);
+            expect($runway)->toBeNull();
         });
 
-        it('returns zero when monthly expenditure is negative', function () {
+        it('cannot state a runway from a negative expenditure either', function () {
             $calculator = new EmergencyFundCalculator;
             $runway = $calculator->calculateRunway(12000, -100);
-            expect($runway)->toBe(0.0);
+            expect($runway)->toBeNull();
+        });
+
+        it('reports no adequacy and no shortfall for an unknown runway', function () {
+            $calculator = new EmergencyFundCalculator;
+            $adequacy = $calculator->calculateAdequacy(null, 6);
+
+            // A 100% score would claim the fund is ample and a 0 would claim it
+            // is empty. Both assert something nobody measured.
+            expect($adequacy['runway'])->toBeNull()
+                ->and($adequacy['adequacy_score'])->toBeNull()
+                ->and($adequacy['shortfall'])->toBeNull()
+                ->and($adequacy['target'])->toBe(6);
+        });
+
+        it('does not place an unknown runway on the adequacy scale', function () {
+            $calculator = new EmergencyFundCalculator;
+
+            // Every rung from Critical to Excellent asserts a measurement.
+            expect($calculator->categorizeAdequacy(null))->toBe('Unknown')
+                ->and($calculator->categorizeAdequacy(0.0))->toBe('Critical');
         });
 
         it('handles decimal results', function () {

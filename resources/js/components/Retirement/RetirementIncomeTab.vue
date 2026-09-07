@@ -412,6 +412,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapState, mapGetters, mapActions } from 'vuex';
 import IncomeSourceSlider from './IncomeSourceSlider.vue';
 import FundDepletionChart from './FundDepletionChart.vue';
@@ -479,7 +480,7 @@ export default {
     },
 
     retirementAge() {
-      return this.retirementIncome?.retirement_age || this.profile?.target_retirement_age || 68;
+      return this.retirementIncome?.retirement_age || this.profile?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
     },
 
     displayTargetIncome() {
@@ -937,7 +938,6 @@ export default {
       // Map allocation source_type to the corresponding asset type
       const sourceType = allocation.source_type;
       const sourceId = parseInt(allocation.source_id, 10); // Ensure numeric for comparison
-      let toggled = false;
 
       const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'onshore_bond', 'offshore_bond', 'gia'];
       const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
@@ -947,11 +947,9 @@ export default {
         const account = this.investmentAccounts.find(a => parseInt(a.id, 10) === sourceId);
         if (account) {
           await this.toggleIncludedInvestment(account.id);
-          toggled = true;
         }
       } else if (cashTypes.includes(sourceType)) {
         await this.toggleIncludedCash(sourceId);
-        toggled = true;
       }
 
       // Always fetch fresh data after toggle attempt

@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: branches/fixes/F-0007-batch-f-analytics-consent.md
 owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: closed_invalid
 claimed_by: null
 severity: high
 surfaces: [web, m]
@@ -88,3 +88,27 @@ it stands on its own.
   **before anything is committed**, because a row written today is free and the same row
   later means fabricating records. That is a different item's work but the same fix
   window — sequence them together.
+
+- 2026-08-31 build-lead: **VERIFIED STILL LIVE against `dev`, and the withdrawal capability now
+  provably exists server-side while remaining unreachable.**
+  `app/Http/Controllers/Api/CookieConsentController.php` exposes exactly one public method,
+  `store()`, and `routes/api.php:145` exposes exactly one route to it. `grep` for a
+  cookie-settings or withdrawal control across `resources/js`, `resources/mobile` and
+  `public/pages` finds none — the banner remains the only control and still renders only when no
+  decision exists.
+  **Sharper than when filed, because W-0049 closed in between:** consent is now recorded and
+  enforced server-side, so a recorded acceptance is a durable, demonstrable state the user has no
+  interface to change. "Visible and irreversible is worse than invisible" applies more strongly
+  now, not less.
+
+- 2026-08-31 build-lead: **CLOSED BY CSJ'S RULING 2026-08-31 — not a defect.**
+
+  > *"the user clicks accept and that is that, they do not withdraw, they do not go backwards, they consent through a simple button"*
+
+  The item asked for a withdrawal interface, on the reasoning that F-0007 made Decline meaningful and thereby created a right with no way to exercise it. **CSJ has ruled that consent is a single accept button and there is no withdrawal journey.** That is a product decision, not a gap, and this item was asking for a feature nobody agreed to build.
+
+  `declineCookies()` stays where it is (`cookieConsent.js:133`) — the banner uses it, and it is what makes a refusal honoured server-side through `fyn_cookie_consent`. It is not dead code, it is the Decline path on the banner itself.
+
+  **Do not re-raise this.** The next sweep will find `declineCookies()` with one caller and read it as an unwired capability, exactly as W-0463's accessors read. It is wired; the withdrawal SCREEN is the thing that deliberately does not exist.
+
+  Related and unaffected: **W-0050** removed the cookie WALL on registration in the same session. Declining no longer blocks account creation. That was a dead end, which is a different thing from the absence of a withdrawal screen — one trapped the user, this one simply is not offered.

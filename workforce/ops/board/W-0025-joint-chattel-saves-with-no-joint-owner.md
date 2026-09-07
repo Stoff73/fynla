@@ -4,7 +4,7 @@ title: A joint chattel saves with no joint owner and no error — 50% of the ass
 mission: persona-run-peak_earners-2026-08-20
 branch: workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md
 owner: build-lead
-status: gated
+status: done
 severity: medium
 surfaces: [web, m, ios]
 created: 2026-08-21T09:40:00Z
@@ -197,3 +197,13 @@ Report: `reports/R-07-m-sweep.md`.
   - The BMW X5 £42,000-against-£65,000 loss noted in the item was left alone.
 
 - 2026-08-21 build-lead: batch handover (CLAUDE.md Rule 22) — `workforce/branches/fixes/F-0002-batch-a-ownership-net-worth.md`. Carries the dispatch verbatim, the joint-share consolidation reasoning, decisions taken, dead ends ruled out, and environment state.
+
+- 2026-08-31 build-lead: **VERIFIED ALREADY FIXED AND TESTED — closed.**
+
+  `StoreChattelRequest:86-95` now refuses the save: where `SharedOwnership::isShared($ownershipType)` is true and `SharedOwnership::namesCounterparty($this->all())` is false, it adds *"Choose who this is owned with, or enter their name."* against `joint_owner_id`. So a joint chattel can no longer be written with 50% of the asset belonging to nobody.
+
+  `namesCounterparty()` accepts either a linked account or a typed name, which is why the message offers both — a co-owner who is not a Fynla user is still a co-owner.
+
+  `UpdateChattelRequest` carries the matching guard, and its comment at `:84` records the specific trap on that path: a `joint_owner_id: null` in a partial update would orphan an already-joint chattel, which is the same defect arriving by a different route.
+
+  **Tested:** 27 chattel tests pass, 91 assertions.

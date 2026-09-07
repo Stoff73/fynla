@@ -70,6 +70,18 @@ class GoalProgressService
             'status' => $this->getProgressStatus($progressDelta),
             'days_elapsed' => $daysElapsed,
             'days_remaining' => $daysRemaining,
+            // W-0414. This array returned days and never months, while
+            // `GoalPlanService` read `months_remaining` from it at two sites — so one
+            // was always null and the other always fell back to a plausible, unvarying
+            // **12 months**. A goal nine years out and a goal three months out were
+            // planned on the same horizon, and nothing said so: the silent-absence
+            // family in `tests/CLAUDE.md` §4, where a missing key reads as null and a
+            // `??` default supplies a number that never moves.
+            //
+            // Derived from the same `GoalCalculationService` that backs the
+            // `Goal::months_remaining` accessor, so there is one derivation reachable
+            // two ways rather than a second implementation (Rule 20).
+            'months_remaining' => $this->calculationService->calculateMonthsRemaining($goal),
             'total_days' => $totalDays,
             'time_progress_percentage' => round($timeProgress, 2),
         ];

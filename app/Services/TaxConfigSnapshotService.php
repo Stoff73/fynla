@@ -30,6 +30,28 @@ class TaxConfigSnapshotService
             'effective_from' => $this->taxConfig->getEffectiveFrom(),
             'effective_to' => $this->taxConfig->getEffectiveTo(),
 
+            // W-0498 — the joint-ownership descriptions, published so the frontend can
+            // read them instead of carrying its own copy. `AssetForm.vue` hardcoded
+            // "Automatically passes to surviving owner on death" and "Your share passes
+            // via your will" beside a configured version of the same two sentences that
+            // nothing read: the cluster reached the backend config and never crossed
+            // this boundary, so the one consumer that needed it reimplemented it.
+            //
+            // Read through `getPropertyOwnership()` rather than `get()` so the accessor
+            // has the caller it was written for.
+            'property_ownership' => [
+                'joint_ownership_types' => $this->taxConfig->getPropertyOwnership()['joint_ownership_types'] ?? [],
+                // W-0533 — the same crossing for the leasehold bands. `PropertyForm.vue`
+                // hardcoded "less than 80 years" and "less than 60 years" beside a
+                // configured version of both, and `PropertyCalculationService` carried a
+                // third copy of the 80. The form reads these now.
+                'leasehold_valuation_thresholds' => $this->taxConfig->getLeaseholdReform()['valuation_thresholds'] ?? [],
+                // W-0533 — the tenure names and descriptions, for the same reason:
+                // `PropertyForm.vue` hardcoded "Freehold" and "Leasehold" beside a
+                // configured version of both, with descriptions the user never saw.
+                'tenure_types' => $this->taxConfig->getPropertyOwnership()['tenure_types'] ?? [],
+            ],
+
             'isa' => [
                 'annual_allowance' => (int) $this->taxConfig->get('isa.annual_allowance', 0),
                 'lifetime_isa_allowance' => (int) $this->taxConfig->get('isa.lifetime_isa.annual_allowance', 0),
@@ -88,6 +110,10 @@ class TaxConfigSnapshotService
                 'rnrb_taper_threshold' => (int) $this->taxConfig->get('inheritance_tax.rnrb_taper_threshold', 0),
                 'standard_rate' => (float) $this->taxConfig->get('inheritance_tax.standard_rate', 0),
                 'reduced_rate' => (float) $this->taxConfig->get('inheritance_tax.reduced_rate_charity', 0),
+                // W-0515 — the commencement date for the pension amendment, so the
+                // surfaces that state "until X, pensions pass outside the estate"
+                // read it rather than spelling a year Rule 2 forbids hardcoding.
+                'pension_inclusion_date' => (string) $this->taxConfig->get('inheritance_tax.pension_iht_inclusion.effective_date', ''),
             ],
 
             'dividend_tax' => [

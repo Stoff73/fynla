@@ -17,6 +17,7 @@ use App\Services\Savings\ISAContributionLedger;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Snapshots\SnapshotPolicies;
+use App\Services\Tiers\TeaserGate;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -34,10 +35,33 @@ class InvestmentAccountStore
 {
     public const ENTITY_KEY = 'investment';
 
+    /**
+     * The account types the `investments_exotic` capability covers — the ONE place
+     * that capability is defined (W-0499).
+     *
+     * It was in the tier matrix, in the upgrade copy at `PaymentController:116`
+     * ("Advanced investment types") and in the pricing comparison at
+     * `TierComparisonService:22` ("Alternative investments"), and **nothing in the
+     * application read it**: no route map entry, no gate, no store check. A feature
+     * named in a paid tier's differentiators and usable without paying is a
+     * commercial problem, not only an untidy one.
+     *
+     * The membership is the definition recorded on the persona playbook — Venture
+     * Capital Trust and Enterprise Investment Scheme — and nothing beyond it, so
+     * this gates what was sold rather than what someone later guessed was meant.
+     * `tax_relief_type` is read alongside, because the relief is the thing being
+     * claimed and it can be attached to an account of any type;
+     * `EstateController:148` already reads the pair the same way.
+     */
+    public const EXOTIC_ACCOUNT_TYPES = ['vct', 'eis'];
+
+    public const EXOTIC_TAX_RELIEF_TYPES = ['vct', 'eis', 'seis', 'sitr'];
+
     public function __construct(
         private readonly TierGate $tierGate,
         private readonly SnapshotPolicies $snapshotPolicies,
         private readonly ISAContributionLedger $isaContributionLedger,
+        private readonly TeaserGate $teaserGate,
     ) {}
 
     // ─── READ METHODS ──────────────────────────────────────────────────────
@@ -92,6 +116,7 @@ class InvestmentAccountStore
 
         $this->validateCanonical($canonical, partial: false);
         $this->enforceTierCap($user);
+        $this->enforceExoticCapability($canonical, $user);
 
         $account = AuditLog::withContext(
             ['ingest_source' => $source->value],
@@ -200,6 +225,40 @@ class InvestmentAccountStore
     }
 
     // ─── INTERNAL ──────────────────────────────────────────────────────────
+
+    /**
+     * Refuse an exotic holding to a tier that was never sold one (W-0499).
+     *
+     * Enforced **here** rather than on a route, because `investments_exotic` is not
+     * a destination — it is a property of the record being written, and web, `/m`
+     * and Fyn all write through this Store and through nothing else. A route gate
+     * would have to be added three times and would still miss Fyn.
+     *
+     * Before entry in effect, since the Store refuses before anything persists, and
+     * the refusal names the capability so the client can offer the upgrade rather
+     * than reporting a generic failure.
+     *
+     * **Create only, deliberately.** Nothing gated this until now, so a Free user
+     * may already hold such an account; refusing an update would strand a record
+     * they cannot then correct or delete. Switching the gate on takes nothing away
+     * from anyone.
+     */
+    private function enforceExoticCapability(array $canonical, User $user): void
+    {
+        $isExotic = in_array($canonical['account_type'] ?? null, self::EXOTIC_ACCOUNT_TYPES, true)
+            || in_array($canonical['tax_relief_type'] ?? null, self::EXOTIC_TAX_RELIEF_TYPES, true);
+
+        if (! $isExotic || $this->teaserGate->allows($user, 'investments_exotic')) {
+            return;
+        }
+
+        throw new TierLimitExceededException(
+            'investments_exotic',
+            0,
+            0,
+            'Advanced investment types are a Premium feature.'
+        );
+    }
 
     private function enforceTierCap(User $user): void
     {

@@ -5,7 +5,7 @@ mission: M-0002-persona-fidelity
 branch: null
 owner: build-lead
 reviewers: [compliance-lead, design-lead]
-status: queued
+status: done
 claimed_by: null
 severity: medium
 surfaces: [web]
@@ -87,3 +87,48 @@ train reviewers to dismiss it.
   to agents, while the application asserts things in its own voice with nothing checking
   it. If CSJ approves that amendment, answer 1 follows almost automatically and this item
   gets easier. **Do not block on it** — the divergence stands either way.
+
+---
+
+## Closed 2026-09-01 — answer 1, attributed
+
+**Answer 1 taken: attribute it.** Answer 2 (record the divergence as accepted) needed a
+reason to write down, and the only candidate reason was "the copy was approved before
+the test existed" — which is an explanation of how it happened, not a reason it should
+stand. The reader still could not check the claim.
+
+**The wording is not a re-statement of the old sentence with a citation bolted on.**
+There is no statutory section reading "a testator may not be their own executor", and
+inventing a reference for one would have been worse than the unattributed sentence.
+The replacement follows the act-not-object shape the powers-of-attorney side already
+uses (`LpaCheckPolicy`'s donor-as-own-attorney warning): say what the office IS, cite
+the provision that says so, let the contradiction follow.
+
+`app/Services/Estate/WillDocumentService.php:52`:
+
+> An executor is the person who collects in the estate and administers it after the
+> testator has died (Administration of Estates Act 1925, section 25), so a will naming
+> its own testator is a contradiction Fynla cannot resolve for you. Name the person who
+> will carry out your wishes.
+
+Rule 20 was already satisfied — the constant is the one home and all three paths
+(`WillDocumentService:284`, `CoordinatingAgent:4267`, the test) read it.
+
+**Acceptance 2 — the reason is written where the next person hits it.**
+`app/Services/CLAUDE.md` gains a "Legal-sounding copy carries its source" section: the
+act-not-object test, a worked before/after, the instruction never to invent a citation,
+the three homes this vocabulary lives in, and why a lint rule is deliberately not built.
+That file loads automatically when anyone works in `app/Services/`. The rule is also
+stated at the constant itself (`:24-50`) for anyone who arrives via the symbol.
+
+**Tests:** `tests/Unit/Services/Estate/WillDocumentServiceTest.php` — 3 new, asserting
+the citation is present, that the unattributable prohibition is gone, and that the
+actionable instruction survived. 41 passing in the file.
+
+## Not done — acceptance 3
+
+**The copy is NOT re-approved.** It was approved verbatim under W-0024 and this
+replaces it. `compliance-lead` and `design-lead` need to sign the new sentence, and
+this item should not be treated as fully closed by whoever runs the next compliance
+pass. It joins W-0108's and W-0152's outstanding copy reviews — three now, which is
+itself worth a single batched review rather than three separate ones.

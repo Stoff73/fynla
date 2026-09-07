@@ -7,7 +7,6 @@ namespace App\Services\Tiers;
 use App\Models\User;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\NetWorth\NetWorthService;
-use App\Services\TaxConfigService;
 
 /**
  * The Inheritance Tax exposure signal behind the Free Estate teaser.
@@ -32,7 +31,6 @@ use App\Services\TaxConfigService;
 class EstateIhtExposureDetector
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig,
         private readonly NetWorthService $netWorthService,
         private readonly IHTCalculationService $ihtCalculation,
     ) {}
@@ -40,7 +38,7 @@ class EstateIhtExposureDetector
     /**
      * Detect whether the user has a likely Inheritance Tax exposure.
      *
-     * @return array{exposed: bool, headline: string, estimated_liability_gbp: float, unmodelled_relief_caveat: string|null}
+     * @return array{exposed: bool, headline: string, estimated_liability_gbp: float, unmodelled_relief_caveat: string|null, projected_pension_inclusion_caveat: string|null, pension_exclusion_caveat: string|null}
      */
     public function detect(User $user): array
     {
@@ -85,6 +83,17 @@ class EstateIhtExposureDetector
             // straight through from the engine, words and all: `/m` computes nothing
             // and there is one home for the sentence (Rule 20).
             'unmodelled_relief_caveat' => $calculation['unmodelled_relief_caveat'] ?? null,
+            // W-0507 — the teaser's figure is the SECOND-DEATH projected one, so the
+            // caveat about what the projection leaves out belongs to it at least as
+            // much as to the full table. It was published by the engine and passed to
+            // the full table only; the teaser is a different component behind the
+            // upgrade gate, so a free user — which is every user who has not upgraded,
+            // and every demo persona a prospective customer sees — read the figure
+            // with neither caveat attached.
+            'projected_pension_inclusion_caveat' => $calculation['projected_pension_inclusion_caveat'] ?? null,
+            // W-0534 — the third caveat, and the one the teaser needed most: the
+            // figure beside it is computed WITH this exclusion.
+            'pension_exclusion_caveat' => $calculation['pension_exclusion_caveat'] ?? null,
         ];
     }
 

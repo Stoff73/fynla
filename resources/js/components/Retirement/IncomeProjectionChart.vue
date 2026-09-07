@@ -11,6 +11,7 @@
 </template>
 
 <script>
+import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
 import { mapState } from 'vuex';
 import { CHART_COLORS, BORDER_COLORS, WARNING_COLORS, CHART_DEFAULTS, TEXT_COLORS } from '@/constants/designSystem';
 
@@ -37,7 +38,7 @@ export default {
     ...mapState('retirement', ['dcPensions', 'dbPensions', 'statePension', 'profile']),
 
     retirementAge() {
-      return this.profile?.target_retirement_age || 67;
+      return this.profile?.target_retirement_age || DEFAULT_RETIREMENT_AGE;
     },
 
     currentAge() {

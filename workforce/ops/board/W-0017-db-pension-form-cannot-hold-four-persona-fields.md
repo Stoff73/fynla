@@ -4,7 +4,7 @@ title: Defined Benefit pension form cannot hold four of the fields the model and
 mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0001-batch-c-retirement-profile-gates.md
 owner: build-lead
-status: gated
+status: done
 surfaces: [web, m, ios]
 created: 2026-08-21T08:20:00Z
 claimed: 2026-08-21T09:10:00Z
@@ -243,3 +243,17 @@ if true the fix is incomplete without it.
   environment state (no throwaway user was created — nothing to tear down), and
   the full W-0018 argument. Every Pest run re-verified under
   `DB_DATABASE=laravel_testing_c` after the shared-database deadlocks.
+
+- 2026-08-31 build-lead: **VERIFIED FIXED AND TESTED — closed.**
+
+  All four gaps are now inputs, and — the part that matters, given this item's own correction note about there being TWO Defined Benefit forms that had drifted — they are in **both** of them.
+
+  **The ADD path, `DCPensionForm.vue`**, which is the path the persona run used and the one that had nothing: `db_normal_retirement_age` (`:521`), `db_inflation_protection` (`:568`, with `db_revaluation_rate` revealed at `:579` when it is `fixed`), `db_spouse_pension_percent` (`:536`), `db_service_years` (`:490`), `db_accrual_rate` (`:553`) and `db_pcls_available` (`:597`). They are gated on `pension_type === 'final_salary'` (`:928`) and carried into the payload at `:1300` and `:1362`.
+
+  **The EDIT path, `DBPensionForm.vue`**, maps the two the item listed as missing from it — `pensionable_service_years` at `:355` and `lump_sum_entitlement` at `:361`.
+
+  `UnifiedPensionForm.vue` routes between them explicitly (`:4` DB edit, `:12` State edit, `:24` add-or-DC-edit) and its comment records that the add form's dropdown now covers Final Salary and State Pension while still emitting `_pensionType` so `db_pensions` and `state_pensions` get the right payload shape.
+
+  Sarah's NHS scheme can now be recorded in full: Public Sector, £35,000, NRA 60, CPI, £105,000 lump sum, 50% spouse benefit, 18 years' service.
+
+  **Tested:** `resources/js/components/__tests__/Retirement/DbPensionFields.spec.js` — 9 passed.

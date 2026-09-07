@@ -125,9 +125,16 @@
             <p class="text-body-sm text-horizon-500 capitalize">{{ member.gender }}</p>
           </div>
 
-          <div v-if="member.annual_income">
+          <!--
+            W-0176. `resolved_annual_income` is the linked account's own figure
+            where there is one, and the stored snapshot otherwise. The old guard
+            read the raw column, whose `decimal:2` cast makes a stale zero the
+            truthy string "0.00" — so a linked spouse earning £120,000 was shown
+            "Annual Income £0". Numeric guard, so a real zero hides too.
+          -->
+          <div v-if="Number(member.resolved_annual_income) > 0">
             <p class="text-body-xs text-neutral-500">Annual Income</p>
-            <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.annual_income) }}</p>
+            <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.resolved_annual_income) }}</p>
           </div>
         </div>
 
@@ -425,16 +432,22 @@ export default {
           const isSpouse = formData.relationship === 'spouse';
 
           if (!isPreviewMode && isSpouse && responseData) {
-            if (responseData.created) {
-              // Show spouse success modal with credentials
-              spouseCreated.value = true;
-              spouseEmail.value = responseData.spouse_email || formData.email;
-              temporaryPassword.value = responseData.temporary_password || null;
-              showSpouseSuccess.value = true;
-              // Refresh user data to reflect spouse linkage (silently - don't block modal)
-              store.dispatch('auth/fetchUser').catch((err) => {
-                console.warn('Failed to refresh user data after spouse creation:', err);
-              });
+            // W-0472. There is no `created` branch any more, and there was one here
+            // until this item: it set a temporary password and opened a credentials
+            // modal. CSJ's W-0349 decision stopped this endpoint creating an account
+            // for an unregistered address — it invites it — so the controller returns
+            // no `created` key and `created_new_user` is always false. **A branch that
+            // cannot execute is worse than the limitation it hides**, and this one hid
+            // the state below.
+            if (responseData.invitation_pending) {
+              // The address is not stored anywhere (see W-0472 acceptance 1 — whether
+              // it should be is CSJ's and compliance-lead's call), so this names the
+              // one the user has just typed. That discloses nothing: they typed it,
+              // and the response deliberately confirms nothing about whether it is
+              // registered (W-0348, W-0349).
+              successMessage.value = `We have emailed an invitation to ${formData.email}. `
+                + 'They will appear as linked once they accept. We do not keep a record '
+                + 'of the address, so check it now if you are unsure.';
             } else if (responseData.linked) {
               // Show spouse success modal for linking
               spouseCreated.value = false;

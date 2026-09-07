@@ -71,6 +71,105 @@ describe('TrustObserver::created (FR-M15)', function () {
 
 });
 
+describe('TrustObserver settlement sync (W-0528)', function () {
+    /**
+     * The settlement gift is what withholds the settlor's nil rate band for seven
+     * years, so a trust that changes without its gift changing leaves the estate
+     * wrong — in both directions.
+     */
+    beforeEach(function () {
+        $this->user = User::factory()->create();
+
+        $this->trust = Trust::create([
+            'user_id' => $this->user->id,
+            'trust_name' => 'Chen Family Trust',
+            'trust_type' => 'discretionary',
+            'trust_creation_date' => '2026-04-20',
+            'initial_value' => 250000,
+            'current_value' => 250000,
+            'settlor' => $this->user->first_name.' '.$this->user->surname,
+        ]);
+
+        $this->settlementGift = fn () => Gift::withTrashed()->where('trust_id', $this->trust->id)->first();
+    });
+
+    it('follows the settled amount when the trust is edited', function () {
+        // Left at £250,000, the estate withholds £250,000 of band for a £400,000
+        // settlement — £150,000 of band it should not have.
+        $this->trust->update(['initial_value' => 400000]);
+
+        expect((float) ($this->settlementGift)()->gift_value)->toBe(400000.0);
+    });
+
+    it('survives a rename, which is what matching on the trust name could not', function () {
+        $this->trust->update(['trust_name' => 'Chen Family Discretionary Trust']);
+
+        $gift = ($this->settlementGift)();
+
+        expect($gift)->not->toBeNull()
+            ->and($gift->recipient)->toBe('Chen Family Discretionary Trust')
+            ->and((float) $gift->gift_value)->toBe(250000.0);
+    });
+
+    it('follows the settlement date when the trust is edited', function () {
+        // The date is the seven-year clock. Wrong date, wrong band, wrong taper.
+        $this->trust->update(['trust_creation_date' => '2021-01-15']);
+
+        expect(($this->settlementGift)()->gift_date->format('Y-m-d'))->toBe('2021-01-15');
+    });
+
+    it('releases the band when the settled amount is edited down to nothing', function () {
+        $this->trust->update(['initial_value' => 0]);
+
+        expect(($this->settlementGift)()->trashed())->toBeTrue();
+    });
+
+    it('withholds the band again when a settlement is edited back up from nothing', function () {
+        $this->trust->update(['initial_value' => 0]);
+        $this->trust->update(['initial_value' => 180000]);
+
+        $gift = ($this->settlementGift)();
+
+        expect($gift->trashed())->toBeFalse()
+            ->and((float) $gift->gift_value)->toBe(180000.0);
+    });
+
+    it('stops withholding the band when the trust is deleted', function () {
+        // The gift used to outlive the trust, withholding a band for a settlement
+        // that no longer existed.
+        $this->trust->delete();
+
+        expect(($this->settlementGift)()->trashed())->toBeTrue();
+    });
+
+    it('withholds the band again when a deleted trust is restored', function () {
+        $this->trust->delete();
+        $this->trust->restore();
+
+        expect(($this->settlementGift)()->trashed())->toBeFalse();
+    });
+
+    it('leaves a chargeable lifetime transfer the user entered themselves alone', function () {
+        // No `trust_id`, so the user wrote it. Nothing the observer does may touch it,
+        // whatever it happens to look like.
+        $ownGift = Gift::create([
+            'user_id' => $this->user->id,
+            'gift_date' => '2026-04-20',
+            'recipient' => 'Chen Family Trust',
+            'gift_type' => 'clt',
+            'gift_value' => 90000,
+        ]);
+
+        $this->trust->update(['initial_value' => 400000]);
+        $this->trust->delete();
+
+        $ownGift->refresh();
+
+        expect($ownGift->trashed())->toBeFalse()
+            ->and((float) $ownGift->gift_value)->toBe(90000.0);
+    });
+});
+
 describe('CoordinatingAgent::handleCreateTrust (post-S0.5.l direct-write)', function () {
     it('persists the Trust and the matching CLT Gift in one transaction when initial_value > 0', function () {
         $user = User::factory()->create(['is_preview_user' => false]);

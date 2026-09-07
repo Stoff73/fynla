@@ -6,9 +6,9 @@ namespace App\Services\AI;
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
-use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingFactExtractor;
+use App\Services\Shared\DependantsReach;
 
 /**
  * S1.4 — Retrieves the structured "known facts" view of a user across
@@ -54,6 +54,8 @@ class MemoryRetrieverService
 
     public function __construct(
         private readonly OnboardingFactExtractor $factExtractor,
+        // W-0275 — the one home for "who depends on this user" (Rule 20).
+        private readonly DependantsReach $dependantsReach,
     ) {}
 
     /**
@@ -114,9 +116,10 @@ class MemoryRetrieverService
             $facts['has_spouse'] = true;
         }
 
-        $dependantsCount = FamilyMember::where('user_id', $user->id)
-            ->where('is_dependent', true)
-            ->count();
+        // W-0275. This is a FACT GIVEN TO FYN, so the naive query had Fyn telling
+        // the spouse she has no children — about the same two children it told her
+        // husband about.
+        $dependantsCount = $this->dependantsReach->countFor($user);
         if ($dependantsCount > 0) {
             $facts['dependants_count'] = $dependantsCount;
         }

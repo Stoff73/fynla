@@ -15,6 +15,7 @@ ROOT="$(pwd)"
 CORE="workforce/core"
 findings=0
 checked=0
+advisories=0
 
 red()  { printf '\033[31m%s\033[0m\n' "$1"; }
 grn()  { printf '\033[32m%s\033[0m\n' "$1"; }
@@ -28,17 +29,32 @@ echo "[1] Orphan check — trunk file references"
 
 # Build a basename index once — shorthand references ("01-mission.md") are names,
 # not paths, and must still resolve to a real file somewhere sensible.
+#
+# W-0506 — the roots below are the whole of this check's accuracy. `tests`, `public`,
+# `ios-native`, `routes` and `fyn-memory` were missing, so every citation of a persona
+# report under tests/Persona/…/reports/, a test filename quoted as evidence, an iOS
+# fixture, a built asset under m-build/, or a Fyn tool schema was unresolvable BY
+# CONSTRUCTION — reported broken because the index could not see it, not because
+# anything was wrong. That was 55 of 99 findings on 2026-09-01, and it is why a
+# three-minute check with real findings in it stopped being read.
+#
+# Add a root here when documents start citing one. Do NOT instead add a heuristic that
+# guesses which references are "only citations": the rule proposed on W-0506 — treat
+# only paths containing a slash as links — was measured and would have kept 25
+# `reports/…` citations while hiding nothing useful.
 find workforce app docs Articles April config database resources .claude .remember scripts deploy \
+     tests public ios-native routes fyn-memory \
      ../fynlaBrain -type f \
-     \( -name '*.md' -o -name '*.php' -o -name '*.js' -o -name '*.json' -o -name '*.sh' -o -name '*.vue' \) \
+     \( -name '*.md' -o -name '*.php' -o -name '*.js' -o -name '*.json' -o -name '*.sh' -o -name '*.vue' -o -name '*.swift' \) \
      2>/dev/null | sed 's|.*/||' | sort -u > /tmp/sweep_names.txt
 
 while IFS= read -r src; do
   grep -oE '`[A-Za-z0-9._/-]+\.(md|php|js|json|sh|vue)`' "$src" 2>/dev/null \
     | tr -d '`' | sort -u | while IFS= read -r ref; do
       [ -z "$ref" ] && continue
-      # Format placeholders are patterns, not paths — NNNN, YYYY-MM-DD, <slug>.
-      case "$ref" in *NNNN*|*YYYY*|*'<'*) continue ;; esac
+      # Format placeholders are patterns, not paths — NNNN, YYYY-MM-DD, <slug>, and
+      # the elided form `F-....md` / `Foo.php` / `.php/.blade.php/.html` (W-0506).
+      case "$ref" in *NNNN*|*YYYY*|*'<'*|*'...'*|*'/.'*) continue ;; esac
       base="${ref##*/}"
       # Resolve in order: exact path · under core · relative to source ·
       # known basename anywhere in the tracked tree.
@@ -128,15 +144,31 @@ check_budget() { # path, budget
   local n; n=$(wc -c < "$1" | tr -d ' ')
   if [ "$n" -gt "$2" ]; then
     printf '  OVER    %-52s %6s / %s\n' "$1" "$n" "$2"
-    findings=$((findings + 1))
+    # W-0506 — counted as an ADVISORY, not a finding. `00-precedence.md` §2.4 says it
+    # in terms: "Budgets are advisory — crossing one triggers a review, not an
+    # automatic cut." Adding them to the finding total put seven standing reviews in
+    # the same number as broken references, and a headline that is mostly advisories
+    # is a headline nobody reads.
+    advisories=$((advisories + 1))
   else
     printf '  ok      %-52s %6s / %s\n' "$1" "$n" "$2"
   fi
 }
 
 check_budget "$CORE/index.md" 3000
-for f in "$CORE"/constitution/*.md "$CORE"/registry/*.md "$CORE"/charter.md; do
+
+# Doctrine stays tight: a constitution nobody finishes reading does not bind anyone.
+for f in "$CORE"/constitution/*.md "$CORE"/charter.md; do
   check_budget "$f" 8000
+done
+
+# W-0506 — the registry is budgeted separately, and the reason is what it is.
+# `capabilities.md` and `sources.md` ENUMERATE: they grow with the system by design,
+# and holding them to the doctrine budget reported permanent breach for doing their
+# job. 8k was the wrong number for a list, not evidence of bloat. 32k still triggers
+# a review — it is a budget, not permission.
+for f in "$CORE"/registry/*.md; do
+  check_budget "$f" 32000
 done
 check_budget "CLAUDE.md" 40000
 
@@ -161,12 +193,37 @@ echo
 echo "[6] Contradiction check — candidate restatements"
 
 dupes=0
+# W-0506 — a phrase that appears BESIDE a pointer to its home is a reference, not a
+# restatement. This check had the same flaw as the orphan check above: it could not tell
+# a duplicate from a citation with attribution, and reported all three of
+# "never verifies their own work"'s references — `07-quality-bar.md:65` and
+# `capabilities.md:200` both name `08-process.md` §2.4 in the same sentence, and
+# `00-precedence.md:147` is this sweep's own note about the finding.
+#
+# `home_of` names where a clause lives. A file carrying the phrase AND a reference to
+# that home is doing exactly what the fix for a restatement is supposed to produce, so
+# counting it as a finding means the check can never go green.
+home_of() {
+  case "$1" in
+    "never verifies their own work") echo "08-process.md" ;;
+    *) echo "" ;;
+  esac
+}
+
 for phrase in "engineering to CSJ" "100,000" "£6.99" "never verifies their own work" "any hold beats any approve"; do
-  hits=$(grep -rl "$phrase" "$CORE" 2>/dev/null | wc -l | tr -d ' ')
+  home=$(home_of "$phrase")
+  if [ -n "$home" ]; then
+    carriers=$(grep -rl "$phrase" "$CORE" 2>/dev/null | while IFS= read -r f; do
+      grep -q "$home" "$f" || echo "$f"
+    done)
+  else
+    carriers=$(grep -rl "$phrase" "$CORE" 2>/dev/null)
+  fi
+  hits=$([ -z "$carriers" ] && echo 0 || echo "$carriers" | wc -l | tr -d ' ')
   checked=$((checked + 1))
   if [ "$hits" -gt 1 ]; then
     echo "  RESTATED  \"$phrase\" in $hits trunk files:"
-    grep -rl "$phrase" "$CORE" 2>/dev/null | sed 's/^/            /'
+    echo "$carriers" | sed 's/^/            /'
     dupes=$((dupes + 1))
     findings=$((findings + 1))
   fi
@@ -176,6 +233,9 @@ done
 # --- summary ----------------------------------------------------------------
 echo
 echo "================================================"
+if [ "$advisories" -gt 0 ]; then
+  echo "$advisories advisory/advisories (size budgets — review, not breach)"
+fi
 if [ "$findings" -eq 0 ]; then
   grn "CLEAN — $checked structural checks, 0 findings"
   exit 0

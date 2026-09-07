@@ -5,7 +5,7 @@ mission: persona-run-peak_earners-2026-08-20
 branch: branches/fixes/F-0009-batch-i-onboarding-spouse.md
 owner: build-lead
 claimed_by: fix-batch-I
-status: gated
+status: done
 severity: high
 surfaces: [web, m, ios]
 created: 2026-08-21T12:20:00Z
@@ -459,3 +459,9 @@ reports its own membership correctly.
 Idempotency confirmed against real data: an immediate re-run reports nothing to do.
 
 Full account in `workforce/branches/fixes/F-0009-batch-i-onboarding-spouse.md` §28.
+
+- 2026-08-31 build-lead: **CLOSED — verified against `dev`.** `FamilyInfoStep.vue` collects an email
+  and takes the account route: `:209-225` distinguishes a spouse account **created** (credentials
+  shown) from one **linked**, and refreshes the user so the linkage is reflected. The form no longer
+  claims a link it did not make, so the withheld Edit and Delete controls are no longer withheld on
+  a false claim.

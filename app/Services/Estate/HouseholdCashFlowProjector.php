@@ -8,6 +8,9 @@ use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Retirement\PensionProjector;
+use App\Services\Retirement\RetirementAgeResolver;
+use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -83,6 +86,14 @@ class HouseholdCashFlowProjector
         private readonly TaxConfigService $taxConfig,
         private readonly PensionProjector $pensionProjector,
         private readonly LifeEventService $lifeEventService,
+        // W-0512 — the defined contribution income credited below comes from a drawdown
+        // that REDUCES the fund it is paid from. `PensionProjector` still decides how much
+        // the pension is meant to pay; this decides how long it can pay it.
+        private readonly RetirementProjectionService $retirementProjection,
+        // W-0196 — the one home for the retirement-age default and its priority chain.
+        private readonly RetirementAgeResolver $retirementAge,
+        // W-0197 — State Pension age by cohort, not a scalar.
+        private readonly StatePensionAgeResolver $statePensionAge,
     ) {}
 
     /**
@@ -97,6 +108,7 @@ class HouseholdCashFlowProjector
      *     starting_cash: float,
      *     final_cash: float,
      *     shortfall: float,
+     *     annual_deficits: array<int, float>,
      *     years: list<array<string, mixed>>,
      *     assumptions: list<string>,
      *     pre_retirement_income: float,
@@ -126,7 +138,7 @@ class HouseholdCashFlowProjector
         $profiles = [];
         $assumptions = [];
         foreach ($members as $member) {
-            $profile = $this->buildMemberProfile($member, $inflationRate);
+            $profile = $this->buildMemberProfile($member, $inflationRate, $yearsToProject);
             $profiles[] = $profile;
             foreach ($profile['assumptions'] as $assumption) {
                 $assumptions[] = $assumption;
@@ -138,6 +150,12 @@ class HouseholdCashFlowProjector
         $viewer = $profiles[0];
         $balance = $startingCash;
         $shortfall = 0.0;
+        // W-0199. The per-year amounts, not just their sum. The loop below already
+        // knows each one and threw it into a running total, which is why the estate
+        // projection could only ever subtract a lump at the horizon — and so did not
+        // subtract it at all. Investments have to be sold in the YEAR the cash runs
+        // short, because the money that is sold stops compounding from that year on.
+        $annualDeficits = [];
         $years = [];
 
         for ($year = 0; $year < $yearsToProject; $year++) {
@@ -152,7 +170,18 @@ class HouseholdCashFlowProjector
                 $retired = $age >= $profile['retirement_age'];
                 $retiredCount += $retired ? 1 : 0;
 
-                $income += $retired ? $profile['retirement_income'] : $profile['pre_retirement_income'];
+                // W-0512 — the defined contribution part is drawn from a fund that
+                // shrinks, so it is a SERIES rather than the flat figure the rest of the
+                // profile carries. It is already deflated per year (see
+                // `pensionIncomeInTodaysMoney()`), so the household multiplier below
+                // restores exactly the nominal withdrawal the drawdown made. Once the
+                // fund is empty the term is zero and the household lives on its
+                // guaranteed income, which is the behaviour that was missing: the old
+                // scalar paid the same pension for thirty years out of a pot that was
+                // never reduced.
+                $income += $retired
+                    ? $profile['guaranteed_retirement_income'] + ($profile['dc_income_by_year'][$year] ?? 0.0)
+                    : $profile['pre_retirement_income'];
                 $expenses += $retired ? $profile['retirement_expenses'] : $profile['pre_retirement_expenses'];
 
                 if ($age >= $profile['state_pension_age']) {
@@ -172,6 +201,7 @@ class HouseholdCashFlowProjector
 
             if ($balance < 0) {
                 $shortfall += -$balance;
+                $annualDeficits[$year] = round(-$balance, 2);
                 $balance = 0.0;
             }
 
@@ -211,6 +241,9 @@ class HouseholdCashFlowProjector
             'starting_cash' => round($startingCash, 2),
             'final_cash' => round($balance, 2),
             'shortfall' => round($shortfall, 2),
+            // W-0199 — keyed by year offset from today, so a consumer can draw on
+            // investments in the year the shortfall actually falls.
+            'annual_deficits' => $annualDeficits,
             'years' => $years,
             'assumptions' => $assumptions,
             'pre_retirement_income' => round($householdPreRetirementIncome, 2),
@@ -237,23 +270,10 @@ class HouseholdCashFlowProjector
      */
     public function retirementAgeFor(User $user): int
     {
-        if ($user->retirementProfile?->target_retirement_age) {
-            return (int) $user->retirementProfile->target_retirement_age;
-        }
-
-        if ($user->target_retirement_age) {
-            return (int) $user->target_retirement_age;
-        }
-
-        $pensionRetirementAge = $user->dcPensions()
-            ->whereNotNull('retirement_age')
-            ->value('retirement_age');
-
-        if ($pensionRetirementAge) {
-            return (int) $pensionRetirementAge;
-        }
-
-        return PensionProjector::DEFAULT_RETIREMENT_AGE;
+        // W-0196. This copy had the order right — retirement profile before the user
+        // record — and it is the order the one home now uses for everyone. Delegated
+        // rather than kept, so there is no second implementation left to drift.
+        return $this->retirementAge->forUser($user);
     }
 
     /**
@@ -293,7 +313,7 @@ class HouseholdCashFlowProjector
      *     retirement_expenses: float, assumptions: list<string>
      * }
      */
-    private function buildMemberProfile(User $member, float $inflationRate): array
+    private function buildMemberProfile(User $member, float $inflationRate, int $yearsToProject): array
     {
         $assumptions = [];
         $name = $this->memberName($member);
@@ -314,7 +334,7 @@ class HouseholdCashFlowProjector
         $recordedExpenditure = $this->recordedAnnualExpenditure($member);
         $preRetirementExpenses = $this->preRetirementExpenses($recordedExpenditure, $preRetirementIncome, $assumptions, $name);
 
-        $pensionIncome = $this->pensionIncomeInTodaysMoney($member, $currentAge, $retirementAge, $inflationRate, $assumptions, $name);
+        $pensionIncome = $this->pensionIncomeInTodaysMoney($member, $currentAge, $retirementAge, $inflationRate, $assumptions, $name, $yearsToProject);
 
         $retirementExpenses = $this->retirementExpenses($member, $recordedExpenditure, $preRetirementIncome, $assumptions, $name);
 
@@ -324,7 +344,13 @@ class HouseholdCashFlowProjector
             'state_pension_age' => $statePensionAge,
             'pre_retirement_income' => $preRetirementIncome,
             'pre_retirement_expenses' => $preRetirementExpenses,
+            // The private pension income at the START of retirement, which is what the
+            // household summary publishes and what it has always meant.
             'retirement_income' => $pensionIncome['private'],
+            // W-0512 — the two halves the year loop actually credits. The guaranteed part
+            // is flat; the defined contribution part runs out.
+            'guaranteed_retirement_income' => $pensionIncome['guaranteed'],
+            'dc_income_by_year' => $pensionIncome['dc_by_year'],
             'state_pension_income' => $pensionIncome['state'],
             'retirement_expenses' => $retirementExpenses,
             'assumptions' => $assumptions,
@@ -354,7 +380,7 @@ class HouseholdCashFlowProjector
      * @param  list<string>  $assumptions  appended to when a figure is absent rather
      *                                     than zero, so an unknown is never published
      *                                     as though it were a finding
-     * @return array{private: float, state: float}
+     * @return array{private: float, guaranteed: float, dc_by_year: array<int, float>, state: float}
      */
     private function pensionIncomeInTodaysMoney(
         User $member,
@@ -363,6 +389,7 @@ class HouseholdCashFlowProjector
         float $inflationRate,
         array &$assumptions,
         string $name,
+        int $yearsToProject,
     ): array {
         $projected = $this->pensionProjector->projectTotalRetirementIncome($member->id);
 
@@ -370,7 +397,9 @@ class HouseholdCashFlowProjector
         $deflator = pow(1 + $inflationRate, $yearsToRetirement);
 
         $private = ((float) $projected['dc_annual_income'] + (float) $projected['db_annual_income']) / ($deflator ?: 1.0);
+        $guaranteed = (float) $projected['db_annual_income'] / ($deflator ?: 1.0);
         $state = (float) $projected['state_pension_income'];
+        $dcByYear = $this->dcIncomeByYearInTodaysMoney($member, $currentAge, $inflationRate, $yearsToProject);
 
         if ($private <= 0.0) {
             $assumptions[] = "No Defined Contribution or Defined Benefit pension income could be projected for {$name}, "
@@ -382,7 +411,77 @@ class HouseholdCashFlowProjector
                 .'Pension income for them. This is a gap in the record, not an entitlement of nothing.';
         }
 
-        return ['private' => $private, 'state' => $state];
+        return [
+            'private' => $private,
+            // No drawdown series means no projectable defined contribution pot, so the
+            // guaranteed figure IS the whole private income. Falling back to `$private`
+            // rather than the defined-benefit-only figure is deliberate: a member whose
+            // pot could not be projected must not silently lose income the old scalar
+            // credited them.
+            'guaranteed' => $dcByYear === [] ? $private : $guaranteed,
+            'dc_by_year' => $dcByYear,
+            'state' => $state,
+        ];
+    }
+
+    /**
+     * The defined contribution withdrawal for each year from now, in today's money.
+     *
+     * W-0512. This used to be a scalar — `dc_annual_income` deflated once — credited every
+     * retired year from a fund the model never reduced. Thirty years of a perpetuity that
+     * the pension could not have paid, accumulating into `final_cash` and from there into
+     * the projected estate.
+     *
+     * `RetirementProjectionService::projectSafeWithdrawalDrawdown()` is the one place that
+     * decides how long the fund lasts, and the estate reads the other end of the same
+     * series for what is left of it at death (Rule 20). Nothing here re-derives a
+     * withdrawal.
+     *
+     * **The money basis is the trap, so it is stated.** The drawdown is nominal — every
+     * figure in the money of its own year — and the loop in `project()` multiplies each
+     * year by `(1 + inflation)^year`. Deflating by that same power here means the
+     * multiplication restores the drawdown's own nominal figure exactly. It is also why
+     * this is behaviour-preserving until the fund runs dry: while the fund can pay in
+     * full, `income_by_age` is `dc_annual_income × (1 + i)^(age − retirementAge)`, and
+     * deflating by `(1 + i)^year` leaves `dc_annual_income ÷ (1 + i)^yearsToRetirement` —
+     * the flat figure this replaced, term for term.
+     *
+     * @return array<int, float> keyed by years from now
+     */
+    private function dcIncomeByYearInTodaysMoney(
+        User $member,
+        int $currentAge,
+        float $inflationRate,
+        int $yearsToProject,
+    ): array {
+        $pot = $this->retirementProjection->projectPensionPot($member);
+
+        if (($pot['dc_pension_count'] ?? 0) === 0) {
+            return [];
+        }
+
+        $drawdown = $this->retirementProjection->projectSafeWithdrawalDrawdown(
+            $member,
+            $pot,
+            $inflationRate,
+            // Run it to the household horizon, not just the configured projection end age.
+            // A horizon beyond that age would otherwise find no row and credit nothing,
+            // which is a silent cliff rather than a modelled exhaustion.
+            $currentAge + $yearsToProject
+        );
+
+        $byYear = [];
+        foreach ($drawdown['income_by_age'] as $age => $nominal) {
+            $year = $age - $currentAge;
+
+            if ($year < 0) {
+                continue;
+            }
+
+            $byYear[$year] = (float) $nominal / pow(1 + $inflationRate, $year);
+        }
+
+        return $byYear;
     }
 
     /**
@@ -510,7 +609,11 @@ class HouseholdCashFlowProjector
             return (int) $recorded;
         }
 
-        return (int) $this->taxConfig->get('pension.state_pension.current_spa', PensionProjector::DEFAULT_RETIREMENT_AGE);
+        // W-0197. Was `current_spa`, one scalar for every member of the household.
+        // The projection runs to a second death decades out, so two people of
+        // different ages need different State Pension ages — which is what the
+        // resolver reads from the statutory schedule.
+        return $this->statePensionAge->forDateOfBirth($member->date_of_birth);
     }
 
     /**
