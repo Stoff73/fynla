@@ -109,7 +109,7 @@
             ✓ This gift qualifies for the Small Gift Exemption (£250 or less per person per year)
           </li>
           <li v-if="canUseAnnualExemption">
-            ✓ You can use your Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }} per tax year)
+            You can use your Annual Exemption (£{{ (annualGiftExemption || 0).toLocaleString() }} per tax year)
           </li>
           <li v-if="!qualifiesForSmallGift && formData.gift_value > annualGiftExemption">
             ⚠️ This gift exceeds typical exemptions and will be a Potentially Exempt Transfer (subject to 7-year rule)
