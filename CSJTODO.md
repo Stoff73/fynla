@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-01 session 2 — board 29 -> 6 outstanding, all iOS.
-Handover: `handover/September/01/handover-2026-09-01-session-2.md`*
+*Last updated: 2026-09-07 session 1 — dev RELEASED to fynla.org (main a7cb3a211); TestFlight build 8 on production.
+Handover: `handover/September/07/handover-2026-09-07-session-1.md`*
 
 ## The board position
 
@@ -32,32 +32,28 @@ deliberately excludes.
 
 ## Next session starts here
 
-- [ ] **BROWSER-TEST ON csjones.co/fynla — four items with unverified acceptance.**
-      Nothing has been driven in a browser for three sessions. All of it is now live on
-      csjones, so this is unblocked. Full instructions, per item, in the session-2
-      handover:
-      **W-0504** `/m` dashboard rings (net worth must say "Equity" and the arc must match
-      the number; use `peak_earners`, 11% investments — a persona near 72% proves
-      nothing); **W-0500** the `/m` spouse question on a shared property with an
-      unlinked co-owner, confirmed by reading `properties.joint_owner_is_spouse`, not by
-      screenshot; **W-0034** `/m` Health and lifestyle read AND write;
-      **W-0045** the four Trusts palette screens.
-- [ ] **Raise board items for four findings.** `family_module` and `benefits_child` have
-      zero consumers and are **named in the pricing comparison** — sold and ungated, the
-      same defect as W-0499, and the sharpest of the four. Also `tenure_types` /
-      `leasehold_reform` (configured, read by nothing), `IHTPlanning.vue:620-630` (a true
-      sentence the engine does not publish, so the teaser cannot say it), and
-      `CoordinatingAgent.php` at 6,768 lines.
-- [ ] **Tax-compliance review.** W-0367 (s19), W-0514, W-0508, W-0338, W-0470 remain, plus
-      **W-0518 and W-0498** from session 2 — both carry the reviewer in their front matter
-      and neither was run, because no agents were dispatched.
-- [ ] **Design-lead / quality-lead on W-0497**, chief-of-staff on W-0506. Same reason.
-- [ ] **The six remaining board items are all `deferred-ios`** — W-0044, W-0090, W-0243,
-      W-0311, W-0416, W-0496. They need a native cycle with a Mac running Xcode and the
-      `Fynla-Staging` scheme; the board loop is web and `/m` only.
-- [ ] **The 34 remaining sweep findings — decide, do not chase.** Largely real deletions
-      cited in historical reports, plus build hashes that can never resolve. Rewriting
-      history to satisfy a checker is the failure W-0506 was about.
+- [ ] **BLOCKED ON CSJ — merge #773 after the device check** (login on build 8 is
+      confirmed; still to see: "Upgrade on the web" / "Manage billing on the web" under
+      Settings → Plan and billing, and a Fyn turn). Native-only, no csjones step. Then pull
+      csjones to the dev tip.
+- [ ] **BLOCKED ON CSJ — W-0540 dead-components clusters and the Rule 15 lint scope**
+      (both carried from 5 September). `GiftingStrategy.vue`, `TrustPlanningStrategy.vue`
+      and `IHTPlanning.vue` are in the unreachable set.
+- [ ] **Fix the adjacent findings from the 7 September browser pass**: free-tier 403s on
+      `/api/estate/calculate-iht` and `/api/estate/will-builder` from pages that do not
+      need them; unformatted amounts in the `/m` "Today's insight" line; "Exit Demo" on
+      csjones lands on the csjones.co root (`preview.js:376`, fallback referrer `/`).
+- [ ] **Close W-0532/W-0533/W-0534 on the board and in `tasks.md`** — on dev and prod
+      via #768. Decide the unstyled homepage pension-check block parked in PR #770.
+- [ ] **BROWSER-TEST ON csjones — still unverified from 1 September:** W-0500 (`/m`
+      spouse question, read `properties.joint_owner_is_spouse`), W-0034 (`/m` Health and
+      lifestyle read AND write), W-0045 (four Trusts palette screens). W-0504 rings were
+      seen working on `/m` today (Level wheel, "2 of 4 actions").
+- [ ] **Tax-compliance review** — W-0367, W-0514, W-0508, W-0338, W-0470, W-0518, W-0498;
+      design-lead / quality-lead on W-0497; chief-of-staff on W-0506.
+- [ ] **The six `deferred-ios` items** — W-0044, W-0090, W-0243, W-0311, W-0416, W-0496.
+      Production now serves the native routes, so a native cycle can run against fynla.org.
+- [ ] **The 34 remaining sweep findings — decide, do not chase.**
 
 ## Settled by CSJ — do not re-raise
 
@@ -83,9 +79,16 @@ deliberately excludes.
   £144,000, band £506,000, taxable estate £852,780. Household gross unchanged at
   £1,728,780. **Earlier handovers and vault notes carry the old figure.**
 - **Persona passwords are `Password1!`**, not `password`. A 401 is probably not a bug.
-- The iOS `test-and-build` CI job is **flaky, not a regression**.
-- **`main` and `dev` are still diverged.** PR #736 holds the reconciliation and is
-  deliberately unmerged, because merging it equals a release.
+- The iOS `test-and-build` CI job is **not a release gate and must never be re-run
+  unasked** (CSJ 2026-09-07); its recurring red is the simulator "not hittable" trap.
+- **prod == main == dev since 2026-09-07 17:37 BST.** Before any release, check what
+  prod actually runs (bundle hash, `migrate:status`, vendor mtime) — it had run the 22
+  June code for ten weeks while main moved.
+- **A restored dump cannot drop tables it never held** — after a rollback, diff
+  `SHOW TABLES` against the dump before migrating again (three leftover pipeline tables
+  bit the second attempt).
+- **fynla.org has 8 paying customers on legacy plans** (pro/standard/family/student);
+  they confer Premium (#771). "No premium subscribers" was only ever true of csjones.
 - **Never `git checkout -- <file>` to undo a mutation test.** It reverts to HEAD and
   destroys uncommitted fixes. Copy the file first.
 - **Never run a targeted suite while the full suite is running** — same MySQL database,
@@ -100,20 +103,28 @@ deliberately excludes.
 
 ## Deploy state
 
-- **`dev` is at `c52b51db2`** — PR #759 merged (`--merge --admin`), carrying #750–#758
-  plus both 1 September sessions.
-- **csjones is deployed and verified.** Pulled to `c52b51db2`; **11 migrations applied**,
-  which cleared the four that had been local-only plus session 2's two
-  (`add_second_life_assured_to_life_insurance_policies`,
-  `add_declared_liability_percentage_to_mortgages`). Both bundles rebuilt with
-  `./deploy/csjones-fynla/build.sh` and uploaded. Confirmed live: homepage 200, `/m` 200,
-  and the new `/m` bundle greps positive for this session's work — which is what proves
-  the deploy did not land a stale build.
-- **production untouched.** Nothing from either session is on fynla.org.
+- **fynla.org = main `a7cb3a211`** (tree identical to dev at `06a671b8b`), live since
+  2026-09-07 17:37 BST after a rollback of the first attempt (`34b6faeaa`) at the
+  tier-collapse preflight. 73 migrations, seed, Fyn validators green, routes uncached,
+  config cached. Backups: server `~/release-backups/2026-09-07*/`, local
+  `~/Desktop/fynla-release-backups/`. Deploy notes: memory
+  `project_release_2026_09_07_rolled_back` and PR #772's comments.
+- **dev = `3cd23bb63`** (#767–#771, #774 today). **csjones = dev `06a671b8b`**, bundles
+  built from it; pull to the tip after #773 (only ops logs since).
+- **TestFlight "Fynla" 1.0 (8)** on the `org.fynla.app.dev` record, Production
+  configuration (fynla.org), login confirmed by CSJ. The `org.fynla.app` record is
+  "Fynla (legacy)" with its build expired — never upload there unasked.
 
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
+
+- **(2026-09-07)** `SubscriptionManagementView.swift` writes the web-handoff button + error
+  block twice; `TierCollapsePreflight.php` re-derives "plans that confer premium" instead
+  of one `TierConfigurationStore::plansConferringPremium()`; `WillFactory.php` repeats the
+  unnamed column default `100.00`.
+- **(2026-09-07)** A homepage pension-check block salvaged from August has no CSS; the hunk
+  is in PR #770's description.
 
 - **Two mechanisms answer "what does this user owe"** — `NetWorthService:155` and
   `CrossModuleAssetAggregator:404`. Parity held by a test, not by construction.

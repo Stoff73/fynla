@@ -1,20 +1,8 @@
-# Tech Debt Report — Session 2026-09-01
+# Tech Debt Report — Session 2026-09-07
 
-**Files analysed:** 110 changed across `f3fae45bd..HEAD` (25 commits, the board run)
+**Files analysed:** 11 (PRs #767, #768, #769, #770, #771, #773)
 **Issues found:** 3
-**Severity breakdown:** 0 critical, 1 warning, 2 suggestions
-
-The pass is close to clean. Every automated convention check came back empty:
-
-| Check | Result |
-|---|---|
-| `declare(strict_types=1)` in every changed PHP file | present in all |
-| Debug leftovers (`dd(`, `dump(`, `console.log`, `var_dump`) | none added |
-| Banned colour classes (`amber-`, `orange-`, `primary-N`, `secondary-N`, `gray-N`) | none added |
-| Hardcoded hex in Vue `<style>` blocks | none added |
-| Hardcoded tax values | none added — the `20000` matches are pension-pot **test fixtures**, not tax constants |
-| New acronyms in user-facing text | none — W-0497 **removed** 20 of them |
-| Grandfathered glyphs (Rule 15 forward-only) | untouched; `git diff` shows zero ✓/✗/⚠ lines added or removed |
+**Severity breakdown:** 0 critical, 2 warnings, 1 suggestion
 
 ## Critical Issues
 
@@ -22,49 +10,12 @@ None.
 
 ## Warnings
 
-### 1. `app/Agents/CoordinatingAgent.php` — 6,768 lines
-**Category:** Complexity & Maintainability
-**What's wrong:** The file was already far past the 500-line guidance before today; W-0518 added
-~30 lines to `handleCaptureSalarySacrifice()`. Every Fyn capture handler lives here, so the file
-grows with every capture tool and is now the single largest service in the codebase.
-**Suggested fix:** Not a same-day change, and explicitly **not** attempted here — splitting the
-tool dispatcher touches every capture path and the golden-master catalogue. It wants its own
-board item with a plan, not an opportunistic extraction at the end of a session.
+- `ios-native/Fynla/Features/Subscription/SubscriptionManagementView.swift` (the `FynlaButton` + `webError` block in `freeContent` and again in `webPremiumContent`) — **Duplicate code.** The "open the web" button and its error line are written twice, differing only in title and accessibility id. Extract a `webHandoffButton(title:identifier:)` view so the wording, loading state and error copy cannot drift.
+- `app/Services/Tiers/TierCollapsePreflight.php` (`$unmappedPaidSubscriptions`, the `array_merge(['premium'], RETIRED_TIERS, LEGACY_PAID_PLANS)`) — **Inconsistency with an existing pattern / second home for a rule.** The set of plans that confer premium is decided in `TierConfigurationStore::canonicalPlanForEntitlement()`; the preflight re-derives it from the two constants. Add `TierConfigurationStore::plansConferringPremium(): array` and read it in both places, so a future plan added to one cannot be missed by the other.
 
 ## Suggestions
 
-### 2. `app/Services/TaxConfigService.php` — 909 lines, and two methods with no callers
-**Category:** Dead & Redundant Code (judged, not dead)
-**What's wrong:** `hasSurvivorshipRights()` and `allowsWillOverride()` have zero callers.
-**Suggested fix:** None — this was audited under W-0498 and the absence is now a **recorded
-decision** at `:828-846`, with a guard that fails if either appears in
-`EstateAssetAggregatorService`. Listed here only so a future dead-code sweep does not delete
-them believing nobody looked.
-
-### 3. `app/Services/Retirement/RetirementProjectionService.php` — 915 lines, 9 constructor args
-**Category:** Complexity & Maintainability
-**What's wrong:** W-0516 added a ninth constructor dependency (`StatePensionAgeResolver`). Two
-test files construct this service by hand and both needed updating, which is the cost of the
-argument list showing up.
-**Suggested fix:** Leave it. The dependency is correct — it is what removed the literal — and the
-alternative (a service locator or a facade) would hide the coupling rather than reduce it. Worth
-watching if a tenth argument appears.
-
-## Deliberate simplifications carried forward
-
-Not defects; recorded so they are not "fixed" by someone who does not know why they are there.
-
-- `resources/js/components/Estate/AssetForm.vue:303,305` — `individual` and `trust` descriptions
-  stay hardcoded while `joint_tenants` and `tenants_in_common` read tax config. The configured
-  cluster is `joint_ownership_types` and describes joint holdings only; inventing config entries
-  for the two sole-ownership cases would put words in the configuration nobody wrote (W-0498).
-- `app/Services/Stores/Normalisers/PropertyNormaliser.php` — `joint_owner_is_spouse` accepts
-  `true` and **not** `false`, by strict identity. `false` is the value that turns the
-  undivided-share discount on, and an LLM inferring it from narrative is the banned inference
-  (W-0500).
-- `workforce/ops/sweep.sh` — the placeholder filter is a list of literal patterns
-  (`NNNN`, `YYYY`, `<`, `...`, `/.`), not a heuristic. A heuristic that guesses which references
-  are "only citations" was measured and rejected on W-0506.
+- `database/factories/Estate/WillFactory.php` (two occurrences of `100.00`) — **Magic number.** The value is the column default of `wills.spouse_bequest_percentage`. Name it once (`private const SPOUSE_BEQUEST_DEFAULT = 100.00`) so the comment and the value stay together.
 
 ---
 *Generated by tech-debt-session skill*
