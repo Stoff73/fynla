@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tiers;
 
+use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -18,6 +19,19 @@ class TierCollapsePreflight
         $entitled = $this->entitledPaidSubscriptions();
         $activePaidSubscriptions = (clone $entitled)->count('subscriptions.id');
         $activePaidUsers = (clone $entitled)->distinct()->count('subscriptions.user_id');
+
+        // CSJ, 2026-09-07: paying customers may exist at collapse time. What the
+        // collapse must never do is leave one on a plan the premium model does not
+        // honour. Retired tiers and the legacy plans both map to premium
+        // (TierConfigurationStore::canonicalPlanForEntitlement), so the only
+        // blocking population is a live paid subscription on any other plan.
+        $unmappedPaidSubscriptions = (clone $entitled)
+            ->whereNotIn('subscriptions.plan', array_merge(
+                ['premium'],
+                TierConfigurationStore::RETIRED_TIERS,
+                TierConfigurationStore::LEGACY_PAID_PLANS,
+            ))
+            ->count('subscriptions.id');
         $liveProviderAgreements = $this->realSubscriptions()
             ->where(function (Builder $query): void {
                 $query->where('subscriptions.auto_renew', true)
@@ -44,17 +58,21 @@ class TierCollapsePreflight
             ->get()
             ->count();
 
-        $safe = $activePaidSubscriptions === 0
-            && $liveProviderAgreements === 0
+        // Live paid subscriptions, provider agreements and abandoned duplicate
+        // checkouts are reported, not blocking: the collapse rewrites tier rows
+        // only, and every live plan maps to premium. Financial uniqueness still
+        // blocks, because a duplicated order, invoice, discount usage or referral
+        // would be mapped twice.
+        $safe = $unmappedPaidSubscriptions === 0
             && $duplicateProviderOrderIds === 0
             && $duplicateInvoicePayments === 0
             && $duplicateDiscountUsagePayments === 0
-            && $duplicateReferralReferees === 0
-            && $multiplePendingCheckoutUsers === 0;
+            && $duplicateReferralReferees === 0;
 
         return [
             'active_paid_subscriptions' => $activePaidSubscriptions,
             'active_paid_users' => $activePaidUsers,
+            'unmapped_paid_subscriptions' => $unmappedPaidSubscriptions,
             'live_provider_agreements' => $liveProviderAgreements,
             'completed_payments' => DB::table('payments')->where('status', 'completed')->count(),
             'retired_tier_user_rows' => DB::table('users')

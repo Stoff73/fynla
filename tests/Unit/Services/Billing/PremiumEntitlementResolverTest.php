@@ -76,6 +76,21 @@ it('resolves an active Revolut Premium subscription', function (): void {
         ->and($resolved->periodEndsAt?->equalTo($subscription->current_period_end))->toBeTrue();
 });
 
+// CSJ, 2026-09-07: the plans sold before the tier scheme confer Premium.
+it('resolves an active legacy paid plan as Premium', function (string $plan): void {
+    $user = User::factory()->create(['tier' => null, 'plan' => $plan]);
+    Subscription::factory()->plan($plan)->create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'current_period_end' => CarbonImmutable::now()->addMonth(),
+    ]);
+
+    $resolved = app(PremiumEntitlementResolver::class)->resolve($user);
+
+    expect($resolved->tier)->toBe('premium')
+        ->and($resolved->provider)->toBe('revolut');
+})->with(['student', 'standard', 'family', 'pro']);
+
 it('keeps a cancelled Revolut subscription Premium until its exact period end', function (): void {
     $user = User::factory()->create(['tier' => 'free']);
     Subscription::factory()->plan('premium')->cancelled()->create([
