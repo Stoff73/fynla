@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Validator;
  * platform, sees a figure Fynla computed rather than the one their provider
  * sent, and has no way to tell.
  */
-function holdingValuation(array $payload): \Illuminate\Contracts\Validation\Validator
+function holdingValuation(array $payload): Illuminate\Contracts\Validation\Validator
 {
     $request = StoreHoldingRequest::create('/', 'POST', $payload);
     $validator = Validator::make($payload, []);

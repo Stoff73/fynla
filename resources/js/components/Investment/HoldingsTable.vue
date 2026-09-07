@@ -383,7 +383,7 @@
 <script>
 import { ASSET_TYPES, formatAssetType } from '@/constants/assetTypes';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS } from '@/constants/designSystem';
 import { formatUnits } from '@/utils/holdingUnits';
 
 export default {

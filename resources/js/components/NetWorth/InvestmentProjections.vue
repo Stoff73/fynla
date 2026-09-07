@@ -494,7 +494,7 @@ import { mapActions, mapState, mapGetters } from 'vuex';
 import { coOwnerName, isPrimaryOwner } from '@/utils/ownership';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 // Data loading services
 import investmentService from '@/services/investmentService';

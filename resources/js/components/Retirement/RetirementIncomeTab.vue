@@ -938,7 +938,6 @@ export default {
       // Map allocation source_type to the corresponding asset type
       const sourceType = allocation.source_type;
       const sourceId = parseInt(allocation.source_id, 10); // Ensure numeric for comparison
-      let toggled = false;
 
       const investmentTypes = ['isa', 'isa_investment', 'stocks_shares_isa', 'onshore_bond', 'offshore_bond', 'gia'];
       const cashTypes = ['isa_cash', 'savings', 'cash_isa'];
@@ -948,11 +947,9 @@ export default {
         const account = this.investmentAccounts.find(a => parseInt(a.id, 10) === sourceId);
         if (account) {
           await this.toggleIncludedInvestment(account.id);
-          toggled = true;
         }
       } else if (cashTypes.includes(sourceType)) {
         await this.toggleIncludedCash(sourceId);
-        toggled = true;
       }
 
       // Always fetch fresh data after toggle attempt

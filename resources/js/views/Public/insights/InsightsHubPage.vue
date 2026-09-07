@@ -296,7 +296,7 @@ export default {
     if (import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true') {
       try {
         await this.fetchList();
-      } catch (e) {
+      } catch {
         // non-fatal — the legacy hardcoded list keeps the page alive
         // if the API is unavailable during a transition deploy.
       }
