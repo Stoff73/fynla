@@ -10,8 +10,6 @@ use App\Services\Stores\TierConfigurationStore;
 
 class TierResolver
 {
-    private const LEGACY_PAID_PLANS = ['student', 'standard', 'family', 'pro'];
-
     public function __construct(
         private readonly PremiumEntitlementResolver $entitlements,
     ) {}
@@ -74,7 +72,7 @@ class TierResolver
         if ($user->is_preview_user) {
             return false;
         }
-        if (! in_array($user->plan ?? '', self::LEGACY_PAID_PLANS, true)) {
+        if (! in_array($user->plan ?? '', TierConfigurationStore::LEGACY_PAID_PLANS, true)) {
             return false;
         }
 
@@ -83,6 +81,6 @@ class TierResolver
             : $user->subscription()->first();
 
         return $subscription !== null
-            && in_array($subscription->plan ?? '', self::LEGACY_PAID_PLANS, true);
+            && in_array($subscription->plan ?? '', TierConfigurationStore::LEGACY_PAID_PLANS, true);
     }
 }
