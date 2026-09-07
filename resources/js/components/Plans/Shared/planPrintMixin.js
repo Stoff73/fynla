@@ -132,9 +132,6 @@ export const planPrintMixin = {
       const userName = plan.metadata?.user_name || '';
       const summary = plan.executive_summary || {};
       const conclusion = plan.conclusion || {};
-      const enabledActions = (plan.actions || []).filter(a => a.enabled);
-      const disabledActions = (plan.actions || []).filter(a => !a.enabled);
-      const whatIf = plan.what_if || {};
       const planType = this.detectPlanType(plan);
 
       return `

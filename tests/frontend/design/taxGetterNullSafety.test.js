@@ -61,9 +61,7 @@ describe('a nullable tax getter is never dereferenced unguarded (W-0453)', () =>
         // `getter.toLocaleString()` with no `|| 0`, `??` or `Number()` in front.
         const unguarded = new RegExp(`(?<![|?)\\w.])\\b${getter}\\.toLocaleString\\(`, 'g');
 
-        for (const _ of source.matchAll(unguarded)) {
-          offenders.push(`${file}: ${getter}.toLocaleString()`);
-        }
+        offenders.push(...Array.from(source.matchAll(unguarded), () => `${file}: ${getter}.toLocaleString()`));
       }
     }
 

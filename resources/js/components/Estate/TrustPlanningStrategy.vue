@@ -446,7 +446,7 @@ export default {
     },
 
     toggleStrategyDetails(index) {
-      this.$set(this.expandedStrategies, index, !this.expandedStrategies[index]);
+      this.expandedStrategies[index] = !this.expandedStrategies[index];
     },
 
     getBorderColourClass(priority) {

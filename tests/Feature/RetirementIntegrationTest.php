@@ -9,6 +9,7 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Retirement\RetirementProjectionContractService;
 use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Retirement\StatePensionAgeResolver;
 use App\Services\Settings\AssumptionsService;
 use App\Services\TaxConfigService;
 use Database\Seeders\RetirementActionDefinitionSeeder;
@@ -83,7 +84,12 @@ describe('Shared retirement projection contract', function () {
         $this->app->instance(RetirementProjectionService::class, $projectionService);
         $this->app->instance(
             RetirementProjectionContractService::class,
-            new RetirementProjectionContractService($projectionService, $assumptionsService, $taxConfig),
+            new RetirementProjectionContractService(
+                $projectionService,
+                $assumptionsService,
+                $taxConfig,
+                app(StatePensionAgeResolver::class),
+            ),
         );
 
         $response = $this->getJson('/api/retirement/projections');

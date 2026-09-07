@@ -223,7 +223,7 @@ export default {
         } else {
           this.error = response.message || 'Failed to load scenario';
         }
-      } catch (err) {
+      } catch {
         this.error = 'Unable to load scenario analysis';
       } finally {
         this.loading = false;

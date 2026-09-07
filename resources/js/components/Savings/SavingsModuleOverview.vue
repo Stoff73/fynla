@@ -351,7 +351,7 @@ export default {
       this.showUploadModal = false;
     },
 
-    async handleDocumentSaved(savedData) {
+    async handleDocumentSaved() {
       this.showUploadModal = false;
       // Refresh savings data
       await this.fetchSavingsData();

@@ -726,7 +726,7 @@ export default {
     formatAssetType,
 
     toggleAssetDetails(index) {
-      this.$set(this.expandedAssetDetails, index, !this.expandedAssetDetails[index]);
+      this.expandedAssetDetails[index] = !this.expandedAssetDetails[index];
     },
 
     formatDate(date) {
