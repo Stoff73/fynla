@@ -636,7 +636,8 @@ private struct UnlockedView: View {
                     onOpenConversation: presentConversation,
                     onOpenRoute: openTopLevel,
                     onRoute: navigate,
-                    onOpenWillPlanning: openWillPlanning
+                    onOpenWillPlanning: openWillPlanning,
+                    onOpenSubscriptionOnWeb: openSubscriptionOnWeb
                 )
                 // /m has no system navigation bar anywhere — the shell header
                 // (hamburger + greeting) and per-page hero replace it.
@@ -835,6 +836,14 @@ private struct UnlockedView: View {
     @MainActor
     private func openWillPlanning() async throws {
         let url = try await webHandoffClient.issue(.estateWill)
+        browserItem = SafariSheetItem(url: url)
+    }
+
+    // CSJ, 2026-09-07: nothing is sold in the app; upgrades and billing are on
+    // the website. Lands on the subscription settings with pricing open.
+    @MainActor
+    private func openSubscriptionOnWeb() async throws {
+        let url = try await webHandoffClient.issue(.subscription)
         browserItem = SafariSheetItem(url: url)
     }
 
