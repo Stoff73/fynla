@@ -3,7 +3,9 @@
 declare(strict_types=1);
 use Anthropic\Client;
 use App\Models\TaxConfiguration;
+use App\Models\TierConfiguration;
 use App\Services\AI\XaiClient;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Fyn\ScriptedAnthropicClient;
 use Tests\Support\Fyn\ScriptedXaiClient;
@@ -89,6 +91,16 @@ uses()->beforeEach(function () {
         if (! TaxConfiguration::where('is_active', true)->exists()) {
             TaxConfiguration::factory()->forTaxYear('2019/20')->create(['is_active' => true]);
         }
+    }
+
+    // Global TierConfiguration safety net (W-0532, 2026-09-07): TeaserGate is
+    // reached from Adjusted Net Income through ChildBenefitService, so any test
+    // that resolves a user's tier now needs the two seeded rows, not just the
+    // Tiers suites. The seeder is firstOrCreate, so per-file seeding is a no-op
+    // on top of this. Tests that exercise the missing-row path delete the rows
+    // in their arrange step, which runs after this hook.
+    if (class_exists(TierConfiguration::class) && ! TierConfiguration::query()->exists()) {
+        (new TierConfigurationSeeder)->run();
     }
 })->in('Feature', 'Unit/Services', 'Unit/Observers', 'Unit/Http', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Unit/Agents/SavingsAgentGoalsTest.php', 'Unit/Agents/ProtectionAgentGoalsTest.php', 'Unit/Agents/EstateAgentGoalsTest.php', 'Unit/Agents/RetirementAgentGoalsTest.php', 'Integration');
 
