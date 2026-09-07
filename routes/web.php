@@ -759,7 +759,7 @@ Route::post('/pipeline/drive/webhook', [DriveWebhookController::class, 'handle']
 Route::get('/pipeline/clips/{slug}/{filename}', [SignedClipDownloadController::class, 'download'])
     ->name('pipeline.clip.download')
     ->where('slug', '[a-z0-9-]{1,80}')
-    ->where('filename', 'clip-[0-9]{1,3}\.mp4');
+    ->where('filename', SignedClipDownloadController::FILENAME_PATTERN);
 
 // Marketing pipeline — magic-link clip approval from the approval email.
 // 48-char single-use tokens with a 48-hour TTL are the auth (no login required).

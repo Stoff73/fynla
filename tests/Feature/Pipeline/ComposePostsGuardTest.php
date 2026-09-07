@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Jobs\Pipeline\ComposePostsJob;
+use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
 use App\Models\Pipeline\ClipApproval;
 use App\Models\Pipeline\PipelineArticle;
@@ -41,6 +42,31 @@ it('holds composition when the source article is not live (no dead-link posts)',
     expect(PipelinePost::where('pipeline_article_id', $article->id)->count())->toBe(0);
     // Held, not failed — publishing then re-running compose should proceed.
     expect($article->fresh()->status)->toBe('rendered');
+});
+
+// Regression: the guard called DocumentArticle::isPublished(), which is status-only.
+// An article scheduled for a future published_at reads as "published" while
+// /insights/{slug} still 404s (scopeLive), so posts went out with dead links.
+it('holds composition for a document article scheduled to publish in the future', function () {
+    $scheduled = DocumentArticle::factory()->create([
+        'slug' => 'future-piece',
+        'status' => 'published',
+        'published_at' => now()->addDays(5),
+    ]);
+    $article = PipelineArticle::create([
+        'document_article_id' => $scheduled->id,
+        'status' => 'rendered',
+        'clip_paths' => ['storage/app/social/video/future-piece/clip-1.mp4'],
+    ]);
+
+    (new ComposePostsJob($article))->handle(
+        app(PostComposer::class),
+        app(HashtagPicker::class),
+        app(UtmLinkBuilder::class),
+    );
+
+    expect(PipelinePost::where('pipeline_article_id', $article->id)->count())->toBe(0)
+        ->and($article->fresh()->status)->toBe('rendered');
 });
 
 it('composes only the approved clips, skipping rejected ones', function () {
