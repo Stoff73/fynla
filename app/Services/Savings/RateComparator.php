@@ -130,7 +130,11 @@ class RateComparator
             default => $isIsa ? 'easy_access_isa' : 'easy_access',
         };
 
-        return $benchmarks[$benchmarkKey] ?? 0.0400; // Default to 4% if not found
+        // notice_isa has no MoneySavingExpert best-buy table, so a live-refreshed year
+        // carries no row for it; the taxable notice benchmark is the nearest measure.
+        return $benchmarks[$benchmarkKey]
+            ?? $benchmarks[str_replace('_isa', '', $benchmarkKey)]
+            ?? 0.0400; // Default to 4% if nothing is seeded at all
     }
 
     /**

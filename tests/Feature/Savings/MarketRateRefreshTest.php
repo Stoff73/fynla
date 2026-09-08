@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\SavingsAccount;
 use App\Models\SavingsMarketRate;
 use App\Models\User;
 use App\Services\Savings\MarketRates\MarketRateFetchException;
@@ -118,6 +119,20 @@ it('falls back to the newest year with rows when the active year has none (F20)'
     expect($benchmarks['easy_access'])->toBe(0.045)
         ->and($benchmarks['notice'])->toBe(0.05)
         ->and($benchmarks)->not->toHaveKey('fixed_1_year');
+});
+
+it('measures a notice ISA against the notice benchmark when the ISA key has no row', function () {
+    fakeMsePages();
+    app(MarketRateRefreshService::class)->refresh();
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'access_type' => 'notice', 'interest_rate' => 4.4, 'account_type' => 'cash_isa',
+    ]);
+
+    $comparison = app(RateComparator::class)->compareToMarketRates($account);
+
+    expect($comparison['market_rate'])->toBe(0.044)
+        ->and($comparison['category'])->toBe('Good');
 });
 
 describe('admin refresh endpoint', function () {
