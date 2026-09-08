@@ -72,16 +72,6 @@ describe('analyze', function () {
             ->andReturn(6.0);
 
         $this->emergencyFundCalculator
-            ->shouldReceive('calculateAdequacy')
-            ->once()
-            ->andReturn([
-                'runway' => 6.0,
-                'target' => 6,
-                'adequacy_score' => 100.0,
-                'shortfall' => 0.0,
-            ]);
-
-        $this->emergencyFundCalculator
             ->shouldReceive('categorizeAdequacy')
             ->once()
             ->andReturn('Excellent');
@@ -181,10 +171,12 @@ describe('analyze', function () {
 
         expect($result['emergency_fund'])->toHaveKeys([
             'runway_months',
-            'adequacy',
             'category',
             'recommendation',
         ]);
+        // Rule 12: the analysis feeds the get_module_analysis tool result, and a
+        // 0-100 adequacy figure in it was voiced to a user as "44.67 out of 100".
+        expect($result['emergency_fund'])->not->toHaveKey('adequacy');
 
         expect($result['goals'])->toHaveKeys(['progress', 'prioritized']);
         expect($result['user_id'])->toBe($user->id);
@@ -199,16 +191,6 @@ describe('analyze', function () {
             ->once()
             ->with(0.0, 2000.0)
             ->andReturn(0.0);
-
-        $this->emergencyFundCalculator
-            ->shouldReceive('calculateAdequacy')
-            ->once()
-            ->andReturn([
-                'runway' => 0.0,
-                'target' => 6,
-                'adequacy_score' => 0.0,
-                'shortfall' => 6.0,
-            ]);
 
         $this->emergencyFundCalculator
             ->shouldReceive('categorizeAdequacy')
@@ -295,16 +277,6 @@ describe('analyze', function () {
             ->once()
             ->with(15000.0, 3000.0)
             ->andReturn(5.0);
-
-        $this->emergencyFundCalculator
-            ->shouldReceive('calculateAdequacy')
-            ->once()
-            ->andReturn([
-                'runway' => 5.0,
-                'target' => 6,
-                'adequacy_score' => 83.33,
-                'shortfall' => 1.0,
-            ]);
 
         $this->emergencyFundCalculator
             ->shouldReceive('categorizeAdequacy')

@@ -108,10 +108,6 @@ class SavingsAgent extends BaseAgent
                     $totalSavings,
                     $monthlyExpenditure
                 );
-                $adequacy = $this->emergencyFundCalculator->calculateAdequacy(
-                    $runway,
-                    $this->emergencyFundCalculator->getTargetMonths($user?->employment_status)
-                );
                 $adequacyCategory = $this->emergencyFundCalculator->categorizeAdequacy($runway);
 
                 // ISA Allowance Status
@@ -189,10 +185,12 @@ class SavingsAgent extends BaseAgent
                         'expenditure_label' => $resolved['label'],
                     ],
                     'emergency_fund' => [
+                        // No adequacy score here (Rule 12): every LLM tool result and
+                        // API payload is built from this block, and a 0-100 figure in it
+                        // was voiced to a user as "44.67 out of 100".
                         'runway_months' => $runway,
-                        'adequacy' => $adequacy,
                         'category' => $adequacyCategory,
-                        'recommendation' => $this->getEmergencyFundRecommendation($adequacy),
+                        'recommendation' => $this->getEmergencyFundRecommendation($adequacyCategory),
                         'target' => $emergencyFundTarget,
                     ],
                     'isa_allowance' => $isaAllowance,
@@ -581,14 +579,12 @@ class SavingsAgent extends BaseAgent
     /**
      * Get emergency fund recommendation text
      */
-    private function getEmergencyFundRecommendation(array $adequacy): string
+    private function getEmergencyFundRecommendation(string $category): string
     {
-        $score = $adequacy['adequacy_score'];
-
-        return match (true) {
-            $score >= 100 => 'Your emergency fund is well-funded. Excellent!',
-            $score >= 75 => 'Your emergency fund is adequate, but could be improved.',
-            $score >= 50 => 'Your emergency fund needs attention. Priority: Medium.',
+        return match ($category) {
+            'Excellent' => 'Your emergency fund is well-funded. Excellent!',
+            'Good' => 'Your emergency fund is adequate, but could be improved.',
+            'Fair' => 'Your emergency fund needs attention. Priority: Medium.',
             default => 'Your emergency fund is critical. Immediate action recommended.',
         };
     }
