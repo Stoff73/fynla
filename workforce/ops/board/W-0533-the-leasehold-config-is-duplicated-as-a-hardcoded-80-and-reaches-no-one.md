@@ -2,9 +2,9 @@
 id: W-0533
 title: The leasehold and tenure configuration has no consumer — and the one calculation that should read it hardcodes its threshold as 80 and is itself rendered nowhere
 mission: board-verification-31-august
-owner: null
+owner: build-lead
 reviewers: [tax-compliance-reviewer]
-status: queued
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-09-04
@@ -82,3 +82,24 @@ user with a 62-year lease is told nothing, on any surface, by any of it.
    turns it red today.
 5. `tenure_types` is separately decided: it is a **label and description** cluster,
    not a tax rule, and may belong in the form rather than the tax configuration.
+
+## Outcome — done, 2026-09-07 (closed on the board 2026-09-08)
+
+Landed in `298ee8234` (PR #768 onto dev, released to fynla.org in main
+`a7cb3a211` on 2026-09-07). The config was not orphaned, it was copied.
+
+- `PropertyCalculationService` reads both bands from
+  `getLeaseholdValuationWarnings()`; the literal `80` and the docblock copies are
+  gone (acceptance 1). The 60-year `significant_value_loss` band reaches the user
+  too (acceptance 2).
+- `PropertyResource` publishes the warnings on the property; web and `/m` both
+  render them — a 62-year lease previously produced silence on every surface
+  (acceptance 3). Browser-verified on csjones, web + `/m`, 2026-09-07.
+- `property_ownership` is a `GUARDED_AREA` in `ConfiguredRulesHaveConsumersTest`
+  with no orphans left (acceptance 4).
+- `tenure_types`: the form's hardcoded "Freehold"/"Leasehold" now read the
+  configured cluster through the snapshot; the fallback capitalises the enum
+  value rather than repeating configured words (acceptance 5 — kept in the tax
+  configuration, consumed by the form).
+
+Tests: 8 new; Property/Tax/Stores/Estate 502 passed at the time.

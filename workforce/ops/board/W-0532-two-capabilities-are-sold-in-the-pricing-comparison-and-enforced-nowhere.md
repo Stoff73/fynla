@@ -2,9 +2,9 @@
 id: W-0532
 title: family_module and benefits_child are listed in the pricing comparison and gated by nothing — sold to customers, enforced nowhere
 mission: board-verification-31-august
-owner: null
+owner: build-lead
 reviewers: [compliance-lead, quality-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-09-04
@@ -67,3 +67,27 @@ Both branches are CSJ's, not the implementer's.
 3. If gated: the gate is in **one** place, the Store or the capability map, and
    `/m` reads the same one (Rules 19, 20).
 4. `compliance-lead` on the branch that changes what the pricing page claims.
+
+## Outcome — done, 2026-09-07 (closed on the board 2026-09-08)
+
+Decision: **gate both.** Landed in `298ee8234` (PR #768 onto dev, released to
+fynla.org in main `a7cb3a211` on 2026-09-07).
+
+- `TeaserGate::requireCapability()` is the throwing form of `allows()`; it raises
+  the same `TierLimitExceededException` every controller and `CoordinatingAgent`
+  already catch, so the client is offered the upgrade rather than a generic
+  failure. `family_module` has three write paths (the controller, Fyn's
+  `create_family_member`, Fyn's onboarding dependants create) and all three call
+  that one implementation — one gate, `/m` reads the same one (acceptance 3).
+- `benefits_child` is gated inside `ChildBenefitService` where the position is
+  produced; a read, so it withholds rather than throws and returns the zero
+  position every caller already handles.
+- The refusal wording derives from `TierComparisonService::labelFor()`, so the
+  advert and the refusal cannot describe the same thing differently.
+- Both keys are off the `EveryCapabilityHasAConsumerTest` allowlist (acceptance 2).
+
+Tests: 6 new; `SoldCapabilitiesAreEnforcedTest` covers the gate. **Not
+browser-observable** — both tiers currently sell `family_module` and
+`benefits_child`, so nothing changes on a screen; recorded in the 2026-09-07
+handover. Acceptance 4 (`compliance-lead` on the pricing-claim branch) was
+**not run** — the pricing page's claims did not change, only their enforcement.
