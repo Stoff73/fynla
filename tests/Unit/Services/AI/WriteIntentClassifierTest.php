@@ -158,3 +158,34 @@ describe('WriteIntentClassifier::classify — genuine amount-parser answers (Onb
         expect($this->classifier->classify('roughly 2k'))->toBeNull();
     });
 });
+
+describe('WriteIntentClassifier::proposalAcceptanceIntent — accepting Fyn\'s own offer', function () {
+    $offer = "A goal of **£12,000** would give you the full six-month buffer.\n\nWould you like me to help you set up that emergency fund goal now?\n\nFor regulated advice personal to your circumstances, speak to a qualified financial adviser.";
+
+    it('routes a short yes to the goal the offer named', function () use ($offer) {
+        $result = $this->classifier->proposalAcceptanceIntent('Yes please, set it up.', $offer);
+        expect($result)->not->toBeNull()
+            ->and($result['entity_type'])->toBe('goal')
+            ->and($result['matched_verb'])->toBe('proposal_accepted');
+    });
+
+    it('takes the entity from the offer, not the reply', function () {
+        $result = $this->classifier->proposalAcceptanceIntent('Go ahead', 'Shall I add that Cash ISA to your records now?');
+        expect($result['entity_type'] ?? null)->toBe('savings_account');
+    });
+
+    it('ignores a yes when the last turn made no offer', function () {
+        expect($this->classifier->proposalAcceptanceIntent('Yes', 'Your emergency fund covers 1.5 months. Building it up should come first.'))->toBeNull();
+    });
+
+    it('ignores a hedged or negative reply', function () use ($offer) {
+        expect($this->classifier->proposalAcceptanceIntent('No thanks', $offer))->toBeNull();
+        expect($this->classifier->proposalAcceptanceIntent('Yes, but what about my ISA first?', $offer))->toBeNull();
+        expect($this->classifier->proposalAcceptanceIntent('Yes, not now though, maybe later', $offer))->toBeNull();
+    });
+
+    it('ignores a long reply that is not a bare acceptance', function () use ($offer) {
+        $long = 'Yes I think so but I would like to understand how the target is worked out and whether it should include my partner';
+        expect($this->classifier->proposalAcceptanceIntent($long, $offer))->toBeNull();
+    });
+});
