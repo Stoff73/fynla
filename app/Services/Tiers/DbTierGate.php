@@ -23,10 +23,6 @@ class DbTierGate implements TierGate
         if ($user->is_preview_user) {
             return true; // preview personas sit entirely outside the gate (Rule #2)
         }
-        if ($this->resolver->isGrandfatheredLegacyPaid($user)) {
-            return true; // spec §4.4 — never narrow a grandfathered paid sub
-        }
-
         $hard = $this->hardLimit($user, $entityKey);
 
         return $hard === null ? true : $currentCount < $hard;

@@ -100,10 +100,12 @@ it('lowestTierWithCapability returns null when no tier has the requested capabil
     expect($result)->toBeNull();
 });
 
-it('maps retired tiers and legacy paid plans to premium and leaves everything else alone', function (string $plan, string $expected) {
+// The legacy paid plans are no longer mapped here: since 2026-09-08 they are
+// premium in the data and the enum no longer admits them, so a stored value
+// reaching this function is either a retired tier or already canonical.
+it('maps retired tiers to premium and leaves everything else alone', function (string $plan, string $expected) {
     expect(TierConfigurationStore::canonicalPlanForEntitlement($plan))->toBe($expected);
 })->with([
     ['tier1', 'premium'], ['tier2', 'premium'], ['tier3', 'premium'],
-    ['student', 'premium'], ['standard', 'premium'], ['family', 'premium'], ['pro', 'premium'],
     ['premium', 'premium'], ['free', 'free'],
 ]);

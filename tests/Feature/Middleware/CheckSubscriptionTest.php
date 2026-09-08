@@ -71,10 +71,10 @@ it('does not inherit stale Premium capabilities through a newer pending checkout
 });
 
 it('blocks writes for a churned paid user with a terminal subscription past grace', function () {
-    $user = User::factory()->create(['tier' => null, 'plan' => 'pro']);
+    $user = User::factory()->create(['tier' => null, 'plan' => 'premium']);
     Subscription::factory()->expired()->create([
         'user_id' => $user->id,
-        'plan' => 'pro',
+        'plan' => 'premium',
         'data_retention_starts_at' => now()->subDays(40), // past 30-day grace
     ]);
     Sanctum::actingAs($user);
@@ -91,10 +91,10 @@ it('blocks writes for a churned paid user with a terminal subscription past grac
 });
 
 it('allows read (GET) for a churned paid user', function () {
-    $user = User::factory()->create(['tier' => null, 'plan' => 'pro']);
+    $user = User::factory()->create(['tier' => null, 'plan' => 'premium']);
     Subscription::factory()->expired()->create([
         'user_id' => $user->id,
-        'plan' => 'pro',
+        'plan' => 'premium',
         'data_retention_starts_at' => now()->subDays(40),
     ]);
     Sanctum::actingAs($user);

@@ -76,20 +76,10 @@ it('resolves an active Revolut Premium subscription', function (): void {
         ->and($resolved->periodEndsAt?->equalTo($subscription->current_period_end))->toBeTrue();
 });
 
-// CSJ, 2026-09-07: the plans sold before the tier scheme confer Premium.
-it('resolves an active legacy paid plan as Premium', function (string $plan): void {
-    $user = User::factory()->create(['tier' => null, 'plan' => $plan]);
-    Subscription::factory()->plan($plan)->create([
-        'user_id' => $user->id,
-        'status' => 'active',
-        'current_period_end' => CarbonImmutable::now()->addMonth(),
-    ]);
-
-    $resolved = app(PremiumEntitlementResolver::class)->resolve($user);
-
-    expect($resolved->tier)->toBe('premium')
-        ->and($resolved->provider)->toBe('revolut');
-})->with(['student', 'standard', 'family', 'pro']);
+// CSJ, 2026-09-07/08: the plans sold before the tier scheme are Premium. Since
+// 2026_09_08_100000_collapse_legacy_plans_to_premium they are premium in the data
+// and the enum no longer admits the old names, so there is no legacy branch left to
+// test here — see tests/Feature/Tiers/LegacyPlanCollapseMigrationTest.php.
 
 it('keeps a cancelled Revolut subscription Premium until its exact period end', function (): void {
     $user = User::factory()->create(['tier' => 'free']);

@@ -10,7 +10,6 @@ use App\Http\Middleware\ApiCacheHeaders;
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CaptureAwcCookie;
 use App\Http\Middleware\CaptureNativeDeviceLabel;
-use App\Http\Middleware\CheckFeatureAccess;
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\EncryptCookies;
 use App\Http\Middleware\EnforceNativeVersion;
@@ -167,7 +166,6 @@ class Kernel extends HttpKernel
         'etag' => ETagResponse::class,
         'advisor' => AdvisorMiddleware::class,
         'advisor.impersonate' => AdvisorImpersonationMiddleware::class,
-        'feature' => CheckFeatureAccess::class,
         'estate.full' => EnsureFullEstateAccess::class,
         'holistic.full' => EnsureFullHolisticAccess::class,
         'insights.seo' => InsightsSeoMetaInjector::class,

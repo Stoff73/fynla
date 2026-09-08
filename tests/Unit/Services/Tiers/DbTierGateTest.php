@@ -45,11 +45,12 @@ it('preview personas sit entirely outside the gate (Rule #2 / canonical preview 
         ->and($this->gate->softLimit($u, 'savings_account'))->toBeNull();
 });
 
-it('GRANDFATHERS a legacy paid subscriber over the free cap (spec §4.4)', function () {
-    // Legacy 'pro' sub, tier null — must NOT be blocked at 3 savings just
-    // because resolve() returns 'free' for arithmetic.
-    $u = User::factory()->create(['plan' => 'pro', 'tier' => null]);
-    $u->subscription()->create(['plan' => 'pro', 'status' => 'active', 'amount' => 1999]);
+it('never caps a live premium subscriber, whatever the users tier cache says', function () {
+    // Until 2026-09-08 this was the §4.4 grandfathering case for a legacy 'pro'
+    // subscriber. Those subscriptions are premium in the data now, and premium
+    // quotas are unbounded, so the same user is uncapped through the front door.
+    $u = User::factory()->create(['plan' => 'premium', 'tier' => null]);
+    $u->subscription()->create(['plan' => 'premium', 'status' => 'active', 'amount' => 699]);
     expect($this->gate->canCreate($u->fresh(), 'savings_account', 50))->toBeTrue();
 });
 

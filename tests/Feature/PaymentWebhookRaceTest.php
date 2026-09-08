@@ -26,7 +26,7 @@ it('generates the invoice when the webhook is the only completion callback', fun
     $user = User::factory()->create(['plan' => 'free']);
     $subscription = Subscription::create([
         'user_id' => $user->id,
-        'plan' => 'standard',
+        'plan' => 'premium',
         'billing_cycle' => 'yearly',
         'status' => 'pending',
         'amount' => 0,
