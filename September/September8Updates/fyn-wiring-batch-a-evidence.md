@@ -29,9 +29,8 @@ Personas: young family (`preview_young_family@fynla.local`, user 63, James Carte
 
 Targeted families run green after every fix: `tests/Unit/Services/Savings` (60), `SavingsAgentTest` (11), `SavingsPlanServiceTest` (1, new), `ActionDefinitionDispatchCoverageTest`, `ModulePathFinancialContextTest` (2, new), `ListRecordsJointOwnerTest` (1, new), `AdviceQuestionScopeTest`, `ModuleScopedFinancialContextTest`, `SavingsEmergencyFundPayloadTest`, `CoordinatingAgentJointOwnerTest`, `WriteIntentClassifierTest` (28), Vitest `SavingsRecommendations.spec.js` (4, new) and `/m` `SavingsRecommendations.spec.js` (3, new).
 
-Full suite: PENDING (running detached in the worktree; result appended below when it finishes).
+Full suite (worktree, `./vendor/bin/pest --compact`, 2,072 s): 740 failed, 27 skipped, 7,731 passed. 662 of the failures were `Base table or view not found: laravel_testing.tax_configurations / tier_configurations` plus one `Table definition has changed` and one deadlock: the targeted Pest runs made while the suite was in flight ran `RefreshDatabase` against the same testing database. Treated as contention, not as red. The 23 files that reported failures were rerun alone with nothing else on the database: **322 passed, 1 failed** (327 s). The one real failure, `SavingsReadConsumerParityTest` line 2019, asserted the pre-Batch-A spouse-ISA semantics (fire whenever combined headroom ≥ £5,000); the evaluator now implements the seeded `spouse_isa_allowance_imbalanced` condition, and the test fixture was aligned (user's allowance fully used, spouse with £16,000 room). `AdviceFynProposalAcceptanceTest` ran green in the same rerun.
 
 ## Not done here
 
-- `AdviceFynProposalAcceptanceTest` (new, needs the testing database) runs after the full suite finishes.
 - F20 (market-rate year) awaits CSJ's decision. F26 notes are reported, not fixed.
