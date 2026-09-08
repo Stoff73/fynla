@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-07 session 1 — dev RELEASED to fynla.org (main a7cb3a211); TestFlight build 8 on production.
-Handover: `handover/September/07/handover-2026-09-07-session-1.md`*
+*Last updated: 2026-09-08 session 1 — dev RELEASED to fynla.org (main a3d50b1df): Batch A savings engine, Fyn module-path context, MoneySavingExpert benchmarks, legacy plan collapse.
+Handover: `handover/September/08/handover-2026-09-08-session-1.md`*
 
 ## The board position
 
@@ -103,21 +103,34 @@ deliberately excludes.
 
 ## Deploy state
 
-- **fynla.org = main `a7cb3a211`** (tree identical to dev at `06a671b8b`), live since
-  2026-09-07 17:37 BST after a rollback of the first attempt (`34b6faeaa`) at the
-  tier-collapse preflight. 73 migrations, seed, Fyn validators green, routes uncached,
-  config cached. Backups: server `~/release-backups/2026-09-07*/`, local
-  `~/Desktop/fynla-release-backups/`. Deploy notes: memory
-  `project_release_2026_09_07_rolled_back` and PR #772's comments.
-- **dev = `3cd23bb63`** (#767–#771, #774 today). **csjones = dev `06a671b8b`**, bundles
-  built from it; pull to the tip after #773 (only ops logs since).
+- **fynla.org = main `a3d50b1df`** (tree identical to dev `45148f71c`), live since 2026-09-08
+  17:06 BST via PR #784. Both 8 September migrations ran (legacy plan collapse after the
+  audit reported safe: 8 paid users, none unmapped; market-rate provenance columns). Nine
+  2026/27 savings benchmarks refreshed from MoneySavingExpert on the server itself.
+  Backups: server `~/release-backups/2026-09-08/` (users, subscriptions, payments,
+  invoices, discount_codes, savings_market_rates + migrate status). Notes: memory
+  `project_release_2026_09_08`.
+- **csjones = dev `45148f71c`**, both bundles built from it, same migrations and benchmarks.
 - **TestFlight "Fynla" 1.0 (8)** on the `org.fynla.app.dev` record, Production
-  configuration (fynla.org), login confirmed by CSJ. The `org.fynla.app` record is
-  "Fynla (legacy)" with its build expired — never upload there unasked.
+  configuration (fynla.org). The `org.fynla.app` record is "Fynla (legacy)" — never upload
+  there unasked. #773 (native billing on the web) still awaits CSJ's check on the phone.
+- **Fyn wiring artifact** (https://claude.ai/code/artifact/7375932e-a8e0-4920-9142-5a2db33b2d88):
+  section 11 updated for F0, F3, F15–F17, F20–F26 only; **F1, F2, F4–F14, F18, F19 must be
+  re-checked against dev before the next batch starts** (CSJ, 2026-09-08).
 
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
+
+- **(2026-09-08)** `SavingsAgent::generateInlineRecommendations` reads `emergency_fund.adequacy`,
+  a key `analyze()` no longer emits (Rule 12 fix) — dead path, delete with its tests.
+  `CoordinatingAgent::mappedModuleAnalysis` is an 87-line switch (the file is 6,814 lines);
+  `SavingsActionDefinitionService` is 3,848 lines. `/m` views each carry a `formatCurrency`
+  copy. `0.00005` and the flat `0.0400` benchmark block are unnamed constants.
+- **(2026-09-08, still open)** Rule 12 residue CSJ chose to leave: the emergency-fund category
+  label reaches the model and two plan views; `ToolResultContract` requires protection
+  `adequacy_score`. Retire the `subscription_plans` catalogue and `PaymentController`
+  `PLAN_ORDER` (dead now #780 is live).
 
 - **(2026-09-07)** `SubscriptionManagementView.swift` writes the web-handoff button + error
   block twice; `TierCollapsePreflight.php` re-derives "plans that confer premium" instead
@@ -134,7 +147,7 @@ Full report: `docs/tech-debt-report.md`.
   `&& ! $hasCashHolding` (`:439`), update does not (`:587`). Same asymmetry as W-0321.
 - **No UI field for `lpa_attorneys.is_bankrupt` (W-0105) or the professional
   certificate-provider details (W-0106).** Column, validation and check exist; nothing asks.
-- **`CoordinatingAgent.php` is 6,768 lines** — every Fyn capture handler lives there and it
+- **`CoordinatingAgent.php` is 6,814 lines** — every Fyn capture handler lives there and it
   grows with each tool. Wants its own board item, not an opportunistic extraction.
 - **`TaxConfigService::hasSurvivorshipRights()` and `allowsWillOverride()` have zero callers
   BY DESIGN** (`:828-846`, W-0498) — a first-death question the second-death estate must not
