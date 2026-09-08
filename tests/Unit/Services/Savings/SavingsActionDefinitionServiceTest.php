@@ -139,3 +139,14 @@ it('every enabled agent row is reachable by the dispatcher', function () {
         ->map(fn ($d) => $d->trigger_config['condition'] ?? null)->filter()->unique()->values()->all();
     expect(array_values(array_diff($conditions, $arms)))->toBe([]);
 });
+
+describe('emergency fund decision trace', function () {
+    it('explains the month table exactly as EmergencyFundCalculator defines it, retired at 3', function () {
+        $result = $this->service->evaluateAgentActions(savingsAnalysis(2.0), [], collect(), collect(), $this->user->id);
+        $rec = collect($result['recommendations'])->firstWhere('definition_key', 'emergency_fund_low');
+        $step = collect($rec['decision_trace'])->firstWhere('data_field', 'employment_status');
+
+        expect($step['threshold'])->toContain('retired = 3 months')->not->toContain('retired = 6')
+            ->and($step['explanation'])->not->toContain('retired need 6');
+    });
+});

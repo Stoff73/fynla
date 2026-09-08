@@ -64,7 +64,7 @@ class SavingsPlanService extends BasePlanService
             'plan_type' => 'savings',
             'actions' => $actions,
             'enabledActions' => $enabledActions,
-            'goals' => $goals,
+            'goals' => $this->getGoalsForPlan($userId, 'savings'),
             'conclusion' => $this->generateDynamicConclusion([], $enabledActions, 'savings'),
             'summary' => [
                 'total_recommendations' => count($allRecs),

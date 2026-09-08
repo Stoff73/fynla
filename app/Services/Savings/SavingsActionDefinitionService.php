@@ -3817,14 +3817,18 @@ class SavingsActionDefinitionService
     private function buildEmploymentTargetTrace(?User $user, int $targetMonths): array
     {
         $employmentStatus = ($user && $user->employment_status) ? $user->employment_status : 'not set';
+        $employed = $this->emergencyFundCalculator->getTargetMonths('employed');
+        $selfEmployed = $this->emergencyFundCalculator->getTargetMonths('self_employed');
+        $retired = $this->emergencyFundCalculator->getTargetMonths('retired');
 
         return [
             'question' => 'What is the recommended emergency fund target based on employment status?',
             'data_field' => 'employment_status',
             'data_value' => $employmentStatus.' → '.$targetMonths.' months',
-            'threshold' => 'Employed = 6 months, self-employed/contractor = 9 months, retired = 6 months',
+            'threshold' => "Employed = {$employed} months, self-employed/contractor = {$selfEmployed} months, retired = {$retired} months",
             'passed' => true,
-            'explanation' => 'Employment status "'.$employmentStatus.'" maps to a '.$targetMonths.'-month emergency fund target. Self-employed and contractors need 9 months due to income volatility; employed and retired need 6 months.',
+            'explanation' => 'Employment status "'.$employmentStatus.'" maps to a '.$targetMonths.'-month emergency fund target. '
+                ."Self-employed and contractors need {$selfEmployed} months due to income volatility; retired households need {$retired} months with income no longer at risk.",
         ];
     }
 }
