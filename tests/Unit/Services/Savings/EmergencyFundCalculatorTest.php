@@ -132,3 +132,18 @@ describe('EmergencyFundCalculator', function () {
         });
     });
 });
+
+describe('getTargetMonths is the one month table', function () {
+    it('maps every employment status the users enum allows', function () {
+        $calculator = new EmergencyFundCalculator;
+        expect($calculator->getTargetMonths('employed'))->toBe(6)
+            ->and($calculator->getTargetMonths('full_time'))->toBe(6)
+            ->and($calculator->getTargetMonths('part_time'))->toBe(6)
+            ->and($calculator->getTargetMonths('self_employed'))->toBe(9)
+            ->and($calculator->getTargetMonths('contractor'))->toBe(9)
+            ->and($calculator->getTargetMonths('freelance'))->toBe(9)
+            ->and($calculator->getTargetMonths('retired'))->toBe(3)
+            ->and($calculator->getTargetMonths('unemployed'))->toBe(6)
+            ->and($calculator->getTargetMonths(null))->toBe(6);
+    });
+});
