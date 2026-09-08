@@ -133,7 +133,7 @@ The handover must carry: the task as dispatched verbatim plus amendments; what i
 - **Production has no `/api/v1/native/*` routes**, so `Fynla-Production` cannot complete login. Fixing it is a `dev → main` release.
 - **No in-app purchase products exist in App Store Connect**, so the paywall reads "Premium subscriptions are unavailable". The 6 red `Local StoreKit configuration` tests are a real signal of this, not noise.
 
-**`ios/`** is the dormant Capacitor target, untouched since 2026-03-13. Don't develop against it without asking CSJ.
+**`ios/`** (the Capacitor wrapper, dormant since 2026-03-13) was removed on 2026-09-08 — it lives in git history before `chore/remove-capacitor-ios-target` if ever needed. The web SPA still imports `@capacitor/core` and `@capacitor/preferences` for platform detection; those npm packages stay.
 
 ## Testing
 
