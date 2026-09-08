@@ -74,8 +74,6 @@ yarn-error.log
 /public/m-build/
 /public/m-e2e-build/
 
-# Capacitor
-
 # iOS native — personal signing overrides (DEVELOPMENT_TEAM etc.), never committed
 ios-native/Configurations/Local.xcconfig
 

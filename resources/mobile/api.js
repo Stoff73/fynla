@@ -1,24 +1,14 @@
 // SP3 scaffold API client — DISPOSABLE. Bearer-token against the existing backend.
 //
-// Two surfaces, one bundle:
-// - Capacitor iOS (origin = `capacitor://localhost`): can't be same-origin, must
-//   use the absolute URL baked at build time (`VITE_API_BASE_URL=https://fynla.org`
-//   via deploy/mobile/build-ios.sh) so requests reach the production API.
-// - Web (origin = whatever host serves /m, e.g. localhost:8000, csjones.co,
-//   fynla.org): same-origin. On subdirectory deploys (csjones serves the whole
+// Origin = whatever host serves /m (localhost:8000, csjones.co, fynla.org):
+// same-origin. On subdirectory deploys (csjones serves the whole
 //   app at /fynla/) a bare relative `/api/*` resolves to the DOMAIN ROOT
 //   (csjones.co/api/*) and 404s, so the web base must carry the subdirectory
 //   prefix. Derive it from VITE_ROUTER_BASE — the same var router.js uses for
 //   MOBILE_ROUTER_BASE. '/fynla/' -> '/fynla'; '/' or unset -> '' (root deploys
 //   and localhost keep the existing same-origin relative behaviour). Stays
 //   CSP `'self'`-compliant (same-origin path, not an absolute URL).
-//
-// Runtime detection picks the right base regardless of how the bundle was built.
-// `window.Capacitor.isNativePlatform()` is auto-injected by the Capacitor runtime
-// inside the WebView; absent in any browser.
-const isNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
-const WEB_BASE = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
-const BASE = isNative ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org') : WEB_BASE;
+const BASE = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
 
 export async function apiPost(path, body, token = null) {
   const res = await fetch(`${BASE}${path}`, {
@@ -26,7 +16,7 @@ export async function apiPost(path, body, token = null) {
     // Bearer-only: never send cookies. The mobile SPA authenticates purely by
     // token, so a stale same-origin web-app session cookie must not override the
     // Bearer (Sanctum's stateful guard would otherwise authenticate the cookie's
-    // user). Also required for Capacitor cross-origin (WKWebView).
+    // user).
     credentials: 'omit',
     headers: {
       'Content-Type': 'application/json',
