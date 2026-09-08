@@ -71,6 +71,16 @@ class RateComparator
             ->map(fn ($rate) => (float) $rate)
             ->toArray();
 
+        // No rows for the active year yet: use the newest year that has rows, so
+        // rates entered through the admin or the quarterly refresh apply whenever
+        // they were entered (F20).
+        if (empty($rates) && ($latest = $this->marketRateStore->latestTaxYear()) !== null && $latest !== $taxYear) {
+            $rates = $this->marketRateStore->forTaxYear($latest)
+                ->pluck('rate', 'rate_key')
+                ->map(fn ($rate) => (float) $rate)
+                ->toArray();
+        }
+
         // Fall back to defaults if no rates seeded
         if (empty($rates)) {
             return [

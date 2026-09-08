@@ -83,9 +83,9 @@ abstract class ReferenceDataStore
 
     private function guardSource(IngestSource $source): void
     {
-        if (! in_array($source, [IngestSource::ADMIN, IngestSource::SEEDER], true)) {
+        if (! in_array($source, [IngestSource::ADMIN, IngestSource::SEEDER, IngestSource::SCRAPER], true)) {
             throw new StoreValidationException(
-                ['ingest_source' => "Reference-data writes only permitted from ADMIN or SEEDER (got: {$source->value})"]
+                ['ingest_source' => "Reference-data writes only permitted from ADMIN, SEEDER or SCRAPER (got: {$source->value})"]
             );
         }
     }

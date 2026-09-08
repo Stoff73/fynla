@@ -17,6 +17,8 @@ class SavingsMarketRate extends Model
         'rate',
         'tax_year',
         'effective_from',
+        'provider',
+        'source',
     ];
 
     protected $casts = [

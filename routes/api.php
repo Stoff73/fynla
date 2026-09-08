@@ -1291,6 +1291,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::post('/savings-market-rates', [SavingsMarketRateController::class, 'store']);
     Route::patch('/savings-market-rates/{id}', [SavingsMarketRateController::class, 'update']);
     Route::delete('/savings-market-rates/{id}', [SavingsMarketRateController::class, 'destroy']);
+    Route::post('/savings-market-rates/refresh', [SavingsMarketRateController::class, 'refresh']);
 
     // SP1 Pass 2 R3: Actuarial life tables admin CRUD — reads/writes ActuarialLifeTableStore
     Route::get('/actuarial-life-tables', [ActuarialLifeTableController::class, 'index']);

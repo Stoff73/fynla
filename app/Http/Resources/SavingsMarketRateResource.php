@@ -17,6 +17,8 @@ class SavingsMarketRateResource extends JsonResource
             'rate' => (float) $this->rate,
             'tax_year' => $this->tax_year,
             'effective_from' => $this->effective_from?->toDateString() ?? $this->effective_from,
+            'provider' => $this->provider,
+            'source' => $this->source,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
