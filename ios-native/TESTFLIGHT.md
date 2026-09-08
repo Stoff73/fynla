@@ -4,13 +4,13 @@ Two builds exist. **Which one to upload matters:**
 
 | Scheme | Backend | Bundle ID | Works today? |
 |---|---|---|---|
-| `Fynla-Staging` | csjones.co/fynla | `org.fynla.app.dev` | **Yes** — csjones has the native auth endpoints |
-| `Fynla-Production` | fynla.org | `org.fynla.app` | **No login yet** — production is pre-native-packages; ship `dev → main` first |
+| `Fynla-Staging` | fynla.org | `org.fynla.app.dev` | **Yes** |
+| `Fynla-Production` | fynla.org | `org.fynla.app` | **Yes** (native routes live since the 2026-09-07 release) |
 
-Until the native packages reach production, the TestFlight build that actually
-works is **Fynla-Staging**. It needs its own App Store Connect app record
-(`org.fynla.app.dev`) so its builds never touch the live `org.fynla.app`
-listing.
+Both schemes read fynla.org (CSJ 2026-09-08: testing iOS against production
+is the better test); csjones is no longer a native backend. `Fynla-Staging`
+has its own App Store Connect app record (`org.fynla.app.dev`) so its builds
+never touch the live `org.fynla.app` listing.
 
 Team: `99S3M8JLLF`, set locally in a git-ignored
 `Configurations/Local.xcconfig` (`DEVELOPMENT_TEAM = 99S3M8JLLF`), picked up
@@ -145,7 +145,7 @@ Distribute App → TestFlight & App Store → Upload.
    installable the moment processing finishes.
 3. On the iPhone: install **TestFlight** from the App Store, accept the email
    invitation (or it simply appears under the app if your Apple ID is the
-   ASC user), install, and sign in with a csjones account.
+   ASC user), install, and sign in with a fynla.org account.
 4. External testers (later) need Beta App Review — internal is enough for
    your own devices.
 
@@ -158,7 +158,6 @@ Distribute App → TestFlight & App Store → Upload.
 - **"No suitable application records were found"** → the App Store Connect
   app record for the bundle ID doesn't exist yet (one-time setup step 1).
 - **Duplicate build number** → bump `CURRENT_PROJECT_VERSION`.
-- **Login fails inside a TestFlight build of Fynla-Production** → expected
-  until the native backend packages ship `dev → main`; use the Staging build.
-- The associated domain in the Staging build is `applinks:csjones.co`;
-  universal links on the dev build follow csjones, not fynla.org.
+- Both builds carry `applinks:fynla.org`; the site association must list
+  `org.fynla.app.dev` as well as `org.fynla.app` for universal links to open
+  the dev-signed build.
