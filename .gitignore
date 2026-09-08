@@ -75,8 +75,6 @@ yarn-error.log
 /public/m-e2e-build/
 
 # Capacitor
-ios/App/Pods/
-ios/App/App/public/
 
 # iOS native — personal signing overrides (DEVELOPMENT_TEAM etc.), never committed
 ios-native/Configurations/Local.xcconfig
