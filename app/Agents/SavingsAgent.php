@@ -108,7 +108,10 @@ class SavingsAgent extends BaseAgent
                     $totalSavings,
                     $monthlyExpenditure
                 );
-                $adequacy = $this->emergencyFundCalculator->calculateAdequacy($runway, 6);
+                $adequacy = $this->emergencyFundCalculator->calculateAdequacy(
+                    $runway,
+                    $this->emergencyFundCalculator->getTargetMonths($user?->employment_status)
+                );
                 $adequacyCategory = $this->emergencyFundCalculator->categorizeAdequacy($runway);
 
                 // ISA Allowance Status
@@ -176,6 +179,7 @@ class SavingsAgent extends BaseAgent
                 $missingForQualityAdvice = $this->findMissingForQualityAdvice($user, $resolved, $accounts);
 
                 return [
+                    'user_id' => $userId,
                     'summary' => [
                         'total_savings' => $this->roundToPenny($totalSavings),
                         'total_accounts' => $accounts->count(),
@@ -495,25 +499,16 @@ class SavingsAgent extends BaseAgent
      */
     private function calculateEmploymentBasedTarget(?User $user, float $monthlyExpenditure): array
     {
-        $baseMonths = 6;
-
-        if ($user && ! empty($user->employment_status)) {
-            $targetMonths = match ($user->employment_status) {
-                'self_employed', 'contractor', 'freelance' => 9,
-                'unemployed', 'career_break' => 12,
-                default => $baseMonths,
-            };
-        } else {
-            $targetMonths = $baseMonths;
-        }
+        // One month table for the whole module (fyn-wiring Batch A, F16).
+        $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
 
         return [
             'target_months' => $targetMonths,
             'target_amount' => $this->roundToPenny($monthlyExpenditure * $targetMonths),
-            'employment_status' => $user->employment_status ?? null,
+            'employment_status' => $user?->employment_status,
             'rationale' => match ($targetMonths) {
                 9 => 'Self-employed and contractor income can be irregular, so a larger buffer is recommended.',
-                12 => 'During periods without employment, a 12-month fund provides essential security.',
+                3 => 'A stable pension income needs a smaller buffer than earned income.',
                 default => 'The standard recommendation is 6 months of essential expenditure.',
             },
         ];

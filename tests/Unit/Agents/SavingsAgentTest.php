@@ -23,6 +23,8 @@ beforeEach(function () {
     $this->liquidityAnalyzer = Mockery::mock(LiquidityAnalyzer::class);
     $this->rateComparator = Mockery::mock(RateComparator::class);
     $this->readinessService = Mockery::mock(SavingsDataReadinessService::class);
+    // The calculator is the one month table (fyn-wiring Batch A); analyze() reads it for the adequacy target.
+    $this->emergencyFundCalculator->shouldReceive('getTargetMonths')->andReturn(6)->byDefault();
     $this->readinessService->shouldReceive('assess')->andReturn([
         'can_proceed' => true,
         'blocking' => [],
@@ -185,6 +187,8 @@ describe('analyze', function () {
         ]);
 
         expect($result['goals'])->toHaveKeys(['progress', 'prioritized']);
+        expect($result['user_id'])->toBe($user->id);
+
     });
 
     it('handles user with no savings accounts', function () {

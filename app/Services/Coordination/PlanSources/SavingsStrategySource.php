@@ -31,14 +31,11 @@ final class SavingsStrategySource implements ModuleStrategySource
 
     public function recommendations(User $user): array
     {
+        // SavingsAgent::analyze() carries user_id (fyn-wiring Batch A), so every
+        // consumer runs the action definition service for the right household.
         $analysis = $this->agent->analyze($user->id);
-
-        // SavingsAgent::generateRecommendations reads user_id from the analysis
-        // array to load accounts and run the action definition service.
-        $data = $analysis['data'] ?? $analysis;
-        $data['user_id'] = $user->id;
-
-        $generated = $this->agent->generateRecommendations($data);
+        $analysis['user_id'] ??= $user->id; // a mocked or readiness-blocked analysis may omit it
+        $generated = $this->agent->generateRecommendations($analysis);
 
         return array_map(
             fn (array $r) => $this->adapter->toStrategyRecommendation($r),
