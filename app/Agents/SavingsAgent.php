@@ -549,7 +549,7 @@ class SavingsAgent extends BaseAgent
 
             // Find JISA accounts for this child
             $jisaAccounts = $accounts->filter(
-                fn ($a) => $a->is_isa && $a->isa_type === 'junior_isa' && $a->beneficiary_id === $child->id
+                fn ($a) => $a->isJuniorIsa() && $a->beneficiary_id === $child->id
             );
 
             $totalJisaBalance = $jisaAccounts->sum('current_balance');
@@ -558,7 +558,7 @@ class SavingsAgent extends BaseAgent
 
             // Find non-JISA savings for this child
             $otherAccounts = $accounts->filter(
-                fn ($a) => $a->beneficiary_id === $child->id && (! $a->is_isa || $a->isa_type !== 'junior_isa')
+                fn ($a) => $a->beneficiary_id === $child->id && ! $a->isJuniorIsa()
             );
             $totalOtherBalance = $otherAccounts->sum('current_balance');
 

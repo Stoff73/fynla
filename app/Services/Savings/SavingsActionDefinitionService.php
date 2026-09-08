@@ -766,7 +766,9 @@ class SavingsActionDefinitionService
 
         $psaPosition = $this->psaCalculator->assessPSAPosition($user);
         $threshold = (float) ($config['threshold'] ?? 80);
-        if (($psaPosition['utilisation_percent'] ?? 0) < $threshold || ($psaPosition['breach_amount'] ?? 0) > 0) {
+        if (($psaPosition['psa_amount'] ?? 0) <= 0 // additional-rate taxpayers have no allowance to approach
+            || ($psaPosition['utilisation_percent'] ?? 0) < $threshold
+            || ($psaPosition['breach_amount'] ?? 0) > 0) {
             return [];
         }
 
@@ -1133,6 +1135,9 @@ class SavingsActionDefinitionService
             if (! $account) {
                 continue;
             }
+            if ($account->account_type === 'premium_bonds' || (float) $account->interest_rate <= 0) {
+                continue; // prize-based, or covered by zero_rate_account
+            }
 
             $potentialGain = (float) ($comparison['potential_gain'] ?? 0);
             if ($potentialGain < 50) {
@@ -1224,6 +1229,9 @@ class SavingsActionDefinitionService
             $account = $savingsAccounts->firstWhere('id', $comparison['account_id']);
             if (! $account) {
                 continue;
+            }
+            if ($account->account_type === 'premium_bonds' || (float) $account->interest_rate <= 0) {
+                continue; // prize-based, or covered by zero_rate_account
             }
 
             $potentialGain = (float) ($comparison['potential_gain'] ?? 0);
@@ -1453,6 +1461,9 @@ class SavingsActionDefinitionService
             $rate = (float) ($account->interest_rate ?? 0);
             $balance = (float) ($account->current_balance ?? 0);
 
+            if ($account->account_type === 'premium_bonds') {
+                continue; // prize draws, not interest
+            }
             if ($rate > 0 || $balance <= 0) {
                 continue;
             }
@@ -1765,7 +1776,8 @@ class SavingsActionDefinitionService
         $averageSavingsRate = (float) ($averageSavingsRate ?? 0);
 
         // Only trigger if mortgage rate meaningfully exceeds savings rate
-        if ($highestMortgageRate <= $averageSavingsRate + 0.005) {
+        // Both rate columns hold percentages; the gap is in percentage points.
+        if ($highestMortgageRate <= $averageSavingsRate + 0.5) {
             return [];
         }
 
@@ -1790,20 +1802,20 @@ class SavingsActionDefinitionService
         $mortgageLender = $highestMortgage->lender_name ?? 'unknown lender';
         $mortgageBalance = (float) ($highestMortgage->outstanding_balance ?? $highestMortgage->current_balance ?? 0);
         $rateDiff = $highestMortgageRate - $averageSavingsRate;
-        $effectiveSaving = $nonEmergencyBalance * $rateDiff;
+        $effectiveSaving = $nonEmergencyBalance * $rateDiff / 100;
 
         $trace[] = [
             'question' => 'Does the mortgage rate meaningfully exceed the average savings rate?',
             'data_field' => 'rate_comparison',
-            'data_value' => 'Mortgage '.number_format($highestMortgageRate * 100, 2).'% vs savings avg '.number_format($averageSavingsRate * 100, 2).'%',
+            'data_value' => 'Mortgage '.number_format($highestMortgageRate, 2).'% vs savings avg '.number_format($averageSavingsRate, 2).'%',
             'threshold' => 'Mortgage rate must exceed average savings rate by > 0.5%',
             'passed' => true,
-            'explanation' => 'Highest mortgage: '.$mortgageLender.' at '.number_format($highestMortgageRate * 100, 2).'% (£'.number_format($mortgageBalance, 0).' outstanding). Average savings rate: '.number_format($averageSavingsRate * 100, 2).'%. Rate gap: '.number_format($rateDiff * 100, 2).' percentage points. Overpaying with the £'.number_format($nonEmergencyBalance, 0).' non-emergency savings could save approximately £'.number_format($effectiveSaving, 0).'/year in net interest.',
+            'explanation' => 'Highest mortgage: '.$mortgageLender.' at '.number_format($highestMortgageRate, 2).'% (£'.number_format($mortgageBalance, 0).' outstanding). Average savings rate: '.number_format($averageSavingsRate, 2).'%. Rate gap: '.number_format($rateDiff, 2).' percentage points. Overpaying with the £'.number_format($nonEmergencyBalance, 0).' non-emergency savings could save approximately £'.number_format($effectiveSaving, 0).'/year in net interest.',
         ];
 
         $vars = [
-            'mortgage_rate' => number_format($highestMortgageRate * 100, 2),
-            'average_savings_rate' => number_format($averageSavingsRate * 100, 2),
+            'mortgage_rate' => number_format($highestMortgageRate, 2),
+            'average_savings_rate' => number_format($averageSavingsRate, 2),
             'non_emergency_balance' => $this->formatCurrency($nonEmergencyBalance),
         ];
 
@@ -1922,7 +1934,7 @@ class SavingsActionDefinitionService
             'data_value' => '£'.number_format($totalSavings, 0).' across '.$accountCount.' account(s)',
             'threshold' => '£'.number_format($threshold, 0).' minimum',
             'passed' => true,
-            'explanation' => 'Total cash savings of £'.number_format($totalSavings, 0).' across '.$accountCount.' account(s) at an average rate of '.number_format((float) $avgRate * 100, 2).'%. This exceeds the £'.number_format($threshold, 0).' cash drag threshold.',
+            'explanation' => 'Total cash savings of £'.number_format($totalSavings, 0).' across '.$accountCount.' account(s) at an average rate of '.number_format((float) $avgRate, 2).'%. This exceeds the £'.number_format($threshold, 0).' cash drag threshold.',
         ];
 
         // 2. Surplus vs emergency fund
@@ -2296,7 +2308,10 @@ class SavingsActionDefinitionService
                 continue;
             }
 
-            $required = $goal->required_monthly_contribution;
+            $required = (float) $goal->required_monthly_contribution;
+            if ($required <= $monthlyContribution || (int) ($goal->months_remaining ?? 0) <= 0) {
+                continue; // nothing more to contribute, or the deadline has passed (a different conversation)
+            }
             $shortfall = max(0, $required - $monthlyContribution);
             $goalName = $goal->goal_name ?? 'Unnamed goal';
             $targetAmount = (float) ($goal->target_amount ?? 0);
@@ -2436,7 +2451,10 @@ class SavingsActionDefinitionService
 
         $results = [];
         foreach ($goals as $goal) {
-            $monthsRemaining = $goal->months_remaining;
+            $monthsRemaining = (int) ($goal->months_remaining ?? 0);
+            if ($monthsRemaining <= 0) {
+                continue; // deadline passed: not "approaching"
+            }
             $progress = $goal->progress_percentage;
 
             if ($monthsRemaining > $monthsThreshold || $progress >= $progressThreshold) {
@@ -2789,7 +2807,7 @@ class SavingsActionDefinitionService
         $results = [];
 
         foreach ($savingsAccounts as $account) {
-            if ($account->access_type !== 'immediate') {
+            if ($account->access_type !== 'immediate' || $account->isJuniorIsa()) {
                 continue;
             }
             $monthly = match ((string) ($account->contribution_frequency ?? '')) {
@@ -2966,7 +2984,7 @@ class SavingsActionDefinitionService
             if ($yearsTo18 <= $years) {
                 continue;
             }
-            $cashJisas = $savingsAccounts->filter(fn ($a) => (bool) $a->is_isa && $a->isa_type === 'junior_isa' && (int) $a->beneficiary_id === (int) $child->id);
+            $cashJisas = $savingsAccounts->filter(fn ($a) => $a->isJuniorIsa() && (int) $a->beneficiary_id === (int) $child->id);
             if ($cashJisas->isEmpty()) {
                 continue;
             }
@@ -3103,6 +3121,7 @@ class SavingsActionDefinitionService
             ];
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['family_member_id'] = $child->id;
             $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
@@ -3129,7 +3148,7 @@ class SavingsActionDefinitionService
         foreach ($children as $child) {
             $hasJISA = $savingsAccounts
                 ->where('beneficiary_id', $child->id)
-                ->where('isa_type', 'junior')
+                ->filter(fn ($a) => $a->isJuniorIsa())
                 ->isNotEmpty();
 
             if ($hasJISA) {
@@ -3175,6 +3194,7 @@ class SavingsActionDefinitionService
             ];
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['family_member_id'] = $child->id;
             $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
@@ -3205,7 +3225,7 @@ class SavingsActionDefinitionService
         foreach ($children as $child) {
             $jisaAccounts = $savingsAccounts
                 ->where('beneficiary_id', $child->id)
-                ->where('isa_type', 'junior');
+                ->filter(fn ($a) => $a->isJuniorIsa());
 
             if ($jisaAccounts->isEmpty()) {
                 continue;
@@ -3312,8 +3332,8 @@ class SavingsActionDefinitionService
             $user = User::find($userId);
             $childAccounts = $user ? $user->savingsAccounts()->where('beneficiary_id', $child->id)->get() : collect();
             $childSavingsTotal = $childAccounts->sum('current_balance');
-            $hasJisa = $childAccounts->where('isa_type', 'junior')->isNotEmpty();
-            $jisaBalance = $childAccounts->where('isa_type', 'junior')->sum('current_balance');
+            $hasJisa = $childAccounts->filter(fn ($a) => $a->isJuniorIsa())->isNotEmpty();
+            $jisaBalance = $childAccounts->filter(fn ($a) => $a->isJuniorIsa())->sum('current_balance');
 
             $trace = [];
 
@@ -3448,10 +3468,7 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        $userIsaRemaining = $savingsAnalysis['isa_allowance']['remaining'] ?? 0;
-        if ($userIsaRemaining <= 0) {
-            return [];
-        }
+        $userIsaRemaining = (float) ($savingsAnalysis['isa_allowance']['remaining'] ?? 0);
 
         // Check if spouse also has remaining ISA allowance
         $isaAllowances = $this->taxConfig->getISAAllowances();
@@ -3471,8 +3488,12 @@ class SavingsActionDefinitionService
         $spouseIsaRemaining = max(0, $totalAllowance - $spouseIsaUsed);
         $combinedRemaining = $userIsaRemaining + $spouseIsaRemaining;
 
-        // Only trigger if combined remaining is meaningful
-        if ($combinedRemaining < 5000) {
+        // The seeded condition is an IMBALANCE: one partner's allowance is fully
+        // used while the other still has capacity. Both with room, or both full,
+        // is not this recommendation.
+        $userFull = $userIsaRemaining <= 0;
+        $spouseFull = $spouseIsaRemaining <= 0;
+        if ($userFull === $spouseFull || $combinedRemaining < 5000) {
             return [];
         }
 
@@ -3580,6 +3601,47 @@ class SavingsActionDefinitionService
             $recommendations = array_values(array_filter(
                 $recommendations,
                 fn ($r) => ! (($r['definition_key'] ?? '') === 'fixed_maturity_warning' && in_array($r['account_id'] ?? null, $urgentAccounts, true))
+            ));
+        }
+
+        // Zero-rate accounts: the zero-rate row supersedes the rate-gap rows for the same account.
+        $zeroAccounts = collect($recommendations)->where('definition_key', 'zero_rate_account')->pluck('account_id')->filter()->all();
+        if ($zeroAccounts !== []) {
+            $recommendations = array_values(array_filter(
+                $recommendations,
+                fn ($r) => ! (in_array($r['definition_key'] ?? '', ['rate_below_market', 'rate_poor'], true) && in_array($r['account_id'] ?? null, $zeroAccounts, true))
+            ));
+        }
+
+        // Excess cash is one conversation: keep the first rung of the cascade that fired.
+        $cascade = ['excess_cash_isa_available', 'excess_cash_pension', 'excess_cash_bond', 'excess_cash_gia'];
+        $firedRung = null;
+        foreach ($cascade as $rung) {
+            if (in_array($rung, $keys, true)) {
+                $firedRung = $rung;
+                break;
+            }
+        }
+        if ($firedRung !== null) {
+            $recommendations = array_values(array_filter(
+                $recommendations,
+                fn ($r) => ! in_array($r['definition_key'] ?? '', $cascade, true) || ($r['definition_key'] ?? '') === $firedRung
+            ));
+            // The plain ISA-allowance nudge says the same thing as the ISA rung.
+            if ($firedRung === 'excess_cash_isa_available') {
+                $recommendations = array_values(array_filter(
+                    $recommendations,
+                    fn ($r) => ($r['definition_key'] ?? '') !== 'isa_allowance_remaining'
+                ));
+            }
+        }
+
+        // Children: the Junior ISA nudge supersedes the broader no-savings card for the same child.
+        $jisaChildren = collect($recommendations)->where('definition_key', 'child_no_jisa')->pluck('family_member_id')->filter()->all();
+        if ($jisaChildren !== []) {
+            $recommendations = array_values(array_filter(
+                $recommendations,
+                fn ($r) => ! (($r['definition_key'] ?? '') === 'child_no_savings' && in_array($r['family_member_id'] ?? null, $jisaChildren, true))
             ));
         }
 
