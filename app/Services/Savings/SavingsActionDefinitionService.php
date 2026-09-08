@@ -56,6 +56,12 @@ class SavingsActionDefinitionService
         Collection $investmentAccounts,
         int $userId
     ): array {
+        // No household, no rules: a zero user id used to run every evaluator
+        // against nobody on the Fyn path (fyn-wiring F0).
+        if ($userId <= 0) {
+            return ['recommendations' => [], 'total_count' => 0, 'high_priority_count' => 0];
+        }
+
         $definitions = SavingsActionDefinition::getEnabledBySource('agent');
         $recommendations = [];
         $priority = 1;
