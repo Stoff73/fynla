@@ -370,7 +370,7 @@ it('rejects a legacy plan key for a new purchase', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-        'plan' => 'pro', 'billing_cycle' => 'monthly',
+        'plan' => 'premium', 'billing_cycle' => 'monthly',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors('plan');
 });

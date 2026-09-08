@@ -6,7 +6,6 @@ namespace App\Services\Tiers;
 
 use App\Models\User;
 use App\Services\Billing\PremiumEntitlementResolver;
-use App\Services\Stores\TierConfigurationStore;
 
 class TierResolver
 {
@@ -22,8 +21,7 @@ class TierResolver
      *
      * `users.tier` is NOT consulted here and must not be. It is a query cache
      * maintained by the provider event handlers (AuthController, the subscription
-     * renewal and expiry services), plus a migration-cohort marker read by
-     * isGrandfatheredLegacyPaid() below — never a grant. Setting it alone confers
+     * renewal and expiry services) — never a grant. Setting it alone confers
      * nothing, by design:
      *
      *   codex/plans/ios/2026-07-14-ios-04-storekit-entitlements.md:95-96
@@ -45,42 +43,8 @@ class TierResolver
         return $this->entitlements->resolve($user)->tier;
     }
 
-    /**
-     * True when the user is a legacy *paid* subscriber not yet assigned a
-     * new tier (per-cohort CSJ conversion decision pending). The gate must not
-     * block their existing-data creates.
-     *
-     * The citation that used to sit here, "spec §5.2/§22 A9", pointed at a
-     * document that does not exist in this repo (W-0018). It is removed rather
-     * than reproduced: it was the sole written authority for the abandoned
-     * reading in which `users.tier` grants entitlement, and chasing it cost real
-     * time. The same phantom reference survives in the comments of
-     * tests/Unit/Services/Tiers/TierResolverTest.php — left there deliberately,
-     * as those comments describe the tests' own history.
-     *
-     * This is the one legitimate read of `users.tier`, and it is asking a
-     * different question from resolve(): "has this user been migrated onto the
-     * new tier scheme yet?" A canonical value present means yes, so they are not
-     * a grandfathering candidate. That is the column used as a cohort marker,
-     * which is what a cache is for — it grants nothing on its own.
-     */
-    public function isGrandfatheredLegacyPaid(User $user): bool
-    {
-        if (in_array($user->tier, TierConfigurationStore::TIERS, true)) {
-            return false;
-        }
-        if ($user->is_preview_user) {
-            return false;
-        }
-        if (! in_array($user->plan ?? '', TierConfigurationStore::LEGACY_PAID_PLANS, true)) {
-            return false;
-        }
-
-        $subscription = $user->relationLoaded('subscription')
-            ? $user->subscription
-            : $user->subscription()->first();
-
-        return $subscription !== null
-            && in_array($subscription->plan ?? '', TierConfigurationStore::LEGACY_PAID_PLANS, true);
-    }
+    // isGrandfatheredLegacyPaid() lived here until 2026-09-08. It protected the
+    // row caps of subscribers on the plans sold before the tier scheme; those
+    // subscriptions are premium in the data now (unbounded quotas), so there is
+    // nothing left to grandfather.
 }

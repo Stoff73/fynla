@@ -52,7 +52,7 @@ it('accounts:execute-grace-deletions skips preview users', function () {
     $user = User::factory()->create(['is_preview_user' => true]);
     DB::table('subscriptions')->insert([
         'user_id' => $user->id,
-        'plan' => 'pro',
+        'plan' => 'premium',
         'billing_cycle' => 'monthly',
         'status' => 'expired',
         'data_retention_starts_at' => now()->subDays(31),
