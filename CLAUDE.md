@@ -129,8 +129,7 @@ The handover must carry: the task as dispatched verbatim plus amendments; what i
 **`/m`** (`resources/mobile/`) is an **isolated** Vite bundle (`vite.mobile.config.js` → `public/m-build/`) with its own api/router/store/tokens. **A fix in `resources/js/` does not reach it.** Its only shared file is `store/modules/auth.js` — mobile logout must call `auth/mobileLogout`, never `auth/logout` (which revokes the token and breaks Face ID).
 
 **`ios-native/`** (SwiftUI) — see `ios-native/CLAUDE.md`. Three standing traps, all configuration rather than code:
-- **The TestFlight build is `Fynla-Staging` and reads the csjones database.** A fynla.org account does not exist there; login returns 401 `user_not_found`, shown as "Invalid email or password". **Testers must register on csjones.co/fynla.**
-- **Production has no `/api/v1/native/*` routes**, so `Fynla-Production` cannot complete login. Fixing it is a `dev → main` release.
+- **Both schemes point at fynla.org** (CSJ 2026-09-08: testing iOS against production is the better test). `Fynla-Staging` differs only in bundle id (`org.fynla.app.dev`) and development push; there is no csjones-backed native build any more, so every account a tester creates is a real fynla.org account. Production has had the `/api/v1/native/*` routes since the 2026-09-07 release.
 - **No in-app purchase products exist in App Store Connect**, so the paywall reads "Premium subscriptions are unavailable". The 6 red `Local StoreKit configuration` tests are a real signal of this, not noise.
 
 **`ios/`** (the Capacitor wrapper, dormant since 2026-03-13) was removed on 2026-09-08 — it lives in git history before `chore/remove-capacitor-ios-target` if ever needed. The web SPA still imports `@capacitor/core` and `@capacitor/preferences` for platform detection; those npm packages stay.

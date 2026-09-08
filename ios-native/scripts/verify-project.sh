@@ -5,7 +5,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 NATIVE="$ROOT/ios-native"
 PROJECT="$NATIVE/Fynla.xcodeproj"
-SOURCE_ICONS="$ROOT/ios/App/App/Assets.xcassets/AppIcon.appiconset"
 NATIVE_ICONS="$NATIVE/Fynla/Assets.xcassets/AppIcon.appiconset"
 
 required_files=(
@@ -42,7 +41,7 @@ grep -Fq 'INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientatio
 grep -Fq 'INFOPLIST_KEY_UIUserInterfaceStyle = Light' "$NATIVE/Configurations/Base.xcconfig"
 
 grep -Fq 'PRODUCT_BUNDLE_IDENTIFIER = org.fynla.app.dev' "$NATIVE/Configurations/Staging.xcconfig"
-grep -Fq 'FYNLA_API_BASE_URL = https:/$()/csjones.co/fynla' "$NATIVE/Configurations/Staging.xcconfig"
+grep -Fq 'FYNLA_API_BASE_URL = https:/$()/fynla.org' "$NATIVE/Configurations/Staging.xcconfig"
 grep -Fq 'FYNLA_ENVIRONMENT = staging' "$NATIVE/Configurations/Staging.xcconfig"
 grep -Fq 'PRODUCT_BUNDLE_IDENTIFIER = org.fynla.app' "$NATIVE/Configurations/Production.xcconfig"
 grep -Fq 'FYNLA_API_BASE_URL = https:/$()/fynla.org' "$NATIVE/Configurations/Production.xcconfig"
@@ -65,11 +64,10 @@ if grep -R -E '^[[:space:]]*import[[:space:]]+(Capacitor|WebKit)' \
   exit 1
 fi
 
-cmp "$SOURCE_ICONS/Contents.json" "$NATIVE_ICONS/Contents.json"
-while IFS= read -r native_icon; do
-  relative="${native_icon#"$NATIVE_ICONS/"}"
-  cmp "$SOURCE_ICONS/$relative" "$native_icon"
-done < <(find "$NATIVE_ICONS" -maxdepth 1 -type f -name '*.png' | sort)
+# The native icon set is the only one in the repo since the Capacitor target
+# went (2026-09-08); it just has to be complete.
+test -f "$NATIVE_ICONS/Contents.json"
+test -n "$(find "$NATIVE_ICONS" -maxdepth 1 -type f -name '*.png' -print -quit)"
 
 project_listing="$(xcodebuild -project "$PROJECT" -list -json)"
 printf '%s' "$project_listing" | grep -Fq 'Fynla-Staging'
