@@ -2,9 +2,9 @@
 id: W-0534
 title: The pension-exclusion sentence about the current column is written in a component, so the free-tier teaser cannot say it
 mission: board-verification-31-august
-owner: null
+owner: build-lead
 reviewers: [compliance-lead]
-status: queued
+status: done
 severity: low
 surfaces: [web, m]
 created: 2026-09-04
@@ -56,3 +56,24 @@ sees first.
    "not duplicated into a frontend bundle" assertion.
 5. `compliance-lead` — the sentence moves surfaces and now reaches free-tier and
    demo users, which is a change in who is told what.
+
+## Outcome — done, 2026-09-07 (closed on the board 2026-09-08)
+
+Landed in `298ee8234` (PR #768 onto dev, released to fynla.org in main
+`a7cb3a211` on 2026-09-07).
+
+- The engine publishes the current-column exclusion as a finished sentence
+  beside `projected_pension_inclusion_caveat` and `unmodelled_relief_caveat`;
+  the date comes from configuration and is formatted in the service
+  (acceptance 1).
+- `IHTPlanning.vue` renders the published string instead of its own copy
+  (acceptance 2). The teaser detector passes it through and web and `/m` render
+  it (acceptance 3) — browser-verified on csjones, web + `/m`, 2026-09-07, and
+  seen on the Carter demo's Estate teaser locally on 2026-09-08 ("£67,000 of
+  pension savings is left out of the figures above…").
+- `EveryIhtFigureCarriesItsCaveatsTest` extends to the third key; its "not this
+  test's business" note is replaced by the assertion (acceptance 4).
+
+Tests: 5 new. Acceptance 5 (`compliance-lead` on the sentence reaching free-tier
+and demo users) was **not run**; the sentence itself is unchanged from the one
+`W-0363` cleared, it only moved surfaces.
