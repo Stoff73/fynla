@@ -6,11 +6,13 @@ namespace App\Services\Savings;
 
 use App\Constants\TaxDefaults;
 use App\Models\Goal;
+use App\Models\LifeEvent;
 use App\Models\Mortgage;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\Shared\DependantsReach;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\ResolvesExpenditure;
@@ -38,7 +40,8 @@ class SavingsActionDefinitionService
         private readonly FSCSAssessor $fscsAssessor,
         private readonly EmergencyFundCalculator $emergencyFundCalculator,
         // W-0275 — the one home for reaching a household's family (Rule 20).
-        private readonly DependantsReach $dependantsReach
+        private readonly DependantsReach $dependantsReach,
+        private readonly TaxStrategyMath $taxMath,
     ) {}
 
     /**
@@ -84,33 +87,6 @@ class SavingsActionDefinitionService
     }
 
     /**
-     * Evaluate all enabled goal-sourced action definitions against linked goals.
-     *
-     * @return array Recommendations in standard format consumed by structureActions()
-     */
-    public function evaluateGoalActions(Collection $linkedGoals): array
-    {
-        $definitions = SavingsActionDefinition::getEnabledBySource('goal');
-        $recommendations = [];
-
-        foreach ($linkedGoals as $goal) {
-            $progress = $goal['progress_percentage'] ?? 0;
-            if ($progress >= 100) {
-                continue;
-            }
-
-            foreach ($definitions as $definition) {
-                $rec = $this->evaluateGoalTrigger($definition, $goal);
-                if ($rec !== null) {
-                    $recommendations[] = $rec;
-                }
-            }
-        }
-
-        return $recommendations;
-    }
-
-    /**
      * Look up the what_if_impact_type for a given action category.
      */
     public function getWhatIfImpactType(string $category): string
@@ -143,65 +119,73 @@ class SavingsActionDefinitionService
 
         return match ($condition) {
             // Data Readiness
-            'missing_date_of_birth' => $this->evaluateMissingDOB($definition, $userId, $priority),
-            'missing_income' => $this->evaluateMissingIncome($definition, $userId, $priority),
-            'missing_expenditure' => $this->evaluateMissingExpenditure($definition, $userId, $priority),
-            'missing_employment_status' => $this->evaluateMissingEmployment($definition, $userId, $priority),
+            'date_of_birth_missing' => $this->evaluateMissingDOB($definition, $userId, $priority),
+            'income_missing' => $this->evaluateMissingIncome($definition, $userId, $priority),
+            'expenditure_missing' => $this->evaluateMissingExpenditure($definition, $userId, $priority),
+            'employment_status_missing' => $this->evaluateMissingEmployment($definition, $userId, $priority),
 
             // Emergency Fund
-            'emergency_fund_critical' => $this->evaluateEmergencyFundCritical($definition, $savingsAnalysis, $savingsAccounts, $userId, $config, $priority),
-            'emergency_fund_low' => $this->evaluateEmergencyFundLow($definition, $savingsAnalysis, $savingsAccounts, $userId, $config, $priority),
-            'emergency_fund_building' => $this->evaluateEmergencyFundBuilding($definition, $savingsAnalysis, $config, $priority),
-            'emergency_fund_no_designated' => $this->evaluateEmergencyFundNoDesignated($definition, $savingsAccounts, $priority),
-            'emergency_fund_excessive' => $this->evaluateEmergencyFundExcessive($definition, $savingsAnalysis, $config, $priority),
+            'emergency_runway_below' => $this->evaluateEmergencyFundCritical($definition, $savingsAnalysis, $savingsAccounts, $userId, $config, $priority),
+            'emergency_runway_between' => $this->evaluateEmergencyRunwayBetween($definition, $savingsAnalysis, $savingsAccounts, $userId, $config, $priority),
+            'emergency_runway_above' => $this->evaluateEmergencyFundExcessive($definition, $savingsAnalysis, $userId, $config, $priority),
+            'no_designated_emergency_fund' => $this->evaluateEmergencyFundNoDesignated($definition, $savingsAccounts, $priority),
+            'no_emergency_fund_goal_and_runway_below' => $this->evaluateEmergencyFundGoalSuggested($definition, $savingsAnalysis, $userId, $config, $priority),
+            'emergency_fund_expenditure_missing' => $this->evaluateEmergencyFundNoData($definition, $savingsAnalysis, $savingsAccounts, $userId, $priority),
 
-            // Tax Efficiency (PSA)
-            'psa_breached' => $this->evaluatePSABreached($definition, $userId, $priority),
-            'psa_approaching' => $this->evaluatePSAApproaching($definition, $userId, $priority),
-            'psa_headroom_available' => $this->evaluatePSAHeadroomAvailable($definition, $userId, $priority),
-            'cash_isa_recommended' => $this->evaluateCashISARecommended($definition, $savingsAnalysis, $userId, $priority),
-            'cash_isa_not_needed' => $this->evaluateCashISANotNeeded($definition, $savingsAnalysis, $userId, $priority),
-            'isa_allowance_remaining' => $this->evaluateISAAllowanceRemaining($definition, $savingsAnalysis, $config, $priority),
+            // Tax Efficiency (PSA / ISA)
+            'psa_exceeded' => $this->evaluatePSABreached($definition, $userId, $priority),
+            'psa_usage_above' => $this->evaluatePSAApproaching($definition, $userId, $config, $priority),
+            'psa_headroom_above' => $this->evaluatePSAHeadroomAvailable($definition, $userId, $config, $priority),
+            'additional_rate_taxpayer_with_taxable_savings' => $this->evaluatePsaAdditionalRate($definition, $userId, $priority),
+            'eligible_for_starting_rate' => $this->evaluateStartingRateUnused($definition, $userId, $priority),
+            'has_taxable_savings_no_cash_isa' => $this->evaluateCashISARecommended($definition, $savingsAnalysis, $userId, $priority),
+            'basic_rate_with_psa_headroom' => $this->evaluateCashISANotNeeded($definition, $savingsAnalysis, $userId, $config, $priority),
+            'isa_remaining_and_runway_above' => $this->evaluateISAAllowanceRemaining($definition, $savingsAnalysis, $config, $priority),
 
             // Rate Optimisation
-            'rate_below_market' => $this->evaluateRateBelowMarket($definition, $savingsAnalysis, $savingsAccounts, $priority),
-            'rate_significantly_below' => $this->evaluateRateSignificantlyBelow($definition, $savingsAnalysis, $savingsAccounts, $priority),
-            'fixed_rate_maturing' => $this->evaluateFixedRateMaturing($definition, $savingsAccounts, $config, $priority),
-            'promo_rate_expiring' => $this->evaluatePromoRateExpiring($definition, $savingsAccounts, $config, $priority),
-            'rate_improvement_available' => $this->evaluateRateImprovementAvailable($definition, $savingsAnalysis, $savingsAccounts, $priority),
-            'zero_rate_account' => $this->evaluateZeroRateAccount($definition, $savingsAccounts, $priority),
+            'rate_below_market_best' => $this->evaluateRateBelowMarket($definition, $savingsAnalysis, $savingsAccounts, $config, $priority),
+            'rate_significantly_below_market' => $this->evaluateRateSignificantlyBelow($definition, $savingsAnalysis, $savingsAccounts, $config, $priority),
+            'fixed_term_maturing_within' => $this->evaluateFixedRateMaturing($definition, $savingsAccounts, $config, $priority),
+            'promo_rate_expiring_within' => $this->evaluatePromoRateExpiring($definition, $savingsAccounts, $config, $priority),
+            'account_rate_is_zero' => $this->evaluateZeroRateAccount($definition, $savingsAccounts, $priority),
+            'has_easy_access_with_regular_contributions' => $this->evaluateRegularSaverOpportunity($definition, $savingsAccounts, $config, $priority),
 
             // FSCS Protection
-            'fscs_breach' => $this->evaluateFSCSBreach($definition, $savingsAccounts, $priority),
-            'fscs_approaching' => $this->evaluateFSCSApproaching($definition, $savingsAccounts, $priority),
+            'institution_balance_above_fscs' => $this->evaluateFSCSBreach($definition, $savingsAccounts, $priority),
+            'institution_balance_approaching_fscs' => $this->evaluateFSCSApproaching($definition, $savingsAccounts, $priority),
 
             // Debt vs Savings
-            'debt_rate_exceeds_savings' => $this->evaluateDebtRateExceedsSavings($definition, $userId, $savingsAccounts, $priority),
-            'mortgage_rate_comparison' => $this->evaluateMortgageRateComparison($definition, $userId, $savingsAccounts, $priority),
+            'debt_rate_exceeds_savings_rate' => $this->evaluateDebtRateExceedsSavings($definition, $userId, $savingsAccounts, $config, $priority),
+            'mortgage_rate_exceeds_after_tax_savings_rate' => $this->evaluateMortgageRateComparison($definition, $userId, $savingsAccounts, $priority),
 
             // Cash vs Investment
-            'surplus_above_emergency_fund' => $this->evaluateSurplusAboveEmergencyFund($definition, $savingsAnalysis, $config, $priority),
-            'cash_drag_risk' => $this->evaluateCashDragRisk($definition, $savingsAnalysis, $investmentAnalysis, $config, $priority),
-            'consider_stocks_shares_isa' => $this->evaluateConsiderStocksSharesISA($definition, $savingsAnalysis, $investmentAnalysis, $userId, $priority),
-            'consider_pension_contribution' => $this->evaluateConsiderPensionContribution($definition, $savingsAnalysis, $userId, $priority),
+            'excess_cash_and_isa_remaining' => $this->evaluateConsiderStocksSharesISA($definition, $savingsAnalysis, $investmentAnalysis, $userId, $priority),
+            'excess_cash_isa_full_pension_remaining' => $this->evaluateConsiderPensionContribution($definition, $savingsAnalysis, $userId, $priority),
+            'excess_cash_isa_and_pension_full' => $this->evaluateCashDragRisk($definition, $savingsAnalysis, $investmentAnalysis, $config, $priority),
+            'excess_cash_all_wrappers_full' => $this->evaluateSurplusAboveEmergencyFund($definition, $savingsAnalysis, $config, $priority),
 
-            // Goal-Linked
-            'goal_no_linked_account' => $this->evaluateGoalNoLinkedAccount($definition, $userId, $priority),
+            // Goals (portfolio-level, one query per user)
+            'goal_no_linked_savings_account' => $this->evaluateGoalNoLinkedAccount($definition, $userId, $priority),
             'goal_underfunded' => $this->evaluateGoalUnderfunded($definition, $userId, $priority),
-            'goal_off_track' => $this->evaluateGoalOffTrack($definition, $userId, $priority),
-            'goal_no_contribution' => $this->evaluateGoalNoContribution($definition, $userId, $priority),
-            'goal_deadline_approaching' => $this->evaluateGoalDeadlineApproaching($definition, $userId, $config, $priority),
+            'goal_contribution_shortfall' => $this->evaluateGoalOffTrack($definition, $userId, $priority),
+            'goal_no_monthly_contribution' => $this->evaluateGoalNoContribution($definition, $userId, $priority),
+            'goal_months_remaining_below_and_progress_below' => $this->evaluateGoalDeadlineApproaching($definition, $userId, $config, $priority),
+            'goal_progress_above' => $this->evaluateGoalNearlyAchieved($definition, $userId, $config, $priority),
+            'goal_account_type_mismatch' => $this->evaluateGoalWrongAccountType($definition, $userId, $savingsAccounts, $priority),
+            'multiple_goals_sharing_account' => $this->evaluateGoalMultiAccountRebalance($definition, $userId, $savingsAccounts, $priority),
+            'expense_life_event_within' => $this->evaluateLifeEventCashBuffer($definition, $userId, $config, $priority),
 
             // Children's Savings
-            'child_no_savings' => $this->evaluateChildNoSavings($definition, $userId, $savingsAccounts, $priority),
-            'junior_isa_not_open' => $this->evaluateJuniorISANotOpen($definition, $userId, $savingsAccounts, $priority),
-            'junior_isa_allowance_remaining' => $this->evaluateJuniorISAAllowanceRemaining($definition, $userId, $savingsAccounts, $priority),
-            'child_approaching_18' => $this->evaluateChildApproaching18($definition, $userId, $priority),
-            'child_savings_review' => $this->evaluateChildSavingsReview($definition, $userId, $savingsAccounts, $priority),
+            'child_under_18_no_savings' => $this->evaluateChildNoSavings($definition, $userId, $savingsAccounts, $priority),
+            'child_under_18_no_jisa' => $this->evaluateJuniorISANotOpen($definition, $userId, $savingsAccounts, $priority),
+            'jisa_allowance_remaining' => $this->evaluateJuniorISAAllowanceRemaining($definition, $userId, $savingsAccounts, $priority),
+            'child_turning_18_within' => $this->evaluateChildApproaching18($definition, $userId, $config, $priority),
+            'child_has_cash_jisa_with_long_horizon' => $this->evaluateChildJisaCashVsStocks($definition, $userId, $savingsAccounts, $config, $priority),
+            'child_parental_interest_above' => $this->evaluateChildParentalSettlement($definition, $userId, $savingsAccounts, $config, $priority),
 
             // Spouse Coordination
-            'spouse_psa_optimisation' => $this->evaluateSpousePSAOptimisation($definition, $userId, $priority),
-            'spouse_isa_coordination' => $this->evaluateSpouseISACoordination($definition, $userId, $savingsAnalysis, $priority),
+            'spouse_has_unused_psa' => $this->evaluateSpousePSAOptimisation($definition, $userId, $priority),
+            'spouse_isa_allowance_imbalanced' => $this->evaluateSpouseISACoordination($definition, $userId, $savingsAnalysis, $priority),
 
             default => [],
         };
@@ -321,7 +305,7 @@ class SavingsActionDefinitionService
 
         $userName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: 'Unknown user';
         $employmentStatus = $user->employment_status ?: 'not set';
-        $targetMonths = $this->getTargetEmergencyMonths($user);
+        $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
 
         $trace[] = [
             'question' => 'Who is this assessment for?',
@@ -379,7 +363,7 @@ class SavingsActionDefinitionService
             'data_value' => 'Not set',
             'threshold' => 'Must be provided',
             'passed' => true,
-            'explanation' => $userName.'\'s employment status is not recorded. This determines the recommended emergency fund target: employed = 6 months, self-employed/contractor = 9 months, retired = 6 months. Without it, a default of 6 months is used.',
+            'explanation' => $userName.'\'s employment status is not recorded. This determines the recommended emergency fund target: employed = 6 months, self-employed or contractor = 9 months, retired = 3 months. Without it, a default of 6 months is used.',
         ];
 
         $rec = $this->buildRecommendation($definition, [], $priority);
@@ -406,7 +390,10 @@ class SavingsActionDefinitionService
     ): array {
         $trace = [];
 
-        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
+        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? null;
+        if ($runway === null) {
+            return []; // W-0495: an unmeasured runway is not zero months.
+        }
         $threshold = (float) ($config['threshold'] ?? 1);
 
         if ($runway >= $threshold) {
@@ -421,7 +408,7 @@ class SavingsActionDefinitionService
 
         $user = User::find($userId);
         $userName = $user ? $this->getUserName($user) : 'Unknown user';
-        $targetMonths = $this->getTargetEmergencyMonths($user);
+        $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
 
         // 1. User profile
         if ($user) {
@@ -475,7 +462,12 @@ class SavingsActionDefinitionService
     /**
      * Emergency fund low: triggers when runway is below target but not critical.
      */
-    private function evaluateEmergencyFundLow(
+    /**
+     * Emergency runway between two seeded bounds. Two rows share this
+     * condition: `emergency_fund_low` (1 to 3 months) and
+     * `emergency_fund_building` (3 to target). The bounds come from the row.
+     */
+    private function evaluateEmergencyRunwayBetween(
         SavingsActionDefinition $definition,
         array $savingsAnalysis,
         Collection $savingsAccounts,
@@ -483,54 +475,44 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $trace = [];
+        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? null;
+        if ($runway === null) {
+            return []; // W-0495: an unmeasured runway is not zero months.
+        }
 
-        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         $low = (float) ($config['low'] ?? 1);
         $high = (float) ($config['high'] ?? 3);
-
         if ($runway < $low || $runway >= $high) {
             return [];
         }
 
-        $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
+        $monthlyExpenditure = (float) ($savingsAnalysis['summary']['monthly_expenditure'] ?? 0);
         if ($monthlyExpenditure <= 0) {
             return [];
         }
 
         $user = User::find($userId);
-        $targetMonths = $this->getTargetEmergencyMonths($user);
+        $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
+        $currentBalance = (float) ($savingsAnalysis['emergency_fund']['current_balance']
+            ?? $savingsAccounts->where('is_emergency_fund', true)->sum('current_balance'));
+        $shortfallMonths = max(0, $targetMonths - $runway);
+        $shortfallAmount = $shortfallMonths * $monthlyExpenditure;
+        $monthlyTopUp = $this->emergencyFundCalculator->calculateMonthlyTopUp($shortfallAmount, 12);
 
-        // 1. User profile
+        $trace = [];
         if ($user) {
             $trace[] = $this->buildUserProfileTrace($user);
         }
-
-        // 2. Employment-based target
         $trace[] = $this->buildEmploymentTargetTrace($user, $targetMonths);
-
-        // 3. Emergency fund accounts listing
         $trace[] = $this->buildEmergencyFundAccountsTrace($savingsAccounts);
-
-        // 4. Runway assessment
-        $currentBalance = $savingsAnalysis['emergency_fund']['current_balance'] ?? $savingsAccounts->where('is_emergency_fund', true)->sum('current_balance');
         $trace[] = [
             'question' => 'What is the current emergency fund runway?',
             'data_field' => 'runway_months',
             'data_value' => number_format($runway, 1).' months',
-            'threshold' => 'Between '.number_format($low, 1).' and '.number_format($high, 1).' months (low)',
+            'threshold' => 'Between '.number_format($low, 1).' and '.number_format($high, 1).' months',
             'passed' => true,
-            'explanation' => 'Total emergency savings £'.number_format((float) $currentBalance, 0).' ÷ £'.number_format($monthlyExpenditure, 0).' monthly expenditure = '.number_format($runway, 1).' months. This is below the '.number_format((float) $targetMonths, 0).'-month target but above the critical threshold.',
+            'explanation' => 'Total emergency savings £'.number_format($currentBalance, 0).' ÷ £'.number_format($monthlyExpenditure, 0).' monthly expenditure = '.number_format($runway, 1).' months, against a '.$targetMonths.'-month target.',
         ];
-
-        // 5. Monthly top-up calculation
-        $shortfallMonths = max(0, $targetMonths - $runway);
-        $shortfallAmount = $shortfallMonths * $monthlyExpenditure;
-        $monthlyTopUp = $this->emergencyFundCalculator->calculateMonthlyTopUp(
-            $shortfallAmount,
-            12
-        );
-
         $trace[] = [
             'question' => 'How much needs to be saved each month to reach the target within a year?',
             'data_field' => 'monthly_top_up',
@@ -544,64 +526,11 @@ class SavingsActionDefinitionService
             'runway_months' => number_format($runway, 1),
             'target_months' => (string) $targetMonths,
             'monthly_top_up' => $this->formatCurrency($monthlyTopUp),
+            'adequacy_percent' => number_format(min(100, $runway / max(1, $targetMonths) * 100), 0),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
-        $rec['decision_trace'] = $trace;
-
-        return [$rec];
-    }
-
-    /**
-     * Emergency fund building: triggers when runway is between low and target thresholds.
-     * Provides encouragement and progress tracking.
-     */
-    private function evaluateEmergencyFundBuilding(
-        SavingsActionDefinition $definition,
-        array $savingsAnalysis,
-        array $config,
-        int $priority
-    ): array {
-        $trace = [];
-
-        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
-        $low = (float) ($config['low'] ?? 3);
-        $high = (float) ($config['high'] ?? 6);
-
-        if ($runway < $low || $runway >= $high) {
-            return [];
-        }
-
-        $adequacy = $savingsAnalysis['emergency_fund']['adequacy']['adequacy_score'] ?? 0;
-        $currentBalance = $savingsAnalysis['emergency_fund']['current_balance'] ?? 0;
-        $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
-        $targetAmount = $high * $monthlyExpenditure;
-
-        $trace[] = [
-            'question' => 'What is the current emergency fund position?',
-            'data_field' => 'runway_months',
-            'data_value' => number_format($runway, 1).' months',
-            'threshold' => 'Between '.number_format($low, 1).' and '.number_format($high, 1).' months',
-            'passed' => true,
-            'explanation' => 'Emergency fund balance of £'.number_format((float) $currentBalance, 0).' provides '.number_format($runway, 1).' months of runway against £'.number_format($monthlyExpenditure, 0).' monthly expenditure. This is progressing towards the '.number_format($high, 0).'-month target of £'.number_format($targetAmount, 0).'.',
-        ];
-
-        $remainingToTarget = max(0, $targetAmount - (float) $currentBalance);
-        $trace[] = [
-            'question' => 'How much remains to reach the full target?',
-            'data_field' => 'adequacy_percent',
-            'data_value' => number_format($adequacy, 0).'% adequacy',
-            'threshold' => '100% = £'.number_format($targetAmount, 0),
-            'passed' => true,
-            'explanation' => 'At '.number_format($adequacy, 0).'% adequacy, £'.number_format($remainingToTarget, 0).' more is needed to reach the full '.number_format($high, 0).'-month target. Keep building to achieve full emergency cover.',
-        ];
-
-        $vars = [
-            'runway_months' => number_format($runway, 1),
-            'adequacy_percent' => number_format($adequacy, 0),
-        ];
-
-        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['estimated_impact'] = round($shortfallAmount, 2);
         $rec['decision_trace'] = $trace;
 
         return [$rec];
@@ -662,13 +591,17 @@ class SavingsActionDefinitionService
     private function evaluateEmergencyFundExcessive(
         SavingsActionDefinition $definition,
         array $savingsAnalysis,
+        int $userId,
         array $config,
         int $priority
     ): array {
         $trace = [];
 
-        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
-        $threshold = (float) ($config['threshold'] ?? 12);
+        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? null;
+        if ($runway === null) {
+            return [];
+        }
+        $threshold = (float) ($config['threshold'] ?? 6);
 
         if ($runway < $threshold) {
             return [];
@@ -680,7 +613,7 @@ class SavingsActionDefinitionService
         }
 
         $currentBalance = $savingsAnalysis['emergency_fund']['current_balance'] ?? 0;
-        $targetMonths = 6;
+        $targetMonths = $this->emergencyFundCalculator->getTargetMonths(User::find($userId)?->employment_status);
         $targetAmount = $targetMonths * $monthlyExpenditure;
         $excessMonths = $runway - $targetMonths;
         $excessAmount = $excessMonths * $monthlyExpenditure;
@@ -695,16 +628,17 @@ class SavingsActionDefinitionService
         ];
 
         $trace[] = [
-            'question' => 'How much is held above the recommended 6-month target?',
+            'question' => 'How much is held above the recommended '.$targetMonths.'-month target?',
             'data_field' => 'excess_amount',
             'data_value' => '£'.number_format($excessAmount, 0),
-            'threshold' => '6-month target = £'.number_format($targetAmount, 0),
+            'threshold' => $targetMonths.'-month target = £'.number_format($targetAmount, 0),
             'passed' => true,
-            'explanation' => '£'.number_format((float) $currentBalance, 0).' total − £'.number_format($targetAmount, 0).' target (6 months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($excessAmount, 0).' excess ('.number_format($excessMonths, 1).' months). This surplus could be deployed into higher-growth assets such as investments or pensions.',
+            'explanation' => '£'.number_format((float) $currentBalance, 0).' total − £'.number_format($targetAmount, 0).' target ('.$targetMonths.' months × £'.number_format($monthlyExpenditure, 0).') = £'.number_format($excessAmount, 0).' excess ('.number_format($excessMonths, 1).' months). This surplus could be deployed into higher-growth assets such as investments or pensions.',
         ];
 
         $vars = [
             'runway_months' => number_format($runway, 1),
+            'excess_months' => number_format($excessMonths, 1),
             'excess_amount' => $this->formatCurrency($excessAmount),
         ];
 
@@ -814,6 +748,7 @@ class SavingsActionDefinitionService
     private function evaluatePSAApproaching(
         SavingsActionDefinition $definition,
         int $userId,
+        array $config,
         int $priority
     ): array {
         $trace = [];
@@ -824,7 +759,8 @@ class SavingsActionDefinitionService
         }
 
         $psaPosition = $this->psaCalculator->assessPSAPosition($user);
-        if (! $psaPosition['is_approaching']) {
+        $threshold = (float) ($config['threshold'] ?? 80);
+        if (($psaPosition['utilisation_percent'] ?? 0) < $threshold || ($psaPosition['breach_amount'] ?? 0) > 0) {
             return [];
         }
 
@@ -872,6 +808,7 @@ class SavingsActionDefinitionService
     private function evaluatePSAHeadroomAvailable(
         SavingsActionDefinition $definition,
         int $userId,
+        array $config,
         int $priority
     ): array {
         $trace = [];
@@ -884,7 +821,7 @@ class SavingsActionDefinitionService
         $psaPosition = $this->psaCalculator->assessPSAPosition($user);
 
         // Only relevant if user has a meaningful PSA and significant headroom
-        if ($psaPosition['psa_amount'] <= 0 || $psaPosition['utilisation_percent'] > 50) {
+        if ($psaPosition['psa_amount'] <= 0 || (100 - ($psaPosition['utilisation_percent'] ?? 100)) < (float) ($config['headroom_threshold'] ?? 50)) {
             return [];
         }
 
@@ -932,6 +869,7 @@ class SavingsActionDefinitionService
             'headroom' => $this->formatCurrency($psaPosition['headroom']),
             'psa_amount' => $this->formatCurrency($psaPosition['psa_amount']),
             'utilisation_percent' => number_format($psaPosition['utilisation_percent'], 0),
+            'utilisation' => number_format($psaPosition['utilisation_percent'], 0),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -1034,6 +972,7 @@ class SavingsActionDefinitionService
         SavingsActionDefinition $definition,
         array $savingsAnalysis,
         int $userId,
+        array $config,
         int $priority
     ): array {
         $trace = [];
@@ -1045,8 +984,8 @@ class SavingsActionDefinitionService
 
         $psaPosition = $this->psaCalculator->assessPSAPosition($user);
 
-        // Only suggest ISA not needed when utilisation is very low
-        if ($psaPosition['utilisation_percent'] > 25) {
+        // Only suggest ISA not needed when the seeded headroom remains
+        if ((100 - ($psaPosition['utilisation_percent'] ?? 100)) < (float) ($config['headroom_threshold'] ?? 50)) {
             return [];
         }
 
@@ -1171,14 +1110,16 @@ class SavingsActionDefinitionService
         SavingsActionDefinition $definition,
         array $savingsAnalysis,
         Collection $savingsAccounts,
+        array $config,
         int $priority
     ): array {
         $rateComparisons = $savingsAnalysis['rate_comparisons'] ?? [];
         $results = [];
 
         foreach ($rateComparisons as $comparison) {
-            $rating = $comparison['comparison']['category'] ?? '';
-            if ($rating !== 'Fair') {
+            $gapThreshold = (float) ($config['gap_threshold'] ?? 0.5);
+            $rateGap = (float) ($comparison['comparison']['market_rate_percent'] ?? 0) - (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
+            if ($rateGap < $gapThreshold) {
                 continue;
             }
 
@@ -1194,11 +1135,10 @@ class SavingsActionDefinitionService
 
             $trace = [];
             $balance = (float) ($account->current_balance ?? 0);
-            $currentRate = ((float) $account->interest_rate) * 100;
-            $marketRate = ($comparison['comparison']['market_rate'] ?? 0) * 100;
-            $rateGap = $marketRate - $currentRate;
-            $currentInterest = $balance * ((float) $account->interest_rate);
-            $marketInterest = $balance * (($comparison['comparison']['market_rate'] ?? 0));
+            $currentRate = (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
+            $marketRate = (float) ($comparison['comparison']['market_rate_percent'] ?? 0);
+            $currentInterest = $balance * $currentRate / 100;
+            $marketInterest = $balance * $marketRate / 100;
             $accountName = $account->account_name ?? 'Unnamed account';
             $institution = $account->institution ?? 'unknown provider';
             $accessType = $account->access_type ?? 'unknown';
@@ -1218,7 +1158,7 @@ class SavingsActionDefinitionService
             $trace[] = [
                 'question' => 'How does the rate compare to the market?',
                 'data_field' => 'interest_rate',
-                'data_value' => number_format($currentRate, 2).'% (rated Fair)',
+                'data_value' => number_format($currentRate, 2).'% (gap '.number_format($rateGap, 2).' points)',
                 'threshold' => number_format($marketRate, 2).'% best available market rate',
                 'passed' => true,
                 'explanation' => 'Current rate '.number_format($currentRate, 2).'% is '.number_format($rateGap, 2).' percentage points below the best available market rate of '.number_format($marketRate, 2).'% for a comparable '.$accessType.' account.',
@@ -1236,8 +1176,10 @@ class SavingsActionDefinitionService
 
             $vars = [
                 'account_name' => $accountName,
+                'account_rate' => number_format($currentRate, 2),
                 'current_rate' => number_format($currentRate, 2),
                 'market_rate' => number_format($marketRate, 2),
+                'rate_gap' => number_format($rateGap, 2),
                 'potential_gain' => $this->formatCurrency($potentialGain),
             ];
 
@@ -1260,14 +1202,16 @@ class SavingsActionDefinitionService
         SavingsActionDefinition $definition,
         array $savingsAnalysis,
         Collection $savingsAccounts,
+        array $config,
         int $priority
     ): array {
         $rateComparisons = $savingsAnalysis['rate_comparisons'] ?? [];
         $results = [];
 
         foreach ($rateComparisons as $comparison) {
-            $rating = $comparison['comparison']['category'] ?? '';
-            if ($rating !== 'Poor') {
+            $gapThreshold = (float) ($config['gap_threshold'] ?? 1.5);
+            $rateGap = (float) ($comparison['comparison']['market_rate_percent'] ?? 0) - (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
+            if ($rateGap < $gapThreshold) {
                 continue;
             }
 
@@ -1278,10 +1222,9 @@ class SavingsActionDefinitionService
 
             $potentialGain = (float) ($comparison['potential_gain'] ?? 0);
             $balance = (float) ($account->current_balance ?? 0);
-            $currentRate = ((float) $account->interest_rate) * 100;
-            $marketRate = ($comparison['comparison']['market_rate'] ?? 0) * 100;
-            $rateGap = $marketRate - $currentRate;
-            $currentInterest = $balance * ((float) $account->interest_rate);
+            $currentRate = (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
+            $marketRate = (float) ($comparison['comparison']['market_rate_percent'] ?? 0);
+            $currentInterest = $balance * $currentRate / 100;
             $accountName = $account->account_name ?? 'Unnamed account';
             $institution = $account->institution ?? 'unknown provider';
             $accessType = $account->access_type ?? 'unknown';
@@ -1303,7 +1246,7 @@ class SavingsActionDefinitionService
             $trace[] = [
                 'question' => 'How far below market is the current rate?',
                 'data_field' => 'interest_rate',
-                'data_value' => number_format($currentRate, 2).'% (rated Poor)',
+                'data_value' => number_format($currentRate, 2).'% (gap '.number_format($rateGap, 2).' points)',
                 'threshold' => number_format($marketRate, 2).'% best available market rate',
                 'passed' => true,
                 'explanation' => 'Current rate '.number_format($currentRate, 2).'% is '.number_format($rateGap, 2).' percentage points below the best available market rate of '.number_format($marketRate, 2).'% for a comparable '.$accessType.' account. This is a significant gap rated as Poor.',
@@ -1322,6 +1265,8 @@ class SavingsActionDefinitionService
 
             $vars = [
                 'account_name' => $accountName,
+                'account_rate' => number_format($currentRate, 2),
+                'rate_gap' => number_format($rateGap, 2),
                 'institution' => $institution,
                 'current_rate' => number_format($currentRate, 2),
                 'market_rate' => number_format($marketRate, 2),
@@ -1350,7 +1295,7 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $windowDays = (int) ($config['window_days'] ?? 90);
+        $windowDays = (int) ($config['days_threshold'] ?? 90);
         $now = Carbon::now();
         $results = [];
 
@@ -1365,11 +1310,11 @@ class SavingsActionDefinitionService
             }
 
             $balance = (float) ($account->current_balance ?? 0);
-            $currentRate = ((float) ($account->interest_rate ?? 0)) * 100;
+            $currentRate = (float) ($account->interest_rate ?? 0);
             $accountName = $account->account_name ?? 'Unnamed account';
             $institution = $account->institution ?? 'unknown provider';
             $isIsa = $account->is_isa ? ' (ISA — '.($account->isa_type ?? 'unspecified').')' : '';
-            $annualInterest = $balance * ((float) ($account->interest_rate ?? 0));
+            $annualInterest = $account->annual_interest;
 
             $trace = [];
 
@@ -1399,6 +1344,7 @@ class SavingsActionDefinitionService
                 'institution' => $institution,
                 'maturity_date' => $account->maturity_date->format('d M Y'),
                 'days_remaining' => (string) $daysToMaturity,
+                'days_to_maturity' => (string) $daysToMaturity,
                 'balance' => $this->formatCurrency($balance),
             ];
 
@@ -1423,7 +1369,7 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $windowDays = (int) ($config['window_days'] ?? 60);
+        $windowDays = (int) ($config['days_threshold'] ?? 30);
         $now = Carbon::now();
         $results = [];
 
@@ -1438,11 +1384,11 @@ class SavingsActionDefinitionService
             }
 
             $balance = (float) ($account->current_balance ?? 0);
-            $currentRate = ((float) ($account->interest_rate ?? 0)) * 100;
+            $currentRate = (float) ($account->interest_rate ?? 0);
             $accountName = $account->account_name ?? 'Unnamed account';
             $institution = $account->institution ?? 'unknown provider';
             $isIsa = $account->is_isa ? ' (ISA — '.($account->isa_type ?? 'unspecified').')' : '';
-            $annualInterest = $balance * ((float) ($account->interest_rate ?? 0));
+            $annualInterest = $account->annual_interest;
 
             $trace = [];
 
@@ -1468,6 +1414,7 @@ class SavingsActionDefinitionService
             ];
 
             $vars = [
+                'days_to_expiry' => (string) $daysToExpiry,
                 'account_name' => $accountName,
                 'institution' => $institution,
                 'expiry_date' => $account->promo_rate_end_date->format('d M Y'),
@@ -1484,76 +1431,6 @@ class SavingsActionDefinitionService
         }
 
         return $results;
-    }
-
-    /**
-     * Rate improvement available: triggers when total potential gain
-     * across all accounts exceeds a meaningful threshold.
-     */
-    private function evaluateRateImprovementAvailable(
-        SavingsActionDefinition $definition,
-        array $savingsAnalysis,
-        Collection $savingsAccounts,
-        int $priority
-    ): array {
-        $trace = [];
-
-        $rateComparisons = $savingsAnalysis['rate_comparisons'] ?? [];
-        $uncompetitiveComparisons = collect($rateComparisons)
-            ->where('comparison.is_competitive', false);
-
-        $totalGain = $uncompetitiveComparisons->sum('potential_gain');
-
-        if ($totalGain < 100) {
-            return [];
-        }
-
-        $uncompetitiveCount = $uncompetitiveComparisons->count();
-
-        // 1. Per-account breakdown of uncompetitive rates
-        $accountBreakdown = $uncompetitiveComparisons->map(function ($comparison) use ($savingsAccounts) {
-            $account = $savingsAccounts->firstWhere('id', $comparison['account_id']);
-            if (! $account) {
-                return null;
-            }
-            $balance = (float) ($account->current_balance ?? 0);
-            $currentRate = ((float) ($account->interest_rate ?? 0)) * 100;
-            $marketRate = (($comparison['comparison']['market_rate'] ?? 0)) * 100;
-            $gain = (float) ($comparison['potential_gain'] ?? 0);
-            $category = $comparison['comparison']['category'] ?? 'Unknown';
-
-            return ($account->account_name ?? 'Unnamed').' at '.($account->institution ?? 'unknown').' — £'.number_format($balance, 0).' at '.number_format($currentRate, 2).'% (market: '.number_format($marketRate, 2).'%, '.$category.', +£'.number_format($gain, 0).'/year)';
-        })->filter()->implode('; ');
-
-        $trace[] = [
-            'question' => 'Which accounts have uncompetitive rates?',
-            'data_field' => 'uncompetitive_accounts',
-            'data_value' => $uncompetitiveCount.' account(s)',
-            'threshold' => 'N/A',
-            'passed' => true,
-            'explanation' => 'Uncompetitive accounts: '.$accountBreakdown.'.',
-        ];
-
-        // 2. Total potential gain
-        $trace[] = [
-            'question' => 'What is the total potential gain from switching all uncompetitive accounts?',
-            'data_field' => 'total_potential_gain',
-            'data_value' => '£'.number_format($totalGain, 0).'/year',
-            'threshold' => '£100 minimum total gain',
-            'passed' => true,
-            'explanation' => 'Across '.$uncompetitiveCount.' account(s) with uncompetitive rates, switching to market-rate alternatives could earn an additional £'.number_format($totalGain, 0).' per year in aggregate.',
-        ];
-
-        $vars = [
-            'total_potential_gain' => $this->formatCurrency($totalGain),
-            'account_count' => (string) $uncompetitiveCount,
-        ];
-
-        $rec = $this->buildRecommendation($definition, $vars, $priority);
-        $rec['estimated_impact'] = round($totalGain, 2);
-        $rec['decision_trace'] = $trace;
-
-        return [$rec];
     }
 
     /**
@@ -1675,13 +1552,16 @@ class SavingsActionDefinitionService
 
             $vars = [
                 'institution' => $group['institution_group'],
+                'institution_name' => $group['institution_group'],
                 'total_balance' => $this->formatCurrency($group['total_balance']),
                 'fscs_limit' => $this->formatCurrency($group['fscs_limit']),
                 'excess' => $this->formatCurrency($group['excess']),
+                'breach_amount' => $this->formatCurrency($group['excess']),
             ];
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
             $rec['estimated_impact'] = round($group['excess'], 2);
+            $rec['institution_group'] = $group['institution_group'];
             $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
@@ -1740,12 +1620,14 @@ class SavingsActionDefinitionService
 
             $vars = [
                 'institution' => $group['institution_group'],
+                'institution_name' => $group['institution_group'],
                 'total_balance' => $this->formatCurrency($group['total_balance']),
                 'fscs_limit' => $this->formatCurrency($group['fscs_limit']),
                 'headroom' => $this->formatCurrency($group['headroom']),
             ];
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['institution_group'] = $group['institution_group'];
             $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
@@ -1765,6 +1647,7 @@ class SavingsActionDefinitionService
         SavingsActionDefinition $definition,
         int $userId,
         Collection $savingsAccounts,
+        array $config,
         int $priority
     ): array {
         $trace = [];
@@ -1788,10 +1671,11 @@ class SavingsActionDefinitionService
         $bestSavingsRate = (float) ($bestSavingsRate ?? 0);
 
         // Find any mortgage where overpayment could save more than savings interest
-        $highRateMortgage = $mortgages->first(function ($mortgage) use ($bestSavingsRate) {
+        $minDifference = (float) ($config['min_rate_difference'] ?? 2);
+        $highRateMortgage = $mortgages->first(function ($mortgage) use ($bestSavingsRate, $minDifference) {
             $mortgageRate = (float) ($mortgage->interest_rate ?? 0);
 
-            return $mortgageRate > $bestSavingsRate && $mortgageRate > 0;
+            return $mortgageRate > 0 && ($mortgageRate - $bestSavingsRate) >= $minDifference;
         });
 
         if (! $highRateMortgage) {
@@ -1805,15 +1689,15 @@ class SavingsActionDefinitionService
         $userName = $this->getUserName($user);
         $mortgageRate = (float) $highRateMortgage->interest_rate;
         $mortgageBalance = (float) ($highRateMortgage->outstanding_balance ?? $highRateMortgage->current_balance ?? 0);
-        $annualMortgageCost = $mortgageBalance * $mortgageRate;
+        $annualMortgageCost = $mortgageBalance * $mortgageRate / 100; // both rate columns hold percentages
 
         $trace[] = [
             'question' => 'Which mortgage has a rate exceeding the best savings rate?',
             'data_field' => 'mortgage_details',
-            'data_value' => ($highRateMortgage->lender_name ?? 'Unknown lender').' at '.number_format($mortgageRate * 100, 2).'%',
+            'data_value' => ($highRateMortgage->lender_name ?? 'Unknown lender').' at '.number_format($mortgageRate, 2).'%',
             'threshold' => 'N/A',
             'passed' => true,
-            'explanation' => $userName.'\'s mortgage with '.($highRateMortgage->lender_name ?? 'unknown lender').' — £'.number_format($mortgageBalance, 0).' outstanding at '.number_format($mortgageRate * 100, 2).'%. Annual interest cost: approximately £'.number_format($annualMortgageCost, 0).' (£'.number_format($mortgageBalance, 0).' × '.number_format($mortgageRate * 100, 2).'%).',
+            'explanation' => $userName.'\'s mortgage with '.($highRateMortgage->lender_name ?? 'unknown lender').' — £'.number_format($mortgageBalance, 0).' outstanding at '.number_format($mortgageRate, 2).'%. Annual interest cost: approximately £'.number_format($annualMortgageCost, 0).' (£'.number_format($mortgageBalance, 0).' × '.number_format($mortgageRate, 2).'%).',
         ];
 
         // 3. Best savings rate comparison
@@ -1824,16 +1708,17 @@ class SavingsActionDefinitionService
         $trace[] = [
             'question' => 'How does the mortgage rate compare to the best savings rate?',
             'data_field' => 'rate_comparison',
-            'data_value' => 'Mortgage '.number_format($mortgageRate * 100, 2).'% vs savings '.number_format($bestSavingsRate * 100, 2).'%',
+            'data_value' => 'Mortgage '.number_format($mortgageRate, 2).'% vs savings '.number_format($bestSavingsRate, 2).'%',
             'threshold' => 'Mortgage rate must exceed best savings rate',
             'passed' => true,
-            'explanation' => 'Best savings rate: '.number_format($bestSavingsRate * 100, 2).'% ('.$bestAccountName.'). Mortgage rate: '.number_format($mortgageRate * 100, 2).'%. Gap: '.number_format($rateDifference * 100, 2).' percentage points. Every pound used to overpay the mortgage effectively "earns" '.number_format($mortgageRate * 100, 2).'% by reducing interest charges, compared to '.number_format($bestSavingsRate * 100, 2).'% in savings.',
+            'explanation' => 'Best savings rate: '.number_format($bestSavingsRate, 2).'% ('.$bestAccountName.'). Mortgage rate: '.number_format($mortgageRate, 2).'%. Gap: '.number_format($rateDifference, 2).' percentage points. Every pound used to overpay the mortgage effectively "earns" '.number_format($mortgageRate, 2).'% by reducing interest charges, compared to '.number_format($bestSavingsRate, 2).'% in savings.',
         ];
 
         $vars = [
-            'mortgage_rate' => number_format($mortgageRate * 100, 2),
-            'savings_rate' => number_format($bestSavingsRate * 100, 2),
-            'rate_difference' => number_format($rateDifference * 100, 2),
+            'debt_rate' => number_format($mortgageRate, 2),
+            'mortgage_rate' => number_format($mortgageRate, 2),
+            'savings_rate' => number_format($bestSavingsRate, 2),
+            'rate_difference' => number_format($rateDifference, 2),
             'lender' => $highRateMortgage->lender_name ?? 'your mortgage lender',
         ];
 
@@ -2002,7 +1887,7 @@ class SavingsActionDefinitionService
         $trace = [];
 
         $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;
-        $threshold = (float) ($config['threshold'] ?? 50000);
+        $threshold = (float) ($config['min_excess'] ?? $config['threshold'] ?? 50000);
 
         if ($totalSavings < $threshold) {
             return [];
@@ -2129,8 +2014,11 @@ class SavingsActionDefinitionService
             'explanation' => 'No Stocks and Shares ISA is currently held. Opening one with some of the £'.number_format($isaRemaining, 0).' remaining allowance could provide tax-efficient growth potential for surplus savings over the medium to long term.',
         ];
 
+        $monthlyExpenditureForExcess = (float) ($savingsAnalysis['summary']['monthly_expenditure'] ?? 0);
+        $excessAboveTarget = max(0.0, (float) ($savingsAnalysis['summary']['total_savings'] ?? 0) - 6 * $monthlyExpenditureForExcess);
         $vars = [
             'isa_remaining' => $this->formatCurrency($isaRemaining),
+            'excess_amount' => $this->formatCurrency(min($excessAboveTarget, (float) $isaRemaining)),
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -2437,6 +2325,7 @@ class SavingsActionDefinitionService
                 'progress' => number_format($goal->progress_percentage, 0),
                 'shortfall' => $this->formatCurrency($shortfall),
                 'required_monthly' => $this->formatCurrency($required),
+                'current_monthly' => $this->formatCurrency($monthlyContribution),
             ];
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
@@ -2593,6 +2482,557 @@ class SavingsActionDefinitionService
             $rec['scope'] = 'goal';
             $rec['goal_id'] = $goal->id;
             $rec['decision_trace'] = $trace;
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Fyn proposes an emergency fund goal when none exists and the runway is
+     * short. Moved from SavingsAgent::buildGoalRecommendations so all three
+     * consumers see it (Rule 20).
+     */
+    private function evaluateEmergencyFundGoalSuggested(
+        SavingsActionDefinition $definition,
+        array $savingsAnalysis,
+        int $userId,
+        array $config,
+        int $priority
+    ): array {
+        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? null;
+        if ($runway === null) {
+            return []; // W-0495: unmeasured is not zero.
+        }
+
+        $threshold = (float) ($config['threshold'] ?? 3);
+        if ($runway >= $threshold) {
+            return [];
+        }
+
+        $hasGoal = Goal::forUserOrJoint($userId)
+            ->where('goal_type', 'emergency_fund')
+            ->where('status', 'active')
+            ->exists();
+        if ($hasGoal) {
+            return [];
+        }
+
+        $monthlyExpenditure = (float) ($savingsAnalysis['summary']['monthly_expenditure'] ?? 0);
+        $user = User::find($userId);
+        $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
+        $targetAmount = $monthlyExpenditure * $targetMonths;
+        if ($targetAmount <= 0) {
+            return [];
+        }
+
+        $rec = $this->buildRecommendation($definition, [
+            'runway_months' => number_format($runway, 1),
+            'target_months' => (string) $targetMonths,
+            'target_amount' => $this->formatCurrency($targetAmount),
+        ], $priority);
+        $rec['estimated_impact'] = round($targetAmount, 2);
+        $rec['decision_trace'] = [[
+            'question' => 'Is there an active emergency fund goal?',
+            'data_field' => 'goals.emergency_fund',
+            'data_value' => 'none',
+            'threshold' => 'Runway below '.number_format($threshold, 1).' months',
+            'passed' => true,
+            'explanation' => 'Runway is '.number_format($runway, 1).' months and no emergency fund goal exists. A goal of £'.number_format($targetAmount, 0).' covers '.$targetMonths.' months of £'.number_format($monthlyExpenditure, 0).' expenditure.',
+        ]];
+
+        return [$rec];
+    }
+
+    /**
+     * Upcoming expense life events inside the seeded window need a cash buffer.
+     * Moved from SavingsAgent::buildGoalRecommendations (Rule 20).
+     */
+    private function evaluateLifeEventCashBuffer(
+        SavingsActionDefinition $definition,
+        int $userId,
+        array $config,
+        int $priority
+    ): array {
+        $months = (int) ($config['months_threshold'] ?? 12);
+        $events = LifeEvent::forUserOrJoint($userId)
+            ->where('impact_type', 'expense')
+            ->where('expected_date', '>', now())
+            ->where('expected_date', '<=', now()->addMonths($months))
+            ->whereIn('certainty', ['confirmed', 'likely'])
+            ->active()
+            ->get();
+
+        $results = [];
+        foreach ($events as $event) {
+            $monthsUntil = max(1, (int) now()->diffInMonths($event->expected_date));
+            $monthlySaving = round((float) $event->amount / $monthsUntil, 2);
+
+            $rec = $this->buildRecommendation($definition, [
+                'event_name' => (string) $event->event_name,
+                'months_until' => (string) $monthsUntil,
+                'amount' => $this->formatCurrency((float) $event->amount),
+                'monthly_saving' => $this->formatCurrency($monthlySaving),
+            ], $priority);
+            $rec['scope'] = 'life_event';
+            $rec['life_event_id'] = $event->id;
+            $rec['estimated_impact'] = round((float) $event->amount, 2);
+            $rec['decision_trace'] = [[
+                'question' => 'Which expense life events fall inside the window?',
+                'data_field' => 'life_events.expected_date',
+                'data_value' => $event->event_name.' in '.$monthsUntil.' months',
+                'threshold' => 'Within '.$months.' months, certainty confirmed or likely',
+                'passed' => true,
+                'explanation' => '£'.number_format((float) $event->amount, 0).' ÷ '.$monthsUntil.' months = £'.number_format($monthlySaving, 0).' per month to be ready.',
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Goal nearly achieved: portfolio-level counterpart of the old linked-goal
+     * evaluator, so it runs for every consumer without a plan-page formatter.
+     */
+    private function evaluateGoalNearlyAchieved(
+        SavingsActionDefinition $definition,
+        int $userId,
+        array $config,
+        int $priority
+    ): array {
+        $threshold = (float) ($config['threshold'] ?? 90);
+        $goals = Goal::forUserOrJoint($userId)
+            ->where('assigned_module', 'savings')
+            ->where('status', 'active')
+            ->get();
+
+        $results = [];
+        foreach ($goals as $goal) {
+            $progress = (float) $goal->progress_percentage;
+            if ($progress < $threshold || $progress >= 100) {
+                continue;
+            }
+            $remaining = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
+
+            $rec = $this->buildRecommendation($definition, [
+                'goal_name' => (string) ($goal->goal_name ?? 'Unnamed goal'),
+                'progress' => number_format($progress, 0),
+                'remaining' => $this->formatCurrency($remaining),
+            ], $priority);
+            $rec['scope'] = 'goal';
+            $rec['goal_id'] = $goal->id;
+            $rec['decision_trace'] = [[
+                'question' => 'Which goal is nearly complete?',
+                'data_field' => 'goals.progress_percentage',
+                'data_value' => number_format($progress, 0).'%',
+                'threshold' => 'Above '.number_format($threshold, 0).'%',
+                'passed' => true,
+                'explanation' => '£'.number_format($remaining, 0).' remains to reach £'.number_format((float) $goal->target_amount, 0).'.',
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Additional-rate taxpayers have no Personal Savings Allowance, so any
+     * taxable interest is taxed in full.
+     */
+    private function evaluatePsaAdditionalRate(
+        SavingsActionDefinition $definition,
+        int $userId,
+        int $priority
+    ): array {
+        $user = User::find($userId);
+        if (! $user) {
+            return [];
+        }
+
+        $psa = $this->psaCalculator->assessPSAPosition($user);
+        if (($psa['tax_band'] ?? '') !== 'additional' || (float) ($psa['annual_interest'] ?? 0) <= 0) {
+            return [];
+        }
+
+        $rec = $this->buildRecommendation($definition, [
+            'annual_interest' => $this->formatCurrency((float) $psa['annual_interest']),
+        ], $priority);
+        $rec['estimated_impact'] = round((float) $psa['annual_interest'], 2);
+        $rec['decision_trace'] = [
+            $this->buildUserProfileTrace($user),
+            [
+                'question' => 'Does the user have a Personal Savings Allowance?',
+                'data_field' => 'psa_position.tax_band',
+                'data_value' => 'additional rate',
+                'threshold' => 'Additional-rate taxpayers have no allowance',
+                'passed' => true,
+                'explanation' => '£'.number_format((float) $psa['annual_interest'], 0).' of taxable interest a year is taxed in full. A Cash ISA shelters interest entirely.',
+            ],
+        ];
+
+        return [$rec];
+    }
+
+    /**
+     * Emergency fund cannot be assessed: the user holds savings but no
+     * expenditure figure, so no runway can be stated (W-0495). The generic
+     * `missing_expenditure` row is suppressed in favour of this one.
+     */
+    private function evaluateEmergencyFundNoData(
+        SavingsActionDefinition $definition,
+        array $savingsAnalysis,
+        Collection $savingsAccounts,
+        int $userId,
+        int $priority
+    ): array {
+        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? null;
+        if ($runway !== null || $savingsAccounts->isEmpty()) {
+            return [];
+        }
+
+        $user = User::find($userId);
+        $totalCash = (float) $savingsAccounts->sum('current_balance');
+        $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
+
+        $rec = $this->buildRecommendation($definition, [
+            'total_cash' => $this->formatCurrency($totalCash),
+            'target_months' => (string) $targetMonths,
+        ], $priority);
+        $rec['decision_trace'] = [[
+            'question' => 'Can the emergency fund runway be measured?',
+            'data_field' => 'summary.monthly_expenditure',
+            'data_value' => 'not recorded',
+            'threshold' => 'A monthly expenditure figure above £0',
+            'passed' => true,
+            'explanation' => '£'.number_format($totalCash, 0).' of cash is recorded but no monthly expenditure, so the '.$targetMonths.'-month target cannot be sized. Runway = cash ÷ monthly expenditure.',
+        ]];
+
+        return [$rec];
+    }
+
+    /**
+     * Starting rate for savings: up to the configured band of interest is
+     * taxed at 0% when non-savings income sits within the Personal Allowance,
+     * tapering £ for £ above it. Same arithmetic as TaxStrategyCalculator:153-159.
+     */
+    private function evaluateStartingRateUnused(
+        SavingsActionDefinition $definition,
+        int $userId,
+        int $priority
+    ): array {
+        $user = User::find($userId);
+        if (! $user) {
+            return [];
+        }
+
+        $income = $this->taxConfig->getIncomeTax();
+        $band = (float) ($income['starting_rate_for_savings']['band'] ?? 0);
+        if ($band <= 0) {
+            return [];
+        }
+
+        $nonSavingsIncome = $this->taxMath->nonSavingsIncomeFor($user);
+        $personalAllowance = $this->taxMath->personalAllowanceFor($user);
+        $available = max(0.0, $band - max(0.0, $nonSavingsIncome - $personalAllowance));
+        if ($available <= 0) {
+            return [];
+        }
+
+        $annualInterest = $this->taxMath->estimateAnnualInterest($user);
+        $unused = max(0.0, $available - $annualInterest);
+        if ($unused <= 0) {
+            return [];
+        }
+
+        $rec = $this->buildRecommendation($definition, [
+            'available' => $this->formatCurrency($available),
+            'unused' => $this->formatCurrency($unused),
+            'annual_interest' => $this->formatCurrency($annualInterest),
+        ], $priority);
+        $rec['estimated_impact'] = round($unused, 2);
+        $rec['decision_trace'] = [
+            $this->buildUserProfileTrace($user),
+            [
+                'question' => 'Does the starting rate for savings apply?',
+                'data_field' => 'income.non_savings',
+                'data_value' => '£'.number_format($nonSavingsIncome, 0).' non-savings income',
+                'threshold' => 'Band £'.number_format($band, 0).' less non-savings income above the £'.number_format($personalAllowance, 0).' Personal Allowance',
+                'passed' => true,
+                'explanation' => '£'.number_format($available, 0).' of interest can be earned at 0%; £'.number_format($annualInterest, 0).' is currently earned, leaving £'.number_format($unused, 0).' unused.',
+            ],
+        ];
+
+        return [$rec];
+    }
+
+    /**
+     * Regular saver opportunity: an easy-access account receiving a regular
+     * monthly contribution at or above the seeded minimum could earn a
+     * regular-saver rate on those contributions. ISA interest is tax-free, so
+     * for a Cash ISA the only product suggested is a regular saver ISA: the
+     * money must never be moved out of the ISA wrapper into taxable interest.
+     */
+    private function evaluateRegularSaverOpportunity(
+        SavingsActionDefinition $definition,
+        Collection $savingsAccounts,
+        array $config,
+        int $priority
+    ): array {
+        $minimum = (float) ($config['min_monthly_contribution'] ?? 25);
+        $results = [];
+
+        foreach ($savingsAccounts as $account) {
+            if ($account->access_type !== 'immediate') {
+                continue;
+            }
+            $monthly = match ((string) ($account->contribution_frequency ?? '')) {
+                'monthly' => (float) ($account->regular_contribution_amount ?? 0),
+                'weekly' => (float) ($account->regular_contribution_amount ?? 0) * 52 / 12,
+                'annually', 'yearly' => (float) ($account->regular_contribution_amount ?? 0) / 12,
+                default => 0.0,
+            };
+            if ($monthly < $minimum) {
+                continue;
+            }
+
+            $isIsa = (bool) $account->is_isa;
+            $rec = $this->buildRecommendation($definition, [
+                'account_name' => (string) ($account->account_name ?? 'Unnamed account'),
+                'monthly_contribution' => $this->formatCurrency($monthly),
+                'current_rate' => number_format((float) $account->interest_rate, 2),
+                'product' => $isIsa ? 'regular saver ISA' : 'regular saver account',
+                'wrapper_note' => $isIsa ? ' Keep the money inside the ISA so the interest stays tax-free.' : '',
+            ], $priority);
+            $rec['keeps_isa_wrapper'] = $isIsa;
+            $rec['scope'] = 'account';
+            $rec['account_id'] = $account->id;
+            $rec['account_name'] = $account->account_name;
+            $rec['estimated_impact'] = round($monthly * 12, 2);
+            $rec['decision_trace'] = [[
+                'question' => 'Is a regular contribution going into an easy-access account?',
+                'data_field' => 'regular_contribution_amount',
+                'data_value' => '£'.number_format($monthly, 0).' a month into '.($account->account_name ?? 'the account'),
+                'threshold' => 'At least £'.number_format($minimum, 0).' a month',
+                'passed' => true,
+                'explanation' => ($isIsa ? 'A regular saver ISA' : 'A regular saver account').' pays a higher rate on monthly deposits than an easy-access '.($isIsa ? 'Cash ISA' : 'account').'; £'.number_format($monthly * 12, 0).' a year is being paid in at '.number_format((float) $account->interest_rate, 2).'%.'.($isIsa ? ' The interest is tax-free inside the ISA and must stay there.' : ''),
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Goal in the wrong account type: the linked account locks the money
+     * past the goal's target date (fixed term maturing after it, or a notice
+     * period longer than the time left).
+     */
+    private function evaluateGoalWrongAccountType(
+        SavingsActionDefinition $definition,
+        int $userId,
+        Collection $savingsAccounts,
+        int $priority
+    ): array {
+        $goals = Goal::forUserOrJoint($userId)
+            ->where('status', 'active')
+            ->whereNotNull('linked_savings_account_id')
+            ->whereNotNull('target_date')
+            ->get();
+
+        $results = [];
+        foreach ($goals as $goal) {
+            $account = $savingsAccounts->firstWhere('id', $goal->linked_savings_account_id);
+            if (! $account) {
+                continue;
+            }
+            $targetDate = Carbon::parse($goal->target_date);
+            $daysToTarget = (int) now()->diffInDays($targetDate, false);
+            $reason = null;
+            if ($account->access_type === 'fixed' && $account->maturity_date && Carbon::parse($account->maturity_date)->gt($targetDate)) {
+                $reason = 'fixed until '.Carbon::parse($account->maturity_date)->format('d M Y').', after the goal date';
+            } elseif ($account->access_type === 'notice' && (int) ($account->notice_period_days ?? 0) > max(0, $daysToTarget)) {
+                $reason = ($account->notice_period_days).'-day notice period, longer than the '.max(0, $daysToTarget).' days left';
+            }
+            if ($reason === null) {
+                continue;
+            }
+
+            $rec = $this->buildRecommendation($definition, [
+                'goal_name' => (string) ($goal->goal_name ?? 'Unnamed goal'),
+                'account_name' => (string) ($account->account_name ?? 'Unnamed account'),
+                'reason' => $reason,
+                'target_date' => $targetDate->format('d M Y'),
+                'timeline' => max(0, (int) now()->diffInMonths($targetDate, false)).'-month',
+            ], $priority);
+            $rec['scope'] = 'goal';
+            $rec['goal_id'] = $goal->id;
+            $rec['account_id'] = $account->id;
+            $rec['decision_trace'] = [[
+                'question' => 'Will the linked account release the money in time?',
+                'data_field' => 'access_type / maturity_date / notice_period_days',
+                'data_value' => $reason,
+                'threshold' => 'Accessible on or before '.$targetDate->format('d M Y'),
+                'passed' => true,
+                'explanation' => '"'.($goal->goal_name ?? 'Goal').'" is due '.$targetDate->format('d M Y').' but '.($account->account_name ?? 'the account').' is '.$reason.'.',
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Several goals sharing one account: fine in itself, a problem when the
+     * amounts counted towards those goals exceed what the account holds.
+     */
+    private function evaluateGoalMultiAccountRebalance(
+        SavingsActionDefinition $definition,
+        int $userId,
+        Collection $savingsAccounts,
+        int $priority
+    ): array {
+        $byAccount = Goal::forUserOrJoint($userId)
+            ->where('status', 'active')
+            ->whereNotNull('linked_savings_account_id')
+            ->get()
+            ->groupBy('linked_savings_account_id')
+            ->filter(fn ($goals) => $goals->count() > 1);
+
+        $results = [];
+        foreach ($byAccount as $accountId => $goals) {
+            $account = $savingsAccounts->firstWhere('id', $accountId);
+            if (! $account) {
+                continue;
+            }
+            $allocated = (float) $goals->sum('current_amount');
+            $balance = (float) ($account->current_balance ?? 0);
+            if ($allocated <= $balance) {
+                continue;
+            }
+
+            $rec = $this->buildRecommendation($definition, [
+                'account_name' => (string) ($account->account_name ?? 'Unnamed account'),
+                'goal_count' => (string) $goals->count(),
+                'allocated' => $this->formatCurrency($allocated),
+                'balance' => $this->formatCurrency($balance),
+                'shortfall' => $this->formatCurrency($allocated - $balance),
+            ], $priority);
+            $rec['scope'] = 'account';
+            $rec['account_id'] = $account->id;
+            $rec['account_name'] = $account->account_name;
+            $rec['estimated_impact'] = round($allocated - $balance, 2);
+            $rec['decision_trace'] = [[
+                'question' => 'Do the goals sharing this account claim more than it holds?',
+                'data_field' => 'goals.current_amount (sum) vs savings_accounts.current_balance',
+                'data_value' => '£'.number_format($allocated, 0).' counted across '.$goals->count().' goals; £'.number_format($balance, 0).' in the account',
+                'threshold' => 'Allocated amounts at or below the balance',
+                'passed' => true,
+                'explanation' => 'The goals "'.$goals->pluck('goal_name')->implode('", "').'" together count £'.number_format($allocated, 0).' but the account holds £'.number_format($balance, 0).'; £'.number_format($allocated - $balance, 0).' is double-counted.',
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Cash Junior ISA with a long horizon: a savings-account JISA is a Cash
+     * JISA by definition (Stocks and Shares JISAs live in investment
+     * accounts). Beyond the seeded horizon, growth assets are worth considering.
+     */
+    private function evaluateChildJisaCashVsStocks(
+        SavingsActionDefinition $definition,
+        int $userId,
+        Collection $savingsAccounts,
+        array $config,
+        int $priority
+    ): array {
+        $years = (int) ($config['years_threshold'] ?? 5);
+        $children = $this->dependantsReach
+            ->householdFamilyOf(User::findOrFail($userId), ['child'])
+            ->where('is_dependent', true)
+            ->filter(fn ($child) => $child->date_of_birth !== null);
+
+        $results = [];
+        foreach ($children as $child) {
+            $yearsTo18 = 18 - (int) Carbon::parse($child->date_of_birth)->age;
+            if ($yearsTo18 <= $years) {
+                continue;
+            }
+            $cashJisas = $savingsAccounts->filter(fn ($a) => (bool) $a->is_isa && $a->isa_type === 'junior_isa' && (int) $a->beneficiary_id === (int) $child->id);
+            if ($cashJisas->isEmpty()) {
+                continue;
+            }
+            $balance = (float) $cashJisas->sum('current_balance');
+
+            $rec = $this->buildRecommendation($definition, [
+                'child_name' => (string) ($child->first_name ?? 'your child'),
+                'years_to_18' => (string) $yearsTo18,
+                'balance' => $this->formatCurrency($balance),
+            ], $priority);
+            $rec['scope'] = 'child';
+            $rec['family_member_id'] = $child->id;
+            $rec['decision_trace'] = [[
+                'question' => 'How long until the Cash Junior ISA is accessible?',
+                'data_field' => 'family_members.date_of_birth',
+                'data_value' => $yearsTo18.' years to 18',
+                'threshold' => 'More than '.$years.' years',
+                'passed' => true,
+                'explanation' => '£'.number_format($balance, 0).' is held in a Cash Junior ISA for '.($child->first_name ?? 'your child').' with '.$yearsTo18.' years to go. Over that horizon a Stocks and Shares Junior ISA has historically outpaced cash; the value can fall as well as rise.',
+            ]];
+            $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Parental settlement rule (HMRC): when a parent gives a child money and
+     * the interest on it exceeds the threshold in a tax year, that interest is
+     * taxed as the parent's. Junior ISA interest is tax-free and HMRC excludes
+     * it from this rule, so only the child's non-ISA accounts are summed.
+     * Who funded the account is not recorded, so the copy says "may apply".
+     */
+    private function evaluateChildParentalSettlement(
+        SavingsActionDefinition $definition,
+        int $userId,
+        Collection $savingsAccounts,
+        array $config,
+        int $priority
+    ): array {
+        $threshold = (float) ($config['threshold'] ?? 100);
+        $children = $this->dependantsReach
+            ->householdFamilyOf(User::findOrFail($userId), ['child'])
+            ->where('is_dependent', true);
+
+        $results = [];
+        foreach ($children as $child) {
+            $accounts = $savingsAccounts->filter(fn ($a) => ! (bool) $a->is_isa && (int) $a->beneficiary_id === (int) $child->id);
+            if ($accounts->isEmpty()) {
+                continue;
+            }
+            $annualInterest = (float) $accounts->sum(fn ($a) => $a->annual_interest);
+            if ($annualInterest <= $threshold) {
+                continue;
+            }
+
+            $rec = $this->buildRecommendation($definition, [
+                'child_name' => (string) ($child->first_name ?? 'your child'),
+                'annual_interest' => $this->formatCurrency($annualInterest),
+                'threshold' => $this->formatCurrency($threshold),
+            ], $priority);
+            $rec['scope'] = 'child';
+            $rec['family_member_id'] = $child->id;
+            $rec['estimated_impact'] = round($annualInterest, 2);
+            $rec['decision_trace'] = [[
+                'question' => 'Does interest on the child\'s non-ISA savings exceed the parental settlement threshold?',
+                'data_field' => 'savings_accounts.annual_interest (non-ISA, beneficiary = child)',
+                'data_value' => '£'.number_format($annualInterest, 0).' a year',
+                'threshold' => 'Above £'.number_format($threshold, 0),
+                'passed' => true,
+                'explanation' => 'If the money was gifted by a parent, interest above £'.number_format($threshold, 0).' a year is taxed as the parent\'s income. Interest inside a Junior ISA is tax-free and does not count towards this rule.',
+            ]];
             $results[] = $rec;
         }
 
@@ -2806,6 +3246,7 @@ class SavingsActionDefinitionService
             $vars = [
                 'child_name' => $childName,
                 'jisa_remaining' => $this->formatCurrency($remaining),
+                'remaining' => $this->formatCurrency($remaining),
                 'jisa_allowance' => $this->formatCurrency($jisaAllowance),
                 'tax_year' => $taxYear,
             ];
@@ -2825,8 +3266,10 @@ class SavingsActionDefinitionService
     private function evaluateChildApproaching18(
         SavingsActionDefinition $definition,
         int $userId,
+        array $config,
         int $priority
     ): array {
+        $monthsThreshold = (int) ($config['months_threshold'] ?? 12);
         // W-0275. Junior ISA and child-savings actions never reached the parent who
         // did not do the data entry, so one parent was offered them and the other was
         // not, for the same children.
@@ -2852,7 +3295,7 @@ class SavingsActionDefinitionService
             }
 
             $monthsRemaining = abs($monthsTo18);
-            if ($monthsRemaining > 12) {
+            if ($monthsRemaining > $monthsThreshold) {
                 continue;
             }
 
@@ -2873,7 +3316,7 @@ class SavingsActionDefinitionService
                 'question' => 'Which child is approaching their 18th birthday?',
                 'data_field' => 'child_details',
                 'data_value' => $childName.', age '.$age.', turning 18 on '.$turning18Date,
-                'threshold' => 'Within 12 months of 18th birthday',
+                'threshold' => 'Within '.$monthsThreshold.' months of 18th birthday',
                 'passed' => true,
                 'explanation' => $childName.' (date of birth: '.$child->date_of_birth->format('d M Y').', currently age '.$age.') turns 18 on '.$turning18Date.' — '.$monthsRemaining.' months away.',
             ];
@@ -2904,74 +3347,6 @@ class SavingsActionDefinitionService
         }
 
         return $results;
-    }
-
-    /**
-     * Children's savings review: triggers annually when user has children
-     * with savings accounts to encourage a periodic review.
-     */
-    private function evaluateChildSavingsReview(
-        SavingsActionDefinition $definition,
-        int $userId,
-        Collection $savingsAccounts,
-        int $priority
-    ): array {
-        $trace = [];
-
-        $children = $this->getMinorChildren($userId);
-        if ($children->isEmpty()) {
-            return [];
-        }
-
-        $childAccounts = $savingsAccounts->whereNotNull('beneficiary_id');
-        if ($childAccounts->isEmpty()) {
-            return [];
-        }
-
-        $totalChildSavings = $childAccounts->sum('current_balance');
-
-        // 1. Children overview
-        $childrenSummary = $children->map(function ($child) use ($savingsAccounts) {
-            $name = $child->first_name ?? $child->name ?? 'Unknown';
-            $age = $child->date_of_birth ? (int) $child->date_of_birth->diffInYears(Carbon::now()) : null;
-            $ageStr = $age !== null ? 'age '.$age : 'age unknown';
-            $childAccountCount = $savingsAccounts->where('beneficiary_id', $child->id)->count();
-            $childBalance = $savingsAccounts->where('beneficiary_id', $child->id)->sum('current_balance');
-
-            return $name.' ('.$ageStr.', '.$childAccountCount.' account(s), £'.number_format((float) $childBalance, 0).')';
-        })->implode('; ');
-
-        $trace[] = [
-            'question' => 'Which children have savings accounts?',
-            'data_field' => 'children_overview',
-            'data_value' => $children->count().' child(ren), '.$childAccounts->count().' account(s)',
-            'threshold' => 'N/A',
-            'passed' => true,
-            'explanation' => 'Children with savings: '.$childrenSummary.'.',
-        ];
-
-        // 2. Accounts detail and review recommendation
-        $accountDetails = $childAccounts->map(fn ($a) => $this->formatAccountDescription($a))->implode('; ');
-        $avgRate = $childAccounts->avg('interest_rate');
-
-        $trace[] = [
-            'question' => 'Would a periodic review of children\'s savings be beneficial?',
-            'data_field' => 'child_accounts',
-            'data_value' => $childAccounts->count().' account(s), total £'.number_format((float) $totalChildSavings, 0).', avg rate '.number_format((float) $avgRate * 100, 2).'%',
-            'threshold' => 'At least 1 account',
-            'passed' => true,
-            'explanation' => 'Children\'s savings accounts: '.$accountDetails.'. Total: £'.number_format((float) $totalChildSavings, 0).' at an average rate of '.number_format((float) $avgRate * 100, 2).'%. A periodic review ensures rates remain competitive, Junior ISA allowances are used, and accounts are structured appropriately as children grow.',
-        ];
-
-        $vars = [
-            'child_account_count' => (string) $childAccounts->count(),
-            'total_child_savings' => $this->formatCurrency((float) $totalChildSavings),
-        ];
-
-        $rec = $this->buildRecommendation($definition, $vars, $priority);
-        $rec['decision_trace'] = $trace;
-
-        return [$rec];
     }
 
     // =========================================================================
@@ -3150,314 +3525,6 @@ class SavingsActionDefinitionService
     // Goal trigger dispatch (goal-sourced definitions)
     // =========================================================================
 
-    /**
-     * Dispatch a single goal-sourced trigger to the appropriate evaluator.
-     */
-    private function evaluateGoalTrigger(SavingsActionDefinition $definition, array $goal): ?array
-    {
-        $config = $definition->trigger_config;
-        $condition = $config['condition'] ?? '';
-
-        return match ($condition) {
-            'linked_goal_no_monthly_contribution' => $this->evaluateLinkedGoalNoContribution($definition, $goal),
-            'linked_goal_off_track' => $this->evaluateLinkedGoalOffTrack($definition, $goal),
-            'goal_months_remaining_below_and_progress_below' => $this->evaluateLinkedGoalDeadline($definition, $goal, $config),
-            'linked_goal_underfunded' => $this->evaluateLinkedGoalUnderfunded($definition, $goal),
-            'linked_goal_nearly_complete' => $this->evaluateLinkedGoalNearlyComplete($definition, $goal, $config),
-            default => null,
-        };
-    }
-
-    /**
-     * Goal no contribution: triggers when monthly contribution is zero but required > 0.
-     */
-    private function evaluateLinkedGoalNoContribution(SavingsActionDefinition $definition, array $goal): ?array
-    {
-        $trace = [];
-
-        $monthlyContribution = $goal['monthly_contribution'] ?? 0;
-        $required = $goal['required_monthly_contribution'] ?? 0;
-
-        if ($monthlyContribution > 0 || $required <= 0) {
-            return null;
-        }
-
-        $goalName = $goal['name'] ?? 'Unnamed goal';
-        $targetAmount = (float) ($goal['target_amount'] ?? 0);
-        $currentAmount = (float) ($goal['current_amount'] ?? 0);
-        $progress = (float) ($goal['progress_percentage'] ?? 0);
-        $shortfall = max(0, $targetAmount - $currentAmount);
-
-        $trace[] = [
-            'question' => 'Which linked goal has no monthly contribution?',
-            'data_field' => 'goal_details',
-            'data_value' => $goalName.' — £'.number_format($currentAmount, 0).' of £'.number_format($targetAmount, 0).' ('.number_format($progress, 0).'%)',
-            'threshold' => 'N/A',
-            'passed' => true,
-            'explanation' => 'Goal: "'.$goalName.'". Target: £'.number_format($targetAmount, 0).'. Current: £'.number_format($currentAmount, 0).' ('.number_format($progress, 0).'% progress). Shortfall: £'.number_format($shortfall, 0).'.',
-        ];
-
-        $trace[] = [
-            'question' => 'Is a monthly contribution set?',
-            'data_field' => 'monthly_contribution',
-            'data_value' => '£0/month',
-            'threshold' => '£'.number_format((float) $required, 0).'/month required',
-            'passed' => true,
-            'explanation' => '"'.$goalName.'" has no monthly contribution set but needs £'.number_format((float) $required, 0).'/month to reach its £'.number_format($targetAmount, 0).' target.',
-        ];
-
-        $vars = [
-            'goal_name' => $goalName,
-            'required_monthly' => $this->formatCurrency((float) $required),
-            'target_amount' => $this->formatCurrency($targetAmount),
-        ];
-
-        return [
-            'title' => $definition->renderTitle($vars),
-            'description' => $definition->renderDescription($vars),
-            'category' => $definition->category,
-            'priority' => $definition->priority,
-            'source' => 'goal',
-            'goal_id' => $goal['id'] ?? null,
-            'decision_trace' => $trace,
-        ];
-    }
-
-    /**
-     * Goal off track: triggers when goal is_on_track is false and has contributions.
-     */
-    private function evaluateLinkedGoalOffTrack(SavingsActionDefinition $definition, array $goal): ?array
-    {
-        $trace = [];
-
-        $monthlyContribution = $goal['monthly_contribution'] ?? 0;
-
-        // Skip if no contribution (caught by no-contribution check)
-        if ($monthlyContribution <= 0) {
-            return null;
-        }
-
-        if ($goal['is_on_track'] ?? true) {
-            return null;
-        }
-
-        $goalName = $goal['name'] ?? 'Unnamed goal';
-        $required = $goal['required_monthly_contribution'] ?? 0;
-        $shortfall = max(0, $required - $monthlyContribution);
-        $progress = $goal['progress_percentage'] ?? 0;
-        $targetAmount = (float) ($goal['target_amount'] ?? 0);
-        $currentAmount = (float) ($goal['current_amount'] ?? 0);
-        $monthsRemaining = $goal['months_remaining'] ?? 0;
-
-        // 1. Goal details
-        $trace[] = [
-            'question' => 'Which linked goal is off track?',
-            'data_field' => 'goal_details',
-            'data_value' => $goalName.' — '.number_format((float) $progress, 0).'% progress',
-            'threshold' => 'N/A',
-            'passed' => true,
-            'explanation' => 'Goal: "'.$goalName.'". Target: £'.number_format($targetAmount, 0).'. Current: £'.number_format($currentAmount, 0).' ('.number_format((float) $progress, 0).'%).'.($monthsRemaining > 0 ? ' '.$monthsRemaining.' months remaining.' : ''),
-        ];
-
-        // 2. Contribution shortfall
-        $trace[] = [
-            'question' => 'What is the monthly contribution shortfall?',
-            'data_field' => 'contribution_shortfall',
-            'data_value' => '£'.number_format((float) $monthlyContribution, 0).'/month current vs £'.number_format((float) $required, 0).'/month required',
-            'threshold' => 'On track',
-            'passed' => true,
-            'explanation' => 'Contributing £'.number_format((float) $monthlyContribution, 0).'/month but £'.number_format((float) $required, 0).'/month is needed. Shortfall: £'.number_format((float) $required, 0).' − £'.number_format((float) $monthlyContribution, 0).' = £'.number_format((float) $shortfall, 0).'/month.',
-        ];
-
-        $vars = [
-            'goal_name' => $goalName,
-            'progress' => number_format((float) $progress, 0),
-            'shortfall' => $this->formatCurrency((float) $shortfall),
-        ];
-
-        return [
-            'title' => $definition->renderTitle($vars),
-            'description' => $definition->renderDescription($vars),
-            'category' => $definition->category,
-            'priority' => $definition->priority,
-            'source' => 'goal',
-            'goal_id' => $goal['id'] ?? null,
-            'decision_trace' => $trace,
-        ];
-    }
-
-    /**
-     * Goal deadline approaching: triggers when months remaining and progress below thresholds.
-     */
-    private function evaluateLinkedGoalDeadline(SavingsActionDefinition $definition, array $goal, array $config): ?array
-    {
-        $trace = [];
-
-        // Only triggers for goals that are otherwise on-track
-        if (! ($goal['is_on_track'] ?? true)) {
-            return null;
-        }
-
-        $monthsRemaining = $goal['months_remaining'] ?? 0;
-        $progress = $goal['progress_percentage'] ?? 0;
-        $monthsThreshold = (int) ($config['months_threshold'] ?? 6);
-        $progressThreshold = (float) ($config['progress_threshold'] ?? 75);
-
-        if ($monthsRemaining > $monthsThreshold || $progress >= $progressThreshold) {
-            return null;
-        }
-
-        $goalName = $goal['name'] ?? 'Unnamed goal';
-        $targetAmount = (float) ($goal['target_amount'] ?? 0);
-        $currentAmount = (float) ($goal['current_amount'] ?? 0);
-        $shortfall = max(0, $targetAmount - $currentAmount);
-        $monthlyContribution = (float) ($goal['monthly_contribution'] ?? 0);
-
-        // 1. Goal details and deadline
-        $trace[] = [
-            'question' => 'Which goal has an approaching deadline?',
-            'data_field' => 'goal_details',
-            'data_value' => $goalName.' — '.$monthsRemaining.' months remaining, '.number_format((float) $progress, 0).'% progress',
-            'threshold' => 'Within '.$monthsThreshold.' months and below '.number_format($progressThreshold, 0).'% progress',
-            'passed' => true,
-            'explanation' => 'Goal: "'.$goalName.'". Target: £'.number_format($targetAmount, 0).'. Current: £'.number_format($currentAmount, 0).' ('.number_format((float) $progress, 0).'%). Shortfall: £'.number_format($shortfall, 0).'. Time remaining: '.$monthsRemaining.' months. Monthly contribution: £'.number_format($monthlyContribution, 0).'.',
-        ];
-
-        $vars = [
-            'goal_name' => $goalName,
-            'progress' => number_format((float) $progress, 0),
-            'months_remaining' => (string) $monthsRemaining,
-            'target_amount' => $this->formatCurrency($targetAmount),
-        ];
-
-        return [
-            'title' => $definition->renderTitle($vars),
-            'description' => $definition->renderDescription($vars),
-            'category' => $definition->category,
-            'priority' => $definition->priority,
-            'source' => 'goal',
-            'goal_id' => $goal['id'] ?? null,
-            'decision_trace' => $trace,
-        ];
-    }
-
-    /**
-     * Goal underfunded: triggers when progress is below 25% and target date is set.
-     */
-    private function evaluateLinkedGoalUnderfunded(SavingsActionDefinition $definition, array $goal): ?array
-    {
-        $trace = [];
-
-        $progress = $goal['progress_percentage'] ?? 0;
-        $targetAmount = $goal['target_amount'] ?? 0;
-
-        if ($progress >= 25 || $targetAmount <= 0) {
-            return null;
-        }
-
-        $goalName = $goal['name'] ?? 'Unnamed goal';
-        $currentAmount = $goal['current_amount'] ?? 0;
-        $shortfall = max(0, $targetAmount - $currentAmount);
-        $monthlyContribution = (float) ($goal['monthly_contribution'] ?? 0);
-        $monthsRemaining = $goal['months_remaining'] ?? 0;
-
-        // 1. Goal details
-        $trace[] = [
-            'question' => 'Which linked goal is significantly underfunded?',
-            'data_field' => 'goal_details',
-            'data_value' => $goalName.' — £'.number_format((float) $currentAmount, 0).' of £'.number_format((float) $targetAmount, 0),
-            'threshold' => 'N/A',
-            'passed' => true,
-            'explanation' => 'Goal: "'.$goalName.'". Target: £'.number_format((float) $targetAmount, 0).'. Current: £'.number_format((float) $currentAmount, 0).' ('.number_format((float) $progress, 0).'%). Monthly contribution: £'.number_format($monthlyContribution, 0).'.'.($monthsRemaining > 0 ? ' '.$monthsRemaining.' months remaining.' : ''),
-        ];
-
-        // 2. Underfunding assessment
-        $trace[] = [
-            'question' => 'How significantly underfunded is this goal?',
-            'data_field' => 'progress_percentage',
-            'data_value' => number_format((float) $progress, 0).'%',
-            'threshold' => 'Below 25%',
-            'passed' => true,
-            'explanation' => '"'.$goalName.'" is at '.number_format((float) $progress, 0).'% progress. Shortfall: £'.number_format((float) $targetAmount, 0).' − £'.number_format((float) $currentAmount, 0).' = £'.number_format((float) $shortfall, 0).'. This is well below the 25% threshold, indicating significant underfunding.',
-        ];
-
-        $vars = [
-            'goal_name' => $goalName,
-            'progress' => number_format((float) $progress, 0),
-            'shortfall' => $this->formatCurrency((float) $shortfall),
-            'target_amount' => $this->formatCurrency((float) $targetAmount),
-        ];
-
-        return [
-            'title' => $definition->renderTitle($vars),
-            'description' => $definition->renderDescription($vars),
-            'category' => $definition->category,
-            'priority' => $definition->priority,
-            'source' => 'goal',
-            'goal_id' => $goal['id'] ?? null,
-            'decision_trace' => $trace,
-        ];
-    }
-
-    /**
-     * Goal nearly complete: triggers when goal progress is above threshold.
-     * Provides encouragement and suggests next steps.
-     */
-    private function evaluateLinkedGoalNearlyComplete(SavingsActionDefinition $definition, array $goal, array $config): ?array
-    {
-        $trace = [];
-
-        $progress = $goal['progress_percentage'] ?? 0;
-        $threshold = (float) ($config['threshold'] ?? 90);
-
-        if ($progress < $threshold || $progress >= 100) {
-            return null;
-        }
-
-        $goalName = $goal['name'] ?? 'Unnamed goal';
-        $targetAmount = $goal['target_amount'] ?? 0;
-        $currentAmount = $goal['current_amount'] ?? 0;
-        $remaining = max(0, $targetAmount - $currentAmount);
-        $monthlyContribution = (float) ($goal['monthly_contribution'] ?? 0);
-        $monthsToComplete = $monthlyContribution > 0 ? ceil($remaining / $monthlyContribution) : 0;
-
-        // 1. Goal details
-        $trace[] = [
-            'question' => 'Which goal is nearly complete?',
-            'data_field' => 'goal_details',
-            'data_value' => $goalName.' — '.number_format((float) $progress, 0).'% progress',
-            'threshold' => 'N/A',
-            'passed' => true,
-            'explanation' => 'Goal: "'.$goalName.'". Target: £'.number_format((float) $targetAmount, 0).'. Current: £'.number_format((float) $currentAmount, 0).' ('.number_format((float) $progress, 0).'%). Remaining: £'.number_format((float) $remaining, 0).'. Monthly contribution: £'.number_format($monthlyContribution, 0).'.',
-        ];
-
-        // 2. Completion estimate
-        $trace[] = [
-            'question' => 'How close is this goal to completion?',
-            'data_field' => 'progress_percentage',
-            'data_value' => number_format((float) $progress, 0).'%',
-            'threshold' => number_format($threshold, 0).'% or above',
-            'passed' => true,
-            'explanation' => '"'.$goalName.'" is at '.number_format((float) $progress, 0).'% progress with just £'.number_format((float) $remaining, 0).' remaining to reach the £'.number_format((float) $targetAmount, 0).' target.'.($monthsToComplete > 0 ? ' At the current rate of £'.number_format($monthlyContribution, 0).'/month, completion is estimated in approximately '.$monthsToComplete.' month(s).' : ''),
-        ];
-
-        $vars = [
-            'goal_name' => $goalName,
-            'progress' => number_format((float) $progress, 0),
-            'remaining' => $this->formatCurrency((float) $remaining),
-        ];
-
-        return [
-            'title' => $definition->renderTitle($vars),
-            'description' => $definition->renderDescription($vars),
-            'category' => $definition->category,
-            'priority' => $definition->priority,
-            'source' => 'goal',
-            'goal_id' => $goal['id'] ?? null,
-            'decision_trace' => $trace,
-        ];
-    }
-
     // =========================================================================
     // Conflict resolution
     // =========================================================================
@@ -3484,6 +3551,32 @@ class SavingsActionDefinitionService
             ));
         }
 
+        // Expenditure missing: the emergency-fund consequence supersedes the generic readiness row.
+        if (in_array('emergency_fund_no_data', $keys, true)) {
+            $recommendations = array_values(array_filter(
+                $recommendations,
+                fn ($r) => ($r['definition_key'] ?? '') !== 'missing_expenditure'
+            ));
+        }
+
+        // Rate: rate_poor supersedes rate_below_market for the same account.
+        $poorAccounts = collect($recommendations)->where('definition_key', 'rate_poor')->pluck('account_id')->filter()->all();
+        if ($poorAccounts !== []) {
+            $recommendations = array_values(array_filter(
+                $recommendations,
+                fn ($r) => ! (($r['definition_key'] ?? '') === 'rate_below_market' && in_array($r['account_id'] ?? null, $poorAccounts, true))
+            ));
+        }
+
+        // Maturity: the 30-day urgent row supersedes the 90-day warning for the same account.
+        $urgentAccounts = collect($recommendations)->where('definition_key', 'fixed_maturity_urgent')->pluck('account_id')->filter()->all();
+        if ($urgentAccounts !== []) {
+            $recommendations = array_values(array_filter(
+                $recommendations,
+                fn ($r) => ! (($r['definition_key'] ?? '') === 'fixed_maturity_warning' && in_array($r['account_id'] ?? null, $urgentAccounts, true))
+            ));
+        }
+
         // Cash ISA: recommended supersedes not_needed
         if (in_array('cash_isa_recommended', $keys, true)) {
             $recommendations = array_values(array_filter(
@@ -3503,7 +3596,7 @@ class SavingsActionDefinitionService
         // FSCS: breach supersedes approaching for same institution
         $breachInstitutions = collect($recommendations)
             ->where('definition_key', 'fscs_breach')
-            ->pluck('account_name')
+            ->pluck('institution_group')
             ->filter()
             ->toArray();
 
@@ -3516,7 +3609,7 @@ class SavingsActionDefinitionService
                     }
 
                     // Only remove if same institution has a breach
-                    return ! in_array($r['account_name'] ?? '', $breachInstitutions, true);
+                    return ! in_array($r['institution_group'] ?? '', $breachInstitutions, true);
                 }
             ));
         }
@@ -3546,33 +3639,6 @@ class SavingsActionDefinitionService
             'scope' => $definition->scope,
             'definition_key' => $definition->key,
         ];
-    }
-
-    /**
-     * Get target emergency fund months based on employment status.
-     *
-     * Self-employed and contractors should hold more months of reserves.
-     *
-     * NOTE: Savings uses employment-specific targets here (mirroring
-     * EmergencyFundCalculator::getTargetMonths()). Investment uses a
-     * 6-month universal baseline via PlanConfigService::getEmergencyFundTargetMonths().
-     * This divergence is intentional — savings recommendations personalise the
-     * emergency fund target based on employment stability, while investment
-     * surplus calculations use a conservative universal floor.
-     */
-    private function getTargetEmergencyMonths(?User $user): int
-    {
-        if (! $user || empty($user->employment_status)) {
-            return 6;
-        }
-
-        return match ($user->employment_status) {
-            'self_employed', 'self-employed' => 9,
-            'contractor', 'freelance' => 9,
-            'unemployed', 'seeking_employment' => 6,
-            'retired' => 6,
-            default => 6,
-        };
     }
 
     /**

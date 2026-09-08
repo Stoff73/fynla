@@ -49,14 +49,9 @@ class SavingsPlanService extends BasePlanService
             'investment_accounts' => $investmentAccounts,
         ]);
 
-        // 4. Get goal recommendations
-        $goals = $this->getGoalsForPlan($userId, 'savings');
-        $goalRecommendations = $this->actionDefinitionService->evaluateGoalActions(
-            collect($goals['linked'] ?? [])
-        );
-
-        // 5. Merge: goals first, then agent recs
-        $allRecs = array_merge($goalRecommendations, $recommendations);
+        // 4. Goal-category recommendations come from the same catalogue and are
+        //    already ordered first by SavingsAgent (fyn-wiring Batch A).
+        $allRecs = $recommendations;
 
         // 6. Structure into actions
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($allRecs, 'savings', $options);
