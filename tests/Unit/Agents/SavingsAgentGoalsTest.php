@@ -9,12 +9,15 @@ use App\Models\LifeEvent;
 use App\Models\SavingsAccount;
 use App\Models\TaxConfiguration;
 use App\Models\User;
+use Database\Seeders\SavingsActionDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     TaxConfiguration::factory()->create(['is_active' => true]);
+    // Goal recommendations are seeded catalogue rows (fyn-wiring Batch A), not inline agent code.
+    $this->seed(SavingsActionDefinitionSeeder::class);
     $this->household = Household::factory()->create();
     $this->user = User::factory()->create([
         'household_id' => $this->household->id,

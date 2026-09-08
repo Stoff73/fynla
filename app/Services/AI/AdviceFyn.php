@@ -349,6 +349,13 @@ final class AdviceFyn
             $isCaptureContinuation = $intent !== null;
         }
 
+        // "Yes please, set it up." after Fyn's own offer to create a record. The
+        // LLM-mediated delegate_to_capture is the flaky leg (see the classifier
+        // note above); the offer names the entity, so route deterministically.
+        if ($intent === null) {
+            $intent = $this->proposalAcceptanceIntent($conversation, $message);
+        }
+
         // Full-duplicate short-circuit: when the user reasserts records
         // that all already exist (RecordDuplicateChecker matches every
         // extracted entity to a recent DB row), we do NOT involve the
@@ -463,6 +470,25 @@ final class AdviceFyn
      *
      * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string, pending_record_id?: int|null}|null
      */
+    /**
+     * The user accepted Fyn's own offer to create a record (see
+     * WriteIntentClassifier::proposalAcceptanceIntent). Only an ADVICE turn's
+     * offer counts: a capture turn's question is the continuation rule's.
+     */
+    private function proposalAcceptanceIntent(AiConversation $conversation, string $message): ?array
+    {
+        $lastAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first();
+
+        if ($lastAssistant === null || $lastAssistant->persona !== 'advice') {
+            return null;
+        }
+
+        return $this->writeIntentClassifier->proposalAcceptanceIntent($message, (string) $lastAssistant->content);
+    }
+
     private function captureContinuationIntent(AiConversation $conversation, string $message): ?array
     {
         if ($this->writeIntentClassifier->isQuestion($message)) {

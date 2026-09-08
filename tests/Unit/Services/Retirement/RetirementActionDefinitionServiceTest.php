@@ -7,6 +7,7 @@ use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Retirement\RetirementActionDefinitionService;
+use App\Services\TaxConfigService;
 use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -654,4 +655,10 @@ describe('template rendering', function () {
         expect($rendered)->toContain('Early Retirement')
             ->and($rendered)->toContain('£200');
     });
+});
+
+it('reads the full new State Pension from tax configuration rather than a literal', function () {
+    $source = file_get_contents(app_path('Services/Retirement/RetirementActionDefinitionService.php'));
+    expect($source)->not->toContain('11502');
+    expect((float) app(TaxConfigService::class)->get('pension.state_pension.full_new_state_pension'))->toBeGreaterThan(12000);
 });

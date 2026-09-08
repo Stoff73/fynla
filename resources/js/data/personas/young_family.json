@@ -427,9 +427,9 @@
       "ownership_type": "joint"
     },
     {
-      "goal_name": "Sophia's University Fund",
+      "goal_name": "Sophie's University Fund",
       "goal_type": "education",
-      "description": "Save for Sophia's university education in 15 years",
+      "description": "Save for Sophie's university education in 15 years",
       "target_amount": 50000,
       "current_amount": 2800,
       "target_date": "2041-09-01",

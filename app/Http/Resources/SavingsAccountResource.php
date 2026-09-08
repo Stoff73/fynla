@@ -68,11 +68,11 @@ class SavingsAccountResource extends JsonResource
 
             // Junior ISA beneficiary fields
             'beneficiary_name' => $this->when(
-                $this->isa_type === 'junior',
+                $this->resource->isJuniorIsa(),
                 $this->beneficiary_name
             ),
             'beneficiary_dob' => $this->when(
-                $this->isa_type === 'junior',
+                $this->resource->isJuniorIsa(),
                 $this->beneficiary_dob?->toDateString()
             ),
 

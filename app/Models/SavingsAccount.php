@@ -90,6 +90,17 @@ class SavingsAccount extends Model
      */
     protected $appends = ['annual_interest', 'monthly_interest'];
 
+    /**
+     * The one predicate for "is this a Junior ISA" (Rule 20). Seeded and
+     * form-created rows carry it in account_type; older rows carry it in
+     * isa_type as either "junior" or "junior_isa".
+     */
+    public function isJuniorIsa(): bool
+    {
+        return $this->account_type === 'junior_isa'
+            || in_array((string) $this->isa_type, ['junior', 'junior_isa'], true);
+    }
+
     public function getAnnualInterestAttribute(): float
     {
         return round((float) ($this->current_balance ?? 0) * ((float) ($this->interest_rate ?? 0) / 100), 2);

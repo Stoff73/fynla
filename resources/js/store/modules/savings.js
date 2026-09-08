@@ -196,6 +196,14 @@ const actions = {
         }
     },
 
+    // The Strategy tab. Same endpoint and same items as Fyn's ranked list and the
+    // dashboard aggregator (GET /savings/recommendations -> SavingsPlanService).
+    async fetchRecommendations({ commit }) {
+        const response = await savingsService.getRecommendations();
+        commit('setRecommendations', response.data || []);
+        return response;
+    },
+
     /**
      * Load the ISA allowance if it is not already in the store.
      *
@@ -366,6 +374,10 @@ const actions = {
 const mutations = {
     setAccounts(state, accounts) {
         state.accounts = accounts;
+    },
+
+    setRecommendations(state, recommendations) {
+        state.recommendations = recommendations;
     },
 
     setExpenditureProfile(state, profile) {

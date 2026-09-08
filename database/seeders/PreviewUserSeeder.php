@@ -134,6 +134,7 @@ class PreviewUserSeeder extends Seeder
 
         // Create savings accounts
         $this->createSavingsAccounts($user, $spouse, $data['savings_accounts'] ?? []);
+        $this->linkJuniorIsasToChildren($user);
 
         // Create investment accounts with holdings
         $this->createInvestmentAccounts($user, $spouse, $data['investment_accounts'] ?? []);
@@ -907,6 +908,29 @@ class PreviewUserSeeder extends Seeder
      * - joint_owner_id links to secondary owner
      * - NO reciprocal record creation
      */
+    /**
+     * A Junior ISA belongs to a child. The persona data names the child in the
+     * account name ("Oliver's Junior ISA"); link it so the children's-savings
+     * rules see it (fyn-wiring Batch A). Writes through the store.
+     */
+    private function linkJuniorIsasToChildren(User $user): void
+    {
+        $children = FamilyMember::where('user_id', $user->id)->where('relationship', 'child')->get();
+        if ($children->isEmpty()) {
+            return;
+        }
+
+        $accounts = app(SavingsStore::class)->forUser($user)
+            ->filter(fn ($a) => $a->isJuniorIsa() && $a->beneficiary_id === null);
+
+        foreach ($accounts as $account) {
+            $child = $children->first(fn ($c) => $c->first_name && str_contains(strtolower((string) $account->account_name), strtolower($c->first_name)));
+            if ($child) {
+                app(SavingsStore::class)->update($account->id, ['beneficiary_id' => $child->id], $user, IngestSource::SEEDER);
+            }
+        }
+    }
+
     private function createInvestmentAccounts(User $user, ?User $spouse, array $accounts): void
     {
         foreach ($accounts as $account) {
@@ -2280,9 +2304,12 @@ class PreviewUserSeeder extends Seeder
 
             // Link education goals to Junior ISA savings accounts
             if ($goal->goal_type === 'education' && $savingsAccounts->isNotEmpty()) {
-                $juniorIsa = $savingsAccounts
-                    ->filter(fn ($a) => str_contains(strtolower($a->account_name ?? ''), 'junior'))
-                    ->first();
+                // The child's own Junior ISA ("Oliver's University Fund" -> "Oliver's Junior ISA"),
+                // never the first one found, so two children do not share one account.
+                $goalOwner = strtolower(trim(explode("'", (string) $goal->goal_name)[0]));
+                $juniorIsas = $savingsAccounts->filter(fn ($a) => $a->isJuniorIsa());
+                $juniorIsa = $juniorIsas->first(fn ($a) => $goalOwner !== '' && str_starts_with(strtolower((string) $a->account_name), $goalOwner))
+                    ?? $juniorIsas->first();
 
                 if ($juniorIsa && ! $goal->linked_savings_account_id) {
                     $goal->update(['linked_savings_account_id' => $juniorIsa->id]);
