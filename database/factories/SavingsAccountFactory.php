@@ -27,7 +27,7 @@ class SavingsAccountFactory extends Factory
             'institution' => fake()->company(),
             'account_number' => fake()->numerify('########'),
             'current_balance' => fake()->randomFloat(2, 100, 50000),
-            'interest_rate' => fake()->randomFloat(4, 0.01, 0.05),
+            'interest_rate' => fake()->randomFloat(2, 1.0, 5.0), // percentage, as the column is stored
             'access_type' => fake()->randomElement(['immediate', 'notice', 'fixed']),
             'notice_period_days' => null,
             'maturity_date' => null,

@@ -24,7 +24,10 @@ class RateComparator
     {
         $benchmarks = $this->getMarketBenchmarks();
         $accountType = $account->account_type;
-        $accountRate = (float) $account->interest_rate;
+        // savings_accounts.interest_rate holds percentages (4.25 = 4.25%);
+        // savings_market_rates.rate holds decimals (0.0450). This method is
+        // the one place the two meet — nothing else may do this arithmetic.
+        $accountRate = (float) $account->interest_rate / 100;
 
         // Get appropriate benchmark based on account type and ISA status
         $marketRate = $this->getBenchmarkForAccount($account, $benchmarks);
@@ -44,6 +47,9 @@ class RateComparator
             'account_rate' => round($accountRate, 4),
             'market_rate' => round($marketRate, 4),
             'difference' => round($difference, 4),
+            'account_rate_percent' => round($accountRate * 100, 2),
+            'market_rate_percent' => round($marketRate * 100, 2),
+            'difference_percent' => round($difference * 100, 2),
             'is_competitive' => $isCompetitive,
             'category' => $category,
         ];
@@ -90,7 +96,7 @@ class RateComparator
     public function calculateInterestDifference(SavingsAccount $account, float $marketRate): float
     {
         $balance = (float) $account->current_balance;
-        $accountRate = (float) $account->interest_rate;
+        $accountRate = (float) $account->interest_rate / 100; // percentage column, decimal benchmark
 
         $currentInterest = $balance * $accountRate;
         $potentialInterest = $balance * $marketRate;
