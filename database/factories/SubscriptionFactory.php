@@ -17,15 +17,10 @@ class SubscriptionFactory extends Factory
 
     public function definition(): array
     {
-        $plan = fake()->randomElement(['student', 'standard', 'family', 'pro']);
+        // Two states since 2026-09-08: a subscription is premium, or it is not one.
+        $plan = 'premium';
         $billingCycle = fake()->randomElement(['monthly', 'yearly']);
-
-        $amount = match ($plan) {
-            'student' => $billingCycle === 'monthly' ? 399 : 3000,
-            'standard' => $billingCycle === 'monthly' ? 1099 : 10000,
-            'family' => $billingCycle === 'monthly' ? 1499 : 14000,
-            'pro' => $billingCycle === 'monthly' ? 1999 : 20000,
-        };
+        $amount = $billingCycle === 'monthly' ? 699 : 5999;
 
         return [
             'user_id' => User::factory(),

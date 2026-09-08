@@ -11,4 +11,5 @@ enum IngestSource: string
     case UPLOAD = 'upload';
     case SEEDER = 'seeder';
     case ADMIN = 'admin';
+    case SCRAPER = 'scraper';
 }

@@ -74,6 +74,16 @@ class SavingsMarketRateStore extends ReferenceDataStore
      * Used by the seeder for upsert lookups and by admin reads that need
      * the canonical row without scanning a full tax_year set.
      */
+    /**
+     * The tax year of the most recently effective row, or null when the table is
+     * empty. RateComparator falls back to it when the active year has no rows yet
+     * (F20: the benchmarks were only ever seeded for 2025/26).
+     */
+    public function latestTaxYear(): ?string
+    {
+        return SavingsMarketRate::orderByDesc('effective_from')->orderByDesc('id')->value('tax_year');
+    }
+
     public function findByKeyAndTaxYear(string $rateKey, string $taxYear): ?SavingsMarketRate
     {
         return SavingsMarketRate::where('rate_key', $rateKey)

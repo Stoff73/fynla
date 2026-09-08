@@ -666,12 +666,12 @@ PROMPT;
                         $lines[] = "   Action: {$action}";
                     }
 
-                    if (isset($rec['decision_trace'])) {
-                        $trace = $rec['decision_trace'];
-                        $trigger = $trace['trigger'] ?? $trace['definition_key'] ?? null;
-                        if ($trigger) {
-                            $lines[] = "   Triggered by: {$trigger}";
-                        }
+                    // The DB-driven engines put the key on the rec and a list of
+                    // steps in decision_trace; older engines key the trace itself.
+                    $trace = is_array($rec['decision_trace'] ?? null) ? $rec['decision_trace'] : [];
+                    $trigger = $trace['trigger'] ?? $trace['definition_key'] ?? $rec['definition_key'] ?? null;
+                    if ($trigger) {
+                        $lines[] = "   Triggered by: {$trigger}";
                     }
                 }
             }

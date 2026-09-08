@@ -11,9 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * SP3: route phone web visitors to the dedicated mobile surface (/m).
  *
- * Desktop and tablet are untouched. Native Capacitor loads /m directly via
- * its webDir, so it never hits this middleware. Phones-only by design
- * (tablets stay on the full web app).
+ * Desktop and tablet are untouched. Phones-only by design (tablets stay on
+ * the full web app).
  */
 class RedirectPhoneToMobile
 {

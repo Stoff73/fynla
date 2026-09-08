@@ -131,7 +131,7 @@ class DailyInsightService
             $insights[] = [
                 'text' => sprintf(
                     'You have %s remaining in your ISA allowance this tax year. Contributions before 5 April are tax-efficient.',
-                    number_format($isaRemaining, 2, '.', ',')
+                    '£'.number_format($isaRemaining)
                 ),
                 'category' => 'savings',
             ];
@@ -160,7 +160,7 @@ class DailyInsightService
             $insights[] = [
                 'text' => sprintf(
                     'You have %s of pension Annual Allowance remaining. Additional contributions could reduce your tax bill.',
-                    number_format($allowanceRemaining, 2, '.', ',')
+                    '£'.number_format($allowanceRemaining)
                 ),
                 'category' => 'retirement',
             ];
@@ -181,7 +181,7 @@ class DailyInsightService
             $insights[] = [
                 'text' => sprintf(
                     'Your estimated Inheritance Tax liability is %s. Gifting and trusts are among the things you could explore.',
-                    number_format((float) $ihtLiability, 2, '.', ',')
+                    '£'.number_format((float) $ihtLiability)
                 ).($caveat !== null ? ' '.$caveat : ''),
                 'category' => 'estate',
             ];

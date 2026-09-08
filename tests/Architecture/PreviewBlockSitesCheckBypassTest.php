@@ -37,7 +37,6 @@ it('every preview write-block site checks the bypass-preview-mode token ability'
         // write effect.
         'app/Http/Middleware/CheckSubscription.php',
         // Feature-access check — same shape as CheckSubscription.
-        'app/Http/Middleware/CheckFeatureAccess.php',
         // Public-page redirect guard — exempts preview personas from the
         // logged-in → dashboard bounce so the landing-page persona selector
         // stays reachable. Pure navigation read, no write effect.

@@ -167,7 +167,8 @@ export default {
         // Check if user has a will (traditional Will record OR WillDocument from builder)
         if (this.willInfo?.has_will) {
           this.hasWillDocument = true;
-        } else {
+        } else if (this.mode === 'full') {
+          // will-builder is estate-full only; the teaser branch would just 403.
           try {
             const willResponse = await estateService.getWillBuilderDraft();
             if (willResponse && willResponse.data) {

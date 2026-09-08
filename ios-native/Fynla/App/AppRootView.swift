@@ -136,17 +136,17 @@ struct AppRootView: View {
             switch session.state {
             case .launching:
                 LaunchingView()
-            case .signedOut:
+            // One branch for both states. A submit moves the session from
+            // `.signedOut` to `.authenticating` while the request is in flight; if
+            // the two states rendered the same view from separate `case` arms,
+            // SwiftUI would give it a new identity, tear the old one down, and its
+            // `onDisappear` would cancel the request and clear the password with
+            // no message (build 8 registration report, 2026-09-08).
+            case .signedOut, .authenticating:
                 if registrationModel.isPresentingRegistration {
                     RegistrationView(model: registrationModel)
-                } else if isPresentingPasswordReset {
+                } else if isPresentingPasswordReset, session.state == .signedOut {
                     passwordResetView
-                } else {
-                    loginView
-                }
-            case .authenticating:
-                if registrationModel.isPresentingRegistration {
-                    RegistrationView(model: registrationModel)
                 } else {
                     loginView
                 }

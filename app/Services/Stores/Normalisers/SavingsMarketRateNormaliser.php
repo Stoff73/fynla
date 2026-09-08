@@ -44,6 +44,9 @@ class SavingsMarketRateNormaliser
             'rate' => (float) $input['rate'],
             'tax_year' => trim((string) $input['tax_year']),
             'effective_from' => trim((string) $input['effective_from']),
+            // Optional provenance from the market-rate refresh (F20); admin forms omit them.
+            'provider' => isset($input['provider']) && $input['provider'] !== '' ? trim((string) $input['provider']) : null,
+            'source' => isset($input['source']) && $input['source'] !== '' ? trim((string) $input['source']) : null,
         ];
     }
 }

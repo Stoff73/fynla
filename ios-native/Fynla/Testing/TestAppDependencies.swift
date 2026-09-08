@@ -7,6 +7,7 @@ enum UITestMode: String, Sendable {
     case unlocked
     case designSystem = "design-system"
     case registrationSuccess = "registration-success"
+    case registrationSlowSuccess = "registration-slow-success"
     case registrationFieldErrors = "registration-field-errors"
     case registrationDuplicateEmail = "registration-duplicate-email"
     case registrationWrongCode = "registration-wrong-code"
@@ -73,6 +74,7 @@ enum UITestMode: String, Sendable {
              .faceIDInvalidated:
             .launching
         case .registrationSuccess,
+             .registrationSlowSuccess,
              .registrationFieldErrors,
              .registrationDuplicateEmail,
              .registrationWrongCode,
@@ -100,6 +102,8 @@ enum UITestMode: String, Sendable {
         switch self {
         case .registrationSuccess:
             .success
+        case .registrationSlowSuccess:
+            .slowSuccess
         case .registrationFieldErrors:
             .fieldErrors
         case .registrationDuplicateEmail:
@@ -161,6 +165,7 @@ enum UITestMode: String, Sendable {
              .unlocked,
              .designSystem,
              .registrationSuccess,
+             .registrationSlowSuccess,
              .registrationFieldErrors,
              .registrationDuplicateEmail,
              .registrationWrongCode,
@@ -197,6 +202,7 @@ enum UITestMode: String, Sendable {
              .unlocked,
              .designSystem,
              .registrationSuccess,
+             .registrationSlowSuccess,
              .registrationFieldErrors,
              .registrationDuplicateEmail,
              .registrationWrongCode,
@@ -246,6 +252,7 @@ enum UITestMode: String, Sendable {
              .unlocked,
              .designSystem,
              .registrationSuccess,
+             .registrationSlowSuccess,
              .registrationFieldErrors,
              .registrationDuplicateEmail,
              .registrationWrongCode,
@@ -295,6 +302,7 @@ enum UITestMode: String, Sendable {
              .unlocked,
              .designSystem,
              .registrationSuccess,
+             .registrationSlowSuccess,
              .registrationFieldErrors,
              .registrationDuplicateEmail,
              .registrationWrongCode,
@@ -547,6 +555,10 @@ enum PasswordResetUITestScenario: Sendable, Equatable {
 
 enum RegistrationUITestScenario: Sendable {
     case success
+    // A real request suspends after the session enters `.authenticating`; the
+    // instant `.success` stub never does, which is how the root view could tear
+    // the registration screen down mid-request without a test noticing.
+    case slowSuccess
     case fieldErrors
     case duplicateEmail
     case wrongCode
@@ -571,6 +583,19 @@ enum RegistrationUITestScenario: Sendable {
                     throw AuthError.validation(
                         message: "An account with this email address already exists. Please sign in or reset your password.",
                         errors: [:]
+                    )
+                case .slowSuccess:
+                    guard session.beginAuthentication() else {
+                        throw AuthenticationCoordinatorError.fullLoginRequired
+                    }
+                    try await Task.sleep(for: .milliseconds(750))
+                    try Task.checkCancellation()
+                    guard session.requireVerification() else {
+                        throw AuthenticationCoordinatorError.fullLoginRequired
+                    }
+                    return RegistrationChallenge(
+                        pendingID: 321,
+                        maskedEmail: "e***@example.test"
                     )
                 case .success,
                      .wrongCode,
@@ -602,6 +627,7 @@ enum RegistrationUITestScenario: Sendable {
                         message: "Registration is no longer available. Please register again."
                     )
                 case .success,
+                     .slowSuccess,
                      .resendExhausted:
                     guard session.completeAuthentication(), session.unlock() else {
                         throw AuthenticationCoordinatorError.fullLoginRequired

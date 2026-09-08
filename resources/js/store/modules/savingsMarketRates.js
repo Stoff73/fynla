@@ -54,6 +54,11 @@ const actions = {
     await savingsMarketRatesService.delete(id);
     commit('removeItem', id);
   },
+  async refreshFromSource({ commit }) {
+    const res = await savingsMarketRatesService.refresh();
+    commit('setItems', res.data);
+    return res.summary;
+  },
 };
 
 export default { namespaced: true, state, getters, mutations, actions };

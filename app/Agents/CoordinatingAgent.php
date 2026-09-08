@@ -252,17 +252,29 @@ class CoordinatingAgent extends BaseAgent
             if ($analysis !== null) {
                 if ($this->isQuestionScopedModule($module, $classification, $kycResult)
                     && $this->requiresQuestionScopedFallback($analysis)) {
-                    $analysis = $this->questionScopedModuleAnalysis(
+                    // Factual record list for the question; keeps its own shape.
+                    $moduleAnalysis[$module] = $this->questionScopedModuleAnalysis(
                         $module,
                         $analysisUser ??= User::findOrFail($userId),
                         (string) $primary,
                     );
+
+                    continue;
                 }
-                $moduleAnalysis[$module] = $analysis;
+                $moduleAnalysis[$module] = $this->mappedModuleAnalysis($module, $analysis, $userId);
             }
         }
 
-        return ['module_analysis' => $moduleAnalysis];
+        // The builder reads one shape on every engine level (Rule 20): the mapped
+        // module blocks and a ranked list, so a module-scoped turn's
+        // <financial_context> carries the recommendations its <relevant_triggers>
+        // block tells Fyn to look for.
+        $ranked = $this->priorityRanker->rankRecommendations(
+            $this->extractRecommendations($moduleAnalysis),
+            $this->getUserContext($userId),
+        );
+
+        return ['module_analysis' => $moduleAnalysis, 'ranked_recommendations' => $ranked];
     }
 
     /**
@@ -505,112 +517,128 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
+     * The one place a module's raw agent output becomes the shape the prompt
+     * builder reads (mapped metrics plus that module's recommendations).
+     * Both engine levels use it: the holistic orchestration for every module,
+     * and the module-scoped path for the modules the classification names.
+     * Before this the module path handed the builder the raw analyze() array,
+     * which it could not render, and no ranked list at all.
+     */
+    private function mappedModuleAnalysis(string $module, array $raw, int $userId): array
+    {
+        switch ($module) {
+            case 'protection':
+                $protectionResult = $raw;
+
+                return $this->mapProtectionAnalysis($protectionResult);
+            case 'savings':
+                $savingsResult = $raw;
+                $savingsRecs = [];
+
+                try {
+                    $savingsRecs = $this->savingsAgent->generateRecommendations($savingsResult);
+                } catch (\Exception $e) {
+                    // Recommendations generation is non-critical
+                }
+
+                return $this->mapSavingsAnalysis($savingsResult, $savingsRecs);
+            case 'investment':
+                $investmentResult = $raw;
+                $investmentRecs = [];
+
+                if (($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
+                    try {
+                        $recsResult = $this->investmentAgent->generateRecommendations($investmentResult);
+                        $investmentRecs = $recsResult['recommendations'] ?? [];
+                    } catch (\Exception $e) {
+                        // Recommendations generation is non-critical
+                    }
+                }
+
+                return $this->mapInvestmentAnalysis($investmentResult, $investmentRecs);
+            case 'retirement':
+                $retirementResult = $raw;
+                $retirementData = $retirementResult['data'] ?? $retirementResult;
+                $retirementRecs = [];
+
+                if ($retirementResult['success'] ?? false) {
+                    try {
+                        $recsResult = $this->retirementAgent->generateRecommendations($retirementData);
+                        $retirementRecs = $recsResult['recommendations'] ?? [];
+                    } catch (\Exception $e) {
+                        // Recommendations generation is non-critical
+                    }
+                }
+
+                return $this->mapRetirementAnalysis($retirementResult, $retirementRecs);
+            case 'estate':
+                $estateResult = $raw;
+                $estateData = $estateResult['data'] ?? [];
+                $estateRecs = [];
+
+                if ($estateResult['success'] ?? false) {
+                    $recsResult = $this->estateAgent->generateRecommendations($estateResult);
+                    $estateRecs = $recsResult['data']['recommendations'] ?? [];
+                }
+
+                return $this->mapEstateAnalysis($estateData, $estateRecs, $userId);
+            case 'goals':
+                $goalsResult = $raw;
+                $goalsRecs = [];
+
+                if ($goalsResult['has_goals'] ?? false) {
+                    $goalsRecsResult = $this->goalsAgent->generateRecommendations($goalsResult);
+                    $goalsRecs = $goalsRecsResult['recommendations'] ?? [];
+                }
+
+                return array_merge($goalsResult, ['recommendations' => $goalsRecs]);
+            case 'tax_optimisation':
+                $taxResult = $raw;
+                $taxData = $taxResult['data'] ?? $taxResult;
+                $taxRecs = [];
+
+                if ($taxResult['success'] ?? false) {
+                    $recsResult = $this->taxOptimisationAgent->generateRecommendations($taxResult);
+                    $taxRecs = $recsResult['recommendations'] ?? [];
+                }
+
+                return [
+                    'strategies' => $taxData['strategies'] ?? [],
+                    'total_estimated_saving' => $taxData['total_estimated_saving'] ?? 0,
+                    'allowance_usage' => $taxData['allowance_usage'] ?? [],
+                    'recommendations' => $taxRecs,
+                ];
+        }
+
+        return $raw;
+    }
+
+    /**
      * Collect analysis from all module agents
      */
     private function collectModuleAnalysis(int $userId, ?array $moduleAgents): array
     {
         $analysis = [];
 
-        $analysis['protection'] = $this->safeModuleAnalysis('Protection', function () use ($userId) {
-            $protectionResult = $this->protectionAgent->analyze($userId);
+        $analysis['protection'] = $this->safeModuleAnalysis('Protection', fn () => $this->mappedModuleAnalysis('protection', $this->protectionAgent->analyze($userId), $userId), fn () => $this->getDefaultModuleAnalysis(['adequacy_score' => 0, 'coverage_gap' => 0]));
 
-            return $this->mapProtectionAnalysis($protectionResult);
-        }, fn () => $this->getDefaultModuleAnalysis(['adequacy_score' => 0, 'coverage_gap' => 0]));
+        $analysis['savings'] = $this->safeModuleAnalysis('Savings', fn () => $this->mappedModuleAnalysis('savings', $this->savingsAgent->analyze($userId), $userId), fn () => $this->getDefaultModuleAnalysis(['total_savings' => 0, 'emergency_fund_months' => 0]));
 
-        $analysis['savings'] = $this->safeModuleAnalysis('Savings', function () use ($userId) {
-            $savingsResult = $this->savingsAgent->analyze($userId);
-            $savingsRecs = [];
-
-            try {
-                $savingsRecs = $this->savingsAgent->generateRecommendations($savingsResult);
-            } catch (\Exception $e) {
-                // Recommendations generation is non-critical
-            }
-
-            return $this->mapSavingsAnalysis($savingsResult, $savingsRecs);
-        }, fn () => $this->getDefaultModuleAnalysis(['total_savings' => 0, 'emergency_fund_months' => 0]));
-
-        $analysis['investment'] = $this->safeModuleAnalysis('Investment', function () use ($userId) {
-            $investmentResult = $this->investmentAgent->analyze($userId);
-            $investmentRecs = [];
-
-            if (($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
-                try {
-                    $recsResult = $this->investmentAgent->generateRecommendations($investmentResult);
-                    $investmentRecs = $recsResult['recommendations'] ?? [];
-                } catch (\Exception $e) {
-                    // Recommendations generation is non-critical
-                }
-            }
-
-            return $this->mapInvestmentAnalysis($investmentResult, $investmentRecs);
-        }, fn () => $this->getDefaultModuleAnalysis([
+        $analysis['investment'] = $this->safeModuleAnalysis('Investment', fn () => $this->mappedModuleAnalysis('investment', $this->investmentAgent->analyze($userId), $userId), fn () => $this->getDefaultModuleAnalysis([
             'total_portfolio_value' => 0, 'diversification_score' => 0,
             'portfolio_health_score' => 70, 'annual_return_percent' => 0, 'risk_warnings' => [],
         ]));
 
-        $analysis['retirement'] = $this->safeModuleAnalysis('Retirement', function () use ($userId) {
-            $retirementResult = $this->retirementAgent->analyze($userId);
-            $retirementData = $retirementResult['data'] ?? $retirementResult;
-            $retirementRecs = [];
-
-            if ($retirementResult['success'] ?? false) {
-                try {
-                    $recsResult = $this->retirementAgent->generateRecommendations($retirementData);
-                    $retirementRecs = $recsResult['recommendations'] ?? [];
-                } catch (\Exception $e) {
-                    // Recommendations generation is non-critical
-                }
-            }
-
-            return $this->mapRetirementAnalysis($retirementResult, $retirementRecs);
-        }, fn () => $this->getDefaultModuleAnalysis([
+        $analysis['retirement'] = $this->safeModuleAnalysis('Retirement', fn () => $this->mappedModuleAnalysis('retirement', $this->retirementAgent->analyze($userId), $userId), fn () => $this->getDefaultModuleAnalysis([
             'total_pension_value' => 0, 'projected_annual_income' => 0,
             'target_income' => 0, 'income_gap' => 0,
         ]));
 
-        $analysis['estate'] = $this->safeModuleAnalysis('Estate', function () use ($userId) {
-            $estateResult = $this->estateAgent->analyze($userId);
-            $estateData = $estateResult['data'] ?? [];
-            $estateRecs = [];
+        $analysis['estate'] = $this->safeModuleAnalysis('Estate', fn () => $this->mappedModuleAnalysis('estate', $this->estateAgent->analyze($userId), $userId), fn () => $this->getDefaultEstateAnalysis($userId));
 
-            if ($estateResult['success'] ?? false) {
-                $recsResult = $this->estateAgent->generateRecommendations($estateResult);
-                $estateRecs = $recsResult['data']['recommendations'] ?? [];
-            }
+        $analysis['goals'] = $this->safeModuleAnalysis('Goals', fn () => $this->mappedModuleAnalysis('goals', $this->goalsAgent->analyze($userId), $userId), fn () => ['has_goals' => false, 'recommendations' => [], 'error' => 'Analysis failed']);
 
-            return $this->mapEstateAnalysis($estateData, $estateRecs, $userId);
-        }, fn () => $this->getDefaultEstateAnalysis($userId));
-
-        $analysis['goals'] = $this->safeModuleAnalysis('Goals', function () use ($userId) {
-            $goalsResult = $this->goalsAgent->analyze($userId);
-            $goalsRecs = [];
-
-            if ($goalsResult['has_goals'] ?? false) {
-                $goalsRecsResult = $this->goalsAgent->generateRecommendations($goalsResult);
-                $goalsRecs = $goalsRecsResult['recommendations'] ?? [];
-            }
-
-            return array_merge($goalsResult, ['recommendations' => $goalsRecs]);
-        }, fn () => ['has_goals' => false, 'recommendations' => [], 'error' => 'Analysis failed']);
-
-        $analysis['tax_optimisation'] = $this->safeModuleAnalysis('TaxOptimisation', function () use ($userId) {
-            $taxResult = $this->taxOptimisationAgent->analyze($userId);
-            $taxData = $taxResult['data'] ?? $taxResult;
-            $taxRecs = [];
-
-            if ($taxResult['success'] ?? false) {
-                $recsResult = $this->taxOptimisationAgent->generateRecommendations($taxResult);
-                $taxRecs = $recsResult['recommendations'] ?? [];
-            }
-
-            return [
-                'strategies' => $taxData['strategies'] ?? [],
-                'total_estimated_saving' => $taxData['total_estimated_saving'] ?? 0,
-                'allowance_usage' => $taxData['allowance_usage'] ?? [],
-                'recommendations' => $taxRecs,
-            ];
-        }, fn () => [
+        $analysis['tax_optimisation'] = $this->safeModuleAnalysis('TaxOptimisation', fn () => $this->mappedModuleAnalysis('tax_optimisation', $this->taxOptimisationAgent->analyze($userId), $userId), fn () => [
             'strategies' => [],
             'total_estimated_saving' => 0,
             'allowance_usage' => [],
@@ -2139,7 +2167,8 @@ class CoordinatingAgent extends BaseAgent
 
         switch ($entityType) {
             case 'savings_account':
-                $items = app(SavingsStore::class)->forUser($user);
+                // The co-owner label reads jointOwner; load it or the tool dies on joint accounts.
+                $items = app(SavingsStore::class)->forUserWithJointOwner($user);
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_balance;
@@ -2152,7 +2181,7 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'investment_account':
-                $items = InvestmentAccount::forUserOrJoint($userId)->get();
+                $items = InvestmentAccount::forUserOrJoint($userId)->with('jointOwner')->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_value;

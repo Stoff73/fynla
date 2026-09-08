@@ -532,6 +532,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -Wno-deprecated-declarations";
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fynla.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fynla";
@@ -545,6 +546,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -Wno-deprecated-declarations";
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fynla.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fynla";
@@ -558,6 +560,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -Wno-deprecated-declarations";
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fynla.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fynla";
@@ -571,6 +574,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -Wno-deprecated-declarations";
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fynla.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fynla";
@@ -584,6 +588,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -Wno-deprecated-declarations";
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fynla.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fynla";
@@ -595,6 +600,7 @@
 			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_TARGET_NAME = Fynla;
@@ -606,6 +612,7 @@
 			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_TARGET_NAME = Fynla;
@@ -617,6 +624,7 @@
 			baseConfigurationReference = A10000000000000000000015 /* Production.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_TARGET_NAME = Fynla;
@@ -628,6 +636,7 @@
 			baseConfigurationReference = A10000000000000000000015 /* Production.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_TARGET_NAME = Fynla;
@@ -639,6 +648,7 @@
 			baseConfigurationReference = A10000000000000000000014 /* Staging.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = org.fynla.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_TARGET_NAME = Fynla;

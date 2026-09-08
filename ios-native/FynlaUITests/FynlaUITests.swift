@@ -1059,6 +1059,23 @@ final class FynlaUITests: XCTestCase {
         XCTAssertTrue(element("app.unlocked", in: app).waitForExistence(timeout: 3))
     }
 
+    // The session moves `.signedOut` -> `.authenticating` while the request is in
+    // flight. If the root view gives the registration screen a different identity
+    // in those two states, SwiftUI tears it down mid-request, `onDisappear` cancels
+    // the submission, and the user sees the form again with no message (the build 8
+    // report, 2026-09-08).
+    @MainActor
+    func testRegistrationSurvivesTheSessionStateChangeWhileTheRequestIsInFlight() throws {
+        let app = app(mode: "registration-slow-success")
+        app.launch()
+        fillValidRegistration(in: app)
+        app.buttons["registration.submit"].tap()
+
+        let code = app.textFields["registration.verification.code"]
+        XCTAssertTrue(code.waitForExistence(timeout: 5))
+        XCTAssertFalse(element("registration.message", in: app).exists)
+    }
+
     @MainActor
     func testRegistrationServerFieldErrorsPreserveNonSecretValues() throws {
         let app = app(mode: "registration-field-errors")

@@ -130,6 +130,17 @@
         </button>
         <ISAContributionHistory v-if="isaExpanded" :status="isaAllowance" />
       </div>
+
+      <!-- Recommended actions: the SAME items as the web Strategy tab and Fyn
+           (GET /api/savings/recommendations), not an /m copy (Rules 19 and 20). -->
+      <div v-if="recommendations.length" class="m-card" data-test="savings-recommendations">
+        <p class="m-section-label" style="margin-top:0">Recommended actions</p>
+        <article v-for="(rec, i) in recommendations" :key="rec.definition_key || i" class="ms-rec">
+          <h3 class="ms-rec__title">{{ rec.title }}</h3>
+          <p v-if="rec.description" class="ms-rec__desc">{{ rec.description }}</p>
+          <p v-if="rec.action" class="ms-rec__action">{{ rec.action }}</p>
+        </article>
+      </div>
     </template>
   </MobileChrome>
 </template>
@@ -157,7 +168,7 @@ export default {
   name: 'MobileSavings',
   components: { ISAContributionHistory, MobileChrome },
   mixins: [upgradeMixin],
-  data: () => ({ loading: true, error: '', payload: null, isaExpanded: false }),
+  data: () => ({ loading: true, error: '', payload: null, recommendations: [], isaExpanded: false }),
   computed: {
     accounts() { return this.payload?.accounts || []; },
     // CSJ: a Cash ISA is cash held in an ISA wrapper — it is NOT a bank account,
@@ -289,10 +300,15 @@ export default {
       this.error = '';
       this.payload = null;
       try {
-        const { ok, status, data } = await apiGet('/api/savings', store.token);
+        const [{ ok, status, data }, recs] = await Promise.all([
+          apiGet('/api/savings', store.token),
+          apiGet('/api/savings/recommendations', store.token),
+        ]);
         if (handleAuthExpiry({ status }, this.$router)) return;
         if (ok) this.payload = data?.data || data || {};
         else this.error = data?.message || 'We could not load your bank accounts.';
+        // Enrichment: a failed recommendations call leaves the accounts page intact.
+        this.recommendations = recs.ok ? (recs.data?.data || []) : [];
       } catch {
         this.error = 'Network error. Please try again.';
       } finally {
@@ -304,6 +320,11 @@ export default {
 </script>
 
 <style scoped>
+.ms-rec { border: 1px solid var(--light-gray); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 10px; }
+.ms-rec:last-child { margin-bottom: 0; }
+.ms-rec__title { font-size: 14px; font-weight: 700; color: var(--horizon-500); line-height: 1.3; }
+.ms-rec__desc { font-size: 13px; color: var(--neutral-600); line-height: 1.5; margin-top: 4px; }
+.ms-rec__action { font-size: 13px; font-weight: 600; color: var(--horizon-500); line-height: 1.5; margin-top: 6px; }
 .ms-ef__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 0; }
 .ms-ef__label { font-size: 13px; color: var(--neutral-500); }
 .ms-ef__value { font-size: 14px; font-weight: 700; color: var(--horizon-500); white-space: nowrap; }

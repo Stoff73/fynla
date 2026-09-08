@@ -64,7 +64,7 @@ public function toArray(Request $request): array {
 ## Routes
 
 - `routes/api.php` — the web + `/m` API, prefixed `/api/`.
-- `routes/api_v1.php` — the **native iOS** surface, prefixed `/api/v1/`. Native auth/session (`/native/auth/session/exchange|refresh`) sits behind `native.client`, `native.version` and `native.session`. **These routes do not exist on production.**
+- `routes/api_v1.php` — the **native iOS** surface, prefixed `/api/v1/`. Native auth/session (`/native/auth/session/exchange|refresh`) sits behind `native.client`, `native.version` and `native.session`. Live on production since the 2026-09-07 release; both native schemes point at fynla.org.
 - `routes/e2e.php` — browser-scenario support, non-production only.
 
 Rate limiting: `throttle:5,1` on auth, `throttle:api` general, `throttle:export` (3/hour) on exports. **Named limiters for inline paths** — an unnamed throttle shares one per-IP bucket.

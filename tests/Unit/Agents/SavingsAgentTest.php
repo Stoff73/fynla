@@ -23,6 +23,8 @@ beforeEach(function () {
     $this->liquidityAnalyzer = Mockery::mock(LiquidityAnalyzer::class);
     $this->rateComparator = Mockery::mock(RateComparator::class);
     $this->readinessService = Mockery::mock(SavingsDataReadinessService::class);
+    // The calculator is the one month table (fyn-wiring Batch A); analyze() reads it for the adequacy target.
+    $this->emergencyFundCalculator->shouldReceive('getTargetMonths')->andReturn(6)->byDefault();
     $this->readinessService->shouldReceive('assess')->andReturn([
         'can_proceed' => true,
         'blocking' => [],
@@ -68,16 +70,6 @@ describe('analyze', function () {
             ->shouldReceive('calculateRunway')
             ->once()
             ->andReturn(6.0);
-
-        $this->emergencyFundCalculator
-            ->shouldReceive('calculateAdequacy')
-            ->once()
-            ->andReturn([
-                'runway' => 6.0,
-                'target' => 6,
-                'adequacy_score' => 100.0,
-                'shortfall' => 0.0,
-            ]);
 
         $this->emergencyFundCalculator
             ->shouldReceive('categorizeAdequacy')
@@ -179,12 +171,16 @@ describe('analyze', function () {
 
         expect($result['emergency_fund'])->toHaveKeys([
             'runway_months',
-            'adequacy',
             'category',
             'recommendation',
         ]);
+        // Rule 12: the analysis feeds the get_module_analysis tool result, and a
+        // 0-100 adequacy figure in it was voiced to a user as "44.67 out of 100".
+        expect($result['emergency_fund'])->not->toHaveKey('adequacy');
 
         expect($result['goals'])->toHaveKeys(['progress', 'prioritized']);
+        expect($result['user_id'])->toBe($user->id);
+
     });
 
     it('handles user with no savings accounts', function () {
@@ -195,16 +191,6 @@ describe('analyze', function () {
             ->once()
             ->with(0.0, 2000.0)
             ->andReturn(0.0);
-
-        $this->emergencyFundCalculator
-            ->shouldReceive('calculateAdequacy')
-            ->once()
-            ->andReturn([
-                'runway' => 0.0,
-                'target' => 6,
-                'adequacy_score' => 0.0,
-                'shortfall' => 6.0,
-            ]);
 
         $this->emergencyFundCalculator
             ->shouldReceive('categorizeAdequacy')
@@ -291,16 +277,6 @@ describe('analyze', function () {
             ->once()
             ->with(15000.0, 3000.0)
             ->andReturn(5.0);
-
-        $this->emergencyFundCalculator
-            ->shouldReceive('calculateAdequacy')
-            ->once()
-            ->andReturn([
-                'runway' => 5.0,
-                'target' => 6,
-                'adequacy_score' => 83.33,
-                'shortfall' => 1.0,
-            ]);
 
         $this->emergencyFundCalculator
             ->shouldReceive('categorizeAdequacy')

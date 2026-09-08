@@ -40,6 +40,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('protection:send-alerts')->dailyAt('09:15');
         $schedule->command('notifications:mortgage-rate-alerts')->dailyAt('09:30');
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
+        // F20: market benchmarks from MoneySavingExpert, refreshed quarterly (CSJ 2026-09-08, "every quarter for now").
+        $schedule->command('savings:refresh-market-rates')->quarterlyOn(1, '06:00')->withoutOverlapping();
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('business:send-filing-alerts')->dailyAt('10:45');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');

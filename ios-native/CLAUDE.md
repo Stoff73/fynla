@@ -8,12 +8,10 @@ Supplements the root `CLAUDE.md`. **Read the Mobile Clients section there first*
 
 | Scheme | Backend | Bundle ID |
 |---|---|---|
-| `Fynla-Staging` | `https://csjones.co/fynla` | `org.fynla.app.dev` |
+| `Fynla-Staging` | `https://fynla.org` | `org.fynla.app.dev` |
 | `Fynla-Production` | `https://fynla.org` | `org.fynla.app` |
 
-**The TestFlight build is `Fynla-Staging` and reads the csjones database.** Both schemes install as an app named "Fynla" and nothing in the UI names the backend, so they are indistinguishable on a phone. An account registered on fynla.org does not exist in staging: login returns 401, audit `reason: user_not_found`, UI shows "Invalid email or password". **Testers register on csjones.co/fynla.**
-
-`Fynla-Production` cannot complete login today — production has no `/api/v1/native/*` routes. Shipping `dev → main` is the fix; nothing in this directory changes it.
+**Both schemes read fynla.org** (CSJ 2026-09-08). The Staging scheme is the dev-signed build (`org.fynla.app.dev`, development push); it is not a csjones build, so anything a tester registers is a real production account. `LiveJourneyTests` still drive csjones, through `TEST_RUNNER_` env vars, independent of the scheme.
 
 URLs must be HTTPS with no user-info or `AppEnvironment.validatedURL` throws. `Local.xcconfig` holds `DEVELOPMENT_TEAM` and is gitignored — create it once per machine.
 

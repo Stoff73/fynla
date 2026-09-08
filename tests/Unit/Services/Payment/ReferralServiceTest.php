@@ -43,7 +43,7 @@ describe('sendInvitation', function () {
         Mail::fake();
         $user = User::factory()->create(['referral_code' => 'FYN-ABC12']);
         $user->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'active',
             'amount' => 10000, 'current_period_start' => now(), 'current_period_end' => now()->addYear(),
         ]);
 
@@ -84,7 +84,7 @@ describe('sendInvitation', function () {
     it('rejects self-referral', function () {
         $user = User::factory()->create(['email' => 'me@example.com', 'referral_code' => 'FYN-SELF1']);
         $user->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'active',
             'amount' => 10000, 'current_period_start' => now(), 'current_period_end' => now()->addYear(),
         ]);
 
@@ -97,7 +97,7 @@ describe('sendInvitation', function () {
     it('rejects duplicate invitation to same email', function () {
         $user = User::factory()->create(['referral_code' => 'FYN-DUP12']);
         $user->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'active',
             'amount' => 10000, 'current_period_start' => now(), 'current_period_end' => now()->addYear(),
         ]);
 
@@ -117,14 +117,14 @@ describe('applyReferralBonus', function () {
     it('extends both subscriptions by 1 week for monthly purchase', function () {
         $referrer = User::factory()->create(['referral_code' => 'FYN-REF01']);
         $referrerSub = $referrer->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'monthly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'monthly', 'status' => 'active',
             'amount' => 1099, 'current_period_start' => now(), 'current_period_end' => now()->addMonth(),
         ]);
         $referrerOriginalEnd = $referrerSub->current_period_end->copy();
 
         $referee = User::factory()->create(['referred_by_code' => 'FYN-REF01']);
         $refereeSub = $referee->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'monthly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'monthly', 'status' => 'active',
             'amount' => 1099, 'current_period_start' => now(), 'current_period_end' => now()->addMonth(),
         ]);
         $refereeOriginalEnd = $refereeSub->current_period_end->copy();
@@ -152,14 +152,14 @@ describe('applyReferralBonus', function () {
     it('extends both subscriptions by 1 month for annual purchase', function () {
         $referrer = User::factory()->create(['referral_code' => 'FYN-REF02']);
         $referrerSub = $referrer->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'active',
             'amount' => 10000, 'current_period_start' => now(), 'current_period_end' => now()->addYear(),
         ]);
         $referrerOriginalEnd = $referrerSub->current_period_end->copy();
 
         $referee = User::factory()->create(['referred_by_code' => 'FYN-REF02']);
         $refereeSub = $referee->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'active',
             'amount' => 10000, 'current_period_start' => now(), 'current_period_end' => now()->addYear(),
         ]);
         $refereeOriginalEnd = $refereeSub->current_period_end->copy();
@@ -183,13 +183,13 @@ describe('applyReferralBonus', function () {
     it('does not apply bonus twice', function () {
         $referrer = User::factory()->create(['referral_code' => 'FYN-ONCE1']);
         $referrer->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'active',
             'amount' => 10000, 'current_period_start' => now(), 'current_period_end' => now()->addYear(),
         ]);
 
         $referee = User::factory()->create(['referred_by_code' => 'FYN-ONCE1']);
         $referee->subscription()->create([
-            'plan' => 'standard', 'billing_cycle' => 'yearly', 'status' => 'active',
+            'plan' => 'premium', 'billing_cycle' => 'yearly', 'status' => 'active',
             'amount' => 10000, 'current_period_start' => now(), 'current_period_end' => now()->addYear(),
         ]);
 

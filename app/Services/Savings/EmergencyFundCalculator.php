@@ -117,9 +117,8 @@ class EmergencyFundCalculator
     public function getTargetMonths(?string $employmentStatus): int
     {
         return match ($employmentStatus) {
-            'employed', 'part_time' => 6,
-            'self_employed', 'freelance' => 9,
-            'contractor' => 9,
+            'employed', 'full_time', 'part_time' => 6,
+            'self_employed', 'freelance', 'contractor' => 9,
             'retired' => 3,
             default => 6,
         };

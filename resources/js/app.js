@@ -35,7 +35,6 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
-import { isNativePlatform, getToken } from './services/tokenStorage';
 import logger from './utils/logger';
 import { captureSourceFromUrl } from './utils/sourceCapture';
 
@@ -91,27 +90,6 @@ app.config.errorHandler = (err, instance, info) => {
 logger.debug('App', 'Module init complete, calling initAndMount');
 
 async function initAndMount() {
-  logger.debug('App Init', 'Step 1: isNative =', isNativePlatform());
-
-  // On native (Capacitor), try to restore token but don't block app mount.
-  // Preferences.get() hangs on some iOS builds, so we use a short timeout.
-  if (isNativePlatform()) {
-    try {
-      logger.debug('App Init', 'Step 2: Calling getToken...');
-      const tokenPromise = getToken();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Token restore timeout (3s)')), 3000)
-      );
-      const token = await Promise.race([tokenPromise, timeoutPromise]);
-      logger.debug('App Init', 'Step 3: Token result:', token ? 'yes (' + token.length + ' chars)' : 'none');
-      if (token) {
-        store.commit('auth/setToken', token);
-      }
-    } catch (e) {
-      logger.debug('App Init', 'Step 3-ERR: Token failed:', e?.message || 'unknown');
-    }
-  }
-
   logger.debug('App Init', 'Step 4: Dispatching preview/initFromStorage');
   await store.dispatch('preview/initFromStorage').catch(() => {});
 

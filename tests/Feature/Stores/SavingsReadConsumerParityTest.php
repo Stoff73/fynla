@@ -2007,14 +2007,17 @@ it('SavingsActionDefinitionService::evaluateSpouseISACoordination spouse cash-IS
         'scope' => 'household',
         'is_enabled' => true,
     ]);
+    // The seeded condition is spouse_isa_allowance_imbalanced (fyn-wiring
+    // Batch A): the user has used the whole allowance while the spouse still
+    // has room. Both partners with headroom is not this recommendation.
     $result = $reflection->invoke(
         $service,
         $definition,
         $user->id,
-        ['isa_allowance' => ['remaining' => 10000, 'used' => 5000]],
+        ['isa_allowance' => ['remaining' => 0, 'used' => 20000]],
         1
     );
-    // Result is non-empty (combined remaining 10000 + 16000 ≥ 5000 threshold),
+    // Result is non-empty (user full, spouse remaining 16000 ≥ 5000 threshold),
     // proving the migrated spouse query produced the expected £4k usage.
     expect($result)->not->toBeEmpty();
 

@@ -265,6 +265,57 @@ final class WriteIntentClassifier
     }
 
     /**
+     * A short affirmative that accepts Fyn's OWN offer to create a record.
+     *
+     * Live 2026-09-08 (fyn-wiring Batch A, Task 8): Advice Fyn proposed an
+     * emergency fund goal and asked "Would you like me to help you set up that
+     * emergency fund goal now?"; the user said "Yes please, set it up."; grok-4.3
+     * then wrote `delegate_to_capture` out as prose instead of calling the tool,
+     * and nothing was written. The affirmative carries no verb+entity of its
+     * own, so classify() cannot route it, and it is not the answer to a capture
+     * question, so the continuation rule cannot either. This is the same
+     * deterministic bypass classify() provides, keyed on the offer Fyn just made:
+     * the entity comes from the offer sentence, the acceptance from the reply.
+     * Conservative on purpose: the reply must open with an affirmative and stay
+     * short, the offer must be the last assistant turn's own question.
+     *
+     * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
+     */
+    public function proposalAcceptanceIntent(string $userMessage, ?string $lastAssistantContent): ?array
+    {
+        $normalised = strtolower(trim($userMessage));
+        if ($normalised === '' || $lastAssistantContent === null || $this->looksLikeQuestion($normalised)) {
+            return null;
+        }
+
+        if (mb_strlen($normalised) > 80
+            || preg_match('/^(yes|yep|yeah|sure|ok|okay|please do|go ahead|do it|set it up|let\'s do it|please)\b/', $normalised) !== 1
+            || preg_match('/\b(no|not|don\'t|dont|but|instead|later)\b/', $normalised) === 1) {
+            return null;
+        }
+
+        // The offer: Fyn's own question proposing to set up / create / add a record.
+        $offer = strtolower($lastAssistantContent);
+        if (preg_match('/\b(would you like|shall i|do you want|want me to|should i)\b[^.?!]{0,80}\b(set up|set that up|set this up|create|add|record|open)\b([^.?!]{0,100})\?/', $offer, $m) !== 1) {
+            return null;
+        }
+        $clause = $m[0];
+
+        $goalKeyword = $this->firstMatch($clause, self::ENTITY_KEYWORDS['goal']);
+        if ($goalKeyword !== null) {
+            return $this->buildResult('goal', 'proposal_accepted', $goalKeyword);
+        }
+        foreach (self::ENTITY_KEYWORDS as $entityType => $keywords) {
+            $matched = $this->firstMatch($clause, $keywords);
+            if ($matched !== null) {
+                return $this->buildResult($entityType, 'proposal_accepted', $matched);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Public question check for callers that need the same advice-vs-write
      * discrimination on a raw message (WP-1: the capture-continuation rule
      * must not treat a mid-capture question as the awaited answer).

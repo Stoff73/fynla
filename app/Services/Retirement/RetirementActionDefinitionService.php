@@ -978,7 +978,10 @@ class RetirementActionDefinitionService
         $forecastAnnual = (float) ($statePension->state_pension_forecast_annual ?? 0);
         $alreadyReceiving = (bool) ($statePension->already_receiving ?? false);
         $gapFillCost = (float) ($statePension->gap_fill_cost ?? 0);
-        $fullStatePension = (float) ($this->taxConfig->get('pension.state_pension.full_new_state_pension', 11502));
+        $fullStatePension = (float) ($this->taxConfig->get('pension.state_pension.full_new_state_pension') ?? 0);
+        if ($fullStatePension <= 0) {
+            return []; // Rule 2: no configured figure, no recommendation built on a guess.
+        }
 
         $trace[] = [
             'question' => 'What is the State Pension position?',
@@ -1878,7 +1881,10 @@ class RetirementActionDefinitionService
 
         // Step 3: Forecast check
         $hasForecast = $statePension && $forecastAmount > 0;
-        $fullStatePension = (float) ($this->taxConfig->get('pension.state_pension.full_new_state_pension', 11502));
+        $fullStatePension = (float) ($this->taxConfig->get('pension.state_pension.full_new_state_pension') ?? 0);
+        if ($fullStatePension <= 0) {
+            return []; // Rule 2: no configured figure, no recommendation built on a guess.
+        }
 
         $trace[] = [
             'question' => 'Has '.$userName.' entered a State Pension forecast?',

@@ -164,9 +164,9 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 
 ## Raised 2026-09-04 — findings from the 2026-09-01 run, not yet worked
 
-- [ ] **W-0532** `queued` — family_module and benefits_child are listed in the pricing comparison and gated by nothing — sold to customers, enforced nowhere
-- [ ] **W-0533** `queued` — The leasehold and tenure configuration has no consumer — and the one calculation that should read it hardcodes its threshold as 80 and is itself rendered nowhere
-- [ ] **W-0534** `queued` — The pension-exclusion sentence about the current column is written in a component, so the free-tier teaser cannot say it
+- [x] **W-0532** `done` (both gated via TeaserGate::requireCapability; PR #768, on prod 2026-09-07; not browser-observable as both tiers sell them; compliance-lead review not run) — family_module and benefits_child are listed in the pricing comparison and gated by nothing — sold to customers, enforced nowhere
+- [x] **W-0533** `done` (both bands read from config, published on the property, rendered web + /m; csjones verified 2026-09-07; PR #768, on prod) — The leasehold and tenure configuration has no consumer — and the one calculation that should read it hardcodes its threshold as 80 and is itself rendered nowhere
+- [x] **W-0534** `done` (engine publishes the sentence, teaser passes it to web + /m; csjones verified 2026-09-07; PR #768, on prod; compliance-lead review not run) — The pension-exclusion sentence about the current column is written in a component, so the free-tier teaser cannot say it
 - [ ] **W-0539** `deferred` (CSJ 2026-09-04: "leave trusts for now, we will get back to it") — /m has no trusts surface at all: no route, no nav entry, no overview, only a count row in the estate module
 - [ ] **W-0540** `queued` — A component can lose its last importer and nothing fails; 79 of 522 already have
 - [x] **W-0538** `done` (CSJ decision: wire to web dashboard only, not /m; both web layout blocks; gated on hasCapability('estate') because the endpoint is behind estate.full; Rule 15 icon stripped as it lands new; OPEN: the general orphan-component guard, and /m has NO trusts nav or overview today — flagged to CSJ) — TrustsOverviewCard.vue is now rendered by the web dashboard

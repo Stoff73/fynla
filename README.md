@@ -567,7 +567,7 @@ php artisan route:clear
 - **Freemium Tiers & Payments** — Tier-based freemium model with Revolut subscription payments, tier-driven upgrade flows, and the public pricing page rebuilt around tiers
 - **Fyn AI Unified Architecture** — One unified system prompt across both Fyn states (onboarding capture and read-only advice), with write intents routed through an unseen capture handoff; CoALA memory programme (semantic, episodic, and procedural memory) landed via PR #550 (2026-06-13), with the shared FynLoop + GroundGate substrate underneath both Fyn states, since released to production
 - **Save-Tax Campaign & Tax Strategy** — Public save-tax funnel feeding a Fyn-led onboarding journey; tax strategy catalogue joins the recommendation aggregator as a seventh module with a TaxOptimisationAgent, composed household tax plans, and dedicated Tax Strategy pages on web and mobile
-- **Mobile `/m` Pathway** — Phones route to `/m`, which serves the mobile web build (iframed funnel plus a dedicated mobile SPA at `/m/app` with its own dashboard), alongside the Capacitor iOS packaging
+- **Mobile `/m` Pathway** — Phones route to `/m`, which serves the mobile web build (iframed funnel plus a dedicated mobile SPA at `/m/app` with its own dashboard)
 - **Gamification Engine** — Append-only points ledger with named levels, level wheel and progress on the mobile dashboard, and a gamified web dashboard
 - **Lifecycle Email Engine** — Transactional and lifecycle email campaigns built on a master layout with reusable modules, including account-deletion lifecycle emails
 
