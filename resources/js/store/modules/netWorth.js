@@ -316,7 +316,9 @@ const actions = {
 
             // Recalculate IHT planning
             const user = rootGetters['auth/user'];
-            if (user?.marital_status === 'married' || user?.marital_status === 'civil_partnership') {
+            const married = user?.marital_status === 'married' || user?.marital_status === 'civil_partnership';
+            // calculate-iht is estate-full only; a Free household would just log a 403.
+            if (married && rootGetters['auth/hasFullCapability']('estate')) {
                 await dispatch('estate/calculateIHTPlanning', null, { root: true });
             }
         } catch (error) {

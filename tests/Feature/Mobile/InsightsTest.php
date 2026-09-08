@@ -92,7 +92,7 @@ describe('Daily Insights API', function () {
             ->assertOk()
             ->json('data.insight');
 
-        expect($insight)->toContain('12,000.00');
+        expect($insight)->toContain('£12,000');
     });
 
     it('reads the emergency-fund runway out of the agent payload', function () {
@@ -128,7 +128,7 @@ describe('Daily Insights API', function () {
             ->assertOk()
             ->json('data.insight');
 
-        expect($insight)->toContain('55,600.00');
+        expect($insight)->toContain('£55,600');
         expect($insight)->toContain('Annual Allowance');
     });
 
@@ -150,7 +150,7 @@ describe('Daily Insights API', function () {
             ->assertOk()
             ->json('data.insight');
 
-        expect($insight)->toContain('58,500.00');
+        expect($insight)->toContain('£58,500');
         expect($insight)->toContain('Agricultural Property Relief');
     });
 
