@@ -13,6 +13,10 @@ const savingsMarketRatesService = {
   async delete(id) {
     return (await api.delete(`/admin/savings-market-rates/${id}`)).data;
   },
+  // F20: pull the MoneySavingExpert best-buy rates into the active tax year.
+  async refresh() {
+    return (await api.post('/admin/savings-market-rates/refresh')).data;
+  },
 };
 
 export default savingsMarketRatesService;

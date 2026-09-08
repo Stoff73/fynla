@@ -21,6 +21,9 @@ it('normalises a complete admin payload', function () {
         'rate' => 0.045,
         'tax_year' => '2026/27',
         'effective_from' => '2026-04-06',
+        // Provenance columns (F20) are optional and null when the admin form omits them.
+        'provider' => null,
+        'source' => null,
     ]);
 });
 

@@ -2,12 +2,32 @@
   <div>
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-xl font-bold text-horizon-500">Savings market rates</h2>
-      <button
-        class="px-4 py-2 bg-raspberry-500 text-white rounded-md hover:bg-raspberry-600 transition-colors"
-        @click="openCreate"
-      >
-        Add rate
-      </button>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="px-4 py-2 border border-horizon-500 text-horizon-500 rounded-md hover:bg-savannah-50 transition-colors disabled:opacity-50"
+          :disabled="refreshing"
+          data-test="refresh-market-rates"
+          @click="handleRefresh"
+        >
+          {{ refreshing ? 'Refreshing...' : 'Refresh from MoneySavingExpert' }}
+        </button>
+        <button
+          class="px-4 py-2 bg-raspberry-500 text-white rounded-md hover:bg-raspberry-600 transition-colors"
+          @click="openCreate"
+        >
+          Add rate
+        </button>
+      </div>
+    </div>
+
+    <p class="text-sm text-neutral-500 mb-4">
+      Benchmarks refresh from the MoneySavingExpert best-buy tables on the first day of each quarter into the current tax year.
+      <span v-if="lastRefreshed">Last refreshed {{ lastRefreshed }}.</span>
+      <span v-else>Not refreshed yet.</span>
+    </p>
+    <div v-if="refreshMessage" class="mb-4 rounded-md border px-4 py-3 text-sm" :class="refreshFailed ? 'border-raspberry-200 bg-raspberry-50 text-raspberry-700' : 'border-spring-200 bg-spring-50 text-spring-700'" data-test="refresh-message">
+      {{ refreshMessage }}
     </div>
 
     <div v-if="loading" class="text-neutral-500 py-8 text-center">Loading...</div>
@@ -19,8 +39,10 @@
           <th class="px-4 py-3">Rate key</th>
           <th class="px-4 py-3">Label</th>
           <th class="px-4 py-3 text-right">AER %</th>
+          <th class="px-4 py-3">Top provider</th>
           <th class="px-4 py-3">Tax year</th>
           <th class="px-4 py-3">Effective from</th>
+          <th class="px-4 py-3">Source</th>
           <th class="px-4 py-3 text-right">Actions</th>
         </tr>
       </thead>
@@ -33,8 +55,10 @@
           <td class="px-4 py-3 font-mono text-sm text-horizon-500">{{ row.rate_key }}</td>
           <td class="px-4 py-3">{{ row.label }}</td>
           <td class="px-4 py-3 text-right font-medium">{{ (row.rate * 100).toFixed(2) }}%</td>
+          <td class="px-4 py-3 text-neutral-500">{{ row.provider || '' }}</td>
           <td class="px-4 py-3">{{ row.tax_year }}</td>
           <td class="px-4 py-3">{{ row.effective_from }}</td>
+          <td class="px-4 py-3 text-neutral-500">{{ sourceLabel(row.source) }}</td>
           <td class="px-4 py-3 text-right">
             <button class="text-horizon-500 hover:text-horizon-700 mr-4" @click="openEdit(row)">Edit</button>
             <button class="text-raspberry-500 hover:text-raspberry-700" @click="handleDelete(row)">Delete</button>
@@ -146,13 +170,42 @@ export default {
       ratePercent: null,
       saving: false,
       formError: null,
+      refreshing: false,
+      refreshMessage: '',
+      refreshFailed: false,
     };
   },
   computed: {
     ...mapGetters('savingsMarketRates', ['items', 'loading', 'error']),
+    lastRefreshed() {
+      const scraped = this.items.filter((r) => r.source === 'moneysavingexpert' && r.updated_at);
+      if (!scraped.length) return '';
+      const latest = scraped.map((r) => new Date(r.updated_at)).sort((a, b) => b - a)[0];
+      return latest.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    },
   },
   methods: {
-    ...mapActions('savingsMarketRates', ['fetchItems', 'createItem', 'updateItem', 'deleteItem']),
+    ...mapActions('savingsMarketRates', ['fetchItems', 'createItem', 'updateItem', 'deleteItem', 'refreshFromSource']),
+    sourceLabel(source) {
+      return { moneysavingexpert: 'MoneySavingExpert', seeder: 'Seeded' }[source] || 'Entered by hand';
+    },
+    async handleRefresh() {
+      this.refreshing = true;
+      this.refreshMessage = '';
+      this.refreshFailed = false;
+      try {
+        const s = await this.refreshFromSource();
+        const changed = s.created.length + s.updated.length;
+        this.refreshMessage = changed
+          ? `Refreshed ${s.tax_year}: ${s.created.length} added, ${s.updated.length} updated, ${s.unchanged.length} unchanged.`
+          : `Refreshed ${s.tax_year}: all ${s.unchanged.length} benchmarks already current.`;
+      } catch (e) {
+        this.refreshFailed = true;
+        this.refreshMessage = e.response?.data?.message || e.message || 'Refresh failed. Rates are unchanged.';
+      } finally {
+        this.refreshing = false;
+      }
+    },
     openCreate() {
       this.formData = { rate_key: '', label: '', tax_year: '2026/27', effective_from: '' };
       this.ratePercent = null;
