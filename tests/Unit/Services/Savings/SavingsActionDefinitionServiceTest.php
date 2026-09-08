@@ -141,6 +141,18 @@ it('every enabled agent row is reachable by the dispatcher', function () {
 });
 
 describe('emergency fund decision trace', function () {
+    it('divides the balance the runway came from, not the undesignated sum of zero', function () {
+        // No account designated and no `current_balance` in the analysis: the runway
+        // was computed from total savings, so the arithmetic must read that figure.
+        $analysis = savingsAnalysis(2.0, 2000, ['emergency_fund' => ['runway_months' => 2.0]]);
+
+        $result = $this->service->evaluateAgentActions($analysis, [], collect(), collect(), $this->user->id);
+        $rec = collect($result['recommendations'])->firstWhere('definition_key', 'emergency_fund_low');
+        $step = collect($rec['decision_trace'])->firstWhere('data_field', 'runway_months');
+
+        expect($step['explanation'])->toContain('£4,000 ÷ £2,000')->not->toContain('£0 ÷');
+    });
+
     it('explains the month table exactly as EmergencyFundCalculator defines it, retired at 3', function () {
         $result = $this->service->evaluateAgentActions(savingsAnalysis(2.0), [], collect(), collect(), $this->user->id);
         $rec = collect($result['recommendations'])->firstWhere('definition_key', 'emergency_fund_low');

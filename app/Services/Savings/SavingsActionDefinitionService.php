@@ -428,7 +428,7 @@ class SavingsActionDefinitionService
         $trace[] = $this->buildEmergencyFundAccountsTrace($savingsAccounts);
 
         // 4. Runway calculation
-        $currentBalance = $savingsAnalysis['emergency_fund']['current_balance'] ?? $savingsAccounts->where('is_emergency_fund', true)->sum('current_balance');
+        $currentBalance = $this->emergencyFundBalance($savingsAnalysis, $savingsAccounts);
         $trace[] = [
             'question' => 'What is the current emergency fund runway?',
             'data_field' => 'runway_months',
@@ -499,8 +499,7 @@ class SavingsActionDefinitionService
 
         $user = User::find($userId);
         $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
-        $currentBalance = (float) ($savingsAnalysis['emergency_fund']['current_balance']
-            ?? $savingsAccounts->where('is_emergency_fund', true)->sum('current_balance'));
+        $currentBalance = $this->emergencyFundBalance($savingsAnalysis, $savingsAccounts);
         $shortfallMonths = max(0, $targetMonths - $runway);
         $shortfallAmount = $shortfallMonths * $monthlyExpenditure;
         $monthlyTopUp = $this->emergencyFundCalculator->calculateMonthlyTopUp($shortfallAmount, 12);
@@ -618,7 +617,7 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        $currentBalance = $savingsAnalysis['emergency_fund']['current_balance'] ?? 0;
+        $currentBalance = $this->emergencyFundBalance($savingsAnalysis, collect());
         $targetMonths = $this->emergencyFundCalculator->getTargetMonths(User::find($userId)?->employment_status);
         $targetAmount = $targetMonths * $monthlyExpenditure;
         $excessMonths = $runway - $targetMonths;
@@ -3809,6 +3808,21 @@ class SavingsActionDefinitionService
     private function getUserName(User $user): string
     {
         return trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: 'Unknown user';
+    }
+
+    /**
+     * The balance the runway was computed from, for the trace arithmetic.
+     *
+     * The designated accounts when there are any, otherwise total savings as the
+     * proxy the accounts trace step names. Never the designated sum alone, which
+     * reads £0 for a household that has designated nothing while its runway is 2.7.
+     */
+    private function emergencyFundBalance(array $savingsAnalysis, Collection $savingsAccounts): float
+    {
+        $designated = (float) $savingsAccounts->where('is_emergency_fund', true)->sum('current_balance');
+
+        return (float) ($savingsAnalysis['emergency_fund']['current_balance']
+            ?? ($designated > 0 ? $designated : ($savingsAnalysis['summary']['total_savings'] ?? 0)));
     }
 
     /**

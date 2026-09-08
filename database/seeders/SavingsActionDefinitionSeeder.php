@@ -851,7 +851,7 @@ class SavingsActionDefinitionSeeder extends Seeder
             [
                 'key' => 'zero_rate_account',
                 'source' => 'agent',
-                'title_template' => 'Your {account_name} Earns No Interest',
+                'title_template' => '{account_name} Earns No Interest',
                 'description_template' => '{account_name} holds {balance} at 0% interest.',
                 'action_template' => 'Move the balance to an account that pays interest, keeping any amount you need on instant access.',
                 'category' => 'Rate Optimisation',
