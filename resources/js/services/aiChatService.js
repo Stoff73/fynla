@@ -72,7 +72,6 @@ const aiChatService = {
      */
     async sendMessageStream(conversationId, message, currentRoute = null, { signal } = {}) {
         const token = await getToken();
-        const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 
         const response = await fetch(`${apiBaseURL}/api/ai-chat/conversations/${conversationId}/messages`, {
             method: 'POST',
@@ -85,8 +84,7 @@ const aiChatService = {
                 message,
                 current_route: currentRoute,
             }),
-            // Capacitor cross-origin: omit credentials to avoid CORS cookie issues
-            credentials: isCapacitor ? 'omit' : 'same-origin',
+            credentials: 'same-origin',
             signal,
         });
 
@@ -139,7 +137,6 @@ const aiChatService = {
      */
     async streamQueuedMessage(conversationId, messageId, currentRoute = null, { signal } = {}) {
         const token = await getToken();
-        const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 
         const response = await fetch(`${apiBaseURL}/api/ai-chat/conversations/${conversationId}/messages/${messageId}/stream`, {
             method: 'POST',
@@ -149,7 +146,7 @@ const aiChatService = {
                 'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({ current_route: currentRoute }),
-            credentials: isCapacitor ? 'omit' : 'same-origin',
+            credentials: 'same-origin',
             signal,
         });
 
@@ -222,7 +219,6 @@ const aiChatService = {
      */
     async startOnboardingStream({ signal, from } = {}) {
         const token = await getToken();
-        const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 
         // Forward the `from` entry-source identifier (e.g. 'savetax',
         // 'protection') to the backend so the onboarding director can
@@ -240,7 +236,7 @@ const aiChatService = {
                 'Authorization': `Bearer ${token}`,
             },
             body,
-            credentials: isCapacitor ? 'omit' : 'same-origin',
+            credentials: 'same-origin',
             signal,
         });
 
@@ -284,7 +280,6 @@ const aiChatService = {
      */
     async postActionStream(conversationId, action, { signal } = {}) {
         const token = await getToken();
-        const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 
         const response = await fetch(`${apiBaseURL}/api/ai-chat/conversations/${conversationId}/action`, {
             method: 'POST',
@@ -294,7 +289,7 @@ const aiChatService = {
                 'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({ action }),
-            credentials: isCapacitor ? 'omit' : 'same-origin',
+            credentials: 'same-origin',
             signal,
         });
 

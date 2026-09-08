@@ -51,33 +51,25 @@ function sleep(ms) {
 // access via www.fynla.org vs fynla.org (the hardcoded VITE_API_BASE_URL may not match)
 // For subdirectory deployments (e.g. csjones.co/fynla dev), we also append
 // VITE_ROUTER_BASE so /api resolves under /fynla, not the domain root.
-// Capacitor apps load at capacitor://localhost — detect this so it doesn't match local dev
-const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
-const isLocal = !isCapacitor && typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const localHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 // VITE_ROUTER_BASE is set by the build scripts to '/' (fynla.org root) or '/fynla/'
 // (csjones.co/fynla dev subdirectory). Strip the trailing slash so the final
 // concatenation `${origin}${routerBase}/api` produces correctly-formed URLs for both.
 const routerBase = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
-const apiBaseURL = isCapacitor
-  ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org')
-  : isLocal
-    ? `http://${localHost}:${window.location?.port || '8000'}`
-    : `${window.location?.origin || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${routerBase}`;
-if (isCapacitor && import.meta.env.DEV) {
-  console.log('[Capacitor] API service base URL:', `${apiBaseURL}/api`);
-}
+const apiBaseURL = isLocal
+  ? `http://${localHost}:${window.location?.port || '8000'}`
+  : `${window.location?.origin || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${routerBase}`;
 const api = axios.create({
   baseURL: `${apiBaseURL}/api`,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  // Capacitor uses Bearer tokens, not cookies — withCredentials causes WKWebView to block cross-origin requests
-  withCredentials: !isCapacitor,
+  withCredentials: true,
 });
 
-// Request interceptor to add auth token (async to support native storage in Phase 2)
+// Request interceptor to add auth token
 api.interceptors.request.use(
   async (config) => {
     const token = await getToken();
@@ -154,9 +146,6 @@ api.interceptors.response.use(
     }
 
     // Network errors or other issues
-    if (isCapacitor) {
-      console.error('[API] Network error:', error.config?.method?.toUpperCase(), error.config?.url, error.message || 'unknown');
-    }
     return Promise.reject({
       message: 'Network error. Please check your connection.',
       errors: null,

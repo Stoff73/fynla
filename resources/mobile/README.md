@@ -34,10 +34,6 @@ replaces them wholesale inside this directory.
 ## Deferred (NOT in SP3)
 
 - Redesigned UI / mobile design system / component library.
-- Native Capacitor auth: in native the origin is `capacitor://localhost`, so
-  cookie/session continuity does not apply; the scaffold's working auth proof
-  is **mobile web**. Native token/biometric auth is future redesign work. iOS
-  is not a live production concern (CSJ decision, 2026-05-19).
 - Feature parity with the retired `resources/js/mobile/` app.
 - Deep-link / browser-back postMessage bridging across the iframe.
 
@@ -46,7 +42,7 @@ replaces them wholesale inside this directory.
 - Local: `npm run build:mobile`
 - Per-env: handled by `deploy/fynla-org/build.sh` and
   `deploy/csjones-fynla/build.sh` (sets `VITE_MOBILE_BASE_PATH`).
-- iOS: `deploy/mobile/build-ios.sh`.
+- iOS: the native SwiftUI app in `ios-native/` (see `ios-native/TESTFLIGHT.md`); the Capacitor wrapper was removed on 2026-09-08.
 
 ## Frame headers
 
