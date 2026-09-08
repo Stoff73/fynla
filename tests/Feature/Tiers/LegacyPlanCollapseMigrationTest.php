@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\DiscountCode;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\TaxConfiguration;
@@ -19,6 +20,8 @@ function legacyPlanCollapseMigration(): Migration
 // The migration runs real DDL, which MySQL commits implicitly, so RefreshDatabase's
 // transaction cannot roll it back. Every row this test makes is removed by name.
 afterEach(function (): void {
+    Invoice::query()->whereIn('user_id', User::withTrashed()->where('email', 'like', 'legacy-collapse-%')->pluck('id'))->delete();
+    DB::table('invoice_sequences')->delete();
     Payment::query()->whereIn('user_id', User::withTrashed()->where('email', 'like', 'legacy-collapse-%')->pluck('id'))->delete();
     Subscription::query()->whereIn('user_id', User::withTrashed()->where('email', 'like', 'legacy-collapse-%')->pluck('id'))->delete();
     DiscountCode::query()->where('code', 'like', 'LEGACYCOLLAPSE%')->delete();
@@ -26,7 +29,7 @@ afterEach(function (): void {
     TaxConfiguration::query()->where('tax_year', '2019/20')->delete();
 });
 
-it('rewrites every legacy plan as premium in account state, leaves financial history, and narrows the enums', function () {
+it('rewrites every legacy plan as premium in account state and financial history, and narrows the enums', function () {
     $migration = legacyPlanCollapseMigration();
     $migration->down();
 
@@ -45,6 +48,14 @@ it('rewrites every legacy plan as premium in account state, leaves financial his
             'upgrade_from_plan' => 'standard',
             'amount' => 1999,
             'status' => 'completed',
+        ]);
+        $invoice = Invoice::factory()->create([
+            'user_id' => $live->id,
+            'subscription_id' => $liveSubscription->id,
+            'payment_id' => $payment->id,
+            'plan_name' => 'Pro',
+            'subtotal_amount' => 1999,
+            'total_amount' => 1999,
         ]);
 
         $lapsed = User::factory()->create(['email' => 'legacy-collapse-lapsed@example.com', 'plan' => 'standard', 'tier' => null]);
@@ -79,8 +90,11 @@ it('rewrites every legacy plan as premium in account state, leaves financial his
             ->and($liveSubscription->fresh()->status)->toBe('active')
             ->and((int) $liveSubscription->fresh()->amount)->toBe(1999)
             ->and($payment->fresh()->upgrade_from_plan)->toBe('premium')
-            ->and($payment->fresh()->plan_slug)->toBe('pro')
-            ->and((int) $payment->fresh()->amount)->toBe(1999);
+            // CSJ, 2026-09-08: history is rewritten too; only the money is untouched.
+            ->and($payment->fresh()->plan_slug)->toBe('premium')
+            ->and((int) $payment->fresh()->amount)->toBe(1999)
+            ->and($invoice->fresh()->plan_name)->toBe('Premium')
+            ->and((int) $invoice->fresh()->total_amount)->toBe(1999);
 
         expect($lapsed->fresh()->plan)->toBe('premium')
             ->and($lapsedSubscription->fresh()->plan)->toBe('premium')

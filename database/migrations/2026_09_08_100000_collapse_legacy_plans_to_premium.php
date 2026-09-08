@@ -30,11 +30,15 @@ use Illuminate\Support\Facades\Log;
  *   - The users.plan, subscriptions.plan and users.deletion_reason enums are
  *     narrowed so the names cannot come back.
  *
- * What is NOT rewritten (financial history): payments.plan_slug and
- * invoices.plan_name record what was bought at the time, the same principle the
- * July collapse applied to tier1/2/3. Renewals never read the slug for the
- * amount once `SubscriptionPlan::findBySlug()` misses: `SubscriptionRenewalService`
- * falls back to the amount stored on the subscription, so nobody's price changes.
+ * Financial history is rewritten too (CSJ, 2026-09-08: "rewrite history too"):
+ *   - payments.plan_slug: legacy plans and the retired tiers the July collapse
+ *     left there -> premium. Amounts are untouched.
+ *   - invoices.plan_name: "Student", "Standard", "Family", "Pro", "Tier 1/2/3"
+ *     -> "Premium", the tier's display name. A past invoice now names the
+ *     product as it is called today, not as it was sold.
+ * Renewals never read the slug for the amount once `SubscriptionPlan::findBySlug()`
+ * misses: `SubscriptionRenewalService` falls back to the amount stored on the
+ * subscription, so nobody's price changes.
  *
  * The down migration widens the enums back. It cannot reconstruct which legacy
  * plan a row used.
@@ -70,6 +74,8 @@ return new class extends Migration
                 'subscriptions_plan' => DB::table('subscriptions')->whereIn('plan', $legacy)->update(['plan' => 'premium']),
                 'payments_upgrade_from_plan' => DB::table('payments')->whereIn('upgrade_from_plan', $legacy)->update(['upgrade_from_plan' => 'premium']),
                 'users_deletion_reason' => DB::table('users')->where('deletion_reason', 'trial_expired')->update(['deletion_reason' => 'subscription_cancelled_grace_ended']),
+                'payments_plan_slug' => DB::table('payments')->whereIn('plan_slug', [...$legacy, ...TierConfigurationStore::RETIRED_TIERS])->update(['plan_slug' => 'premium']),
+                'invoices_plan_name' => DB::table('invoices')->whereIn('plan_name', ['Student', 'Standard', 'Family', 'Pro', 'Tier 1', 'Tier 2', 'Tier 3'])->update(['plan_name' => 'Premium']),
                 'discount_codes_applicable_plans' => 0,
             ];
 
