@@ -66,3 +66,76 @@ Mid-way through Task 8 (verification) of `September/September8Updates/fyn-wiring
 - Behind origin/dev: 7 commits (rebase needed before PR)
 - Ahead of origin/dev: 10 commits including this handover
 - Deploy status: Not deployed. Not yet PR'd.
+
+---
+
+# Appended by the iOS / release-follow-up session — 2026-09-08, 07:42–13:55 BST
+
+The other session in this checkout today. Started from the 2026-09-07 handover
+(`handover/September/07/handover-2026-09-07-session-1.md`); everything below is
+**merged to dev** unless marked otherwise. `origin/dev` = `1168ec8a6`. The main
+checkout was left on `dev` at `e05c8ef41`, deliberately **not pulled** so nothing
+moved under the Fyn session; pull it when that session is done
+(`git pull origin dev` is a fast-forward of five merges).
+
+## Merged today (in order)
+
+| PR | What | Verification |
+|---|---|---|
+| #777 | Board: W-0532/33/34 closed with outcome sections, `tasks.md` ticked | docs |
+| #778 | `ios/` Capacitor target, `capacitor.config.ts`, `deploy/mobile/build-ios.sh` removed. Icon artwork was byte-identical to `ios-native`'s; the 31 tracked files stay in history | docs + verifier |
+| #779 | Capacitor runtime stripped from the web SPA, `/m` scaffold, CSP `connect-src` and CORS; 17 `@capacitor*`/`@capgo` npm packages gone; `utils/platform.js` (no importers) deleted | Vitest 1,291; Pest 28 (CSP + mobile scaffold); Playwright web + `/m` sign-in |
+| #781 | **Native registration fix** + both schemes on fynla.org + test-target signing (see below) | proven on CSJ's iPhone 11 against fynla.org: code screen reached, account created (`c.jones@csjones.co`, user 658) |
+| #776 | Three production browser-pass findings: Free users no longer fire `calculate-iht` on property edits (`netWorth/syncRelatedModules` gates on `auth/hasFullCapability('estate')`) or the will-builder probe on the Estate dashboard (only in `mode === 'full'`); `/m` "Today's insight" amounts formatted as currency (`DailyInsightService`); Exit Demo fallback referrer via `withBase('/')` | Playwright local, web + `/m`; Pest 39; Vitest 24. **NOT verified:** the `/fynla/` base on csjones itself |
+| #780 | **Legacy plans collapsed to Premium in the data**: `2026_09_08_100000_collapse_legacy_plans_to_premium` rewrites `users.plan`, `subscriptions.plan`, `payments.upgrade_from_plan`, `payments.plan_slug`, `invoices.plan_name` (→ "Premium"), `discount_codes.applicable_plans`, and `deletion_reason` `trial_expired` → `subscription_cancelled_grace_ended`; narrows the three enums. Runtime legacy mapping, `TierResolver::isGrandfatheredLegacyPaid`, `CheckFeatureAccess` (`feature:` middleware) removed; `SubscriptionFactory` makes premium only | `LegacyPlanCollapseMigrationTest` runs the real migration; 1,177 in the tier/billing/stores/payment/middleware/marketing/audit/architecture families; migration run on the local dev DB. Full suite deliberately NOT run (CSJ: targeted families are the standard) |
+
+## Still open — needs CSJ
+
+1. **#773 (native billing on the web)** — rebased onto dev in a scratch worktree, 2 commits, mergeable, docs conflicts resolved in favour of the fynla.org wording with #773's "One TestFlight app" section kept. **The build on CSJ's phone right now is #773 + #781**, pointing at fynla.org. Waiting on CSJ to see Settings → Plan and billing: Free account → "Upgrade on the web"; web-billed Premium → "Manage billing on the web". Then `gh pr merge 773 --merge --admin`. His earlier report ("two plans + Something went wrong") was the pre-#773 dev build's StoreKit path with no IAP products in ASC, not a server fault.
+2. **W-0540 dead-component clusters** and the **Rule 15 lint scope** — carried from 5 and 7 September, still undecided.
+3. **Homepage pension-check block** parked in #770's description — finish or drop.
+4. **Prod housekeeping:** delete `~/release-backups/2026-09-07*/` on the server; set `COMPANIES_HOUSE_API_KEY` and `GETADDRESS_API_KEY` in prod `.env`. Plus, found today: the Apple verification bridge is unconfigured on prod (`php artisan route:list` there throws `invalid_configuration` from `SymfonyAppleBridgeClient`; only the Apple webhook/receipt routes depend on it, the entitlement endpoint does not).
+5. **#780 on production is a release step**: `mysqldump` `users subscriptions payments invoices discount_codes` first (a backup, nothing is deleted), then `migrate`. Renewals keep the stored amount so no price changes. csjones also needs `git pull origin dev`, both bundles rebuilt/uploaded (#776 and #779 touched `resources/mobile/`), and the migration run.
+
+## The registration bug (for the record)
+
+`AppRootView` rendered `RegistrationView` from two `switch` arms, `.signedOut` and
+`.authenticating`. The submit flips the session between them; SwiftUI gave the view
+a new identity, the old one's `onDisappear` cancelled the in-flight request and cleared
+both password fields, and the cancellation is deliberately silent. Login survived only
+because its `onDisappear` does not cancel. Fix: one arm for both states. Regression:
+`registration-slow-success` UI-test scenario (suspends after the state flip) +
+`testRegistrationSurvivesTheSessionStateChangeWhileTheRequestIsInFlight`. **The shared
+UI-test typing helper cannot clear the email keyboard off the password field on an
+iPhone 11** (recording in the local result bundle), so the test is simulator/CI only.
+Also fixed: `FynlaTests`/`FynlaUITests` now set `CODE_SIGN_ENTITLEMENTS = ""` — `Base.xcconfig`
+gave every target the app's push/associated-domains entitlements, fatal when signing
+the test bundles for a real device.
+
+## Decisions taken today (CSJ)
+
+- **Both native schemes read fynla.org** ("a better way to test the iOS"). Staging keeps `org.fynla.app.dev`, `staging` tag, development push. Every account a tester registers is a real production account. The "TestFlight reads csjones" trap in CLAUDE.md / ios-native/CLAUDE.md / TESTFLIGHT.md / memory is rewritten.
+- **One iOS folder**: `ios-native/` only; Capacitor gone from repo, bundles and backend config.
+- **Two states in the data, not just at runtime**, including financial history ("yes rewrite history too").
+- **No full Pest suite for a schema change**; grep the tree for the retired values, run families, let CI's suite on the PR do the rest. Memory `feedback_no_full_suite_per_small_change` amended.
+- **Merge order** #781 before #773 (done; #773 rebased).
+
+## Dead ends and things that bite
+
+- **Two sessions, one checkout**: my branch switches dragged the Fyn session's unstaged Savings edits along and a temp merge left the tree mid-merge for them. Memory written: `feedback_concurrent_session_in_main_checkout` — check `git status` for foreign files before any checkout; use a scratchpad worktree.
+- **`git add` with an already-staged deletion in the list aborts the whole add**, and the commit goes out with only the deletions. Happened twice (#779, #780), both amended. Add only paths that exist.
+- **Simulator**: booting via Xcode wedged twice (frozen display, `xcodebuild` saw no destinations). CSJ connected the iPhone 11 instead. Build/install/launch by UDID works: `xcodebuild build -destination "id=00008030-000531C43E60402E" -derivedDataPath <scratch>` then `xcrun devicectl device install app --device 1BBFB594-D615-5252-927F-0CEDDB7FEDAF <app>` and `... process launch --terminate-existing ... org.fynla.app.dev`. I cannot tap the phone; CSJ does the taps.
+- **csjones SSH key (`~/.ssh/fynlaDev`) is passphrase-protected** and no agent held it, so csjones codes/tinker were unreachable this session; registration codes went to CSJ's inbox instead.
+- **Prod log level is `error`** — no info lines to trace requests; `native_device_sessions` is the only trace of native logins.
+- `preview.js:106` has a pre-existing ESLint `no-unused-vars`; left alone.
+
+## Follow-ups to log (not done)
+
+- Retire the `subscription_plans` catalogue (4 legacy rows, `SubscriptionPlanSeeder`, read by 6 files / 7 tests) and `PaymentController`'s legacy `PLAN_ORDER` branch — dead once #780 is live.
+- UI-test typing helper on small screens (see above).
+- Universal links: fynla.org's site association must list `org.fynla.app.dev` as well as `org.fynla.app` now both builds carry `applinks:fynla.org`.
+- `September/` is untracked in the main checkout; the Fyn session owns it.
+
+## Memory written/updated this session
+
+`project_ios_programme_status` (rewritten), `project_release_2026_09_07_rolled_back` (superseded-by-#780 note), `feedback_no_full_suite_per_small_change` (2026-09-08 repeat), `feedback_concurrent_session_in_main_checkout` (new), `MEMORY.md` index lines.
