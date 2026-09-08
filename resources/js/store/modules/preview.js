@@ -373,7 +373,7 @@ const actions = {
      * Exit preview mode
      */
     async exitPreview({ commit, state }) {
-        const referrer = state.previewReferrer || '/';
+        const referrer = state.previewReferrer || withBase('/');
 
         // Clear preview auth state FIRST to prevent 401 interceptor redirects
         await removeToken();
