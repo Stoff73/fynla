@@ -45,8 +45,8 @@ final class RecommendationRouting
         // Retirement — a forecast, a cost or an age the user supplies. The
         // adapter derives the type from the rule's category ("State Pension",
         // "Care Costs", "Retirement Planning"), so these are category slugs.
+        // Care costs have no capture tool, so that rule stays on the page.
         'retirement_state_pension' => ['action' => 'add', 'resource_type' => 'retirement'],
-        'retirement_care_costs' => ['action' => 'edit', 'resource_type' => 'retirement'],
         'retirement_plan_retirement_income' => ['action' => 'edit', 'resource_type' => 'retirement'],
 
         // Protection — the adapter collapses rules to their category: the
@@ -62,8 +62,10 @@ final class RecommendationRouting
         'protection_protection_income_protection_gap' => ['action' => 'add', 'resource_type' => 'protection'],
         'protection_protection_policy_in_trust' => ['action' => 'edit', 'resource_type' => 'protection'],
 
-        // Investment — preferences and holdings are inputs.
-        'investment_risk_profile_missing' => ['action' => 'edit', 'resource_type' => 'investment'],
+        // Investment — holdings are inputs Fyn can create. Investment
+        // preferences (the risk profile) have no capture tool, so that rule
+        // opens the investment page where the profile is set (live check,
+        // 2026-09-09: Fyn only acknowledged the answers and wrote nothing).
         'investment_no_holdings' => ['action' => 'add', 'resource_type' => 'investment'],
 
         // Estate — an LPA is created through Fyn; a trust flag is an edit to
