@@ -7,7 +7,6 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payment\RevolutService;
-use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -18,7 +17,6 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->seed(SubscriptionPlanSeeder::class);
     Mail::fake();
 });
 

@@ -21,11 +21,10 @@ use Illuminate\Support\Facades\Log;
  * Price-lock guarantee: the sync only creates NEW Revolut plan variations.
  * It does NOT touch active Subscription rows — each active subscription
  * already holds its billed amount in Subscription.amount, written once at
- * payment confirmation (PaymentController::confirmPayment). Renewals that
- * re-derive from SubscriptionPlan (SubscriptionRenewalService) are the
- * legacy billing path; tier-based subscriptions (Free and Premium)
- * will derive renewal amounts from the Subscription row's locked amount,
- * not from a live tier read — see SubscriptionRenewalService::handleRenewalPayment.
+ * payment confirmation (PaymentController::confirmPayment). Renewals bill
+ * the Subscription row's locked amount, never a live tier read — see
+ * SubscriptionRenewalService::handleRenewalPayment. (The legacy plan
+ * catalogue that once fed renewals is gone.)
  *
  * Since there are no existing paid subscribers (A9: all legacy cohorts
  * convert to Free), the write-back is safe: no subscriber is mid-cycle on

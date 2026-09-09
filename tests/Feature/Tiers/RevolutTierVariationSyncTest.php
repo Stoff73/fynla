@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Payment;
 use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Payment\RevolutService;
@@ -106,17 +105,13 @@ it('contains a Premium sync failure without changing its variation id', function
 
 // ── Task 5.1 Step 1: Price-lock assertion ─────────────────────────────────
 //
-// Billing path (located in SubscriptionRenewalService::handleRenewalPayment):
-//   $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);  // line 59
-//   $amount = $subscriptionPlan
-//       ? ($subscriptionPlan->getLaunchPrice ?? $subscriptionPlan->getPrice)
-//       : $subscription->amount;                                     // line 60-62
+// Billing path (SubscriptionRenewalService::handleRenewalPayment):
+//   $amount = (int) $subscription->amount;
 //
-// For the Premium tier key there is no SubscriptionPlan row, so
-// findBySlug() returns null and the renewal falls through to $subscription->amount
-// — the value stored at payment confirmation time. This is the price-lock: the
-// billed amount is read from the subscription row's locked amount, NOT from a
-// live tier configuration read.
+// The renewal bills the amount stored at payment confirmation time. This is the
+// price-lock: the billed amount is read from the subscription row's locked
+// amount, NOT from a live tier configuration read. (The legacy plan catalogue
+// that once overrode it is gone.)
 //
 // This test constructs a fixture where the tier store price has been updated
 // after subscription creation and asserts that the renewal service ignores the
@@ -142,16 +137,9 @@ it('does NOT change the price an existing subscriber is billed when the tier pri
     // but must NOT retroactively change the subscriber's billed amount.)
     TierConfiguration::where('tier', 'premium')->update(['price_monthly_pence' => 999]);
 
-    // Act — simulate what SubscriptionRenewalService does when the renewal webhook fires.
-    // It looks up the SubscriptionPlan by the plan slug stored on the subscription.
-    $planSlug = $subscription->plan;                              // 'premium'
-    $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug); // returns null (no SubscriptionPlan for tier keys)
-
-    // This is the actual billing path — null coalescence to $subscription->amount.
-    $renewalAmount = $subscriptionPlan
-        ? ($subscriptionPlan->getLaunchPriceForCycle($subscription->billing_cycle)
-            ?? $subscriptionPlan->getPriceForCycle($subscription->billing_cycle))
-        : $subscription->amount;
+    // Act — what SubscriptionRenewalService does when the renewal webhook fires:
+    // it bills the amount locked on the subscription row.
+    $renewalAmount = $subscription->amount;
 
     // Assert — billed amount is from the subscription row (499p), NOT the new tier price (999p).
     // Subscription.amount has decimal:2 cast, so toBe uses string equality; cast to int for clarity.
@@ -251,13 +239,8 @@ it('locks an existing tier subscriber to their original price across a store pri
         ->and((int) $subscription->amount)->not->toBe($priceAtOrderTime + 1000);
 
     // Step 5: the real SubscriptionRenewalService billing path bills the
-    // locked amount, not the new store price. This mirrors
-    // SubscriptionRenewalService::handleRenewalPayment lines 59-62.
-    $renewalPlan = SubscriptionPlan::findBySlug($subscription->plan); // null for tier keys
-    $renewalAmount = $renewalPlan
-        ? ($renewalPlan->getLaunchPriceForCycle($subscription->billing_cycle)
-            ?? $renewalPlan->getPriceForCycle($subscription->billing_cycle))
-        : $subscription->amount;
+    // locked amount, not the new store price.
+    $renewalAmount = $subscription->amount;
 
     expect((int) $renewalAmount)->toBe($lockedAmount)
         ->and((int) $renewalAmount)->not->toBe($priceAtOrderTime + 1000);
@@ -367,10 +350,13 @@ it('sets canonical users.tier on a premium purchase via the Revolut webhook path
 });
 
 it('rejects a legacy plan key for a new purchase', function () {
+    // The catalogue slugs (student / standard / family / pro) are gone; only
+    // the paid tier keys validate. (Posted 'premium' until 2026-09-09, which
+    // is the tier key and a valid purchase — the test was red on dev.)
     $user = User::factory()->create();
 
     $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
-        'plan' => 'premium', 'billing_cycle' => 'monthly',
+        'plan' => 'pro', 'billing_cycle' => 'monthly',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors('plan');
 });

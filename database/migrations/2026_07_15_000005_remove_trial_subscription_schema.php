@@ -61,7 +61,8 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasColumn('subscription_plans', 'trial_days')) {
+        // The plan catalogue was dropped on 2026-09-09; nothing to restore when it is gone.
+        if (Schema::hasTable('subscription_plans') && ! Schema::hasColumn('subscription_plans', 'trial_days')) {
             Schema::table('subscription_plans', function (Blueprint $table): void {
                 $table->integer('trial_days')->nullable()->after('yearly_price');
             });

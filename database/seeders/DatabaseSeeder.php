@@ -81,9 +81,6 @@ class DatabaseSeeder extends Seeder
             // Estate action definitions - configurable estate planning action triggers
             EstateActionDefinitionSeeder::class,
 
-            // Subscription plans (pricing configuration)
-            SubscriptionPlanSeeder::class,
-
             // Invoice sequence counter — schema:dump captures DDL only, so the
             // create_invoice_sequences_table migration's seed INSERT is lost
             // when boots load from the SQL dump.
@@ -143,7 +140,6 @@ class DatabaseSeeder extends Seeder
             ProtectionActionDefinitionSeeder::class,
             TaxActionDefinitionSeeder::class,
             EstateActionDefinitionSeeder::class,
-            SubscriptionPlanSeeder::class,
             InvoiceSequenceSeeder::class,
         ]);
     }
