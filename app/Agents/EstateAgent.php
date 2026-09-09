@@ -368,7 +368,7 @@ class EstateAgent extends BaseAgent
                             // W-0466 F3 — carried alongside the liability so every
                             // consumer of THIS summary gets the caveat with the
                             // figure rather than one without the other. `/m` Insights
-                            // and the `/m` module-detail screen both read it, and
+                            // and the `/m` estate screen both read it, and
                             // both printed an unqualified number for a
                             // business-owning household.
                             'unmodelled_relief_caveat' => $ihtCalculation['unmodelled_relief_caveat'] ?? null,
