@@ -57,8 +57,9 @@ describe('skip_if helpers for campaign branch', function () {
         }
     });
 
-    it('skipIfNotEmployed returns false for full_time/part_time', function () {
-        foreach (['full_time', 'part_time'] as $status) {
+    it('skipIfNotEmployed returns false for employed/full_time/part_time', function () {
+        // `employed` is what the base_employment "Full-time" bubble stores (F7).
+        foreach (['employed', 'full_time', 'part_time'] as $status) {
             $user = User::factory()->create(['employment_status' => $status]);
             expect(OnboardingStateMachine::skipIfNotEmployed($user))->toBeFalse();
         }

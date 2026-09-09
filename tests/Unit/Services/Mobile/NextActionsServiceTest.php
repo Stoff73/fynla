@@ -54,6 +54,8 @@ it('excludes a completed recommendation from the list (banked + replaced by next
             'priority_score' => 70.0,
             'category' => 'goals',
             'potential_benefit' => null,
+            // The aggregator merges recommendation_tracking status onto the rec (F18).
+            'status' => 'completed',
         ]]);
     app()->instance(RecommendationsAggregatorService::class, $aggregator);
 

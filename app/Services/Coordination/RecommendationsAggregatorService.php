@@ -9,6 +9,7 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
+use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\PlanSources\EstateStrategySource;
 use App\Services\Coordination\PlanSources\InvestmentStrategySource;
@@ -142,6 +143,7 @@ class RecommendationsAggregatorService
                 $generated = $this->retirementAgent->generateRecommendations($analysis['data'] ?? $analysis);
 
                 return array_map(static fn (array $r): array => [
+                    'recommendation_id' => $r['recommendation_id'] ?? $r['id'] ?? null,
                     'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? '',
                     'priority' => $r['priority'] ?? null,
                     'impact' => $r['impact'] ?? null,
@@ -157,6 +159,7 @@ class RecommendationsAggregatorService
                 $generated = $this->investmentAgent->generateRecommendations($analysis['data'] ?? $analysis);
 
                 return array_map(static fn (array $r): array => [
+                    'recommendation_id' => $r['recommendation_id'] ?? $r['id'] ?? null,
                     'recommendation_text' => $r['title'] ?? $r['recommendation'] ?? $r['action'] ?? '',
                     'priority' => $r['priority'] ?? null,
                     'impact' => $r['impact'] ?? null,
@@ -191,6 +194,7 @@ class RecommendationsAggregatorService
                 $generated = $this->goalsAgent->generateRecommendations($analysis['data'] ?? $analysis);
 
                 return array_map(static fn (array $r): array => [
+                    'recommendation_id' => $r['recommendation_id'] ?? $r['id'] ?? null,
                     'recommendation_text' => $r['title'] ?? $r['action'] ?? $r['description'] ?? '',
                     'priority' => $r['priority'] ?? null,
                     'impact' => $r['impact'] ?? null,
@@ -218,7 +222,10 @@ class RecommendationsAggregatorService
         }
 
         $ranked = $this->ranker->rankRecommendations($byModule);
-        $shaped = array_map(fn (array $rec): array => $this->shape($rec), $ranked);
+        // recommendation_tracking is the one status ledger (mark-done, dismiss);
+        // merging it here means every consumer and the ?status= filter read it (F18).
+        $statuses = RecommendationTracking::where('user_id', $userId)->pluck('status', 'recommendation_id')->all();
+        $shaped = array_map(fn (array $rec): array => $this->shape($rec, $statuses), $ranked);
 
         return $this->personaliser->personaliseRecommendations($shaped, $user);
     }
@@ -240,7 +247,10 @@ class RecommendationsAggregatorService
      * @param  array<string, mixed>  $rec
      * @return array<string, mixed>
      */
-    private function shape(array $rec): array
+    /**
+     * @param  array<string, string>  $statuses  recommendation_id => tracking status
+     */
+    private function shape(array $rec, array $statuses): array
     {
         $module = (string) $rec['module'];
         $text = (string) ($rec['recommendation_text'] ?? $rec['recommendation'] ?? $rec['text'] ?? '');
@@ -259,7 +269,7 @@ class RecommendationsAggregatorService
             'impact' => $rec['impact_label'],
             'estimated_cost' => $rec['estimated_cost'] ?? $rec['cost'] ?? null,
             'potential_benefit' => $rec['potential_benefit'] ?? $rec['benefit'] ?? null,
-            'status' => $rec['status'] ?? 'pending',
+            'status' => $statuses[$rec['recommendation_id'] ?? $rec['id'] ?? ''] ?? $rec['status'] ?? 'pending',
             'claim_tier' => $rec['claim_tier'] ?? null,
             'sequence_position' => $rec['sequence_position'] ?? null,
             'conflict_note' => $rec['conflict_note'] ?? null,

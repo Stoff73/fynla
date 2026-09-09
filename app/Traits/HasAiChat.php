@@ -290,6 +290,15 @@ trait HasAiChat
     /** @var list<string>|null */
     private ?array $allowedToolsOverride = null;
 
+    /**
+     * The classification AdviceFyn already computed for this turn (F8): one
+     * classifier run per advice turn, the same result the out-of-remit exit
+     * used. Null on onboarding extraction turns, which classify here.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $classificationOverride = null;
+
     private bool $skipUserMessagePersistence = false;
 
     /**
@@ -351,9 +360,9 @@ trait HasAiChat
             return;
         }
 
-        // Classify query and check KYC
-        $classifier = app(QueryClassifier::class);
-        $classification = $classifier->classify($message, $currentRoute);
+        // Classify query and check KYC — reusing AdviceFyn's run when it passed one (F8).
+        $classification = $this->classificationOverride
+            ?? app(QueryClassifier::class)->classify($message, $currentRoute);
 
         // A classification with no primary is treated as general rather than
         // fatal: the KYC gate has nothing to gate on, and a TypeError here
@@ -2090,6 +2099,7 @@ trait HasAiChat
         ?array $toolsListOverride = null,
         ?string $personaOverride = null,
         ?string $providerOverride = null,
+        ?array $classificationOverride = null,
     ): void {
         $this->systemPromptOverride = $systemPrompt;
         $this->allowedToolsOverride = $allowedTools;
@@ -2097,6 +2107,7 @@ trait HasAiChat
         $this->toolsListOverride = $toolsListOverride;
         $this->personaOverride = $personaOverride;
         $this->providerOverride = $providerOverride;
+        $this->classificationOverride = $classificationOverride;
     }
 
     public function clearChatOverrides(): void
@@ -2109,6 +2120,7 @@ trait HasAiChat
         $this->toolsListOverride = null;
         $this->personaOverride = null;
         $this->providerOverride = null;
+        $this->classificationOverride = null;
     }
 
     /**

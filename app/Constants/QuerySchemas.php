@@ -307,6 +307,9 @@ final class QuerySchemas
         ],
         self::RETIREMENT_CONTRIBUTION => [
             '/\bpension\s+contribution/i',
+            // "put more into my pension", "pay more into the pension", "top up my pension" (F1)
+            '/\b(put|putting|pay|paying|contribute|contributing)\b[^.?!]{0,30}\b(in|into)\b[^.?!]{0,20}\bpensions?\b/i',
+            '/\btop(ping)?\s+up\b[^.?!]{0,20}\bpensions?\b/i',
             '/\b(maximis|maximiz)e?\s+(my\s+)?pension/i',
             '/\bhow\s+much\s+.*pension/i',
             '/\bannual\s+allowance\b/i',

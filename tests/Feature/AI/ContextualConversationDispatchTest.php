@@ -124,6 +124,7 @@ it('routes a queued surface-action message to advice while global onboarding is 
 it('keeps onboarding actions out of a surface-action conversation', function (): void {
     $user = activeOnboardingUser();
     $conversation = surfaceActionConversation($user);
+    grantContextualDispatchConsent($user);
 
     $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/ai-chat/conversations/{$conversation->id}/action", [

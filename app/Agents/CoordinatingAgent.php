@@ -303,6 +303,7 @@ class CoordinatingAgent extends BaseAgent
         ?array $toolsListOverride = null,
         ?string $personaOverride = null,
         ?string $providerOverride = null,
+        ?array $classificationOverride = null,
     ): \Generator {
         $this->setChatOverrides(
             systemPrompt: $systemPromptOverride,
@@ -311,6 +312,7 @@ class CoordinatingAgent extends BaseAgent
             toolsListOverride: $toolsListOverride,
             personaOverride: $personaOverride,
             providerOverride: $providerOverride,
+            classificationOverride: $classificationOverride,
         );
 
         try {
