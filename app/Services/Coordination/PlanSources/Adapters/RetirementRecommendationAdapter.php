@@ -6,6 +6,7 @@ namespace App\Services\Coordination\PlanSources\Adapters;
 
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
+use App\Services\Coordination\PriorityRanker;
 use Illuminate\Support\Str;
 
 /**
@@ -34,10 +35,13 @@ final class RetirementRecommendationAdapter
         $category = (string) ($rec['category'] ?? '');
         $type = self::CATEGORY_TO_STRATEGY_TYPE[$category] ?? $this->slugify($category);
 
-        $impact = strtolower((string) ($rec['impact'] ?? 'medium'));
-        $priority = in_array($impact, ['high', 'medium', 'low'], true) ? $impact : 'medium';
+        // One label rule (PriorityRanker); the enum has no critical case, so the
+        // seeded label travels in extra for the ranker to read off the composed item.
+        $seeded = PriorityRanker::priorityLabel($rec);
+        $priority = PriorityRanker::impactLabel($seeded);
 
         $extra = array_filter([
+            'seeded_priority' => $seeded,
             'scope' => $rec['scope'] ?? null,
             'account_id' => $rec['account_id'] ?? null,
             'account_name' => $rec['account_name'] ?? null,

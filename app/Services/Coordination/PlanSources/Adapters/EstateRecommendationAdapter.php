@@ -6,6 +6,7 @@ namespace App\Services\Coordination\PlanSources\Adapters;
 
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
+use App\Services\Coordination\PriorityRanker;
 use Illuminate\Support\Str;
 
 /**
@@ -89,7 +90,8 @@ final class EstateRecommendationAdapter
             ? StrategyCategory::Warning
             : StrategyCategory::Lifecycle;
 
-        $priority = $this->resolvePriority($rec);
+        $seeded = PriorityRanker::priorityLabel($rec);
+        $priority = PriorityRanker::impactLabel($seeded);
 
         $requiresAdvice = in_array($category, self::REQUIRES_ADVICE_CATEGORIES, true);
 
@@ -98,6 +100,7 @@ final class EstateRecommendationAdapter
             : null;
 
         $extra = array_filter([
+            'seeded_priority' => $seeded,
             'definition_key' => $definitionKey !== '' ? $definitionKey : null,
             'scope' => $rec['scope'] ?? null,
             'estimated_iht_saving' => $estimatedIhtSaving,
@@ -117,27 +120,6 @@ final class EstateRecommendationAdapter
             requiredMonthlyCost: null,
             requiredLumpSum: null,
         );
-    }
-
-    /**
-     * Resolve priority from the rec array. Accepts a string (High/Med/Low) or an
-     * int positional priority from evaluateActions(), defaulting to 'medium'.
-     */
-    private function resolvePriority(array $rec): string
-    {
-        $impact = strtolower((string) ($rec['impact'] ?? ''));
-        if (in_array($impact, ['high', 'medium', 'low', 'critical'], true)) {
-            // Map 'critical' down to 'high' — StrategyPriority has no 'critical' case.
-            return $impact === 'critical' ? 'high' : $impact;
-        }
-
-        // Some agent recs carry 'priority' => 'high'|'medium'|'low' directly.
-        $priority = strtolower((string) ($rec['priority'] ?? ''));
-        if (in_array($priority, ['high', 'medium', 'low'], true)) {
-            return $priority;
-        }
-
-        return 'medium';
     }
 
     private function slugify(string $value): string

@@ -220,8 +220,7 @@ describe('Cross-Module Integration', function () {
                     'priority_score',
                     'urgency_score',
                     'impact_score',
-                    'ease_score',
-                    'user_priority_score',
+                    'impact_label',
                     'timeline',
                 ]);
             }

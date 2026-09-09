@@ -330,7 +330,9 @@ class NextActionsService
                 'meta' => $benefit !== null
                     ? 'You could save £'.number_format($benefit)
                     : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
-                'value' => $benefit ?? (float) ($rec['priority_score'] ?? 50),
+                // The one ranking (PriorityRanker via the aggregator, Batch B): a pound
+                // benefit is copy for the meta line, never the sort key.
+                'value' => (float) ($rec['priority_score'] ?? 50),
                 // Open only — completed recs are excluded above and replaced by
                 // the next-best, so every shown recommendation is actionable.
                 'done' => false,

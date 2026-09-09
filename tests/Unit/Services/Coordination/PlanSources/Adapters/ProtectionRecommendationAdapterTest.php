@@ -47,7 +47,7 @@ it('maps int priority 1 to high', function (): void {
     expect($dto->priority)->toBe('high');
 });
 
-it('maps int priority 2 to high', function (): void {
+it('lets the seeded impact label win over int priority 2', function (): void {
     $dto = (new ProtectionRecommendationAdapter)->toStrategyRecommendation([
         'priority' => 2,
         'category' => 'Critical Illness',
@@ -56,7 +56,7 @@ it('maps int priority 2 to high', function (): void {
         'impact' => 'Medium',
     ]);
 
-    expect($dto->priority)->toBe('high');
+    expect($dto->priority)->toBe('medium');
 });
 
 it('maps int priority 3 to medium', function (): void {
@@ -71,7 +71,7 @@ it('maps int priority 3 to medium', function (): void {
     expect($dto->priority)->toBe('medium');
 });
 
-it('maps int priority 4 to low', function (): void {
+it('lets the seeded impact label win over int priority 4', function (): void {
     $dto = (new ProtectionRecommendationAdapter)->toStrategyRecommendation([
         'priority' => 4,
         'category' => 'Trust Planning',
@@ -80,7 +80,7 @@ it('maps int priority 4 to low', function (): void {
         'impact' => 'Medium',
     ]);
 
-    expect($dto->priority)->toBe('low');
+    expect($dto->priority)->toBe('medium');
 });
 
 it('maps int priority 5 to low', function (): void {
