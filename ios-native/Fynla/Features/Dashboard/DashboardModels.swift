@@ -192,6 +192,40 @@ struct DashboardActionDestination: Decodable, Sendable, Equatable {
     let kind: DashboardActionKind
     let payload: String?
     let destination: SemanticDestination?
+    // fyn_capture — the server's capture prompt for an unlock card, and for
+    // a recommendation that asks for information the complete contextual-
+    // conversation request (RecommendationRouting). Neither is composed here.
+    let prompt: String?
+    let contextual: FynContextualConversationRequest?
+
+    init(
+        kind: DashboardActionKind,
+        payload: String?,
+        destination: SemanticDestination?,
+        prompt: String? = nil,
+        contextual: FynContextualConversationRequest? = nil
+    ) {
+        self.kind = kind
+        self.payload = payload
+        self.destination = destination
+        self.prompt = prompt
+        self.contextual = contextual
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try container.decode(DashboardActionKind.self, forKey: .kind)
+        payload = try container.decodeIfPresent(String.self, forKey: .payload)
+        destination = try container.decodeIfPresent(SemanticDestination.self, forKey: .destination)
+        prompt = try container.decodeIfPresent(String.self, forKey: .prompt)
+        // A malformed contextual block must not take the whole dashboard
+        // down; the row then falls back to the prompt path.
+        contextual = try? container.decodeIfPresent(FynContextualConversationRequest.self, forKey: .contextual)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind, payload, destination, prompt, contextual
+    }
 }
 
 struct DashboardAction: Decodable, Sendable, Equatable, Identifiable {

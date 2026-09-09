@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
+use App\Services\Coordination\RecommendationCompletionService;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Mobile\NextActionsService;
 use Illuminate\Http\JsonResponse;
@@ -131,28 +132,15 @@ class RecommendationsController extends Controller
      */
     public function markDone(Request $request, string $recommendationId): JsonResponse
     {
-        $userId = $request->user()->id;
-
         try {
-            $tracking = RecommendationTracking::where('user_id', $userId)
-                ->where('recommendation_id', $recommendationId)
-                ->first();
-
-            if (! $tracking) {
-                // Create new tracking record
-                $tracking = RecommendationTracking::create([
-                    'user_id' => $userId,
-                    'recommendation_id' => $recommendationId,
-                    'module' => $request->input('module', 'general'),
-                    'recommendation_text' => $request->input('recommendation_text', ''),
-                    'priority_score' => $request->input('priority_score', 50.0),
-                    'timeline' => $request->input('timeline', 'medium_term'),
-                    'status' => 'completed',
-                    'completed_at' => now(),
-                ]);
-            } else {
-                $tracking->markAsCompleted();
-            }
+            $tracking = app(RecommendationCompletionService::class)->complete(
+                $request->user(),
+                $recommendationId,
+                (string) $request->input('module', 'general'),
+                (string) $request->input('recommendation_text', ''),
+                (float) $request->input('priority_score', 50.0),
+                (string) $request->input('timeline', 'medium_term'),
+            );
 
             return response()->json([
                 'success' => true,

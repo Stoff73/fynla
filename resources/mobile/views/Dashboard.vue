@@ -243,7 +243,7 @@
          collect the missing details. Dismissible; tapping opens the chat
          pre-seeded (the user's choice). Plain text only — Rule #15. -->
     <div v-if="showUnlockBubble" class="md-fyn-nudge md-fyn-nudge--unlock">
-      <button type="button" class="md-fyn-nudge__cta" @click="openFynForCapture(topUnlock.module)">{{ unlockBubbleText }}</button>
+      <button type="button" class="md-fyn-nudge__cta" @click="openFynForCapture(topUnlock.action)">{{ unlockBubbleText }}</button>
       <button type="button" class="md-fyn-nudge__later" aria-label="Dismiss" @click="dismissUnlockBubble">Not now</button>
     </div>
 
@@ -740,14 +740,18 @@ export default {
         this.$router.push('/achievements');
       }
     },
-    // Tapping an action row: an unlock card sends the user into Fyn to capture
-    // the missing module data; a recommendation opens a Fyn chat about it.
+    // Tapping an action row (the server decides the route — RecommendationRouting):
+    // an unlock card sends the user into Fyn with the server's capture prompt; a
+    // recommendation that asks for information opens Fyn in a recommendation-
+    // origin contextual conversation (the server-composed request travels in
+    // action.contextual); anything else deep-links to the page it names.
     onActionTap(item) {
-      if (!item) return;
-      if (item.type === 'unlock') {
-        // KYC gap → Fyn collects the missing details (the user's choice).
-        this.openFynForCapture(item.module);
-      } else if (item.action && item.action.kind === 'navigate') {
+      if (!item || !item.action) return;
+      if (item.action.kind === 'fyn_capture' && item.action.contextual) {
+        this.openFynContextual(item.action.contextual);
+      } else if (item.action.kind === 'fyn_capture') {
+        this.openFynForCapture(item.action);
+      } else if (item.action.kind === 'navigate') {
         // Recommendation → deep-link to the module screen where it's actioned.
         this.goto(resolveMobileDestination(
           item.action,
@@ -768,18 +772,27 @@ export default {
     // Awaits openFyn() before sending — same fix as openRecChat: openFyn()'s
     // initFyn() may fire the async startOnboarding() stream, and sending while
     // that's still in flight silently no-ops (this.sending stays true).
-    async openFynForCapture(module) {
-      const prompts = {
-        protection: 'Help me add my protection cover details',
-        savings: 'Help me add my savings details',
-        investment: 'Help me add my investment details',
-        retirement: 'Help me add my pension details',
-        estate: 'Help me add my estate planning details',
-        goals: 'Help me set a financial goal',
-        tax: 'Help me complete my tax strategy details',
-      };
+    async openFynForCapture(action) {
       await this.openFyn();
-      this.send(prompts[module] || 'Help me add my financial details');
+      // The prompt is served with the action (RecommendationRouting::unlockPrompt)
+      // so no surface carries its own copy of the wording (Rule 20).
+      this.send((action && action.prompt) || 'Help me add my financial details');
+    },
+    // A recommendation-origin capture: a fresh contextual conversation whose
+    // server-authored opening names the recommendation; when the capture
+    // writes, Fyn asks "anything else?", and "No thanks" ticks it off and
+    // routes back here (a navigation frame closes the chat).
+    async openFynContextual(request) {
+      this.fynMounted = true;
+      await this.$nextTick();
+      this.fynOpen = true;
+      this.scrollFyn();
+      const conversationId = await this.createContextualConversation(request);
+      if (!conversationId) {
+        if (!store.token) return;
+        this.messages.push({ role: 'fyn', text: 'Sorry, I could not start that conversation just now.', bubbles: [] });
+      }
+      this.$nextTick(() => { this.$refs.fynInput?.focus(); this.scrollFyn(); });
     },
     // Mark / unmark a recommendation action complete. Optimistic toggle, then
     // persist so the shared gamification engine awards points (mark-done ->
@@ -953,6 +966,14 @@ export default {
     // Deliver any celebration missed since last open (server-persisted
     // pending_celebration_level surfaced via GET /api/gamification/status).
     store.fetchStatus();
+    // A Fyn turn that ends on this screen (a recommendation-driven capture's
+    // "No thanks" navigates to /dashboard) bumps the shared refresh tick as it
+    // closes the chat; refetch so the ticked-off action is replaced and the
+    // wheel's tally moves, as the mark-done toggle does. Same tick every /m
+    // screen watches.
+    this.$watch(() => store.screenRefreshTick, () => {
+      Promise.all([store.fetchStatus(), this.load({ silent: true })]);
+    });
     // Campaign / onboarding arrivals land here with Fyn ready to guide them — the
     // registration hand-off promises "your dashboard with Fyn open". Open the chat
     // immediately so the greeting shows, instead of leaving it docked behind the

@@ -189,6 +189,56 @@ struct DashboardModelsTests {
     }
 
     @Test
+    func fynCaptureActionsCarryTheServerPromptOrTheContextualRequest() throws {
+        let unlock = try JSONDecoder().decode(
+            DashboardActionDestination.self,
+            from: Data(#"{"kind":"fyn_capture","payload":"savings","prompt":"Help me add my savings details"}"#.utf8)
+        )
+        #expect(unlock.kind == .fynCapture)
+        #expect(unlock.prompt == "Help me add my savings details")
+        #expect(unlock.contextual == nil)
+
+        let recommendation = try JSONDecoder().decode(
+            DashboardActionDestination.self,
+            from: Data(#"""
+            {
+                "kind":"fyn_capture",
+                "payload":"savings",
+                "contextual":{
+                    "action":"add",
+                    "resource_type":"income",
+                    "resource_id":null,
+                    "current_destination":{"screen":"income","params":{},"fallback":"dashboard"},
+                    "origin":{"kind":"recommendation","recommendation_id":"savings_missing_income"}
+                }
+            }
+            """#.utf8)
+        )
+        #expect(recommendation.prompt == nil)
+        #expect(recommendation.contextual?.action == .add)
+        #expect(recommendation.contextual?.resourceType == "income")
+        #expect(recommendation.contextual?.currentDestination.screen == "income")
+        #expect(recommendation.contextual?.origin.kind == .recommendation)
+        #expect(recommendation.contextual?.origin.recommendationID == "savings_missing_income")
+
+        // The request is re-encoded verbatim for POST /contextual-conversations.
+        let request = try #require(recommendation.contextual)
+        let encoded = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(FynContextualAction(request: request).request)
+        ) as? [String: Any]
+        #expect(encoded?["resource_type"] as? String == "income")
+        #expect((encoded?["origin"] as? [String: Any])?["recommendation_id"] as? String == "savings_missing_income")
+
+        // A malformed contextual block leaves the row on the prompt path.
+        let malformed = try JSONDecoder().decode(
+            DashboardActionDestination.self,
+            from: Data(#"{"kind":"fyn_capture","payload":"savings","prompt":"Help me add my savings details","contextual":{"action":"add"}}"#.utf8)
+        )
+        #expect(malformed.contextual == nil)
+        #expect(malformed.prompt == "Help me add my savings details")
+    }
+
+    @Test
     func semanticDestinationWinsOverAConflictingLegacyTaxPath() throws {
         let action = try JSONDecoder().decode(
             DashboardActionDestination.self,

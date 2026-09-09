@@ -60,6 +60,39 @@ function createGoal(User $user, array $attributes = []): Goal
 }
 
 // =============================================================================
+// Emergency fund check — by goal type, whatever module the goal sits in
+// =============================================================================
+describe('emergency fund recommendation', function () {
+    it('does not raise "No Emergency Fund Goal" for an emergency fund goal with no assigned module', function () {
+        // Fyn's create_goal wrote goals without a module until GoalStore
+        // assigned one; the check keyed off the savings bucket alone and kept
+        // raising the recommendation after the goal existed (live 2026-09-09).
+        createGoal($this->user, ['goal_type' => 'emergency_fund', 'assigned_module' => null]);
+        $this->affordabilityService->shouldReceive('analyzeAllGoals')->andReturn(['status' => 'affordable']);
+        $this->progressService->shouldReceive('calculateProgress')->andReturn(['on_track' => true])->byDefault();
+
+        $analysis = $this->agent->analyze($this->user->id);
+        $recommendations = $this->agent->generateRecommendations($analysis['data'] ?? $analysis);
+        $titles = array_column($recommendations['recommendations'] ?? [], 'title');
+
+        expect($analysis['data']['goal_types'] ?? $analysis['goal_types'])->toContain('emergency_fund')
+            ->and($titles)->not->toContain('No Emergency Fund Goal');
+    });
+
+    it('raises "No Emergency Fund Goal" when no goal of that type exists', function () {
+        createGoal($this->user, ['goal_type' => 'holiday', 'assigned_module' => 'savings']);
+        $this->affordabilityService->shouldReceive('analyzeAllGoals')->andReturn(['status' => 'affordable']);
+        $this->progressService->shouldReceive('calculateProgress')->andReturn(['on_track' => true])->byDefault();
+
+        $analysis = $this->agent->analyze($this->user->id);
+        $recommendations = $this->agent->generateRecommendations($analysis['data'] ?? $analysis);
+        $titles = array_column($recommendations['recommendations'] ?? [], 'title');
+
+        expect($titles)->toContain('No Emergency Fund Goal');
+    });
+});
+
+// =============================================================================
 // analyze() method tests
 // =============================================================================
 

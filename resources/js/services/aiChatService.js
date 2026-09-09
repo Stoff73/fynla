@@ -51,6 +51,17 @@ const aiChatService = {
     },
 
     /**
+     * Open a contextual conversation (a surface action, or a dashboard
+     * recommendation that asks for information). The request body comes from
+     * the server (`action.contextual` on the dashboard payload) and is sent
+     * verbatim; the server authors the opening message.
+     */
+    async createContextualConversation(request) {
+        const response = await api.post('/ai-chat/contextual-conversations', request);
+        return response.data;
+    },
+
+    /**
      * Load a conversation with messages.
      */
     async getConversation(conversationId) {

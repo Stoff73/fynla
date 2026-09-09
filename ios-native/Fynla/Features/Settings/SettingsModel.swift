@@ -75,6 +75,13 @@ final class SettingsModel {
         userProvider()?.onboardingCompleted == true
     }
 
+    /// Re-reads the session user from the server (see
+    /// AuthenticationCoordinator.refreshAuthenticatedUser). /m mirrors the
+    /// `onboarding_complete` frame into store.user; native asks the server.
+    func refreshUser() async {
+        await userRefresher()
+    }
+
     // /m onboardingChat.onboardingActive: explicitly-incomplete or
     // campaign-re-entry users with a non-null onboarding step.
     var onboardingActive: Bool {
@@ -94,16 +101,19 @@ final class SettingsModel {
     let supportURL: URL
 
     private let userProvider: @MainActor () -> AuthenticatedUser?
+    private let userRefresher: @MainActor @Sendable () async -> Void
     private let privacyLockController: PrivacyLockController?
     private let beforeSignOut: @MainActor @Sendable () async -> Void
 
     init(
         userProvider: @escaping @MainActor () -> AuthenticatedUser?,
+        userRefresher: @escaping @MainActor @Sendable () async -> Void = {},
         privacyLockController: PrivacyLockController?,
         webBaseURL: URL,
         beforeSignOut: @escaping @MainActor @Sendable () async -> Void = {}
     ) {
         self.userProvider = userProvider
+        self.userRefresher = userRefresher
         self.privacyLockController = privacyLockController
         self.beforeSignOut = beforeSignOut
         privacyURL = Self.requiredPublicURL(path: "privacy", relativeTo: webBaseURL)

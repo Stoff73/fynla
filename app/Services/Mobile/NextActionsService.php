@@ -6,6 +6,7 @@ namespace App\Services\Mobile;
 
 use App\Constants\GateRoutes;
 use App\Models\User;
+use App\Services\AI\ContextualConversation\ContextualResourceResolver;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
 use App\Services\Coordination\RecommendationsAggregatorService;
@@ -232,7 +233,7 @@ class NextActionsService
             'meta' => 'A few more details so we can give you '.$label.' recommendations',
             'value' => 0.0,
             'done' => false,
-            'action' => ['kind' => 'fyn_capture', 'payload' => $module],
+            'action' => ['kind' => 'fyn_capture', 'payload' => $module, 'prompt' => RecommendationRouting::unlockPrompt($module)],
         ];
     }
 
@@ -314,14 +315,18 @@ class NextActionsService
         return array_map(function (array $rec): array {
             $benefit = is_numeric($rec['potential_benefit'] ?? null) ? (float) $rec['potential_benefit'] : null;
             $id = (string) ($rec['recommendation_id'] ?? uniqid('rec_'));
-            $screen = $this->moduleDestination((string) ($rec['module'] ?? 'general'));
-            $route = GateRoutes::resolve($screen);
+            $module = (string) ($rec['module'] ?? 'general');
+            [$title, $detail] = self::splitHeadline((string) ($rec['recommendation_text'] ?? ''));
 
             return [
                 'id' => $id,
                 'type' => 'recommendation',
                 'module' => (string) ($rec['module'] ?? 'general'),
-                'title' => (string) ($rec['recommendation_text'] ?? ''),
+                'title' => $title,
+                // Everything after the headline's dash — the explanation Fyn
+                // carries when the row opens a capture; the row itself never
+                // shows it (CSJ 2026-09-09: the full sentence cluttered the screen).
+                'detail' => $detail,
                 'meta' => $benefit !== null
                     ? 'You could save £'.number_format($benefit)
                     : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
@@ -331,32 +336,49 @@ class NextActionsService
                 // Open only — completed recs are excluded above and replaced by
                 // the next-best, so every shown recommendation is actionable.
                 'done' => false,
-                // Tapping a recommendation deep-links to the module screen where
-                // the user actions it (NOT a templated Fyn message).
-                'action' => [
-                    'kind' => 'navigate',
-                    'payload' => $route['mobile'] ?? $route['web'],
-                    'destination' => GateRoutes::destination($screen),
-                ],
+                // Tapping a recommendation: one that asks the user to record or
+                // update information opens Fyn in a contextual capture (the
+                // clients post `contextual` to /api/ai-chat/contextual-
+                // conversations); everything else deep-links to the module
+                // screen where the user actions it (RecommendationRouting).
+                'action' => ($contextual = RecommendationRouting::contextualFor($id)) !== null
+                    ? [
+                        'kind' => 'fyn_capture',
+                        'payload' => $module,
+                        // The complete POST /api/ai-chat/contextual-conversations
+                        // body — clients send it verbatim, composing nothing.
+                        'contextual' => [
+                            'action' => $contextual['action'],
+                            'resource_type' => $contextual['resource_type'],
+                            'resource_id' => null,
+                            'current_destination' => GateRoutes::destination(
+                                app(ContextualResourceResolver::class)->overviewScreenFor($contextual['resource_type']),
+                            ),
+                            'origin' => ['kind' => 'recommendation', 'recommendation_id' => $id],
+                        ],
+                    ]
+                    : ['kind' => 'navigate', ...RecommendationRouting::pageFor($id, $module, $rec)],
             ];
         }, $all);
     }
 
     /**
-     * The platform-neutral screen where a recommendation is actioned.
+     * The dashboard row shows the headline only. Every engine phrases a
+     * recommendation as "Headline — explanation" (the aggregator joins title
+     * and description with an em dash; tax strategy titles carry a second dash
+     * for their tagline), so the row keeps the words before the FIRST dash and
+     * the rest travels as `detail`. Only em/en dashes split — a hyphen inside a
+     * name ("Chen Tech Consulting - Business Reserve") is part of the headline.
+     *
+     * @return array{0: string, 1: string|null}
      */
-    private function moduleDestination(string $module): string
+    private static function splitHeadline(string $text): array
     {
-        return match ($module) {
-            'protection' => GateRoutes::PROTECTION,
-            'savings' => GateRoutes::SAVINGS,
-            'investment' => GateRoutes::INVESTMENT,
-            'retirement' => GateRoutes::RETIREMENT,
-            'estate' => GateRoutes::ESTATE,
-            'goals' => GateRoutes::GOALS,
-            'tax' => GateRoutes::TAX_STRATEGY,
-            default => GateRoutes::NET_WORTH,
-        };
+        $parts = preg_split('/\s+[\x{2014}\x{2013}]\s+/u', $text, 2) ?: [$text];
+        $title = trim($parts[0]);
+        $detail = isset($parts[1]) ? trim($parts[1]) : '';
+
+        return [$title !== '' ? $title : $text, $detail !== '' ? $detail : null];
     }
 
     /**
@@ -393,7 +415,7 @@ class NextActionsService
                 'meta' => $action['label'] ?? 'A few quick questions',
                 'value' => $weight,
                 'done' => false,
-                'action' => ['kind' => 'fyn_capture', 'payload' => $module],
+                'action' => ['kind' => 'fyn_capture', 'payload' => $module, 'prompt' => RecommendationRouting::unlockPrompt($module)],
             ];
         }
 
@@ -439,7 +461,7 @@ class NextActionsService
                 'meta' => 'Enter your '.$noun.' details',
                 'value' => $weight,
                 'done' => false,
-                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax'],
+                'action' => ['kind' => 'fyn_capture', 'payload' => 'tax', 'prompt' => RecommendationRouting::unlockPrompt('tax')],
             ];
         }
 

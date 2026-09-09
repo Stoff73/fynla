@@ -8,12 +8,14 @@ use App\Enums\AiMessageStatus;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\Mobile\NextActionsService;
 use Illuminate\Support\Facades\DB;
 
 final class ContextualConversationService
 {
     public function __construct(
         private readonly ContextualResourceResolver $resources,
+        private readonly NextActionsService $nextActions,
     ) {}
 
     /**
@@ -34,7 +36,18 @@ final class ContextualConversationService
             $validated['resource_id'] ?? null,
         );
 
-        return DB::transaction(function () use ($user, $validated, $resource): array {
+        // A recommendation-driven capture (CSJ 2026-09-09): the dashboard row
+        // the user tapped names what Fyn is collecting, and its id is what
+        // gets ticked off when the user says they are done (AdviceFyn's
+        // follow-up). Resolved server-side from the same ranked list the
+        // dashboard showed, never from client-authored copy.
+        $recommendation = $this->recommendationFor($user, $validated['origin']);
+        $origin = $validated['origin'];
+        if ($recommendation !== null) {
+            $origin['recommendation'] = $recommendation;
+        }
+
+        return DB::transaction(function () use ($user, $validated, $resource, $origin, $recommendation): array {
             $timestamp = now();
             $conversation = AiConversation::create([
                 'user_id' => $user->id,
@@ -50,7 +63,7 @@ final class ContextualConversationService
                     'resource_type' => $resource->resourceType,
                     'resource_id' => $resource->resourceId,
                     'current_destination' => $validated['current_destination'],
-                    'origin' => $validated['origin'],
+                    'origin' => $origin,
                     'context_provenance' => [
                         'authority' => 'server',
                         'rehydrated_at' => $timestamp->toIso8601String(),
@@ -63,7 +76,9 @@ final class ContextualConversationService
             $opening = $conversation->messages()->create([
                 'role' => 'assistant',
                 'status' => AiMessageStatus::Answered,
-                'content' => $this->openingFor($validated['action'], $resource),
+                'content' => $recommendation !== null
+                    ? $this->recommendationOpening($recommendation)
+                    : $this->openingFor($validated['action'], $resource),
                 'metadata' => [
                     'source' => 'server_contextual_opening',
                 ],
@@ -74,6 +89,45 @@ final class ContextualConversationService
                 'opening_message' => $opening,
             ];
         });
+    }
+
+    /**
+     * The open dashboard recommendation behind a recommendation origin, from
+     * the one ranked list (NextActionsService::buildAll). Null when the origin
+     * is a surface action, or the recommendation is no longer open — the
+     * conversation then opens as a plain add/edit rather than failing.
+     *
+     * @param  array{kind: string, recommendation_id: string|null}  $origin
+     * @return array{id: string, module: string, title: string, detail: string|null}|null
+     */
+    private function recommendationFor(User $user, array $origin): ?array
+    {
+        if (($origin['kind'] ?? null) !== 'recommendation' || ! is_string($origin['recommendation_id'] ?? null)) {
+            return null;
+        }
+
+        foreach ($this->nextActions->buildAll($user->id) as $item) {
+            if (($item['type'] ?? null) === 'recommendation' && ($item['id'] ?? null) === $origin['recommendation_id']) {
+                return [
+                    'id' => (string) $item['id'],
+                    'module' => (string) ($item['module'] ?? 'general'),
+                    'title' => (string) $item['title'],
+                    'detail' => isset($item['detail']) ? (string) $item['detail'] : null,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array{title: string, detail: string|null} $recommendation */
+    private function recommendationOpening(array $recommendation): string
+    {
+        $detail = trim((string) ($recommendation['detail'] ?? ''));
+        $detail = $detail !== '' ? rtrim($detail, '.').'. ' : '';
+
+        return "I can help you enter the information for {$recommendation['title']}. {$detail}"
+            ."Tell me the details you know, and I'll validate them before anything is saved.";
     }
 
     private function openingFor(string $action, ContextualResource $resource): string

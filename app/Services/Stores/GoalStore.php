@@ -7,6 +7,7 @@ namespace App\Services\Stores;
 use App\Models\AuditLog;
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\Goals\GoalAssignmentService;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class GoalStore
 
     public function __construct(
         private readonly TierGate $tierGate,
+        private readonly GoalAssignmentService $assignment,
     ) {}
 
     public function countForUser(User $user): int
@@ -37,6 +39,15 @@ class GoalStore
         }
 
         $attributes = array_merge($canonical, ['user_id' => $user->id]);
+
+        // The form path auto-assigns the module (GoalsController::store);
+        // Fyn's create_goal reached here without one, so an emergency fund
+        // goal it created sat outside the savings bucket and the goals engine
+        // kept raising "No Emergency Fund Goal" (live 2026-09-09). One rule,
+        // both callers.
+        if (empty($attributes['assigned_module'])) {
+            $attributes['assigned_module'] = $this->assignment->determineModule($attributes);
+        }
 
         $this->validateCanonical($attributes);
 
