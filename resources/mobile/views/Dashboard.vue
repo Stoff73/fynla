@@ -966,6 +966,14 @@ export default {
     // Deliver any celebration missed since last open (server-persisted
     // pending_celebration_level surfaced via GET /api/gamification/status).
     store.fetchStatus();
+    // A Fyn turn that ends on this screen (a recommendation-driven capture's
+    // "No thanks" navigates to /dashboard) bumps the shared refresh tick as it
+    // closes the chat; refetch so the ticked-off action is replaced and the
+    // wheel's tally moves, as the mark-done toggle does. Same tick every /m
+    // screen watches.
+    this.$watch(() => store.screenRefreshTick, () => {
+      Promise.all([store.fetchStatus(), this.load({ silent: true })]);
+    });
     // Campaign / onboarding arrivals land here with Fyn ready to guide them — the
     // registration hand-off promises "your dashboard with Fyn open". Open the chat
     // immediately so the greeting shows, instead of leaving it docked behind the
