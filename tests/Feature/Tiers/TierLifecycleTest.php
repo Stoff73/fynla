@@ -11,7 +11,6 @@ use App\Services\Stores\TierConfigurationStore;
 use App\Services\Stores\TierGate;
 use App\Services\Tiers\TierResolver;
 use Database\Seeders\RolesPermissionsSeeder;
-use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -146,7 +145,6 @@ it('does not revoke a user when another paid period is still active', function (
 // ── RetentionPurgeService clears tier on full account wipe ─────────────────
 
 it('clears users.tier when an account is purged after retention', function () {
-    $this->seed(SubscriptionPlanSeeder::class);
 
     $user = User::factory()->create(['plan' => 'premium', 'tier' => 'premium']);
 

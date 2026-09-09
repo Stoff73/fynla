@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Payment;
 
-use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -86,68 +85,6 @@ class RevolutSubscriptionService
     }
 
     // ── Subscription Plan Management ──
-
-    /**
-     * Create a Revolut subscription plan with monthly + yearly variations.
-     *
-     * Each plan gets 2 variations:
-     * - Variation 0: Monthly (P1M), using launch price or regular price
-     * - Variation 1: Yearly (P1Y), using launch price or regular price
-     * cycle_count null = indefinite billing.
-     */
-    public function createSubscriptionPlan(SubscriptionPlan $plan): array
-    {
-        $monthlyPrice = $plan->launch_monthly_price ?? $plan->monthly_price;
-        $yearlyPrice = $plan->launch_yearly_price ?? $plan->yearly_price;
-
-        $body = [
-            'name' => "Fynla {$plan->name} Plan",
-            'variations' => [
-                [
-                    'phases' => [
-                        [
-                            'ordinal' => 1,
-                            'cycle_duration' => 'P1M',
-                            'amount' => $monthlyPrice,
-                            'currency' => 'GBP',
-                        ],
-                    ],
-                ],
-                [
-                    'phases' => [
-                        [
-                            'ordinal' => 1,
-                            'cycle_duration' => 'P1Y',
-                            'amount' => $yearlyPrice,
-                            'currency' => 'GBP',
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        $response = Http::withHeaders($this->headers())
-            ->post("{$this->apiUrl}/subscription-plans", $body);
-
-        if ($response->failed()) {
-            Log::error('Revolut createSubscriptionPlan failed', [
-                'status' => $response->status(),
-                'revolut_error_code' => $response->json('code'),
-                'plan_slug' => $plan->slug,
-            ]);
-            $response->throw();
-        }
-
-        $data = $response->json();
-
-        Log::info('Revolut subscription plan created', [
-            'plan_slug' => $plan->slug,
-            'revolut_plan_id' => $data['id'],
-            'variation_count' => count($data['variations'] ?? []),
-        ]);
-
-        return $data;
-    }
 
     /**
      * Retrieve a specific subscription plan by ID.

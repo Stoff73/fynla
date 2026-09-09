@@ -12,7 +12,6 @@ use App\Models\DiscountCode;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Account\AccountDeletionService;
@@ -43,8 +42,6 @@ class PaymentController extends Controller
 {
     use SanitizedErrorResponse;
 
-    private const PLAN_ORDER = ['student', 'standard', 'family', 'pro'];
-
     public function __construct(
         private readonly RevolutService $revolutService,
         private readonly RevolutSubscriptionService $subscriptionService,
@@ -73,7 +70,7 @@ class PaymentController extends Controller
         // from each tier; the feature bullets are derived from the tier's
         // capability matrix (and its quota deltas for the top tier). Editing a
         // tier in the admin screen therefore updates this modal directly — there
-        // is no parallel SubscriptionPlan pricing to keep in sync. The modal
+        // is no parallel plan catalogue to keep in sync. The modal
         // sends the tier key to checkout, which routes through createTierOrder.
         $tiers = $this->tierStore->allActiveOrdered()->values();
 
@@ -205,172 +202,16 @@ class PaymentController extends Controller
                 return $this->errorResponse($e, 'Creating tier payment order');
             }
         }
-        // ────────────────────────────────────────────────────────────────
 
-        $plan = SubscriptionPlan::findBySlug($planSlugInput);
-        if (! $plan) {
-            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
-        }
-
-        // Student plan is restricted to UK university students (.ac.uk email).
-        // Frontend hides the plan for ineligible users; this is the authoritative gate.
-        if ($plan->slug === 'student' && ! $user->isEligibleForStudentPlan()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'The Student plan is only available to UK university students. Please use your .ac.uk email address or choose a different plan.',
-            ], 422);
-        }
-
-        $billingCycle = $request->input('billing_cycle');
-        $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
-        $description = "{$plan->name} — ".ucfirst($billingCycle);
-
-        // Validate discount code if provided
-        $discountResult = null;
-        $discountCode = null;
-        $discountAmount = 0;
-        $finalAmount = $amount;
-
-        if ($request->filled('discount_code')) {
-            $discountResult = $this->discountCodeService->validate(
-                $request->input('discount_code'),
-                $user->id,
-                $plan->slug,
-                $billingCycle,
-                $amount
-            );
-
-            if (! $discountResult['valid']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $discountResult['message'],
-                ], 422);
-            }
-
-            $discountCode = $discountResult['discount'];
-
-            $discountAmount = $discountResult['discount_amount'];
-            $finalAmount = $discountResult['final_amount'];
-        }
-
-        try {
-            // Ensure subscription record exists
-            $subscription = $user->subscription ?? $user->subscription()->create([
-                'plan' => $plan->slug,
-                'billing_cycle' => $billingCycle,
-                'status' => Subscription::STATUS_PENDING,
-                'amount' => 0,
-                'current_period_start' => null,
-                'current_period_end' => null,
-                'auto_renew' => false,
-                'payment_method_saved' => false,
-            ]);
-
-            // Ensure Revolut customer exists
-            if (! $user->revolut_customer_id) {
-                $this->subscriptionService->createCustomer($user);
-                $user->refresh();
-            }
-
-            // Build redirect URL
-            $baseUrl = config('services.revolut.sandbox')
-                ? 'https://fynla.org'
-                : config('app.url');
-            $redirectUrl = $baseUrl.'/checkout?plan='.$plan->slug
-                .'&cycle='.$billingCycle.'&status=complete';
-
-            // Build description (include discount code if applied)
-            $orderDescription = $discountCode
-                ? "{$description} (Code: {$discountCode->code})"
-                : $description;
-
-            // Create Revolut order at $finalAmount — this is the ONLY amount that matters.
-            // If a discount was applied, $finalAmount is already reduced.
-            // If no discount, $finalAmount equals $amount (full price).
-            $revolutOrder = $this->revolutService->createOrderWithCustomer(
-                $finalAmount,
-                'GBP',
-                $orderDescription,
-                $redirectUrl,
-                $user->revolut_customer_id,
-                null,
-                $user->email,
-                true
-            );
-
-            // If a pending payment already exists for this user/plan/cycle,
-            // this is a widget reload (e.g. discount code entered). Clean up
-            // the prior pending record so it doesn't orphan.
-            Payment::where('user_id', $user->id)
-                ->where('plan_slug', $plan->slug)
-                ->where('billing_cycle', $billingCycle)
-                ->where('status', 'pending')
-                ->delete();
-
-            // Create pending Payment record
-            $payment = Payment::create([
-                'subscription_id' => $subscription->id,
-                'user_id' => $user->id,
-                'revolut_order_id' => $revolutOrder['id'],
-                'amount' => $finalAmount,
-                'currency' => 'GBP',
-                'status' => 'pending',
-                'description' => $description,
-                'plan_slug' => $plan->slug,
-                'billing_cycle' => $billingCycle,
-                'discount_code_id' => $discountCode?->id,
-                'discount_amount' => $discountAmount,
-                'revolut_payment_data' => [
-                    'order_id' => $revolutOrder['id'],
-                    'token' => $revolutOrder['token'],
-                    'state' => $revolutOrder['state'],
-                    'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
-                ],
-            ]);
-
-            // Capture Awin affiliate attribution at order creation time.
-            // This is the ONLY point in the flow where the user's browser
-            // cookie is reachable — the webhook has no access to it. Fields
-            // are persisted on the Payment row so the downstream conversion
-            // job (dispatched from webhook or confirmPayment) has everything
-            // it needs without touching the request.
-            if (config('awin.enabled') && ! $user->is_admin) {
-                $payment->forceFill([
-                    'awin_order_ref' => $this->awinTracking->orderRefFor($payment),
-                    'awin_cks' => $request->cookie('awc') ?: null,
-                    'awin_customer_acquisition' => $this->awinTracking->isCustomerAcquisition($user, $payment->id)
-                        ? 'new'
-                        : 'existing',
-                ])->save();
-            }
-
-            Log::info('Revolut order created for checkout', [
-                'user_id' => $user->id,
-                'payment_id' => $payment->id,
-                'full_price' => $amount,
-                'discount_amount' => $discountAmount,
-                'final_amount' => $finalAmount,
-                'discount_code' => $discountCode?->code,
-                'revolut_order_id' => $revolutOrder['id'],
-            ]);
-
-            // Intentional: Revolut SDK requires {token, order_id} at top level
-            return response()->json([
-                'token' => $revolutOrder['token'],
-                'order_id' => $revolutOrder['id'],
-            ]);
-        } catch (\Throwable $e) {
-            return $this->errorResponse($e, 'Creating payment order');
-        }
+        // Unreachable: `plan` is validated to the paid tier keys above.
+        return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
     }
-
-    // ── Tier checkout helper (SP2) ─────────────────────────────────────
 
     /**
      * Create a Revolut order for Premium.
      *
      * Mirrors the legacy createOrder flow but sources price from
-     * TierConfigurationStore rather than SubscriptionPlan. Any submitted
+     * TierConfigurationStore. Any submitted
      * discount is revalidated here so the displayed, charged and persisted
      * amounts remain identical.
      *
@@ -793,65 +634,36 @@ class PaymentController extends Controller
         $currentPlanSlug = $subscription->plan;
         $newPlanSlug = $request->input('plan');
 
-        // For tier-key upgrades: use the canonical tier order for comparison;
-        // for legacy slugs: use the legacy PLAN_ORDER.
+        // Both slugs are tier keys since the legacy plans collapsed to Premium;
+        // compare on the canonical tier order.
         $tierOrder = TierConfigurationStore::TIERS;
-        $isNewTierKey = in_array($newPlanSlug, TierConfigurationStore::TIERS, true);
-        $isCurrentTierKey = in_array($currentPlanSlug, TierConfigurationStore::TIERS, true);
-
-        if ($isNewTierKey || $isCurrentTierKey) {
-            // Both must be tier keys for a valid tier-to-tier upgrade comparison.
-            $currentIndex = array_search($currentPlanSlug, $tierOrder);
-            $newIndex = array_search($newPlanSlug, $tierOrder);
-            if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
-                return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
-            }
-        } else {
-            $currentIndex = array_search($currentPlanSlug, self::PLAN_ORDER);
-            $newIndex = array_search($newPlanSlug, self::PLAN_ORDER);
-            if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
-                return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
-            }
+        $currentIndex = array_search($currentPlanSlug, $tierOrder, true);
+        $newIndex = array_search($newPlanSlug, $tierOrder, true);
+        if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
+            return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
         }
 
         $billingCycle = $subscription->billing_cycle;
 
-        // Resolve prices — tier keys read from TierConfigurationStore; legacy slugs from SubscriptionPlan.
-        if ($isCurrentTierKey) {
-            try {
-                $currentTierConfig = $this->tierStore->forTier($currentPlanSlug);
-                $currentPrice = $billingCycle === 'monthly'
-                    ? $currentTierConfig->price_monthly_pence
-                    : $currentTierConfig->price_annual_pence;
-            } catch (\Throwable) {
-                return response()->json(['success' => false, 'message' => 'Current tier configuration not found'], 404);
-            }
-        } else {
-            $currentPlan = SubscriptionPlan::findBySlug($currentPlanSlug);
-            if (! $currentPlan) {
-                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
-            }
-            $currentPrice = $currentPlan->getLaunchPriceForCycle($billingCycle) ?? $currentPlan->getPriceForCycle($billingCycle);
+        try {
+            $currentTierConfig = $this->tierStore->forTier($currentPlanSlug);
+            $currentPrice = $billingCycle === 'monthly'
+                ? $currentTierConfig->price_monthly_pence
+                : $currentTierConfig->price_annual_pence;
+        } catch (\Throwable) {
+            return response()->json(['success' => false, 'message' => 'Current tier configuration not found'], 404);
         }
 
-        if ($isNewTierKey) {
-            if ($newPlanSlug === 'free') {
-                return response()->json(['success' => false, 'message' => 'Cannot upgrade to Free tier via payment'], 422);
-            }
-            try {
-                $newTierConfig = $this->tierStore->forTier($newPlanSlug);
-                $newPrice = $billingCycle === 'monthly'
-                    ? $newTierConfig->price_monthly_pence
-                    : $newTierConfig->price_annual_pence;
-            } catch (\Throwable) {
-                return response()->json(['success' => false, 'message' => 'New tier configuration not found'], 404);
-            }
-        } else {
-            $newPlan = SubscriptionPlan::findBySlug($newPlanSlug);
-            if (! $newPlan) {
-                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
-            }
-            $newPrice = $newPlan->getLaunchPriceForCycle($billingCycle) ?? $newPlan->getPriceForCycle($billingCycle);
+        if ($newPlanSlug === 'free') {
+            return response()->json(['success' => false, 'message' => 'Cannot upgrade to Free tier via payment'], 422);
+        }
+        try {
+            $newTierConfig = $this->tierStore->forTier($newPlanSlug);
+            $newPrice = $billingCycle === 'monthly'
+                ? $newTierConfig->price_monthly_pence
+                : $newTierConfig->price_annual_pence;
+        } catch (\Throwable) {
+            return response()->json(['success' => false, 'message' => 'New tier configuration not found'], 404);
         }
         $priceDiff = $newPrice - $currentPrice;
 
@@ -1194,11 +1006,7 @@ class PaymentController extends Controller
                 return response()->json(['success' => false, 'message' => 'Tier configuration not found'], 404);
             }
         } else {
-            $plan = SubscriptionPlan::findBySlug($planSlugInput);
-            if (! $plan) {
-                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
-            }
-            $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
+            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
         }
 
         $result = $this->discountCodeService->validate(
