@@ -148,7 +148,7 @@ describe('Dashboard.vue — openFynForCapture awaits openFyn() (D3 adjacent: cap
     const openSpy = vi.spyOn(wrapper.vm, 'openFyn').mockReturnValue(openPromise);
     const sendSpy = vi.spyOn(wrapper.vm, 'send').mockImplementation(() => {});
 
-    const tapPromise = wrapper.vm.openFynForCapture('savings');
+    const tapPromise = wrapper.vm.openFynForCapture({ kind: 'fyn_capture', payload: 'savings', prompt: 'Help me add my savings details' });
     await Promise.resolve();
     await Promise.resolve();
     expect(openSpy).toHaveBeenCalled();

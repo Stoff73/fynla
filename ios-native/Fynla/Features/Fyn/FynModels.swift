@@ -12,9 +12,11 @@ struct FynContextualOrigin: Codable, Sendable, Equatable {
     }
 
     let kind: Kind
-    let recommendationID: Int?
+    // The dashboard recommendation id (`savings_missing_income`, …) the
+    // conversation was opened from — NextActionsService's stable string id.
+    let recommendationID: String?
 
-    init(kind: Kind, recommendationID: Int? = nil) {
+    init(kind: Kind, recommendationID: String? = nil) {
         self.kind = kind
         self.recommendationID = recommendationID
     }
@@ -42,6 +44,12 @@ struct FynContextualConversationRequest: Codable, Sendable, Equatable {
 
 struct FynContextualAction: Sendable, Equatable {
     let request: FynContextualConversationRequest
+
+    /// A request the server composed (a dashboard recommendation's
+    /// `action.contextual`), sent verbatim.
+    init(request: FynContextualConversationRequest) {
+        self.request = request
+    }
 
     init(
         action: FynContextualActionKind,

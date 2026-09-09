@@ -19,6 +19,7 @@ use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Mobile\NextActionsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -180,16 +181,70 @@ it('rejects numeric strings at every identifier boundary', function (): void {
         'current_destination' => [
             'params' => ['account_id' => (string) $account->id],
         ],
-        'origin' => [
-            'kind' => 'recommendation',
-            'recommendation_id' => '99',
-        ],
     ]))->assertUnprocessable()
         ->assertJsonValidationErrors([
             'resource_id',
             'current_destination.params.account_id',
-            'origin.recommendation_id',
         ]);
+});
+
+it('requires the dashboard recommendation id for a recommendation origin and rejects a non-id shape', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
+        'action' => 'add',
+        'resource_type' => 'savings',
+        'resource_id' => null,
+        'current_destination' => ['screen' => 'income', 'params' => [], 'fallback' => 'dashboard'],
+        'origin' => ['kind' => 'recommendation', 'recommendation_id' => null],
+    ]))->assertUnprocessable()->assertJsonValidationErrors(['origin.recommendation_id']);
+
+    $this->postJson('/api/ai-chat/contextual-conversations', contextualConversationPayload([
+        'action' => 'add',
+        'resource_type' => 'savings',
+        'resource_id' => null,
+        'current_destination' => ['screen' => 'income', 'params' => [], 'fallback' => 'dashboard'],
+        'origin' => ['kind' => 'recommendation', 'recommendation_id' => 'not an id!'],
+    ]))->assertUnprocessable()->assertJsonValidationErrors(['origin.recommendation_id']);
+});
+
+it('opens a recommendation-origin conversation with the recommendation as the opening and stamps it for the follow-up', function (): void {
+    $user = User::factory()->create(['onboarding_completed' => true, 'is_preview_user' => false]);
+    Sanctum::actingAs($user);
+
+    $nextActions = Mockery::mock(NextActionsService::class);
+    $nextActions->shouldReceive('buildAll')->with($user->id)->andReturn([[
+        'id' => 'savings_missing_income',
+        'type' => 'recommendation',
+        'module' => 'savings',
+        'title' => 'Provide Your Income Details',
+        'detail' => 'Your income details are needed to calculate tax-efficient savings recommendations.',
+        'meta' => 'Data Readiness',
+        'value' => 90.0,
+        'done' => false,
+        'action' => ['kind' => 'fyn_capture', 'payload' => 'savings'],
+    ]]);
+    app()->instance(NextActionsService::class, $nextActions);
+
+    $response = $this->postJson('/api/ai-chat/contextual-conversations', [
+        'action' => 'add',
+        'resource_type' => 'income',
+        'resource_id' => null,
+        'current_destination' => ['screen' => 'income', 'params' => [], 'fallback' => 'dashboard'],
+        'origin' => ['kind' => 'recommendation', 'recommendation_id' => 'savings_missing_income'],
+    ])->assertCreated();
+
+    expect($response->json('data.opening_message.content'))
+        ->toBe("I can help you enter the information for Provide Your Income Details. Your income details are needed to calculate tax-efficient savings recommendations. Tell me the details you know, and I'll validate them before anything is saved.");
+
+    $conversation = AiConversation::findOrFail($response->json('data.conversation.id'));
+    expect($conversation->metadata['origin']['recommendation'])->toEqual([
+        'id' => 'savings_missing_income',
+        'module' => 'savings',
+        'title' => 'Provide Your Income Details',
+        'detail' => 'Your income details are needed to calculate tax-efficient savings recommendations.',
+    ]);
 });
 
 it('requires the destination screen fallback identifiers and enums to match the resource type', function (): void {

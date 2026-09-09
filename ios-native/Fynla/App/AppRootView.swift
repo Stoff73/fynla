@@ -474,7 +474,7 @@ private struct UnlockedView: View {
                 text: "\(unlock.meta) — Fyn can help",
                 dismissLabel: "Not now",
                 identifier: "dashboard.unlock-nudge",
-                onOpen: { presentFyn(prompt: capturePrompt(for: unlock.module)) },
+                onOpen: { presentFyn(prompt: unlock.action.prompt) },
                 onDismiss: { unlockBubbleDismissed = true }
             )
         }
@@ -523,20 +523,6 @@ private struct UnlockedView: View {
             }
         }
         return areas.first?.actions.first(where: { $0.type == .unlock })
-    }
-
-    // /m Dashboard.vue openFynForCapture prompts.
-    private func capturePrompt(for module: String) -> String {
-        switch module {
-        case "protection": "Help me add my protection cover details"
-        case "savings": "Help me add my savings details"
-        case "investment": "Help me add my investment details"
-        case "retirement": "Help me add my pension details"
-        case "estate": "Help me add my estate planning details"
-        case "goals": "Help me set a financial goal"
-        case "tax": "Help me complete my tax strategy details"
-        default: "Help me add my financial details"
-        }
     }
 
     // Fixed gradient app bar (md-header): shared by every screen — the
@@ -605,8 +591,15 @@ private struct UnlockedView: View {
                 onRoute: { route in
                     navigate(to: route)
                 },
-                onOpenFyn: { prompt in
-                    presentFyn(prompt: prompt)
+                onFynCapture: { action in
+                    // The server decided the route (RecommendationRouting): a
+                    // recommendation-origin contextual conversation, else the
+                    // unlock card's capture prompt.
+                    if let request = action.action.contextual {
+                        presentContextualFyn(FynContextualAction(request: request))
+                    } else {
+                        presentFyn(prompt: action.action.prompt)
+                    }
                 }
             )
             .toolbar(.hidden, for: .navigationBar)

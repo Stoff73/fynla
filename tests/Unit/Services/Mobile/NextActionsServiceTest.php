@@ -125,6 +125,75 @@ it('shows only the headline before the dash and carries the rest as detail', fun
         ->and($items['savings_rate_below_market']['detail'])->toBeNull();
 });
 
+it('routes recommendations by what they ask for: Fyn capture, the exact record, or the product page', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $aggregator = Mockery::mock(RecommendationsAggregatorService::class);
+    $aggregator->shouldReceive('aggregateRecommendations')
+        ->with($user->id)
+        ->andReturn([
+            // Asks the user to record information → Fyn, in an income capture.
+            ['recommendation_id' => 'savings_missing_income', 'module' => 'savings', 'recommendation_text' => 'Provide Your Income Details — needed for advice.', 'priority_score' => 90.0, 'category' => 'Data Readiness'],
+            // Names an account → that account's page.
+            ['recommendation_id' => 'savings_rate_below_market', 'module' => 'savings', 'recommendation_text' => 'Better Rate Available for Rainy Day — 2% below market.', 'priority_score' => 70.0, 'category' => 'Lifecycle', 'account_id' => 42],
+            // Names a workplace pension → that pension's page.
+            ['recommendation_id' => 'retirement_high_pension_total_fees', 'module' => 'retirement', 'recommendation_text' => 'Review total fees on Aviva — 1.4% a year.', 'priority_score' => 60.0, 'category' => 'Lifecycle', 'account_id' => 7],
+            // A tax strategy about a Stocks & Shares move → investments.
+            ['recommendation_id' => 'tax_bed_and_isa', 'module' => 'tax', 'recommendation_text' => 'Bed & ISA — shelter £20,000.', 'priority_score' => 55.0, 'category' => 'tax', 'potential_benefit' => 300],
+            // A tax strategy about pension contributions → retirement.
+            ['recommendation_id' => 'tax_salary_sacrifice_ni', 'module' => 'tax', 'recommendation_text' => 'Salary sacrifice — save NI.', 'priority_score' => 50.0, 'category' => 'tax', 'potential_benefit' => 400],
+            // Nothing specific named → the module overview.
+            ['recommendation_id' => 'investment_rebalance_portfolio', 'module' => 'investment', 'recommendation_text' => 'Rebalance Portfolio — drifted from target.', 'priority_score' => 40.0, 'category' => 'Lifecycle'],
+        ]);
+    app()->instance(RecommendationsAggregatorService::class, $aggregator);
+
+    $items = collect(app(NextActionsService::class)->buildAll($user->id))->keyBy('id');
+
+    expect($items['savings_missing_income']['action'])->toEqual([
+        'kind' => 'fyn_capture',
+        'payload' => 'savings',
+        'contextual' => [
+            'action' => 'add',
+            'resource_type' => 'income',
+            'resource_id' => null,
+            'current_destination' => ['screen' => 'income', 'params' => (object) [], 'fallback' => 'dashboard'],
+            'origin' => ['kind' => 'recommendation', 'recommendation_id' => 'savings_missing_income'],
+        ],
+    ]);
+
+    expect($items['savings_rate_below_market']['action']['kind'])->toBe('navigate')
+        ->and($items['savings_rate_below_market']['action']['payload'])->toBe('/savings/account/42')
+        ->and($items['savings_rate_below_market']['action']['destination'])->toBe(['screen' => 'savings_account_detail', 'params' => ['account_id' => 42], 'fallback' => 'savings']);
+
+    expect($items['retirement_high_pension_total_fees']['action']['payload'])->toBe('/retirement/pension/dc/7')
+        ->and($items['retirement_high_pension_total_fees']['action']['destination']['screen'])->toBe('pension_detail')
+        ->and($items['retirement_high_pension_total_fees']['action']['destination']['params'])->toBe(['pension_id' => 7, 'pension_type' => 'dc']);
+
+    expect($items['tax_bed_and_isa']['action']['payload'])->toBe('/investment')
+        ->and($items['tax_bed_and_isa']['action']['destination']['screen'])->toBe('investment')
+        ->and($items['tax_salary_sacrifice_ni']['action']['payload'])->toBe('/retirement')
+        ->and($items['investment_rebalance_portfolio']['action']['payload'])->toBe('/investment')
+        ->and($items['investment_rebalance_portfolio']['action']['destination']['screen'])->toBe('investment');
+});
+
+it('serves the capture prompt on unlock cards so no client carries its own copy', function () {
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => true]);
+
+    $aggregator = Mockery::mock(RecommendationsAggregatorService::class);
+    $aggregator->shouldReceive('aggregateRecommendations')->with($user->id)->andReturn([]);
+    app()->instance(RecommendationsAggregatorService::class, $aggregator);
+
+    $unlocks = collect(app(NextActionsService::class)->buildAll($user->id))->where('type', 'unlock');
+
+    expect($unlocks)->not->toBeEmpty();
+    foreach ($unlocks as $unlock) {
+        expect($unlock['action']['kind'])->toBe('fyn_capture')
+            ->and($unlock['action']['prompt'])->toBeString()->not->toBe('');
+    }
+    expect($unlocks->firstWhere('module', 'savings')['action']['prompt'] ?? 'Help me add my savings details')
+        ->toBe('Help me add my savings details');
+});
+
 it('deep-links a tax recommendation to the tax strategy screen', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 

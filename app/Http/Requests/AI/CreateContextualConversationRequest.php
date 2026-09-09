@@ -141,7 +141,16 @@ final class CreateContextualConversationRequest extends FormRequest
             'current_destination.fallback' => ['required', 'string', Rule::in(self::DESTINATION_SCREENS)],
             'origin' => ['required', 'array:kind,recommendation_id'],
             'origin.kind' => ['required', 'string', Rule::in(['surface_action', 'recommendation'])],
-            'origin.recommendation_id' => ['nullable', 'integer', 'min:1'],
+            // The dashboard recommendation id (`savings_missing_income`, …) —
+            // NextActionsService's stable string id, required when the origin
+            // is a recommendation so the capture can tick it off when done.
+            'origin.recommendation_id' => [
+                'nullable',
+                'string',
+                'max:120',
+                'regex:/^[a-z0-9_:-]+$/i',
+                Rule::requiredIf(fn (): bool => $this->input('origin.kind') === 'recommendation'),
+            ],
         ];
     }
 
@@ -156,7 +165,7 @@ final class CreateContextualConversationRequest extends FormRequest
 
     private function validateIdentifierTypes(Validator $validator): void
     {
-        foreach (['resource_id', 'origin.recommendation_id'] as $key) {
+        foreach (['resource_id'] as $key) {
             $value = $this->input($key);
             if ($value !== null && ! is_int($value)) {
                 $validator->errors()->add($key, 'Identifiers must be JSON integers.');
