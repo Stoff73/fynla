@@ -504,7 +504,7 @@ struct AuthenticationCoordinatorTests {
     @MainActor
     @Test
     func refreshAuthenticatedUserReplacesTheCachedUserWithoutTouchingTheSession() async throws {
-        let harness = makeHarness()
+        let harness = makeHarness(mustChange: false)
         try await harness.coordinator.login(
             email: "example@example.test",
             password: "Example1!",
@@ -521,7 +521,7 @@ struct AuthenticationCoordinatorTests {
         #expect(events.contains("user:refreshed-token"))
         #expect(harness.coordinator.authenticatedUser?.id == before?.id)
         #expect(harness.coordinator.credentials == credentials)
-        #expect(harness.coordinator.state == .authenticated(mustChangePassword: nil))
+        #expect(harness.coordinator.state == .authenticated(mustChangePassword: false))
     }
 
     @MainActor
