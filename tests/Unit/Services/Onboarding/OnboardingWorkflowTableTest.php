@@ -118,7 +118,7 @@ it('re-attaches PHP-only callable fields from code in the merged table', functio
     expect($merged['journey_selection']['next'])->toBe('base_personal');
 });
 
-it('falls back to the in-code table when the corpus procedure is absent', function (): void {
+it('reads the shipped workflow file when the configured corpus has no procedure', function (): void {
     $empty = sys_get_temp_dir().'/proc-4d-'.uniqid();
     @mkdir($empty, 0777, true);
     config(['fyn.memory.procedural_path' => $empty]);
@@ -129,7 +129,7 @@ it('falls back to the in-code table when the corpus procedure is absent', functi
     try {
         $table = OnboardingStateMachine::transitionTable();
 
-        // Same state set + order as code, and the campaign branch still routes.
+        // The shipped file is the one home for DATA (F4): text and static next still present.
         expect($table)->toHaveKeys(['path_choice', 'campaign_intro', 'done'])
             ->and($table['journey_selection']['next'])->toBe('base_personal')
             ->and($table['path_choice']['next'])
