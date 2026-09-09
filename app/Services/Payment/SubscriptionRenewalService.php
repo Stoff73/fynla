@@ -7,7 +7,6 @@ namespace App\Services\Payment;
 use App\Mail\PaymentFailedNotification;
 use App\Models\Payment;
 use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -57,10 +56,8 @@ class SubscriptionRenewalService
             $planSlug = $subscription->plan;
             $billingCycle = $subscription->billing_cycle;
 
-            $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
-            $amount = $subscriptionPlan
-                ? ($subscriptionPlan->getLaunchPriceForCycle($billingCycle) ?? $subscriptionPlan->getPriceForCycle($billingCycle))
-                : $subscription->amount;
+            // Price-lock: the amount written at payment confirmation is what renews.
+            $amount = (int) $subscription->amount;
 
             $periodEnd = $billingCycle === 'monthly'
                 ? now()->addMonth()

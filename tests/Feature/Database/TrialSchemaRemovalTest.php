@@ -12,7 +12,6 @@ it('removes the retired trial schema and narrows subscription status', function 
     expect(Schema::hasColumn('subscriptions', 'trial_started_at'))->toBeFalse()
         ->and(Schema::hasColumn('subscriptions', 'trial_ends_at'))->toBeFalse()
         ->and(Schema::hasColumn('users', 'trial_ends_at'))->toBeFalse()
-        ->and(Schema::hasColumn('subscription_plans', 'trial_days'))->toBeFalse()
         ->and(Schema::hasTable('trial_reminder_log'))->toBeFalse();
 
     if (DB::getDriverName() === 'mysql') {
@@ -65,7 +64,6 @@ it('aborts before destructive schema changes while a trialing row remains', func
         expect(Schema::hasColumn('subscriptions', 'trial_started_at'))->toBeTrue()
             ->and(Schema::hasColumn('subscriptions', 'trial_ends_at'))->toBeTrue()
             ->and(Schema::hasColumn('users', 'trial_ends_at'))->toBeTrue()
-            ->and(Schema::hasColumn('subscription_plans', 'trial_days'))->toBeTrue()
             ->and(Schema::hasTable('trial_reminder_log'))->toBeTrue();
     } finally {
         // $migration->down() above ran DDL, and MySQL implicitly commits on DDL — so

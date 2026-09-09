@@ -7,7 +7,6 @@ namespace App\Services\Payment;
 use App\Models\DiscountCode;
 use App\Models\Payment;
 use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Support\Facades\DB;
@@ -44,10 +43,7 @@ class PaymentSettlementService
             if ($isUpgrade && in_array($planSlug, TierConfigurationStore::TIERS, true)) {
                 $fullPrice = $this->tierStore->priceForCycle($planSlug, $billingCycle);
             } else {
-                $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
-                $fullPrice = $subscriptionPlan
-                    ? $subscriptionPlan->getPriceForCycle($billingCycle)
-                    : $payment->amount;
+                $fullPrice = $payment->amount;
             }
 
             if ($payment->discount_code_id !== null) {
