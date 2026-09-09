@@ -427,6 +427,24 @@ final class AuthenticationCoordinator: AccessTokenProviding {
         credentials?.accessToken
     }
 
+    /// Re-reads the signed-in user from the server. The cached user is otherwise
+    /// only refreshed at login and Face ID unlock, so a walk Fyn completes in-app
+    /// (onboarding_completed flipped, onboarding_fyn_step nulled server-side)
+    /// left the dashboard's "Finish your personalised tax plan" pill up until the
+    /// next unlock (CSJ, iPhone, 2026-09-09). A failure keeps the cached user; a
+    /// session that changed underneath the fetch is left alone.
+    func refreshAuthenticatedUser(accessToken: String) async {
+        let generation = nativeSessionGeneration
+        guard authenticatedUser != nil,
+              let user = try? await currentUserClient.currentUser(accessToken: accessToken),
+              generation == nativeSessionGeneration,
+              authenticatedUser != nil
+        else {
+            return
+        }
+        authenticatedUser = user
+    }
+
     func declineBiometricPersistence() {
         guard credentials != nil else { return }
         refreshPersistence = .memoryOnly

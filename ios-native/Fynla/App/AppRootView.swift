@@ -411,6 +411,14 @@ private struct UnlockedView: View {
         .fullScreenCover(isPresented: $isPresentingFyn) {
             fynCover
         }
+        // The walk Fyn runs behind this cover flips onboarding_completed and
+        // nulls the step server-side; re-read the user as the cover closes so
+        // the "Finish your personalised tax plan" pill goes with it (/m mirrors
+        // the onboarding_complete frame into store.user; native asks the server).
+        .onChange(of: isPresentingFyn) { _, presenting in
+            guard !presenting, settingsModel.onboardingActive else { return }
+            Task { await settingsModel.refreshUser() }
+        }
         .sheet(item: $browserItem) { item in
             SafariSheet(url: item.url)
                 .ignoresSafeArea()
