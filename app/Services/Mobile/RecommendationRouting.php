@@ -42,30 +42,25 @@ final class RecommendationRouting
         'savings_child_no_savings' => ['action' => 'add', 'resource_type' => 'savings'],
         'savings_create_emergency_fund_goal' => ['action' => 'add', 'resource_type' => 'goals'],
 
-        // Retirement — a forecast, a cost or an age the user supplies.
+        // Retirement — a forecast, a cost or an age the user supplies. The
+        // adapter derives the type from the rule's category ("State Pension",
+        // "Care Costs", "Retirement Planning"), so these are category slugs.
         'retirement_state_pension' => ['action' => 'add', 'resource_type' => 'retirement'],
-        'retirement_state_pension_no_forecast' => ['action' => 'add', 'resource_type' => 'retirement'],
         'retirement_care_costs' => ['action' => 'edit', 'resource_type' => 'retirement'],
-        'retirement_care_costs_not_modelled' => ['action' => 'edit', 'resource_type' => 'retirement'],
         'retirement_plan_retirement_income' => ['action' => 'edit', 'resource_type' => 'retirement'],
-        'retirement_adjust_retirement_age' => ['action' => 'edit', 'resource_type' => 'retirement'],
 
-        // Protection — profile, benefits and every "add or increase cover"
-        // item: the app's part is recording the policy once it exists.
-        'protection_protection_profile_missing' => ['action' => 'edit', 'resource_type' => 'protection'],
-        'protection_no_employer_benefits_recorded' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_no_policies_warning' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_life_insurance_gap' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_critical_illness_gap' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_income_protection_gap' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_increase_life_cover' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_add_critical_illness' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_add_income_protection' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_dependants_no_life_cover' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_self_employed_no_ip' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_no_ci_with_mortgage' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_non_earning_spouse_no_cover' => ['action' => 'add', 'resource_type' => 'protection'],
-        'protection_education_funding_gap' => ['action' => 'add', 'resource_type' => 'protection'],
+        // Protection — the adapter collapses rules to their category: the
+        // three cover-gap families ("add or increase cover" — the app's part
+        // is recording the policy once it exists), the profile and employer-
+        // benefit set-up rules, the no-policies warning, and the trust flag
+        // (an edit to the policy record). Policy reviews stay on the page.
+        'protection_setup' => ['action' => 'edit', 'resource_type' => 'protection'],
+        'protection_employer_benefits' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_general' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_protection_life_cover_gap' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_protection_critical_illness_gap' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_protection_income_protection_gap' => ['action' => 'add', 'resource_type' => 'protection'],
+        'protection_protection_policy_in_trust' => ['action' => 'edit', 'resource_type' => 'protection'],
 
         // Investment — preferences and holdings are inputs.
         'investment_risk_profile_missing' => ['action' => 'edit', 'resource_type' => 'investment'],
