@@ -68,9 +68,13 @@ class GDPRController extends Controller
         // browser cookie the tracking middleware enforces must always be
         // written together; a record updated here alone would be a preference
         // the middleware ignores, which is the defect W-0049 fixed.
+        // ai_chat is captured at registration and has no toggle (Fyn is the
+        // product); withdrawing it here would lock the account out of chat with
+        // no UI path back (F13). Withdrawal is account deletion.
         $validTypes = array_diff(
             array_keys(UserConsent::CURRENT_VERSIONS),
-            UserConsent::COOKIE_BANNER_TYPES
+            UserConsent::COOKIE_BANNER_TYPES,
+            [UserConsent::TYPE_AI_CHAT]
         );
         $consents = array_intersect_key($request->consents, array_flip($validTypes));
 

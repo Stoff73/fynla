@@ -163,6 +163,7 @@ export default {
     // apply re-entry logic for campaigns that support it.
     async startOnboarding(from = null) {
       if (this.sending) return;
+      if (this.skipOnboardingForPreview()) return;
       this.sending = true;
       this.resumeId = null;
       const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false, navigation: null };
@@ -202,6 +203,16 @@ export default {
       }
     },
 
+    // Preview personas never onboard: /onboarding/start answers 403 preview_mode
+    // by design, so both entry points greet instead of calling it. One place.
+    skipOnboardingForPreview() {
+      if (!store.user?.is_preview_user) return false;
+      if (!this.messages.length) {
+        this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
+      }
+      return true;
+    },
+
     // Resume the onboarding conversation on the docked Fyn bar (a module screen).
     // The campaign verify flow navigates the user to a section's screen mid-chat;
     // /m has no <keep-alive>, so the chat was unmounted on the way here. We load
@@ -211,6 +222,7 @@ export default {
     // metadata, so the waiting "Is this correct?" Yes/No stays tappable.
     async resumeOnboardingInDock() {
       if (this.sending) return;
+      if (this.skipOnboardingForPreview()) return;
       this.sending = true;
       this.resumeId = null;
       try {

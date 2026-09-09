@@ -50,6 +50,13 @@ use Illuminate\Support\Facades\Log;
  */
 final class OnboardingStateMachine
 {
+    /**
+     * Statuses with a workplace pension to capture. The base_employment bubble
+     * stores `employed` while typed answers store `full_time`/`part_time`, so
+     * both predicates that branch on employment read this one list (F7).
+     */
+    public const WORKPLACE_PENSION_STATUSES = ['employed', 'full_time', 'part_time'];
+
     public const STATE_PATH_CHOICE = 'path_choice';
 
     public const STATE_JOURNEY_SELECTION = 'journey_selection';
@@ -1592,7 +1599,7 @@ final class OnboardingStateMachine
     public static function nextFromEmployment(string $answer, User $user): string
     {
         $status = $user->employment_status ?? '';
-        if (in_array($status, ['employed', 'full_time', 'part_time', 'self_employed'], true)) {
+        if (in_array($status, [...self::WORKPLACE_PENSION_STATUSES, 'self_employed'], true)) {
             return self::STATE_BASE_WORK;
         }
 
@@ -2275,7 +2282,7 @@ final class OnboardingStateMachine
      */
     public static function skipIfNotEmployed(User $user): bool
     {
-        return ! in_array((string) $user->employment_status, ['full_time', 'part_time'], true);
+        return ! in_array((string) $user->employment_status, self::WORKPLACE_PENSION_STATUSES, true);
     }
 
     /**

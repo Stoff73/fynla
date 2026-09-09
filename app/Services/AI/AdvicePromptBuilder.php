@@ -35,6 +35,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -734,8 +735,11 @@ PROMPT;
                         $sign = $impact['net_impact'] >= 0 ? '+' : '-';
                         $amount = number_format(abs($impact['net_impact']), 0);
                         $line = "- {$module}: {$impact['event_count']} upcoming events, net impact {$sign}£{$amount}";
-                        if (isset($impact['next_event'])) {
-                            $line .= " (next: {$impact['next_event']['event_name']} in {$impact['next_event']['months_until']} months)";
+                        // formatEventForModule emits expected_date, not months_until.
+                        $nextEvent = $impact['next_event'] ?? null;
+                        if (is_array($nextEvent) && ! empty($nextEvent['expected_date'])) {
+                            $monthsUntil = max(0, (int) now()->diffInMonths(Carbon::parse($nextEvent['expected_date']), false));
+                            $line .= " (next: {$nextEvent['event_name']} in {$monthsUntil} months)";
                         }
                         $lines[] = $line;
                     }

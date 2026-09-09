@@ -455,6 +455,7 @@ final class AdviceFyn
             $currentRoute,
             $this->buildToolList($user),
             $persistUserMessage,
+            classification: $classification,
         );
     }
 
