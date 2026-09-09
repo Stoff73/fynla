@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { store } from './store.js';
 import Dashboard from './views/Dashboard.vue';
-import ModuleDetail from './views/ModuleDetail.vue';
 import TaxStrategy from './views/TaxStrategy.vue';
 import HolisticPlan from './views/HolisticPlan.vue';
 import Income from './views/Income.vue';
@@ -37,6 +36,19 @@ import Subscription from './views/Subscription.vue';
 // Inner SPA lives under /m/app — but on subdirectory deploys (csjones serves the
 // whole app at /fynla/) the actual URL is /fynla/m/app/. Derive from VITE_ROUTER_BASE
 // (the same var the parent SPA's router uses). Defaults to '/' for iOS / unset.
+const MODULE_VIEW_FOR_SLUG = {
+  savings: '/savings',
+  protection: '/protection',
+  investment: '/investment',
+  retirement: '/retirement',
+  estate: '/estate',
+  goals: '/goals',
+  tax: '/tax-strategy',
+  tax_optimisation: '/tax-strategy',
+  'net-worth': '/net-worth',
+  net_worth: '/net-worth',
+};
+
 const MOBILE_ROUTER_BASE = (import.meta.env.VITE_ROUTER_BASE || '/') + 'm/app/';
 
 const router = createRouter({
@@ -45,7 +57,9 @@ const router = createRouter({
     { path: '/', redirect: '/dashboard' },
     { path: '/login', name: 'm-login', component: MobileLogin },
     { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { auth: true } },
-    { path: '/module/:slug', name: 'module-detail', component: ModuleDetail, props: true, meta: { auth: true } },
+    // The scaffold drill-down is retired (CSJ 2026-09-09): every module has its
+    // own view, so an old link or bookmark lands on the real screen.
+    { path: '/module/:slug', redirect: (to) => (MODULE_VIEW_FOR_SLUG[to.params.slug] || '/dashboard') },
     { path: '/tax-strategy', name: 'tax-strategy', component: TaxStrategy, meta: { auth: true } },
     { path: '/holistic-plan', name: 'holistic-plan', component: HolisticPlan, meta: { auth: true } },
     { path: '/income', name: 'm-income', component: Income, meta: { auth: true } },
