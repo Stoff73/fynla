@@ -47,3 +47,27 @@ is likely also unhandled**.
 - [ ] W-0543 and W-0544 fixed through it rather than individually.
 - [ ] A test pins that an unrecognised `error_type` still shows the server's
       `message` rather than a generic string.
+
+
+## Working notes
+
+**2026-09-09 — narrowed after testing on production.**
+
+The original claim ("the form surfaces discard every structured error") is too
+strong and W-0544 now carries the correction. The Net Worth surfaces **do**
+handle tier limits, through a shared `LimitReachedModal` consumed by six
+components. Tier limits are detected there from the subscription capability
+payload rather than by reading `error_type` off a 403, which is why the
+`tier_limit_reached` grep returned nothing and misled the first reading.
+
+What survives, and is still worth the audit:
+
+- **Onboarding** discards errors wholesale — 17 bare `catch {}` blocks with no
+  error binding (W-0544).
+- **`invitation_pending` is genuinely unhandled everywhere on web and `/m`**
+  (W-0543) — that one is unchanged, and the list endpoint does not even carry
+  the field.
+
+So the mechanism is real but smaller than first stated: it is a missing shared
+error interpreter for *server-sent* messages, not a blanket failure to handle
+tier state. Scope the item to that.

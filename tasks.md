@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 20**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-09 (10 `queued`, 6 `deferred-ios`, 3 `deferred`, 1 `review`)
+**Outstanding: 21**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-09 (11 `queued`, 6 `deferred-ios`, 3 `deferred`, 1 `review`)
 
 ---
 
@@ -189,7 +189,8 @@ dashboard, on a real account, in the declined-cookie state.
 - [ ] **W-0546** `queued` (extends W-0050, whose cookie wall is genuinely fixed; the copy clause is not) — The cookie-decline warning still claims registration will be unavailable — it is not, on csjones or production
 - [ ] **W-0547** `queued` — No signup or verification-code field carries an autocomplete attribute — password managers cannot fill or save, and the code boxes have no accessible name
 - [ ] **W-0548** `queued` (csjones only; production verified healthy) — csjones tax configuration is stale — retirement and goals projections 500 on every dashboard load
-- [ ] **W-0549** `queued` — The form surfaces discard every structured error the backend returns — the concepts are implemented once, for the chat path only
+- [ ] **W-0549** `queued` (narrowed 2026-09-09 after testing on production — see its working notes) — The form surfaces discard every structured error the backend returns — the concepts are implemented once, for the chat path only
+- [ ] **W-0550** `queued` — Web shows total monthly expenditure excluding financial commitments — £1,800 where /m and the API both say £4,878
 
 **W-0549 is the mechanism behind W-0541, W-0543 and W-0544.** Fixing those three
 individually leaves it in place. `grep -rn "invitation_pending\|tier_limit_reached"
