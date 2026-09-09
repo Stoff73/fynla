@@ -76,6 +76,10 @@ class GoalsAgent extends BaseAgent
                 'has_goals' => true,
                 'summary' => $summary,
                 'by_module' => $byModule,
+                // Every active goal type, whatever module it was assigned to —
+                // a type-level check (is there an emergency fund goal at all?)
+                // must not depend on the module bucket.
+                'goal_types' => $activeGoals->pluck('goal_type')->filter()->unique()->values()->all(),
                 'top_goals' => $topGoals,
                 'affordability' => $affordability,
                 'streaks' => [
@@ -195,7 +199,8 @@ class GoalsAgent extends BaseAgent
             // Check for no emergency fund
             $byModule = $analysisData['by_module'] ?? [];
             $savingsGoals = $byModule['savings']['goals'] ?? [];
-            $hasEmergencyFund = collect($savingsGoals)->contains(fn ($g) => ($g['goal_type'] ?? '') === 'emergency_fund');
+            $hasEmergencyFund = in_array('emergency_fund', (array) ($analysisData['goal_types'] ?? []), true)
+                || collect($savingsGoals)->contains(fn ($g) => ($g['goal_type'] ?? '') === 'emergency_fund');
 
             if (! $hasEmergencyFund) {
                 $recommendations[] = [
