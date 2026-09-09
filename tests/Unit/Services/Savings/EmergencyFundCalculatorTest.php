@@ -42,14 +42,6 @@ describe('EmergencyFundCalculator', function () {
                 ->and($adequacy['target'])->toBe(6);
         });
 
-        it('does not place an unknown runway on the adequacy scale', function () {
-            $calculator = new EmergencyFundCalculator;
-
-            // Every rung from Critical to Excellent asserts a measurement.
-            expect($calculator->categorizeAdequacy(null))->toBe('Unknown')
-                ->and($calculator->categorizeAdequacy(0.0))->toBe('Critical');
-        });
-
         it('handles decimal results', function () {
             $calculator = new EmergencyFundCalculator;
             $runway = $calculator->calculateRunway(5500, 2000);
@@ -106,31 +98,6 @@ describe('EmergencyFundCalculator', function () {
         });
     });
 
-    describe('categorizeAdequacy', function () {
-        it('returns Excellent for 6+ months runway', function () {
-            $calculator = new EmergencyFundCalculator;
-            expect($calculator->categorizeAdequacy(6.0))->toBe('Excellent');
-            expect($calculator->categorizeAdequacy(12.0))->toBe('Excellent');
-        });
-
-        it('returns Good for 3-6 months runway', function () {
-            $calculator = new EmergencyFundCalculator;
-            expect($calculator->categorizeAdequacy(3.0))->toBe('Good');
-            expect($calculator->categorizeAdequacy(5.99))->toBe('Good');
-        });
-
-        it('returns Fair for 1-3 months runway', function () {
-            $calculator = new EmergencyFundCalculator;
-            expect($calculator->categorizeAdequacy(1.0))->toBe('Fair');
-            expect($calculator->categorizeAdequacy(2.99))->toBe('Fair');
-        });
-
-        it('returns Critical for less than 1 month runway', function () {
-            $calculator = new EmergencyFundCalculator;
-            expect($calculator->categorizeAdequacy(0.5))->toBe('Critical');
-            expect($calculator->categorizeAdequacy(0.0))->toBe('Critical');
-        });
-    });
 });
 
 describe('getTargetMonths is the one month table', function () {

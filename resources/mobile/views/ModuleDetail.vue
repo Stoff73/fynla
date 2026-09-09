@@ -94,7 +94,7 @@ const MODULE_CONFIG = {
     hero: (s) => ({
       label: 'Emergency fund runway',
       value: s?.emergency_fund_months != null ? `${Number(s.emergency_fund_months).toFixed(1)} months` : '—',
-      secondary: s?.emergency_fund_status ? humanise(String(s.emergency_fund_status)) : null,
+      secondary: s?.emergency_fund_target_months ? `of ${Number(s.emergency_fund_target_months)} months needed` : null,
     }),
     fields: ['total_cash', 'isa_allowance_remaining', 'isa_cash_used', 'isa_stocks_shares_used', 'account_count', 'emergency_fund_target', 'status'],
   },

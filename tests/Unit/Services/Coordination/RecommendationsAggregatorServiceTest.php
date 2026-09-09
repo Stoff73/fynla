@@ -100,7 +100,8 @@ it('returns recommendations from all modules via aggregateRecommendations', func
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Build 6-month emergency fund',
-            'category' => 'critical',
+            'runway_months' => 0.5,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -135,7 +136,8 @@ it('sorts aggregated recommendations by priority score descending', function () 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Test 2',
-            'category' => 'critical',
+            'runway_months' => 0.5,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -185,7 +187,8 @@ it('normalizes different recommendation formats', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Different format',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -265,7 +268,8 @@ it('filters recommendations by module correctly', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Savings rec',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -350,7 +354,8 @@ it('calculates correct statistics in getSummary', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Medium priority savings',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -376,7 +381,8 @@ it('handles service exceptions gracefully during aggregation', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Savings rec',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -405,7 +411,8 @@ it('assigns correct category based on module', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Savings',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);

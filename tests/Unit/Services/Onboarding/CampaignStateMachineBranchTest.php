@@ -14,41 +14,6 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
 });
 
-describe('STATE_PROFILE_REVIEW_EXPENDITURE branching', function () {
-    it('routes path=campaign users to STATE_CAMPAIGN_INTRO (consent gate)', function () {
-        $user = User::factory()->create([
-            'onboarding_fyn_path' => 'campaign',
-            'onboarding_fyn_selection' => 'savetax',
-            'employment_status' => 'full_time',
-        ]);
-
-        $next = OnboardingStateMachine::nextFromExpenditureReview('looks correct', $user);
-
-        expect($next)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INTRO);
-    });
-
-    it('routes path=journey users to STATE_ASSET_CAPTURE (regression — unchanged behaviour)', function () {
-        $user = User::factory()->create([
-            'onboarding_fyn_path' => 'journey',
-            'onboarding_fyn_selection' => 'protection',
-        ]);
-
-        $next = OnboardingStateMachine::nextFromExpenditureReview('looks correct', $user);
-
-        expect($next)->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
-    });
-
-    it('routes path=focus users to STATE_ASSET_CAPTURE (regression — unchanged behaviour)', function () {
-        $user = User::factory()->create([
-            'onboarding_fyn_path' => 'focus',
-            'onboarding_fyn_selection' => 'savings',
-        ]);
-
-        expect(OnboardingStateMachine::nextFromExpenditureReview('looks correct', $user))
-            ->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
-    });
-});
-
 describe('skip_if helpers for campaign branch', function () {
     it('skipIfNotEmployed returns true for self-employed/retired/unemployed', function () {
         foreach (['self_employed', 'retired', 'unemployed'] as $status) {
@@ -178,24 +143,35 @@ describe('STATE_CAMPAIGN_TERMINAL', function () {
 });
 
 describe('STATE_CAMPAIGN_INTRO routing', function () {
-    it('routes "okay" answers to STATE_CAMPAIGN_OCCUPATIONAL_SCHEME', function () {
+    it('routes "okay" answers to the first campaign section after income', function () {
         $user = User::factory()->create([
             'onboarding_fyn_path' => 'campaign',
             'onboarding_fyn_selection' => 'savetax',
         ]);
 
         expect(OnboardingStateMachine::nextFromCampaignIntro('Okay', $user))
-            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+            ->toBe(OnboardingStateMachine::nextCampaignSection('income', $user));
     });
 
-    it('routes "nope" answers to STATE_DONE so onboarding completes', function () {
+    it('routes "No thanks" answers to STATE_DONE so onboarding completes', function () {
         $user = User::factory()->create([
             'onboarding_fyn_path' => 'campaign',
             'onboarding_fyn_selection' => 'savetax',
         ]);
 
-        expect(OnboardingStateMachine::nextFromCampaignIntro('Nope', $user))
+        expect(OnboardingStateMachine::nextFromCampaignIntro('No thanks', $user))
             ->toBe(OnboardingStateMachine::STATE_DONE);
+    });
+
+    it('is entered from the income advice state for SaveTax and skipped for PensionCheck', function () {
+        $states = OnboardingStateMachine::states();
+        $next = $states[OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME]['next'];
+
+        $savetax = User::factory()->create(['onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax']);
+        $pensioncheck = User::factory()->create(['onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'pensioncheck']);
+
+        expect($next('', $savetax))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INTRO)
+            ->and($next('', $pensioncheck))->toBe(OnboardingStateMachine::nextCampaignSection('income', $pensioncheck));
     });
 
     it('falls back to STATE_DONE for unrecognised answers', function () {

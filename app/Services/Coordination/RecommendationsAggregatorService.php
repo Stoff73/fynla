@@ -115,10 +115,12 @@ class RecommendationsAggregatorService
                 $analysis = $this->savingsCalculator->analyze($userId);
                 $recs = [];
                 $ef = $analysis['emergency_fund'] ?? [];
-                if (! empty($ef['recommendation']) && strtolower($ef['category'] ?? '') !== 'excellent') {
+                $runway = is_numeric($ef['runway_months'] ?? null) ? (float) $ef['runway_months'] : null;
+                $targetMonths = (int) ($ef['target_months'] ?? 6);
+                if (! empty($ef['recommendation']) && $runway !== null && $runway < $targetMonths) {
                     $recs[] = [
                         'recommendation_text' => $ef['recommendation'],
-                        'priority' => strtolower($ef['category'] ?? '') === 'critical' ? 'critical' : 'medium',
+                        'priority' => $runway < 1 ? 'critical' : 'medium',
                         'category' => 'emergency_fund',
                     ];
                 }

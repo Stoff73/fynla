@@ -256,7 +256,7 @@ declare(strict_types=1);
  *   mid-onboarding" wording instead of a state-specific summary.
  *   Fix: added all four cases. profile_review_family →
  *   "reviewing your family details", profile_review_expenditure →
- *   "reviewing your full profile", base_employment_more → "noting whether
+ *   "reviewing your full profile" (state deleted 2026-09-09, F6), base_employment_more → "noting whether
  *   you have another role to add", base_retirement_date → "noting when
  *   you retired".
  *   Re-verified: Devon's second sign-in (paused at profile_review_family)

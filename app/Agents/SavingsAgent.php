@@ -108,7 +108,9 @@ class SavingsAgent extends BaseAgent
                     $totalSavings,
                     $monthlyExpenditure
                 );
-                $adequacyCategory = $this->emergencyFundCalculator->categorizeAdequacy($runway);
+                // Runway is measured in months against the employment-based target; no
+                // grade label (Rule 12, CSJ 2026-09-09) — every consumer shows months.
+                $targetMonths = $this->emergencyFundCalculator->getTargetMonths($user?->employment_status);
 
                 // ISA Allowance Status
                 $taxYear = $this->isaTracker->getCurrentTaxYear();
@@ -189,8 +191,8 @@ class SavingsAgent extends BaseAgent
                         // API payload is built from this block, and a 0-100 figure in it
                         // was voiced to a user as "44.67 out of 100".
                         'runway_months' => $runway,
-                        'category' => $adequacyCategory,
-                        'recommendation' => $this->getEmergencyFundRecommendation($adequacyCategory),
+                        'target_months' => $targetMonths,
+                        'recommendation' => $this->getEmergencyFundRecommendation($runway, $targetMonths),
                         'target' => $emergencyFundTarget,
                     ],
                     'isa_allowance' => $isaAllowance,
@@ -579,13 +581,19 @@ class SavingsAgent extends BaseAgent
     /**
      * Get emergency fund recommendation text
      */
-    private function getEmergencyFundRecommendation(string $category): string
+    private function getEmergencyFundRecommendation(?float $runway, int $targetMonths): string
     {
-        return match ($category) {
-            'Excellent' => 'Your emergency fund is well-funded. Excellent!',
-            'Good' => 'Your emergency fund is adequate, but could be improved.',
-            'Fair' => 'Your emergency fund needs attention. Priority: Medium.',
-            default => 'Your emergency fund is critical. Immediate action recommended.',
+        if ($runway === null) {
+            return 'Add your monthly expenditure so your emergency fund can be measured in months of cover.';
+        }
+
+        $months = number_format($runway, 1);
+
+        return match (true) {
+            $runway >= $targetMonths => "Your emergency fund covers {$months} months, at or above your {$targetMonths}-month target.",
+            $runway >= $targetMonths / 2 => "Your emergency fund covers {$months} of the {$targetMonths} months you need; keep building it.",
+            $runway >= 1 => "Your emergency fund covers {$months} of the {$targetMonths} months you need; make it a priority.",
+            default => "Your emergency fund covers less than a month of the {$targetMonths} you need; build it before anything else.",
         };
     }
 }

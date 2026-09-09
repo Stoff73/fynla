@@ -570,16 +570,19 @@ final class QuerySchemas
             'contribution_increase',
             'tax_relief',
             'annual_allowance_exceeded',
-            'personal_allowance_reclaim',
+            'strategy_pa_taper_rescue',
         ],
         self::RETIREMENT_READINESS => [
-            'retirement_income_gap',
-            'retirement_age_target',
-            'state_pension_gap',
+            'contribution_increase',
+            'adjust_retirement_age',
+            'ni_gaps',
+            'state_pension_no_forecast',
         ],
         self::RETIREMENT_DECUMULATION => [
-            'drawdown_sequence',
-            'tax_free_lump_sum',
+            // approaching_decumulation carries the tax-free lump sum (PCLS, capped at the
+            // Lump Sum Allowance) in its recommendation and trace.
+            'approaching_decumulation',
+            'strategy_plan_retirement_income',
         ],
         self::SAVINGS_EMERGENCY => [
             'emergency_fund_critical',
@@ -606,9 +609,11 @@ final class QuerySchemas
             'self_employed_no_ip',
         ],
         self::PROTECTION_POLICY => [
-            'policy_review_due',
+            'policy_expiring_soon',
+            'review_existing_policies',
             'policy_not_in_trust',
-            'employer_group_life',
+            'no_employer_benefits_recorded',
+            'dis_reliance_warning',
         ],
         self::INVESTMENT_PORTFOLIO => [
             'risk_profile_missing',
@@ -643,11 +648,11 @@ final class QuerySchemas
             'no_will',
             'no_lpa',
             'beneficiary_review',
-            'trust_review',
+            'trust_review_due',
         ],
         self::GOALS_PROGRESS => [
             'goal_behind_schedule',
-            'goal_contribution_gap',
+            'goal_no_contribution',
         ],
         self::TAX_OPTIMISATION => [
             // Composed tax plan strategies (F11): the seeded strategy_* rows, not the disabled agent rows.

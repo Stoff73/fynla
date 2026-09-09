@@ -43,7 +43,7 @@ declare(strict_types=1);
  *        - employment=full_time, occupation, income (£50,000 example)
  *        - employment_more=no
  *        - expenditure (any value)
- *        - profile_review_expenditure → "Looks correct"
+ *        - campaign_intro (SaveTax consent gate, after the income advice) → "Okay"
  *
  *   6. NEW: campaign branch begins.
  *        - STATE_CAMPAIGN_OCCUPATIONAL_SCHEME: capture pension contribution
