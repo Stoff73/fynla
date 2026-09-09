@@ -265,7 +265,7 @@
       "isa_subscription_current_year": 10000,
       "access_type": "immediate",
       "ownership_type": "individual",
-      "monthly_contribution": 833
+      "monthly_contribution": 250
     },
     {
       "id": 5,
@@ -279,7 +279,7 @@
       "access_type": "immediate",
       "ownership_type": "individual",
       "owner": "spouse",
-      "monthly_contribution": 833
+      "monthly_contribution": 250
     },
     {
       "id": 6,

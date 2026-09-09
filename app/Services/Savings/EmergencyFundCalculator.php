@@ -74,37 +74,6 @@ class EmergencyFundCalculator
     }
 
     /**
-     * Categorize adequacy level based on runway
-     *
-     * target+ months: Excellent
-     * target/2 to target: Good
-     * 1 to target/2: Fair
-     * <1 month: Critical
-     */
-    public function categorizeAdequacy(?float $runway, int $targetMonths = 6): string
-    {
-        // Not a category on the scale — the scale runs Critical to Excellent and
-        // every rung asserts a measurement. W-0495.
-        if ($runway === null) {
-            return 'Unknown';
-        }
-
-        if ($runway >= $targetMonths) {
-            return 'Excellent';
-        }
-
-        if ($runway >= ($targetMonths / 2)) {
-            return 'Good';
-        }
-
-        if ($runway >= 1) {
-            return 'Fair';
-        }
-
-        return 'Critical';
-    }
-
-    /**
      * Get target emergency fund months based on employment status
      *
      * Employment-based targets:

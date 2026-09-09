@@ -92,8 +92,6 @@ final class OnboardingStateMachine
 
     public const STATE_PROFILE_REVIEW_FAMILY = 'profile_review_family';
 
-    public const STATE_PROFILE_REVIEW_EXPENDITURE = 'profile_review_expenditure';
-
     public const STATE_ASSET_CAPTURE = 'asset_capture';
 
     public const STATE_ADD_MORE = 'add_more';
@@ -109,7 +107,6 @@ final class OnboardingStateMachine
     public const STATE_FREE_CHAT = 'free_chat';
 
     // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign).
-    // Hangs off STATE_PROFILE_REVIEW_EXPENDITURE; bypasses STATE_ASSET_CAPTURE.
     // STATE_CAMPAIGN_INTRO is the consent gate before the asset/liability capture
     // flow begins — explains why we're shifting topic and asks "Okay" / "Nope".
     public const STATE_CAMPAIGN_INTRO = 'campaign_intro';
@@ -441,15 +438,6 @@ final class OnboardingStateMachine
                 },
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
-            // Phase 10 — profile-review pause after expenditure. Shows the
-            // ProfileReviewPanel with expenditure alongside the earlier fields.
-            //
-            // Branches on users.onboarding_fyn_path:
-            //   - 'campaign' → STATE_CAMPAIGN_INTRO (savetax consent gate)
-            //   - 'journey' / 'focus' → STATE_ASSET_CAPTURE (existing behaviour)
-            self::STATE_PROFILE_REVIEW_EXPENDITURE => [
-                'next' => self::class.'::nextFromExpenditureReview',
-            ],
             // ─── SaveTax campaign branch (sections 4-6) ─────────────────────
             // Consent gate before asset/liability capture begins. Explains the
             // topic shift and asks for explicit acknowledgement so the jump from
@@ -655,7 +643,11 @@ final class OnboardingStateMachine
             // (verify_navigate "yes" → this advice → next section). Each relays
             // its tax-engine recommendation, then continues to the next section.
             self::STATE_CAMPAIGN_ADVICE_INCOME => [
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('income', $user),
+                // SaveTax users pass the consent gate before the first asset
+                // section (F6 re-wire, CSJ 2026-09-09); PensionCheck walks straight on.
+                'next' => fn (string $answer, User $user): string => ($user->onboarding_fyn_selection ?? 'savetax') === 'savetax'
+                    ? self::STATE_CAMPAIGN_INTRO
+                    : self::nextCampaignSection('income', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_SAVINGS => [
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
@@ -1846,26 +1838,6 @@ final class OnboardingStateMachine
     // ─── SaveTax campaign branch helpers (sections 4-6) ─────────────────
 
     /**
-     * Branch from STATE_PROFILE_REVIEW_EXPENDITURE based on onboarding_fyn_path.
-     * path=campaign users hit the consent gate (STATE_CAMPAIGN_INTRO) before
-     * the asset/liability capture; journey/focus users continue to the existing
-     * asset_capture flow.
-     */
-    public static function nextFromExpenditureReview(string $answer, User $user): string
-    {
-        if ($user->onboarding_fyn_path !== 'campaign') {
-            return self::STATE_ASSET_CAPTURE;
-        }
-
-        // PensionCheck enters the recap gate (existing data confirmation) instead
-        // of the savetax consent intro. Both are campaign paths, so the check is
-        // on selection, not path.
-        return $user->onboarding_fyn_selection === 'pensioncheck'
-            ? self::STATE_CAMPAIGN2_EXISTING_RECAP
-            : self::STATE_CAMPAIGN_INTRO;
-    }
-
-    /**
      * Builds the campaign intro prompt that explains why the conversation is
      * shifting from personal/employment data to assets and liabilities. Spouse
      * phrasing is included when the user is married or in a civil partnership;
@@ -1912,8 +1884,8 @@ final class OnboardingStateMachine
 
     /**
      * Branch from STATE_CAMPAIGN_INTRO based on the user's bubble choice.
-     * "okay" continues into the asset/liability capture flow; anything else
-     * (including "nope") routes to STATE_DONE so onboarding_completed is set
+     * "okay" continues into the first campaign section after income; anything
+     * else (including "No thanks") routes to STATE_DONE so onboarding_completed is set
      * and the user lands on /dashboard. They can revisit the campaign via the
      * Tax Strategy tile on /actions whenever they're ready.
      */
@@ -1922,7 +1894,7 @@ final class OnboardingStateMachine
         $matched = self::matchBubble(self::STATE_CAMPAIGN_INTRO, $answer);
 
         return $matched === 'okay'
-            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            ? self::nextCampaignSection('income', $user)
             : self::STATE_DONE;
     }
 

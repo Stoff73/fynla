@@ -23,8 +23,8 @@ declare(strict_types=1);
  *   3. Onboarding chat captures DOB + marital='married', spouse details
  *      (spouse first_name, DOB, email — STATE_BASE_SPOUSE), dependants,
  *      employment (user works), expenditure.
- *   4. Confirm "Looks correct" at STATE_PROFILE_REVIEW_EXPENDITURE → enters
- *      the campaign branch.
+ *   4. After the income verify, the SaveTax consent gate (STATE_CAMPAIGN_INTRO,
+ *      "is that okay?"): tap Okay → enters the section walk.
  *   5. Walk through OCCUPATIONAL_SCHEME → ISA → BANK → INVESTMENT → PENSION.
  *   6. STATE_CAMPAIGN_SPOUSE_WORK bubble: click "Yes, they work".
  *      → capture_spouse_work_status fires:

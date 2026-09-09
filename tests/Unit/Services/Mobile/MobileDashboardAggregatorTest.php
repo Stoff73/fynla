@@ -233,7 +233,7 @@ describe('getAggregatedDashboard', function () {
         $savings = $result['modules']['savings'];
 
         expect($savings['status'])->toBe('active')
-            ->and($savings)->toHaveKeys(['total_savings', 'total_accounts', 'emergency_fund_months', 'emergency_fund_status']);
+            ->and($savings)->toHaveKeys(['total_savings', 'total_accounts', 'emergency_fund_months', 'emergency_fund_target_months']);
     });
 
     it('extracts investment summary correctly', function () {

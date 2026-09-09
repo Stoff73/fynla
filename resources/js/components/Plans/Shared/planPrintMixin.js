@@ -814,7 +814,7 @@ export const planPrintMixin = {
           <div class="metric-card" style="text-align: center;">
             <div class="metric-label">Emergency Fund</div>
             <div class="metric-value" style="color: ${emergencyColor};">${emergencyMonths} months</div>
-            ${situation.emergency_fund?.category ? `<div style="font-size: 9px; color: #6b7280;">${this.escapeHtml(situation.emergency_fund.category)}</div>` : ''}
+            <div style="font-size: 9px; color: #6b7280;">of ${Number(situation.emergency_fund?.target_months) || 6} months needed</div>
           </div>
           <div class="metric-card" style="text-align: center;">
             <div class="metric-label">ISA Used</div>

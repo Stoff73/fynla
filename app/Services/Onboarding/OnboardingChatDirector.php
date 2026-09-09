@@ -867,7 +867,6 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE => 'noting whether you have another role to add',
             OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY => 'reviewing your family details',
-            OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE => 'reviewing your full profile',
             OnboardingStateMachine::STATE_ASSET_CAPTURE => 'mapping your '.($user?->onboarding_fyn_selection ?? 'financial').' records',
             OnboardingStateMachine::STATE_ADD_MORE => 'choosing whether to add another module',
             // Campaign walk states — without these every campaign resume

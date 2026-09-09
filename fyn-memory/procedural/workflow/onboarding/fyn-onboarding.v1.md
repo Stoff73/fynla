@@ -136,23 +136,14 @@ base_expenditure:
   prompt_text: "And roughly how much goes out each month — rent or mortgage, bills, food, transport, the lot? A ballpark figure is fine. I'll use it to work out your savings capacity, emergency fund target, and how much income you'll need in retirement."
   capture_field: monthly_expenditure
   value_parser: parseExpenditureAmount
-  next: { branch: campaignSectionOrProfileReview }
-
-profile_review_expenditure:
-  turn_type: bubbles
-  prompt_text: 'Your expenditure is noted. Confirm the full profile looks right — or tell me what to change.'
-  bubbles:
-    - { id: looks_correct, label: 'Looks correct' }
-  capture_field: null
-  layout: standard
-  next: { branch: nextFromExpenditureReview }
+  next: { branch: verifyOrAssetCapture }
 
 campaign_intro:
   turn_type: bubbles
   prompt_text: { builder: buildCampaignIntroPrompt }
   bubbles:
     - { id: okay, label: Okay }
-    - { id: nope, label: Nope }
+    - { id: nope, label: 'No thanks' }
   capture_field: null
   next: { branch: nextFromCampaignIntro }
 

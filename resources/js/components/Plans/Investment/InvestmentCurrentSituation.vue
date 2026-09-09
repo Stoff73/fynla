@@ -52,7 +52,7 @@
         <div class="bg-white rounded-lg border border-light-gray p-4 text-center">
           <p class="text-xs text-neutral-500 uppercase">Emergency Fund</p>
           <p class="text-lg font-bold" :class="emergencyFundColor">{{ emergencyFundMonths }} months</p>
-          <p class="text-xs text-neutral-500">{{ situation.emergency_fund?.category || '' }}</p>
+          <p class="text-xs text-neutral-500">of {{ situation.emergency_fund?.target_months || 6 }} months needed</p>
         </div>
         <div class="bg-white rounded-lg border border-light-gray p-4 text-center">
           <p class="text-xs text-neutral-500 uppercase">ISA Used</p>

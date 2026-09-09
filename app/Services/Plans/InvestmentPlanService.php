@@ -548,7 +548,7 @@ class InvestmentPlanService extends BasePlanService
             'tax_wrappers' => $investmentAnalysis['tax_wrappers'] ?? [],
             'emergency_fund' => [
                 'runway_months' => $savingsAnalysis['emergency_fund']['runway_months'] ?? 0,
-                'category' => $savingsAnalysis['emergency_fund']['category'] ?? 'Unknown',
+                'target_months' => $savingsAnalysis['emergency_fund']['target_months'] ?? 6,
                 'total_savings' => $savingsAnalysis['summary']['total_savings'] ?? 0,
             ],
             'isa_allowance' => [
