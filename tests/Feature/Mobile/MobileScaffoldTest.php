@@ -85,6 +85,14 @@ it('does not redirect a phone document loaded inside the mobile iframe (no loop)
     get('/savetax', ['User-Agent' => PHONE_UA, 'Sec-Fetch-Dest' => 'iframe'])->assertOk();
 });
 
+it('does not redirect the legal pages on a phone UA (no /m counterpart)', function () {
+    // SFSafariViewController in the native app and the /m Settings links open
+    // these with a phone UA; bouncing them to /m lost the page (CSJ 2026-09-09).
+    foreach (['/privacy', '/terms', '/editorial-policy'] as $path) {
+        get($path, ['User-Agent' => PHONE_UA, 'Accept' => 'text/html'])->assertOk();
+    }
+});
+
 it('does not redirect /api on a phone UA', function () {
     get('/api/v1/health', ['User-Agent' => PHONE_UA])->assertOk()->assertJson(['success' => true]);
 });

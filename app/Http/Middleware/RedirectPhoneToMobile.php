@@ -26,6 +26,10 @@ class RedirectPhoneToMobile
         'lifecycle/*', 'feed/*', 'storage/*', 'subscribe/*', 'unsubscribe/*',
         'sanctum/*', 'broadcasting/*', 'livewire/*',
         'checkout', 'settings', 'settings/*', 'preview', 'preview/*',
+        // Legal pages have no /m counterpart: SFSafariViewController in the native
+        // app and the /m Settings links both open them with a phone UA and were
+        // bounced to the /m landing page (CSJ 2026-09-09).
+        'privacy', 'terms', 'editorial-policy',
     ];
 
     /**
