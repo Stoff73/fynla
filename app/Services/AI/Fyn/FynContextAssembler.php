@@ -6,6 +6,7 @@ namespace App\Services\AI\Fyn;
 
 use App\Constants\FinancialPlanningKnowledge;
 use App\Constants\QuerySchemas;
+use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\ContextualConversation\ContextualResourceResolver;
@@ -370,8 +371,23 @@ final class FynContextAssembler
             'resource_type: '.$resource->resourceType,
             'resource_id: '.($resource->resourceId ?? 'none'),
             'related_entity: '.UserContentSanitiser::wrap($resource->label),
-            'canonical_facts:',
         ];
+
+        // F19 — the card that opened this conversation. ContextualConversationService
+        // stores origin {kind, recommendation_id}; the id is a recommendation_tracking row.
+        $origin = $metadata['origin'] ?? null;
+        if (is_array($origin) && is_string($origin['kind'] ?? null) && $origin['kind'] !== '') {
+            $lines[] = 'opened_from: '.UserContentSanitiser::clean($origin['kind']);
+            $trackedId = $origin['recommendation_id'] ?? null;
+            $tracked = is_int($trackedId) && $ctx->user !== null
+                ? RecommendationTracking::where('user_id', $ctx->user->id)->find($trackedId)
+                : null;
+            if ($tracked !== null) {
+                $lines[] = 'opened_from_recommendation: '.UserContentSanitiser::wrap((string) $tracked->recommendation_text);
+            }
+        }
+
+        $lines[] = 'canonical_facts:';
 
         foreach ($resource->canonicalFacts as $field => $value) {
             $lines[] = '- '.$field.': '.$this->renderCanonicalFact($value);
