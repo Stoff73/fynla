@@ -9,7 +9,7 @@ struct DashboardView: View {
     let model: DashboardModel
     let shareClient: any ShareContentClient
     let onRoute: (AppRoute) -> Void
-    let onOpenFyn: (String?) -> Void
+    let onFynCapture: (DashboardAction) -> Void
 
     @State private var dismissedMilestoneIDs: Set<String> = []
     @State private var shareContent: ShareContent?
@@ -85,7 +85,7 @@ struct DashboardView: View {
                                     )
                                 )
                             case .fynCapture:
-                                onOpenFyn(action.action.payload)
+                                onFynCapture(action)
                             case .unknown:
                                 // /m ignores unrecognised action kinds.
                                 break

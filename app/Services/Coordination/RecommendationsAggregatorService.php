@@ -275,6 +275,11 @@ class RecommendationsAggregatorService
             'claim_tier' => $rec['claim_tier'] ?? null,
             'sequence_position' => $rec['sequence_position'] ?? null,
             'conflict_note' => $rec['conflict_note'] ?? null,
+            // The record the recommendation is about (an account-scoped
+            // savings/pension rule, a goal rule) so the dashboard row can
+            // deep-link to THAT record's page (RecommendationRouting).
+            'account_id' => $rec['account_id'] ?? null,
+            'goal_id' => $rec['goal_id'] ?? null,
         ];
     }
 
@@ -315,6 +320,8 @@ class RecommendationsAggregatorService
                 'claim_tier' => $item['claim_tier'] ?? null,
                 'sequence_position' => $item['sequence_position'] ?? null,
                 'conflict_note' => $item['conflict_note'] ?? null,
+                'account_id' => $item['account_id'] ?? null,
+                'goal_id' => $item['goal_id'] ?? null,
             ];
         }, $plan['items']);
     }

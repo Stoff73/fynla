@@ -399,6 +399,15 @@ struct FynlaApp: App {
         #endif
         let settingsModel = SettingsModel(
             userProvider: settingsUserProvider,
+            userRefresher: {
+                // A fresh access token where the session can mint one (the chat
+                // that completed the walk may have outlived the 15-minute token);
+                // otherwise the in-memory one.
+                let refreshed = try? await privacyLockController.refreshAccessToken()
+                let fallback = await coordinator.accessToken()
+                guard let token = refreshed ?? fallback else { return }
+                await coordinator.refreshAuthenticatedUser(accessToken: token)
+            },
             privacyLockController: privacyLockController,
             webBaseURL: dependencies.environment.webBaseURL,
             beforeSignOut: { await pushCoordinator.unregister() }

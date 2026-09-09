@@ -134,6 +134,21 @@ describe('Dashboard.vue — openRecChat awaits openFyn() (D3: rec-chat race)', (
 });
 
 // Adjacent instance of the D3 race (flagged, not fixed, in the CSJ report):
+describe('Dashboard.vue — refetches on the shared screen-refresh tick', () => {
+  it('reloads the dashboard silently when a Fyn turn closes on this screen', async () => {
+    store.token = 'live-token';
+    store.user = { id: 1, onboarding_completed: true, onboarding_fyn_step: null, active_campaign: null };
+    const wrapper = mountDashboard();
+    await flushPromises();
+
+    const loadSpy = vi.spyOn(wrapper.vm, 'load').mockResolvedValue(undefined);
+    store.bumpScreenRefresh();
+    await flushPromises();
+
+    expect(loadSpy).toHaveBeenCalledWith({ silent: true });
+  });
+});
+
 // openFynForCapture had the identical unawaited openFyn() -> immediate send()
 // shape as openRecChat. Same fix applies — await openFyn() before sending.
 describe('Dashboard.vue — openFynForCapture awaits openFyn() (D3 adjacent: capture-nudge race)', () => {
@@ -148,7 +163,7 @@ describe('Dashboard.vue — openFynForCapture awaits openFyn() (D3 adjacent: cap
     const openSpy = vi.spyOn(wrapper.vm, 'openFyn').mockReturnValue(openPromise);
     const sendSpy = vi.spyOn(wrapper.vm, 'send').mockImplementation(() => {});
 
-    const tapPromise = wrapper.vm.openFynForCapture('savings');
+    const tapPromise = wrapper.vm.openFynForCapture({ kind: 'fyn_capture', payload: 'savings', prompt: 'Help me add my savings details' });
     await Promise.resolve();
     await Promise.resolve();
     expect(openSpy).toHaveBeenCalled();

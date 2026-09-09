@@ -11,6 +11,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\Loop\FynLoop;
 use App\Services\AI\Loop\SessionMode;
+use App\Services\Coordination\RecommendationCompletionService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Cache;
@@ -203,6 +204,133 @@ final class AdviceFyn
     ) {}
 
     public function handle(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        ?string $currentRoute = null,
+        bool $persistUserMessage = true,
+    ): \Generator {
+        yield from $this->withRecommendationFollowUp(
+            $user,
+            $conversation,
+            $message,
+            $persistUserMessage,
+            fn (string $turnMessage, bool $persist): \Generator => $this->handleTurn(
+                $user,
+                $conversation,
+                $turnMessage,
+                $currentRoute,
+                $persist,
+            ),
+        );
+    }
+
+    /**
+     * Recommendation-driven capture, the one home for every surface (CSJ
+     * 2026-09-09). A conversation the dashboard opened from a recommendation
+     * row (ContextualConversationService stamps `origin.recommendation`)
+     * runs the normal capture turn; once a write lands, Fyn asks whether there
+     * is anything else. "No thanks" ticks the recommendation off through the
+     * same completion path as the mark-done endpoint and sends the client back
+     * to the dashboard (a `navigation` frame — native and /m both close the
+     * chat on it); "Yes" carries on capturing. Any other reply drops the
+     * question and is handled as an ordinary turn.
+     *
+     * @param  \Closure(string, bool): \Generator  $turn
+     */
+    private function withRecommendationFollowUp(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        bool $persistUserMessage,
+        \Closure $turn,
+    ): \Generator {
+        $metadata = is_array($conversation->metadata) ? $conversation->metadata : [];
+        $recommendation = $metadata['origin']['recommendation'] ?? null;
+
+        if (($metadata['source'] ?? null) !== 'surface_action' || ! is_array($recommendation)) {
+            yield from $turn($message, $persistUserMessage);
+
+            return;
+        }
+
+        if (($metadata['recommendation_follow_up'] ?? null) === 'asked') {
+            $reply = mb_strtolower(trim($message));
+            unset($metadata['recommendation_follow_up']);
+
+            if (preg_match('/^(?:no|nope|not now|no,? than[kx]s?(?: you)?|nothing else|that(?:[\x{2019}\x{0027}]s|\s+is) (?:all|everything|it)|all done|done|i[\x{2019}\x{0027}]?m done)\b/u', $reply) === 1) {
+                $conversation->update(['metadata' => $metadata]);
+                app(RecommendationCompletionService::class)->complete(
+                    $user,
+                    (string) $recommendation['id'],
+                    (string) ($recommendation['module'] ?? 'general'),
+                    (string) ($recommendation['title'] ?? ''),
+                );
+
+                $ack = 'Done — I have ticked "'.$recommendation['title'].'" off your dashboard.';
+                if ($persistUserMessage) {
+                    $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
+                }
+                $conversation->messages()->create(['role' => 'assistant', 'content' => $ack, 'persona' => 'advice']);
+                yield ['type' => 'content', 'text' => $ack];
+                yield ['type' => 'navigation', 'route_path' => '/dashboard', 'description' => 'Your dashboard'];
+                yield ['type' => 'done'];
+
+                return;
+            }
+
+            if (preg_match('/^(?:yes|yes\b.*|yep|yeah|okay|ok|sure|go ahead|please)$/u', $reply) === 1) {
+                $conversation->update(['metadata' => $metadata]);
+
+                $ack = 'What would you like to add?';
+                if ($persistUserMessage) {
+                    $conversation->messages()->create(['role' => 'user', 'content' => $message, 'persona' => 'advice']);
+                }
+                $conversation->messages()->create(['role' => 'assistant', 'content' => $ack, 'persona' => 'advice']);
+                yield ['type' => 'content', 'text' => $ack];
+                yield ['type' => 'done'];
+
+                return;
+            }
+
+            // Anything else: the user moved on — the question lapses.
+            $conversation->update(['metadata' => $metadata]);
+        }
+
+        $wrote = false;
+        foreach ($turn($message, $persistUserMessage) as $event) {
+            $type = $event['type'] ?? '';
+            if (in_array($type, ['entity_created', 'entity_updated', 'entity_deleted', 'capture_complete'], true)) {
+                $wrote = true;
+            }
+
+            if ($type === 'done' && $wrote) {
+                $bubbles = [
+                    ['id' => 'yes', 'label' => 'Yes'],
+                    ['id' => 'no_thanks', 'label' => 'No thanks'],
+                ];
+                $prompt = 'Is there anything else you would like to add?';
+
+                // Persist the question with its bubbles so a transcript reload
+                // (the /m dock remount, the native app) still offers them.
+                $conversation->messages()->create([
+                    'role' => 'assistant',
+                    'content' => $prompt,
+                    'persona' => 'advice',
+                    'metadata' => ['bubbles' => $bubbles],
+                ]);
+                $metadata = is_array($conversation->fresh()?->metadata) ? $conversation->fresh()->metadata : $metadata;
+                $metadata['recommendation_follow_up'] = 'asked';
+                $conversation->update(['metadata' => $metadata]);
+
+                yield ['type' => 'quick_replies', 'prompt_text' => $prompt, 'bubbles' => $bubbles];
+            }
+
+            yield $event;
+        }
+    }
+
+    private function handleTurn(
         User $user,
         AiConversation $conversation,
         string $message,

@@ -502,6 +502,41 @@ struct AuthenticationCoordinatorTests {
     }
 
     @MainActor
+    @Test
+    func refreshAuthenticatedUserReplacesTheCachedUserWithoutTouchingTheSession() async throws {
+        let harness = makeHarness(mustChange: false)
+        try await harness.coordinator.login(
+            email: "example@example.test",
+            password: "Example1!",
+            deviceLabel: "Example iPhone"
+        )
+        try await harness.coordinator.verifyLogin(code: "123456", deviceLabel: "Example iPhone")
+        let before = harness.coordinator.authenticatedUser
+        let credentials = harness.coordinator.credentials
+        #expect(before != nil)
+
+        await harness.coordinator.refreshAuthenticatedUser(accessToken: "refreshed-token")
+
+        let events = await harness.events.values()
+        #expect(events.contains("user:refreshed-token"))
+        #expect(harness.coordinator.authenticatedUser?.id == before?.id)
+        #expect(harness.coordinator.credentials == credentials)
+        #expect(harness.coordinator.state == .authenticated(mustChangePassword: false))
+    }
+
+    @MainActor
+    @Test
+    func refreshAuthenticatedUserIsANoOpWhenSignedOut() async {
+        let harness = makeHarness()
+
+        await harness.coordinator.refreshAuthenticatedUser(accessToken: "refreshed-token")
+
+        let events = await harness.events.values()
+        #expect(!events.contains("user:refreshed-token"))
+        #expect(harness.coordinator.authenticatedUser == nil)
+    }
+
+    @MainActor
     private func assertCleared(_ harness: CoordinatorHarness) {
         #expect(harness.coordinator.state == .fullLoginRequired)
         #expect(harness.coordinator.credentials == nil)

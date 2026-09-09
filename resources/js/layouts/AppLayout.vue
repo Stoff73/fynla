@@ -369,6 +369,11 @@ export default {
     // Listen for explicit open-chat requests (e.g. from registration via Fyn)
     this._onFynOpen = () => this.openChat();
     window.addEventListener('fyn-open-chat', this._onFynOpen);
+    // A Fyn turn that ends on the screen the user is on (the recommendation
+    // follow-up's "No thanks") collapses the dock — the web equivalent of the
+    // /m overlay and the native cover closing on the same navigation frame.
+    this._onFynClose = () => { if (!this.chatCollapsed) this.toggleChat(); };
+    window.addEventListener('fyn-close-chat', this._onFynClose);
 
     // Note: do NOT auto-collapse side menu here — AppLayout remounts on every
     // route change, which would override the user's explicit expand/collapse choice.
@@ -422,6 +427,7 @@ export default {
     }
     if (this._onFynToggle) {
       window.removeEventListener('fyn-toggle-chat', this._onFynToggle);
+      window.removeEventListener('fyn-close-chat', this._onFynClose);
     }
   },
 
