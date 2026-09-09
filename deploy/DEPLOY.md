@@ -117,8 +117,14 @@ mode before replacing the first file. For the Free/Premium collapse release,
 the same worker-drain and zero-entitlement audit gate used on dev is mandatory.
 If either check fails, keep the site down and do not run the migration.
 
-8. Smoke test `https://fynla.org`
-9. Monitor `storage/logs/laravel.log` for errors for the next 10-15 minutes
+8. **Universal links / app links:** SiteGround maps `/.well-known/` to the site-root
+   directory (`~/www/fynla.org/public_html/.well-known/`, which also holds their
+   `autoconfig`), not to `public/.well-known/`. Copy the association files there or
+   the URLs 404 (found 2026-09-09):
+   `cp public/.well-known/apple-app-site-association public/.well-known/assetlinks.json public/.well-known/.htaccess .well-known/`
+   then `curl -s https://fynla.org/.well-known/apple-app-site-association` must return JSON naming both `org.fynla.app` and `org.fynla.app.dev`.
+9. Smoke test `https://fynla.org`
+10. Monitor `storage/logs/laravel.log` for errors for the next 10-15 minutes
 
 ## CoALA memory subsystem — post-deploy (coala branch and later)
 
