@@ -1223,6 +1223,7 @@ export default {
             // settleNavigation do for the same frame.
             if (routePath && routePath.split('?')[0] === this.$route?.path) {
                 this.$store.dispatch('aiChat/close');
+                window.dispatchEvent(new Event('fyn-close-chat'));
                 window.dispatchEvent(new Event('fyn-screen-refresh'));
                 return;
             }
