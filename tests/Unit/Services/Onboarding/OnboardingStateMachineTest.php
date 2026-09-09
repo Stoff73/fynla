@@ -65,7 +65,6 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS,
             // SaveTax verify sub-flow (generic; section carried in onboarding_fyn_context)
             'campaign_verify_announce',
-            'campaign_verify_more',
             'campaign_verify_navigate',
             'campaign_verify_edit',
         ];

@@ -939,16 +939,6 @@ final class OnboardingStateMachine
             ],
             // ── SaveTax verify sub-flow (generic; section in context) ──────
             // Entered via enterCampaignVerify() which stamps verify_section.
-            'campaign_verify_more' => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => self::class.'::verifyPromptMore',
-                'bubbles' => [
-                    ['id' => 'yes', 'label' => 'Yes, add more'],
-                    ['id' => 'no', 'label' => "No, that's everything"],
-                ],
-                'capture_field' => null,
-                'next' => self::class.'::nextFromVerifyMore',
-            ],
             // Announce-before-navigate: Fyn says it's taking the user to the
             // section's page and waits for an explicit "Okay" tap BEFORE the
             // navigation fires. Without this gate the navigate event fired in the
@@ -1362,19 +1352,6 @@ final class OnboardingStateMachine
         return (string) (($user->onboarding_fyn_context['verify_section'] ?? '') ?: '');
     }
 
-    /** verify_more: "yes" loops back to the section's capture entry; "no" → navigate. */
-    public static function nextFromVerifyMore(string $answer, User $user): string
-    {
-        if (self::normaliseYesNo($answer) === 'yes') {
-            $section = self::verifySection($user);
-            $selection = $user->onboarding_fyn_selection ?? 'savetax';
-
-            return self::campaignVerifyConfig($selection)[$section]['entry'] ?? self::STATE_CAMPAIGN_SYNTHESIS;
-        }
-
-        return 'campaign_verify_navigate';
-    }
-
     /** verify_navigate: "no" → edit; "yes" → section advice (then next section). */
     public static function nextFromVerifyNavigate(string $answer, User $user): string
     {
@@ -1494,18 +1471,6 @@ final class OnboardingStateMachine
         $selection = $user->onboarding_fyn_selection ?? 'savetax';
 
         return self::campaignVerifyConfig($selection)[$section]['route'] ?? null;
-    }
-
-    /**
-     * Prompt for verify_more, section-aware. Signature mirrors the other
-     * callable prompt builders (buildPersonalPrompt): invoked by
-     * resolvePromptText/invokeCallableString as ($answer, $user).
-     */
-    public static function verifyPromptMore(string $answer, User $user): string
-    {
-        $label = self::sectionLabel(self::verifySection($user), $user);
-
-        return "Anything else to add to your {$label}?";
     }
 
     /**

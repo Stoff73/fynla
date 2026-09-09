@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Constants\QuerySchemas;
+use Database\Seeders\TaxActionDefinitionSeeder;
 
 describe('QuerySchemas', function () {
     describe('trigger mappings', function () {
@@ -101,4 +102,23 @@ describe('QuerySchemas', function () {
             expect($modules)->toContain('savings');
         });
     });
+});
+
+it('names only seeded strategy rows in the tax trigger lists', function (): void {
+    // F11 — the disabled agent rows are gone from the lists; every strategy_* trigger
+    // must be a strategy_type the TaxActionDefinitionSeeder seeds.
+    $seeded = array_map(
+        fn (array $meta): string => 'strategy_'.$meta['strategy_type'],
+        (new ReflectionMethod(TaxActionDefinitionSeeder::class, 'strategyMetadata'))->invoke(new TaxActionDefinitionSeeder),
+    );
+    $disabledAgentRows = ['isa_not_maxed', 'pension_carry_forward_available', 'spousal_transfer_beneficial', 'cgt_allowance_unused', 'high_dividend_in_gia'];
+
+    foreach ([QuerySchemas::TAX_OPTIMISATION, QuerySchemas::INVESTMENT_TAX] as $type) {
+        $triggers = QuerySchemas::RELEVANT_TRIGGERS[$type];
+        expect(array_intersect($triggers, $disabledAgentRows))->toBe([]);
+        foreach (array_filter($triggers, fn (string $t): bool => str_starts_with($t, 'strategy_')) as $trigger) {
+            expect($seeded)->toContain($trigger);
+        }
+        expect(QuerySchemas::REQUIRED_TOOLS[$type])->toContain('get_recommendations()');
+    }
 });

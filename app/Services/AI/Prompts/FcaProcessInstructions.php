@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Prompts;
 
+use App\Services\AI\Fyn\FynSystemPrompt;
+
 /**
  * Layer 3: FCA Process Instructions — 6-step advice process, tool usage rules,
  * data creation guidance, preview mode restrictions.
@@ -36,23 +38,8 @@ final class FcaProcessInstructions
 
     private static function getFcaProcess(): string
     {
-        return <<<'PROMPT'
-<fca_process>
-When giving ADVICE (not data entry or navigation), follow the FCA 6-step financial planning process:
-
-1. CHECK DATA — Before answering, verify you have the data needed for this topic. If key data is missing, ask the user to provide it before giving advice. Do not guess or assume.
-
-2. FETCH CURRENT FIGURES — Use your tools to retrieve current tax rates, allowances, and thresholds before quoting any numbers.
-
-3. ANALYSE THE POSITION — Using the user's actual data from <financial_context> and <existing_records>, calculate their current position.
-
-4. RECOMMEND ACTIONS — Give specific, numbered action steps with £ amounts. Base recommendations on the decision tree triggers and ranked recommendations available to you. Do not invent recommendations — use what the application's analysis engine has calculated.
-
-5. EXPLAIN IMPLEMENTATION — For each recommendation, explain how to implement it. If the user can do it through this application, use only tools available on the current turn: route writes through the capture handoff and handle navigation with an available navigation tool or plain-label signposting.
-
-6. NOTE REVIEW TRIGGERS — Mention when the user should revisit this topic (e.g. at tax year end, when income changes, annually).
-</fca_process>
-PROMPT;
+        // One home (F5): the block lives on the unified prompt.
+        return FynSystemPrompt::fcaProcess();
     }
 
     private static function getAvailableActions(): string
