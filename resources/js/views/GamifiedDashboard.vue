@@ -221,6 +221,7 @@
 
 <script>
 import api from '@/services/api';
+import { resolveWebDestination } from '@/utils/semanticDestinations';
 import logger from '@/utils/logger';
 import { dashboardFigures } from '@/utils/dashboardCards';
 import TrustsOverviewCard from '@/components/Trusts/TrustsOverviewCard.vue';
@@ -374,14 +375,21 @@ export default {
       return routes[module] || null;
     },
     openRec(rec) {
-      // Unlock prompts (KYC gaps / locked tax strategies) capture via Fyn;
-      // real recommendations deep-link to the module screen where they are
-      // actioned — mirrors the /m app's onActionTap split.
-      if (rec.type === 'unlock' || (rec.action && rec.action.kind === 'fyn_capture')) {
-        this.openFynForCapture(rec.module);
+      // The server decided the route (RecommendationRouting, the same payload
+      // /m and native read): a recommendation that asks for information opens
+      // Fyn in a recommendation-origin contextual conversation; an unlock card
+      // opens Fyn with the server's capture prompt; everything else deep-links
+      // to the exact record or product page the destination names.
+      const action = rec.action || null;
+      if (action && action.kind === 'fyn_capture' && action.contextual) {
+        this.openFynContextual(action.contextual);
         return;
       }
-      const route = this.webRouteFor(rec.module);
+      if (rec.type === 'unlock' || (action && action.kind === 'fyn_capture')) {
+        this.openFynForCapture(action);
+        return;
+      }
+      const route = (action && resolveWebDestination(action.destination)) || this.webRouteFor(rec.module);
       if (route) {
         this.goto(route);
         return;
@@ -397,17 +405,18 @@ export default {
     // Tapping an unlock row opens Fyn AND pre-seeds a capture prompt so the user
     // lands in a guided capture rather than a blank chat. Mirrors the /m app's
     // openFynForCapture; AiChatPanel consumes aiChat/prefilledPrompt on open.
-    openFynForCapture(module) {
-      const prompts = {
-        protection: 'Help me add my protection cover details',
-        savings: 'Help me add my savings details',
-        investment: 'Help me add my investment details',
-        retirement: 'Help me add my pension details',
-        estate: 'Help me add my estate planning details',
-        goals: 'Help me set a financial goal',
-        tax: 'Help me complete my tax strategy details',
-      };
-      this.$store.dispatch('aiChat/prefillPrompt', prompts[module] || 'Help me add my financial details');
+    openFynForCapture(action) {
+      // The prompt travels with the action (RecommendationRouting::unlockPrompt)
+      // so no surface carries its own wording (Rule 20).
+      this.$store.dispatch('aiChat/prefillPrompt', (action && action.prompt) || 'Help me add my financial details');
+      this.openFyn();
+    },
+    // A recommendation-origin capture: a fresh contextual conversation whose
+    // server-authored opening names the recommendation. When the capture
+    // writes, Fyn asks "anything else?"; "No thanks" ticks it off and sends a
+    // navigation frame for this screen, which closes the dock and refetches.
+    async openFynContextual(request) {
+      await this.$store.dispatch('aiChat/startContextualConversation', request);
       this.openFyn();
     },
     toggleRec(rec) {
@@ -510,6 +519,18 @@ export default {
   },
   mounted() {
     this.load();
+    // A Fyn turn that ends on this screen (the recommendation follow-up's
+    // "No thanks") asks the screen to refetch so the ticked-off action is
+    // replaced and the wheel's tally moves — the /m dashboard watches the
+    // shared refresh tick for the same reason.
+    this.onFynScreenRefresh = () => {
+      this.$store.dispatch('gamification/fetchStatus').catch(() => {});
+      this.load({ silent: true });
+    };
+    window.addEventListener('fyn-screen-refresh', this.onFynScreenRefresh);
+  },
+  beforeUnmount() {
+    window.removeEventListener('fyn-screen-refresh', this.onFynScreenRefresh);
   },
 };
 </script>

@@ -1216,6 +1216,16 @@ export default {
         },
 
         handleNavigation(routePath) {
+            // A navigation to the screen the user is already on (the
+            // recommendation follow-up's "No thanks" routes to /dashboard from
+            // the dashboard): close the dock and tell the screen to refetch —
+            // what /m's handleOnboardingNavigation and native's
+            // settleNavigation do for the same frame.
+            if (routePath && routePath.split('?')[0] === this.$route?.path) {
+                this.$store.dispatch('aiChat/close');
+                window.dispatchEvent(new Event('fyn-screen-refresh'));
+                return;
+            }
             // Parse query strings properly for Vue Router
             if (routePath && routePath.includes('?')) {
                 const [path, queryString] = routePath.split('?');

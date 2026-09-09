@@ -361,6 +361,34 @@ const actions = {
     },
 
     /**
+     * Start a contextual conversation from a server-composed request (a
+     * dashboard recommendation's `action.contextual`) and load its transcript
+     * so the server-authored opening renders. Same shape /m and native use.
+     */
+    async startContextualConversation({ commit, dispatch }, request) {
+        commit('SET_LOADING', true);
+        commit('SET_ERROR', null);
+        commit('SET_MESSAGES', []);
+        commit('SET_STREAMING_TEXT', '');
+        commit('SET_IS_ONBOARDING_ACTIVE', false);
+        commit('SET_PREFILLED_PROMPT', null);
+
+        try {
+            const response = await aiChatService.createContextualConversation(request);
+            const conversation = response?.data?.conversation ?? response?.conversation ?? null;
+            if (!conversation?.id) {
+                throw new Error('No conversation in the contextual response');
+            }
+            commit('SET_LOADING', false);
+            await dispatch('loadConversation', conversation.id);
+        } catch (error) {
+            logger.error('Failed to start a contextual conversation:', error);
+            commit('SET_ERROR', 'Fyn could not start that conversation. Please try again.');
+            commit('SET_LOADING', false);
+        }
+    },
+
+    /**
      * Load an existing conversation.
      *
      * Normalises the persisted message shape to match the streamed shape:
