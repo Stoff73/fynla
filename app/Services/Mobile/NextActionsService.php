@@ -316,12 +316,17 @@ class NextActionsService
             $id = (string) ($rec['recommendation_id'] ?? uniqid('rec_'));
             $screen = $this->moduleDestination((string) ($rec['module'] ?? 'general'));
             $route = GateRoutes::resolve($screen);
+            [$title, $detail] = self::splitHeadline((string) ($rec['recommendation_text'] ?? ''));
 
             return [
                 'id' => $id,
                 'type' => 'recommendation',
                 'module' => (string) ($rec['module'] ?? 'general'),
-                'title' => (string) ($rec['recommendation_text'] ?? ''),
+                'title' => $title,
+                // Everything after the headline's dash — the explanation Fyn
+                // carries when the row opens a capture; the row itself never
+                // shows it (CSJ 2026-09-09: the full sentence cluttered the screen).
+                'detail' => $detail,
                 'meta' => $benefit !== null
                     ? 'You could save £'.number_format($benefit)
                     : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
@@ -340,6 +345,25 @@ class NextActionsService
                 ],
             ];
         }, $all);
+    }
+
+    /**
+     * The dashboard row shows the headline only. Every engine phrases a
+     * recommendation as "Headline — explanation" (the aggregator joins title
+     * and description with an em dash; tax strategy titles carry a second dash
+     * for their tagline), so the row keeps the words before the FIRST dash and
+     * the rest travels as `detail`. Only em/en dashes split — a hyphen inside a
+     * name ("Chen Tech Consulting - Business Reserve") is part of the headline.
+     *
+     * @return array{0: string, 1: string|null}
+     */
+    private static function splitHeadline(string $text): array
+    {
+        $parts = preg_split('/\s+[\x{2014}\x{2013}]\s+/u', $text, 2) ?: [$text];
+        $title = trim($parts[0]);
+        $detail = isset($parts[1]) ? trim($parts[1]) : '';
+
+        return [$title !== '' ? $title : $text, $detail !== '' ? $detail : null];
     }
 
     /**

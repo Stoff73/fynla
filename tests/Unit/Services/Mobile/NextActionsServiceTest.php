@@ -78,6 +78,53 @@ it('excludes a completed recommendation from the list (banked + replaced by next
     expect($item)->toBeNull();
 });
 
+it('shows only the headline before the dash and carries the rest as detail', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $aggregator = Mockery::mock(RecommendationsAggregatorService::class);
+    $aggregator->shouldReceive('aggregateRecommendations')
+        ->with($user->id)
+        ->andReturn([
+            [
+                'recommendation_id' => 'savings_cash_isa_recommended',
+                'module' => 'savings',
+                'recommendation_text' => 'Consider a Cash ISA — Moving savings to a Cash ISA would shelter interest from tax.',
+                'priority_score' => 60.0,
+                'category' => 'Lifecycle',
+                'potential_benefit' => null,
+            ],
+            [
+                // A tax strategy title carries its own tagline dash: the row keeps
+                // the words before the FIRST dash only.
+                'recommendation_id' => 'tax_junior_pension',
+                'module' => 'tax',
+                'recommendation_text' => 'Open a pension for each child — instant £1,440 a year of free money — Anyone can contribute.',
+                'priority_score' => 55.0,
+                'category' => 'tax',
+                'potential_benefit' => 1440,
+            ],
+            [
+                // A hyphen inside a name is not a separator.
+                'recommendation_id' => 'savings_rate_below_market',
+                'module' => 'savings',
+                'recommendation_text' => 'Better Rate Available for Chen Tech - Business Reserve',
+                'priority_score' => 50.0,
+                'category' => 'Lifecycle',
+                'potential_benefit' => null,
+            ],
+        ]);
+    app()->instance(RecommendationsAggregatorService::class, $aggregator);
+
+    $items = collect(app(NextActionsService::class)->buildAll($user->id))->keyBy('id');
+
+    expect($items['savings_cash_isa_recommended']['title'])->toBe('Consider a Cash ISA')
+        ->and($items['savings_cash_isa_recommended']['detail'])->toBe('Moving savings to a Cash ISA would shelter interest from tax.')
+        ->and($items['tax_junior_pension']['title'])->toBe('Open a pension for each child')
+        ->and($items['tax_junior_pension']['detail'])->toBe('instant £1,440 a year of free money — Anyone can contribute.')
+        ->and($items['savings_rate_below_market']['title'])->toBe('Better Rate Available for Chen Tech - Business Reserve')
+        ->and($items['savings_rate_below_market']['detail'])->toBeNull();
+});
+
 it('deep-links a tax recommendation to the tax strategy screen', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 
