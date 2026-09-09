@@ -350,15 +350,6 @@ campaign2_advice_retirement_goals:
   capture_field: null
   next: { branch: nextCampaignSection }
 
-campaign_verify_more:
-  turn_type: bubbles
-  prompt_text: { builder: verifyPromptMore }
-  bubbles:
-    - { id: 'yes', label: 'Yes, add more' }
-    - { id: 'no', label: "No, that's everything" }
-  capture_field: null
-  next: { branch: nextFromVerifyMore }
-
 campaign_verify_announce:
   turn_type: bubbles
   prompt_text: { builder: verifyPromptAnnounce }

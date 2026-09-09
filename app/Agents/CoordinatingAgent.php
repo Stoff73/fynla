@@ -247,8 +247,17 @@ class CoordinatingAgent extends BaseAgent
                 'retirement' => $this->retirementAgent->analyze($userId),
                 'estate' => $this->estateAgent->analyze($userId),
                 'goals' => $this->goalsAgent->analyze($userId),
+                // The classification map names the module `tax`; the analysis
+                // block and its composed-plan recommendations are keyed
+                // tax_optimisation, as on the holistic path (F11).
+                'tax' => $this->taxOptimisationAgent->analyze($userId),
                 default => null,
             };
+            if ($module === 'tax' && $analysis !== null) {
+                $moduleAnalysis['tax_optimisation'] = $this->mappedModuleAnalysis('tax_optimisation', $analysis, $userId);
+
+                continue;
+            }
             if ($analysis !== null) {
                 if ($this->isQuestionScopedModule($module, $classification, $kycResult)
                     && $this->requiresQuestionScopedFallback($analysis)) {
@@ -591,11 +600,30 @@ class CoordinatingAgent extends BaseAgent
             case 'tax_optimisation':
                 $taxResult = $raw;
                 $taxData = $taxResult['data'] ?? $taxResult;
-                $taxRecs = [];
 
-                if ($taxResult['success'] ?? false) {
-                    $recsResult = $this->taxOptimisationAgent->generateRecommendations($taxResult);
-                    $taxRecs = $recsResult['recommendations'] ?? [];
+                // F11 — Fyn's tax recommendations are the composed strategy plan,
+                // the same plan the dashboard shows, each item keyed by its seeded
+                // strategy row (strategy_{type}) so "Triggered by" renders and the
+                // <relevant_triggers> list can name it. The legacy
+                // TaxOptimisationService strategies stay in the analysis block.
+                $taxRecs = [];
+                $planUser = User::find($userId);
+                if ($planUser !== null) {
+                    foreach ($this->composedTaxPlans->forUser($planUser)['items'] ?? [] as $item) {
+                        $taxRecs[] = [
+                            'module' => 'tax_optimisation',
+                            'type' => $item['type'] ?? null,
+                            'priority' => $item['priority'] ?? 'medium',
+                            'title' => $item['title'] ?? '',
+                            'description' => $item['description'] ?? '',
+                            'estimated_saving' => (float) ($item['estimated_annual_tax_saved'] ?? 0),
+                            'claim_tier' => $item['claim_tier'] ?? null,
+                            'sequence_position' => $item['sequence_position'] ?? null,
+                            'conflict_note' => $item['conflict_note'] ?? null,
+                            'requires_advice' => (bool) ($item['requires_advice'] ?? false),
+                            'definition_key' => isset($item['type']) ? 'strategy_'.$item['type'] : null,
+                        ];
+                    }
                 }
 
                 return [
