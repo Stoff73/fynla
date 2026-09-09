@@ -271,7 +271,7 @@ class CoordinatingAgent extends BaseAgent
         // block tells Fyn to look for.
         $ranked = $this->priorityRanker->rankRecommendations(
             $this->extractRecommendations($moduleAnalysis),
-            $this->getUserContext($userId),
+            [],
         );
 
         return ['module_analysis' => $moduleAnalysis, 'ranked_recommendations' => $ranked];
@@ -327,12 +327,7 @@ class CoordinatingAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysisData): array
     {
-        $userContext = $this->getUserContext($analysisData['user_id'] ?? 0);
-
-        return $this->priorityRanker->rankRecommendations(
-            $this->extractRecommendations($analysisData),
-            $userContext
-        );
+        return $this->priorityRanker->rankRecommendations($this->extractRecommendations($analysisData));
     }
 
     /**
@@ -385,8 +380,7 @@ class CoordinatingAgent extends BaseAgent
         $resolvedRecommendations = $this->resolveConflicts($allRecommendations, $conflicts);
 
         // Rank recommendations
-        $userContext = $this->getUserContext($userId);
-        $rankedRecommendations = $this->rankRecommendations($resolvedRecommendations, $userContext);
+        $rankedRecommendations = $this->rankRecommendations($resolvedRecommendations);
 
         // Optimize cashflow allocation
         $demands = $this->extractDemands($rankedRecommendations);
@@ -511,7 +505,7 @@ class CoordinatingAgent extends BaseAgent
      *
      * @return array Ranked recommendations
      */
-    public function rankRecommendations(array $recommendations, array $userContext): array
+    public function rankRecommendations(array $recommendations, array $userContext = []): array
     {
         return $this->priorityRanker->rankRecommendations($recommendations, $userContext);
     }
@@ -707,25 +701,6 @@ class CoordinatingAgent extends BaseAgent
         $recommendations['available_surplus'] = $allAnalysis['available_surplus'] ?? 0;
 
         return $recommendations;
-    }
-
-    /**
-     * Get user context for priority ranking
-     */
-    private function getUserContext(int $userId): array
-    {
-        // In full implementation, fetch from user profile/preferences table
-        return [
-            'module_priorities' => [
-                'protection' => 80,
-                'savings' => 75,
-                'retirement' => 70,
-                'tax_optimisation' => 65,
-                'investment' => 60,
-                'goals' => 55,
-                'estate' => 50,
-            ],
-        ];
     }
 
     /**

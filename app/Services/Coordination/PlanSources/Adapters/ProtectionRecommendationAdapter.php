@@ -6,6 +6,7 @@ namespace App\Services\Coordination\PlanSources\Adapters;
 
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
+use App\Services\Coordination\PriorityRanker;
 use Illuminate\Support\Str;
 
 /**
@@ -59,9 +60,11 @@ final class ProtectionRecommendationAdapter
             ? StrategyCategory::Warning
             : StrategyCategory::Lifecycle;
 
-        $priority = $this->resolvePriority($rec);
+        $seeded = PriorityRanker::priorityLabel($rec);
+        $priority = PriorityRanker::impactLabel($seeded);
 
         $extra = array_filter([
+            'seeded_priority' => $seeded,
             'estimated_premium' => isset($rec['estimated_cost']) && is_numeric($rec['estimated_cost'])
                 ? (float) $rec['estimated_cost']
                 : null,
@@ -81,31 +84,6 @@ final class ProtectionRecommendationAdapter
             extra: $extra,
             requiredMonthlyCost: null,
         );
-    }
-
-    /**
-     * Resolve priority string ('high'|'medium'|'low') from either:
-     *   - int priority field (1-5): 1-2 => high, 3 => medium, 4-5 => low
-     *   - string impact field ('High'|'Med'|'Medium'|'Low') as a fallback
-     */
-    private function resolvePriority(array $rec): string
-    {
-        if (isset($rec['priority']) && is_int($rec['priority'])) {
-            return match (true) {
-                $rec['priority'] <= 2 => 'high',
-                $rec['priority'] === 3 => 'medium',
-                default => 'low',
-            };
-        }
-
-        $impact = strtolower((string) ($rec['impact'] ?? 'medium'));
-
-        return match ($impact) {
-            'high' => 'high',
-            'med', 'medium' => 'medium',
-            'low' => 'low',
-            default => 'medium',
-        };
     }
 
     private function slugify(string $value): string

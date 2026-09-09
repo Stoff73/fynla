@@ -4,104 +4,139 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
-use App\Constants\SignificanceThresholds;
-
 /**
- * PriorityRanker
+ * PriorityRanker — the one ranking rule for recommendations.
  *
- * Ranks and prioritizes recommendations from all modules based on:
- * - Urgency (how critical is this action?)
- * - Impact (what's the financial benefit?)
- * - Effort (how easy is it to implement?)
- * - User priorities (user-specified goals)
+ * The seeded priority wins (CSJ, 2026-09-09; fyn-wiring Batch B, F2/F12).
+ * Every engine carries the label its action definition was seeded with —
+ * as a string `priority`, or as the `impact` label next to an engine int —
+ * and that label sets the band. A numeric benefit and the module weight
+ * only break ties inside a band; together they can never lift a rec across one.
+ *
+ * Both consumers read this class: CoordinatingAgent (Fyn's <financial_context>,
+ * get_recommendations, the holistic plan) and RecommendationsAggregatorService
+ * (the web API, the dashboard focus cards, /m next actions).
  */
 class PriorityRanker
 {
+    /** Seeded label → urgency band. The dashboard's 85/60/45 with critical above high. */
+    public const BANDS = ['critical' => 95.0, 'high' => 85.0, 'medium' => 60.0, 'low' => 45.0];
+
+    /** Tiebreak only: weight/100 adds at most 0.8. */
+    public const MODULE_WEIGHTS = [
+        'protection' => 80,
+        'savings' => 75,
+        'retirement' => 70,
+        'tax_optimisation' => 65,
+        'tax' => 65,
+        'investment' => 60,
+        'goals' => 55,
+        'estate' => 50,
+    ];
+
+    /** Keys CoordinatingAgent::extractRecommendations adds beside the module lists. */
+    private const BOOKKEEPING_KEYS = ['module_scores', 'available_surplus'];
+
+    /** Numeric benefit fields, first present wins. */
+    private const BENEFIT_KEYS = ['estimated_impact', 'estimated_saving', 'estimated_annual_tax_saved', 'potential_benefit'];
+
     /**
-     * Rank all recommendations based on priority scoring
+     * Rank recommendations grouped by module.
      *
-     * @param  array  $allRecommendations  Recommendations from all modules
-     * @param  array  $userContext  User profile and preferences
-     * @return array Ranked recommendations with scores
+     * @param  array<string, mixed>  $allRecommendations  module => list of recs (plus bookkeeping keys)
+     * @param  array<string, mixed>  $userContext  optional `module_priorities` overrides
+     * @return list<array<string, mixed>> flat list, highest priority_score first
      */
-    public function rankRecommendations(array $allRecommendations, array $userContext): array
+    public function rankRecommendations(array $allRecommendations, array $userContext = []): array
     {
-        $scoredRecommendations = [];
+        $scored = [];
 
         foreach ($allRecommendations as $module => $recommendations) {
-            if ($module === 'module_scores' || $module === 'available_surplus') {
-                continue;
-            }
-
-            if (! is_array($recommendations)) {
+            if (in_array($module, self::BOOKKEEPING_KEYS, true) || ! is_array($recommendations)) {
                 continue;
             }
 
             foreach ($recommendations as $recommendation) {
-                $score = $this->calculateRecommendationScore($recommendation, $module, $userContext);
+                if (! is_array($recommendation)) {
+                    continue;
+                }
 
-                $scoredRecommendations[] = array_merge($recommendation, [
+                $label = self::priorityLabel($recommendation);
+                $urgency = self::BANDS[$label];
+                $impact = $this->impactScore($recommendation);
+                $weight = (float) ($userContext['module_priorities'][$module] ?? self::MODULE_WEIGHTS[$module] ?? 50);
+
+                $scored[] = array_merge($recommendation, [
                     'module' => $module,
-                    'priority_score' => $score['total_score'],
-                    'urgency_score' => $score['urgency'],
-                    'impact_score' => $score['impact'],
-                    'ease_score' => $score['ease'],
-                    'user_priority_score' => $score['user_priority'],
-                    'timeline' => $this->determineTimeline($score['urgency']),
+                    'priority_score' => round($urgency + $impact / 20 + $weight / 100, 2),
+                    'urgency_score' => $urgency,
+                    'impact_score' => $impact,
+                    'impact_label' => self::impactLabel($label),
+                    'timeline' => self::timelineFor($urgency),
                 ]);
             }
         }
 
-        // Sort by priority score descending
-        usort($scoredRecommendations, fn ($a, $b) => $b['priority_score'] <=> $a['priority_score']);
+        usort($scored, fn ($a, $b) => $b['priority_score'] <=> $a['priority_score']);
 
-        return $scoredRecommendations;
+        return $scored;
     }
 
     /**
-     * Calculate comprehensive priority score for a recommendation
+     * The seeded label on a recommendation: critical | high | medium | low.
      *
-     * Formula: score = (urgency × 0.4) + (impact × 0.3) + (ease × 0.2) + (userPriority × 0.1)
+     * A string `priority` wins; then the `impact` label (the DB-driven engines
+     * put the seeded label there and an int in `priority`); then the int rule
+     * the protection adapter used (1–2 high, 3 medium, 4+ low); else medium.
      *
-     * @param  array  $recommendation  Single recommendation
-     * @param  string  $module  Module name
-     * @param  array  $userContext  User preferences
-     * @return array Detailed scores
+     * @param  array<string, mixed>  $recommendation
      */
-    public function calculateRecommendationScore(array $recommendation, string $module, array $userContext): array
+    public static function priorityLabel(array $recommendation): string
     {
-        $urgency = $this->calculateUrgencyScore($recommendation, $module);
-        $impact = $this->calculateImpactScore($recommendation, $module);
-        $ease = $this->calculateEaseScore($recommendation, $module);
-        $userPriority = $this->calculateUserPriorityScore($module, $userContext);
+        foreach (['priority', 'impact'] as $key) {
+            $value = $recommendation[$key] ?? null;
+            if (is_string($value) && isset(self::BANDS[strtolower($value)])) {
+                return strtolower($value);
+            }
+        }
 
-        $totalScore = ($urgency * 0.4) + ($impact * 0.3) + ($ease * 0.2) + ($userPriority * 0.1);
+        $int = $recommendation['priority'] ?? null;
+        if (is_int($int)) {
+            return match (true) {
+                $int <= 2 => 'high',
+                $int === 3 => 'medium',
+                default => 'low',
+            };
+        }
 
-        return [
-            'total_score' => round($totalScore, 2),
-            'urgency' => round($urgency, 2),
-            'impact' => round($impact, 2),
-            'ease' => round($ease, 2),
-            'user_priority' => round($userPriority, 2),
-        ];
+        return 'medium';
+    }
+
+    /** The three-way label the UI filters on (critical folds into high). */
+    public static function impactLabel(string $label): string
+    {
+        return $label === 'critical' ? 'high' : $label;
+    }
+
+    public static function timelineFor(float $urgency): string
+    {
+        return match (true) {
+            $urgency >= 80 => 'immediate',
+            $urgency >= 60 => 'short_term',
+            $urgency >= 40 => 'medium_term',
+            default => 'long_term',
+        };
     }
 
     /**
-     * Group recommendations by category (module)
+     * Group ranked recommendations by module.
      *
-     * @param  array  $recommendations  Scored recommendations
-     * @return array Grouped by module
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return array<string, list<array<string, mixed>>>
      */
     public function groupByCategory(array $recommendations): array
     {
-        $grouped = [
-            'protection' => [],
-            'savings' => [],
-            'investment' => [],
-            'retirement' => [],
-            'estate' => [],
-            'goals' => [],
-        ];
+        $grouped = array_fill_keys(['protection', 'savings', 'investment', 'retirement', 'estate', 'goals'], []);
 
         foreach ($recommendations as $rec) {
             $module = $rec['module'] ?? 'other';
@@ -114,22 +149,17 @@ class PriorityRanker
     }
 
     /**
-     * Create action plan with timeline grouping
+     * Group ranked recommendations by timeline.
      *
-     * @param  array  $rankedRecommendations  Ranked recommendations
-     * @return array Action plan grouped by timeline
+     * @param  list<array<string, mixed>>  $rankedRecommendations
+     * @return array{action_plan: array<string, list<array<string, mixed>>>, summary: array<string, int>}
      */
     public function createActionPlan(array $rankedRecommendations): array
     {
-        $plan = [
-            'immediate' => [], // Urgency >= 80, do within 1 month
-            'short_term' => [], // Urgency 60-79, do within 3 months
-            'medium_term' => [], // Urgency 40-59, do within 12 months
-            'long_term' => [], // Urgency < 40, do within 12+ months
-        ];
+        $plan = array_fill_keys(['immediate', 'short_term', 'medium_term', 'long_term'], []);
 
         foreach ($rankedRecommendations as $rec) {
-            $timeline = $rec['timeline'] ?? $this->determineTimeline($rec['urgency_score'] ?? 50);
+            $timeline = $rec['timeline'] ?? self::timelineFor((float) ($rec['urgency_score'] ?? 50));
             $plan[$timeline][] = $rec;
         }
 
@@ -146,331 +176,27 @@ class PriorityRanker
     }
 
     /**
-     * Calculate urgency score (0-100)
+     * Band the numeric benefit on the rec; 50 when there is none.
      *
-     * Factors:
-     * - Critical gaps (e.g., no life insurance with dependents) = high urgency
-     * - Adequacy scores < 50 = high urgency
-     * - Time-sensitive opportunities (e.g., tax year end) = high urgency
+     * @param  array<string, mixed>  $recommendation
      */
-    private function calculateUrgencyScore(array $recommendation, string $module): float
+    private function impactScore(array $recommendation): float
     {
-        $urgency = 50; // Default medium urgency
+        foreach (self::BENEFIT_KEYS as $key) {
+            $value = $recommendation[$key] ?? null;
+            if (is_numeric($value) && (float) $value > 0) {
+                $benefit = (float) $value;
 
-        // Module-specific urgency scoring
-        switch ($module) {
-            case 'protection':
-                // Life insurance gap with dependents = critical
-                if (isset($recommendation['coverage_gap']) && $recommendation['coverage_gap'] > SignificanceThresholds::IMPORTANT) {
-                    $urgency = 95;
-                } elseif (isset($recommendation['adequacy_score']) && $recommendation['adequacy_score'] < 30) {
-                    $urgency = 90;
-                } elseif (isset($recommendation['adequacy_score']) && $recommendation['adequacy_score'] < 50) {
-                    $urgency = 75;
-                } elseif (isset($recommendation['adequacy_score']) && $recommendation['adequacy_score'] < 70) {
-                    $urgency = 60;
-                } else {
-                    $urgency = 40;
-                }
-                break;
-
-            case 'savings':
-                // Emergency fund < 3 months = critical
-                if (isset($recommendation['emergency_fund_months']) && $recommendation['emergency_fund_months'] < 1) {
-                    $urgency = 95;
-                } elseif (isset($recommendation['emergency_fund_months']) && $recommendation['emergency_fund_months'] < 3) {
-                    $urgency = 85;
-                } elseif (isset($recommendation['emergency_fund_months']) && $recommendation['emergency_fund_months'] < 6) {
-                    $urgency = 65;
-                } else {
-                    $urgency = 45;
-                }
-                break;
-
-            case 'retirement':
-                // Retirement urgency based on income gap
-                $incomeGap = $recommendation['income_gap'] ?? 0;
-                if ($incomeGap > 15000) {
-                    $urgency = 80;
-                } elseif ($incomeGap > 10000) {
-                    $urgency = 70;
-                } elseif ($incomeGap > 5000) {
-                    $urgency = 55;
-                } else {
-                    $urgency = 35;
-                }
-
-                // Increase urgency if close to retirement
-                if (isset($recommendation['years_to_retirement']) && $recommendation['years_to_retirement'] < 10) {
-                    $urgency = min(100, $urgency + 20);
-                }
-                break;
-
-            case 'investment':
-                // Goal-based urgency
-                if (isset($recommendation['goal_probability']) && $recommendation['goal_probability'] < 30) {
-                    $urgency = 75;
-                } elseif (isset($recommendation['goal_probability']) && $recommendation['goal_probability'] < 50) {
-                    $urgency = 60;
-                } else {
-                    $urgency = 40;
-                }
-
-                // Time-sensitive goal increases urgency
-                if (isset($recommendation['years_to_goal']) && $recommendation['years_to_goal'] < 3) {
-                    $urgency = min(100, $urgency + 25);
-                }
-                break;
-
-            case 'estate':
-                // IHT liability
-                if (isset($recommendation['iht_liability']) && $recommendation['iht_liability'] > 500000) {
-                    $urgency = 85;
-                } elseif (isset($recommendation['iht_liability']) && $recommendation['iht_liability'] > SignificanceThresholds::CRITICAL) {
-                    $urgency = 70;
-                } elseif (isset($recommendation['iht_liability']) && $recommendation['iht_liability'] > 50000) {
-                    $urgency = 55;
-                } else {
-                    $urgency = 30;
-                }
-
-                // Increase urgency for older age
-                if (isset($recommendation['age']) && $recommendation['age'] > 70) {
-                    $urgency = min(100, $urgency + 15);
-                }
-                break;
-
-            case 'goals':
-                // Goal urgency based on category and status
-                $category = $recommendation['category'] ?? '';
-                if ($category === 'Progress' || $category === 'Affordability') {
-                    $urgency = 65; // Behind schedule or overcommitted
-                } elseif ($category === 'Safety Net') {
-                    $urgency = 75; // No emergency fund goal
-                } elseif ($category === 'Getting Started') {
-                    $urgency = 50; // No goals set yet
-                } else {
-                    $urgency = 45;
-                }
-                break;
-        }
-
-        return min(100, max(0, $urgency));
-    }
-
-    /**
-     * Calculate impact score (0-100)
-     *
-     * Financial benefit or risk reduction value
-     */
-    private function calculateImpactScore(array $recommendation, string $module): float
-    {
-        $impact = 50; // Default medium impact
-
-        switch ($module) {
-            case 'protection':
-                // Coverage gap value
-                if (isset($recommendation['coverage_gap'])) {
-                    $gap = $recommendation['coverage_gap'];
-                    if ($gap > 500000) {
-                        $impact = 95;
-                    } elseif ($gap > 250000) {
-                        $impact = 85;
-                    } elseif ($gap > SignificanceThresholds::IMPORTANT) {
-                        $impact = 70;
-                    } else {
-                        $impact = 55;
-                    }
-                }
-                break;
-
-            case 'savings':
-                // Emergency fund shortfall
-                if (isset($recommendation['emergency_fund_shortfall'])) {
-                    $shortfall = $recommendation['emergency_fund_shortfall'];
-                    if ($shortfall > 20000) {
-                        $impact = 90;
-                    } elseif ($shortfall > 10000) {
-                        $impact = 75;
-                    } elseif ($shortfall > 5000) {
-                        $impact = 60;
-                    } else {
-                        $impact = 45;
-                    }
-                }
-                break;
-
-            case 'retirement':
-                // Income gap in retirement
-                if (isset($recommendation['income_gap'])) {
-                    $gap = $recommendation['income_gap'];
-                    if ($gap > 30000) {
-                        $impact = 95;
-                    } elseif ($gap > 15000) {
-                        $impact = 80;
-                    } elseif ($gap > 5000) {
-                        $impact = 65;
-                    } else {
-                        $impact = 50;
-                    }
-                }
-                break;
-
-            case 'investment':
-                // Expected return increase
-                if (isset($recommendation['expected_benefit'])) {
-                    $benefit = $recommendation['expected_benefit'];
-                    if ($benefit > 50000) {
-                        $impact = 90;
-                    } elseif ($benefit > 20000) {
-                        $impact = 75;
-                    } elseif ($benefit > 10000) {
-                        $impact = 60;
-                    } else {
-                        $impact = 45;
-                    }
-                }
-                break;
-
-            case 'estate':
-                // IHT saving
-                if (isset($recommendation['iht_saving'])) {
-                    $saving = $recommendation['iht_saving'];
-                    if ($saving > SignificanceThresholds::CRITICAL) {
-                        $impact = 95;
-                    } elseif ($saving > SignificanceThresholds::IMPORTANT) {
-                        $impact = 85;
-                    } elseif ($saving > 50000) {
-                        $impact = 70;
-                    } else {
-                        $impact = 55;
-                    }
-                }
-                break;
-
-            case 'goals':
-                // Goal impact based on category
-                $category = $recommendation['category'] ?? '';
-                if ($category === 'Affordability') {
-                    $impact = 70; // Overcommitted impacts all goals
-                } elseif ($category === 'Safety Net') {
-                    $impact = 75; // Emergency fund is foundational
-                } elseif ($category === 'Progress') {
-                    $impact = 60; // Goals behind schedule
-                } else {
-                    $impact = 45;
-                }
-                break;
-        }
-
-        return min(100, max(0, $impact));
-    }
-
-    /**
-     * Calculate ease of implementation score (0-100)
-     *
-     * Higher score = easier to implement
-     */
-    private function calculateEaseScore(array $recommendation, string $module): float
-    {
-        $ease = 50; // Default medium ease
-
-        // Check for cost requirement
-        if (isset($recommendation['recommended_monthly_contribution']) || isset($recommendation['recommended_monthly_premium'])) {
-            $monthlyCost = $recommendation['recommended_monthly_contribution'] ?? $recommendation['recommended_monthly_premium'] ?? 0;
-
-            if ($monthlyCost === 0) {
-                $ease = 90; // No cost = very easy
-            } elseif ($monthlyCost < 50) {
-                $ease = 80; // Low cost
-            } elseif ($monthlyCost < 200) {
-                $ease = 65; // Moderate cost
-            } elseif ($monthlyCost < 500) {
-                $ease = 45; // Higher cost
-            } else {
-                $ease = 30; // Significant cost
+                return match (true) {
+                    $benefit > 50_000 => 95.0,
+                    $benefit > 20_000 => 80.0,
+                    $benefit > 10_000 => 65.0,
+                    $benefit > 5_000 => 55.0,
+                    default => 50.0,
+                };
             }
         }
 
-        // Module-specific ease adjustments
-        switch ($module) {
-            case 'protection':
-                // Buying insurance = moderate effort (application, underwriting)
-                $ease = min($ease, 60);
-                break;
-
-            case 'savings':
-                // Opening savings account = easy
-                $ease = max($ease, 70);
-                break;
-
-            case 'investment':
-                // Opening investment account = moderate effort
-                $ease = min($ease, 65);
-                break;
-
-            case 'retirement':
-                // Pension changes = easy if workplace pension, harder if personal
-                if (isset($recommendation['pension_type']) && $recommendation['pension_type'] === 'workplace') {
-                    $ease = max($ease, 75);
-                } else {
-                    $ease = min($ease, 55);
-                }
-                break;
-
-            case 'estate':
-                // Estate planning = moderate to difficult (legal docs, trusts)
-                if (isset($recommendation['action_type']) && $recommendation['action_type'] === 'will') {
-                    $ease = 50; // Will writing = moderate effort
-                } elseif (isset($recommendation['action_type']) && $recommendation['action_type'] === 'trust') {
-                    $ease = 30; // Trust setup = complex
-                } else {
-                    $ease = 60;
-                }
-                break;
-
-            case 'goals':
-                // Goal actions are generally actionable
-                $ease = 70; // Adjusting contributions/timelines is straightforward
-                break;
-        }
-
-        return min(100, max(0, $ease));
-    }
-
-    /**
-     * Calculate user priority score based on stated preferences
-     */
-    private function calculateUserPriorityScore(string $module, array $userContext): float
-    {
-        $priorities = $userContext['module_priorities'] ?? [];
-
-        // Default priorities if not set
-        $defaultPriorities = [
-            'protection' => 70,
-            'savings' => 75,
-            'retirement' => 65,
-            'investment' => 60,
-            'estate' => 50,
-            'goals' => 55,
-        ];
-
-        return $priorities[$module] ?? $defaultPriorities[$module] ?? 50;
-    }
-
-    /**
-     * Determine timeline based on urgency score
-     */
-    private function determineTimeline(float $urgencyScore): string
-    {
-        if ($urgencyScore >= 80) {
-            return 'immediate'; // Within 1 month
-        } elseif ($urgencyScore >= 60) {
-            return 'short_term'; // Within 3 months
-        } elseif ($urgencyScore >= 40) {
-            return 'medium_term'; // Within 12 months
-        } else {
-            return 'long_term'; // 12+ months
-        }
+        return 50.0;
     }
 }

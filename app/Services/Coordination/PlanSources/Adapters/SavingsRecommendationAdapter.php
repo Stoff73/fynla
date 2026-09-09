@@ -6,6 +6,7 @@ namespace App\Services\Coordination\PlanSources\Adapters;
 
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
+use App\Services\Coordination\PriorityRanker;
 use Illuminate\Support\Str;
 
 /**
@@ -58,10 +59,15 @@ final class SavingsRecommendationAdapter
             ? StrategyCategory::Warning
             : StrategyCategory::Lifecycle;
 
-        $impact = strtolower((string) ($rec['impact'] ?? 'medium'));
-        $priority = in_array($impact, ['high', 'medium', 'low'], true) ? $impact : 'medium';
+        // One label rule (PriorityRanker); the enum has no critical case, so the
+        // seeded label travels in extra for the ranker to read off the composed item.
+        $seeded = PriorityRanker::priorityLabel($rec);
+        $priority = PriorityRanker::impactLabel($seeded);
 
         $extra = array_filter([
+            'seeded_priority' => $seeded,
+            // The engine's benefit figure, so the ranker breaks ties the same way on every surface.
+            'estimated_impact' => is_numeric($rec['estimated_impact'] ?? null) ? (float) $rec['estimated_impact'] : null,
             'definition_key' => $definitionKey !== '' ? $definitionKey : null,
             'scope' => $rec['scope'] ?? null,
             'account_id' => $rec['account_id'] ?? null,

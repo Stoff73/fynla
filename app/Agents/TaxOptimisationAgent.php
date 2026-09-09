@@ -65,7 +65,6 @@ class TaxOptimisationAgent extends BaseAgent
                 'description' => $strategy['description'],
                 'action' => $strategy['action'],
                 'estimated_saving' => $strategy['estimated_annual_saving'] ?? 0,
-                'urgency_score' => $this->mapPriorityToUrgency($strategy['priority']),
             ];
         }
 
@@ -127,18 +126,5 @@ class TaxOptimisationAgent extends BaseAgent
             'scenario_count' => count($scenarios),
             'scenarios' => $scenarios,
         ]);
-    }
-
-    /**
-     * Map strategy priority to a numeric urgency score for the conflict resolver.
-     */
-    private function mapPriorityToUrgency(string $priority): int
-    {
-        return match ($priority) {
-            'high' => 80,
-            'medium' => 60,
-            'low' => 40,
-            default => 50,
-        };
     }
 }
