@@ -230,7 +230,7 @@ class MobileDashboardAggregator
             'total_savings' => round((float) ($summary['total_savings'] ?? 0), 2),
             'total_accounts' => (int) ($summary['total_accounts'] ?? 0),
             'emergency_fund_months' => round((float) ($emergencyFund['runway_months'] ?? 0), 1),
-            'emergency_fund_status' => $emergencyFund['category'] ?? 'Unknown',
+            'emergency_fund_target_months' => (int) ($emergencyFund['target_months'] ?? 6),
         ];
     }
 

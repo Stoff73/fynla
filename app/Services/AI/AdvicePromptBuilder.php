@@ -35,6 +35,7 @@ use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -632,6 +633,10 @@ PROMPT;
                 if (! empty($relevantModules)) {
                     $recommendations = array_filter($recommendations, function ($rec) use ($relevantModules) {
                         $recModule = $rec['module'] ?? '';
+                        // The engine keys tax as tax_optimisation; the classification map says tax.
+                        if ($recModule === 'tax_optimisation') {
+                            $recModule = 'tax';
+                        }
 
                         return $recModule === '' || in_array($recModule, $relevantModules, true);
                     });
@@ -644,10 +649,10 @@ PROMPT;
                 $lines[] = 'Top ranked recommendations (from decision engine):';
                 foreach ($top as $i => $rec) {
                     $title = $rec['title'] ?? $rec['recommendation'] ?? 'Recommendation';
-                    $urgency = isset($rec['urgency_score']) ? " (urgency: {$rec['urgency_score']}/100)" : '';
+                    // The list is already in priority order; no score construct reaches the model (F10).
                     $module = isset($rec['module']) ? " [{$rec['module']}]" : '';
                     $num = $i + 1;
-                    $lines[] = "{$num}. {$title}{$module}{$urgency}";
+                    $lines[] = "{$num}. {$title}{$module}";
 
                     // Include description for actionable context
                     if (isset($rec['description']) && $rec['description']) {
@@ -734,8 +739,11 @@ PROMPT;
                         $sign = $impact['net_impact'] >= 0 ? '+' : '-';
                         $amount = number_format(abs($impact['net_impact']), 0);
                         $line = "- {$module}: {$impact['event_count']} upcoming events, net impact {$sign}£{$amount}";
-                        if (isset($impact['next_event'])) {
-                            $line .= " (next: {$impact['next_event']['event_name']} in {$impact['next_event']['months_until']} months)";
+                        // formatEventForModule emits expected_date, not months_until.
+                        $nextEvent = $impact['next_event'] ?? null;
+                        if (is_array($nextEvent) && ! empty($nextEvent['expected_date'])) {
+                            $monthsUntil = max(0, (int) now()->diffInMonths(Carbon::parse($nextEvent['expected_date']), false));
+                            $line .= " (next: {$nextEvent['event_name']} in {$monthsUntil} months)";
                         }
                         $lines[] = $line;
                     }

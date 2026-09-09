@@ -481,7 +481,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
     // 5A.T3: PriorityRanker handles goals recommendations
     // ─────────────────────────────────────────────────────────────
     describe('PriorityRanker - Goals Scoring (5A.T3)', function () {
-        it('scores goals recommendations with urgency, impact, and ease', function () {
+        it('scores goals recommendations from their seeded priority', function () {
             $ranker = new PriorityRanker;
 
             $allRecommendations = [
@@ -489,33 +489,29 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
                     [
                         'recommendation_text' => 'Start emergency fund goal',
                         'category' => 'Safety Net',
+                        'priority' => 'high',
                     ],
                     [
                         'recommendation_text' => 'Review behind schedule goal',
                         'category' => 'Progress',
+                        'priority' => 'medium',
                     ],
                 ],
             ];
 
-            $userContext = ['module_priorities' => ['goals' => 55]];
-
-            $ranked = $ranker->rankRecommendations($allRecommendations, $userContext);
+            $ranked = $ranker->rankRecommendations($allRecommendations, ['module_priorities' => ['goals' => 55]]);
 
             expect($ranked)->toHaveCount(2);
-
-            // Both should have 'goals' as module
             expect($ranked[0]['module'])->toBe('goals');
             expect($ranked[1]['module'])->toBe('goals');
 
-            // Safety Net has higher urgency (75) than Progress (65)
+            // The seeded label sets the band (Batch B): high 85, medium 60.
             $safetyNetRec = collect($ranked)->firstWhere('category', 'Safety Net');
             $progressRec = collect($ranked)->firstWhere('category', 'Progress');
 
-            expect($safetyNetRec['urgency_score'])->toBe(75.0);
-            expect($progressRec['urgency_score'])->toBe(65.0);
-
-            // All should have priority_score
-            expect($ranked[0]['priority_score'])->toBeGreaterThan(0);
+            expect($safetyNetRec['urgency_score'])->toBe(85.0);
+            expect($progressRec['urgency_score'])->toBe(60.0);
+            expect($ranked[0]['priority_score'])->toBeGreaterThan($ranked[1]['priority_score']);
         });
 
         it('groups goals into category bucket', function () {

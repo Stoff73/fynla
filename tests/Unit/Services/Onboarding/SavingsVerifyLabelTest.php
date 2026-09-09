@@ -17,15 +17,15 @@ it('labels the savings verify section by what the user holds, never calling an I
         'onboarding_fyn_context' => ['verify_section' => 'savings'],
     ]);
 
-    $prompt = OnboardingStateMachine::verifyPromptMore('', $user);
+    $prompt = OnboardingStateMachine::verifyPromptAnnounce('', $user);
 
     expect($prompt)->toContain($expected);
     if ($notExpected !== '') {
         expect($prompt)->not->toContain($notExpected);
     }
 })->with([
-    'ISA only → ISA accounts' => [['isa'], 'your ISA accounts?', 'bank accounts'],
-    'bank only → bank accounts' => [['bank'], 'your bank accounts?', ''],
-    'savings only → bank accounts' => [['savings'], 'your bank accounts?', ''],
-    'both → savings and ISA accounts' => [['isa', 'bank'], 'your savings and ISA accounts?', ''],
+    'ISA only → ISA accounts' => [['isa'], 'your ISA accounts', 'bank accounts'],
+    'bank only → bank accounts' => [['bank'], 'your bank accounts', ''],
+    'savings only → bank accounts' => [['savings'], 'your bank accounts', ''],
+    'both → savings and ISA accounts' => [['isa', 'bank'], 'your savings and ISA accounts', ''],
 ]);

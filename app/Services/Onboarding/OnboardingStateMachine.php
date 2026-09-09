@@ -50,6 +50,16 @@ use Illuminate\Support\Facades\Log;
  */
 final class OnboardingStateMachine
 {
+    /**
+     * Statuses with a workplace pension to capture. The base_employment bubble
+     * stores `employed` while typed answers store `full_time`/`part_time`, so
+     * both predicates that branch on employment read this one list (F7).
+     */
+    /** The shipped workflow table: the one home for every state's DATA fields (F4). */
+    public const SHIPPED_WORKFLOW = __DIR__.'/../../../fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md';
+
+    public const WORKPLACE_PENSION_STATUSES = ['employed', 'full_time', 'part_time'];
+
     public const STATE_PATH_CHOICE = 'path_choice';
 
     public const STATE_JOURNEY_SELECTION = 'journey_selection';
@@ -82,8 +92,6 @@ final class OnboardingStateMachine
 
     public const STATE_PROFILE_REVIEW_FAMILY = 'profile_review_family';
 
-    public const STATE_PROFILE_REVIEW_EXPENDITURE = 'profile_review_expenditure';
-
     public const STATE_ASSET_CAPTURE = 'asset_capture';
 
     public const STATE_ADD_MORE = 'add_more';
@@ -99,7 +107,6 @@ final class OnboardingStateMachine
     public const STATE_FREE_CHAT = 'free_chat';
 
     // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign).
-    // Hangs off STATE_PROFILE_REVIEW_EXPENDITURE; bypasses STATE_ASSET_CAPTURE.
     // STATE_CAMPAIGN_INTRO is the consent gate before the asset/liability capture
     // flow begins — explains why we're shifting topic and asks "Okay" / "Nope".
     public const STATE_CAMPAIGN_INTRO = 'campaign_intro';
@@ -364,181 +371,57 @@ final class OnboardingStateMachine
     {
         return [
             self::STATE_PATH_CHOICE => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => "Hi {first_name}, I'm Fyn — welcome to Fynla. I'll help you set up your financial plan. To start, do you want to follow a life-stage journey or pick a single module focus?",
                 // Re-emissions (resume Continue, interruption re-emits, retry
                 // fallthroughs) use this instead of prompt_text once the
                 // conversation already has an assistant message — the "Hi,
                 // I'm Fyn — welcome to Fynla" introduction is shown exactly
                 // once per conversation. See OnboardingChatDirector::emitTurnForState.
                 'reprompt_text' => 'Do you want to follow a life-stage journey or pick a single module focus?',
-                'bubbles' => [
-                    ['id' => 'journey', 'label' => 'Follow a journey'],
-                    ['id' => 'focus', 'label' => 'Pick a focus'],
-                    // CSJ 2026-08-18: without a third door this state was a
-                    // dead end. Anything that is not one of the two labels gets
-                    // "Sorry, I didn't catch that. Please pick one of the
-                    // options above." — so a returning user who wanted to ask
-                    // something, or add one record, could not get past the
-                    // front page of onboarding, on any surface, ever.
-                    ['id' => 'skip', 'label' => 'Something else'],
-                ],
-                'capture_field' => 'onboarding_fyn_path',
                 'next' => self::class.'::nextFromPathChoice',
             ],
             self::STATE_JOURNEY_SELECTION => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => 'Which journey fits your situation best?',
-                'bubbles' => [
-                    // Labels and descriptions match the canonical life-stage
-                    // names in resources/js/constants/lifeStageConfig.js and
-                    // the /onboarding/welcome landing page so users see the
-                    // same wording everywhere.
-                    [
-                        'id' => 'budgeting',
-                        'label' => 'Starting Out',
-                        'description' => 'Build smart money habits from day one.',
-                    ],
-                    [
-                        'id' => 'goals',
-                        'label' => 'Building Foundations',
-                        'description' => 'Save for your first home and grow your career.',
-                    ],
-                    [
-                        'id' => 'protection',
-                        'label' => 'Protecting What Matters',
-                        'description' => 'Secure your family and grow your wealth.',
-                    ],
-                    [
-                        'id' => 'retirement',
-                        'label' => 'Planning Your Future',
-                        'description' => 'Maximise your wealth and prepare for retirement.',
-                    ],
-                    [
-                        'id' => 'estate',
-                        'label' => 'Enjoying Your Wealth',
-                        'description' => 'Make your money last and leave a legacy.',
-                    ],
-                ],
-                'capture_field' => 'onboarding_fyn_selection',
-                'next' => self::STATE_BASE_PERSONAL,
             ],
             self::STATE_FOCUS_SELECTION => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => 'Which area would you like me to focus on first?',
-                'bubbles' => [
-                    ['id' => 'savings', 'label' => 'Savings'],
-                    ['id' => 'investment', 'label' => 'Investment'],
-                    ['id' => 'retirement', 'label' => 'Retirement'],
-                    ['id' => 'protection', 'label' => 'Protection'],
-                    ['id' => 'estate', 'label' => 'Estate Planning'],
-                    ['id' => 'goals', 'label' => 'Goals & Life Events'],
-                    ['id' => 'budgeting', 'label' => 'Budgeting'],
-                    ['id' => 'business', 'label' => 'Business'],
-                ],
-                'capture_field' => 'onboarding_fyn_selection',
-                'next' => self::STATE_BASE_PERSONAL,
             ],
             self::STATE_BASE_PERSONAL => [
-                'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildPersonalPrompt',
-                'extraction_tool' => 'capture_personal_details',
-                'retry_text' => "Sorry, I didn't catch both pieces. Could you tell me your date of birth (something like 12 January 1985) and your marital status?",
                 'next' => self::class.'::nextFromPersonal',
                 'skip_if' => [self::class, 'skipIfPersonalComplete'],
             ],
             self::STATE_BASE_SPOUSE => [
-                'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildSpousePrompt',
-                'extraction_tool' => 'capture_spouse_details',
-                'retry_text' => 'I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?',
-                'next' => self::STATE_BASE_DEPENDANTS,
                 // Phase 10 — surface a raspberry-500 inline skip link alongside
                 // the prompt. Frontend posts {action: 'skip'} to the action
                 // endpoint; director's handleSkipAction advances to base_dependants.
-                'skip_link' => [
-                    'label' => 'Skip this for now',
-                    'color' => 'raspberry',
-                ],
             ],
             self::STATE_BASE_DEPENDANTS => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => 'Any children or dependants to add?',
-                'bubbles' => [
-                    ['id' => 'yes', 'label' => 'Yes'],
-                    ['id' => 'no', 'label' => 'No'],
-                ],
-                'capture_field' => null, // written to onboarding_fyn_context.has_dependants
                 'next' => self::class.'::nextFromDependants',
             ],
             self::STATE_BASE_DEPENDANTS_DETAIL => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => 'Lovely. Tell me their first names, exact dates of birth, and how they are related to you (child, parent, or other dependant). Please use day, month, and year — accurate dates help keep the plan correct. You can list several in one go.',
-                'extraction_tool' => 'capture_dependants',
-                'retry_text' => 'Could you list them again with exact dates of birth and how they are related? Something like "Alice, born 14 September 2017, child".',
-                'next' => self::STATE_PROFILE_REVIEW_FAMILY,
             ],
             // Phase 10 — profile-review pause after family details. Frontend
             // shrinks the chat to w-[525px] and un-blurs the dashboard while
             // this state is active.
             self::STATE_PROFILE_REVIEW_FAMILY => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => 'Does your family and personal information look right? Tap the bubble to confirm — or just tell me what needs changing.',
-                'bubbles' => [
-                    ['id' => 'looks_correct', 'label' => 'Looks correct'],
-                ],
-                'capture_field' => null,
-                'layout' => 'standard',
-                'next' => self::STATE_BASE_EMPLOYMENT,
             ],
             self::STATE_BASE_EMPLOYMENT => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => "And what's your employment situation at the moment?",
                 // Phase 10 — rename Employed → Full-time, drop Other (FR-M15).
-                'bubbles' => [
-                    ['id' => 'employed', 'label' => 'Full-time'],
-                    ['id' => 'self_employed', 'label' => 'Self-employed'],
-                    ['id' => 'part_time', 'label' => 'Part-time'],
-                    ['id' => 'retired', 'label' => 'Retired'],
-                    ['id' => 'unemployed', 'label' => 'Not working'],
-                ],
-                'capture_field' => 'employment_status',
-                'value_parser' => 'parseEmploymentFromText',
                 'next' => self::class.'::nextFromEmployment',
                 'skip_if' => [self::class, 'skipIfEmploymentSet'],
             ],
             self::STATE_BASE_WORK => [
-                'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildWorkPrompt',
-                'extraction_tool' => 'capture_work_details',
-                'retry_text' => 'I just need your gross annual income in GBP — could you share that?',
-                'next' => self::STATE_BASE_EMPLOYMENT_MORE,
             ],
             // Phase 10 — multi-job loop. After the first job is captured,
             // ask if the user has another.  Yes loops back to base_employment;
             // No advances to expenditure.
             self::STATE_BASE_EMPLOYMENT_MORE => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => 'Do you have any other roles or sources of earned income to add?',
-                'bubbles' => [
-                    ['id' => 'yes', 'label' => 'Yes, add another'],
-                    ['id' => 'no', 'label' => "No, that's everything"],
-                ],
-                'capture_field' => null,
                 'next' => self::class.'::nextFromEmploymentMore',
             ],
             self::STATE_BASE_RETIREMENT_DATE => [
-                'turn_type' => 'free_text',
-                'prompt_text' => 'When did you retire? A year is fine — something like "2020".',
-                'capture_field' => 'retirement_date',
-                'value_parser' => 'parseRetirementDate',
                 'next' => self::class.'::nextFromRetirementDate',
             ],
             self::STATE_BASE_EXPENDITURE => [
-                'turn_type' => 'free_text',
-                'prompt_text' => JourneyFieldResolver::getFynPrompt('monthly_expenditure'),
-                'capture_field' => 'monthly_expenditure',
-                'value_parser' => 'parseExpenditureAmount',
                 // Path-aware: the savetax campaign runs expenditure near the end
                 // of its reordered section flow, then heads to the holistic
                 // terminal. The journey path verifies too (every data entry —
@@ -555,22 +438,6 @@ final class OnboardingStateMachine
                 },
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
             ],
-            // Phase 10 — profile-review pause after expenditure. Shows the
-            // ProfileReviewPanel with expenditure alongside the earlier fields.
-            //
-            // Branches on users.onboarding_fyn_path:
-            //   - 'campaign' → STATE_CAMPAIGN_INTRO (savetax consent gate)
-            //   - 'journey' / 'focus' → STATE_ASSET_CAPTURE (existing behaviour)
-            self::STATE_PROFILE_REVIEW_EXPENDITURE => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => 'Your expenditure is noted. Confirm the full profile looks right — or tell me what to change.',
-                'bubbles' => [
-                    ['id' => 'looks_correct', 'label' => 'Looks correct'],
-                ],
-                'capture_field' => null,
-                'layout' => 'standard',
-                'next' => self::class.'::nextFromExpenditureReview',
-            ],
             // ─── SaveTax campaign branch (sections 4-6) ─────────────────────
             // Consent gate before asset/liability capture begins. Explains the
             // topic shift and asks for explicit acknowledgement so the jump from
@@ -579,13 +446,7 @@ final class OnboardingStateMachine
             //   - 'okay' → STATE_CAMPAIGN_OCCUPATIONAL_SCHEME (continue)
             //   - 'nope' → STATE_DONE (parks campaign, sets onboarding_completed)
             self::STATE_CAMPAIGN_INTRO => [
-                'turn_type' => 'bubbles',
                 'prompt_text' => self::class.'::buildCampaignIntroPrompt',
-                'bubbles' => [
-                    ['id' => 'okay', 'label' => 'Okay'],
-                    ['id' => 'nope', 'label' => 'Nope'],
-                ],
-                'capture_field' => null,
                 'next' => self::class.'::nextFromCampaignIntro',
             ],
             //
@@ -599,17 +460,11 @@ final class OnboardingStateMachine
             // populate the user's tax position from natural-language input.
             // ── Savings section (entry: ISA) ──────────────────────────────
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
-                'turn_type' => 'delegated',
-                'prompt_text' => "Let's look at your ISAs. **For each one, is it a Cash, Stocks & Shares, Lifetime, or Innovative Finance ISA; what's its current balance; how much have you put in this tax year; and is it owned by you individually?**",
-                'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
                 // Only ask about ISAs if the user ticked "ISA" on the funnel.
                 'skip_if' => [self::class, 'skipIfNoIsa'],
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
-                'turn_type' => 'delegated',
                 'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
-                'capture_field' => null,
                 // Existing savings rows (with ids) enter the prompt so a
                 // message referencing an account already on file updates it by
                 // entity_id instead of guessing entity_id 0 (live 2026-07-23:
@@ -624,26 +479,17 @@ final class OnboardingStateMachine
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
-                'turn_type' => 'delegated',
-                'prompt_text' => 'Any investment accounts — General Investment Accounts or share trading platforms? For each one, tell me the current value, purchase cost, annual dividend income, and whether you own it individually or jointly. If jointly, include the other owner and your percentage share.',
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
-                'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildCampaignDobPrompt',
-                'extraction_tool' => 'capture_personal_details',
-                'retry_text' => 'Could you give me your date of birth — for example 12 January 1985 or 12/01/85?',
                 // Pension questions only if the user ticked "pension"; otherwise
                 // DOB is captured and we skip straight to the next section.
                 'next' => self::class.'::nextFromCampaignDob',
                 'skip_if' => [self::class, 'skipIfDobSet'],
             ],
             self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
-                'turn_type' => 'delegated',
-                'prompt_text' => "Tell me about your workplace pension. **What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice?** If you don't have a workplace pension, just say so and we'll move on.",
-                'capture_field' => null,
                 // Deterministic gap-fill focus: campaign users carry selection
                 // 'savetax', which maps to no gap-fill tool — so a model
                 // misfire here silently lost the contribution answer (live
@@ -666,12 +512,8 @@ final class OnboardingStateMachine
                 // would re-prompt and stall the walk. Opt in to advancing once
                 // the answer is substantive — the side-question is answered in
                 // the same turn and the script moves on.
-                'advance_on_answered_question' => true,
             ],
             self::STATE_CAMPAIGN_PENSION_CONTRIBS => [
-                'turn_type' => 'delegated',
-                'prompt_text' => 'Beyond the workplace pension we covered, **do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?**',
-                'capture_field' => null,
                 // For savetax: ends the pensions section → verify gate (unchanged).
                 // For pensioncheck: advances to campaign2_pension_db (Defined Benefit
                 // capture) before closing the pensions section.
@@ -685,7 +527,6 @@ final class OnboardingStateMachine
                 // PHP-only field, not represented in the corpus workflow.
                 'record_context' => 'pensions',
                 'record_context_mode' => 'contribution',
-                'advance_on_answered_question' => true,
             ],
             // ── PensionCheck-specific states (Task C3) ───────────────────────────
             // Reachable only when onboarding_fyn_selection === 'pensioncheck'.
@@ -695,13 +536,7 @@ final class OnboardingStateMachine
             // "Yes, that's right" → first non-skipped section; "Something's changed"
             // → campaign_verify_edit (existing generic edit machinery).
             self::STATE_CAMPAIGN2_EXISTING_RECAP => [
-                'turn_type' => 'bubbles',
                 'prompt_text' => self::class.'::buildExistingRecapPrompt',
-                'bubbles' => [
-                    ['id' => 'yes', 'label' => "Yes, that's right"],
-                    ['id' => 'changed', 'label' => "Something's changed"],
-                ],
-                'capture_field' => null,
                 'next' => self::class.'::nextFromExistingRecap',
             ],
             // Loops until every DC pension has a current_fund_value. One pension
@@ -710,9 +545,7 @@ final class OnboardingStateMachine
             // and returns self (loops) or campaign_pension_contribs (done).
             // update_record targets the dc_pensions row by id.
             self::STATE_CAMPAIGN2_PENSION_POTS => [
-                'turn_type' => 'delegated',
                 'prompt_text' => self::class.'::buildPensionPotsPrompt',
-                'capture_field' => null,
                 'next' => self::class.'::nextFromPensionPots',
                 // Entry skip: only surface the pot-value loop when a DC pension is
                 // actually missing its value. Zero DC pensions (e.g. the
@@ -727,17 +560,11 @@ final class OnboardingStateMachine
                 // target the right row (handleAssetCaptureTurn appendix, verify-edit
                 // pattern). PHP-only field — not represented in the corpus workflow.
                 'record_context' => 'pensions',
-                'advance_on_answered_question' => true,
             ],
             // Defined Benefit / final salary pension capture. create_pension writes
             // the DB / career-average row. advance_on_answered_question: true so
             // "no I don't have one" advances without a tool call.
             self::STATE_CAMPAIGN2_PENSION_DB => [
-                'turn_type' => 'delegated',
-                'prompt_text' => "**Do you have any final salary or career average pensions — the kind that pay a guaranteed income rather than building a pot?** If so, tell me the scheme name and the yearly pension you've built up so far.",
-                'capture_field' => null,
-                'next' => self::STATE_CAMPAIGN_PENSION_HISTORY,
-                'advance_on_answered_question' => true,
             ],
             // Pension contribution history — pensioncheck only. Shown only when the
             // user's gross income exceeds the higher-rate threshold (skipIfPensionHistory
@@ -746,14 +573,7 @@ final class OnboardingStateMachine
             // clarify_single_figure enabled: mirrors the savetax path ambiguity guard
             // (total vs per-year) that already exists for savetax users.
             self::STATE_CAMPAIGN_PENSION_HISTORY => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => '**Roughly how much has gone into your pensions in each of the last three tax years?** Rough figures are fine — it helps work out how much you could still put in with tax relief.',
-                'capture_field' => null,
-                'extraction_tool' => 'capture_pension_history',
-                'retry_text' => 'Give me a year-by-year breakdown — for example: 2024/25: £5,000, 2023/24: £8,000, 2022/23: £6,000. Rough figures are fine.',
-                'next' => self::STATE_CAMPAIGN2_FLEXIBLE_ACCESS,
                 'skip_if' => [self::class, 'skipIfPensionHistoryNotApplicable'],
-                'clarify_single_figure' => true,
             ],
             // Flexible access flag. Only shown when age >= 55 (current Minimum
             // Pension Access Age) and has_flexibly_accessed is not already set.
@@ -762,12 +582,8 @@ final class OnboardingStateMachine
             // advance_on_answered_question without any tool call. This mirrors
             // campaign2_pension_pots which works reliably as delegated.
             self::STATE_CAMPAIGN2_FLEXIBLE_ACCESS => [
-                'turn_type' => 'delegated',
-                'prompt_text' => "**Have you taken any money out of a pension — a lump sum or a regular income?** It matters because it can cap what you're allowed to pay in from now on.",
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'pensions'),
                 'skip_if' => [self::class, 'skipIfFlexibleAccessNotApplicable'],
-                'advance_on_answered_question' => true,
                 // PHP-only: list the user's DC pensions (with entity_ids) in the
                 // turn appendix so the "yes" branch's update_record targets the
                 // right row deterministically instead of relying on the model.
@@ -776,24 +592,13 @@ final class OnboardingStateMachine
             // State Pension forecast. advance_on_answered_question: true so
             // "not sure" advances — the engine's no-forecast advice fires later.
             self::STATE_CAMPAIGN2_STATE_PENSION => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => "**Do you know your State Pension forecast?** You can check it in a couple of minutes on the government's Check your State Pension service. If you have it, tell me the yearly amount and how many qualifying years you've built up.",
-                'capture_field' => null,
-                'extraction_tool' => 'capture_state_pension',
-                'retry_text' => "If you know it, give me the yearly forecast and your qualifying years — for example £10,000 a year, 25 qualifying years. If you're not sure, just say so and we'll note the gap.",
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'state_pension'),
-                'advance_on_answered_question' => true,
             ],
             // Retirement goals: age + income. Income-only tool response returns
             // details.missing=['target_retirement_age'] → director's emitPartialRetry
             // keeps the state; context re-supplies the income on the next turn so
             // the final tool call carries both fields.
             self::STATE_CAMPAIGN2_RETIREMENT_GOALS => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => '**When would you like to retire, and what yearly income would feel comfortable?** Rough numbers are fine — for example 65 and £30,000.',
-                'capture_field' => null,
-                'extraction_tool' => 'capture_retirement_goals',
-                'retry_text' => 'Give me an age and a yearly amount — for example 67 and £28,000.',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'retirement_goals'),
             ],
             // Spouse pensions. create_pension writes with owner_user_id = spouse_id,
@@ -801,40 +606,17 @@ final class OnboardingStateMachine
             // Skipped for unmarried users; advance_on_answered_question: true so
             // "no pensions" advances without a tool call.
             self::STATE_CAMPAIGN2_SPOUSE_PENSIONS => [
-                'turn_type' => 'delegated',
-                'prompt_text' => '**Does your spouse have pensions of their own?** Tell me the type and a rough value for each — workplace, personal, or final salary.',
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
                 'skip_if' => [self::class, 'skipIfNotMarried'],
-                'advance_on_answered_question' => true,
             ],
             // PensionCheck terminal: pension picture assembled, navigate to /retirement.
             // Mirrors campaign_terminal shape (turn_type=terminal, navigate_to, next=done).
             self::STATE_CAMPAIGN2_TERMINAL => [
-                'turn_type' => 'terminal',
-                'prompt_text' => "We've built your pension picture, {first_name}.",
-                'capture_field' => null,
-                'navigate_to' => '/retirement',
-                'next' => self::STATE_DONE,
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => 'Does your spouse work?',
-                'bubbles' => [
-                    ['id' => 'yes', 'label' => 'Yes, they work'],
-                    ['id' => 'no', 'label' => "No, they don't currently work"],
-                ],
-                'capture_field' => null,
                 // Bubble click dispatches capture_spouse_work_status synchronously
                 // before nextFromSpouseWork reads household_calculation_mode.
                 // Without this the column stays NULL and routing falls to TERMINAL.
-                'bubble_capture' => [
-                    'tool' => 'capture_spouse_work_status',
-                    'input_for_bubble' => [
-                        'yes' => ['spouse_works' => true],
-                        'no' => ['spouse_works' => false],
-                    ],
-                ],
                 'next' => self::class.'::nextFromSpouseWork',
                 'skip_if' => [self::class, 'skipSpouseWorkIfModeKnown'],
             ],
@@ -842,20 +624,10 @@ final class OnboardingStateMachine
             // composite tool that captures multiple fields in a single call,
             // mirroring the capture_personal_details / capture_dependants pattern.
             self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => 'Great. **How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?**',
-                'capture_field' => null,
-                'extraction_tool' => 'capture_spouse_household_data',
-                'retry_text' => 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
                 'skip_if' => [self::class, 'skipIfNotDualEarner'],
             ],
             self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => [
-                'turn_type' => 'grouped_extract',
-                'prompt_text' => "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. **Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?**",
-                'capture_field' => null,
-                'extraction_tool' => 'capture_spouse_non_working_assets',
-                'retry_text' => 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'spouse'),
                 'skip_if' => [self::class, 'skipIfNotSingleEarnerCouple'],
             ],
@@ -863,11 +635,6 @@ final class OnboardingStateMachine
             // STATE_DONE; the OnboardingChatDirector reads `navigate_to` and emits
             // a `navigate` SSE event when this state is reached.
             self::STATE_CAMPAIGN_TERMINAL => [
-                'turn_type' => 'terminal',
-                'prompt_text' => "We've created your personal tax strategy, {first_name}.",
-                'capture_field' => null,
-                'navigate_to' => '/tax-strategy',
-                'next' => self::STATE_DONE,
             ],
             // ── Per-section advice (auto-advancing) ───────────────────────
             // Each fires after its section's capture, relays the relevant
@@ -876,42 +643,28 @@ final class OnboardingStateMachine
             // (verify_navigate "yes" → this advice → next section). Each relays
             // its tax-engine recommendation, then continues to the next section.
             self::STATE_CAMPAIGN_ADVICE_INCOME => [
-                'turn_type' => 'advice',
-                'advice_section' => 'income',
-                'capture_field' => null,
-                'next' => fn (string $answer, User $user): string => self::nextCampaignSection('income', $user),
+                // SaveTax users pass the consent gate before the first asset
+                // section (F6 re-wire, CSJ 2026-09-09); PensionCheck walks straight on.
+                'next' => fn (string $answer, User $user): string => ($user->onboarding_fyn_selection ?? 'savetax') === 'savetax'
+                    ? self::STATE_CAMPAIGN_INTRO
+                    : self::nextCampaignSection('income', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_SAVINGS => [
-                'turn_type' => 'advice',
-                'advice_section' => 'savings',
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_INVESTMENTS => [
-                'turn_type' => 'advice',
-                'advice_section' => 'investments',
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_PENSIONS => [
-                'turn_type' => 'advice',
-                'advice_section' => 'pensions',
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_SPOUSE => [
-                'turn_type' => 'advice',
-                'advice_section' => 'spouse',
-                'capture_field' => null,
                 // Last section's advice → nextCampaignSection('spouse') returns
                 // STATE_CAMPAIGN_TERMINAL once the sections are exhausted. This
                 // MUST NOT point back at itself.
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('spouse', $user),
             ],
             self::STATE_CAMPAIGN_SYNTHESIS => [
-                'turn_type' => 'advice',
-                'advice_section' => 'synthesis',
-                'capture_field' => null,
                 // Callable string ref — routes to the correct campaign terminal based
                 // on the user's campaign selection. NEVER a closure: advice turns
                 // auto-advance and a self-edge recurses unbounded (PR #504 incident).
@@ -919,29 +672,13 @@ final class OnboardingStateMachine
             ],
             // ── Pensioncheck per-section advice turns ──────────────────────
             self::STATE_CAMPAIGN2_ADVICE_STATE_PENSION => [
-                'turn_type' => 'advice',
-                'advice_section' => 'state_pension',
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('state_pension', $user),
             ],
             self::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS => [
-                'turn_type' => 'advice',
-                'advice_section' => 'retirement_goals',
-                'capture_field' => null,
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('retirement_goals', $user),
             ],
             // ── SaveTax verify sub-flow (generic; section in context) ──────
             // Entered via enterCampaignVerify() which stamps verify_section.
-            'campaign_verify_more' => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => self::class.'::verifyPromptMore',
-                'bubbles' => [
-                    ['id' => 'yes', 'label' => 'Yes, add more'],
-                    ['id' => 'no', 'label' => "No, that's everything"],
-                ],
-                'capture_field' => null,
-                'next' => self::class.'::nextFromVerifyMore',
-            ],
             // Announce-before-navigate: Fyn says it's taking the user to the
             // section's page and waits for an explicit "Okay" tap BEFORE the
             // navigation fires. Without this gate the navigate event fired in the
@@ -950,13 +687,7 @@ final class OnboardingStateMachine
             // here on purpose; the Okay tap advances to campaign_verify_navigate,
             // which owns the actual navigation.
             'campaign_verify_announce' => [
-                'turn_type' => 'bubbles',
                 'prompt_text' => self::class.'::verifyPromptAnnounce',
-                'bubbles' => [
-                    ['id' => 'okay', 'label' => 'Okay'],
-                ],
-                'capture_field' => null,
-                'next' => 'campaign_verify_navigate',
             ],
             // Bubbles state that ALSO emits a navigation event when navigate_to
             // resolves to a route (director extension): the chat minimises + routes,
@@ -965,62 +696,29 @@ final class OnboardingStateMachine
             // inline confirm, no navigation). Reached only AFTER the user taps
             // Okay on campaign_verify_announce.
             'campaign_verify_navigate' => [
-                'turn_type' => 'bubbles',
                 'prompt_text' => self::class.'::verifyPromptNavigate',
                 'navigate_to' => fn (User $user): ?string => self::verifyNavigateRoute($user),
-                'bubbles' => [
-                    ['id' => 'yes', 'label' => "Yes, that's right"],
-                    ['id' => 'no', 'label' => 'No, change something'],
-                ],
-                'capture_field' => null,
                 'next' => self::class.'::nextFromVerifyNavigate',
             ],
             'campaign_verify_edit' => [
-                'turn_type' => 'delegated',
-                'prompt_text' => 'No problem — what needs changing?',
-                'capture_field' => null,
                 // After the edit is applied, re-show the screen + re-ask "correct?".
-                'next' => 'campaign_verify_navigate',
             ],
             self::STATE_ASSET_CAPTURE => [
-                'turn_type' => 'delegated',
                 // Prompt is built at runtime by OnboardingPromptBuilder based
                 // on the selected focus. The string below is only used as a
                 // Fyn intro message rendered BEFORE the Claude delegation.
                 'prompt_text' => self::class.'::buildAssetCaptureIntro',
-                'capture_field' => null,
                 // Every data entry verifies (CSJ 2026-07-24): a capture that
                 // landed data enters the announce → navigate → Continue/Edit
                 // loop for its module before the add-more picker.
                 'next' => self::class.'::nextFromAssetCapture',
             ],
             self::STATE_ADD_MORE => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => "Anything else you'd like to cover?",
-                'bubbles' => [
-                    // Dynamic per-user — director strips already-visited focuses
-                    // and always appends the "I'm done" bubble. Static config here
-                    // lists the full option set for reference.
-                    ['id' => 'savings', 'label' => 'Savings'],
-                    ['id' => 'investment', 'label' => 'Investment'],
-                    ['id' => 'retirement', 'label' => 'Retirement'],
-                    ['id' => 'protection', 'label' => 'Protection'],
-                    ['id' => 'done', 'label' => "I'm done"],
-                ],
-                'capture_field' => null,
                 'next' => self::class.'::nextFromAddMore',
             ],
             self::STATE_FREE_CHAT => [
-                'turn_type' => 'terminal',
-                'prompt_text' => 'No problem. What would you like help with?',
-                'capture_field' => null,
-                'next' => null,
             ],
             self::STATE_DONE => [
-                'turn_type' => 'terminal',
-                'prompt_text' => 'All set, {first_name}. Your {selection} module is ready to explore.',
-                'capture_field' => null,
-                'next' => null,
             ],
         ];
     }
@@ -1054,34 +752,33 @@ final class OnboardingStateMachine
 
         $base = self::inCodeStates();
 
+        // The corpus workflow procedure is the one home for the table's DATA
+        // (prompt text, bubbles, turn types, static next…) since F4; the in-code
+        // table holds only the PHP-only fields (skip_if, closures, callables).
+        $data = null;
         try {
-            $corpus = app(ProceduralCorpusLoader::class)->load();
-            $procedure = $corpus->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
-            if ($procedure === null) {
-                return self::$transitionTableCache = $base;
-            }
-
-            $data = OnboardingWorkflowTable::fromProcedure($procedure);
-            if ($data === null) {
-                return self::$transitionTableCache = $base;
-            }
-
-            // State-id set + order MUST match the in-code table, else fall back.
-            if (array_keys($data) !== array_keys($base)) {
-                Log::notice('[OnboardingStateMachine] Corpus workflow ignored: state-id set mismatch with in-code table — falling back to in-code states.', [
-                    'corpus_states' => count($data),
-                    'in_code_states' => count($base),
-                ]);
-
-                return self::$transitionTableCache = $base;
-            }
-
-            return self::$transitionTableCache = self::mergeTable($base, $data);
+            $procedure = app(ProceduralCorpusLoader::class)->load()->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
+            $data = $procedure === null ? null : OnboardingWorkflowTable::fromProcedure($procedure);
         } catch (\Throwable $e) {
             report($e);
-
-            return self::$transitionTableCache = $base;
         }
+
+        if ($data === null || array_keys($data) !== array_keys($base)) {
+            // A corpus without the workflow (a test's temp corpus, a broken deploy)
+            // reads the shipped copy; a shipped copy that does not match the code's
+            // state set is a defect, not something to paper over with a text-less table.
+            Log::notice('[OnboardingStateMachine] Corpus workflow absent or its state set differs from the in-code table — reading the shipped workflow file.', [
+                'corpus_states' => $data === null ? 0 : count($data),
+                'in_code_states' => count($base),
+            ]);
+            $shipped = app(ProceduralCorpusLoader::class)->parseFile(self::SHIPPED_WORKFLOW, 'workflow', 'onboarding');
+            $data = OnboardingWorkflowTable::fromProcedure($shipped);
+            if ($data === null || array_keys($data) !== array_keys($base)) {
+                throw new \RuntimeException('Onboarding workflow table: the shipped corpus file is missing, malformed, or its state set does not match the in-code table.');
+            }
+        }
+
+        return self::$transitionTableCache = self::mergeTable($base, $data);
     }
 
     /**
@@ -1355,19 +1052,6 @@ final class OnboardingStateMachine
         return (string) (($user->onboarding_fyn_context['verify_section'] ?? '') ?: '');
     }
 
-    /** verify_more: "yes" loops back to the section's capture entry; "no" → navigate. */
-    public static function nextFromVerifyMore(string $answer, User $user): string
-    {
-        if (self::normaliseYesNo($answer) === 'yes') {
-            $section = self::verifySection($user);
-            $selection = $user->onboarding_fyn_selection ?? 'savetax';
-
-            return self::campaignVerifyConfig($selection)[$section]['entry'] ?? self::STATE_CAMPAIGN_SYNTHESIS;
-        }
-
-        return 'campaign_verify_navigate';
-    }
-
     /** verify_navigate: "no" → edit; "yes" → section advice (then next section). */
     public static function nextFromVerifyNavigate(string $answer, User $user): string
     {
@@ -1490,18 +1174,6 @@ final class OnboardingStateMachine
     }
 
     /**
-     * Prompt for verify_more, section-aware. Signature mirrors the other
-     * callable prompt builders (buildPersonalPrompt): invoked by
-     * resolvePromptText/invokeCallableString as ($answer, $user).
-     */
-    public static function verifyPromptMore(string $answer, User $user): string
-    {
-        $label = self::sectionLabel(self::verifySection($user), $user);
-
-        return "Anything else to add to your {$label}?";
-    }
-
-    /**
      * Prompt for verify_announce, section-aware. Fyn states the upcoming
      * transition and waits for an Okay tap before the navigation fires.
      */
@@ -1592,7 +1264,7 @@ final class OnboardingStateMachine
     public static function nextFromEmployment(string $answer, User $user): string
     {
         $status = $user->employment_status ?? '';
-        if (in_array($status, ['employed', 'full_time', 'part_time', 'self_employed'], true)) {
+        if (in_array($status, [...self::WORKPLACE_PENSION_STATUSES, 'self_employed'], true)) {
             return self::STATE_BASE_WORK;
         }
 
@@ -2166,26 +1838,6 @@ final class OnboardingStateMachine
     // ─── SaveTax campaign branch helpers (sections 4-6) ─────────────────
 
     /**
-     * Branch from STATE_PROFILE_REVIEW_EXPENDITURE based on onboarding_fyn_path.
-     * path=campaign users hit the consent gate (STATE_CAMPAIGN_INTRO) before
-     * the asset/liability capture; journey/focus users continue to the existing
-     * asset_capture flow.
-     */
-    public static function nextFromExpenditureReview(string $answer, User $user): string
-    {
-        if ($user->onboarding_fyn_path !== 'campaign') {
-            return self::STATE_ASSET_CAPTURE;
-        }
-
-        // PensionCheck enters the recap gate (existing data confirmation) instead
-        // of the savetax consent intro. Both are campaign paths, so the check is
-        // on selection, not path.
-        return $user->onboarding_fyn_selection === 'pensioncheck'
-            ? self::STATE_CAMPAIGN2_EXISTING_RECAP
-            : self::STATE_CAMPAIGN_INTRO;
-    }
-
-    /**
      * Builds the campaign intro prompt that explains why the conversation is
      * shifting from personal/employment data to assets and liabilities. Spouse
      * phrasing is included when the user is married or in a civil partnership;
@@ -2232,8 +1884,8 @@ final class OnboardingStateMachine
 
     /**
      * Branch from STATE_CAMPAIGN_INTRO based on the user's bubble choice.
-     * "okay" continues into the asset/liability capture flow; anything else
-     * (including "nope") routes to STATE_DONE so onboarding_completed is set
+     * "okay" continues into the first campaign section after income; anything
+     * else (including "No thanks") routes to STATE_DONE so onboarding_completed is set
      * and the user lands on /dashboard. They can revisit the campaign via the
      * Tax Strategy tile on /actions whenever they're ready.
      */
@@ -2242,7 +1894,7 @@ final class OnboardingStateMachine
         $matched = self::matchBubble(self::STATE_CAMPAIGN_INTRO, $answer);
 
         return $matched === 'okay'
-            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            ? self::nextCampaignSection('income', $user)
             : self::STATE_DONE;
     }
 
@@ -2275,7 +1927,7 @@ final class OnboardingStateMachine
      */
     public static function skipIfNotEmployed(User $user): bool
     {
-        return ! in_array((string) $user->employment_status, ['full_time', 'part_time'], true);
+        return ! in_array((string) $user->employment_status, self::WORKPLACE_PENSION_STATUSES, true);
     }
 
     /**

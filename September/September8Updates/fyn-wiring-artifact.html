@@ -1,0 +1,1179 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>Fyn Recommendation Wiring</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F7F6F4; --panel:#FFFFFF; --panel-2:#F5EDE5; --line:#E7E5E2; --line-2:#D1B08C;
+  --ink:#1F2A44; --ink-2:#0F172A; --muted:#5B6478; --faint:#8A7359;
+  --llm:#E83E6D; --llm-soft:#FCE7F3; --det:#20B486; --det-soft:#D1FAE5; --gate:#5854E6; --gate-soft:#EDE9FE;
+  --warn:#7C3AED; --code-bg:#F1EEE9;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0A0E1A; --panel:#111827; --panel-2:#1F2A44; --line:#2A3654; --line-2:#8A7359;
+    --ink:#E7E5E2; --ink-2:#FFFFFF; --muted:#A3ACC2; --faint:#D1B08C;
+    --llm:#F472B6; --llm-soft:#3B1226; --det:#34D399; --det-soft:#0B3B2E; --gate:#A78BFA; --gate-soft:#241B4A;
+    --warn:#C4B5FD; --code-bg:#0F172A;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0A0E1A; --panel:#111827; --panel-2:#1F2A44; --line:#2A3654; --line-2:#8A7359;
+  --ink:#E7E5E2; --ink-2:#FFFFFF; --muted:#A3ACC2; --faint:#D1B08C;
+  --llm:#F472B6; --llm-soft:#3B1226; --det:#34D399; --det-soft:#0B3B2E; --gate:#A78BFA; --gate-soft:#241B4A;
+  --warn:#C4B5FD; --code-bg:#0F172A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:40px 24px 96px}
+h1{font-size:2.1rem;line-height:1.15;letter-spacing:-0.02em;margin:0 0 8px;color:var(--ink-2);text-wrap:balance;font-weight:600}
+h2{font-size:1.45rem;letter-spacing:-0.015em;margin:56px 0 12px;color:var(--ink-2);font-weight:600;text-wrap:balance;padding-top:8px;border-top:2px solid var(--ink)}
+h2 .num{font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--faint);margin-right:10px;font-size:0.95rem;letter-spacing:0}
+h3{font-size:1.05rem;margin:28px 0 8px;color:var(--ink-2);font-weight:600}
+h4{font-size:0.92rem;margin:18px 0 6px;color:var(--ink);font-weight:600;text-transform:uppercase;letter-spacing:0.06em}
+p{margin:0 0 12px;max-width:72ch}
+.lede{font-size:1.05rem;color:var(--muted);max-width:70ch;margin-bottom:20px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+code,.mono{font-family:"IBM Plex Mono",monospace;font-size:0.86em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--ink)}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:0.8rem;line-height:1.5;margin:10px 0 16px;color:var(--ink)}
+pre code{background:none;padding:0}
+.loc{font-family:"IBM Plex Mono",monospace;font-size:0.76rem;color:var(--faint);white-space:nowrap}
+a{color:var(--gate)}
+.toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 20px;margin:20px 0 8px;padding:16px 18px;background:var(--panel-2);border-radius:6px}
+.toc a{text-decoration:none;color:var(--ink);font-size:0.92rem}
+.toc a .num{font-family:"IBM Plex Mono",monospace;color:var(--faint);margin-right:8px;font-size:0.8rem}
+.toc a:hover{color:var(--gate)}
+.snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:18px 0 6px}
+.snap > div{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.snap .k{font-family:"IBM Plex Mono",monospace;font-size:0.72rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--faint)}
+.snap .v{font-size:1rem;font-weight:600;color:var(--ink-2);margin-top:2px;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0 14px;font-size:0.85rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;border:1.5px solid}
+.legend .l-llm i{background:var(--llm-soft);border-color:var(--llm)}
+.legend .l-det i{background:var(--det-soft);border-color:var(--det)}
+.legend .l-gate i{background:var(--gate-soft);border-color:var(--gate)}
+.legend .l-data i{background:var(--panel);border-color:var(--line-2)}
+figure{margin:14px 0 22px}
+figure .scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px}
+figure svg{display:block;height:auto;min-width:720px;max-width:100%}
+figcaption{font-size:0.85rem;color:var(--muted);margin-top:8px;max-width:80ch}
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:0.72rem;padding:1px 7px;border-radius:999px;border:1px solid;line-height:1.5;vertical-align:middle}
+.pill.llm{color:var(--llm);border-color:var(--llm);background:var(--llm-soft)}
+.pill.det{color:var(--det);border-color:var(--det);background:var(--det-soft)}
+.pill.gate{color:var(--gate);border-color:var(--gate);background:var(--gate-soft)}
+.pill.off{color:var(--muted);border-color:var(--line-2);background:var(--panel-2)}
+table{border-collapse:collapse;width:100%;font-size:0.86rem;margin:10px 0 18px;background:var(--panel)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;margin:10px 0 18px}
+.tablewrap table{margin:0;border:0}
+th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font-size:0.74rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--faint);background:var(--panel-2);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tree{list-style:none;margin:8px 0 18px;padding:0 0 0 4px;font-size:0.9rem}
+.tree ul{list-style:none;margin:2px 0 2px 14px;padding-left:16px;border-left:1.5px solid var(--line-2)}
+.tree li{position:relative;padding:3px 0 3px 12px}
+.tree li::before{content:"";position:absolute;left:-16px;top:14px;width:20px;border-top:1.5px solid var(--line-2)}
+.tree > li{padding-left:0}
+.tree > li::before{display:none}
+.cond{font-family:"IBM Plex Mono",monospace;font-size:0.78rem;color:var(--gate);background:var(--gate-soft);padding:0 6px;border-radius:3px;margin-right:6px}
+.node{font-weight:600;color:var(--ink-2)}
+.node.llm{color:var(--llm)}
+.node.det{color:var(--det)}
+.out{font-style:italic;color:var(--muted)}
+.callout{border-left:3px solid var(--gate);background:var(--panel);padding:12px 16px;border-radius:0 6px 6px 0;margin:14px 0 18px;max-width:80ch}
+.callout.warn{border-left-color:var(--warn)}
+.callout.llm{border-left-color:var(--llm)}
+.callout.det{border-left-color:var(--det)}
+.callout p:last-child{margin-bottom:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.card h4{margin-top:0}
+.finding{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin:0 0 12px}
+.finding .id{font-family:"IBM Plex Mono",monospace;color:var(--faint);font-size:0.78rem;margin-right:8px}
+.finding .sev{float:right}
+.finding p{max-width:none}
+.prompt-block{font-family:"IBM Plex Mono",monospace;font-size:0.76rem;background:var(--code-bg);border:1px solid var(--line);border-radius:6px;padding:12px 14px;white-space:pre-wrap;line-height:1.45;margin:8px 0 14px;color:var(--ink)}
+.prompt-block b{color:var(--gate);font-weight:600}
+.prompt-block .tag{color:var(--llm)}
+.prompt-block .cut{color:var(--muted);font-style:italic}
+.small{font-size:0.84rem;color:var(--muted)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:0.88rem;margin:6px 0 14px}
+.kv dt{font-family:"IBM Plex Mono",monospace;color:var(--faint);font-size:0.78rem;padding-top:2px}
+.kv dd{margin:0}
+hr{border:0;border-top:1px solid var(--line);margin:28px 0}
+:focus-visible{outline:2px solid var(--gate);outline-offset:2px}
+@media (prefers-reduced-motion: no-preference){a{transition:color .12s}}
+</style>
+
+<div class="wrap">
+<div class="eyebrow">Fynla · Fyn · low-level wiring map · read from the code on dev @ 73819dd07, 8 September 2026 · findings updated the same day; Batch A (PR #782) and F20 (PR #783) released to fynla.org via PR #784 at 17:06 BST; the fifteen untouched findings re-checked against dev 45148f71c the same evening; Batch B (one ranking, F2 and F12) Batches C (F1, F7, F8, F9, F13, F18), D (F19), E (F5, F6 part, F10, F11, F14), F (F4) and G (F6, F3, F22 label, F26) fixed on 9 September</div>
+<h1>Fyn Recommendation Wiring</h1>
+<p class="lede">Every hop between a user's message and a recommendation: which gates run, what information is assembled and when, where the large language model is consulted and where a deterministic tree answers instead, and how the seven module engines produce the recommendations Fyn is allowed to repeat. Every claim carries a <span class="loc">file:line</span> so it can be checked.</p>
+
+<div class="legend">
+  <span class="l-llm"><i></i>Model call (grok-4.3 via xAI)</span>
+  <span class="l-det"><i></i>Deterministic code / decision tree</span>
+  <span class="l-gate"><i></i>Gate or check</span>
+  <span class="l-data"><i></i>Data source</span>
+</div>
+
+<nav class="toc" aria-label="Contents">
+  <a href="#s1"><span class="num">01</span>Live configuration</a>
+  <a href="#s2"><span class="num">02</span>One turn, end to end</a>
+  <a href="#s3"><span class="num">03</span>Which Fyn answers</a>
+  <a href="#s4"><span class="num">04</span>Before any model call</a>
+  <a href="#s5"><span class="num">05</span>What Fyn is told</a>
+  <a href="#s6"><span class="num">06</span>KYC and data gates</a>
+  <a href="#s7"><span class="num">07</span>Tools and write safety</a>
+  <a href="#s8"><span class="num">08</span>Where recommendations come from</a>
+  <a href="#s9"><span class="num">09</span>Onboarding Fyn state machine</a>
+  <a href="#s10"><span class="num">10</span>Worked example: John</a>
+  <a href="#s11"><span class="num">11</span>Wiring findings</a>
+  <a href="#s12"><span class="num">12</span>File index</a>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="s1"><span class="num">01</span>Live configuration as it ran</h2>
+<p>Read from the local dev environment with the same resolvers the app uses at runtime. Production and csjones can differ only by environment variables and the admin provider toggle; the code paths are identical.</p>
+<div class="snap">
+  <div><div class="k">AI provider</div><div class="v">xai</div><div class="small">cache <code>ai_provider:v{N}</code> → config default</div></div>
+  <div><div class="k">Reasoner model</div><div class="v">grok-4.3</div><div class="small">temperature 0, reasoning_effort none</div></div>
+  <div><div class="k">Planner model</div><div class="v">grok-4.3</div><div class="small">same provider, one <code>plan</code> tool call</div></div>
+  <div><div class="k">Prompt architecture</div><div class="v">unified</div><div class="small"><code>FYN_PROMPT_ARCH</code></div></div>
+  <div><div class="k">Learning</div><div class="v">off</div><div class="small"><code>FYN_LEARNING_ENABLED=false</code></div></div>
+  <div><div class="k">Onboarding flow</div><div class="v">on</div><div class="small"><code>onboarding.fyn_flow_enabled</code></div></div>
+  <div><div class="k">Tax year</div><div class="v">2026/27</div><div class="small"><code>TaxConfigService::getTaxYear()</code></div></div>
+  <div><div class="k">Action definitions</div><div class="v">165 seeded · 150 enabled</div><div class="small">six DB tables; 36 savings rules were unreachable (F0) — fixed on branch</div></div>
+</div>
+<p class="small">Sources: <span class="loc">config/fyn.php:17, 77</span> · <span class="loc">config/services.php:36–54</span> · <span class="loc">app/Traits/HasAiGuardrails.php:64–79, 145–172</span> · <span class="loc">app/Services/AI/Loop/Planner.php:208–213</span> · <span class="loc">app/Traits/HasAiChat.php:530–537</span>.</p>
+
+<!-- ============================================================ -->
+<h2 id="s2"><span class="num">02</span>One turn, end to end</h2>
+<p>Every surface (desktop web, <code>/m</code>, native iOS) posts to the same endpoint and renders the same Server-Sent Events stream. Dispatch between the two write states is server-side and invisible to the client. The diagram follows one message from the HTTP request to the persisted assistant row.</p>
+
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 1180 760" role="img" aria-label="A single Fyn turn: client posts to the messages endpoint; consent, resource and inflight-lock gates run; the mode resolver picks the onboarding director or advice Fyn; advice Fyn runs deterministic exits, then the planner model, then the reasoner model with classification, KYC and context assembly; tool calls pass the surface allowlist before the coordinating agent runs engines; events stream back and the turn is persisted.">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+</defs>
+<g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor" style="color:var(--ink)">
+
+<!-- Row 1: clients -->
+<rect x="20" y="20" width="150" height="46" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="95" y="39" text-anchor="middle" font-weight="600">Web SPA</text>
+<text x="95" y="55" text-anchor="middle" font-size="10" fill="var(--muted)">aiChatService.js</text>
+<rect x="190" y="20" width="150" height="46" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="265" y="39" text-anchor="middle" font-weight="600">/m mobile web</text>
+<text x="265" y="55" text-anchor="middle" font-size="10" fill="var(--muted)">resources/mobile/api.js</text>
+<rect x="360" y="20" width="150" height="46" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="435" y="39" text-anchor="middle" font-weight="600">Native iOS</text>
+<text x="435" y="55" text-anchor="middle" font-size="10" fill="var(--muted)">FynClient.swift</text>
+
+<path d="M95,66 L95,90 L265,90" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<path d="M435,66 L435,90 L265,90" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<path d="M265,66 L265,112" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="275" y="104" font-size="10" fill="var(--muted)">POST /api/ai-chat/conversations/{id}/messages · one endpoint for all surfaces</text>
+
+<!-- Row 2: controller gates -->
+<rect x="20" y="114" width="490" height="88" rx="4" fill="var(--gate-soft)" stroke="var(--gate)"/>
+<text x="32" y="132" font-weight="600" fill="var(--gate)">AiChatController::sendMessage — gates in order</text>
+<text x="32" y="150" font-size="11">1 consent ai_chat missing → 403 consent_required  <tspan fill="var(--muted)">:204</tspan></text>
+<text x="32" y="165" font-size="11">2 surface_action resource gone → 410  <tspan fill="var(--muted)">:213, :989</tspan></text>
+<text x="32" y="180" font-size="11">3 inflight lock fyn:inflight:{conv} held → 202 queued, or 429 when depth ≥ 3  <tspan fill="var(--muted)">:232–248</tspan></text>
+<text x="32" y="195" font-size="11">4 token budget (daily backstop, tier store) → token_limit frame  <tspan fill="var(--muted)">HasAiChat:341</tspan></text>
+
+<path d="M265,202 L265,228" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+
+<!-- Row 3: mode resolver -->
+<rect x="130" y="230" width="270" height="52" rx="4" fill="var(--det-soft)" stroke="var(--det)"/>
+<text x="265" y="250" text-anchor="middle" font-weight="600" fill="var(--det)">ConversationModeResolver::routesToOnboarding</text>
+<text x="265" y="268" text-anchor="middle" font-size="10" fill="var(--muted)">flag · conversation source · completed/campaign/step  (see §03)</text>
+
+<path d="M130,256 L60,256 L60,330" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="66" y="300" font-size="10" fill="var(--muted)">true</text>
+<path d="M400,256 L640,256 L640,330" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="646" y="300" font-size="10" fill="var(--muted)">false</text>
+
+<!-- Onboarding column -->
+<rect x="20" y="332" width="300" height="150" rx="4" fill="var(--panel)" stroke="var(--det)"/>
+<text x="32" y="352" font-weight="600" fill="var(--det)">OnboardingChatDirector::handleUserMessage</text>
+<text x="32" y="368" font-size="11">WRITE state · the only owner of create_* / capture_*</text>
+<text x="32" y="386" font-size="11">step = users.onboarding_fyn_step</text>
+<text x="32" y="402" font-size="11">turn_type bubbles / free_text / terminal / advice</text>
+<text x="44" y="416" font-size="10" fill="var(--det)">→ pure code, no model  (§09)</text>
+<text x="32" y="434" font-size="11">turn_type grouped_extract / delegated</text>
+<text x="44" y="448" font-size="10" fill="var(--llm)">→ FynLoop::stream, persona data_capture</text>
+<text x="32" y="470" font-size="10" fill="var(--muted)">handleInlineCapture is the same class, entered from advice (right)</text>
+
+<!-- Advice column -->
+<rect x="340" y="332" width="820" height="150" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="352" y="352" font-weight="600">AdviceFyn::handle — READ-ONLY state</text>
+<rect x="352" y="362" width="240" height="110" rx="3" fill="var(--det-soft)" stroke="var(--det)"/>
+<text x="362" y="379" font-size="11" font-weight="600" fill="var(--det)">Deterministic exits, in order (§04)</text>
+<text x="362" y="395" font-size="10">deferred yes/no · QueryClassifier</text>
+<text x="362" y="409" font-size="10">out_of_remit refusal · WriteIntentClassifier</text>
+<text x="362" y="423" font-size="10">capture continuation · duplicate ack</text>
+<text x="362" y="437" font-size="10">write intent → handleInlineCapture</text>
+<text x="362" y="458" font-size="10" fill="var(--muted)">no model call on any exit</text>
+<path d="M592,417 L620,417" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="622" y="362" width="230" height="110" rx="3" fill="var(--llm-soft)" stroke="var(--llm)"/>
+<text x="632" y="379" font-size="11" font-weight="600" fill="var(--llm)">FynLoop::run · Planner (model call 1)</text>
+<text x="632" y="395" font-size="10">plan tool: reason | retrieve | learn |</text>
+<text x="632" y="409" font-size="10">ground | no_action · cap 8 cycles</text>
+<text x="632" y="423" font-size="10">reason and ground → same reason() path</text>
+<text x="632" y="437" font-size="10">sees 6 turns × 600 chars + full procedures</text>
+<text x="632" y="458" font-size="10" fill="var(--muted)">failure → degrades to reason, never errors</text>
+<path d="M852,417 L880,417" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="882" y="362" width="266" height="110" rx="3" fill="var(--llm-soft)" stroke="var(--llm)"/>
+<text x="892" y="379" font-size="11" font-weight="600" fill="var(--llm)">HasAiChat::chat · Reasoner (model call 2)</text>
+<text x="892" y="395" font-size="10">classify again → KYC gate → buckets</text>
+<text x="892" y="409" font-size="10">static FynSystemPrompt + assembled &lt;context&gt;</text>
+<text x="892" y="423" font-size="10">tool loop, cap 3 / 5 / 8 by engine level</text>
+<text x="892" y="437" font-size="10">streams content + tool_use frames</text>
+<text x="892" y="458" font-size="10" fill="var(--muted)">interceptHandoff catches delegate_to_capture</text>
+
+<!-- Tool dispatch row -->
+<path d="M1015,482 L1015,510" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<text x="1022" y="500" font-size="10" fill="var(--muted)">each tool call</text>
+<rect x="700" y="512" width="460" height="64" rx="4" fill="var(--gate-soft)" stroke="var(--gate)"/>
+<text x="712" y="531" font-weight="600" fill="var(--gate)">ActionDispatcher → SurfaceAllowlist / GroundGate</text>
+<text x="712" y="547" font-size="11">persona advice + surface ∈ AdviceFyn::WRITE_TOOLS → rejected, audit status 'stripped'  <tspan fill="var(--muted)">HasAiChat:878–892</tspan></text>
+<text x="712" y="563" font-size="11">then PrerequisiteGateService::canExecuteTool → blocked result with missing-data instruction  <tspan fill="var(--muted)">CoordinatingAgent:897+</tspan></text>
+
+<path d="M930,576 L930,604" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="700" y="606" width="460" height="74" rx="4" fill="var(--det-soft)" stroke="var(--det)"/>
+<text x="712" y="625" font-weight="600" fill="var(--det)">CoordinatingAgent::executeTool → module agents → engines (§08)</text>
+<text x="712" y="641" font-size="11">get_module_analysis · get_recommendations · get_tax_information · list_records</text>
+<text x="712" y="657" font-size="11">fetch_* pointers · generate_financial_plan · delegate_to_capture (handoff)</text>
+<text x="712" y="673" font-size="10" fill="var(--muted)">results compressed for the model, full round-trip kept for the admin AI audit</text>
+
+<!-- Data sources -->
+<rect x="20" y="512" width="640" height="172" rx="4" fill="var(--panel)" stroke="var(--line-2)" stroke-dasharray="4 3"/>
+<text x="32" y="531" font-weight="600">Data read for the turn (never written by advice Fyn)</text>
+<text x="32" y="550" font-size="11">users row: date_of_birth, marital_status, employment_status, annual_*_income, monthly_expenditure,</text>
+<text x="32" y="564" font-size="11">target_retirement_age, onboarding_* fields, active_campaign, funnel_answers</text>
+<text x="32" y="580" font-size="11">records via joint-aware Stores: savings, investment, pensions, property, mortgages, liabilities,</text>
+<text x="32" y="594" font-size="11">protection, estate assets, goals, life events</text>
+<text x="32" y="610" font-size="11">TaxConfiguration 2026/27 · six *_action_definitions tables · tax_strategy_household_inputs</text>
+<text x="32" y="626" font-size="11">ai_conversations.metadata (parked facts, flags) · last 20 ai_messages · conversation index (5 prior)</text>
+<text x="32" y="642" font-size="11">fyn-memory/procedural (corpus, overlays, workflow table) · semantic (32 facts) · episodic recall</text>
+<text x="32" y="658" font-size="11">Cache: ai_financial_context_{user}_{primary} 120 s · ai_existing_records_{user} 60 s · module analyses</text>
+<text x="32" y="674" font-size="10" fill="var(--muted)">Feeds the context assembler (§05), the KYC gate (§06) and every engine call (§08)</text>
+
+<!-- SSE out -->
+<path d="M265,482 L265,700" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<path d="M930,684 L930,700 L265,700 L265,710" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="20" y="712" width="1140" height="44" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="590" y="730" text-anchor="middle" font-size="11">SSE frames: thinking · title · content · tool_use · entity_created / updated / deleted · capture_complete · action · handoff_error · token_limit · consent_required · level_up · done</text>
+<text x="590" y="746" text-anchor="middle" font-size="10" fill="var(--muted)">then the assistant row is persisted with persona, episode blob, audit chain and AiAdviceLog</text>
+</g>
+</svg>
+</div>
+<figcaption>The two model calls sit inside the advice branch only. Onboarding turns reach a model only for the two extraction turn types. The <code>handoff</code> frame produced by <code>delegate_to_capture</code> is consumed inside <code>FynLoop::interceptHandoff</code> and never reaches a client (<span class="loc">FynLoop.php:612–752</span>).</figcaption>
+</figure>
+
+<h3>Order of operations inside the reasoner call</h3>
+<p>This is the sequence in <code>HasAiChat::chat</code> (<span class="loc">app/Traits/HasAiChat.php:322–470</span>) that decides what the model is shown. It runs for advice turns and for the two onboarding extraction turn types alike; only the focus, the tool list and the persona differ.</p>
+<div class="tablewrap"><table>
+<tr><th>#</th><th>Step</th><th>Where</th><th>What it decides</th></tr>
+<tr><td class="num">1</td><td>Persist user message (unless the director already did)</td><td class="loc">HasAiChat.php:331–336</td><td>Transcript honesty; the persisted row keeps the raw message, not the assembled block</td></tr>
+<tr><td class="num">2</td><td>Daily token budget</td><td class="loc">HasAiChat.php:341–352</td><td><code>token_limit</code> frame and return; preview users never metered</td></tr>
+<tr><td class="num">3</td><td><span class="pill det">det</span> QueryClassifier::classify</td><td class="loc">HasAiChat.php:357–358</td><td>primary + related + modules; second run of the same classifier already run in AdviceFyn</td></tr>
+<tr><td class="num">4</td><td><span class="pill gate">gate</span> KycGateChecker::check</td><td class="loc">HasAiChat.php:365–370</td><td>Skipped for bypass types and <code>general</code>; otherwise PASSED or BLOCKED prompt text (§06)</td></tr>
+<tr><td class="num">5</td><td>System prompt = <code>FynSystemPrompt::text()</code></td><td class="loc">HasAiChat.php:371, :1542</td><td>Static, byte-identical for every user; only the weekly-budget notice can be prepended (<span class="loc">:392–395</span>)</td></tr>
+<tr><td class="num">6</td><td>History = last 20 user/assistant rows</td><td class="loc">HasAiChat.php:374, :1724–1744</td><td>Oldest first</td></tr>
+<tr><td class="num">7</td><td><span class="pill det">det</span> FynContextAssembler::build replaces the last user message in memory</td><td class="loc">HasAiChat.php:373–382, :1576–1622</td><td>Everything in §05; the sized-analysis closure is forwarded so POSITION is real</td></tr>
+<tr><td class="num">8</td><td>Complexity + model + max tokens</td><td class="loc">HasAiChat.php:386–396</td><td>complex + premium → advanced model (both grok-4.3 under xAI); 8192 tokens premium, 4096 otherwise</td></tr>
+<tr><td class="num">9</td><td>Provider snapshot, once</td><td class="loc">HasAiChat.php:398</td><td>A mid-stream admin toggle cannot mix providers</td></tr>
+<tr><td class="num">10</td><td>Tool list: override → name allowlist → catalogue</td><td class="loc">HasAiChat.php:404–451</td><td>Advice passes the name allowlist from <code>AdviceFyn::buildToolList</code> (§07)</td></tr>
+<tr><td class="num">11</td><td>Tool-call cap by engine level</td><td class="loc">HasAiChat.php:458–462, :92–96</td><td>holistic 8 · module 5 · factual 3</td></tr>
+<tr><td class="num">12</td><td><span class="pill llm">llm</span> Streamed completion loop</td><td class="loc">HasAiChat.php:503–760</td><td>xAI: temperature 0, reasoning_effort none, tool_choice auto; one retry on the first empty iteration</td></tr>
+<tr><td class="num">13</td><td>Per tool: allowlist → prerequisite gate → accuracy gate → handler</td><td class="loc">HasAiChat.php:878–892 · CoordinatingAgent.php:897+</td><td>§07</td></tr>
+<tr><td class="num">14</td><td>Persist assistant row, episode blob, audit chain, token usage, AiAdviceLog</td><td class="loc">HasAiChat.php:1388–1442, :1463–1527</td><td>Persona tag <code>advice</code> or <code>data_capture</code></td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="s3"><span class="num">03</span>Which Fyn answers: the dispatch predicate</h2>
+<p>One prompt, two write states. The state is chosen per request by a single predicate, shared by <code>sendMessage</code>, <code>streamQueuedMessage</code> and <code>action</code> (<span class="loc">AiChatController.php:268, :445, :925</span>). It is <strong>not</strong> keyed on <code>onboarding_completed</code> alone.</p>
+<ul class="tree">
+<li><span class="node det">routesToOnboarding(conversation, user)</span> <span class="loc">ConversationModeResolver.php:12–29</span>
+  <ul>
+    <li><span class="cond">config onboarding.fyn_flow_enabled === false</span> → <span class="out">advice (read-only), always</span> <span class="loc">:14–16</span></li>
+    <li><span class="cond">conversation.metadata.source === 'surface_action'</span> → <span class="out">advice, immutable</span> <span class="loc">:19–21</span></li>
+    <li><span class="cond">conversation.metadata.source === 'fyn_onboarding'</span> → <span class="out">onboarding director, immutable</span> <span class="loc">:23–25</span></li>
+    <li><span class="cond">(onboarding_completed === false OR active_campaign !== null) AND onboarding_fyn_step !== null</span> → <span class="out">onboarding director</span> <span class="loc">:27–28</span>
+      <ul>
+        <li><span class="cond">step nulled by a "Something else" pause</span> → <span class="out">advice, even mid-onboarding or mid-campaign (fail-safe: no step context, no write state)</span></li>
+        <li><span class="cond">completed user with active_campaign and a step</span> → <span class="out">campaign re-entry, write state for the walk; completion flags untouched</span></li>
+      </ul>
+    </li>
+    <li><span class="cond">otherwise</span> → <span class="out">advice</span></li>
+  </ul>
+</li>
+</ul>
+<div class="callout">
+<p><strong>Where the campaign marker is set.</strong> Only <code>POST /api/ai-chat/onboarding/start</code> stamps <code>active_campaign</code>, when <code>from=</code> resolves to a <code>campaign_map</code> entry (<span class="loc">AiChatController.php:750–812</span>, <span class="loc">config/onboarding.php:79–86</span>). Both campaigns enter at <code>base_work</code>, not at an intro state. It is cleared at the campaign terminal and on the pause.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s4"><span class="num">04</span>Before any model call: the deterministic exits</h2>
+<p>An advice turn passes seven deterministic decisions before the planner is consulted. Each one either ends the turn without a model, or narrows what the model will be asked. Order matters and is fixed in code.</p>
+
+<ul class="tree">
+<li><span class="node det">AdviceFyn::handle</span> <span class="loc">app/Services/AI/AdviceFyn.php:205</span>
+  <ul>
+    <li><span class="cond">metadata.pending_deferred_answer set, &lt; 600 s old</span> <span class="loc">:222–263</span>
+      <ul>
+        <li><span class="cond">reply matches ^(no|not now|no thanks…)</span> → <span class="out">canned "No problem — ask me any time…", done. No model.</span></li>
+        <li><span class="cond">reply matches ^(yes|ok|sure|go ahead…)$</span> → <span class="out">message replaced by the stored question, continue</span></li>
+        <li><span class="cond">anything else</span> → <span class="out">flag stays armed, continue</span></li>
+      </ul>
+    </li>
+    <li><span class="node det">QueryClassifier::classify(message, currentRoute)</span> <span class="loc">QueryClassifier.php:65–124</span> — see tree below
+      <ul>
+        <li><span class="cond">primary === out_of_remit</span> → <span class="out">"I'm able to help you with your finances. {topic} is out of scope." persisted, done. No model.</span> <span class="loc">AdviceFyn.php:294–320</span></li>
+      </ul>
+    </li>
+    <li><span class="node det">WriteIntentClassifier::classify(message)</span> <span class="loc">WriteIntentClassifier.php:189–246</span> — see tree below
+      <ul>
+        <li><span class="cond">null AND last assistant turn was a data_capture question that landed nothing</span> → <span class="out">captureContinuationIntent reuses the intent that opened the capture, walking the 6 newest user messages</span> <span class="loc">AdviceFyn.php:466–537</span></li>
+        <li><span class="cond">intent AND RecordDuplicateChecker::alreadyExists</span> → <span class="out">deterministic "already on file" acknowledgement, done. No model.</span> <span class="loc">:361–389</span></li>
+        <li><span class="cond">intent</span> → <span class="out">CaptureContext built server-side → OnboardingChatDirector::handleInlineCapture (a model runs, but in the write state with the capture catalogue)</span> <span class="loc">:391–437</span></li>
+      </ul>
+    </li>
+    <li><span class="cond">no exit taken</span> → <span class="node llm">FynLoop::run(SessionMode::Advice, …, buildToolList(user))</span> <span class="loc">:443–451</span></li>
+  </ul>
+</li>
+</ul>
+
+<h3>QueryClassifier: the classification tree</h3>
+<p>Pure regex, no model. The result drives the KYC gate, the context buckets, the required-tools block, the trigger list, the knowledge domains, the engine call level and the tool-call cap. It is therefore the single most consequential deterministic decision in the pipeline.</p>
+<ul class="tree">
+<li><span class="node det">classify(message, currentRoute)</span> <span class="loc">QueryClassifier.php:65–124</span>
+  <ul>
+    <li><span class="cond">empty</span> → general <span class="loc">:69–71</span></li>
+    <li><span class="cond">DATA_ENTRY pattern ("i have a/an/my", "i earn £", "add my", "update my", "my X is £"…)</span> → data_entry · bypasses FCA process <span class="loc">:74–76</span></li>
+    <li><span class="cond">NAVIGATION pattern AND NOT a BILLING pattern</span> → navigation <span class="loc">:87–90</span></li>
+    <li><span class="cond">first advice-type regex to match, walking KEYWORD_PATTERNS in declaration order</span> → primary; every other matching type becomes related <span class="loc">:93–102, :163–182</span>
+      <ul>
+        <li class="small">Declaration order (first match wins): billing → holistic_health → retirement_contribution → retirement_readiness → retirement_decumulation → protection_cover → protection_policy → savings_emergency → savings_accounts → savings_debt → investment_portfolio → investment_fees → investment_tax → estate_iht → estate_planning → goals_progress → tax_optimisation → property → income → affordability <span class="loc">QuerySchemas.php:245–457</span></li>
+        <li class="small">IMPLICIT_RELATED then adds cross-cutting types, e.g. retirement_contribution always carries tax_optimisation, savings_emergency, affordability <span class="loc">QuerySchemas.php:212–237</span></li>
+      </ul>
+    </li>
+    <li><span class="cond">no advice keyword AND an OUT_OF_REMIT pattern (medical, legal, emotional support, general knowledge)</span> → out_of_remit + detected_topic <span class="loc">:107–112, :36–58</span></li>
+    <li><span class="cond">currentRoute in the 15-entry route map (/protection, /net-worth/*, /estate*, /goals, /holistic-plan, /risk-profile, /trusts…)</span> → that module's type <span class="loc">:115–120, :187–208</span></li>
+    <li><span class="cond">otherwise</span> → general <span class="loc">:123</span></li>
+  </ul>
+</li>
+</ul>
+
+<h3>WriteIntentClassifier: does this message record something?</h3>
+<p>Conservative by design: a miss is recoverable because the model can still emit <code>delegate_to_capture</code>; a false positive is not (<span class="loc">WriteIntentClassifier.php:18–22</span>).</p>
+<ul class="tree">
+<li><span class="node det">classify(message)</span>
+  <ul>
+    <li><span class="cond">empty</span> → null</li>
+    <li><span class="cond">looksLikeQuestion: trailing "?" or one of ~40 interrogative prefixes ("should i", "how much", "can i", "what is", "tell me", "explain", "show me"…)</span> → null <span class="loc">:282–295, :169–184</span></li>
+    <li><span class="cond">no write verb ("add", "record", "i have", "we bought", "i opened", "i took out", "i pay", "i own"… 24 patterns; one retry with an interposed "also" stripped)</span> → null <span class="loc">:205–208, :30–41, :306–319</span></li>
+    <li><span class="cond">goal keyword OR "save/put aside … for"</span> → entity goal (precedence guard so "save for a house deposit" is not a property) <span class="loc">:221–234</span></li>
+    <li><span class="cond">entity keyword walk in declaration order: state_pension first, then protection_policy, savings_account, investment_account, pension (catch-all last in group), property, mortgage, liability, chattel, charitable_giving, expenditure, spouse, dependant, work_details, personal_details, retirement_goals, goal last</span> → entity_type + fields_needed + reason <span class="loc">:236–241, :51–157</span></li>
+    <li><span class="cond">verb but no entity</span> → null; nothing is ever fabricated <span class="loc">:243–245</span></li>
+  </ul>
+</li>
+</ul>
+
+<h3>The planner, model call 1</h3>
+<p>Only now is a model consulted, and only to route (<span class="loc">FynLoop.php:191–295</span>). It sees the last 6 turns truncated to 600 characters each, the full procedural corpus, the user's recalled episodes, and returns exactly one <code>plan</code> tool call from a closed vocabulary. <code>reason</code> and <code>ground</code> both run the same reasoner; <code>retrieve</code> is a no-op that re-plans up to 3 times; <code>learn</code> writes an episode (or stages a fact or procedure amendment when learning is enabled) and re-plans; <code>no_action</code> yields the canonical defer line. A provider failure degrades to <code>reason</code> so a planner outage can never kill a turn (<span class="loc">Planner.php:84–95</span>).</p>
+
+<!-- ============================================================ -->
+<h2 id="s5"><span class="num">05</span>What Fyn is told, and when</h2>
+<p>The model receives two things: a static system prompt that never changes between users or turns, and a per-turn <code>&lt;context&gt;</code> block spliced in place of the user's message. Nothing about the user reaches the system prompt; everything about the user arrives in the context block.</p>
+
+<h3>The static system prompt</h3>
+<p><code>FynSystemPrompt::text()</code> (<span class="loc">app/Services/AI/Fyn/FynSystemPrompt.php:35–205</span>) is zero-argument. One <code>str_replace</code> injects the canonical writable-record phrase list. Byte-identical output is what makes provider prefix caching hit.</p>
+<div class="tablewrap"><table>
+<tr><th>Block</th><th>Lines</th><th>Content that shapes recommendations</th></tr>
+<tr><td><code>&lt;identity&gt;</code></td><td class="loc">:38–42</td><td>Guidance tool, not regulated advice; must use the user's actual data in every response</td></tr>
+<tr><td><code>&lt;security&gt;</code></td><td class="loc">:44–55</td><td>Nine non-negotiable rules; the injection refusal explicitly does not apply to legitimate add/update requests</td></tr>
+<tr><td><code>&lt;scope&gt;</code>, <code>&lt;personality&gt;</code>, <code>&lt;response_format&gt;</code></td><td class="loc">:57–83</td><td>Personal finance only; bold key figures; numbered steps for recommendations; end with a follow-up question</td></tr>
+<tr><td><code>&lt;instructions&gt;</code></td><td class="loc">:85–98</td><td>No acronyms except ISA; no IDs, no routes, no planning jargon; do not mention taper, carry forward, salary sacrifice or MPAA unless they apply</td></tr>
+<tr><td><code>&lt;regulatory_compliance&gt;</code></td><td class="loc">:100–108</td><td>Hedging mandatory; no products; signpost advice; risk warnings; tax caveats; no market timing; <strong>never quote a tax figure from memory, always call get_tax_information</strong></td></tr>
+<tr><td><code>&lt;fca_process&gt;</code></td><td class="loc">:111–125</td><td>Six steps: check data → fetch figures → analyse → <strong>recommend only from the decision-tree triggers and ranked recommendations supplied</strong> → explain implementation → note review triggers</td></tr>
+<tr><td><code>&lt;available_actions&gt;</code></td><td class="loc">:127–159</td><td>Update-vs-create rules against <code>&lt;existing_records&gt;</code>; read-tool failures answered generically; write-tool failures must be surfaced</td></tr>
+<tr><td><code>&lt;data_completeness_rules&gt;</code></td><td class="loc">:161–185</td><td>How to behave on BLOCKED modules and module dependencies (moved here from a per-turn block to save ~595 tokens a turn)</td></tr>
+<tr><td><code>&lt;handoff_guidance&gt;</code></td><td class="loc">:187–193</td><td>Top-priority rule: any add/change/delete intent → <code>delegate_to_capture</code> first and only</td></tr>
+<tr><td><code>&lt;fca_signposting&gt;</code></td><td class="loc">:195–201</td><td>The exact closing sentence for recommendation-mode answers</td></tr>
+</table></div>
+
+<h3>The per-turn context block, layer by layer</h3>
+<p><code>FynContextAssembler::build</code> (<span class="loc">app/Services/AI/Fyn/FynContextAssembler.php:63–333</span>) emits layers in this order. Bucket membership comes from the classification; the rest are gated on their own conditions.</p>
+
+<div class="grid2">
+<div class="card"><h4>Bucket selection</h4>
+<ul class="tree" style="margin-bottom:0">
+<li><span class="node det">FynContextSelector::buckets</span> <span class="loc">FynContextSelector.php:17–36</span>
+  <ul>
+    <li><span class="cond">mode onboarding</span> → IDENTITY + CAPTURE</li>
+    <li><span class="cond">engineCallLevelFor(primary) === 'factual' (general, income, billing, data_entry, navigation, out_of_remit)</span> → IDENTITY only</li>
+    <li><span class="cond">otherwise (18 advice types)</span> → IDENTITY + POSITION + READINESS</li>
+  </ul>
+</li>
+</ul>
+</div>
+<div class="card"><h4>Bounded inputs (no overall budget)</h4>
+<dl class="kv">
+<dt>semantic facts</dt><dd>top 4, effective-dated, global then user-approved <span class="loc">SemanticRetriever.php:90, :111–152</span></dd>
+<dt>episodes</dt><dd>5 newest per user <span class="loc">FynMemoryStore.php:160–200</span></dd>
+<dt>procedures</dt><dd>must hit min(2, terms) query terms <span class="loc">FynMemoryStore.php:93–110</span></dd>
+<dt>reasoner history</dt><dd>20 messages <span class="loc">HasAiChat.php:98</span></dd>
+<dt>recommendations</dt><dd>top 8 after module filter <span class="loc">AdvicePromptBuilder.php:645</span></dd>
+<dt>life events</dt><dd>10 <span class="loc">AdvicePromptBuilder.php:604</span></dd>
+</dl>
+</div>
+</div>
+
+<div class="tablewrap"><table>
+<tr><th>#</th><th>Layer emitted</th><th>Line</th><th>Data source</th><th>Present when</th></tr>
+<tr><td class="num">1</td><td><code>Current tax year</code>, <code>You are speaking with</code>, <code>Situation: advice | onboarding — focus X</code></td><td class="loc">:72–77</td><td>TaxConfigService · users.first_name (sanitised)</td><td>always</td></tr>
+<tr><td class="num">2</td><td><code>&lt;user_profile&gt;</code></td><td class="loc">:80</td><td>AdvicePromptBuilder::buildUserProfile <span class="loc">:340–460</span>: age, employment, marital status, total income + estimated band, income breakdown flagged relevant/not relevant UK earnings, monthly expenditure, spouse expenditure when financially shared, retirement target, family with ages</td><td>always (IDENTITY)</td></tr>
+<tr><td class="num">3</td><td><code>&lt;current_context&gt;</code></td><td class="loc">:81</td><td>moduleContextFor(currentRoute)</td><td>always</td></tr>
+<tr><td class="num">4</td><td><code>&lt;surface_action&gt;</code></td><td class="loc">:82–85, :335–397</td><td>ContextualResourceResolver: canonical facts re-loaded server-side for a "edit this record" conversation</td><td>metadata.source = surface_action</td></tr>
+<tr><td class="num">5</td><td><code>&lt;known_facts&gt;</code> + "Do not ask the user for any field above."</td><td class="loc">:88–91</td><td>MemoryRetrieverService 4 layers, earlier wins: users row → parked facts on the conversation → last 6 messages via OnboardingFactExtractor → 5 prior conversations (topics/intents only) <span class="loc">MemoryRetrieverService.php:67–352</span></td><td>non-empty</td></tr>
+<tr><td class="num">6</td><td><code>&lt;procedures&gt;</code></td><td class="loc">:99–112</td><td>fyn-memory/procedural, relevance-filtered to this message; versions stamped for provenance</td><td>a procedure matches</td></tr>
+<tr><td class="num">7</td><td><code>&lt;remembered&gt;</code></td><td class="loc">:113–116</td><td>Episodic recall for this user</td><td>episodes exist</td></tr>
+<tr><td class="num">8</td><td><code>&lt;knowledge&gt;</code></td><td class="loc">:123–145</td><td>SemanticRetriever: strategy facts (house view, allowances, FCA, product), then user-approved facts</td><td>facts match; failure degrades to none</td></tr>
+<tr><td class="num">9</td><td><code>&lt;live_data&gt;</code></td><td class="loc">:150–164</td><td>PointerRegistry::matchPrefetch → FetchDispatcher: live engine reads whose triggers match the message (the same handlers as the <code>fetch_*</code> tools)</td><td>a pointer trigger matches</td></tr>
+<tr><td class="num">10</td><td><code>&lt;tax_plan_grounding&gt;</code></td><td class="loc">:172–175, :531–557</td><td>Static directive: explain a saved plan item only from <code>get_recommendations().composed_tax_plan</code></td><td>tax_optimisation primary AND a plan-reference phrase</td></tr>
+<tr><td class="num">11</td><td><code>&lt;saved_household_finances&gt;</code></td><td class="loc">:181–184, :471–525</td><td>tax_strategy_household_inputs row: eight spouse figures + employment status</td><td>advice turn, spouse AND finance words, row exists</td></tr>
+<tr><td class="num">12</td><td><code>&lt;overlay&gt;</code> / <code>&lt;fca_block&gt;</code></td><td class="loc">:195–216</td><td>Procedural corpus kinds system_prompt_overlay and fca_block, module-matched or general, active in-force version</td><td>a matching procedure exists (today: the "answer the user first / acknowledgement hygiene" overlay)</td></tr>
+<tr><td class="num">13</td><td><code>&lt;financial_context&gt;</code></td><td class="loc">:218–220</td><td>buildFinancialContext <span class="loc">AdvicePromptBuilder.php:464–750</span>: net worth, monthly surplus, module figures scoped to the classification, goals, life events, <strong>top 8 ranked recommendations with description, estimated saving, action and trigger</strong>, cashflow demand vs surplus, shortfall flag, conflicts, cross-module strategies, life-event impacts. Cached 120 s per user+primary</td><td>POSITION</td></tr>
+<tr><td class="num">14</td><td><code>&lt;existing_records&gt;</code></td><td class="loc">:221–223</td><td>buildExistingRecordsSummary <span class="loc">:753–1035</span>: records of the types relevant to the classification, with ownership share and IDs for update_record. Cached 60 s</td><td>POSITION</td></tr>
+<tr><td class="num">15</td><td><code>&lt;data_completeness&gt;</code> lean matrix</td><td class="loc">:225–235</td><td>buildPrerequisiteStateContextLean: READY/BLOCKED per current question, from the KYC result</td><td>READINESS</td></tr>
+<tr><td class="num">16</td><td><code>&lt;kyc_status&gt;</code></td><td class="loc">:242–246</td><td>KycGateChecker prompt text, PASSED or BLOCKED with mandatory instructions (§06)</td><td>whenever the gate produced text; not bucket-gated</td></tr>
+<tr><td class="num">17</td><td><code>&lt;financial_knowledge&gt;</code></td><td class="loc">:253–257</td><td>QueryKnowledge::getForClassification → FinancialPlanningKnowledge domains per type (pension, income classifications, affordability rules, wrappers, protection, estate)</td><td>advice turn, type has domains</td></tr>
+<tr><td class="num">18</td><td><code>&lt;required_tools&gt;</code> + <code>&lt;relevant_triggers&gt;</code></td><td class="loc">:264–267</td><td>QuerySchemas::REQUIRED_TOOLS[primary] and RELEVANT_TRIGGERS merged over primary + related; holistic gets every trigger <span class="loc">AdvicePromptBuilder.php:1180–1240</span></td><td>advice turn, not bypass/general</td></tr>
+<tr><td class="num">19</td><td><code>&lt;savings_getting_started&gt;</code></td><td class="loc">:277–280, :437–466</td><td>Affordability ordering with the emergency fund first</td><td>general primary + "how do I start saving" shape, not tax/pension/ISA/mortgage</td></tr>
+<tr><td class="num">20</td><td><code>&lt;will_structure_policy&gt;</code></td><td class="loc">:282–285, :566–605</td><td>WillTypePolicy refusal texts</td><td>married user + narrow will-building phrasing</td></tr>
+<tr><td class="num">21</td><td><code>&lt;voicing_rules&gt;</code></td><td class="loc">:287, :618–629</td><td>Static: MECHANICAL claims stated with working; JUDGEMENT claims hedged; at most one extra strategy; ask before computing an ambiguous figure</td><td>advice turn</td></tr>
+<tr><td class="num">22</td><td>billing guidance</td><td class="loc">:300–302</td><td>AdvicePromptBuilder::getBillingGuidance</td><td>billing classification, not preview</td></tr>
+<tr><td class="num">23</td><td>capture-turn instructions</td><td class="loc">:304–317</td><td>FynCaptureTurnInstructions or FynVerifyEditTurnInstructions with the focus label and the tools for that focus</td><td>CAPTURE (onboarding)</td></tr>
+<tr><td class="num">24</td><td><code>&lt;preview_mode&gt;</code></td><td class="loc">:319–325</td><td>Static</td><td>preview persona</td></tr>
+<tr><td class="num">25</td><td><code>&lt;user_message&gt;</code> cleaned</td><td class="loc">:328–330</td><td>UserContentSanitiser::clean</td><td>always</td></tr>
+</table></div>
+
+<div class="callout warn">
+<p><strong>What is not in the prompt.</strong> No risk-profile or attitude-to-risk figure is injected anywhere in the block; the investment engine reads it, and the <code>risk_profile_missing</code> definition fires when absent, but Fyn only learns about risk through <code>get_module_analysis(investment)</code> or the ranked recommendation text. Vulnerability flags do not exist as a data field. Domicile only reaches Fyn via the estate engine.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s6"><span class="num">06</span>KYC and data gates</h2>
+<p>"KYC" in this codebase means data sufficiency for the question asked, not identity verification. There are four layers, from the entry of the request to the execution of each tool.</p>
+
+<div class="tablewrap"><table>
+<tr><th>Layer</th><th>Where</th><th>Checks</th><th>Effect</th></tr>
+<tr><td><span class="pill gate">1</span> Consent</td><td class="loc">AiChatController.php:204–209, :294–325</td><td><code>UserConsent</code> type ai_chat, version-pinned; captured at registration, no toggle</td><td>403 before the stream; mid-stream withdrawal emits <code>consent_required</code> and stops</td></tr>
+<tr><td><span class="pill gate">2</span> Question-level KYC</td><td class="loc">KycGateChecker.php:31–66</td><td>Only for ADVICE_TYPES; evaluates REQUIRED_DATA[primary] only (related types never block)</td><td>PASSED → "proceed with the FCA 6-step process"; BLOCKED → mandatory "do NOT give advice, explain what is missing, offer to capture, signpost the page label" (<span class="loc">:181–198</span>)</td></tr>
+<tr><td><span class="pill gate">3</span> Module readiness in the tool result</td><td class="loc">CoordinatingAgent.php:897+ · PrerequisiteGateService.php:250–269</td><td><code>get_module_analysis</code>, <code>run_what_if_scenario</code>, <code>get_recommendations</code>, <code>generate_financial_plan</code> delegate to each module's DataReadinessService blocking checks</td><td>Tool returns <code>blocked: true</code>, <code>missing_data</code>, a page label and an instruction the prompt tells the model to obey</td></tr>
+<tr><td><span class="pill gate">4</span> Capture accuracy</td><td class="loc">CoordinatingAgent.php:~1040–1080 (CaptureAccuracyGate)</td><td>Write arguments inspected against the user's own words and DB before a write lands</td><td><code>clarification_required</code> instead of a wrong write</td></tr>
+</table></div>
+
+<div class="callout">
+<p><strong>A passed KYC gate disarms the module-readiness gate for that question.</strong> Before <code>canExecuteTool</code> runs, three bypasses are computed (<span class="loc">CoordinatingAgent.php:974–1001</span>): the tool is <code>get_module_analysis</code> for the primary question's own module and KYC passed; or the primary is holistic_health, KYC passed and the tool is <code>get_recommendations</code> or <code>generate_financial_plan</code>; or the tool is <code>generate_financial_plan</code> for a non-premium user (entitlement message precedes readiness). Any of the three sets <code>can_proceed = true</code> and layer 3 is skipped. The comment at <span class="loc">:981–982</span> makes this deliberate: the question matrix is the effective advice gate.</p>
+<p><strong>Risk is never gated.</strong> <code>risk_profiles</code> holds <code>risk_tolerance</code> (cautious / balanced / adventurous), <code>capacity_for_loss_percent</code>, <code>knowledge_level</code>, <code>attitude_to_volatility</code>, <code>time_horizon_years</code> and <code>risk_assessed_at</code>, but no REQUIRED_DATA entry references it, <code>User</code> has no <code>riskProfile()</code> relation, and <code>investment_portfolio</code> requires only that an investment account exists. There is no vulnerability, Consumer Duty or suitability field anywhere in the schema; <code>health_status</code> and <code>smoking_status</code> exist for protection and life expectancy with non-null defaults.</p>
+</div>
+<h3>Required data per question type</h3>
+<p>From <span class="loc">QuerySchemas.php:136–156</span>. Each requirement resolves through one checker (<span class="loc">KycGateChecker.php:72–139</span>): date of birth from the users row; income via <code>resolveGrossAnnualIncome &gt; 0</code>; expenditure via <code>resolveMonthlyExpenditure &gt; 0</code>; every module requirement via <code>PrerequisiteGateService::hasDataForRequirement</code> (<span class="loc">PrerequisiteGateService.php:89–118</span>), which is an existence test over the joint-aware stores.</p>
+<div class="tablewrap"><table>
+<tr><th>Primary type</th><th>DOB</th><th>Income</th><th>Expenditure</th><th>Module records required</th><th>Engine level</th></tr>
+<tr><td>protection_cover</td><td>●</td><td>●</td><td>●</td><td>—</td><td>module</td></tr>
+<tr><td>protection_policy</td><td></td><td></td><td></td><td>protection profile or any policy</td><td>module</td></tr>
+<tr><td>savings_emergency</td><td></td><td>●</td><td>●</td><td>—</td><td>module</td></tr>
+<tr><td>savings_accounts</td><td></td><td></td><td></td><td>savings account</td><td>module</td></tr>
+<tr><td>savings_debt</td><td></td><td>●</td><td>●</td><td>liability or mortgage</td><td>module</td></tr>
+<tr><td>retirement_contribution</td><td></td><td>●</td><td></td><td>pension</td><td>module</td></tr>
+<tr><td>retirement_readiness</td><td>●</td><td>●</td><td></td><td>pension</td><td>module</td></tr>
+<tr><td>retirement_decumulation</td><td>●</td><td></td><td></td><td>pension</td><td>module</td></tr>
+<tr><td>investment_portfolio / investment_fees</td><td></td><td></td><td></td><td>investment account</td><td>module</td></tr>
+<tr><td>investment_tax</td><td></td><td>●</td><td></td><td>investment account</td><td>module</td></tr>
+<tr><td>estate_iht</td><td></td><td></td><td></td><td>any estate-relevant asset AND a property</td><td>module</td></tr>
+<tr><td>estate_planning</td><td></td><td></td><td></td><td>any estate-relevant asset</td><td>module</td></tr>
+<tr><td>goals_progress</td><td></td><td></td><td></td><td>goal</td><td>module</td></tr>
+<tr><td>tax_optimisation</td><td></td><td>●</td><td></td><td>—</td><td>module</td></tr>
+<tr><td>property</td><td></td><td></td><td></td><td>property</td><td>module</td></tr>
+<tr><td>income</td><td></td><td>●</td><td></td><td>—</td><td>factual (no engine)</td></tr>
+<tr><td>holistic_health</td><td>●</td><td>●</td><td>●</td><td>—</td><td>holistic (orchestrateAnalysis)</td></tr>
+<tr><td>affordability</td><td></td><td>●</td><td>●</td><td>—</td><td>module</td></tr>
+<tr><td>general · billing · data_entry · navigation · out_of_remit</td><td colspan="4">no KYC gate, no required tools, no POSITION bucket</td><td>factual</td></tr>
+</table></div>
+
+<h3>User and profile fields that feed the gates and the prompt</h3>
+<p>On <code>users</code>: <code>date_of_birth</code>, <code>marital_status</code>, <code>employment_status</code>, <code>employer</code>, <code>occupation</code>, <code>annual_employment_income</code>, <code>annual_self_employment_income</code>, <code>annual_rental_income</code>, <code>annual_dividend_income</code>, <code>annual_interest_income</code>, <code>annual_trust_income</code>, <code>monthly_expenditure</code> (plus 20 category columns that default to 0.00), <code>retirement_date</code>, <code>target_retirement_age</code>, <code>household_calculation_mode</code>, <code>onboarding_completed</code>, <code>onboarding_fyn_step</code>, <code>onboarding_fyn_path</code>, <code>onboarding_fyn_selection</code>, <code>onboarding_fyn_context</code>, <code>active_campaign</code>, <code>funnel_answers</code>, <code>is_preview_user</code>. Satellites: <code>family_members</code> (dependants, display relationship), the reciprocal-and-consented spouse link, <code>retirement_profiles</code>, <code>protection_profiles</code>, <code>risk_profiles</code>, <code>tax_strategy_household_inputs</code>.</p>
+
+<!-- ============================================================ -->
+<h2 id="s7"><span class="num">07</span>Tools and write safety</h2>
+<p>The read/write boundary is enforced twice, both reading one denylist. The prompt asks the model to behave; the code makes it impossible not to.</p>
+<div class="grid2">
+<div class="card"><h4>Advice catalogue after the strip (as run for John)</h4>
+<p class="mono small">list_records · list_goals · list_life_events · get_module_analysis · search_conversation_index · get_recommendations · get_tax_information · generate_financial_plan · get_subscription_status · list_invoices · get_current_plan · fetch_cross_module_plan · fetch_estate_plan · fetch_investment_plan · fetch_isa_annual_allowance · fetch_protection_plan · fetch_recommendations · fetch_retirement_plan · fetch_savings_plan · delegate_to_capture · capture_complete</p>
+<p class="small"><code>AdviceFyn::buildToolList</code> returns names, not schemas; the schemas are re-fetched and filtered in the chat loop (<span class="loc">AdviceFyn.php:600–618</span>, <span class="loc">HasAiChat.php:418–451</span>).</p>
+</div>
+<div class="card"><h4>Stripped: <code>AdviceFyn::WRITE_TOOLS</code> <span class="loc">:158–191</span></h4>
+<p class="mono small">every create_* (18) · update_will · update_power_of_attorney · update_record · delete_record · update_profile · set_expenditure · capture_personal_details · capture_spouse_details · capture_dependants · capture_work_details · capture_salary_sacrifice · capture_spouse_work_status · capture_spouse_household_data · capture_spouse_non_working_assets · capture_pension_history · capture_charitable_giving · capture_retirement_goals · capture_state_pension · create_goal · create_life_event · create_what_if_scenario · navigate_to_page</p>
+<p class="small"><code>navigate_to_page</code> is stripped because the model used it as an escape hatch for writes and then fabricated "I've added X" (BS-14).</p>
+</div>
+</div>
+
+<h3>Dispatch-time gate</h3>
+<ul class="tree">
+<li><span class="node llm">model emits tool call</span>
+  <ul>
+    <li><span class="node gate">ActionDispatcher::classify → SurfaceAllowlist::allows(sessionMode, surface)</span> <span class="loc">HasAiChat.php:878–892 · SurfaceAllowlist.php:19–26</span>
+      <ul>
+        <li><span class="cond">persona advice AND surface ∈ WRITE_TOOLS</span> → <span class="out">rejectGroundSurface: audit row status 'stripped', result "That action is not available in this mode…"; nothing executes</span> <span class="loc">HasAiChat.php:1635–1657</span></li>
+        <li><span class="cond">otherwise</span> → CoordinatingAgent::executeTool
+          <ul>
+            <li><span class="cond">PrerequisiteGateService::canExecuteTool blocked</span> → <span class="out">blocked result + instruction (§06 layer 3)</span></li>
+            <li><span class="cond">CaptureAccuracyGate rejects arguments</span> → <span class="out">clarification_required</span></li>
+            <li><span class="cond">delegate_to_capture / capture_complete</span> → <span class="out">result action: handoff → synthetic handoff frame → FynLoop::interceptHandoff → handleInlineCapture, outer turn terminated</span> <span class="loc">FynLoop.php:612–752</span></li>
+            <li><span class="cond">any other name</span> → <span class="out">handler in the match table</span> <span class="loc">CoordinatingAgent.php:~1110–1175</span></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</li>
+</ul>
+
+<h3>Required tools the prompt insists on, per primary type</h3>
+<p><span class="loc">QuerySchemas.php:466–552</span>. Rendered into <code>&lt;required_tools&gt;</code> for the primary type only.</p>
+<div class="tablewrap"><table>
+<tr><th>Primary</th><th>Mandatory calls</th></tr>
+<tr><td>retirement_contribution</td><td class="mono">get_tax_information(pension_allowances) · get_tax_information(income_definitions) · get_module_analysis(retirement) · list_records(dc_pension)</td></tr>
+<tr><td>retirement_readiness</td><td class="mono">get_module_analysis(retirement) · get_tax_information(pension_allowances) · get_tax_information(state_pension)</td></tr>
+<tr><td>retirement_decumulation</td><td class="mono">get_module_analysis(retirement) · get_tax_information(pension_allowances) · get_tax_information(income_tax)</td></tr>
+<tr><td>savings_emergency</td><td class="mono">get_module_analysis(savings) · list_records(savings_account)</td></tr>
+<tr><td>savings_accounts</td><td class="mono">list_records(savings_account) · get_tax_information(savings_config)</td></tr>
+<tr><td>savings_debt</td><td class="mono">list_records(savings_account) · list_records(liability) · get_tax_information(savings_config)</td></tr>
+<tr><td>investment_portfolio / fees</td><td class="mono">get_module_analysis(investment) · list_records(investment_account)</td></tr>
+<tr><td>investment_tax</td><td class="mono">get_tax_information(isa_allowances) · list_records(savings_account) · list_records(investment_account)</td></tr>
+<tr><td>protection_cover</td><td class="mono">get_module_analysis(protection) · list_records(life_insurance | critical_illness | income_protection)</td></tr>
+<tr><td>protection_policy</td><td class="mono">get_module_analysis(protection) · list_records(life_insurance)</td></tr>
+<tr><td>estate_iht</td><td class="mono">get_tax_information(inheritance_tax) · get_module_analysis(estate) · list_records(property)</td></tr>
+<tr><td>estate_planning · goals_progress · affordability</td><td class="mono">get_module_analysis(estate | goals | savings)</td></tr>
+<tr><td>tax_optimisation</td><td class="mono">get_tax_information(income_tax) · get_tax_information(isa_allowances) · get_tax_information(pension_allowances)</td></tr>
+<tr><td>holistic_health</td><td class="mono">get_recommendations() · get_module_analysis(holistic) · generate_financial_plan()</td></tr>
+<tr><td>property · income</td><td class="mono">list_records(property) · get_tax_information(income_tax)</td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="s8"><span class="num">08</span>Where recommendations come from</h2>
+<p>Fyn does not invent recommendations. The prompt says so twice and the wiring makes it so: the ranked list and the composed plan are computed by deterministic engines, then handed to the model as text (in <code>&lt;financial_context&gt;</code>) or as tool results. The model's job is to select, explain and voice them by claim tier.</p>
+
+<figure>
+<div class="scroll">
+<svg viewBox="0 0 1180 520" role="img" aria-label="Recommendation engine pipeline: module agents read stores and evaluate DB-seeded action definitions producing recommendations with decision traces; the coordinating agent collects, computes surplus, resolves conflicts, ranks with the priority formula, allocates cashflow and adds cross-module strategies; the composed plan service orders tax strategies by sequencing and conflicts; outputs reach Fyn via the context block, tools and pointers, and reach the UI directly without a model.">
+<defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor" style="color:var(--ink)">
+
+<!-- inputs -->
+<rect x="20" y="20" width="250" height="118" rx="4" fill="var(--panel)" stroke="var(--line-2)" stroke-dasharray="4 3"/>
+<text x="32" y="39" font-weight="600">Inputs</text>
+<text x="32" y="57" font-size="11">users row + satellites</text>
+<text x="32" y="72" font-size="11">Stores (joint-aware, at user share)</text>
+<text x="32" y="87" font-size="11">TaxConfiguration 2026/27</text>
+<text x="32" y="102" font-size="11">savings_/investment_/estate_/retirement_/</text>
+<text x="32" y="116" font-size="11">protection_/tax_action_definitions (DB)</text>
+<text x="32" y="131" font-size="10" fill="var(--muted)">seeded by *ActionDefinitionSeeder</text>
+
+<path d="M270,79 L300,79" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr2)"/>
+
+<!-- module agents -->
+<rect x="302" y="20" width="300" height="118" rx="4" fill="var(--det-soft)" stroke="var(--det)"/>
+<text x="314" y="39" font-weight="600" fill="var(--det)">Module agents · analyze() then generateRecommendations()</text>
+<text x="314" y="57" font-size="11">Protection · Savings · Investment · Retirement · Estate · Goals</text>
+<text x="314" y="72" font-size="11">readiness gate → analysis (cached) →</text>
+<text x="314" y="87" font-size="11">{Module}ActionDefinitionService::evaluateAgentActions</text>
+<text x="314" y="102" font-size="11">for each enabled definition: evaluate{Condition}() → recs</text>
+<text x="314" y="117" font-size="11">+ goal-source definitions per linked goal</text>
+<text x="314" y="132" font-size="10" fill="var(--muted)">each rec: title, description, action, category, priority, definition_key, estimated_impact, decision_trace[]</text>
+
+<path d="M602,79 L632,79" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr2)"/>
+
+<!-- coordinator -->
+<rect x="634" y="20" width="526" height="118" rx="4" fill="var(--det-soft)" stroke="var(--det)"/>
+<text x="646" y="39" font-weight="600" fill="var(--det)">CoordinatingAgent::orchestrateAnalysis  <tspan fill="var(--muted)" font-weight="400">app/Agents/CoordinatingAgent.php:345–424</tspan></text>
+<text x="646" y="57" font-size="11">1 collectModuleAnalysis (all six + tax_optimisation via TaxOptimisationService)</text>
+<text x="646" y="72" font-size="11">2 CashFlowCoordinator::calculateAvailableSurplus   3 extractRecommendations</text>
+<text x="646" y="87" font-size="11">4 ConflictResolver::identifyConflicts → resolveConflicts</text>
+<text x="646" y="102" font-size="11">5 PriorityRanker::rankRecommendations — band from the seeded priority (95 / 85 / 60 / 45) + benefit/20 + weight/100</text>
+<text x="646" y="117" font-size="11">6 optimizeContributionAllocation(surplus, demands) → shortfall   7 crossModuleStrategies</text>
+<text x="646" y="132" font-size="10" fill="var(--muted)">module weights (tiebreak only): protection 80 · savings 75 · retirement 70 · tax 65 · investment 60 · goals 55 · estate 50  (PriorityRanker::MODULE_WEIGHTS)</text>
+
+<!-- composed plan -->
+<rect x="302" y="170" width="300" height="104" rx="4" fill="var(--det-soft)" stroke="var(--det)"/>
+<text x="314" y="189" font-weight="600" fill="var(--det)">Composed plan (per module strategy source)</text>
+<text x="314" y="207" font-size="11">TaxStrategySource → calculator → StrategyRecommendation[]</text>
+<text x="314" y="222" font-size="11">metadata from *_action_definitions source='strategy':</text>
+<text x="314" y="237" font-size="11">claim_tier · sequencing.do_before · conflicts_with · required_data</text>
+<text x="314" y="252" font-size="11">StrategyPlanComposer::compose → items, combined_annual_saving,</text>
+<text x="314" y="267" font-size="11">locked[] (strategies whose required_data is missing)</text>
+
+<path d="M452,138 L452,168" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr2)"/>
+
+<!-- outputs to Fyn -->
+<rect x="634" y="170" width="526" height="140" rx="4" fill="var(--llm-soft)" stroke="var(--llm)"/>
+<text x="646" y="189" font-weight="600" fill="var(--llm)">How they reach Fyn (the model)</text>
+<text x="646" y="207" font-size="11">a  &lt;financial_context&gt;: top 8 of ranked_recommendations, filtered to the classification's modules,</text>
+<text x="660" y="221" font-size="11">with "(urgency: N/100)", description, estimated saving, action, "Triggered by: definition_key"</text>
+<text x="646" y="238" font-size="11">b  tool get_recommendations → ranked list + surplus + composed_tax_plan (provenance recorded)</text>
+<text x="646" y="254" font-size="11">c  tool get_module_analysis(module) → summariseToolAnalysis(engine output)</text>
+<text x="646" y="270" font-size="11">d  fetch_recommendations / fetch_{module}_plan pointer tools, and &lt;live_data&gt; prefetch on trigger match</text>
+<text x="646" y="286" font-size="11">e  &lt;relevant_triggers&gt;: the definition keys the model may cite if they appear in (a)</text>
+<text x="646" y="302" font-size="10" fill="var(--muted)">voicing: claim_tier mechanical → state the working; judgement → hedge and signpost</text>
+
+<path d="M897,138 L897,168" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr2)"/>
+<path d="M602,222 L632,222" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr2)"/>
+
+<!-- outputs to UI -->
+<rect x="20" y="170" width="250" height="104" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="32" y="189" font-weight="600">Same engines, no model</text>
+<text x="32" y="207" font-size="11">RecommendationsAggregatorService → web API,</text>
+<text x="32" y="222" font-size="11">dashboard cards, /tax-strategy, /m achievements</text>
+<text x="32" y="237" font-size="11">composed module plans, NOT orchestrateAnalysis</text>
+<text x="32" y="252" font-size="11">hands the whole set to PriorityRanker once</text>
+<text x="32" y="267" font-size="10" fill="var(--det)">same ranking as Fyn — F12 fixed on branch</text>
+<path d="M302,222 L272,222" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr2)"/>
+
+<!-- onboarding advice -->
+<rect x="20" y="300" width="582" height="60" rx="4" fill="var(--det-soft)" stroke="var(--det)"/>
+<text x="32" y="319" font-weight="600" fill="var(--det)">Onboarding advice turns (turn_type advice) are deterministic too</text>
+<text x="32" y="337" font-size="11">OnboardingChatDirector::emitAdviceTurn → buildSectionAdvice reads ComposedTaxPlanService::forUser</text>
+<text x="32" y="352" font-size="11">and formats at most two plan items with a claim-tier prefix. No provider call.  <tspan fill="var(--muted)">director :1105–1289</tspan></text>
+
+<!-- tracking -->
+<rect x="634" y="330" width="526" height="60" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="646" y="349" font-weight="600">Tracking</text>
+<text x="646" y="367" font-size="11">recommendation_tracking rows (status lifecycle, observer) feed achievements on web and /m;</text>
+<text x="646" y="382" font-size="11">ai_advice_logs row per advice-type turn; ai_messages.fetch_provenance carries strategy ids + plan digest</text>
+
+<!-- ranker detail -->
+<rect x="20" y="400" width="1140" height="100" rx="4" fill="var(--panel)" stroke="var(--line-2)"/>
+<text x="32" y="419" font-weight="600">PriorityRanker inputs, after Batch B  <tspan fill="var(--muted)" font-weight="400">app/Services/Coordination/PriorityRanker.php</tspan></text>
+<text x="32" y="437" font-size="11">urgency: the seeded label — a string priority, else the impact label beside an engine int, else the int (1–2 high, 3 medium, 4+ low) — critical 95 · high 85 · medium 60 · low 45</text>
+<text x="32" y="452" font-size="11">impact: the benefit on the rec (estimated_impact · estimated_saving · estimated_annual_tax_saved · potential_benefit) banded 95 / 80 / 65 / 55 / 50</text>
+<text x="32" y="467" font-size="11">priority_score = urgency + impact / 20 + module weight / 100 — tiebreakers add at most 5.55, so a band is never crossed; ease and user-priority scores deleted</text>
+<text x="32" y="484" font-size="11">timeline: urgency ≥ 80 immediate · ≥ 60 short_term · ≥ 40 medium_term · else long_term</text>
+<text x="32" y="496" font-size="10" fill="var(--det)">Every engine emits the label the ranker reads (finding F2, fixed on branch).</text>
+</g>
+</svg>
+</div>
+<figcaption>Recommendations are produced by DB-seeded definitions evaluated in code, ranked once by the seeded priority, and handed to the model as text. The dashboard, module pages and <code>/m</code> read the same engines with no model involved and, since Batch B, the same ranker.</figcaption>
+</figure>
+<div class="callout det">
+<p><strong>One ranking (Batch B, 9 September 2026).</strong> <code>PriorityRanker</code> is the home: the seeded label sets the band (critical 95, high 85, medium 60, low 45), the benefit figure and the module weight only break ties inside it. <code>CoordinatingAgent</code> (Fyn's <code>&lt;financial_context&gt;</code>, <code>get_recommendations</code>, the holistic plan) and <code>RecommendationsAggregatorService</code> (the web API, dashboard cards, <code>/m</code> next actions) both call it; the aggregator's own 85 / 60 / 45 map, the second module-weight table in <code>CoordinatingAgent</code>, <code>TaxOptimisationAgent</code>'s urgency map and the five adapters' label resolvers are gone. <code>/m</code> next actions sort by the same score rather than by the pound benefit. Verified for the young family persona: the web dashboard Savings tab, <code>/api/recommendations/top</code>, the <code>/m</code> top actions and Fyn's ranked block (ai_messages 439) list the same items in the same order.</p>
+</div>
+
+
+<h3>The decision tree that generates recommendations</h3>
+<p>Each module has a table of definitions (<code>{module}_action_definitions</code>), seeded and read at runtime with <code>getEnabledBySource('agent' | 'goal' | 'gap')</code>. A definition's <code>trigger_config.condition</code> names one evaluator method; thresholds live in the row, so they can be changed without a deploy. Every fired recommendation carries a <code>decision_trace</code> of question / data value / threshold / passed / explanation. The full catalogue as seeded, 165 rows, 150 enabled:</p>
+
+<h4>Savings <span class="small">44 definitions · SavingsActionDefinitionService.php (3,696 lines)</span></h4>
+<div class="callout warn">
+<p><span class="pill det">fixed on branch</span> <strong>None of the 36 agent-source savings rules below could fire when this was read.</strong> On <code>fix/f0-savings-engine-dispatch</code> the dispatcher switches on the seeded <code>condition</code>, every enabled row has an arm (guard test <code>ActionDefinitionDispatchCoverageTest</code>, all six engines), the eight rows that had no evaluator got one, ten rows were added, and goal recommendations became seeded rows evaluated by the same service. Verified live for the young family persona: nineteen recommendations on the Strategy tab, the dashboard and <code>/m</code>. What follows is the state as read.</p>
+<p> The dispatcher reads <code>$config['condition']</code> (<span class="loc">SavingsActionDefinitionService.php:142</span>) but every match arm is written against the row's <code>key</code> (<code>'emergency_fund_critical' =&gt; …</code>, <span class="loc">:146–205</span>), while the seeded conditions are <code>emergency_runway_below</code>, <code>psa_exceeded</code>, <code>rate_below_market_best</code> and so on. The intersection of the 46 arms and the 39 seeded conditions is zero, so every row falls to <code>default =&gt; []</code>. The other five engines match correctly (investment 21/21, retirement 21/21, protection 25/25, estate 8/8, tax 5/5). Finding F0.</p>
+</div>
+<div class="tablewrap"><table>
+<tr><th>key</th><th>condition</th><th>threshold</th><th>priority</th><th>source</th></tr>
+<tr><td>missing_date_of_birth / missing_income / missing_expenditure / missing_employment_status</td><td>data readiness</td><td>—</td><td>critical / medium</td><td>agent</td></tr>
+<tr><td>emergency_fund_critical</td><td>emergency_runway_below</td><td>1 month</td><td>critical</td><td>agent</td></tr>
+<tr><td>emergency_fund_low</td><td>emergency_runway_between</td><td>1–3 months</td><td>high</td><td>agent</td></tr>
+<tr><td>emergency_fund_building</td><td>emergency_runway_between</td><td>3–6 months</td><td>medium</td><td>agent</td></tr>
+<tr><td>emergency_fund_excess</td><td>emergency_runway_above</td><td>6 months</td><td>low</td><td>agent</td></tr>
+<tr><td>emergency_fund_no_data</td><td>emergency_fund_expenditure_missing</td><td>—</td><td>high</td><td>agent</td></tr>
+<tr><td>psa_breached / psa_approaching / psa_additional_rate / starting_rate_unused</td><td>psa_exceeded · psa_usage_above · additional_rate_taxpayer_with_taxable_savings · eligible_for_starting_rate</td><td>80 % usage</td><td>high / medium / critical / medium</td><td>agent</td></tr>
+<tr><td>cash_isa_recommended / cash_isa_not_needed</td><td>has_taxable_savings_no_cash_isa · basic_rate_with_psa_headroom</td><td>headroom 50 %</td><td>high / low</td><td>agent</td></tr>
+<tr><td>rate_below_market / rate_poor</td><td>rate_below_market_best · rate_significantly_below_market</td><td>gap 0.5 / 1.5 pts</td><td>medium / high</td><td>agent</td></tr>
+<tr><td>fixed_maturity_warning / fixed_maturity_urgent / promo_rate_expiring / regular_saver_opportunity</td><td>maturity or promo within N days · easy access with regular contributions</td><td>90 / 30 / 30 days</td><td>medium / high / high / medium</td><td>agent</td></tr>
+<tr><td>fscs_breach / fscs_approaching</td><td>institution_balance_above / approaching_fscs</td><td>£120,000 / £110,000 (from TaxConfig)</td><td>high / medium</td><td>agent</td></tr>
+<tr><td>debt_rate_exceeds_savings / offset_mortgage_better</td><td>rate comparisons</td><td>min 2 pts</td><td>high / medium</td><td>agent</td></tr>
+<tr><td>excess_cash_isa_available / excess_cash_pension / excess_cash_bond / excess_cash_gia</td><td>excess cash cascade: ISA remaining → pension remaining → bond → GIA</td><td>bond min excess £50,000</td><td>high / high / medium / low</td><td>agent</td></tr>
+<tr><td>goal_wrong_account_type / goal_off_track / goal_nearly_achieved / goal_no_linked_account / goal_multi_account_rebalance</td><td>per linked goal</td><td>90 % progress</td><td>medium / high / low / medium / medium</td><td>goal</td></tr>
+<tr><td>child_no_jisa / child_jisa_allowance_remaining / child_jisa_cash_vs_ss / child_parental_settlement / child_turning_18</td><td>per minor child</td><td>5 years · £100 interest · 12 months</td><td>medium / low / low / high / medium</td><td>agent</td></tr>
+<tr><td>spouse_psa_shift / spouse_isa_coordination</td><td>spouse_has_unused_psa · spouse_isa_allowance_imbalanced</td><td>—</td><td>medium</td><td>agent</td></tr>
+<tr><td>strategy_build_emergency_fund / strategy_move_to_high_interest / strategy_regular_savings_habit</td><td>composed-plan metadata only</td><td>—</td><td>mechanical · mechanical · judgement</td><td>strategy</td></tr>
+</table></div>
+<p class="small">Emergency-fund target months were personalised in the savings engine as employed 6, self-employed / contractor / freelance 9, retired 6, unknown 6 (<span class="loc">SavingsActionDefinitionService.php:3563–3576</span>); the investment engine uses a flat 6 on purpose (<span class="loc">:3556–3561</span>). <span class="pill det">fixed on branch</span> <code>EmergencyFundCalculator::getTargetMonths</code> is now the one table (3-6-9, retired 3) and the decision-trace wording is built from it (F16).</p>
+
+<h4>Retirement <span class="small">25 · RetirementActionDefinitionService.php (2,757 lines)</span></h4>
+<div class="tablewrap"><table>
+<tr><th>key</th><th>condition</th><th>threshold</th><th>priority</th></tr>
+<tr><td>salary_sacrifice_floor_warning</td><td>salary_sacrifice_below_proxy_floor</td><td>—</td><td>critical</td></tr>
+<tr><td>annual_allowance_exceeded</td><td>annual_allowance_has_excess</td><td>—</td><td>critical</td></tr>
+<tr><td>approaching_decumulation</td><td>within_years_of_retirement</td><td>10 years</td><td>high</td></tr>
+<tr><td>employer_match</td><td>employee_contribution_percent_below</td><td>5 %</td><td>high</td></tr>
+<tr><td>auto_enrolment_below_minimum · salary_sacrifice_available · start_contributions</td><td>below AE total · workplace pension without sacrifice · zero contribution with a fund</td><td>—</td><td>high</td></tr>
+<tr><td>contribution_increase</td><td>income_gap_positive_and_additional_contribution_required</td><td>—</td><td>medium</td></tr>
+<tr><td>tax_relief</td><td>higher_rate_taxpayer_below_allowance</td><td>£40,000 (seeded literal)</td><td>medium</td></tr>
+<tr><td>state_pension_no_forecast / ni_gaps</td><td>no forecast · NI years short of required by SPA</td><td>—</td><td>medium / high</td></tr>
+<tr><td>enhanced_annuity_eligible · adjust_retirement_age · pension_consolidation_opportunity · care_costs_not_modelled</td><td>health flags · gap &gt; 10 % of target (suggest +3 years, max 70) · ≥ 3 DC pensions · age ≥ 50 without care costs</td><td>0.10 · 3 · 50</td><td>medium / medium / medium / low</td></tr>
+<tr><td>high_pension_total_fees / platform / fund</td><td>fee % above</td><td>1.0 / 0.8 / 0.5 %</td><td>high / medium / medium</td></tr>
+<tr><td>goal_no_contribution / goal_behind_schedule / goal_deadline_approaching</td><td>per linked goal</td><td>6 months · 75 %</td><td>high / high / medium</td></tr>
+<tr><td>strategy_increase_pension_contribution · strategy_salary_sacrifice_pension · strategy_carry_forward_unused_allowance · strategy_plan_retirement_income</td><td>composed-plan metadata</td><td>—</td><td>mechanical · mechanical · judgement · judgement</td></tr>
+</table></div>
+
+<h4>Protection <span class="small">35 · ProtectionActionDefinitionService.php (2,350 lines) over ComprehensiveProtectionPlanService output</span></h4>
+<div class="tablewrap"><table>
+<tr><th>key</th><th>condition</th><th>threshold</th><th>priority</th><th>source</th></tr>
+<tr><td>life_insurance_gap / critical_illness_gap / income_protection_gap</td><td>gap_exists for coverage_type</td><td>&gt; £0</td><td>critical / high / high</td><td>gap</td></tr>
+<tr><td>no_policies_warning / protection_profile_missing</td><td>no policies with gaps · profile missing</td><td>—</td><td>critical</td><td>agent</td></tr>
+<tr><td>review_existing_policies · consolidate_policies</td><td>policies_exist_with_gaps · multiple_policies</td><td>0 · 3</td><td>medium / low</td><td>agent</td></tr>
+<tr><td>premium_affordability_warning / high_premium_cost</td><td>premium_percent_of_income_above</td><td>10 % / 5 %</td><td>high / medium</td><td>agent</td></tr>
+<tr><td>dis_reliance_warning · no_employer_benefits_recorded · group_ip_any_occupation · ip_gap_after_state_benefits · self_employed_no_ip</td><td>employer/state benefit shapes</td><td>—</td><td>high / medium / medium / high / critical</td><td>agent</td></tr>
+<tr><td>policy_not_in_trust · policy_not_joint_married · policy_expiring_soon · policy_expired · mortgage_no_decreasing_term</td><td>policy structure</td><td>24 months</td><td>medium / medium / high / critical / high</td><td>agent</td></tr>
+<tr><td>ip_any_occupation_definition · ip_short_benefit_period · ip_long_deferred_period</td><td>income-protection terms</td><td>24 months · 26 weeks</td><td>medium / medium / high</td><td>agent</td></tr>
+<tr><td>no_ci_with_mortgage · ci_combined_risk · dependants_no_life_cover · education_funding_gap · non_earning_spouse_no_cover</td><td>household shapes</td><td>—</td><td>high / low / critical / medium / medium</td><td>agent</td></tr>
+<tr><td>increase_life_cover / add_critical_illness / add_income_protection</td><td>strategy_recommendation category match</td><td>—</td><td>high</td><td>agent · <span class="pill off">disabled</span></td></tr>
+<tr><td>strategy_protection_* (5)</td><td>composed-plan metadata</td><td>—</td><td>judgement except policy_in_trust mechanical</td><td>strategy</td></tr>
+</table></div>
+
+<h4>Investment <span class="small">24 · InvestmentActionDefinitionService.php (1,486 lines)</span></h4>
+<div class="tablewrap"><table>
+<tr><th>key</th><th>condition</th><th>threshold</th><th>priority</th><th>state</th></tr>
+<tr><td>risk_profile_missing · no_holdings · low_diversification</td><td>risk_profile_not_set · accounts_exist_but_no_holdings · diversification_score_below</td><td>70</td><td>high / medium / medium</td><td>enabled</td></tr>
+<tr><td>high_total_fees / high_fund_fees / high_platform_fees</td><td>total_fee_percent_above · weighted_ocf_above · platform_fee_percent_above</td><td>1.0 / 0.5 / 0.8 %</td><td>high / medium / medium</td><td>enabled</td></tr>
+<tr><td>rebalance_portfolio · tax_loss_harvesting · open_isa · use_isa_allowance · consider_bonds</td><td>allocation drift · harvesting opportunities · GIA without ISA · ISA remaining with GIA · GIA above threshold without bonds</td><td>£50,000</td><td>medium / medium / high / medium / low</td><td>enabled</td></tr>
+<tr><td>emergency_fund_critical · emergency_fund_grow · switch_savings_rate · isa_allowance_remaining · surplus_to_isa · surplus_to_pension · surplus_to_bond</td><td>duplicates of savings-owned logic</td><td>3 · 3–6 · 6 months</td><td>—</td><td><span class="pill off">disabled</span> (savings owns them)</td></tr>
+<tr><td>goal_no_contribution · goal_behind_schedule · goal_deadline_approaching</td><td>per linked goal</td><td>6 months · 75 %</td><td>high / high / medium</td><td>enabled</td></tr>
+<tr><td>strategy_set_risk_profile · strategy_rebalance_to_target · strategy_reduce_platform_fees</td><td>composed-plan metadata</td><td>—</td><td>judgement · mechanical · mechanical</td><td>enabled</td></tr>
+</table></div>
+
+<h4>Estate <span class="small">12 · EstateActionDefinitionService.php (360 lines)</span></h4>
+<div class="tablewrap"><table>
+<tr><th>key</th><th>condition</th><th>threshold</th><th>priority</th></tr>
+<tr><td>no_will · no_lpa · no_lpa_health</td><td>no will · no financial LPA · no health LPA</td><td>—</td><td>critical / high / medium</td></tr>
+<tr><td>policy_not_in_trust · iht_exceeds_nrb · gifts_pet_window</td><td>life policy outside trust · liability above nil-rate band (TaxConfig) · gifts inside the 7-year window</td><td>—</td><td>high / high / medium</td></tr>
+<tr><td>trust_review_due · beneficiary_review</td><td>review older than N months · beneficiary review</td><td>12 months</td><td>medium / low</td></tr>
+<tr><td>strategy_make_a_will · strategy_register_lpa · strategy_reduce_iht_exposure · strategy_gift_to_reduce_estate</td><td>composed-plan metadata</td><td>—</td><td>mechanical · mechanical · judgement · judgement</td></tr>
+</table></div>
+
+<h4>Tax <span class="small">25 · TaxActionDefinitionService.php (396 lines) + TaxStrategy calculator</span></h4>
+<div class="tablewrap"><table>
+<tr><th>key</th><th>kind</th><th>claim tier</th><th>state</th></tr>
+<tr><td>isa_not_maxed · pension_carry_forward_available · spousal_transfer_beneficial · cgt_allowance_unused · high_dividend_in_gia</td><td>agent triggers</td><td>judgement</td><td><span class="pill off">all five disabled</span></td></tr>
+<tr><td>pa_taper_rescue · additional_rate_avoidance · salary_sacrifice_ni</td><td>strategy · income_band</td><td>mechanical</td><td>enabled</td></tr>
+<tr><td>isa_topup_vs_psa · bed_and_isa · dividend_allowance_harvest · pension_aa_carry_forward · gift_aid_higher_rate_relief</td><td>strategy · allowance</td><td>mechanical except bed_and_isa (judgement)</td><td>enabled</td></tr>
+<tr><td>marriage_allowance_transfer · savings_to_spouse · isa_topup_spouse · gia_to_spouse · gia_rebalance · isa_coordination · non_earner_spouse_pension · joint_savings_psa_split</td><td>strategy · household</td><td>mechanical except gia_to_spouse, gia_rebalance (judgement)</td><td>enabled</td></tr>
+<tr><td>tapered_annual_allowance</td><td>strategy · warning</td><td>mechanical</td><td>enabled</td></tr>
+<tr><td>lifetime_isa · junior_isa · junior_pension</td><td>strategy · lifecycle</td><td>judgement</td><td>enabled</td></tr>
+</table></div>
+<p class="small">The tax strategies are computed by the SaveTax calculator (<span class="loc">TaxStrategySource.php:27–35</span>), then composed: items are bubbled ahead of any target in their <code>do_before</code> list, mutually exclusive <code>conflicts_with</code> pairs keep the higher saving, strategies whose <code>required_data</code> is absent are reported as <code>locked</code> with what is missing (<span class="loc">ComposedModulePlanService.php:27–55</span>, <span class="loc">StrategyPlanComposer.php:45–200</span>). This is the plan the dashboard shows and the plan <code>get_recommendations</code> returns to Fyn.</p>
+
+<!-- ============================================================ -->
+<h2 id="s9"><span class="num">09</span>Onboarding Fyn: the state machine</h2>
+<p>The write state walks a table of 50 states. The table is assembled at runtime from the in-code base (<span class="loc">OnboardingStateMachine.php:363–1033</span>) merged with the procedural corpus file <code>fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md</code> (<span class="loc">:1049–1085, :1110–1133</span>). The corpus wins for prompt text, bubbles, turn types and static <code>next</code>; PHP wins for <code>skip_if</code>, callable <code>next</code> and callable prompts.</p>
+
+<h3>Which turns call a model</h3>
+<div class="tablewrap"><table>
+<tr><th>turn_type</th><th>Model?</th><th>Mechanism</th></tr>
+<tr><td>bubbles</td><td><span class="pill det">no</span></td><td><code>matchBubble</code>: exact label → exact id → bidirectional substring; optional <code>value_parser</code>; "Sorry, I didn't catch that" on miss <span class="loc">:2652–2690 · director :1558–1606</span></td></tr>
+<tr><td>free_text</td><td><span class="pill det">no</span></td><td><code>OnboardingValueInterpreter</code> parsers (employment, retirement date, expenditure amount)</td></tr>
+<tr><td>terminal</td><td><span class="pill det">no</span></td><td>done · free_chat (nulls the step, leaves onboarding incomplete) · campaign_terminal / campaign2_terminal (navigate then done)</td></tr>
+<tr><td>advice</td><td><span class="pill det">no</span></td><td><code>emitAdviceTurn</code> reads the composed plan and formats two items with a claim-tier prefix <span class="loc">director :1105–1289</span></td></tr>
+<tr><td>grouped_extract</td><td><span class="pill llm">usually</span></td><td>One extraction tool only (<code>capture_personal_details</code>, <code>capture_spouse_details</code>, …) via <code>FynLoop::stream</code>; skipped when parked facts already satisfy the state (<code>hydrateFromParking</code>) <span class="loc">director :2607–2670, :398–405</span></td></tr>
+<tr><td>delegated</td><td><span class="pill llm">yes</span></td><td>Focus-scoped capture catalogue via <code>FynLoop::stream</code>, persona data_capture <span class="loc">director :3452–3526</span></td></tr>
+<tr><td>side question at any state</td><td><span class="pill llm">yes</span></td><td><code>handleQuestionInterruption</code> → <code>FynLoop::run(SessionMode::Advice)</code>; simple questions answered inline, complex ones deferred <span class="loc">director :1659–1700</span></td></tr>
+</table></div>
+
+<div class="callout det">
+<p><strong>Side questions during onboarding.</strong> Four detection sites funnel into <code>handleInterruption</code> (<span class="loc">director :1634</span>). The split is deterministic: <code>WriteIntentClassifier::isQuestion</code>, then <code>QueryClassifier</code>, then <code>engineCallLevelFor(primary)</code>. Only <code>holistic</code> is complex: the question is stored on <code>metadata.deferred_questions</code> with a topic label and a promise line, and re-raised at both completion terminals as a yes/no bubble pair that <code>AdviceFyn::handle</code> consumes (§04). Everything else is answered inline through <code>FynLoop::run(SessionMode::Advice)</code> with a prompt override that forces at most two sentences and no closing question, buffered, trimmed by <code>definitiveAnswerText</code>, then the current step is re-asked (<span class="loc">:1674–1848, :4236–4255</span>). Advice states auto-advance with a cap of six and an immediate trip on any self-transition, after the 17,509-message incident (<span class="loc">:92–101, :1124–1135</span>).</p>
+</div>
+<h3>Transition engine</h3>
+<ul class="tree">
+<li><span class="node det">getNextStateId(current, answer, user)</span> <span class="loc">OnboardingStateMachine.php:1147–1185</span>
+  <ul>
+    <li><span class="cond">state.next === null</span> → terminal</li>
+    <li><span class="cond">next is a plain string</span> → applySkipRules(next)</li>
+    <li><span class="cond">next is "Class::method"</span> → invoke by arity (answer, user, conversation) → applySkipRules(result)</li>
+    <li><span class="cond">next is a closure</span> → next(answer, user) → applySkipRules(result)</li>
+    <li><span class="node det">applySkipRules(target, depth)</span> <span class="loc">:1187–1236</span>
+      <ul>
+        <li><span class="cond">depth &gt; 20</span> → return target (cycle guard)</li>
+        <li><span class="cond">target.skip_if(user) === true</span> → resolve target.next with an <em>empty answer</em> and recurse; branch helpers must read user state, not the answer</li>
+      </ul>
+    </li>
+  </ul>
+</li>
+</ul>
+
+<h3>Tree A · cold entry</h3>
+<ul class="tree">
+<li><span class="node">path_choice</span> <span class="loc">:366 → nextFromPathChoice :1240</span>
+  <ul>
+    <li><span class="cond">answer contains "journey"</span> → journey_selection (5 life-stage bubbles) → base_personal</li>
+    <li><span class="cond">answer contains "skip" or "something else"</span> → free_chat · terminal, step nulled → every later turn is advice</li>
+    <li><span class="cond">anything else (default)</span> → focus_selection (8 module bubbles) → base_personal</li>
+  </ul>
+</li>
+</ul>
+
+<h3>Tree B · funnel entry</h3>
+<ul class="tree">
+<li><span class="node">POST /onboarding/start?from=…</span> <span class="loc">AiChatController.php:750–812</span>
+  <ul>
+    <li><span class="cond">campaign_map[from] and not completed</span> → path campaign, selection savetax | pensioncheck, step base_work</li>
+    <li><span class="cond">campaign_map[from], reentry true and completed</span> → step campaign2_existing_recap (pensioncheck only)</li>
+    <li><span class="cond">paused campaign with the same selection</span> → resume at the parked step</li>
+    <li><span class="cond">no from, funnel_answers present</span> → campaign from funnel_answers.campaign, default savetax</li>
+    <li><span class="cond">journey_map[from]</span> → path journey, step base_personal</li>
+    <li><span class="cond">otherwise</span> → path_choice</li>
+  </ul>
+</li>
+</ul>
+
+<h3>Tree C · base KYC walk (journey and focus paths)</h3>
+<ul class="tree">
+<li><span class="node llm">base_personal</span> grouped_extract capture_personal_details · <span class="cond">skip if DOB and marital status both set</span> <span class="loc">:442, :1970</span>
+  <ul>
+    <li><span class="cond">DOB or marital status still null</span> → hold on base_personal (partial capture)</li>
+    <li><span class="cond">married or civil partnership</span> → <span class="node llm">base_spouse</span> (skip link → base_dependants) → base_dependants</li>
+    <li><span class="cond">else</span> → <span class="node">base_dependants</span> (bubbles)
+      <ul>
+        <li><span class="cond">"yes"</span> → <span class="node llm">base_dependants_detail</span> → profile_review_family</li>
+        <li><span class="cond">else</span> → profile_review_family → base_employment</li>
+      </ul>
+    </li>
+  </ul>
+</li>
+<li><span class="node">base_employment</span> bubbles + parseEmploymentFromText · <span class="cond">skip if employment_status set</span> <span class="loc">:494, :1592</span>
+  <ul>
+    <li><span class="cond">employed / full_time / part_time / self_employed</span> → <span class="node llm">base_work</span> (capture_work_details, funnel recap once) → base_employment_more
+      <ul>
+        <li><span class="cond">"yes" another job</span> → back to base_employment</li>
+        <li><span class="cond">no, journey path, income data present</span> → verify sub-flow (Tree F, section income)</li>
+        <li><span class="cond">no, journey path, no income data</span> → base_expenditure</li>
+        <li><span class="cond">no, campaign path</span> → verify sub-flow (income) → campaign_advice_income</li>
+      </ul>
+    </li>
+    <li><span class="cond">retired</span> → base_retirement_date → base_expenditure</li>
+    <li><span class="cond">unemployed / other</span> → base_expenditure</li>
+  </ul>
+</li>
+<li><span class="node">base_expenditure</span> free_text parseExpenditureAmount · <span class="cond">skip if expenditure &gt; 0</span> <span class="loc">:537–555</span>
+  <ul>
+    <li><span class="cond">campaign path</span> → verify (expenditure)</li>
+    <li><span class="cond">journey path with expenditure data</span> → verify (expenditure, origin journey_base)</li>
+    <li><span class="cond">else</span> → <span class="node llm">asset_capture</span> (delegated, prompt per focus)
+      <ul>
+        <li><span class="cond">data landed for the selected module</span> → verify (module section, origin journey_module) → add_more</li>
+        <li><span class="cond">nothing landed</span> → <span class="node">add_more</span> (bubbles minus visited focuses)
+          <ul>
+            <li><span class="cond">"done"</span> → done · terminal</li>
+            <li><span class="cond">another focus</span> → selection rewritten → asset_capture again</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</li>
+</ul>
+
+<h3>Tree D · SaveTax campaign section walk</h3>
+<p>Order <code>income → savings → investments → pensions → spouse → expenditure</code> (<span class="loc">:196–199</span>); <code>nextCampaignSection</code> skips whole sections by predicate, then state-level skips compose (<span class="loc">:312–342</span>). Every section ends in the verify sub-flow, then an auto-advancing <em>advice</em> state that reads the composed plan.</p>
+<ul class="tree">
+<li><span class="node">entry base_work</span> → verify(income) → <span class="node det">campaign_advice_income</span>
+  <ul>
+    <li><span class="cond">savings section unless funnel lacks savings/bank/ISA</span> → <span class="node llm">campaign_isa_holdings</span> (skip if no ISA) → <span class="node llm">campaign_bank_accounts</span> (skip if no bank/savings) → verify(savings) → <span class="node det">campaign_advice_savings</span></li>
+    <li><span class="cond">investments section if funnel has investments or an ISA investment account exists</span> → <span class="node llm">campaign_investment_accounts</span> → verify(investments) → <span class="node det">campaign_advice_investments</span></li>
+    <li><span class="cond">pensions section, never skipped</span> → <span class="node llm">campaign_dob</span> (skip if DOB set)
+      <ul>
+        <li><span class="cond">funnel has "pension"</span> → <span class="node llm">campaign_occupational_scheme</span> (skip unless full_time / part_time) → <span class="node llm">campaign_pension_contribs</span> → verify(pensions) → <span class="node det">campaign_advice_pensions</span></li>
+        <li><span class="cond">else</span> → next section</li>
+      </ul>
+    </li>
+    <li><span class="cond">spouse section if married</span> → <span class="node">campaign_spouse_work</span> (bubble writes household_calculation_mode; skip if already known)
+      <ul>
+        <li><span class="cond">dual_earner</span> → <span class="node llm">campaign_spouse_household</span> → verify(spouse) → <span class="node det">campaign_advice_spouse</span></li>
+        <li><span class="cond">single_earner_couple</span> → <span class="node llm">campaign_spouse_non_working_assets</span> → verify(spouse) → campaign_advice_spouse</li>
+        <li><span class="cond">unknown</span> → campaign_advice_spouse directly</li>
+      </ul>
+    </li>
+    <li><span class="cond">expenditure section, never skipped</span> → base_expenditure → verify(expenditure) → no advice state → sections exhausted → <span class="node det">campaign_synthesis</span> → campaign_terminal (navigate /tax-strategy) → done</li>
+  </ul>
+</li>
+</ul>
+
+<h3>Tree E · PensionCheck campaign</h3>
+<p>Order <code>income → pensions → state_pension → retirement_goals → spouse → expenditure</code>. Differences from SaveTax: re-entry lands on <code>campaign2_existing_recap</code> ("changed" → verify edit of the recap, then the first unskipped section); <code>campaign_dob</code> always continues to the occupational scheme; <code>campaign2_pension_pots</code> loops one pot per turn until every DC pension has a value or the user says "not sure"; then <code>campaign2_pension_db</code> → <code>campaign_pension_history</code> (skipped unless income exceeds the higher-rate threshold from TaxConfig and history is missing) → <code>campaign2_flexible_access</code> (skipped under 55) → verify(pensions) → advice; <code>campaign2_state_pension</code> and <code>campaign2_retirement_goals</code> are grouped extracts with their own advice states; the spouse section always goes to <code>campaign2_spouse_pensions</code>; synthesis routes to <code>campaign2_terminal</code> (navigate /retirement). <span class="loc">:697–813, :2131, :2380–2505, :2444</span></p>
+
+<h3>Tree F · verify sub-flow (shared by every path)</h3>
+<ul class="tree">
+<li><span class="node det">enterCampaignVerify(user, section, origin)</span> writes onboarding_fyn_context.verify_section, saves <span class="loc">:1311–1328</span>
+  <ul>
+    <li><span class="node">campaign_verify_announce</span> "I've recorded that. Does it look right?" <span class="cond">okay</span> → <span class="node">campaign_verify_navigate</span> (navigate_to = the section's page)
+      <ul>
+        <li><span class="cond">no</span> → <span class="node llm">campaign_verify_edit</span> (delegated, verify_edit_* focus, scoped update only) → back to campaign_verify_navigate</li>
+        <li><span class="cond">yes, journey path</span> → journeyAfterVerify: journey_module → add_more · income → base_expenditure · expenditure → asset_capture · else add_more</li>
+        <li><span class="cond">yes, section recap</span> → first unskipped campaign section</li>
+        <li><span class="cond">yes, campaign</span> → the section's advice state, or the next section when the section has none (expenditure, protection, estate, goals)</li>
+      </ul>
+    </li>
+  </ul>
+</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="s10"><span class="num">10</span>Worked example: John, seeded user</h2>
+<p>Run locally on 8 September 2026 with the real classifier, gate, assembler and engines, and no model call. John is the seeded <code>john@example.com</code>: 46, employed, married to Jane (44), £75,000 employment income, no records yet. Note the seed leaves him with <code>onboarding_completed = false</code> and <code>onboarding_fyn_step = 'path_choice'</code>, so a live chat turn would route him to the onboarding director; the runs below force the advice path to show what an advice turn assembles.</p>
+
+<h3>Step 1 · the classifier decides everything downstream</h3>
+<div class="tablewrap"><table>
+<tr><th>Message</th><th>primary</th><th>related</th><th>engine level</th><th>write intent</th></tr>
+<tr><td>Should I be putting more into my pension?</td><td><strong>general</strong></td><td>—</td><td>factual</td><td>—</td></tr>
+<tr><td>Should I increase my pension contributions?</td><td>retirement_contribution</td><td>tax_optimisation, savings_emergency, affordability</td><td>module</td><td>—</td></tr>
+<tr><td>How much can I pay into my pension this year?</td><td>retirement_contribution</td><td>tax_optimisation, savings_emergency, affordability</td><td>module</td><td>—</td></tr>
+<tr><td>Am I on track for retirement?</td><td>retirement_readiness</td><td>retirement_contribution, tax_optimisation</td><td>module</td><td>—</td></tr>
+<tr><td>What is the ISA allowance?</td><td>savings_accounts</td><td>affordability, tax_optimisation</td><td>module</td><td>—</td></tr>
+<tr><td>I have a new ISA with Nationwide worth £12,000</td><td>data_entry</td><td>—</td><td>factual</td><td>— (classifier skipped it: "isa" is not a savings keyword without "cash"/"stocks and shares")</td></tr>
+<tr><td>Add my Aviva pension worth £40,000</td><td>data_entry</td><td>—</td><td>factual</td><td>pension → deterministic capture route</td></tr>
+<tr><td>How do I start saving?</td><td>general</td><td>—</td><td>factual</td><td>— (gets the savings_getting_started directive)</td></tr>
+<tr><td>What is the weather tomorrow?</td><td>out_of_remit</td><td>—</td><td>—</td><td>canned refusal, no model</td></tr>
+<tr><td>Show me my invoices</td><td>billing</td><td>—</td><td>factual</td><td>—</td></tr>
+<tr><td>Take me to my estate planning</td><td>navigation</td><td>—</td><td>factual</td><td>—</td></tr>
+<tr><td>How is my overall financial health?</td><td>holistic_health</td><td>savings_emergency, affordability, tax_optimisation</td><td>holistic</td><td>—</td></tr>
+</table></div>
+
+<h3>Step 2 · two turns, side by side</h3>
+<div class="grid2">
+<div class="card">
+<h4>"Should I be putting more into my pension?"</h4>
+<dl class="kv">
+<dt>primary</dt><dd>general → factual</dd>
+<dt>KYC</dt><dd>not run</dd>
+<dt>buckets</dt><dd>IDENTITY only</dd>
+<dt>engine calls</dt><dd>none</dd>
+<dt>tool cap</dt><dd>3</dd>
+<dt>block size</dt><dd>14,339 characters</dd>
+</dl>
+<p class="small">The model receives profile, known facts, four semantic strategy facts (junior pension, additional-rate avoidance, taper rescue, carry-forward), the overlay and the voicing rules. It receives <strong>no</strong> financial context, no existing records, no required tools, no pension knowledge and no trigger list. It can still call tools, but nothing tells it to.</p>
+</div>
+<div class="card">
+<h4>"Should I increase my pension contributions?"</h4>
+<dl class="kv">
+<dt>primary</dt><dd>retirement_contribution → module</dd>
+<dt>KYC</dt><dd><strong>BLOCKED</strong> — Pension details (income present, no pension record)</dd>
+<dt>buckets</dt><dd>IDENTITY + POSITION + READINESS</dd>
+<dt>engine calls</dt><dd>retirement, savings, tax agents (sized analysis)</dd>
+<dt>tool cap</dt><dd>5</dd>
+<dt>block size</dt><dd>22,963 characters</dd>
+</dl>
+<p class="small">Same profile and knowledge, plus financial context (all zeros), "No records yet", the completeness matrix, the mandatory BLOCKED instructions, pension and income knowledge, the affordability rules, four required tools and thirteen relevant triggers. The correct outcome is that Fyn refuses to advise and offers to capture the pension.</p>
+</div>
+</div>
+
+<h4>The assembled block for the second turn, abridged</h4>
+<div class="prompt-block"><span class="tag">&lt;context&gt;</span>
+Current tax year: 2026/27
+You are speaking with: &lt;user_provided&gt;John&lt;/user_provided&gt;
+Situation: advice
+<span class="tag">&lt;user_profile&gt;</span>
+- First name (always use in full when addressing the user; do not truncate or parse): John
+- Age: 46
+- Employment: employed
+- Marital status: married
+- Total annual income: £75,000.00
+- Estimated income tax band: Higher rate (40%)
+- Family:
+  - Spouse: Jane (age 44)
+<span class="tag">&lt;/user_profile&gt;</span>
+<span class="tag">&lt;current_context&gt;</span> The user is on their Dashboard — the main overview of their financial position. <span class="tag">&lt;/current_context&gt;</span>
+<span class="tag">&lt;known_facts&gt;</span>
+- name: "John Smith"  - date_of_birth: "1980-05-15"  - marital_status: "married"  - employment_status: "employed"
+- employer: "Tech Corp Ltd"  - occupation: "Software Engineer"  - annual_employment_income: 75000
+- onboarding_completed: false  - has_spouse: true
+<span class="tag">&lt;/known_facts&gt;</span>
+Do not ask the user for any field above.
+<span class="tag">&lt;knowledge&gt;</span> <span class="cut">### Junior pension … ### Additional-rate avoidance … ### Personal Allowance taper rescue … ### Pension Annual Allowance carry-forward … (4 house-view facts, ~9,000 chars)</span> <span class="tag">&lt;/knowledge&gt;</span>
+<span class="tag">&lt;overlay&gt;</span> <span class="cut">Answer the user first … Acknowledgement hygiene …</span> <span class="tag">&lt;/overlay&gt;</span>
+<span class="tag">&lt;financial_context&gt;</span>
+- Total net worth: £0   - Total assets: £0   - Total liabilities: £0   - Goals: None set
+<span class="tag">&lt;/financial_context&gt;</span>
+<span class="tag">&lt;existing_records&gt;</span> No records yet. <span class="tag">&lt;/existing_records&gt;</span>
+<span class="tag">&lt;data_completeness&gt;</span>
+- Current question: BLOCKED -- Pension details
+<span class="tag">&lt;/data_completeness&gt;</span>
+<span class="tag">&lt;kyc_status&gt;</span>
+<b>KYC CHECK: BLOCKED.</b> The following data is missing and must be provided before you can give advice:
+- Pension details - open Retirement
+MANDATORY INSTRUCTIONS - follow these exactly:
+1. Do NOT give advice, estimates, or general guidance on this topic
+2. Explain clearly what data is missing and why it is needed for personalised guidance
+3. Offer to help the user enter the data conversationally
+4. Signpost the exact page label shown above in plain text. Do not output an internal route and do not call a navigation or write tool on the advice surface
+<span class="tag">&lt;/kyc_status&gt;</span>
+<span class="tag">&lt;financial_knowledge&gt;</span> <span class="cut">PENSION KNOWLEDGE (UK) … INCOME CLASSIFICATIONS (UK) … AFFORDABILITY — ALWAYS CHECK BEFORE RECOMMENDING CONTRIBUTIONS … INVESTMENT TAX WRAPPERS …</span> <span class="tag">&lt;/financial_knowledge&gt;</span>
+<span class="tag">&lt;required_tools&gt;</span>
+- get_tax_information(pension_allowances)  - get_tax_information(income_definitions)
+- get_module_analysis(retirement)  - list_records(dc_pension)
+<span class="tag">&lt;/required_tools&gt;</span>
+<span class="tag">&lt;relevant_triggers&gt;</span>
+- employer_match - contribution_increase - tax_relief - annual_allowance_exceeded - personal_allowance_reclaim
+- spousal_transfer_beneficial - cgt_allowance_unused - high_dividend_in_gia - pension_carry_forward_available
+- emergency_fund_critical - emergency_fund_low - emergency_fund_building - emergency_fund_excess
+If a trigger has fired (appears in the ranked recommendations), explain what it means for this user with specific amounts. Do not mention triggers that have not fired.
+<span class="tag">&lt;/relevant_triggers&gt;</span>
+<span class="tag">&lt;voicing_rules&gt;</span> <span class="cut">MECHANICAL … JUDGEMENT … at most one extra strategy … ask before computing an ambiguous figure</span> <span class="tag">&lt;/voicing_rules&gt;</span>
+<span class="tag">&lt;/context&gt;</span>
+<span class="tag">&lt;user_message&gt;</span> Should I increase my pension contributions <span class="tag">&lt;/user_message&gt;</span></div>
+
+<h3>Step 3 · what the mandated tool would return</h3>
+<p><code>get_module_analysis(retirement)</code> for John, keys as returned to the model: <code>module, summary, income_projection, breakdown, annual_allowance, profile, decumulation, post_retirement_goals, missing_for_quality_advice</code>. The summary is all null/zero (no pensions, no target); the annual allowance block is real: standard allowance £60,000, available £60,000, used £0, carry-forward £0, not tapered, MPAA not applicable. The <code>missing_for_quality_advice</code> list names three blocking gaps (retirement profile, target retirement income, pension records) and two soft ones (state pension forecast, spouse life expectancy), each with a plain-English "why".</p>
+
+<h3>Step 4 · the recommendations the engines produce for John today</h3>
+<p><code>orchestrateAnalysis</code> returns five ranked recommendations, monthly surplus £4,504.78, no conflicts, one cross-module strategy.</p>
+<div class="tablewrap"><table>
+<tr><th>#</th><th>module</th><th>title</th><th>action</th><th>urgency</th><th>impact</th><th>ease</th><th>module weight</th><th>score</th><th>timeline</th></tr>
+<tr><td class="num">1</td><td>tax_optimisation</td><td>Maximise Pension Contributions <span class="small">(type pension_annual_allowance; £60,000 unused allowance; estimated saving £3,000)</span></td><td>As a higher-rate taxpayer, additional pension contributions receive 40% tax relief</td><td class="num">50</td><td class="num">50</td><td class="num">50</td><td class="num">65</td><td class="num">51.5</td><td>medium_term</td></tr>
+<tr><td class="num">2</td><td>tax_optimisation</td><td>Use Your ISA Allowance</td><td>Contribute to a Stocks and Shares ISA or Cash ISA before the end of the tax year</td><td class="num">50</td><td class="num">50</td><td class="num">50</td><td class="num">65</td><td class="num">51.5</td><td>medium_term</td></tr>
+<tr><td class="num">3</td><td>protection</td><td><em>(no title)</em></td><td>Consider critical illness cover</td><td class="num">40</td><td class="num">50</td><td class="num">50</td><td class="num">80</td><td class="num">49.0</td><td>medium_term</td></tr>
+<tr><td class="num">4</td><td>protection</td><td><em>(no title)</em></td><td>Add income protection insurance</td><td class="num">40</td><td class="num">50</td><td class="num">50</td><td class="num">80</td><td class="num">49.0</td><td>medium_term</td></tr>
+<tr><td class="num">5</td><td>estate</td><td>Add Your Estate Data</td><td>—</td><td class="num">30</td><td class="num">50</td><td class="num">60</td><td class="num">50</td><td class="num">44.0</td><td>long_term</td></tr>
+</table></div>
+<p class="small">The first item is the one Fyn would be allowed to cite for a pension question: the prompt renders it as "1. Maximise Pension Contributions [tax_optimisation] (urgency: 50/100)" followed by the description, "Estimated saving: £3,000" and the action. None of the five carries a <code>definition_key</code>, so no "Triggered by:" line is rendered and none of the thirteen names in <code>&lt;relevant_triggers&gt;</code> can match. The composed tax plan for John has 0 items and 16 locked strategies, every one waiting on data he has never entered (savings balances, ISA subscriptions, pension contributions, a household input row for Jane's £55,000).</p>
+<p class="small"><strong>The dashboard sees a different list.</strong> <code>RecommendationsAggregatorService::aggregateRecommendations(11)</code> returns two items, both protection: "Consider critical illness cover" at 85 (immediate) and "Add income protection insurance" at 45 (medium term). The protection engine computed a £254,309 total need (human capital £246,809 from the £11,600 net-income difference between John and Jane ÷ 0.047, final expenses £7,500, income protection £45,000) against £0 of cover. The life-cover rule did not fire because John has no dependants recorded; the critical-illness sum assured came out at £0 because the protection profile's own <code>annual_income</code> is 0 even though the users row says £75,000. Savings, retirement, estate, goals and tax contributed nothing: the savings and investment gates are closed on missing monthly expenditure, retirement has four locked strategies (no DC pension, no retirement age), and the savings rule engine cannot fire regardless (F0).</p>
+
+<!-- ============================================================ -->
+<h2 id="s11"><span class="num">11</span>Wiring findings</h2>
+<p>Observed while tracing. Severity is about the effect on the recommendations a user sees. Each is verifiable from the cited lines or by re-running the example. A <span class="pill det">fixed on branch</span> pill means the fix was verified live locally on web, <code>/m</code> and Fyn and is now merged to <code>dev</code> (PR #782 for Batch A, PR #783 for F20). Released: csjones runs dev <code>45148f71c</code>, fynla.org runs main <code>a3d50b1df</code> (same tree), both verified in the browser on web and <code>/m</code>.</p>
+<div class="callout det">
+<p><strong>Batch A status, 8 September 2026.</strong> F0, F15, F16, F17 and the savings half of F3 are fixed and merged (PR #782). Verifying them live surfaced six more faults, F20 to F25; F21 to F25 were fixed in the same loop and F24 was confirmed by CSJ. F20 is fixed by PR #783: the benchmarks now come from MoneySavingExpert quarterly. Evidence, screenshots and the audit row ids are in <code>September/September8Updates/fyn-wiring-batch-a-evidence.md</code>. <strong>Batch B (9 September):</strong> F2 and F12 fixed on <code>fix/f2-f12-one-ranking</code>; evidence in <code>September/September9Updates/fyn-wiring-batch-b-evidence.md</code>. <strong>Release (PR #784):</strong> deployed to csjones at 16:56 BST and to fynla.org at 17:06 BST on 8 September 2026; both servers refreshed the nine MoneySavingExpert benchmarks from their own IPs with no Cloudflare challenge; the legacy plan collapse ran on production with the audit reporting safe (eight paid users, none unmapped).</p>
+<p><strong>Re-check, 8 September evening (dev 45148f71c).</strong> The fifteen findings Batch A did not touch were re-verified against the code with the same file:line evidence, plus a live classifier run for F1 and an <code>information_schema</code> query for F14. All fifteen still hold: F1, F2, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F18, F19. Line numbers that moved are given in each finding. Two line-number corrections only: <code>QuerySchemas</code> lives in <code>app/Constants/</code>, and F14 counts twenty category columns, not seventeen.</p>
+</div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F0</span><strong>The savings recommendation engine is dead code on both paths.</strong><span class="sev pill det">fixed on branch</span>
+<p>Two independent faults. First, the condition/key mismatch above (<span class="loc">SavingsActionDefinitionService.php:142–205</span>): every agent-source definition falls through to an empty result, so emergency-fund, Personal Savings Allowance, Cash ISA, rate, FSCS, debt-versus-savings, excess-cash, children's and spouse rules never produce a recommendation. Second, on the Fyn path <code>CoordinatingAgent</code> passes <code>SavingsAgent::analyze()</code> output straight into <code>generateRecommendations()</code> (<span class="loc">CoordinatingAgent.php:520–530</span>), and that array carries no <code>user_id</code>, so the service runs with user 0 and empty account collections; only the UI path injects it (<span class="loc">SavingsStrategySource.php:36–40</span>). Fixing the match table alone would therefore fix the dashboard but not Fyn. The retirement engine has neither fault.</p>
+<p><strong>Fix.</strong> Dispatcher keyed on the seeded condition; <code>SavingsAgent::analyze</code> carries <code>user_id</code> so every consumer evaluates the right household; one goal mechanism; a coverage guard test across all six engines. Live: nineteen items for the young family persona on the Strategy tab, four on the dashboard and <code>/m</code> dashboard (the aggregator's cap), the same list on <code>/m</code> bank accounts, and Fyn's <code>&lt;financial_context&gt;</code> carrying "Triggered by: emergency_fund_low" (ai_messages 425) and "emergency_fund_excess" (427).</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F1</span><strong>A natural pension question classifies as general and loses the whole advice apparatus.</strong><span class="sev pill det">fixed on branch (Batch C)</span>
+<p>"Should I be putting more into my pension?" matches none of the eight retirement_contribution regexes (<span class="loc">QuerySchemas.php:308–317</span>: "pension contribution", "maximise pension", "how much … pension", "annual allowance", "tax relief", "employer match", "salary sacrifice", "carry forward"). As general it gets no KYC gate, no POSITION bucket, no required tools, no pension knowledge and no triggers, and the reasoner is capped at 3 tool calls. The same is true of "put more in my pension", "top up my pension", "pay more into my pension". A single pattern such as <code>/\b(put|pay|contribute|top(ping)?\s+up)\b.{0,20}\b(in|into)\b.{0,20}\bpension/i</code> would close it; the effect should be verified against the golden conversations before changing the table. <strong>Re-check (dev 45148f71c):</strong> the classifier run live returns <code>general</code> for all four phrasings and <code>retirement_contribution</code> only for "how much should I pay into my pension". The pattern table now lives in <code>app/Constants/QuerySchemas.php</code>.</p>
+<p><strong>Fix.</strong> Two patterns added to <code>RETIREMENT_CONTRIBUTION</code> in <code>app/Constants/QuerySchemas.php</code>: put / pay / contribute … in(to) … pension, and top up … pension. Live classifier run: all four phrasings now classify as <code>retirement_contribution</code>; the data-entry and general cases in the §10 table are unchanged.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F2</span><strong>The priority ranker scores fields the engines never emit, so every recommendation collapses to the default band.</strong><span class="sev pill det">fixed on branch (Batch B)</span>
+<p><code>PriorityRanker</code> reads <code>coverage_gap</code>, <code>adequacy_score</code>, <code>emergency_fund_months</code>, <code>emergency_fund_shortfall</code>, <code>income_gap</code>, <code>years_to_retirement</code>, <code>goal_probability</code>, <code>iht_liability</code>, <code>expected_benefit</code>, <code>recommended_monthly_contribution</code> on each recommendation (<span class="loc">PriorityRanker.php:156–420</span>). <code>buildRecommendation()</code> in the action-definition services emits <code>priority, category, title, description, action, impact, scope, definition_key</code> plus <code>estimated_impact</code> and <code>decision_trace</code> (<span class="loc">SavingsActionDefinitionService.php:3534–3549</span>), and the tax and protection inline generators emit yet other shapes. Result in the example: urgency 50/40/30 from the fallback branches, impact 50, ease 50, and the order is effectively decided by the 0.1-weighted module priorities (protection 80, savings 75…) and the seeded <code>priority</code> string is ignored. The prompt then shows the model "(urgency: 50/100)" for everything. Either the ranker should read the seeded <code>priority</code>/<code>impact</code>/<code>estimated_impact</code>, or the services should populate the keys the ranker expects. <strong>Re-check:</strong> <code>PriorityRanker</code> still reads <code>adequacy_score</code>, <code>emergency_fund_months</code>, <code>iht_liability</code>, <code>coverage_gap</code>, <code>goal_probability</code>, <code>income_gap</code> and <code>priority_score</code>; <code>buildRecommendation</code> (now <span class="loc">SavingsActionDefinitionService.php:3694–3707</span>) emits <code>priority</code>, <code>impact</code> and <code>definition_key</code>, none of which the ranker reads. Batch B.</p>
+<p><strong>Fix.</strong> The ranker reads the seeded label (<code>PriorityRanker::priorityLabel</code>: string priority, else the impact label, else the engine int) and bands it 95 / 85 / 60 / 45; the benefit figure and module weight are tiebreakers that cannot cross a band; the per-module urgency, impact and ease tables and the second weight table in <code>CoordinatingAgent</code> are deleted. Live: Fyn's block shows urgency 85 for the young family's high savings rows (ai_messages 439) instead of 50 for everything.</p></div>
+
+<div class="finding"><span class="id">F3</span><strong>Thirteen trigger keys in the prompt can never appear in the ranked list.</strong><span class="sev pill det">fixed (Batches B, E, G)</span>
+<p><code>RELEVANT_TRIGGERS</code> (<span class="loc">QuerySchemas.php:560–652</span>) names keys with no definition in any table: <code>personal_allowance_reclaim, retirement_income_gap, retirement_age_target, state_pension_gap, drawdown_sequence, tax_free_lump_sum, policy_review_due, employer_group_life, trust_review, goal_contribution_gap</code>; and five that exist only as disabled tax rows: <code>isa_not_maxed, spousal_transfer_beneficial, cgt_allowance_unused, high_dividend_in_gia, pension_carry_forward_available</code>. The model is told to look for them and never finds them. Separately, ranked recommendations from the tax and protection generators carry no <code>definition_key</code> at all, so the "Triggered by:" line (<span class="loc">AdvicePromptBuilder.php:666–671</span>) never renders for them.</p>
+<p><strong>Partly fixed on branch.</strong> Savings recommendations now carry <code>definition_key</code> and the "Triggered by" line reads it off the recommendation (the DB-driven engines put a list of steps in <code>decision_trace</code>, not a keyed trace). The thirteen phantom keys and the tax and protection generators are unchanged.</p>
+<p><strong>Batch G.</strong> The ten phantom keys now name rules that fire: <code>personal_allowance_reclaim</code> → <code>strategy_pa_taper_rescue</code>; <code>retirement_income_gap</code> → <code>contribution_increase</code>; <code>retirement_age_target</code> → <code>adjust_retirement_age</code>; <code>state_pension_gap</code> → <code>ni_gaps</code> + <code>state_pension_no_forecast</code>; <code>drawdown_sequence</code> and <code>tax_free_lump_sum</code> → <code>approaching_decumulation</code> (whose recommendation and trace already carry the tax-free lump sum capped at the Lump Sum Allowance) + <code>strategy_plan_retirement_income</code>; <code>policy_review_due</code> → <code>policy_expiring_soon</code> + <code>review_existing_policies</code>; <code>employer_group_life</code> → <code>no_employer_benefits_recorded</code> + <code>dis_reliance_warning</code>; <code>trust_review</code> → <code>trust_review_due</code>; <code>goal_contribution_gap</code> → <code>goal_no_contribution</code>. <code>RelevantTriggersAreSeededTest</code> seeds all six engines and fails on any trigger key no engine can emit. Tax and protection recommendations carry <code>definition_key</code> since Batches B and E, so "Triggered by:" renders for them.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F4</span><strong>The onboarding corpus silently shadows the PHP table.</strong><span class="sev pill det">fixed on branch (Batch F)</span>
+<p><code>fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md</code> is merged over <code>inCodeStates()</code> at runtime; prompt text, bubbles, retry text, turn types and static <code>next</code> are taken from the file (<span class="loc">OnboardingStateMachine.php:1110–1133</span>). Editing those strings in PHP does nothing in production, and <code>JourneyFieldResolver::getFynPrompt('monthly_expenditure')</code> at <span class="loc">:539</span> is overwritten the same way. Two homes for one behaviour (Rule 20). <strong>Re-check:</strong> unchanged; the merge is at <span class="loc">OnboardingStateMachine.php:1044–1055</span>.</p>
+<p><strong>Fix.</strong> The corpus workflow file is the one home for every DATA field. <code>inCodeStates()</code> lost 294 lines: turn types, prompt strings, bubbles, capture fields, static next, extraction tools, retry text, layouts, value parsers and advice sections; it keeps only <code>skip_if</code>, closures, callable references and the five keys the corpus never carried. <code>transitionTable()</code> no longer falls back to a text-less table: a configured corpus without the workflow reads the shipped file (<code>ProceduralCorpusLoader::parseFile</code>), and a shipped file whose state set differs from the code throws. The merged table was snapshotted before and after: 49 states, identical. The golden master flipped from "code equals corpus" to "code carries no corpus DATA". Live on <code>/m</code> for a fresh user: the path-choice prompt, its three bubbles and the journey-selection transition all render from the corpus. The <code>JourneyFieldResolver::getFynPrompt('monthly_expenditure')</code> string is no longer built into the table.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F5</span><strong>The recommendation-routing instruction has four homes.</strong><span class="sev pill det">fixed on branch (Batch E)</span>
+<p>"Base recommendations on the decision tree triggers and ranked recommendations" lives in <code>FynSystemPrompt</code> <span class="loc">:120</span>, in <code>FcaProcessInstructions.php:49</code> (legacy path), in the procedural corpus file <code>recommendation-routing.md</code> (reaching the model via the assembler's filtered <code>&lt;procedures&gt;</code>) and again unfiltered in the planner prompt (<span class="loc">FynLoop.php:319</span>). A change to how Fyn is told to route a recommendation turn needs four edits today. <strong>Re-check:</strong> all four homes present; the planner receives the whole corpus through <code>plannerSystemPrompt</code> → <code>proceduralContext()</code> (<span class="loc">FynLoop.php:315–321</span>).</p>
+<p><strong>Fix.</strong> <code>FynSystemPrompt::fcaProcess()</code> is the one home for the six-step block; the unified prompt splices it in and the legacy <code>FcaProcessInstructions</code> reads it from there (byte-identical output, prompt golden masters green). The corpus file <code>recommendation-routing.md</code> is the planner's routing note (reached by the planner unfiltered and by the assembler filtered): a different audience, one file, left as is.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F6</span><strong>Unreachable onboarding states and a dead constant.</strong><span class="sev pill det">fixed (Batch G)</span>
+<p><code>campaign_verify_more</code> (<span class="loc">:935</span>) is never entered because <code>enterCampaignVerify</code> returns <code>campaign_verify_announce</code> directly (<span class="loc">:1327</span>); <code>profile_review_expenditure</code> (<span class="loc">:564</span>) has no inbound edge, which makes <code>campaign_intro</code> reachable only through it; <code>STATE_CAMPAIGN_CHARITABLE_GIVING</code> (<span class="loc">:119</span>) has no table entry and no callers. <strong>Re-check:</strong> unchanged; the corpus file defines both states (<span class="loc">fyn-onboarding.v1.md:141, :353</span>) and gives neither an inbound <code>next</code>.</p>
+<p><strong>Fix.</strong> <code>campaign_verify_more</code>, its two helpers and its corpus entry are deleted; <code>SavingsVerifyLabelTest</code> now exercises the announce prompt that carries the same label. <strong>Still open, for CSJ:</strong> <code>profile_review_expenditure</code> → <code>campaign_intro</code> is a dead chain of two designed states (the review pause and the SaveTax consent gate) that lost their inbound edge when the verify sub-flow took over after <code>base_expenditure</code>; both carry tested helpers and the BS-27 docblock still names the review step. Delete both, or re-wire. The charitable-giving constant is a state name, not a tax value.</p>
+<p><strong>Batch G (CSJ 2026-09-09).</strong> The review-expenditure state is deleted and the SaveTax consent gate is re-wired: after the income advice a SaveTax user meets "Thanks {name} … I'd like to ask about your pensions, accounts and investments, is that okay?" with Okay / No thanks (the bubble was "Nope"); Okay continues the section walk, No thanks ends onboarding. PensionCheck walks straight on. Verified live on <code>/m</code>: the gate rendered for a fresh SaveTax user and No thanks completed onboarding.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F7</span><strong>Employment enum mismatch skips the workplace-pension question for bubble-tap users.</strong><span class="sev pill det">fixed on branch (Batch C)</span>
+<p><code>skipIfNotEmployed</code> (<span class="loc">OnboardingStateMachine.php:2276</span>) checks <code>['full_time','part_time']</code> while <code>nextFromEmployment</code> (<span class="loc">:1594</span>) accepts <code>employed</code>. The <code>base_employment</code> bubble id is <code>employed</code> (<span class="loc">:498</span>), and <code>parseEmploymentFromText</code> (<span class="loc">OnboardingValueInterpreter.php:280–305</span>) maps typed "full time" to <code>full_time</code> but a bare "employed" to <code>employed</code>. A user who taps the bubble is therefore stored as <code>employed</code> and treated as not employed by <code>skipIfOccupationalScheme</code>, so <code>campaign_occupational_scheme</code> and the pension-contribution capture are skipped; a user who types "full time" gets them. Verify against the live bubble labels, then align the two predicates on one list. <strong>Re-check:</strong> unchanged: bubble id <code>employed</code> at <span class="loc">:499</span>, <code>nextFromEmployment</code> accepts it at <span class="loc">:1595</span>, <code>skipIfNotEmployed</code> rejects it at <span class="loc">:2278</span>, <code>skipIfOccupationalScheme</code> delegates to it at <span class="loc">:2333</span>.</p>
+<p><strong>Fix.</strong> <code>OnboardingStateMachine::WORKPLACE_PENSION_STATUSES</code> (<code>employed</code>, <code>full_time</code>, <code>part_time</code>) is the one list; <code>skipIfNotEmployed</code> reads it and <code>nextFromEmployment</code> reads it plus <code>self_employed</code>. A bubble-tap user (<code>employed</code>) now reaches <code>campaign_occupational_scheme</code>; <code>CampaignStateMachineBranchTest</code> covers the bubble id.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F8</span><strong>The classifier runs twice per advice turn.</strong><span class="sev pill det">fixed on branch (Batch C)</span>
+<p>Once in <code>AdviceFyn::handle</code> (<span class="loc">:269</span>) for the out-of-remit exit, and again in <code>HasAiChat::chat</code> (<span class="loc">:357</span>) for the KYC gate, buckets and cap. Identical inputs, so identical results, but two places to keep in step. <strong>Re-check:</strong> unchanged (<span class="loc">AdviceFyn.php:269</span>, <span class="loc">HasAiChat.php:356</span>).</p>
+<p><strong>Fix.</strong> AdviceFyn passes its classification into <code>FynLoop::run</code>, which threads it through <code>reason</code>, <code>stream</code> and <code>chatWithPromptOverride</code> to <code>setChatOverrides(classificationOverride:)</code>; <code>HasAiChat::chat</code> reuses it and only classifies itself on onboarding extraction turns. One run per advice turn.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F9</span><strong>A config key that has no config file.</strong><span class="sev pill det">fixed on branch (Batch C)</span>
+<p><code>config('ai_chat.consent_recheck_interval_seconds', 2.0)</code> is read at <span class="loc">AiChatController.php:294, :454</span>; there is no <code>config/ai_chat.php</code>, so it is always 2.0 outside tests. <strong>Re-check:</strong> unchanged; still no <code>config/ai_chat.php</code>.</p>
+<p><strong>Fix.</strong> <code>config/ai_chat.php</code> now exists with <code>consent_recheck_interval_seconds</code> (env <code>AI_CHAT_CONSENT_RECHECK_SECONDS</code>, default 2.0).</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F10</span><strong>Score constructs still reach the model.</strong><span class="sev pill det">fixed on branch (Batch E)</span>
+<p>The prompt renders "(urgency: N/100)" per recommendation (<span class="loc">AdvicePromptBuilder.php:647</span>) and the <code>generate_financial_plan</code> tool schema advertises an "overall score". These are model-facing, not user-facing, so Rule 12 is not breached on its own, but the prompt also tells the model to reference figures, so the risk of a score leaking into an answer is one instruction away. <strong>Re-check:</strong> unchanged; the schema text is in <span class="loc">fyn-memory/procedural/tool_schema/plans/generate_financial_plan.md:13</span>.</p>
+<p><strong>Fix.</strong> The "(urgency: N/100)" suffix is gone from the ranked list (the list is already in priority order) and the <code>generate_financial_plan</code> schema no longer advertises an overall score; both tool-schema golden masters re-recorded.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F11</span><strong>The disabled tax agent triggers leave two classifications without engine-side triggers.</strong><span class="sev pill det">fixed on branch (Batch E)</span>
+<p><code>investment_tax</code> and <code>tax_optimisation</code> list only tax agent keys (plus investment ones for the former); with the five tax agent rows disabled, the only tax recommendations reaching the ranked list come from the legacy <code>TaxOptimisationService::generateStrategies</code> (<span class="loc">:53</span>), which has no definition keys, no claim tiers and no decision traces. The composed plan (strategy rows) is the richer source, but it reaches the model only through <code>get_recommendations</code>, which is mandated only for holistic_health. <strong>Re-check:</strong> unchanged; the seeder still disables every agent-source tax row (<span class="loc">TaxActionDefinitionSeeder.php:59</span>).</p>
+<p><strong>Fix.</strong> Fyn's tax recommendations are the composed strategy plan (the same plan the dashboard shows), on both engine levels: <code>mappedModuleAnalysis('tax_optimisation')</code> maps each plan item with <code>definition_key = strategy_{type}</code>, and the module path now analyses <code>tax</code> too. <code>REQUIRED_TOOLS</code> for <code>tax_optimisation</code> and <code>investment_tax</code> include <code>get_recommendations()</code>; their <code>RELEVANT_TRIGGERS</code> name the seeded <code>strategy_*</code> rows instead of the five disabled agent rows (guarded by <code>QuerySchemasTest</code>). Also found and fixed: "How can I reduce my tax bill?" classified as <code>general</code>; the tax patterns now cover reduce / cut / lower / minimise / pay less tax and "tax bill". Live for the peak earners persona: six strategies with <code>Triggered by: strategy_…</code> in <code>&lt;financial_context&gt;</code>.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F12</span><strong>The dashboard and Fyn rank recommendations with different rules.</strong><span class="sev pill det">fixed on branch (Batch B)</span>
+<p>See the callout in §08. <code>RecommendationsAggregatorService</code> (UI) maps the seeded priority to 85 / 60 / 45 and sorts once; <code>PriorityRanker</code> (Fyn) computes a weighted score from fields that are not populated (F2). Neither reads the other. A Rule 20 consolidation candidate: one ranking, one home, consumed by both. <strong>Re-check:</strong> unchanged; the 85 / 60 / 45 map is at <span class="loc">RecommendationsAggregatorService.php:240, :333–335</span>. Batch B.</p>
+<p><strong>Fix.</strong> The aggregator collects each module's raw recs with the engine's own label and hands them to <code>PriorityRanker</code> once; its map, int maps, <code>determineTimeline</code> and <code>determineImpact</code> are gone. Three adapters had also been folding <code>impact: 'Critical'</code> to <code>medium</code> because <code>StrategyPriority</code> has no critical case; the seeded label now rides in <code>extra['seeded_priority']</code>. <code>/m</code> next actions sorted by the pound benefit when one existed (a £1,000 tax item above a critical will); they now sort by the same score. Live: web dashboard Savings tab, <code>/api/recommendations/top</code>, <code>/m</code> top actions and Fyn agree for the young family persona.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F13</span><strong>One streaming endpoint has no consent gate.</strong><span class="sev pill det">fixed on branch (Batch C)</span>
+<p><code>AiChatController::action()</code> (<span class="loc">:915–930</span>, route <span class="loc">routes/api.php:1518</span>) opens an SSE stream and drives <code>handleAction</code> without the <code>ai_chat</code> consent check its three siblings carry (<span class="loc">:204, :406, :625</span>). Separately, <code>PUT /api/gdpr/consents</code> accepts <code>ai_chat</code> (<span class="loc">GDPRController.php:71–75</span>), so a hand-crafted request can withdraw it and lock the user out of a chat-driven product with no UI path back; and <code>UserConsent::hasConsent</code> is version-pinned (<span class="loc">UserConsent.php:213, :217</span>), so bumping the ai_chat version would 403 every existing user. <strong>Re-check:</strong> unchanged: <code>action()</code> (<span class="loc">:915–930</span>) still has no consent check; <code>GDPRController</code> still accepts every non-cookie consent type including <code>ai_chat</code>; <code>hasConsent</code> is still version-pinned (<span class="loc">UserConsent.php:213–217</span>).</p>
+<p><strong>Fix.</strong> <code>AiChatController::action()</code> carries the same <code>ai_chat</code> consent guard as its siblings (403 <code>consent_required</code>). <code>PUT /api/auth/gdpr/consents</code> no longer accepts <code>ai_chat</code> (captured at registration, no toggle; withdrawal is account deletion). The version pin stays, guarded by a test that the <code>ai_chat</code> version is <code>v1.0</code> until a re-consent surface exists. <code>AiChatActionConsentGateTest</code> covers all three.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F15</span><strong>The savings rate comparator compares percentages with decimals.</strong><span class="sev pill det">fixed on branch</span>
+<p><code>savings_accounts.interest_rate</code> is stored as a percentage (4.25 for 4.25%, confirmed on local rows), and <code>RateComparator::compareToMarketRates</code> subtracts a decimal market rate then categorises with decimal thresholds (<span class="loc">RateComparator.php:27–40</span>: Excellent at ≥ 0.01, Poor below −0.01). Every non-zero account is "Excellent", so <code>rate_below_market</code> and <code>rate_poor</code> could not fire even after F0 is fixed. <code>PSACalculator.php:71</code> divides by 100 correctly, so two engines disagree about one column.</p>
+<p><strong>Fix.</strong> <code>RateComparator::compareToMarketRates</code> is the one boundary: it accepts the percentage column, works in decimals and returns both <code>account_rate</code> and <code>account_rate_percent</code>; evaluators read the comparison, never the column times 100. The factory now writes percentages too.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F16</span><strong>Three tables for one concept: emergency-fund target months.</strong><span class="sev pill det">fixed on branch</span>
+<p><code>SavingsActionDefinitionService.php:3563–3576</code> (6 or 9), <code>EmergencyFundCalculator.php:117–126</code> (3, 6 or 9; retired 3) and <code>SavingsAgent.php:504–508</code> (6, 9 or 12; unemployed 12) disagree on retired and unemployed users. The investment engine uses a flat 6 on purpose. Rule 20 consolidation candidate.</p>
+<p><strong>Fix.</strong> <code>EmergencyFundCalculator::getTargetMonths</code> (3-6-9, retired 3, CSJ's decision) is the one table; the savings service and agent read it, and the decision-trace sentence that still said "retired = 6 months" is generated from it.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F17</span><strong>Seeded thresholds nobody reads, and evaluators nobody seeds.</strong><span class="sev pill det">fixed on branch</span>
+<p>Reported by the engine explorer, spot-checked: the seeded savings thresholds for PSA approaching (80), basic-rate headroom (50), FSCS approaching, debt rate difference (2), JISA horizon (5 years), parental settlement (£100), rate gaps (0.5 / 1.5) and bond minimum excess (£50,000) are not read by their evaluators, which carry their own literals; eight savings evaluators (<code>emergency_fund_no_designated</code>, <code>psa_headroom_available</code>, <code>rate_improvement_available</code>, <code>zero_rate_account</code>, <code>cash_drag_risk</code>, <code>consider_stocks_shares_isa</code>, <code>child_no_savings</code>, <code>child_savings_review</code>) have no seeded row at all; and the retirement fallback for the full new State Pension is the stale literal 11,502 (<span class="loc">RetirementActionDefinitionService.php:981, :1881</span>) against 12,547.60 in the active 2026/27 configuration.</p>
+<p><strong>Fix.</strong> Thresholds are read from the rows; four useful orphan evaluators were seeded and two deleted; the State Pension figure comes from <code>TaxConfigService</code> with no literal fallback. Still open: the spouse rules read the calculator's own 75 % "approaching" literal (<span class="loc">PSACalculator.php:58</span>) while the seeded <code>psa_approaching</code> row says 80.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F18</span><strong>Recommendation status filtering can never match.</strong><span class="sev pill det">fixed on branch (Batch C)</span>
+<p><code>GET /api/recommendations?status=…</code> filters on a status the aggregator hardcodes to <code>pending</code> (<span class="loc">RecommendationsAggregatorService.php:302</span>) and never joins <code>recommendation_tracking</code>, so completed, in-progress and dismissed filters return empty lists on web and in the Vuex getters that inherit them. <strong>Re-check:</strong> unchanged; the controller filters on <code>$rec['status']</code> (<span class="loc">RecommendationsController.php:57–58</span>) and the aggregator never sets it from <code>recommendation_tracking</code>.</p>
+<p><strong>Fix.</strong> The aggregator merges <code>recommendation_tracking</code> status onto every recommendation (one ledger, one home), so <code>?status=</code> matches and <code>/m</code> next actions read the same field instead of running their own completed query; the raw retirement, investment and goals blocks also pass an engine <code>recommendation_id</code> through when one exists. <code>RecommendationsStatusFilterTest</code> covers the filter.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F19</span><strong>Fyn is not told which recommendation card opened a conversation.</strong><span class="sev pill det">fixed on branch (Batch D)</span>
+<p><code>ContextualConversationService</code> stores <code>origin.recommendation_id</code> in the conversation metadata (<span class="loc">:25, :53</span>) but the <code>&lt;surface_action&gt;</code> renderer reads only <code>action</code>, <code>resource_type</code>, <code>resource_id</code> and canonical facts (<span class="loc">FynContextAssembler.php:335–385</span>). The link from card to conversation is dropped before the model sees it. <strong>Re-check:</strong> unchanged; the renderer (<span class="loc">FynContextAssembler.php:338–382</span>) never reads <code>origin</code>.</p>
+<p><strong>Fix.</strong> The <code>&lt;surface_action&gt;</code> block renders <code>opened_from: {kind}</code> and, when <code>origin.recommendation_id</code> names one of the user's <code>recommendation_tracking</code> rows, <code>opened_from_recommendation: {text}</code>. No client sends a recommendation origin yet (the request accepts it; the service stores it), so this is the server half of the link; <code>ContextualResourceContextTest</code> covers it.</p></div>
+
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F20</span><strong>Savings market benchmarks are seeded for 2025/26 only, so the comparator runs on a flat 4.00 %.</strong><span class="sev pill det">live on fynla.org (PR #783)</span>
+<p><code>SavingsMarketRatesSeeder</code> hardcodes <code>tax_year = '2025/26'</code> (<span class="loc">SavingsMarketRatesSeeder.php:26</span>); <code>RateComparator::getMarketBenchmarks</code> looks up the active year (2026/27), finds nothing and falls back to 0.0400 for every product (<span class="loc">RateComparator.php:65–91</span>). The table, store and admin endpoints (<span class="loc">routes/api.php:1290–1292</span>) all still exist; nothing was removed. <strong>Fix (CSJ's decision: scrape MoneySavingExpert, refresh quarterly).</strong> <code>MarketRateRefreshService</code> fetches the best-savings and best-cash-ISA guides, <code>MoneySavingExpertRatesParser</code> reads the top pick of each best-buy table, and the rows are written into the active tax year through the store under a new <code>SCRAPER</code> ingest source, tagged with provider and source. <code>savings:refresh-market-rates</code> runs it (scheduled <code>quarterlyOn(1, '06:00')</code>; <code>--html</code> takes saved pages as the manual fallback; <code>--dry-run</code> reports only). The admin Savings Rates tab gained a refresh button, provider and source columns and the last-refreshed date; the comparator reads the newest year with rows before the flat default. Live from the admin tab: nine benchmarks for 2026/27 (easy access 5.00 % Spring, easy-access ISA 4.61 % Trading 212, fixes 4.88 / 4.96 / 5.00 %, notice 4.40 % Birmingham Bank, fixed ISAs 4.74 / 4.81 / 4.83 %). Plain <code>curl</code> meets a Cloudflare challenge; the Laravel HTTP client with browser headers does not, from a Mac, from csjones and from fynla.org. <code>notice_isa</code> has no MSE table and measures against the taxable notice benchmark.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F21</span><strong>Module-scoped turns never carried the ranked recommendations the prompt told Fyn to look for.</strong><span class="sev pill det">fixed on branch</span>
+<p><code>CoordinatingAgent::analyzeRelevantModules</code> returned the raw agent arrays under <code>module_analysis</code> and no <code>ranked_recommendations</code>; <code>buildFinancialContext</code> reads the mapped shape (<code>total_savings</code>, <code>emergency_fund_months</code>, <code>ranked_recommendations</code>) that only <code>orchestrateAnalysis</code> produced. On a live "How is my emergency fund looking?" turn (ai_messages 423) the <code>&lt;financial_context&gt;</code> held net worth, goals and life events and nothing about savings, while <code>&lt;relevant_triggers&gt;</code> said "check the recommendations in &lt;financial_context&gt;". <code>ModuleScopedFinancialContextTest</code> passed because it fed the builder a hand-written holistic-shaped array. <strong>Fix.</strong> The six per-module closures in <code>collectModuleAnalysis</code> are one <code>mappedModuleAnalysis</code> both engine levels use, and the module path ranks what it mapped. Live: "Top ranked recommendations" with "Triggered by: emergency_fund_low" in message 425.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F22</span><strong>An adequacy score reached the model and was voiced to the user (Rule 12).</strong><span class="sev pill det">fixed on branch</span>
+<p><code>SavingsAgent::analyze</code> put <code>emergency_fund.adequacy</code> (a 0–100 figure) into the analysis; the HTTP payload strips it (<code>SavingsEmergencyFundPayloadTest</code>) but the <code>get_module_analysis</code> tool result ships the block whole, and Fyn answered "in the Fair category with an adequacy score of 44.67 out of 100". <strong>Fix.</strong> The block no longer carries the score; the recommendation sentence keys off the category the block already had. <strong>Still open, for CSJ:</strong> the category label itself ("Excellent / Good / Fair / Critical") still reaches the model and is shown by <code>HolisticSavingsSituation.vue</code> and <code>InvestmentCurrentSituation.vue</code>; and the protection contract <em>requires</em> <code>adequacy_score</code> in its tool result (<span class="loc">ToolResultContract.php:47</span>).</p>
+<p><strong>Batch G.</strong> The grade label is gone: the savings analysis carries <code>runway_months</code> and <code>target_months</code> only, the recommendation sentence is written in months ("covers 2.7 of the 6 months you need"), the two plan views and the plan print show "of 6 months needed", and the <code>/m</code> module detail shows the same beneath the runway. The protection <code>adequacy_score</code> contract is unchanged (a different measure; not a runway).</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F23</span><strong><code>list_records(savings_account)</code> died on any household with a joint account.</strong><span class="sev pill det">fixed on branch</span>
+<p>The co-owner label reads <code>$record-&gt;jointOwner</code>, the store did not load it, and lazy loading is disabled outside production; the tool returned <code>execution_failed</code> for the young family persona (four accounts). The question-scoped fallback calls the same handler. Eloquent only arms the guard on collections of two or more, which is why a one-account fixture cannot reproduce it. <strong>Fix.</strong> Savings and investment lists eager-load the joint owner.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F24</span><strong>"Yes please" after Fyn's own offer to create a record wrote nothing.</strong><span class="sev pill det">fixed on dev · rule confirmed by CSJ</span>
+<p>Advice Fyn asked "Would you like me to help you set up that emergency fund goal now?"; on "Yes please, set it up." grok-4.3 wrote <code>delegate_to_capture</code> out as prose instead of calling the tool (ai_messages 431). The affirmative has no verb + entity for <code>WriteIntentClassifier</code> and is not the answer to a capture question for the continuation rule, so the flaky model leg was the only route. <strong>Fix.</strong> <code>WriteIntentClassifier::proposalAcceptanceIntent</code>: a short unhedged affirmative after an advice turn whose own question offers to set up / create / add a named record routes to <code>handleInlineCapture</code> deterministically, the same bypass the classifier already provides. Live: goal 165 created (£12,000, March 2027) with the saved-record card (ai_messages 435). The capture turn asked for a target and wrote assumed figures in the same breath, which is the existing capture behaviour, not this rule.</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F25</span><strong>The Savings module's Strategy tab was a placeholder that could only say "No recommendations".</strong><span class="sev pill det">fixed on branch</span>
+<p><code>SavingsRecommendations.vue</code> read <code>savings.recommendations</code> from Vuex and no action ever wrote it; the savings plan endpoint is not even routable (<span class="loc">routes/api.php:1077</span> constrains <code>/plans/{type}</code> to four modules while <code>Dashboard.vue:1286</code> still requests <code>savings</code>). <strong>Fix.</strong> The tab loads <code>GET /savings/recommendations</code>, the same list Fyn ranks and the dashboard aggregates, and shows each item's decision trace on request; <code>/m</code> bank accounts gained the same card from the same endpoint. Also fixed in passing: <code>SavingsPlanService::generatePlan</code> referenced a <code>$goals</code> variable Task 3 had deleted, and the runway trace read "£0 ÷ £4,366 = 2.7 months" because two evaluators summed only designated accounts.</p></div>
+
+<div class="finding"><span class="id">F26</span><strong>Reported, not fixed, from the same walk.</strong><span class="sev pill off">notes</span>
+<p><strong>Batch C:</strong> the empty "LIFE EVENT IMPACTS BY MODULE:" line is fixed (the prompt read a <code>months_until</code> key the event formatter never emits; it now derives months from <code>expected_date</code>), and <code>/m</code> no longer calls the onboarding start endpoint for preview personas (the 403 it logged was the designed <code>preview_mode</code> refusal; the mixin greets instead). Still open: The young family persona's two Junior ISAs are seeded at 0 % (<span class="loc">resources/js/data/personas/young_family.json:172, :185</span>), so <code>zero_rate_account</code> fires on tax-free accounts with copy that reads as "move the balance". The <code>&lt;financial_context&gt;</code> ends with an empty "LIFE EVENT IMPACTS BY MODULE:" heading. <code>regular_saver_opportunity</code> fires on David's Cash ISA at £833 a month; most regular saver ISAs cap monthly deposits well below that. The <code>/m</code> dashboard's open Fyn sheet intercepts taps on the focus-area cards at phone width. The <code>Dashboard.vue</code> request for a savings plan 404s silently.</p>
+<p><strong>Batch G.</strong> David's and Sarah's Cash ISA contributions in the peak earners persona are £250 a month (were £833; personas reseeded). <code>/api/plans/{type}</code> now routes <code>savings</code>, so the dashboard's plan request returns 200 (<code>SavingsPlanRouteTest</code>). The <code>/m</code> Fyn sheet: when the chat panel is open on the dashboard it is a full-height overlay above the page, so a tap aimed at a focus card beneath it lands on the panel; close the panel first. Left as designed. The young family's Junior ISAs: awaiting CSJ's reading (remove the accounts, or keep them at 0 %).</p></div>
+
+<div class="finding" style="border-color:var(--det)"><span class="id">F14</span><strong>"Never asked" and "zero" are the same value for expenditure categories.</strong><span class="sev pill det">fixed on branch (Batch E)</span>
+<p>The 17 category columns on <code>users</code> are NOT NULL DEFAULT 0.00 while a second, coarser <code>expenditure_profiles</code> schema exists in parallel. The emergency-fund and affordability rules divide by monthly expenditure, so a user who skipped the question is indistinguishable from one who declared nothing. The sharing-mode field already got a companion declared-at timestamp; the categories did not. <strong>Re-check:</strong> unchanged, and the count is 20, not 17: <code>information_schema</code> lists twenty <code>users</code> columns with <code>NOT NULL DEFAULT 0.00</code> (childcare through university_fees); <code>expenditure_profiles</code> still exists alongside them.</p>
+<p><strong>Fix.</strong> Migration <code>2026_09_09_090000_expenditure_categories_null_means_never_asked</code>: the twenty category columns are nullable with no default; rows where every category was 0.00 are backfilled to NULL. Every reader already coalesces (<code>?? 0</code>, <code>parseFloat || 0</code>, <code>Number() || 0</code>); the writers store 0.00 only when the user submits the category form, so 0.00 now means declared.</p></div>
+
+<!-- ============================================================ -->
+<h2 id="s12"><span class="num">12</span>File index</h2>
+<div class="tablewrap"><table>
+<tr><th>Concern</th><th>Files</th></tr>
+<tr><td>Entry and dispatch</td><td class="mono small">routes/api.php:1500–1523 · app/Http/Controllers/Api/AiChatController.php · app/Services/AI/ContextualConversation/ConversationModeResolver.php</td></tr>
+<tr><td>Advice state</td><td class="mono small">app/Services/AI/AdviceFyn.php · app/Services/AI/QueryClassifier.php · app/Services/AI/WriteIntentClassifier.php · app/Services/AI/RecordDuplicateChecker.php · app/Services/AI/DuplicateAcknowledgement.php · app/Constants/QuerySchemas.php</td></tr>
+<tr><td>Shared loop</td><td class="mono small">app/Services/AI/Loop/FynLoop.php · Planner.php · SessionMode.php · ConcurrentTurnQueue.php · app/Services/AI/Actions/SurfaceAllowlist.php · app/Services/AI/Ground/GroundGate.php</td></tr>
+<tr><td>Prompt</td><td class="mono small">app/Services/AI/Fyn/FynSystemPrompt.php · FynContextAssembler.php · FynContextSelector.php · ContextBucket.php · FynTurnContext.php · FynCaptureTurnInstructions.php · FynVerifyEditTurnInstructions.php · app/Services/AI/AdvicePromptBuilder.php (builders reused) · app/Services/AI/MemoryRetrieverService.php · app/Services/AI/Memory/* · app/Services/AI/Pointers/* · app/Constants/FinancialPlanningKnowledge.php · fyn-memory/**</td></tr>
+<tr><td>Reasoner and tools</td><td class="mono small">app/Traits/HasAiChat.php · app/Traits/HasAiGuardrails.php · app/Services/AI/XaiClient.php · app/Services/AI/XaiToolDefinitions.php · app/Services/AI/AiToolDefinitions.php · app/Agents/CoordinatingAgent.php · app/Services/AI/KycGateChecker.php · app/Services/PrerequisiteGateService.php · app/Services/Onboarding/CaptureAccuracyGate.php</td></tr>
+<tr><td>Engines</td><td class="mono small">app/Agents/{Protection,Savings,Investment,Retirement,Estate,Goals}Agent.php · app/Services/*/{Module}ActionDefinitionService.php · database/seeders/*ActionDefinitionSeeder.php · app/Models/*ActionDefinition.php · app/Services/Coordination/PriorityRanker.php · ComposedTaxPlanService.php · ComposedModulePlanService.php · StrategyPlanComposer.php · PlanSources/* · app/Services/Tax/TaxOptimisationService.php · app/Services/Savings/EmergencyFundCalculator.php</td></tr>
+<tr><td>Onboarding state</td><td class="mono small">app/Services/Onboarding/OnboardingChatDirector.php · OnboardingStateMachine.php · OnboardingWorkflowTable.php · OnboardingValueInterpreter.php · OnboardingFactExtractor.php · AssetCaptureEntityExtractor.php · OwnershipPhrasings.php · FunnelIncomeBand.php · config/onboarding.php · fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md</td></tr>
+<tr><td>Clients</td><td class="mono small">resources/js/services/aiChatService.js · resources/js/components/Shared/AiChatPanel.vue · resources/mobile/api.js · resources/mobile/mixins/onboardingChat.js · ios-native/Fynla/Features/Fyn/FynClient.swift · FynEvent.swift</td></tr>
+<tr><td>Canonical contract</td><td class="mono small">April/April24Updates/spec/00-canonical.md · .claude/skills/fyn-architecture/SKILL.md</td></tr>
+</table></div>
+<p class="small">Local run artefacts used for §10 (classification table, both context blocks, the retirement tool output, the ranked list, the action-definition dump) were produced with <code>php artisan tinker</code> against the local database on 8 September 2026 and were not written anywhere in the repository.</p>
+</div>
+
+
+</body></html>

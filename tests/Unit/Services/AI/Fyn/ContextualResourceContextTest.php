@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\RecommendationTracking;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\Fyn\FynContextAssembler;
@@ -121,4 +122,38 @@ it('fails closed when contextual metadata points to a deleted or foreign resourc
         ->and($block)->not->toContain('fallback_screen: tax_strategy')
         ->and($block)->not->toContain('987654')
         ->and($block)->not->toContain('current_balance');
+});
+
+it('tells Fyn which recommendation card opened the conversation', function (): void {
+    // F19 — origin.recommendation_id (a recommendation_tracking row) reaches the model.
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->for($user)->create(['account_name' => 'Rainy Day', 'current_balance' => 1000, 'interest_rate' => 1.0]);
+    $tracked = RecommendationTracking::create([
+        'user_id' => $user->id,
+        'recommendation_id' => 'savings_rate_below_market',
+        'module' => 'savings',
+        'recommendation_text' => 'Rainy Day earns below the market rate',
+        'priority_score' => 85,
+        'timeline' => 'immediate',
+        'status' => 'pending',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'test',
+        'metadata' => [
+            'source' => 'surface_action',
+            'mode' => 'surface_action',
+            'action' => 'edit',
+            'resource_type' => 'savings_account',
+            'resource_id' => $account->id,
+            'origin' => ['kind' => 'recommendation', 'recommendation_id' => $tracked->id],
+        ],
+    ]);
+
+    $block = contextualSurfaceBlock(app(FynContextAssembler::class)->build(contextualResourceTurn($user, $conversation)));
+
+    expect($block)->toContain('opened_from: recommendation')
+        ->and($block)->toContain('opened_from_recommendation: ')
+        ->and($block)->toContain('Rainy Day earns below the market rate');
 });

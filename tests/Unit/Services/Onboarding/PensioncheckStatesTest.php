@@ -449,26 +449,6 @@ it('nextCampaignSection for savetax still routes to campaign_synthesis when all 
         ->toBe(SM::STATE_CAMPAIGN_SYNTHESIS);
 });
 
-// ── 6. nextFromExpenditureReview routes pensioncheck to recap gate ────────────
-
-it('nextFromExpenditureReview routes pensioncheck campaign users to campaign2_existing_recap', function (): void {
-    $user = User::factory()->create([
-        'onboarding_fyn_path' => 'campaign',
-        'onboarding_fyn_selection' => 'pensioncheck',
-    ]);
-    expect(SM::nextFromExpenditureReview('looks correct', $user))
-        ->toBe(SM::STATE_CAMPAIGN2_EXISTING_RECAP);
-});
-
-it('nextFromExpenditureReview still routes savetax campaign users to campaign_intro (regression)', function (): void {
-    $user = User::factory()->create([
-        'onboarding_fyn_path' => 'campaign',
-        'onboarding_fyn_selection' => 'savetax',
-    ]);
-    expect(SM::nextFromExpenditureReview('looks correct', $user))
-        ->toBe(SM::STATE_CAMPAIGN_INTRO);
-});
-
 // ── 7. Spouse pensions skip ───────────────────────────────────────────────────
 
 it('campaign2_spouse_pensions is skipped for a single pensioncheck user', function (): void {

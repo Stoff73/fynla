@@ -126,6 +126,7 @@ final class FynLoop
         ?array $confirmedFacts = null,
         ?string $explicitEditEntityType = null,
         ?int $explicitEditRecordId = null,
+        ?array $classification = null,
     ): \Generator {
         if ($unifiedFocus !== null) {
             $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
@@ -158,6 +159,7 @@ final class FynLoop
                 toolsListOverride: $toolsListOverride,
                 personaOverride: $persona,
                 providerOverride: $providerOverride,
+                classificationOverride: $classification,
             );
         } finally {
             if ($unifiedFocus !== null) {
@@ -197,6 +199,7 @@ final class FynLoop
         ?array $allowedTools,
         bool $persistUserMessage = true,
         ?string $systemPromptOverride = null,
+        ?array $classification = null,
     ): \Generator {
         $retrieveCount = 0;
         $cap = $this->cycleCap($mode);
@@ -246,7 +249,7 @@ final class FynLoop
                         continue 2;
                     }
 
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride, $classification);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -258,7 +261,7 @@ final class FynLoop
                     // emits and GroundGate-gates the tool itself. v1 ships one
                     // reasoning template = today's default prompt (no override),
                     // so the reason path is byte-identical to the pre-planner turn.
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage, $systemPromptOverride, $classification);
                     $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
@@ -418,6 +421,7 @@ final class FynLoop
         ?array $allowedTools,
         bool $persistUserMessage = true,
         ?string $systemPromptOverride = null,
+        ?array $classification = null,
     ): \Generator {
         $upstream = $this->stream(
             $user,
@@ -428,6 +432,7 @@ final class FynLoop
             systemPromptOverride: $systemPromptOverride,
             allowedTools: $allowedTools,
             persistUserMessage: $persistUserMessage,
+            classification: $classification,
         );
 
         yield from $this->interceptHandoff($upstream, $user, $conversation, $message, $currentRoute);

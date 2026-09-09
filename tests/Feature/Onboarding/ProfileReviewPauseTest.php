@@ -49,30 +49,6 @@ it('emits onboarding_layout_change=standard when entering STATE_PROFILE_REVIEW_F
     expect($layout['mode'])->toBe('standard');
 });
 
-it('emits onboarding_layout_change=standard when entering STATE_PROFILE_REVIEW_EXPENDITURE', function () {
-    $user = User::factory()->create([
-        'is_preview_user' => false,
-        'onboarding_completed' => false,
-        'onboarding_fyn_step' => OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE,
-    ]);
-
-    $conversation = AiConversation::create([
-        'user_id' => $user->id,
-        'status' => 'active',
-        'model_used' => 'director',
-        'title' => 'Test',
-    ]);
-
-    $received = [];
-    foreach (app(OnboardingChatDirector::class)->handleAction($user, $conversation, 'continue') as $event) {
-        $received[] = $event;
-    }
-
-    $layout = collect($received)->firstWhere('type', 'onboarding_layout_change');
-    expect($layout)->not->toBeNull();
-    expect($layout['mode'])->toBe('standard');
-});
-
 it('emits onboarding_layout_change=wide for capture states (not pause states)', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,

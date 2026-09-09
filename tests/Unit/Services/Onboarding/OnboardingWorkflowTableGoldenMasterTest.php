@@ -8,20 +8,17 @@ use App\Services\Onboarding\OnboardingWorkflowTable;
 use Illuminate\Support\Carbon;
 
 /**
- * Phase 4d HARD GATE.
+ * One home for the onboarding transition table (F4, CSJ 2026-09-09).
  *
- * Proves the .md-backed + merged transition table is value-identical to the
- * in-code states() table for the DATA subset (incl. state order + bubble
- * order), and that the PHP-only fields (callable next, callable prompt_text,
- * skip_if array callable) are object-identical between merged and in-code.
- *
- * A drifted .md (state added/removed/renamed, or a DATA value changed) fails
- * here. PHP-only fields are never in the .md and are asserted unchanged from
- * the in-code side.
+ * The corpus workflow procedure owns every DATA field (turn_type, prompt text,
+ * bubbles, capture_field, static next, extraction tools, retry text, layout…).
+ * The in-code table holds only PHP-only fields: skip_if, closures, callable
+ * references, and the keys the corpus never carries. Duplicating a DATA value
+ * in PHP fails here — that is the Rule 20 guard.
  */
 
-// Keys that are NEVER read from the corpus — always re-attached from code.
-const PHP_ONLY_KEYS = ['skip_if'];
+/** Keys that live only in code (never in the corpus). */
+const PHP_ONLY_KEYS = ['skip_if', 'reprompt_text', 'record_context', 'record_context_mode', 'capture_focus'];
 
 /** A value is a PHP callable reference iff it is a string containing '::'. */
 function isCallableRef(mixed $v): bool
@@ -29,31 +26,7 @@ function isCallableRef(mixed $v): bool
     return is_string($v) && str_contains($v, '::');
 }
 
-/** Strip the PHP-only / callable fields so two states can be compared as DATA. */
-function dataSubset(array $state): array
-{
-    $out = [];
-    foreach ($state as $k => $v) {
-        if (in_array($k, PHP_ONLY_KEYS, true)) {
-            continue;
-        }
-        if (($k === 'next' || $k === 'prompt_text') && isCallableRef($v)) {
-            continue; // callable form — compared separately as a PHP-only field
-        }
-        // navigate_to is DATA when it's a static route string (campaign_terminal
-        // → /tax-strategy, carried in the corpus), but a code-only Closure for the
-        // verify-navigate state (resolves the route per section at runtime). The
-        // Closure form is never in the corpus — exempt it like the other callables.
-        if ($k === 'navigate_to' && $v instanceof Closure) {
-            continue;
-        }
-        $out[$k] = $v;
-    }
-
-    return $out;
-}
-
-/** Reflectively read the private inCodeStates() so the test sees the authority. */
+/** Reflectively read the private inCodeStates(). */
 function inCodeStates(): array
 {
     $m = new ReflectionMethod(OnboardingStateMachine::class, 'inCodeStates');
@@ -62,21 +35,37 @@ function inCodeStates(): array
     return $m->invoke(null);
 }
 
-it('merged corpus-backed table deep-equals the in-code states() table', function (): void {
+it('keeps no corpus-owned DATA value in the in-code table', function (): void {
+    foreach (inCodeStates() as $id => $codeState) {
+        foreach ($codeState as $key => $value) {
+            if (in_array($key, PHP_ONLY_KEYS, true) || $value instanceof Closure || isCallableRef($value)) {
+                continue;
+            }
+            if (is_array($value) && ($value[0] ?? null) === OnboardingStateMachine::class) {
+                continue; // [self::class, 'method'] skip_if-style callable
+            }
+
+            throw new RuntimeException("In-code state '{$id}' still carries DATA field '{$key}'; the corpus workflow file is its one home.");
+        }
+    }
+
+    expect(true)->toBeTrue();
+});
+
+it('merges every corpus DATA field over the in-code PHP-only fields', function (): void {
     $inCode = inCodeStates();
     $merged = OnboardingStateMachine::transitionTable();
 
-    // State-id set + ORDER identical.
     expect(array_keys($merged))->toBe(array_keys($inCode));
 
-    foreach ($inCode as $id => $codeState) {
-        // DATA subset value-identical, incl. nested ordering (bubbles etc.).
-        expect(dataSubset($merged[$id]))->toEqual(dataSubset($codeState))
-            ->and(json_encode(dataSubset($merged[$id])))
-            ->toBe(json_encode(dataSubset($codeState)))   // strict ordering
-            ->and(array_keys($merged[$id]))->toBe(array_keys($codeState)); // key order per state
+    $corpus = app(ProceduralCorpusLoader::class)->load()->active('onboarding.workflow.fyn-onboarding', asOf: Carbon::now());
+    $data = OnboardingWorkflowTable::fromProcedure($corpus);
 
-        // PHP-only / callable fields: object-identical (kept from code).
+    foreach ($inCode as $id => $codeState) {
+        // Every state has a turn_type, and it came from the corpus.
+        expect($merged[$id]['turn_type'] ?? null)->toBe($data[$id]['turn_type']);
+
+        // PHP-only fields survive the merge unchanged.
         foreach (['next', 'prompt_text'] as $k) {
             if (array_key_exists($k, $codeState) && isCallableRef($codeState[$k])) {
                 expect($merged[$id][$k] ?? null)->toBe($codeState[$k]);
@@ -85,13 +74,16 @@ it('merged corpus-backed table deep-equals the in-code states() table', function
         if (array_key_exists('skip_if', $codeState)) {
             expect($merged[$id]['skip_if'] ?? null)->toBe($codeState['skip_if']);
         }
-        // Closure navigate_to (verify-navigate) is code-only: it must survive the
-        // merge AS a Closure. Object-identity can't be asserted — a fresh
-        // inCodeStates() call regenerates the `fn`, so the test's closure and the
-        // merged one are different instances of the same code (unlike the string
-        // `next`/`prompt_text` refs and the array `skip_if`, which compare equal).
         if (array_key_exists('navigate_to', $codeState) && $codeState['navigate_to'] instanceof Closure) {
             expect($merged[$id]['navigate_to'] ?? null)->toBeInstanceOf(Closure::class);
+        }
+
+        // Corpus DATA that is not a marker for a code callable lands verbatim.
+        foreach ($data[$id] as $key => $value) {
+            if (in_array($key, ['next', 'prompt_text'], true) && (is_array($value) || isCallableRef($codeState[$key] ?? null))) {
+                continue;
+            }
+            expect($merged[$id][$key] ?? null)->toBe($value);
         }
     }
 });

@@ -28,7 +28,6 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE,
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE,
             OnboardingStateMachine::STATE_BASE_EXPENDITURE,
-            OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE,
             OnboardingStateMachine::STATE_ASSET_CAPTURE,
             OnboardingStateMachine::STATE_ADD_MORE,
             OnboardingStateMachine::STATE_DONE,
@@ -65,7 +64,6 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS,
             // SaveTax verify sub-flow (generic; section carried in onboarding_fyn_context)
             'campaign_verify_announce',
-            'campaign_verify_more',
             'campaign_verify_navigate',
             'campaign_verify_edit',
         ];
@@ -125,9 +123,8 @@ describe('OnboardingStateMachine::getState', function () {
             ->and(count($state['bubbles']))->toBe(3);
     });
 
-    it('declares the standard layout on profile review states', function () {
-        expect(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY)['layout'])->toBe('standard')
-            ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE)['layout'])->toBe('standard');
+    it('declares the standard layout on the profile review state', function () {
+        expect(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY)['layout'])->toBe('standard');
     });
 
     it('surfaces skip_link metadata on base_spouse', function () {

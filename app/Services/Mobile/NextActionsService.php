@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Mobile;
 
 use App\Constants\GateRoutes;
-use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Coordination\ComposedTaxPlanService;
 use App\Services\Coordination\HouseholdFinancialContext;
@@ -298,22 +297,18 @@ class NextActionsService
     {
         $all = $this->recommendations->aggregateRecommendations($userId);
 
-        $completedIds = RecommendationTracking::where('user_id', $userId)
-            ->where('status', 'completed')
-            ->pluck('recommendation_id')
-            ->all();
-
         // Drop blank recs (a blank renders as an empty row / "How do I ''?")
         // AND completed recs: a completed action is banked toward the wheel
         // count and replaced by the next-best, so it leaves the actionable
         // list rather than sitting there ticked (CSJ 4.4 — replace done with a
-        // new one; the running tally is counted in MobileLevelService).
-        $all = array_filter($all, static function (array $rec) use ($completedIds): bool {
+        // new one; the running tally is counted in MobileLevelService). The
+        // aggregator merges recommendation_tracking status onto each rec (F18).
+        $all = array_filter($all, static function (array $rec): bool {
             if (trim((string) ($rec['recommendation_text'] ?? '')) === '') {
                 return false;
             }
 
-            return ! in_array((string) ($rec['recommendation_id'] ?? ''), $completedIds, true);
+            return ($rec['status'] ?? 'pending') !== 'completed';
         });
 
         return array_map(function (array $rec): array {
@@ -330,7 +325,9 @@ class NextActionsService
                 'meta' => $benefit !== null
                     ? 'You could save £'.number_format($benefit)
                     : $this->categoryLabel((string) ($rec['category'] ?? 'Recommended')),
-                'value' => $benefit ?? (float) ($rec['priority_score'] ?? 50),
+                // The one ranking (PriorityRanker via the aggregator, Batch B): a pound
+                // benefit is copy for the meta line, never the sort key.
+                'value' => (float) ($rec['priority_score'] ?? 50),
                 // Open only — completed recs are excluded above and replaced by
                 // the next-best, so every shown recommendation is actionable.
                 'done' => false,

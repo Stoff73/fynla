@@ -72,9 +72,9 @@ describe('analyze', function () {
             ->andReturn(6.0);
 
         $this->emergencyFundCalculator
-            ->shouldReceive('categorizeAdequacy')
-            ->once()
-            ->andReturn('Excellent');
+            ->shouldReceive('getTargetMonths')
+            ->zeroOrMoreTimes()
+            ->andReturn(6);
 
         $this->isaTracker
             ->shouldReceive('getCurrentTaxYear')
@@ -171,7 +171,7 @@ describe('analyze', function () {
 
         expect($result['emergency_fund'])->toHaveKeys([
             'runway_months',
-            'category',
+            'target_months',
             'recommendation',
         ]);
         // Rule 12: the analysis feeds the get_module_analysis tool result, and a
@@ -193,9 +193,9 @@ describe('analyze', function () {
             ->andReturn(0.0);
 
         $this->emergencyFundCalculator
-            ->shouldReceive('categorizeAdequacy')
-            ->once()
-            ->andReturn('Critical');
+            ->shouldReceive('getTargetMonths')
+            ->zeroOrMoreTimes()
+            ->andReturn(6);
 
         $this->isaTracker
             ->shouldReceive('getCurrentTaxYear')
@@ -250,7 +250,9 @@ describe('analyze', function () {
         expect($result['summary']['total_savings'])->toBe(0.0);
         expect($result['summary']['total_accounts'])->toBe(0);
         expect($result['summary']['total_goals'])->toBe(0);
-        expect($result['emergency_fund']['category'])->toBe('Critical');
+        // No grade label (Rule 12): runway and target months only.
+        expect($result['emergency_fund'])->not->toHaveKey('category')
+            ->and($result['emergency_fund']['target_months'])->toBe(6);
     });
 
     it('calculates totals correctly', function () {
@@ -279,9 +281,9 @@ describe('analyze', function () {
             ->andReturn(5.0);
 
         $this->emergencyFundCalculator
-            ->shouldReceive('categorizeAdequacy')
-            ->once()
-            ->andReturn('Good');
+            ->shouldReceive('getTargetMonths')
+            ->zeroOrMoreTimes()
+            ->andReturn(6);
 
         $this->isaTracker
             ->shouldReceive('getCurrentTaxYear')

@@ -919,6 +919,16 @@ class AiChatController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Same ai_chat consent gate as sendMessage, streamQueuedMessage and
+        // startOnboarding (F13): an action stream drives the director too.
+        if (! $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT)) {
+            return response()->json([
+                'error' => 'consent_required',
+                'required' => 'ai_chat',
+            ], 403);
+        }
+
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
         $action = $request->input('action');
 

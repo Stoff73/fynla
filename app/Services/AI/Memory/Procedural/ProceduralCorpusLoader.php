@@ -171,6 +171,16 @@ final class ProceduralCorpusLoader
         return new ProceduralCorpus($procedures);
     }
 
+    /**
+     * Parse one procedure file outside the configured corpus root. Used by the
+     * onboarding state machine to read the shipped workflow table when the
+     * configured corpus lacks it (F4: the file is the one home for that table).
+     */
+    public function parseFile(string $path, string $kind, string $module): Procedure
+    {
+        return $this->parseAndValidate($path, File::get($path), $kind, $module);
+    }
+
     private function parseAndValidate(string $path, string $contents, string $kindFromPath, string $moduleFromPath): Procedure
     {
         if (preg_match('/^---\s*\n(.*?)\n---\s*\n?(.*)$/s', $contents, $m) !== 1) {

@@ -100,7 +100,8 @@ it('returns recommendations from all modules via aggregateRecommendations', func
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Build 6-month emergency fund',
-            'category' => 'critical',
+            'runway_months' => 0.5,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -135,7 +136,8 @@ it('sorts aggregated recommendations by priority score descending', function () 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Test 2',
-            'category' => 'critical',
+            'runway_months' => 0.5,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -161,10 +163,11 @@ it('sorts aggregated recommendations by priority score descending', function () 
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
+    // One ranking (Batch B): savings critical (95 band) > retirement int 2 (high, 85) > protection unlabelled (medium, 60).
     expect($recommendations)->toHaveCount(3);
-    expect($recommendations[0]['priority_score'])->toBe(90); // Savings critical
-    expect($recommendations[1]['priority_score'])->toBe(80); // Retirement contribution increase
-    expect($recommendations[2]['priority_score'])->toBe(50.0); // Protection
+    expect(array_column($recommendations, 'module'))->toBe(['savings', 'retirement', 'protection']);
+    expect(array_column($recommendations, 'impact'))->toBe(['high', 'high', 'medium']);
+    expect($recommendations[0]['priority_score'])->toBeGreaterThan($recommendations[1]['priority_score']);
 });
 
 it('normalizes different recommendation formats', function () {
@@ -184,7 +187,8 @@ it('normalizes different recommendation formats', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Different format',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -204,14 +208,14 @@ it('normalizes different recommendation formats', function () {
     expect($recommendations[0])->toHaveKey('category');
 });
 
-it('assigns correct timeline based on priority score', function () {
+it('assigns the timeline from the seeded priority', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
-                ['recommendation_id' => 'p1', 'recommendation_text' => 'Immediate', 'priority_score' => 85.0],
-                ['recommendation_id' => 'p2', 'recommendation_text' => 'Short term', 'priority_score' => 65.0],
-                ['recommendation_id' => 'p3', 'recommendation_text' => 'Medium term', 'priority_score' => 45.0],
-                ['recommendation_id' => 'p4', 'recommendation_text' => 'Long term', 'priority_score' => 25.0],
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'Critical', 'priority' => 'critical'],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'High', 'priority' => 'high'],
+                ['recommendation_id' => 'p3', 'recommendation_text' => 'Medium', 'priority' => 'medium'],
+                ['recommendation_id' => 'p4', 'recommendation_text' => 'Low', 'priority' => 'low'],
             ],
             'gaps' => [],
         ],
@@ -224,19 +228,16 @@ it('assigns correct timeline based on priority score', function () {
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
-    expect($recommendations[0]['timeline'])->toBe('immediate');
-    expect($recommendations[1]['timeline'])->toBe('short_term');
-    expect($recommendations[2]['timeline'])->toBe('medium_term');
-    expect($recommendations[3]['timeline'])->toBe('long_term');
+    expect(array_column($recommendations, 'timeline'))->toBe(['immediate', 'immediate', 'short_term', 'medium_term']);
 });
 
-it('assigns correct impact based on priority score', function () {
+it('assigns the impact label from the seeded priority', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
-                ['recommendation_id' => 'p1', 'recommendation_text' => 'High', 'priority_score' => 75.0],
-                ['recommendation_id' => 'p2', 'recommendation_text' => 'Medium', 'priority_score' => 50.0],
-                ['recommendation_id' => 'p3', 'recommendation_text' => 'Low', 'priority_score' => 30.0],
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'High', 'priority' => 1, 'impact' => 'High'],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'Medium', 'priority' => 3, 'impact' => 'Medium'],
+                ['recommendation_id' => 'p3', 'recommendation_text' => 'Low', 'priority' => 4, 'impact' => 'Low'],
             ],
             'gaps' => [],
         ],
@@ -267,7 +268,8 @@ it('filters recommendations by module correctly', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Savings rec',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -289,8 +291,8 @@ it('filters recommendations by priority correctly', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
-                ['recommendation_id' => 'p1', 'recommendation_text' => 'High priority', 'priority_score' => 75.0],
-                ['recommendation_id' => 'p2', 'recommendation_text' => 'Low priority', 'priority_score' => 30.0],
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'High priority', 'priority' => 'high'],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'Low priority', 'priority' => 'low'],
             ],
             'gaps' => [],
         ],
@@ -312,11 +314,11 @@ it('returns limited results from getTopRecommendations', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
-                ['recommendation_id' => 'p1', 'recommendation_text' => 'Rec 1', 'priority_score' => 90.0],
-                ['recommendation_id' => 'p2', 'recommendation_text' => 'Rec 2', 'priority_score' => 80.0],
-                ['recommendation_id' => 'p3', 'recommendation_text' => 'Rec 3', 'priority_score' => 70.0],
-                ['recommendation_id' => 'p4', 'recommendation_text' => 'Rec 4', 'priority_score' => 60.0],
-                ['recommendation_id' => 'p5', 'recommendation_text' => 'Rec 5', 'priority_score' => 50.0],
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'Rec 1', 'priority' => 'critical'],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'Rec 2', 'priority' => 'high'],
+                ['recommendation_id' => 'p3', 'recommendation_text' => 'Rec 3', 'priority' => 'medium'],
+                ['recommendation_id' => 'p4', 'recommendation_text' => 'Rec 4', 'priority' => 'low'],
+                ['recommendation_id' => 'p5', 'recommendation_text' => 'Rec 5', 'priority' => 'low'],
             ],
             'gaps' => [],
         ],
@@ -330,8 +332,7 @@ it('returns limited results from getTopRecommendations', function () {
     $topRecs = $this->service->getTopRecommendations($this->user->id, 3);
 
     expect($topRecs)->toHaveCount(3);
-    expect($topRecs[0]['priority_score'])->toBe(90.0);
-    expect($topRecs[2]['priority_score'])->toBe(70.0);
+    expect(array_column($topRecs, 'recommendation_id'))->toBe(['p1', 'p2', 'p3']);
 });
 
 it('calculates correct statistics in getSummary', function () {
@@ -341,7 +342,7 @@ it('calculates correct statistics in getSummary', function () {
                 [
                     'recommendation_id' => 'p1',
                     'recommendation_text' => 'High priority protection',
-                    'priority_score' => 85.0,
+                    'priority' => 'high',
                     'estimated_cost' => 1000.0,
                     'potential_benefit' => 50000.0,
                 ],
@@ -353,7 +354,8 @@ it('calculates correct statistics in getSummary', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Medium priority savings',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -379,7 +381,8 @@ it('handles service exceptions gracefully during aggregation', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Savings rec',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);
@@ -408,7 +411,8 @@ it('assigns correct category based on module', function () {
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [
             'recommendation' => 'Savings',
-            'category' => 'warning',
+            'runway_months' => 2.0,
+            'target_months' => 6,
         ],
         'isa_allowance' => [],
     ]);

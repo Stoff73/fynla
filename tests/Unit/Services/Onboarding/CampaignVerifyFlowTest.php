@@ -41,18 +41,6 @@ it('stamps the verify section into context and goes straight to navigate/confirm
         ->and($user->fresh()->onboarding_fyn_context['verify_section'])->toBe('savings');
 });
 
-it('routes verify_more yes back to the section entry and no to navigate', function (): void {
-    $user = User::factory()->create([
-        'onboarding_fyn_path' => 'campaign',
-        'onboarding_fyn_context' => ['verify_section' => 'savings'],
-    ]);
-
-    expect(OnboardingStateMachine::nextFromVerifyMore('yes', $user))
-        ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS)
-        ->and(OnboardingStateMachine::nextFromVerifyMore('no', $user))
-        ->toBe('campaign_verify_navigate');
-});
-
 it('routes verify_navigate no to edit and yes to the section advice', function (): void {
     $user = User::factory()->create([
         'onboarding_fyn_path' => 'campaign',
@@ -68,13 +56,11 @@ it('routes verify_navigate no to edit and yes to the section advice', function (
 });
 
 it('defines the three generic verify states with the right turn types', function (): void {
-    $m = new ReflectionMethod(OnboardingStateMachine::class, 'inCodeStates');
-    $m->setAccessible(true);
-    $states = $m->invoke(null);
+    // turn_type lives in the corpus workflow file (F4); read the merged table.
+    $states = OnboardingStateMachine::states();
 
-    expect($states)->toHaveKeys(['campaign_verify_announce', 'campaign_verify_more', 'campaign_verify_navigate', 'campaign_verify_edit'])
+    expect($states)->toHaveKeys(['campaign_verify_announce', 'campaign_verify_navigate', 'campaign_verify_edit'])
         ->and($states['campaign_verify_announce']['turn_type'])->toBe('bubbles')
-        ->and($states['campaign_verify_more']['turn_type'])->toBe('bubbles')
         ->and($states['campaign_verify_navigate']['turn_type'])->toBe('bubbles')
         ->and($states['campaign_verify_edit']['turn_type'])->toBe('delegated')
         ->and($states['campaign_verify_navigate']['navigate_to'])->toBeInstanceOf(Closure::class)
@@ -360,8 +346,7 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
     ] as $stateId) {
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
-        expect($resolved)->not->toBe('campaign_verify_navigate')
-            ->and($resolved)->not->toBe('campaign_verify_more');
+        expect($resolved)->not->toBe('campaign_verify_navigate');
     }
 });
 

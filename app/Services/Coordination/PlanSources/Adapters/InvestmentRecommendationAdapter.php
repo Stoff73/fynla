@@ -6,6 +6,7 @@ namespace App\Services\Coordination\PlanSources\Adapters;
 
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
+use App\Services\Coordination\PriorityRanker;
 use Illuminate\Support\Str;
 
 /**
@@ -43,8 +44,10 @@ final class InvestmentRecommendationAdapter
             ? $definitionKey
             : (self::CATEGORY_TO_STRATEGY_TYPE[$category] ?? $this->slugify($category));
 
-        $impact = strtolower((string) ($rec['impact'] ?? 'medium'));
-        $priority = in_array($impact, ['high', 'medium', 'low'], true) ? $impact : 'medium';
+        // One label rule (PriorityRanker); the enum has no critical case, so the
+        // seeded label travels in extra for the ranker to read off the composed item.
+        $seeded = PriorityRanker::priorityLabel($rec);
+        $priority = PriorityRanker::impactLabel($seeded);
 
         // Risk / warning categories surface as Warning; all else as Lifecycle.
         $strategyCategory = in_array($category, ['Risk Profile', 'Tax Efficiency'], true)
@@ -52,6 +55,7 @@ final class InvestmentRecommendationAdapter
             : StrategyCategory::Lifecycle;
 
         $extra = array_filter([
+            'seeded_priority' => $seeded,
             'definition_key' => $definitionKey !== '' ? $definitionKey : null,
             'scope' => $rec['scope'] ?? null,
             'account_id' => $rec['account_id'] ?? null,

@@ -307,6 +307,9 @@ final class QuerySchemas
         ],
         self::RETIREMENT_CONTRIBUTION => [
             '/\bpension\s+contribution/i',
+            // "put more into my pension", "pay more into the pension", "top up my pension" (F1)
+            '/\b(put|putting|pay|paying|contribute|contributing)\b[^.?!]{0,30}\b(in|into)\b[^.?!]{0,20}\bpensions?\b/i',
+            '/\btop(ping)?\s+up\b[^.?!]{0,20}\bpensions?\b/i',
             '/\b(maximis|maximiz)e?\s+(my\s+)?pension/i',
             '/\bhow\s+much\s+.*pension/i',
             '/\bannual\s+allowance\b/i',
@@ -424,7 +427,9 @@ final class QuerySchemas
             '/\b(goals?|life\s+events?)\s+contributions?\s+(adequate|enough|on\s+track|target)/i',
         ],
         self::TAX_OPTIMISATION => [
-            '/\btax\s+(plan|optimi[sz]|efficien|strateg|saving|position)/i',
+            '/\btax\s+(plan|optimi[sz]|efficien|strateg|saving|position|bill)/i',
+            // "reduce / cut / lower / minimise / pay less tax" (F1 family, found verifying F11)
+            '/\b(reduce|reducing|cut|cutting|lower|lowering|minimi[sz]e|minimi[sz]ing|pay\s+less)\b[^.?!]{0,30}\btax(es)?\b/i',
             '/\b(mov(e|ing)|transfer(ring)?)\b.{0,80}\b(savings?|cash)\b.{0,80}\b(isa|individual\s+savings\s+account)\b/i',
             '/\bspousal\s+transfer\b/i',
             '/\bcapital\s+gains\s+tax\b/i',
@@ -505,6 +510,7 @@ final class QuerySchemas
             'get_tax_information(isa_allowances)',
             'list_records(savings_account)',
             'list_records(investment_account)',
+            'get_recommendations()',
         ],
         self::PROTECTION_COVER => [
             'get_module_analysis(protection)',
@@ -531,6 +537,7 @@ final class QuerySchemas
             'get_tax_information(income_tax)',
             'get_tax_information(isa_allowances)',
             'get_tax_information(pension_allowances)',
+            'get_recommendations()',
         ],
         self::PROPERTY => [
             'list_records(property)',
@@ -563,16 +570,19 @@ final class QuerySchemas
             'contribution_increase',
             'tax_relief',
             'annual_allowance_exceeded',
-            'personal_allowance_reclaim',
+            'strategy_pa_taper_rescue',
         ],
         self::RETIREMENT_READINESS => [
-            'retirement_income_gap',
-            'retirement_age_target',
-            'state_pension_gap',
+            'contribution_increase',
+            'adjust_retirement_age',
+            'ni_gaps',
+            'state_pension_no_forecast',
         ],
         self::RETIREMENT_DECUMULATION => [
-            'drawdown_sequence',
-            'tax_free_lump_sum',
+            // approaching_decumulation carries the tax-free lump sum (PCLS, capped at the
+            // Lump Sum Allowance) in its recommendation and trace.
+            'approaching_decumulation',
+            'strategy_plan_retirement_income',
         ],
         self::SAVINGS_EMERGENCY => [
             'emergency_fund_critical',
@@ -599,9 +609,11 @@ final class QuerySchemas
             'self_employed_no_ip',
         ],
         self::PROTECTION_POLICY => [
-            'policy_review_due',
+            'policy_expiring_soon',
+            'review_existing_policies',
             'policy_not_in_trust',
-            'employer_group_life',
+            'no_employer_benefits_recorded',
+            'dis_reliance_warning',
         ],
         self::INVESTMENT_PORTFOLIO => [
             'risk_profile_missing',
@@ -617,7 +629,13 @@ final class QuerySchemas
             'open_isa',
             'use_isa_allowance',
             'consider_bonds',
-            'isa_not_maxed',
+            // Composed tax plan strategies (F11): the seeded strategy_* rows.
+            'strategy_isa_topup_vs_psa',
+            'strategy_bed_and_isa',
+            'strategy_dividend_allowance_harvest',
+            'strategy_gia_to_spouse',
+            'strategy_gia_rebalance',
+            'strategy_isa_coordination',
         ],
         self::ESTATE_IHT => [
             'iht_exceeds_nrb',
@@ -630,17 +648,34 @@ final class QuerySchemas
             'no_will',
             'no_lpa',
             'beneficiary_review',
-            'trust_review',
+            'trust_review_due',
         ],
         self::GOALS_PROGRESS => [
             'goal_behind_schedule',
-            'goal_contribution_gap',
+            'goal_no_contribution',
         ],
         self::TAX_OPTIMISATION => [
-            'spousal_transfer_beneficial',
-            'cgt_allowance_unused',
-            'high_dividend_in_gia',
-            'pension_carry_forward_available',
+            // Composed tax plan strategies (F11): the seeded strategy_* rows, not the disabled agent rows.
+            'strategy_pa_taper_rescue',
+            'strategy_additional_rate_avoidance',
+            'strategy_salary_sacrifice_ni',
+            'strategy_isa_topup_vs_psa',
+            'strategy_bed_and_isa',
+            'strategy_dividend_allowance_harvest',
+            'strategy_pension_aa_carry_forward',
+            'strategy_gift_aid_higher_rate_relief',
+            'strategy_marriage_allowance_transfer',
+            'strategy_savings_to_spouse',
+            'strategy_isa_topup_spouse',
+            'strategy_gia_to_spouse',
+            'strategy_gia_rebalance',
+            'strategy_isa_coordination',
+            'strategy_non_earner_spouse_pension',
+            'strategy_joint_savings_psa_split',
+            'strategy_tapered_annual_allowance',
+            'strategy_lifetime_isa',
+            'strategy_junior_isa',
+            'strategy_junior_pension',
         ],
         self::PROPERTY => [],
         self::INCOME => [],
