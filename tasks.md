@@ -5,7 +5,7 @@ Generated from `workforce/ops/board/` on 2026-08-31. **Regenerate, never hand-ed
 The loop is `/Users/CSJ/.claude/skills/board-loop/SKILL.md`. Every live bug goes
 through `superpowers:systematic-debugging` before a line of code is changed.
 
-**Outstanding: 12**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-04 (6 `deferred-ios`, 1 `deferred`, 5 `queued`)
+**Outstanding: 21**  ·  counts recomputed from `workforce/ops/board/` on 2026-09-09 (11 `queued`, 6 `deferred-ios`, 3 `deferred`, 1 `review`)
 
 ---
 
@@ -173,6 +173,36 @@ through `superpowers:systematic-debugging` before a line of code is changed.
 - [x] **W-0537** `done` (CSJ decision 2026-09-04: peak_earners household premium always, rest stay free; users.tier read ONLY in the preview branch so W-0018 holds; adjacent EnsureFullEstateAccess isFull/allows inconsistency recorded not fixed) — One demo household resolves premium so a visitor can see what premium looks like
 - [x] **W-0536** `done` (found browser-testing W-0500 on csjones; root cause in PropertyController::update, not in W-0500's own work; 2 tests added, 278 passed; NOT re-verified in the browser — fix is local) — Any partial update to a property converts it to sole ownership
 - [ ] **W-0535** `queued` — CoordinatingAgent is 6,768 lines and 115 methods, and grows with every Fyn tool added — wants a plan, not an opportunistic extraction
+
+
+## Raised 2026-09-09 — findings from the new-user run (csjones + production), not yet worked
+
+A cold new-user journey run on csjones 2026-09-07 and re-run against **production**
+2026-09-09 after the dev -> main release (PR #798). Registration through to the
+dashboard, on a real account, in the declined-cookie state.
+
+- [ ] **W-0541** `review` (PR #799 to dev; browser-verified locally against the exact production state; native surface NOT verified) — Fyn's web chat silently destroys every message a new user sends — no conversation is ever created, and nothing is requested
+- [ ] **W-0542** `queued` — Registration shows only the first validation error per field while the server sends all of them — a user can rate-limit themselves out of signing up
+- [ ] **W-0543** `queued` — A spouse invitation succeeds and the UI tells the user it failed and to add them again
+- [ ] **W-0544** `queued` — A tier-limit 403 carrying a message, the required tier and an upgrade destination is rendered as "Failed to save property. Please try again."
+- [ ] **W-0545** `queued` — The password rules hint is hidden exactly when the rules are failed
+- [ ] **W-0546** `queued` (extends W-0050, whose cookie wall is genuinely fixed; the copy clause is not) — The cookie-decline warning still claims registration will be unavailable — it is not, on csjones or production
+- [ ] **W-0547** `queued` — No signup or verification-code field carries an autocomplete attribute — password managers cannot fill or save, and the code boxes have no accessible name
+- [ ] **W-0548** `queued` (csjones only; production verified healthy) — csjones tax configuration is stale — retirement and goals projections 500 on every dashboard load
+- [ ] **W-0549** `queued` (narrowed 2026-09-09 after testing on production — see its working notes) — The form surfaces discard every structured error the backend returns — the concepts are implemented once, for the chat path only
+- [ ] **W-0550** `queued` — Web shows total monthly expenditure excluding financial commitments — £1,800 where /m and the API both say £4,878
+
+**W-0549 is the mechanism behind W-0541, W-0543 and W-0544.** Fixing those three
+individually leaves it in place. `grep -rn "invitation_pending\|tier_limit_reached"
+resources/js/ resources/mobile/` returns nothing, while the chat path handles both.
+
+**Not written up as items:** `dev` carries 46 failing frontend test files / 18 failing
+tests before any change (baseline, unchanged by PR #799); a sessionStorage key literally
+named `setItem`; and `dev.sh`, which CLAUDE.md documents, is absent from the repo.
+
+**Environment note:** production now serves native API routes
+(`GET /api/v1/native/health` -> `400 application/json`, not the `200 text/html` that
+CLAUDE.md records as proof of their absence). That troubleshooting entry is stale.
 
 
 ---
