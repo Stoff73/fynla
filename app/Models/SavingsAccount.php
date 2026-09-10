@@ -111,6 +111,44 @@ class SavingsAccount extends Model
         return round($this->annual_interest / 12, 2);
     }
 
+    /** @var array<string, string> account_type => how the product is named to the user */
+    private const TYPE_LABELS = [
+        'current_account' => 'Current Account',
+        'business_current' => 'Business Current Account',
+        'business_savings' => 'Business Savings',
+        'savings' => 'Savings Account',
+        'easy_access' => 'Easy Access Savings',
+        'instant_access' => 'Instant Access Savings',
+        'notice' => 'Notice Account',
+        'fixed_term' => 'Fixed Term Savings',
+        'fixed_rate' => 'Fixed Rate Savings',
+        'cash_isa' => 'Cash ISA',
+        'junior_isa' => 'Junior ISA',
+        'lifetime_isa' => 'Lifetime ISA',
+        'premium_bonds' => 'Premium Bonds',
+        'nsi_savings' => 'NS&I Savings',
+    ];
+
+    /**
+     * What the account is called wherever a recommendation or row names it:
+     * the user's own name for it, else institution + product ("HSBC Current
+     * Account"). The web form captures institution and product but no name,
+     * so the fallback is the common case there.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        $name = trim((string) ($this->account_name ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $type = (string) ($this->account_type ?? '');
+        $product = self::TYPE_LABELS[$type] ?? ucwords(str_replace('_', ' ', $type));
+        $label = trim(trim((string) ($this->institution ?? '')).' '.$product);
+
+        return $label !== '' ? $label : 'Unnamed account';
+    }
+
     protected $casts = [
         'current_balance' => 'decimal:2',
         'interest_rate' => 'decimal:4',

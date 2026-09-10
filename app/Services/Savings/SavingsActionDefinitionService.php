@@ -1149,7 +1149,7 @@ class SavingsActionDefinitionService
             $marketRate = (float) ($comparison['comparison']['market_rate_percent'] ?? 0);
             $currentInterest = $balance * $currentRate / 100;
             $marketInterest = $balance * $marketRate / 100;
-            $accountName = $account->account_name ?? 'Unnamed account';
+            $accountName = $account->display_name;
             $institution = $account->institution ?? 'unknown provider';
             $accessType = $account->access_type ?? 'unknown';
             $isIsa = $account->is_isa ? ' (ISA — '.($account->isa_type ?? 'unspecified').')' : '';
@@ -1238,7 +1238,7 @@ class SavingsActionDefinitionService
             $currentRate = (float) ($comparison['comparison']['account_rate_percent'] ?? 0);
             $marketRate = (float) ($comparison['comparison']['market_rate_percent'] ?? 0);
             $currentInterest = $balance * $currentRate / 100;
-            $accountName = $account->account_name ?? 'Unnamed account';
+            $accountName = $account->display_name;
             $institution = $account->institution ?? 'unknown provider';
             $accessType = $account->access_type ?? 'unknown';
             $isIsa = $account->is_isa ? ' (ISA — '.($account->isa_type ?? 'unspecified').')' : '';
@@ -1324,7 +1324,7 @@ class SavingsActionDefinitionService
 
             $balance = (float) ($account->current_balance ?? 0);
             $currentRate = (float) ($account->interest_rate ?? 0);
-            $accountName = $account->account_name ?? 'Unnamed account';
+            $accountName = $account->display_name;
             $institution = $account->institution ?? 'unknown provider';
             $isIsa = $account->is_isa ? ' (ISA — '.($account->isa_type ?? 'unspecified').')' : '';
             $annualInterest = $account->annual_interest;
@@ -1398,7 +1398,7 @@ class SavingsActionDefinitionService
 
             $balance = (float) ($account->current_balance ?? 0);
             $currentRate = (float) ($account->interest_rate ?? 0);
-            $accountName = $account->account_name ?? 'Unnamed account';
+            $accountName = $account->display_name;
             $institution = $account->institution ?? 'unknown provider';
             $isIsa = $account->is_isa ? ' (ISA — '.($account->isa_type ?? 'unspecified').')' : '';
             $annualInterest = $account->annual_interest;
@@ -1467,7 +1467,7 @@ class SavingsActionDefinitionService
                 continue;
             }
 
-            $accountName = $account->account_name ?? 'Unnamed account';
+            $accountName = $account->display_name;
             $institution = $account->institution ?? 'unknown provider';
             $accessType = $account->access_type ?? 'unknown';
             $isIsa = $account->is_isa ? ' (ISA — '.($account->isa_type ?? 'unspecified').')' : '';
@@ -2821,7 +2821,7 @@ class SavingsActionDefinitionService
 
             $isIsa = (bool) $account->is_isa;
             $rec = $this->buildRecommendation($definition, [
-                'account_name' => (string) ($account->account_name ?? 'Unnamed account'),
+                'account_name' => $account->display_name,
                 'monthly_contribution' => $this->formatCurrency($monthly),
                 'current_rate' => number_format((float) $account->interest_rate, 2),
                 'product' => $isIsa ? 'regular saver ISA' : 'regular saver account',
@@ -2883,7 +2883,7 @@ class SavingsActionDefinitionService
 
             $rec = $this->buildRecommendation($definition, [
                 'goal_name' => (string) ($goal->goal_name ?? 'Unnamed goal'),
-                'account_name' => (string) ($account->account_name ?? 'Unnamed account'),
+                'account_name' => $account->display_name,
                 'reason' => $reason,
                 'target_date' => $targetDate->format('d M Y'),
                 'timeline' => max(0, (int) now()->diffInMonths($targetDate, false)).'-month',
@@ -2935,7 +2935,7 @@ class SavingsActionDefinitionService
             }
 
             $rec = $this->buildRecommendation($definition, [
-                'account_name' => (string) ($account->account_name ?? 'Unnamed account'),
+                'account_name' => $account->display_name,
                 'goal_count' => (string) $goals->count(),
                 'allocated' => $this->formatCurrency($allocated),
                 'balance' => $this->formatCurrency($balance),
@@ -3760,7 +3760,7 @@ class SavingsActionDefinitionService
      */
     private function formatAccountDescription($account): string
     {
-        $name = $account->account_name ?? 'Unnamed account';
+        $name = $account->display_name;
         $institution = $account->institution ?? 'unknown provider';
         $balance = (float) ($account->current_balance ?? 0);
         $rate = ((float) ($account->interest_rate ?? 0)) * 100;

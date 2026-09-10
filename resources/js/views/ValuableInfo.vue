@@ -54,7 +54,11 @@ export default {
     const store = useStore();
     const router = useRouter();
     const route = useRoute();
-    const activeTab = ref('letter');
+    // Start on the requested section. Defaulting to 'letter' and switching on
+    // mount briefly rendered LetterToSpouse, whose loads 403 for a user
+    // without the letter, on every ?section= deep link.
+    const validTabIds = ['letter', 'income', 'expenditure', 'risk'];
+    const activeTab = ref(validTabIds.includes(route.query.section) ? route.query.section : 'letter');
     const loading = ref(false);
 
     const user = computed(() => store.getters['userProfile/user']);

@@ -244,13 +244,10 @@
           @selected="handleFocusAreaSelected"
         />
 
-        <!-- Journey Completion Step -->
-        <JourneyCompletionStep
-          v-if="isJourneyMode && showJourneyCompletion"
-          :journey-name="currentJourneyName"
-          :completed-steps="journeySteps"
-          @next="handleJourneyCompletionNext"
-        />
+        <!-- Journey completion: the one completion screen every flow ends on
+             (JourneyCompletionStep was deleted in 717d24f97 and this rendered
+             nothing, so finishing a journey was a dead end). -->
+        <CompletionStep v-if="isJourneyMode && showJourneyCompletion" />
 
         <!-- Step Content -->
         <Transition name="fade" mode="out-in">
@@ -1347,10 +1344,6 @@ export default {
       }
     };
 
-    const handleJourneyCompletionNext = async () => {
-      // JourneyCompletionStep handles its own navigation
-    };
-
     const handleBack = async () => {
       if (isJourneyMode.value) {
         if (journeyStepIndex.value > 0) {
@@ -1579,7 +1572,6 @@ export default {
       handleNext,
       handleBack,
       handleSkipRequest,
-      handleJourneyCompletionNext,
       hideSkipModal,
       confirmSkip,
       handleSkipToDashboard,
