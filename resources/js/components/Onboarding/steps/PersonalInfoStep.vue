@@ -223,6 +223,7 @@ import {
 } from '@/constants/profileOptions';
 
 import logger from '@/utils/logger';
+import { apiErrorMessage } from '@/utils/apiErrors';
 export default {
   name: 'PersonalInfoStep',
 
@@ -356,7 +357,7 @@ export default {
 
         emit('next');
       } catch (err) {
-        error.value = err.message || 'Failed to save personal information. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to save personal information. Please try again.');
       } finally {
         loading.value = false;
       }

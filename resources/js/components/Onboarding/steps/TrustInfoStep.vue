@@ -72,6 +72,7 @@ import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
+import { apiErrorMessage } from '@/utils/apiErrors';
 
 export default {
   name: 'TrustInfoStep',
@@ -144,7 +145,7 @@ export default {
 
         emit('next');
       } catch (err) {
-        error.value = err.message || 'Failed to save. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to save. Please try again.');
       } finally {
         loading.value = false;
       }

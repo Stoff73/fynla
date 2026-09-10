@@ -471,6 +471,16 @@
       @manual-entry="closeUploadModal"
     />
 
+    <!-- A save the plan's count cap refused: the same modal the Net Worth
+         pages show, fed from the 403 the server sent (W-0544). -->
+    <LimitReachedModal
+      :show="!!tierLimit"
+      :entity-label="tierLimit?.entityLabel || 'items'"
+      :cap="tierLimit?.cap || 0"
+      :tier-label="currentTierLabel"
+      @close="tierLimit = null"
+    />
+
     <!-- Skip Assets Modal -->
     <div v-if="showAssetSkipModal" class="fixed inset-0 z-50 overflow-y-auto">
       <div class="flex min-h-screen items-center justify-center p-4">
@@ -511,6 +521,9 @@ import DCPensionForm from '@/components/Retirement/DCPensionForm.vue';
 import DBPensionForm from '@/components/Retirement/DBPensionForm.vue';
 import StatePensionForm from '@/components/Retirement/StatePensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
+import { apiErrorMessage, tierLimitFrom } from '@/utils/apiErrors';
+import { TIER_LABELS } from '@/mixins/tierLimitMixin';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import propertyService from '@/services/propertyService';
 import investmentService from '@/services/investmentService';
@@ -526,6 +539,7 @@ export default {
 
   components: {
     OnboardingStep,
+    LimitReachedModal,
     PropertyForm,
     PropertyCard,
     AccountForm,
@@ -626,6 +640,18 @@ export default {
 
     const loading = ref(false);
     const error = ref(null);
+    // The tier limit a save just hit (tierLimitFrom), or null — drives LimitReachedModal.
+    const tierLimit = ref(null);
+    // The plan the cap belongs to — the user's current one, as tierLimitMixin
+    // labels it. The subscription payload is not always loaded mid-onboarding;
+    // only the Free tier carries count caps, so that is the honest fallback.
+    const currentTierLabel = computed(() => TIER_LABELS[store.state.auth?.subscriptionData?.tier] || TIER_LABELS.free);
+    const showTierLimit = (err) => {
+      const limit = tierLimitFrom(err);
+      if (!limit) return false;
+      tierLimit.value = limit;
+      return true;
+    };
     const userAddress = ref(null);
 
     // Document upload state
@@ -796,8 +822,8 @@ export default {
 
         closePensionForm();
         await loadPensions();
-      } catch {
-        error.value = 'Failed to save pension. Please try again.';
+      } catch (err) {
+        if (!showTierLimit(err)) error.value = apiErrorMessage(err, 'Failed to save pension. Please try again.');
       }
     }
 
@@ -877,8 +903,8 @@ export default {
 
         closePropertyForm();
         await loadProperties();
-      } catch {
-        error.value = 'Failed to save property. Please try again.';
+      } catch (err) {
+        if (!showTierLimit(err)) error.value = apiErrorMessage(err, 'Failed to save property. Please try again.');
       }
     }
 
@@ -926,11 +952,13 @@ export default {
         closeInvestmentForm();
         await loadInvestments();
       } catch (err) {
-        if (err.response?.data?.errors) {
+        if (showTierLimit(err)) {
+          // handled by the modal
+        } else if (err.response?.data?.errors) {
           const fieldErrors = Object.values(err.response.data.errors).flat();
           error.value = 'Failed to save investment account: ' + fieldErrors.join('. ');
         } else {
-          error.value = 'Failed to save investment account. Please try again.';
+          error.value = apiErrorMessage(err, 'Failed to save investment account. Please try again.');
         }
       }
     }
@@ -996,8 +1024,8 @@ export default {
 
         closeSavingsForm();
         await loadSavingsAccounts();
-      } catch {
-        error.value = 'Failed to save savings account. Please try again.';
+      } catch (err) {
+        if (!showTierLimit(err)) error.value = apiErrorMessage(err, 'Failed to save savings account. Please try again.');
       }
     }
 
@@ -1246,6 +1274,8 @@ export default {
       // Common
       loading,
       error,
+      tierLimit,
+      currentTierLabel,
       userAddress,
       handleNext,
       handleBack,
