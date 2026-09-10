@@ -263,6 +263,7 @@ class RecommendationsAggregatorService
             // on this — it must be identical across requests for the same
             // logical recommendation, so never uniqid()/random.
             'recommendation_id' => $rec['recommendation_id'] ?? $rec['id'] ?? $module.'_'.substr(sha1($module.'|'.$text), 0, 16),
+            'rule_key' => $rec['rule_key'] ?? null,
             'module' => $module,
             'recommendation_text' => $text,
             'priority_score' => $rec['priority_score'],
@@ -306,12 +307,15 @@ class RecommendationsAggregatorService
     {
         $plan = app(ComposedModulePlanService::class)->forSource($source, $user);
 
-        return array_map(static function (array $item) use ($module): array {
+        $recs = array_map(static function (array $item) use ($module): array {
             $title = (string) ($item['title'] ?? '');
             $description = (string) ($item['description'] ?? '');
 
             return [
-                'recommendation_id' => $module.'_'.($item['type'] ?? ''),
+                'recommendation_id' => self::composeId($module, $item),
+                // The rule behind the id, without the record scope — what
+                // RecommendationRouting keys on.
+                'rule_key' => $module.'_'.($item['type'] ?? ''),
                 'recommendation_text' => $description !== '' ? $title.' — '.$description : $title,
                 'priority' => $item['seeded_priority'] ?? $item['priority'] ?? 'medium',
                 'category' => $item['category'] ?? null,
@@ -324,6 +328,63 @@ class RecommendationsAggregatorService
                 'goal_id' => $item['goal_id'] ?? null,
             ];
         }, $plan['items']);
+
+        return self::disambiguate($recs);
+    }
+
+    /** The record a rule can be about, in precedence order, and the id segment each contributes. */
+    private const SCOPE_KEYS = [
+        'account_id' => 'a',
+        'goal_id' => 'g',
+        'family_member_id' => 'm',
+        'life_event_id' => 'e',
+        'policy_id' => 'p',
+    ];
+
+    /**
+     * The stable id: {module}_{type}, plus the record when the rule names one.
+     * A per-account / per-goal / per-child / per-policy rule is one
+     * recommendation PER RECORD; sharing the id across instances let one
+     * mark-done complete them all (CSJ 2026-09-10). Rules that name no record
+     * keep the bare id, so nothing already tracked changes.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    public static function composeId(string $module, array $item): string
+    {
+        $id = $module.'_'.($item['type'] ?? '');
+
+        foreach (self::SCOPE_KEYS as $key => $segment) {
+            if (is_numeric($item[$key] ?? null)) {
+                return $id.'_'.$segment.(int) $item[$key];
+            }
+        }
+
+        return $id;
+    }
+
+    /**
+     * Ids that still collide within one plan (two curated categories mapped to
+     * one type, a repeating rule that carries no record id) get a suffix from
+     * the headline, deterministic across requests and distinct per instance.
+     * ponytail: headline hash; a reworded headline restarts that row's done
+     * status. Give the rule a record id in its adapter instead of extending this.
+     *
+     * @param  list<array<string, mixed>>  $recs
+     * @return list<array<string, mixed>>
+     */
+    public static function disambiguate(array $recs): array
+    {
+        $counts = array_count_values(array_column($recs, 'recommendation_id'));
+
+        foreach ($recs as &$rec) {
+            if (($counts[$rec['recommendation_id']] ?? 0) > 1) {
+                $headline = explode(' — ', (string) ($rec['recommendation_text'] ?? ''), 2)[0];
+                $rec['recommendation_id'] .= '_'.substr(sha1($headline), 0, 8);
+            }
+        }
+
+        return $recs;
     }
 
     /**

@@ -72,6 +72,11 @@ final class SavingsRecommendationAdapter
             'scope' => $rec['scope'] ?? null,
             'account_id' => $rec['account_id'] ?? null,
             'account_name' => $rec['account_name'] ?? null,
+            // The record a per-goal / per-child / per-event rule is about — the
+            // aggregator scopes the recommendation id by it.
+            'goal_id' => $rec['goal_id'] ?? null,
+            'family_member_id' => $rec['family_member_id'] ?? null,
+            'life_event_id' => $rec['life_event_id'] ?? null,
             'source_category' => $category !== '' ? $category : null,
             'decision_trace' => $rec['decision_trace'] ?? null,
         ], static fn ($v) => $v !== null);
