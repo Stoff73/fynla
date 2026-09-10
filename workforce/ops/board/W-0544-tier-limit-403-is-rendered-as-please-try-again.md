@@ -56,7 +56,7 @@ investment 2, pension_account 2, savings_account 2, goal 2, life_event 1.
 
 - [ ] A tier-limit response renders its own `message`, not a generic failure.
 - [ ] The upgrade destination the backend returns is offered as a call to action.
-- [ ] "+ Add" is disabled or annotated once `current_count === hard_limit`, so the
+- [x] "+ Add" is disabled or annotated once `current_count === hard_limit`, so the
       user is not invited to fill a form that cannot save.
 - [ ] Same behaviour on `/m` from the same helper (Rule 20).
 - [ ] Also correct for investment, pension, savings, goal and life_event.
@@ -153,3 +153,16 @@ Confirmed live in the onboarding assets step only (the Net Worth pages already u
   benefits copy about properties. Both stay open as follow-ups on this item's list.
 - Adjacent, not fixed: `AssetsStep.vue` lines 220/290/366 call `window.scrollTo` inside a
   template handler, where `window` is undefined — a console TypeError on every "+ Add".
+
+## Follow-up — done, 2026-09-10 (CSJ: tell the user before the form, not after)
+
+The onboarding assets step now refuses a capped "+ Add" up front, as the Net Worth pages
+do: `auth/fetchSubscriptionData` (new, the one loader for `/payment/subscription-status`;
+`AppLayout` now goes through it too) is requested on mount, and `revealPropertyForm` /
+`revealInvestmentForm` / `revealSavingsForm` / `togglePensionTypeSelector` open the shared
+`LimitReachedModal` instead of the form when `atTierCap` says the count is at the cap.
+The cap arithmetic lives once in `tierLimitMixin.js` (`countCapFor`, `atTierCap`), used by
+the mixin and the step. Preview personas are exempt, as on those pages. Test:
+`mixins/__tests__/tierLimit.spec.js`. Browser-verified locally: a Free account with two
+savings accounts → "+ Add Account" → modal, no form, no request; a Premium account →
+"+ Add Pension" → the pension chooser.

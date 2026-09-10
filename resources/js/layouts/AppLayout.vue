@@ -162,7 +162,6 @@ import OfflineBanner from '@/components/Common/OfflineBanner.vue';
 import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
 import SubNavBar from '@/components/SubNavBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
-import api from '@/services/api';
 import { getSubscriptionPresentation } from '@/utils/subscriptionPresentation';
 import storage from '@/utils/storage';
 import { fynIconUrl } from '@/constants/fynIcon';
@@ -463,11 +462,12 @@ export default {
     async checkSubscriptionStatus() {
       if (this.isPreviewMode) return;
       try {
-        const response = await api.get('/payment/subscription-status');
-        this.subscriptionData = response.data;
-        this.$store.commit('auth/setSubscriptionData', response.data);
+        // One loader for the payload (auth/fetchSubscriptionData); the layout
+        // always refreshes it.
+        const data = await this.$store.dispatch('auth/fetchSubscriptionData', { force: true });
+        this.subscriptionData = data;
         this.maybeOpenPricingFromQuery();
-        const presentation = getSubscriptionPresentation(response.data);
+        const presentation = getSubscriptionPresentation(data);
         // For grace-period users, DataRetentionOverlay is the primary surface.
         // PlanSelectionModal opens from its "Subscribe Now" button via handleSubscribeFromOverlay.
         // Only auto-show the non-dismissable plan modal after paid access has ended.
