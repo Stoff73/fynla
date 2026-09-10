@@ -3,9 +3,9 @@ id: W-0548
 title: csjones tax configuration is stale — retirement and goals projections 500 on every dashboard load
 mission: new-user-run-2026-09-07
 branch: null
-owner: null
+owner: build-lead
 reviewers: [quality-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-09-09
@@ -45,3 +45,12 @@ csjones is untrustworthy — worth knowing before a persona run is scheduled the
 - [ ] Both endpoints return 200 on csjones.
 - [ ] Consider what makes a staging database go stale unnoticed — the failure was
       silent to anyone not reading the network log.
+
+## Outcome — done, 2026-09-10
+
+Already resolved before this pass: `db:seed --force` runs in every csjones deploy
+(`deploy/DEPLOY.md` step 6) and the 2026-09-08/09 deploys reseeded it. Verified
+2026-09-10 on csjones: `pension.state_pension.age_schedule` returns the six-entry array,
+`/api/plans/retirement` and `/api/goals/projection` return 200 for john, and the last
+"age_schedule is missing" error in `laravel.log` is dated 2026-09-07 (15 that day, none
+since). The deploy step is the guard against it going stale again.

@@ -244,18 +244,16 @@
           @selected="handleFocusAreaSelected"
         />
 
-        <!-- Journey Completion Step -->
-        <JourneyCompletionStep
-          v-if="isJourneyMode && showJourneyCompletion"
-          :journey-name="currentJourneyName"
-          :completed-steps="journeySteps"
-          @next="handleJourneyCompletionNext"
-        />
+        <!-- Journey completion: the one completion screen every flow ends on
+             (JourneyCompletionStep was deleted in 717d24f97 and this rendered
+             nothing, so finishing a journey was a dead end). -->
+        <CompletionStep v-if="isJourneyMode && showJourneyCompletion" />
 
         <!-- Step Content -->
         <Transition name="fade" mode="out-in">
           <component
             v-if="showStepContent"
+            ref="currentStepRef"
             :is="currentStepComponent"
             :key="currentStepKey"
             @next="handleNext"
@@ -263,6 +261,27 @@
             @skip="handleSkipRequest"
           />
         </Transition>
+
+        <!-- Navigation. OnboardingStep hides its own bar by default and the
+             life-stage layout draws one above; journey, full and quick modes
+             drew none, so a step with hidden nav (Personal Information) could
+             not be continued and a journey never reached its completion. -->
+        <div v-if="showStepContent" class="max-w-5xl mx-auto flex items-center justify-between mt-6">
+          <button
+            type="button"
+            class="inline-flex items-center h-10 px-5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors"
+            @click="handleBack"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center h-10 px-6 text-sm font-bold rounded-lg text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors"
+            @click="triggerModeContinue"
+          >
+            Continue
+          </button>
+        </div>
       </div>
     </template>
 
@@ -768,6 +787,20 @@ export default {
       } else {
         // Fallback: step has no exposed handleNext, just advance
         handleLifeStageNext();
+      }
+    };
+
+    // The same delegation for journey, full and quick modes: the step saves
+    // through its own handleNext (which emits 'next' → handleNext), else the
+    // wizard advances.
+    const triggerModeContinue = () => {
+      const stepComponent = currentStepRef.value;
+      if (stepComponent?.handleNext) {
+        stepComponent.handleNext();
+      } else if (stepComponent?.onNext) {
+        stepComponent.onNext();
+      } else {
+        handleNext();
       }
     };
 
@@ -1347,10 +1380,6 @@ export default {
       }
     };
 
-    const handleJourneyCompletionNext = async () => {
-      // JourneyCompletionStep handles its own navigation
-    };
-
     const handleBack = async () => {
       if (isJourneyMode.value) {
         if (journeyStepIndex.value > 0) {
@@ -1517,6 +1546,7 @@ export default {
       sidebarOverride,
       currentStepRef,
       triggerStepContinue,
+      triggerModeContinue,
       currentStepResources,
       currentDidYouKnow,
       handleFormFieldFocus,
@@ -1579,7 +1609,6 @@ export default {
       handleNext,
       handleBack,
       handleSkipRequest,
-      handleJourneyCompletionNext,
       hideSkipModal,
       confirmSkip,
       handleSkipToDashboard,

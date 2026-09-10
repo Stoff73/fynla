@@ -338,6 +338,7 @@ import propertyService from '@/services/propertyService';
 import { formatCurrency } from '@/utils/currency';
 
 import logger from '@/utils/logger';
+import { apiErrorMessage } from '@/utils/apiErrors';
 export default {
   name: 'IncomeStep',
 
@@ -485,7 +486,7 @@ export default {
 
         emit('next');
       } catch (err) {
-        error.value = err.message || 'Failed to save income information. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to save income information. Please try again.');
       } finally {
         loading.value = false;
       }

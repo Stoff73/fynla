@@ -641,7 +641,7 @@ try {
   <script src="/pages/js/index.js?v=115" defer></script>
   <!-- Cookie consent — server-rendered pages don't mount the SPA banner, so the
        prompt must appear here at the landing, persisted via localStorage. -->
-  <script src="/pages/js/cookie-consent.js?v=1" defer></script>
+  <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 
 </body>
 </html>

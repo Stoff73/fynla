@@ -315,6 +315,8 @@ class NextActionsService
         return array_map(function (array $rec): array {
             $benefit = is_numeric($rec['potential_benefit'] ?? null) ? (float) $rec['potential_benefit'] : null;
             $id = (string) ($rec['recommendation_id'] ?? uniqid('rec_'));
+            // Routing keys on the rule; the id also carries the record scope.
+            $ruleKey = (string) ($rec['rule_key'] ?? $id);
             $module = (string) ($rec['module'] ?? 'general');
             [$title, $detail] = self::splitHeadline((string) ($rec['recommendation_text'] ?? ''));
 
@@ -341,7 +343,7 @@ class NextActionsService
                 // clients post `contextual` to /api/ai-chat/contextual-
                 // conversations); everything else deep-links to the module
                 // screen where the user actions it (RecommendationRouting).
-                'action' => ($contextual = RecommendationRouting::contextualFor($id)) !== null
+                'action' => ($contextual = RecommendationRouting::contextualFor($ruleKey)) !== null
                     ? [
                         'kind' => 'fyn_capture',
                         'payload' => $module,
@@ -357,7 +359,7 @@ class NextActionsService
                             'origin' => ['kind' => 'recommendation', 'recommendation_id' => $id],
                         ],
                     ]
-                    : ['kind' => 'navigate', ...RecommendationRouting::pageFor($id, $module, $rec)],
+                    : ['kind' => 'navigate', ...RecommendationRouting::pageFor($ruleKey, $module, $rec)],
             ];
         }, $all);
     }

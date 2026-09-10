@@ -101,7 +101,12 @@ const mutations = {
     state.loading = false;
     state.error = null;
   },
-  setCurrentStage(state, stage) { state.currentStage = stage; },
+  // `users.life_stage` also carries the journey or focus area a user last
+  // started (JourneyStateService, OnboardingService), so "goals" or "estate"
+  // reach here by every path. Only a stage this client knows becomes the
+  // current stage; anything else would put the wizard into life-stage mode
+  // with no steps (a blank step, a null sidebar step, Continue → dashboard).
+  setCurrentStage(state, stage) { state.currentStage = stage && LIFE_STAGES[stage] ? stage : null; },
   setCompletedSteps(state, steps) { state.completedSteps = steps; },
   setDataCompletedSteps(state, steps) { state.dataCompletedSteps = steps; },
   setStepCompleteness(state, completeness) { state.stepCompleteness = completeness; },
@@ -120,7 +125,7 @@ const actions = {
     try {
       const user = rootGetters['auth/user'];
       if (user?.life_stage) {
-        commit('setCurrentStage', user.life_stage);
+        commit('setCurrentStage', user.life_stage); // the mutation drops a non-stage value
       }
       const response = await lifeStageService.getProgress();
       if (response && typeof response === 'object' && response.success) {

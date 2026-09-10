@@ -2,10 +2,10 @@
 id: W-0542
 title: Registration shows only the first validation error per field while the server sends all of them — a user can rate-limit themselves out of signing up
 mission: new-user-run-2026-09-07
-branch: null
-owner: null
+branch: fix/board-w0550-w0543-w0544-w0542-w0545-w0546-w0547
+owner: build-lead
 reviewers: [design-lead, build-lead]
-status: queued
+status: done
 severity: high
 surfaces: [web]
 created: 2026-09-09
@@ -47,3 +47,20 @@ creating an account.
 - [ ] Applied to every field on the form, not only `password`.
 - [ ] Checked on `/m` registration (Rule 19).
 - [ ] A test pins that a multi-error response renders every message.
+
+## Outcome — done, 2026-09-10
+
+Confirmed live: `Register.vue` rendered `errors.<field>[0]` on all four fields and ran no
+checks of its own.
+
+- Every message renders (`v-for` over each field's list) — the server's multi-error
+  response and the client's alike.
+- `utils/registrationRules.js` `validateRegistration(form)` mirrors `RegisterRequest`
+  (required names, email shape, min 8, the same complexity expression, confirmation) with
+  the server's wording, and `handleRegister` runs it before the request goes out, so a
+  user sees everything at once instead of one rule per throttled attempt. The server
+  remains the authority. Test: `utils/__tests__/registrationRules.spec.js`.
+- Browser-verified locally: "abcdefgh" / "abcdefgi" → complexity and confirmation messages
+  together, zero `/api/auth/register` requests.
+- `/m` has no registration view (phones register through the web funnel), so this is the
+  one surface.

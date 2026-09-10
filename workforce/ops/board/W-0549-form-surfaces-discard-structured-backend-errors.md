@@ -3,9 +3,9 @@ id: W-0549
 title: The form surfaces discard every structured error the backend returns — the concepts are implemented once, for the chat path only
 mission: new-user-run-2026-09-07
 branch: null
-owner: null
+owner: build-lead
 reviewers: [quality-lead, build-lead]
-status: queued
+status: done
 severity: high
 surfaces: [web, m]
 created: 2026-09-09
@@ -71,3 +71,11 @@ What survives, and is still worth the audit:
 So the mechanism is real but smaller than first stated: it is a missing shared
 error interpreter for *server-sent* messages, not a blanket failure to handle
 tier state. Scope the item to that.
+
+## Outcome — done, 2026-09-10
+
+Folded into W-0543 and W-0544 (its own working notes had already narrowed it: the Net
+Worth surfaces handle tier limits). What it asked for now exists in one home each:
+`utils/apiErrors.js` reads `tier_limit_reached` and the server `message` for the form
+surfaces, and the family-members list carries `invitation_pending`. Any further
+`error_type` the backend adds goes through `apiErrors.js`.

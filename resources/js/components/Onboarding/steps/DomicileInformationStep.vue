@@ -80,6 +80,7 @@ import OnboardingStep from '../OnboardingStep.vue';
 import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
+import { apiErrorMessage } from '@/utils/apiErrors';
 
 export default {
   name: 'DomicileInformationStep',
@@ -248,7 +249,7 @@ export default {
 
         emit('next');
       } catch (err) {
-        error.value = err.message || 'Failed to save domicile information. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to save domicile information. Please try again.');
       } finally {
         loading.value = false;
       }

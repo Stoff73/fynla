@@ -103,6 +103,8 @@ final class EstateRecommendationAdapter
             'seeded_priority' => $seeded,
             'definition_key' => $definitionKey !== '' ? $definitionKey : null,
             'scope' => $rec['scope'] ?? null,
+            // The policy a per-policy rule is about — the aggregator scopes the id by it.
+            'policy_id' => $rec['policy_id'] ?? null,
             'estimated_iht_saving' => $estimatedIhtSaving,
             'source_category' => $category !== '' ? $category : null,
             'decision_trace' => $rec['decision_trace'] ?? null,

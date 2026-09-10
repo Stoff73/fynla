@@ -331,12 +331,12 @@
       <div class="mt-6 pt-4 border-t-2 border-horizon-300">
         <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
           <div class="col-label text-body font-semibold text-horizon-500">Total Monthly Expenditure</div>
-          <div class="col-value text-body font-semibold text-horizon-500">{{ formatCurrency(totalMonthlyWithCommitments) }}</div>
+          <div class="col-value text-body font-semibold text-horizon-500">{{ formatCurrency(displayMonthlyWithCommitments) }}</div>
           <div v-if="isMarried" class="col-value-mid text-body font-semibold text-horizon-500">{{ formatCurrency(spouseTotalMonthlyWithCommitments) }}</div>
           <div v-if="isMarried" class="col-total text-body font-semibold text-raspberry-500">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</div>
 
           <div class="col-label text-body-sm text-neutral-500 mt-2">Annual Equivalent</div>
-          <div class="col-value text-body-sm text-horizon-500 mt-2">{{ formatCurrency(totalAnnualWithCommitments) }}</div>
+          <div class="col-value text-body-sm text-horizon-500 mt-2">{{ formatCurrency(displayAnnualWithCommitments) }}</div>
           <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-500 mt-2">{{ formatCurrency(spouseTotalAnnualWithCommitments) }}</div>
           <div v-if="isMarried" class="col-total text-body-sm text-raspberry-500 mt-2 font-medium">{{ formatCurrency(householdTotalAnnualWithCommitments) }}</div>
         </div>
@@ -1328,6 +1328,13 @@ export default {
       type: Boolean,
       default: false,
     },
+    // The server-owned expenditure presentation (UserProfileService::
+    // expenditurePresentation): the one total /m renders. In view mode the
+    // user's total row shows it, so web and /m cannot disagree (W-0550).
+    serverTotals: {
+      type: Object,
+      default: null,
+    },
     alwaysShowTabs: {
       type: Boolean,
       default: false,
@@ -1565,12 +1572,14 @@ export default {
 
     // Total calculations
     const totalMonthlyExpenditure = computed(() => {
-      if (useSimpleEntry.value) return simpleMonthlyExpenditure.value || 0;
+      // Number(): the input and the API can both hand over a string, and this
+      // value is summed with the commitments (W-0550).
+      if (useSimpleEntry.value) return Number(simpleMonthlyExpenditure.value) || 0;
       return essentialTotal.value + communicationTotal.value + lifestyleTotal.value + childrenTotal.value + otherTotal.value;
     });
 
     const spouseTotalMonthlyExpenditure = computed(() => {
-      if (useSimpleEntry.value) return spouseSimpleMonthlyExpenditure.value || 0;
+      if (useSimpleEntry.value) return Number(spouseSimpleMonthlyExpenditure.value) || 0;
       return spouseEssentialTotal.value + spouseCommunicationTotal.value + spouseLifestyleTotal.value + spouseChildrenTotal.value + spouseOtherTotal.value;
     });
 
@@ -1585,6 +1594,23 @@ export default {
 
     const totalMonthlyWithCommitments = computed(() => totalMonthlyExpenditure.value + commitmentsTotal.value);
     const totalAnnualWithCommitments = computed(() => (totalMonthlyWithCommitments.value * 12) + commitmentsLumpSumTotal.value);
+
+    // What the user's total row shows: the server's figure while viewing (the
+    // same number /m shows), the live local sum while editing (W-0550).
+    const serverFigure = (key) => {
+      const v = props.serverTotals?.[key];
+      return v === null || v === undefined || v === '' ? null : Number(v);
+    };
+    const displayMonthlyWithCommitments = computed(() => (
+      !isEditing.value && serverFigure('active_monthly_total') !== null
+        ? serverFigure('active_monthly_total')
+        : totalMonthlyWithCommitments.value
+    ));
+    const displayAnnualWithCommitments = computed(() => (
+      !isEditing.value && serverFigure('active_annual_total') !== null
+        ? serverFigure('active_annual_total')
+        : totalAnnualWithCommitments.value
+    ));
 
     const spouseTotalMonthlyWithCommitments = computed(() => spouseTotalMonthlyExpenditure.value + spouseCommitmentsTotal.value);
     const spouseTotalAnnualWithCommitments = computed(() => (spouseTotalMonthlyWithCommitments.value * 12) + spouseCommitmentsLumpSumTotal.value);
@@ -2187,9 +2213,10 @@ export default {
         const response = await api.get('/user/financial-commitments');
         financialCommitments.value = response.data.data;
 
-        // Always fetch spouse commitments if married - the backend will determine spouse from auth user
-        // Don't rely on user.value?.spouse_id as it may not be loaded yet at mount time
-        if (props.isMarried) {
+        // Fetch spouse commitments when married AND the link is reciprocal and
+        // consented — the endpoint answers 404 otherwise (W-0350/W-0530).
+        // The backend determines the spouse from the auth user.
+        if (props.isMarried && user.value?.spouse_financially_shared) {
           try {
             const spouseResponse = await api.get('/user/spouse/financial-commitments');
             spouseFinancialCommitments.value = spouseResponse.data.data;
@@ -2216,7 +2243,9 @@ export default {
           || (props.initialData.expenditure_entry_mode
             ? props.initialData.expenditure_entry_mode === 'simple'
             : props.isOnboarding);
-        simpleMonthlyExpenditure.value = props.initialData.monthly_expenditure || 0;
+        // The API serialises the decimal as a string; unparsed it concatenated
+        // with the commitments in the total row (W-0550).
+        simpleMonthlyExpenditure.value = parseFloat(props.initialData.monthly_expenditure) || 0;
 
         const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
         allFields.forEach(field => {
@@ -2475,6 +2504,8 @@ export default {
       householdTotalMonthlyExpenditure,
       totalMonthlyWithCommitments,
       totalAnnualWithCommitments,
+      displayMonthlyWithCommitments,
+      displayAnnualWithCommitments,
       spouseTotalMonthlyWithCommitments,
       spouseTotalAnnualWithCommitments,
       householdTotalMonthlyWithCommitments,

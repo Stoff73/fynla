@@ -252,6 +252,7 @@ import userProfileService from '@/services/userProfileService';
 import { formatCurrency } from '@/utils/currency';
 
 import logger from '@/utils/logger';
+import { apiErrorMessage } from '@/utils/apiErrors';
 export default {
   name: 'CompletionStep',
 
@@ -315,7 +316,11 @@ export default {
         ]);
 
         // Calculate property summary
-        const properties = propertyResponse.data || [];
+        // GET /api/properties answers { data: { properties: [...] } }; the
+        // bare-array reading threw "properties.reduce is not a function" on
+        // every completion screen and left the summary empty.
+        const propertyData = propertyResponse?.data;
+        const properties = Array.isArray(propertyData) ? propertyData : (propertyData?.properties || []);
         summary.value.properties = properties.length;
         summary.value.propertyValue = properties.reduce((sum, p) => sum + (parseFloat(p.current_value) || 0), 0);
 
@@ -365,7 +370,7 @@ export default {
 
         router.push({ name: 'Dashboard' });
       } catch (err) {
-        error.value = err.message || 'Failed to complete. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to complete. Please try again.');
       } finally {
         completionLoading.value = false;
       }

@@ -59,6 +59,10 @@ class UserResource extends JsonResource
             'has_spouse' => $this->liveSpouseId() !== null,
             'spouse_id' => $this->spouse_id,
             'live_spouse_id' => $this->liveSpouseId(),
+            // True only when the link is reciprocal AND consented (W-0350/W-0530):
+            // the spouse endpoints answer 403/404 otherwise, so a client must
+            // not request spouse data on marital status alone.
+            'spouse_financially_shared' => $this->sharesFinancialDataWithSpouse(),
             'mfa_enabled' => $this->mfa_enabled,
             'is_student' => $this->is_student,
             'student_loan_plan' => $this->student_loan_plan,

@@ -7,7 +7,7 @@
  * (the `/payment/subscription-status` payload, single source of truth —
  * `tier_configurations.count_caps`). A null/absent cap means unlimited.
  */
-const TIER_LABELS = {
+export const TIER_LABELS = {
   free: 'Free',
   premium: 'Premium',
 };
