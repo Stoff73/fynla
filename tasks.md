@@ -190,7 +190,7 @@ dashboard, on a real account, in the declined-cookie state.
 - [ ] **W-0547** `queued` — No signup or verification-code field carries an autocomplete attribute — password managers cannot fill or save, and the code boxes have no accessible name
 - [ ] **W-0548** `queued` (csjones only; production verified healthy) — csjones tax configuration is stale — retirement and goals projections 500 on every dashboard load
 - [ ] **W-0549** `queued` (narrowed 2026-09-09 after testing on production — see its working notes) — The form surfaces discard every structured error the backend returns — the concepts are implemented once, for the chat path only
-- [ ] **W-0550** `queued` — Web shows total monthly expenditure excluding financial commitments — £1,800 where /m and the API both say £4,878
+- [x] **W-0550** `done` (2026-09-10: string-typed simple total; view mode now renders the server presentation) — Web shows total monthly expenditure excluding financial commitments — £1,800 where /m and the API both say £4,878
 
 **W-0549 is the mechanism behind W-0541, W-0543 and W-0544.** Fixing those three
 individually leaves it in place. `grep -rn "invitation_pending\|tier_limit_reached"

@@ -174,3 +174,48 @@ describe('ExpenditureForm simple entry', () => {
     expect(wrapper.vm.useSimpleEntry).toBe(false);
   });
 });
+
+/**
+ * W-0550. The API serialises monthly_expenditure as a decimal string ("900.00").
+ * The simple-entry path stored it unparsed, so the "Total Monthly Expenditure"
+ * row concatenated "900.00" + 245 and showed £900 — the commitments vanished
+ * from the total on web while /m and the API included them.
+ */
+describe('ExpenditureForm simple entry total (W-0550)', () => {
+  it('adds the financial commitments to a string-typed simple monthly figure', async () => {
+    const api = (await import('@/services/api')).default;
+    api.get.mockImplementation((url) => url === '/user/financial-commitments'
+      ? Promise.resolve({ data: { data: { totals: { total: 245, annual_lump_sum: 0 }, commitments: {} } } })
+      : Promise.resolve({ data: { data: [] } }));
+
+    const wrapper = await mountForm({
+      initialData: { monthly_expenditure: '900.00', expenditure_entry_mode: 'simple' },
+      extraProps: { startInEditMode: false },
+    });
+
+    expect(wrapper.vm.totalMonthlyExpenditure).toBe(900);
+    expect(wrapper.vm.totalMonthlyWithCommitments).toBe(1145);
+  });
+});
+
+describe('ExpenditureForm total row source (W-0550)', () => {
+  it('shows the server presentation total while viewing and the live sum while editing', async () => {
+    const api = (await import('@/services/api')).default;
+    api.get.mockImplementation((url) => url === '/user/financial-commitments'
+      ? Promise.resolve({ data: { data: { totals: { total: 245, annual_lump_sum: 0 }, commitments: {} } } })
+      : Promise.resolve({ data: { data: [] } }));
+
+    const viewing = await mountForm({
+      initialData: { monthly_expenditure: '900.00', expenditure_entry_mode: 'simple' },
+      extraProps: { startInEditMode: false, serverTotals: { active_monthly_total: '1145.00', active_annual_total: '13740.00' } },
+    });
+    expect(viewing.vm.displayMonthlyWithCommitments).toBe(1145);
+    expect(viewing.vm.displayAnnualWithCommitments).toBe(13740);
+
+    const editing = await mountForm({
+      initialData: { monthly_expenditure: '900.00', expenditure_entry_mode: 'simple' },
+      extraProps: { startInEditMode: true, serverTotals: { active_monthly_total: '999999', active_annual_total: '1' } },
+    });
+    expect(editing.vm.displayMonthlyWithCommitments).toBe(1145);
+  });
+});
