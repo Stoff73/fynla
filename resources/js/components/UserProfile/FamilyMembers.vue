@@ -268,6 +268,7 @@ import {
   familyMemberManagementNotice,
   familyMemberRelationshipLabel,
   isLinkedAccount,
+  spouseInvitationSentMessage,
 } from '@/utils/familyMember';
 
 import logger from '@/utils/logger';
@@ -445,9 +446,7 @@ export default {
               // one the user has just typed. That discloses nothing: they typed it,
               // and the response deliberately confirms nothing about whether it is
               // registered (W-0348, W-0349).
-              successMessage.value = `We have emailed an invitation to ${formData.email}. `
-                + 'They will appear as linked once they accept. We do not keep a record '
-                + 'of the address, so check it now if you are unsure.';
+              successMessage.value = spouseInvitationSentMessage(formData.email);
             } else if (responseData.linked) {
               // Show spouse success modal for linking
               spouseCreated.value = false;

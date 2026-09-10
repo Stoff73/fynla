@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\FamilyMember;
 use App\Models\Household;
+use App\Models\SpousePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -375,5 +376,32 @@ describe('DELETE /api/user/family-members/{id}', function () {
         ])->deleteJson("/api/user/family-members/{$this->child1->id}");
 
         $response->assertStatus(401);
+    });
+});
+
+/**
+ * W-0543. An invitation to an existing account is a pending SpousePermission
+ * (SpouseLinkingService::createPendingSpouseInvitation). The list payload
+ * could not express it, so every unlinked spouse row told the user to add them
+ * again — including one whose invitation was out and waiting.
+ */
+describe('GET /api/user/family-members — invitation_pending', function () {
+    it('flags an unlinked spouse row while this user has an unanswered invitation out', function () {
+        $invitee = User::factory()->create();
+        FamilyMember::factory()->spouse()->create(['user_id' => $this->user->id, 'name' => 'Jane Doe', 'linked_user_id' => null]);
+        SpousePermission::create(['user_id' => $this->user->id, 'spouse_id' => $invitee->id, 'status' => 'pending']);
+
+        $rows = collect($this->getJson('/api/user/family-members')->assertOk()->json('data.family_members'));
+
+        expect($rows->firstWhere('relationship', 'spouse')['invitation_pending'])->toBeTrue()
+            ->and($rows->firstWhere('name', 'Child One')['invitation_pending'])->toBeFalse();
+    });
+
+    it('does not flag a spouse row when no invitation is pending', function () {
+        FamilyMember::factory()->spouse()->create(['user_id' => $this->user->id, 'name' => 'Jane Doe', 'linked_user_id' => null]);
+
+        $rows = collect($this->getJson('/api/user/family-members')->assertOk()->json('data.family_members'));
+
+        expect($rows->firstWhere('relationship', 'spouse')['invitation_pending'])->toBeFalse();
     });
 });

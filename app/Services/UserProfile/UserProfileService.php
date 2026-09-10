@@ -13,6 +13,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
+use App\Models\SpousePermission;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
@@ -829,11 +830,22 @@ class UserProfileService
      */
     public function getFamilyMembersWithSharing(User $user): array
     {
+        // An invitation this user has sent that the other account has not yet
+        // answered (SpouseLinkingService::createPendingSpouseInvitation). Without
+        // it the list could not tell "invited, waiting" from "never linked", and
+        // every unlinked spouse row told the user to add them again (W-0543).
+        $hasPendingInvitation = SpousePermission::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->exists();
+
         // Get user's own family members
-        $familyMembers = $user->familyMembers->map(function ($member) {
+        $familyMembers = $user->familyMembers->map(function ($member) use ($hasPendingInvitation) {
             $memberArray = $member->toArray();
             $memberArray['is_shared'] = false;
             $memberArray['owner'] = 'self';
+            $memberArray['invitation_pending'] = $member->relationship === 'spouse'
+                && $hasPendingInvitation
+                && $member->liveLinkedUser() === null;
 
             // The email belongs to the account THIS row links to. Reading it
             // off `users.spouse_id` handed the real spouse's address to a row

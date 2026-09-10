@@ -183,7 +183,7 @@ dashboard, on a real account, in the declined-cookie state.
 
 - [ ] **W-0541** `review` (PR #799 to dev; browser-verified locally against the exact production state; native surface NOT verified) — Fyn's web chat silently destroys every message a new user sends — no conversation is ever created, and nothing is requested
 - [ ] **W-0542** `queued` — Registration shows only the first validation error per field while the server sends all of them — a user can rate-limit themselves out of signing up
-- [ ] **W-0543** `queued` — A spouse invitation succeeds and the UI tells the user it failed and to add them again
+- [x] **W-0543** `done` (2026-09-10: list carries invitation_pending; one message helper for both surfaces) — A spouse invitation succeeds and the UI tells the user it failed and to add them again
 - [ ] **W-0544** `queued` — A tier-limit 403 carrying a message, the required tier and an upgrade destination is rendered as "Failed to save property. Please try again."
 - [ ] **W-0545** `queued` — The password rules hint is hidden exactly when the rules are failed
 - [ ] **W-0546** `queued` (extends W-0050, whose cookie wall is genuinely fixed; the copy clause is not) — The cookie-decline warning still claims registration will be unavailable — it is not, on csjones or production
