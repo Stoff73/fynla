@@ -1572,7 +1572,6 @@ export default {
       handleNext,
       handleBack,
       handleSkipRequest,
-      handleJourneyCompletionNext,
       hideSkipModal,
       confirmSkip,
       handleSkipToDashboard,
