@@ -6,11 +6,30 @@
  * fails server-side (SP2 spec §8.3). Caps come from `auth.subscriptionData`
  * (the `/payment/subscription-status` payload, single source of truth —
  * `tier_configurations.count_caps`). A null/absent cap means unlimited.
+ *
+ * The pure helpers below are the one home for the arithmetic; the mixin binds
+ * them to `this.$store` for Options API views, and composition API screens
+ * (the onboarding assets step) import them directly.
  */
 export const TIER_LABELS = {
   free: 'Free',
   premium: 'Premium',
 };
+
+/** Count cap for an entity at the user's tier. null = unlimited / not gated. */
+export function countCapFor(tierData, entityKey) {
+  const caps = tierData?.count_caps;
+  if (!caps || caps[entityKey] === undefined || caps[entityKey] === null) {
+    return null;
+  }
+  return caps[entityKey];
+}
+
+/** True when the user is at or over the cap for this entity. */
+export function atTierCap(tierData, entityKey, currentCount) {
+  const cap = countCapFor(tierData, entityKey);
+  return cap !== null && currentCount >= cap;
+}
 
 export const tierLimitMixin = {
   computed: {
@@ -22,18 +41,11 @@ export const tierLimitMixin = {
     },
   },
   methods: {
-    /** Count cap for an entity at the user's tier. null = unlimited / not gated. */
     tierCountCap(entityKey) {
-      const caps = this.tierData?.count_caps;
-      if (!caps || caps[entityKey] === undefined || caps[entityKey] === null) {
-        return null;
-      }
-      return caps[entityKey];
+      return countCapFor(this.tierData, entityKey);
     },
-    /** True when the user is at or over the cap for this entity. */
     isAtTierCap(entityKey, currentCount) {
-      const cap = this.tierCountCap(entityKey);
-      return cap !== null && currentCount >= cap;
+      return atTierCap(this.tierData, entityKey, currentCount);
     },
   },
 };

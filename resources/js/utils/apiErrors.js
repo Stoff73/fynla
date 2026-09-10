@@ -8,7 +8,7 @@
  */
 
 /** entity_key (TierConfigurationSeeder count_caps) => how the cap is described */
-const ENTITY_LABELS = {
+export const ENTITY_LABELS = {
   property: 'properties',
   investment: 'investment accounts',
   pension_account: 'pensions',
