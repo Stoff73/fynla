@@ -136,7 +136,9 @@ class EstateActionDefinitionService
             $vars = [
                 'policy_value' => '£'.number_format((float) ($policy->sum_assured ?? 0), 0),
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['policy_id'] = $policy->id;
+            $results[] = $rec;
             $priority++;
         }
 
