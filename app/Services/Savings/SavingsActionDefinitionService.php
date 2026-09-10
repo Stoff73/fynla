@@ -3278,6 +3278,7 @@ class SavingsActionDefinitionService
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
             $rec['decision_trace'] = $trace;
+            $rec['family_member_id'] = $child->id;
             $results[] = $rec;
         }
 
