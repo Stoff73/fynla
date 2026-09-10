@@ -1,3 +1,4 @@
+import api from '@/services/api';
 import authService from '@/services/authService';
 import { removeToken } from '@/services/tokenStorage';
 
@@ -194,6 +195,21 @@ const actions = {
     } finally {
       commit('setLoading', false);
     }
+  },
+
+  /**
+   * The subscription payload (`/payment/subscription-status`: tier, count caps,
+   * grace state) — the one loader. AppLayout refreshes it on every mount; a
+   * chrome-less surface such as the onboarding wizard asks for it here so it
+   * can tell a user about a cap BEFORE they fill a form (W-0544).
+   */
+  async fetchSubscriptionData({ commit, state }, { force = false } = {}) {
+    if (!force && state.subscriptionData) {
+      return state.subscriptionData;
+    }
+    const response = await api.get('/payment/subscription-status');
+    commit('setSubscriptionData', response.data);
+    return response.data;
   },
 
   async fetchUserById(_context, userId) {

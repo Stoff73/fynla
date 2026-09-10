@@ -156,7 +156,7 @@
           <button
             type="button"
             class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-            @click="showPensionTypeSelector = !showPensionTypeSelector"
+            @click="togglePensionTypeSelector"
           >
             + Add Pension
           </button>
@@ -522,8 +522,8 @@ import DBPensionForm from '@/components/Retirement/DBPensionForm.vue';
 import StatePensionForm from '@/components/Retirement/StatePensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
-import { apiErrorMessage, tierLimitFrom } from '@/utils/apiErrors';
-import { TIER_LABELS } from '@/mixins/tierLimitMixin';
+import { apiErrorMessage, tierLimitFrom, ENTITY_LABELS } from '@/utils/apiErrors';
+import { TIER_LABELS, atTierCap, countCapFor } from '@/mixins/tierLimitMixin';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import propertyService from '@/services/propertyService';
 import investmentService from '@/services/investmentService';
@@ -647,9 +647,34 @@ export default {
       await nextTick();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    const revealPropertyForm = () => { showPropertyForm.value = true; scrollToTop(); };
-    const revealInvestmentForm = () => { showInvestmentForm.value = true; scrollToTop(); };
-    const revealSavingsForm = () => { showSavingsForm.value = true; scrollToTop(); };
+    // Tell the user about a plan cap BEFORE they fill a form (CSJ 2026-09-10),
+    // as the Net Worth pages do: the caps come from the subscription payload
+    // (auth/fetchSubscriptionData, requested on mount) and a capped "+ Add"
+    // opens the limit modal instead of the form. Preview personas are exempt,
+    // as on those pages.
+    const tierData = computed(() => store.state.auth?.subscriptionData || null);
+    const capBlocks = (entityKey, currentCount) => {
+      if (store.getters['preview/isPreviewMode']) return false;
+      if (!atTierCap(tierData.value, entityKey, currentCount)) return false;
+      tierLimit.value = { entityKey, entityLabel: ENTITY_LABELS[entityKey] || entityKey, cap: countCapFor(tierData.value, entityKey) };
+      return true;
+    };
+    const revealPropertyForm = () => {
+      if (capBlocks('property', properties.value.length)) return;
+      showPropertyForm.value = true; scrollToTop();
+    };
+    const revealInvestmentForm = () => {
+      if (capBlocks('investment', investments.value.length)) return;
+      showInvestmentForm.value = true; scrollToTop();
+    };
+    const revealSavingsForm = () => {
+      if (capBlocks('savings_account', savingsAccounts.value.length)) return;
+      showSavingsForm.value = true; scrollToTop();
+    };
+    const togglePensionTypeSelector = () => {
+      if (!showPensionTypeSelector.value && capBlocks('pension_account', pensions.value.dc.length + pensions.value.db.length)) return;
+      showPensionTypeSelector.value = !showPensionTypeSelector.value;
+    };
     // The tier limit a save just hit (tierLimitFrom), or null — drives LimitReachedModal.
     const tierLimit = ref(null);
     // The plan the cap belongs to — the user's current one, as tierLimitMixin
@@ -746,6 +771,10 @@ export default {
 
     // Load existing data
     onMounted(async () => {
+      // The plan's count caps, so a capped "+ Add" is refused before the form
+      // (the wizard has no AppLayout, which is where the layout loads them).
+      store.dispatch('auth/fetchSubscriptionData').catch(() => {});
+
       // Set default tab to first allowed tab
       if (allowedTabs.value && allowedTabs.value.length > 0) {
         activeTab.value = allowedTabs.value[0];
@@ -1289,6 +1318,7 @@ export default {
       revealPropertyForm,
       revealInvestmentForm,
       revealSavingsForm,
+      togglePensionTypeSelector,
       userAddress,
       handleNext,
       handleBack,
