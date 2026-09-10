@@ -217,7 +217,7 @@
         <button
           type="button"
           class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium w-full md:w-auto justify-center mt-4"
-          @click="showPropertyForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
+          @click="revealPropertyForm"
         >
           + Add Property
         </button>
@@ -287,7 +287,7 @@
           <button
             type="button"
             class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-            @click="showInvestmentForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
+            @click="revealInvestmentForm"
           >
             + Add Investment Account
           </button>
@@ -363,7 +363,7 @@
           <button
             type="button"
             class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-            @click="showSavingsForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
+            @click="revealSavingsForm"
           >
             + Add Account
           </button>
@@ -510,7 +510,7 @@
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { DEFAULT_RETIREMENT_AGE } from '@/constants/retirementAge';
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import PropertyForm from '@/components/NetWorth/Property/PropertyForm.vue';
@@ -640,6 +640,16 @@ export default {
 
     const loading = ref(false);
     const error = ref(null);
+    // Open a form and bring it into view. Done here rather than inline in the
+    // template: `window` is not a template global in Vue 3, so the inline
+    // `$nextTick(() => window.scrollTo(...))` threw on every "+ Add".
+    const scrollToTop = async () => {
+      await nextTick();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const revealPropertyForm = () => { showPropertyForm.value = true; scrollToTop(); };
+    const revealInvestmentForm = () => { showInvestmentForm.value = true; scrollToTop(); };
+    const revealSavingsForm = () => { showSavingsForm.value = true; scrollToTop(); };
     // The tier limit a save just hit (tierLimitFrom), or null — drives LimitReachedModal.
     const tierLimit = ref(null);
     // The plan the cap belongs to — the user's current one, as tierLimitMixin
@@ -1276,6 +1286,9 @@ export default {
       error,
       tierLimit,
       currentTierLabel,
+      revealPropertyForm,
+      revealInvestmentForm,
+      revealSavingsForm,
       userAddress,
       handleNext,
       handleBack,

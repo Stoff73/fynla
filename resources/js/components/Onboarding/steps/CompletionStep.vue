@@ -316,7 +316,11 @@ export default {
         ]);
 
         // Calculate property summary
-        const properties = propertyResponse.data || [];
+        // GET /api/properties answers { data: { properties: [...] } }; the
+        // bare-array reading threw "properties.reduce is not a function" on
+        // every completion screen and left the summary empty.
+        const propertyData = propertyResponse?.data;
+        const properties = Array.isArray(propertyData) ? propertyData : (propertyData?.properties || []);
         summary.value.properties = properties.length;
         summary.value.propertyValue = properties.reduce((sum, p) => sum + (parseFloat(p.current_value) || 0), 0);
 
