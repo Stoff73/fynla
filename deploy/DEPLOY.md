@@ -100,7 +100,7 @@ php artisan queue:restart                       # old workers exit after their c
 # Confirm no pre-deploy queue job is still running before continuing.
 ```
 
-6. With maintenance mode still active, upload `public/build/` + changed PHP files to `~/www/fynla.org/public_html/`.
+6. With maintenance mode still active, upload `public/build/` + `public/m-build/` + changed PHP files to `~/www/fynla.org/public_html/` (rsync `app/ config/ database/ routes/ resources/views/ fyn-memory/ resources/js/data/ public/pages/`; rsync never deletes, so remove retired classes by hand). **Never upload `bootstrap/`** — `bootstrap/cache/packages.php` and `services.php` are the local package manifest and list dev-only providers (Collision) that prod's vendor does not have; every artisan call then dies with `CollisionServiceProvider not found` until `composer dump-autoload` regenerates them (found 2026-09-09, inside the maintenance window).
 7. Finalise over SSH:
 
 ```bash

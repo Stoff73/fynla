@@ -1117,16 +1117,35 @@ export default {
             this.abortStreaming();
         },
 
+        // Guarantee a conversation exists before any send.
+        //
+        // The docked desktop panel is rendered by AppLayout on `chatCollapsed`,
+        // not on aiChat.isOpen, so the panel can be visible, focusable and typed
+        // into while the store still holds isOpen === false. onOpen() is the only
+        // place that creates a conversation and it runs off the isOpen watcher,
+        // so a brand-new user can end up with a usable panel and no conversation
+        // at all. aiChat/sendMessage then returns silently and the message is
+        // destroyed with no error and no request (W — Fyn chat dead for new users).
+        //
+        // Every send path calls this rather than assuming onOpen has run.
+        // Returns false when a conversation could not be established, in which
+        // case the caller must leave the user's text alone so it can be retried.
+        async ensureConversation() {
+            if (this.currentConversation) return true;
+            await this.startNewConversation();
+            return Boolean(this.currentConversation);
+        },
+
         async send() {
             if (!this.canSend) return;
             window.dispatchEvent(new Event('fyn-chat-interaction'));
 
             const message = this.inputMessage.trim();
-            this.inputMessage = '';
 
             // Check for navigation intent — handle locally without LLM call
             const navMatch = matchNavigationIntent(message);
             if (navMatch) {
+                this.inputMessage = '';
                 // Add user message to chat
                 this.$store.commit('aiChat/ADD_MESSAGE', {
                     id: 'user_' + Date.now(),
@@ -1146,6 +1165,11 @@ export default {
                 return;
             }
 
+            // Leave the text in the box if we cannot get a conversation, so a
+            // failure never silently destroys what the user typed.
+            if (!await this.ensureConversation()) return;
+
+            this.inputMessage = '';
             analyticsService.trackChatMessageSent(message.length);
             await this.sendMessage(message);
         },
@@ -1174,6 +1198,8 @@ export default {
                 this.handleNavigation(navMatch.route);
                 return;
             }
+
+            if (!await this.ensureConversation()) return;
 
             analyticsService.trackChatMessageSent(message.length);
             await this.sendMessage(message);
@@ -1205,12 +1231,14 @@ export default {
             if (isActionBubble) {
                 if (!id) return;
                 window.dispatchEvent(new Event('fyn-chat-interaction'));
+                if (!await this.ensureConversation()) return;
                 analyticsService.trackChatMessageSent(label.length);
                 await this.postAction(id);
                 return;
             }
             if (!label) return;
             window.dispatchEvent(new Event('fyn-chat-interaction'));
+            if (!await this.ensureConversation()) return;
             analyticsService.trackChatMessageSent(label.length);
             await this.sendMessage(label);
         },

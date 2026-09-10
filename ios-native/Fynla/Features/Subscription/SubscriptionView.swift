@@ -3,6 +3,7 @@ import SwiftUI
 struct SubscriptionView: View {
     let model: SubscriptionModel
     let appleManager: any AppleSubscriptionManaging
+    var onOpenWebUpgrade: (@MainActor () async throws -> Void)? = nil
 
     var body: some View {
         ScrollView {
@@ -22,7 +23,8 @@ struct SubscriptionView: View {
 
                 SubscriptionManagementView(
                     model: model,
-                    appleManager: appleManager
+                    appleManager: appleManager,
+                    onOpenWebUpgrade: onOpenWebUpgrade
                 )
                 .padding(FynlaSpacing.standard)
                 .background(FynlaColor.surface)

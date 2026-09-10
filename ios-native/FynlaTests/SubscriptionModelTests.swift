@@ -242,6 +242,22 @@ struct SubscriptionModelTests {
         #expect(await store.purchaseCount() == 0)
     }
 
+    // CSJ, 2026-09-07: nothing is sold in the app. With purchases switched off
+    // and no App Store catalogue at all, a Free account still lands on its Free
+    // screen (where the web-upgrade route lives), never the error screen.
+    @Test
+    func purchasesOffPresentsFreeWithoutAnyProducts() async {
+        let model = SubscriptionModel(
+            api: SubscriptionAPISpy(entitlements: [.free]),
+            storeKit: StoreProductsSpy(products: []),
+            purchaseEnabled: { false }
+        )
+        await model.load()
+
+        #expect(model.state == .free(products: [], selectedProductID: "", isPending: false))
+        #expect(model.canPurchase == false)
+    }
+
     @Test
     func pendingPurchaseSurvivesLockUnlockReloadAndStillBlocksRetry() async {
         let store = StoreProductsSpy(

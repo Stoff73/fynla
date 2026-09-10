@@ -161,3 +161,39 @@ Distribute App → TestFlight & App Store → Upload.
 - Both builds carry `applinks:fynla.org`; the site association must list
   `org.fynla.app.dev` as well as `org.fynla.app` for universal links to open
   the dev-signed build.
+
+## One TestFlight app (CSJ, 2026-09-07)
+
+Testers have **one** app in TestFlight: the App Store Connect record on
+`org.fynla.app.dev` (id 6793193337), renamed from "Fynla Dev" to **"Fynla"**. The
+old `org.fynla.app` record is renamed "Fynla (legacy)" and its only build is expired;
+do not upload there again without a decision from CSJ.
+
+Since the 2026-09-07 release fynla.org serves the native routes, so the build on that
+record is the **Production configuration** (fynla.org backend) signed for the dev bundle
+id. Archive the `Fynla-Production` scheme with two overrides and export with the dev
+profile:
+
+```bash
+xcodebuild archive -project Fynla.xcodeproj -scheme Fynla-Production \
+  -destination 'generic/platform=iOS' -archivePath build/Fynla-DevRecord.xcarchive \
+  CURRENT_PROJECT_VERSION=<N> \
+  PRODUCT_BUNDLE_IDENTIFIER=org.fynla.app.dev \
+  CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=99S3M8JLLF \
+  CODE_SIGN_IDENTITY="Apple Distribution" \
+  PROVISIONING_PROFILE_SPECIFIER="Fynla Dev App Store" \
+  -allowProvisioningUpdates -authenticationKeyPath ... -authenticationKeyID 683FKHT7SL \
+  -authenticationKeyIssuerID 8fad68f9-bd52-4057-98ca-7c179a862d60
+# ExportOptions: provisioningProfiles { org.fynla.app.dev: "Fynla Dev App Store" }
+```
+
+Before archiving in a non-interactive shell, unlock the distribution keychain or
+codesign fails with `errSecInternalComponent` after a full compile:
+`security unlock-keychain -p '<fynla-dist password>' ~/Library/Keychains/fynla-dist.keychain-db`.
+
+Build 8 (2026-09-07) was the first of these. Consequences to remember: the shipping
+bundle id is `org.fynla.app.dev` for as long as this record is the app, so the
+universal-links file on fynla.org must list it when deep links matter; and the
+`Fynla-Production` scheme's test action uses the Release configuration, so run
+`FynlaTests` with `Fynla-Staging` (as CI does) — `@testable import Fynla` cannot resolve
+against a Release build.

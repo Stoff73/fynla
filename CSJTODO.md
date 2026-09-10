@@ -21,21 +21,29 @@ Every non-iOS item is closed. The rule is unchanged — **a citation is not a ve
 and **verify the instrument before trusting the measurement**: four separate scans on
 1 September reported defects that did not exist.
 
-## Next session starts here — iOS (CSJ, 2026-09-09)
+## Next session starts here — iOS (CSJ, 2026-09-09, session 2)
 
-- [ ] **BLOCKED ON CSJ — merge #773 after the device check.** The phone runs #773 + #781
-      against fynla.org. Still to see: Settings → Plan and billing shows "Upgrade on the
-      web" (Free) / "Manage billing on the web" (web-billed Premium), and a Fyn turn. Then
-      rebase onto dev (2 ahead, 48 behind; docs conflicts resolve to the fynla.org wording),
+- [ ] **BLOCKED ON CSJ — what TestFlight build 9 shows on the phone.** Headline rows; an
+      information-request row opens Fyn with "I can help you enter the information for …";
+      the capture ends with Yes / No thanks; "No thanks" closes the cover and replaces the
+      row. Backend proven on /m and web (fynla.org main `3edf8c39a`); native decode is
+      `DashboardModels.swift:191`, routing `AppRootView.swift` `onFynCapture`.
+- [ ] **BLOCKED ON CSJ — merge #773 after the device check.** Open, MERGEABLE, 49 behind
+      dev with no `ios-native/` overlap. Settings → Plan and billing shows "Upgrade on the
+      web" (Free) / "Manage billing on the web" (web-billed Premium). Then rebase,
       `ios-native/scripts/verify-project.sh`, merge `--admin`. Native-only, no csjones step.
-- [ ] **The six `deferred-ios` items** — W-0044, W-0090, W-0243, W-0311, W-0416, W-0496.
-      Both schemes read fynla.org; production serves the native routes; every registered
-      tester account is a real fynla.org account. Parity ledger:
-      `codex/plans/ios/2026-07-20-native-m-parity-ledger.md`.
+- [ ] **Full `FynlaTests` on a simulator** — none could be opened on 2026-09-09 (Xcode
+      access not granted; never `simctl boot`). The nine fixture-reading tests cannot run on
+      a physical device (absolute Mac paths) — not a signal.
+- [ ] **The remaining `deferred-ios` items** — W-0090, W-0243, W-0311, W-0416 need Swift;
+      W-0044 and W-0496 have the Swift landed and need an on-screen check. Fresh branch off
+      dev. Parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md`.
+- [ ] **Decide the shared recommendation id** — three "earns no interest" rows share
+      `savings_zero_rate_account`, so marking one done completes all three; changing the id
+      touches `recommendation_tracking` rows and the points dedup key.
 - [ ] **iOS harness debt**: the shared UI-test typing helper cannot clear the email keyboard
-      off the password field on an iPhone 11 (registration regression test is simulator/CI
-      only); the 6 red `Local StoreKit configuration` tests are a real signal (no IAP
-      products in App Store Connect).
+      off the password field on an iPhone 11; the 6 red `Local StoreKit configuration`
+      tests are a real signal (no IAP products in App Store Connect).
 
 ## Parked, non-iOS — need CSJ, do not start unasked
 
@@ -92,23 +100,32 @@ and **verify the instrument before trusting the measurement**: four separate sca
 
 ## Deploy state
 
-- **fynla.org = main `867fcf82b`** (tree identical to dev `366a9f4ea`), two releases on
-  2026-09-09 (PR #792 ~10:25 BST, PR #796 ~11:00 BST). Migrations run: expenditure
-  categories nullable, `subscription_plans` dropped. Personas reseeded. Backups on the
-  server: `~/release-backups/2026-09-09/` and `2026-09-09b/`. Notes: memory
-  `project_release_2026_09_09`.
-- **csjones = dev `366a9f4ea`**, both bundles built from it, same migrations.
-- **TestFlight "Fynla" 1.0 (8)** on the `org.fynla.app.dev` record, Production
-  configuration (fynla.org). The `org.fynla.app` record is "Fynla (legacy)" — never upload
-  there unasked. #773 (native billing on the web) still awaits CSJ's check on the phone.
+- **fynla.org = main `3edf8c39a`** (tree identical to dev `745ebe74f`), three releases on
+  2026-09-09 (PR #792 ~10:25, PR #796 ~11:00, PR #798 13:57 BST). Release 3 carried no
+  migrations. Backups on the server: `~/release-backups/2026-09-09/`, `2026-09-09b/`
+  (DB tables) and `2026-09-09c/` (bundle manifests). Notes: memory
+  `project_release_2026_09_09`. **Never rsync `bootstrap/`** (deploy guide step 6).
+- **csjones = dev `745ebe74f`**, both bundles built from it.
+- **TestFlight "Fynla" 1.0 (9)** on the `org.fynla.app.dev` record, Production
+  configuration reading fynla.org, VALID 2026-09-09 14:05 BST. The `org.fynla.app` record is
+  "Fynla (legacy)" — never upload there unasked. #773 still awaits CSJ's phone check.
 - **Fyn wiring artifact** (https://claude.ai/code/artifact/7375932e-a8e0-4920-9142-5a2db33b2d88):
-  every finding closed or settled by CSJ; source `September/September8Updates/fyn-wiring-artifact.html`;
-  evidence per batch in `September/September9Updates/`.
+  every finding closed or settled by CSJ; source `September/September8Updates/fyn-wiring-artifact.html`.
+- **Dashboard recommendation routing** (2026-09-09 session 2): one home
+  `app/Services/Mobile/RecommendationRouting.php`; plan and outcome in
+  `September/September9Updates/ios-dashboard-jobs-plan.md`.
 
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
 
+- **(2026-09-09 pm)** Two Yes/No vocabularies inside `AdviceFyn` (`:229` follow-up, `:340`
+  deferred answer); the web path map exists twice (`resources/js/utils/semanticDestinations.js:10`,
+  `GamifiedDashboard.vue:365`) where the server could emit a `web` path; two /m
+  contextual-open methods (`Dashboard.vue:781`, `MobileChrome.vue:344`);
+  `ContextualConversationService::recommendationFor` runs a full aggregation per tap;
+  `HolisticPlanningController::markRecommendationDone` is a second completion path;
+  four SSE-frame parsers across `tests/Feature/AI`; `ActionsOverviewCard.vue` imported nowhere.
 - **(2026-09-09)** `RecommendationsAggregatorService::aggregateRecommendations` is 175 lines
   (five raw-path rollback blocks behind `coordination.composed_module_plans`; retire the flag
   and they go). `PriorityRanker::MODULE_WEIGHTS` carries both `tax_optimisation` and `tax`.

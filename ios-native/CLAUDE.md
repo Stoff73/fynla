@@ -11,7 +11,7 @@ Supplements the root `CLAUDE.md`. **Read the Mobile Clients section there first*
 | `Fynla-Staging` | `https://fynla.org` | `org.fynla.app.dev` |
 | `Fynla-Production` | `https://fynla.org` | `org.fynla.app` |
 
-**Both schemes read fynla.org** (CSJ 2026-09-08). The Staging scheme is the dev-signed build (`org.fynla.app.dev`, development push); it is not a csjones build, so anything a tester registers is a real production account. `LiveJourneyTests` still drive csjones, through `TEST_RUNNER_` env vars, independent of the scheme.
+**Both schemes read fynla.org** (CSJ 2026-09-08). The Staging scheme is the dev-signed build (`org.fynla.app.dev`, development push); it is not a csjones build, so anything a tester registers is a real production account. `LiveJourneyTests` still drive csjones, through `TEST_RUNNER_` env vars, independent of the scheme. The TestFlight build goes to the `org.fynla.app.dev` record — see `TESTFLIGHT.md`, "One TestFlight app".
 
 URLs must be HTTPS with no user-info or `AppEnvironment.validatedURL` throws. `Local.xcconfig` holds `DEVELOPMENT_TEAM` and is gitignored — create it once per machine.
 

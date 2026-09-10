@@ -68,7 +68,10 @@ enum NavigationDestinationFactory {
         // W-0044. The Will Builder has no native screen, so Estate hands off to the
         // web one. The handoff client and the Safari sheet both live in AppRootView,
         // as they do for the Admin Panel, so this arrives as a closure.
-        onOpenWillPlanning: @MainActor @escaping () async throws -> Void
+        onOpenWillPlanning: @MainActor @escaping () async throws -> Void,
+        // CSJ, 2026-09-07: upgrades and billing happen on the web. Same
+        // handoff-then-Safari-sheet route as the Will Builder.
+        onOpenSubscriptionOnWeb: @MainActor @escaping () async throws -> Void
     ) -> some View {
         switch route {
         case .achievements:
@@ -87,7 +90,8 @@ enum NavigationDestinationFactory {
         case .subscription:
             SubscriptionView(
                 model: subscriptionModel,
-                appleManager: appleManager
+                appleManager: appleManager,
+                onOpenWebUpgrade: onOpenSubscriptionOnWeb
             )
         case .bugReport:
             BugReportView(model: bugReportModel)
@@ -264,7 +268,8 @@ enum NavigationDestinationFactory {
                 privacySettingsModel: privacySettingsModel,
                 dataExportModel: dataExportModel,
                 accountDeletionModel: accountDeletionModel,
-                pushCoordinator: pushCoordinator
+                pushCoordinator: pushCoordinator,
+                onOpenWebUpgrade: onOpenSubscriptionOnWeb
             )
         case .dashboard:
             StagedNativeDestinationView(title: title(for: route))

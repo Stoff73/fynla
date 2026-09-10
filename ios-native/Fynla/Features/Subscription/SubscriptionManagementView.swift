@@ -27,6 +27,12 @@ enum SubscriptionManagementError: Error, Sendable {
 struct SubscriptionManagementView: View {
     let model: SubscriptionModel
     let appleManager: any AppleSubscriptionManaging
+    /// CSJ, 2026-09-07: upgrades and billing happen on the Fynla website. The
+    /// one-time handoff client and the Safari sheet live in AppRootView, as they
+    /// do for the Will Builder, so this arrives as a closure.
+    var onOpenWebUpgrade: (@MainActor () async throws -> Void)? = nil
+    @State private var isOpeningWeb = false
+    @State private var webError: String?
 
     @Environment(\.locale) private var locale
     @Environment(\.timeZone) private var timeZone
@@ -107,18 +113,37 @@ struct SubscriptionManagementView: View {
                     }
                     .accessibilityIdentifier("subscription.purchase")
                 } else {
-                    Text("New App Store subscriptions are temporarily unavailable. You can still restore an existing purchase.")
-                        .font(FynlaTypography.bodySmall)
-                        .foregroundStyle(FynlaColor.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(FynlaSpacing.standard)
-                        .background(FynlaColor.Token.savannah100.color)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: FynlaSpacing.buttonCornerRadius
-                            )
+                    VStack(alignment: .leading, spacing: FynlaSpacing.medium) {
+                        Text("Premium upgrades happen on the Fynla website, not in the app. Your account and everything in it stay exactly as they are.")
+                            .font(FynlaTypography.bodySmall)
+                            .foregroundStyle(FynlaColor.primaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier("subscription.purchase-disabled")
+
+                        FynlaButton(
+                            "Upgrade on the web",
+                            accessibilityLabel: "Upgrade on the web",
+                            isLoading: isOpeningWeb,
+                            isDisabled: onOpenWebUpgrade == nil
+                        ) {
+                            openWeb()
+                        }
+                        .accessibilityIdentifier("subscription.web-upgrade")
+
+                        if let webError {
+                            Text(webError)
+                                .font(FynlaTypography.bodySmall)
+                                .foregroundStyle(FynlaColor.Token.raspberry600.color)
+                                .accessibilityIdentifier("subscription.web-upgrade.error")
+                        }
+                    }
+                    .padding(FynlaSpacing.standard)
+                    .background(FynlaColor.Token.savannah100.color)
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: FynlaSpacing.buttonCornerRadius
                         )
-                        .accessibilityIdentifier("subscription.purchase-disabled")
+                    )
                 }
             }
 
@@ -188,6 +213,23 @@ struct SubscriptionManagementView: View {
                 Text("This Premium subscription was purchased on the Fynla website. Sign in to Fynla on the web to manage billing.")
                     .font(FynlaTypography.body)
                     .foregroundStyle(FynlaColor.secondaryText)
+
+                FynlaButton(
+                    "Manage billing on the web",
+                    accessibilityLabel: "Manage billing on the web",
+                    isLoading: isOpeningWeb,
+                    isDisabled: onOpenWebUpgrade == nil
+                ) {
+                    openWeb()
+                }
+                .accessibilityIdentifier("subscription.web-billing")
+
+                if let webError {
+                    Text(webError)
+                        .font(FynlaTypography.bodySmall)
+                        .foregroundStyle(FynlaColor.Token.raspberry600.color)
+                        .accessibilityIdentifier("subscription.web-billing.error")
+                }
             }
             .padding(FynlaSpacing.standard)
             .background(FynlaColor.Token.savannah100.color)
@@ -195,6 +237,20 @@ struct SubscriptionManagementView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("subscription.web-premium")
+    }
+
+    private func openWeb() {
+        guard !isOpeningWeb, let onOpenWebUpgrade else { return }
+        isOpeningWeb = true
+        webError = nil
+        Task { @MainActor in
+            defer { isOpeningWeb = false }
+            do {
+                try await onOpenWebUpgrade()
+            } catch {
+                webError = "We could not open the Fynla website. Please try again."
+            }
+        }
     }
 
     private func productButton(
