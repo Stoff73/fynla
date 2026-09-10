@@ -115,9 +115,8 @@
   function renderWarning() {
     overlay.querySelector('.cc-card').innerHTML =
       '<div class="cc-row"><span class="cc-icon">' + ICON_WARN + '</span>' +
-      '<div><h3 class="cc-title">Limited Functionality</h3>' +
-      '<p class="cc-text">Without cookies, some features including registration will be unavailable. ' +
-      'Google Analytics has been disabled.</p></div></div>' +
+      '<div><h3 class="cc-title">Without optional cookies</h3>' +
+      '<p class="cc-text">Declining switches off Google Analytics and our affiliate tracking, and nothing else. Registration, signing in and every feature work as normal.</p></div></div>' +
       '<div class="cc-actions">' +
       '<button type="button" class="cc-btn cc-btn--accept" data-cc="accept">Accept Cookies</button>' +
       '<button type="button" class="cc-btn cc-btn--decline" data-cc="decline">Continue Without Cookies</button>' +

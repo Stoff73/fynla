@@ -42,9 +42,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <h3 class="text-body-sm font-bold text-horizon-500">Limited Functionality</h3>
+            <h3 class="text-body-sm font-bold text-horizon-500">{{ declineTitle }}</h3>
             <p class="text-body-sm text-neutral-500 mt-1">
-              Without cookies, some features including registration will be unavailable. Google Analytics has been disabled.
+              {{ declineText }}
             </p>
           </div>
         </div>
@@ -70,6 +70,7 @@
 <script>
 import { ref, onMounted } from 'vue';
 import { getConsentStatus, acceptCookies, declineCookies } from '@/utils/cookieConsent';
+import { COOKIE_DECLINE_TITLE as declineTitle, COOKIE_DECLINE_TEXT as declineText } from '@/constants/cookieCopy';
 
 export default {
   name: 'CookieBanner',
@@ -95,7 +96,7 @@ export default {
       visible.value = false;
     };
 
-    return { visible, showWarning, handleAccept, handleDecline };
+    return { visible, showWarning, handleAccept, handleDecline, declineTitle, declineText };
   },
 };
 </script>

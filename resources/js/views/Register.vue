@@ -105,6 +105,8 @@
               id="first_name"
               v-model="form.first_name"
               type="text"
+              name="first_name"
+              autocomplete="given-name"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.first_name }"
@@ -124,6 +126,8 @@
               id="last_name"
               v-model="form.last_name"
               type="text"
+              name="last_name"
+              autocomplete="family-name"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.last_name }"
@@ -142,6 +146,8 @@
               id="email"
               v-model="form.email"
               type="email"
+              name="email"
+              autocomplete="email"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.email }"
@@ -160,6 +166,8 @@
               id="password"
               v-model="form.password"
               type="password"
+              name="password"
+              autocomplete="new-password"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.password }"
@@ -182,6 +190,8 @@
               id="password_confirmation"
               v-model="form.password_confirmation"
               type="password"
+              name="password_confirmation"
+              autocomplete="new-password"
               required
               class="input-field"
               placeholder="••••••••"
