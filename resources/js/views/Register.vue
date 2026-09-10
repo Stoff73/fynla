@@ -105,13 +105,15 @@
               id="first_name"
               v-model="form.first_name"
               type="text"
+              name="first_name"
+              autocomplete="given-name"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.first_name }"
               placeholder="John"
             >
-            <p v-if="errors.first_name" class="mt-1 text-body-sm text-raspberry-600">
-              {{ errors.first_name[0] }}
+            <p v-for="(message, i) in errors.first_name" :key="i" class="mt-1 text-body-sm text-raspberry-600">
+              {{ message }}
             </p>
           </div>
 
@@ -124,13 +126,15 @@
               id="last_name"
               v-model="form.last_name"
               type="text"
+              name="last_name"
+              autocomplete="family-name"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.last_name }"
               placeholder="Smith"
             >
-            <p v-if="errors.last_name" class="mt-1 text-body-sm text-raspberry-600">
-              {{ errors.last_name[0] }}
+            <p v-for="(message, i) in errors.last_name" :key="i" class="mt-1 text-body-sm text-raspberry-600">
+              {{ message }}
             </p>
           </div>
 
@@ -142,13 +146,15 @@
               id="email"
               v-model="form.email"
               type="email"
+              name="email"
+              autocomplete="email"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.email }"
               placeholder="you@example.com"
             >
-            <p v-if="errors.email" class="mt-1 text-body-sm text-raspberry-600">
-              {{ errors.email[0] }}
+            <p v-for="(message, i) in errors.email" :key="i" class="mt-1 text-body-sm text-raspberry-600">
+              {{ message }}
             </p>
           </div>
 
@@ -160,16 +166,19 @@
               id="password"
               v-model="form.password"
               type="password"
+              name="password"
+              autocomplete="new-password"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.password }"
               placeholder="••••••••"
             >
-            <p v-if="!errors.password" class="mt-1 text-xs text-neutral-500">
+            <!-- Always on screen: the rules were hidden exactly when they were failed (W-0545). -->
+            <p class="mt-1 text-xs text-neutral-500">
               Must be at least 8 characters with one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)
             </p>
-            <p v-if="errors.password" class="mt-1 text-body-sm text-raspberry-600">
-              {{ errors.password[0] }}
+            <p v-for="(message, i) in errors.password" :key="i" class="mt-1 text-body-sm text-raspberry-600">
+              {{ message }}
             </p>
           </div>
 
@@ -181,6 +190,8 @@
               id="password_confirmation"
               v-model="form.password_confirmation"
               type="password"
+              name="password_confirmation"
+              autocomplete="new-password"
               required
               class="input-field"
               placeholder="••••••••"
@@ -229,6 +240,7 @@ import storage from '@/utils/storage';
 import api from '@/services/api';
 import authService from '@/services/authService';
 import { getCapturedSource, clearCapturedSource } from '@/utils/sourceCapture';
+import { validateRegistration } from '@/utils/registrationRules';
 
 export default {
   name: 'RegisterView',
@@ -362,6 +374,15 @@ export default {
       errors.value = {};
       errorMessage.value = '';
       emailExists.value = false;
+
+      // The same rules the server applies, all at once, before spending a
+      // throttled request on them (W-0542). The server still decides.
+      const clientErrors = validateRegistration(form.value);
+      if (Object.keys(clientErrors).length > 0) {
+        errors.value = clientErrors;
+        return;
+      }
+
       isSubmitting.value = true;
 
       try {

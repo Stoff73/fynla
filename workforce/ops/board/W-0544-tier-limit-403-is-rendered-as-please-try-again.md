@@ -2,10 +2,10 @@
 id: W-0544
 title: Onboarding discards every save error with 17 bare catch blocks — a tier limit is rendered as "Failed to save property. Please try again." while the same limit outside onboarding shows a proper upgrade modal
 mission: new-user-run-2026-09-07
-branch: null
-owner: null
+branch: fix/board-w0550-w0543-w0544-w0542-w0545-w0546-w0547
+owner: build-lead
 reviewers: [build-lead, growth-lead]
-status: queued
+status: done
 severity: high
 surfaces: [web, m]
 revised: 2026-09-09 — scoped correctly after testing on production; see Working notes
@@ -126,3 +126,30 @@ properly.
 - [ ] The 17 bare catches are audited; a bare catch on a user-initiated save is
       the defect behind the defect.
 - [ ] `/m` onboarding checked for the same pattern.
+
+## Outcome — done, 2026-09-10
+
+Confirmed live in the onboarding assets step only (the Net Worth pages already use
+`LimitReachedModal` from the capability payload): four bare `catch {}` blocks and eight
+`err.message ||` catches that printed axios's status string.
+
+- `utils/apiErrors.js` — the one reader of a failed save on the form surfaces:
+  `tierLimitFrom(error)` (entity label, cap, required tier, message, destination off a
+  `tier_limit_reached` 403) and `apiErrorMessage(error, fallback)` (the server's
+  `message`, never "Request failed with status code 403"). Test:
+  `utils/__tests__/apiErrors.spec.js`.
+- `AssetsStep.vue` — property, pension, investment and savings saves that hit a cap open
+  the shared `LimitReachedModal` labelled with the user's current tier (`TIER_LABELS`,
+  now exported from `tierLimitMixin`; Free when the subscription payload is not loaded
+  mid-onboarding, since only Free carries caps); other failures show the server message.
+- The nine other onboarding steps read the server message through `apiErrorMessage`.
+- Browser-verified locally as a Free account: third savings account → 403 → modal
+  "You've reached your Free limit. Your Free plan includes up to 2 savings accounts." →
+  Upgrade → `/settings/subscription`. No "Please try again".
+- `/m` onboarding is the Fyn conversation, which already consumes `tier_limit_reached`
+  (no form counterpart).
+- Not done: disabling "+ Add" at the cap inside onboarding (the Net Worth pages do this
+  from `subscriptionData.count_caps`, which is not loaded during onboarding); the premium
+  benefits copy about properties. Both stay open as follow-ups on this item's list.
+- Adjacent, not fixed: `AssetsStep.vue` lines 220/290/366 call `window.scrollTo` inside a
+  template handler, where `window` is undefined — a console TypeError on every "+ Add".

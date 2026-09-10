@@ -130,6 +130,7 @@ import {
   familyMemberManagementNotice,
   familyMemberRelationshipLabel,
   isLinkedAccount,
+  spouseInvitationSentMessage,
 } from '@/utils/familyMember';
 
 import logger from '@/utils/logger';
@@ -228,6 +229,10 @@ export default {
               showSpouseSuccess.value = true;
               // Refresh user data to reflect spouse linkage
               await store.dispatch('auth/fetchUser');
+            } else if (responseData.invitation_pending) {
+              // The other account decides whether to link (W-0349); say so
+              // rather than telling the user to add them again (W-0543).
+              successMessage.value = spouseInvitationSentMessage(formData.email);
             } else {
               successMessage.value = 'Family member added successfully!';
             }

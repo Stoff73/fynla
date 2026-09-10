@@ -25,6 +25,7 @@
       :spouse-data="spouse"
       :spouse-name="spouseName"
       :is-married="isMarried"
+      :server-totals="profile?.expenditure?.presentation || null"
       :always-show-tabs="true"
       :show-cancel="true"
       cancel-text="Reset"
@@ -152,6 +153,7 @@ export default {
 
     return {
       user,
+      profile,
       spouse,
       spouseName,
       isMarried,

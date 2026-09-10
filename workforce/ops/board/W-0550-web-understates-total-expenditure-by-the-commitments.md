@@ -2,10 +2,10 @@
 id: W-0550
 title: Web shows total monthly expenditure excluding financial commitments — £1,800 where /m and the API both say £4,878, understating spending by £36,936 a year
 mission: new-user-run-2026-09-07
-branch: null
-owner: null
+branch: fix/board-w0550-w0543-w0544-w0542-w0545-w0546-w0547
+owner: build-lead
 reviewers: [quality-lead, build-lead]
-status: queued
+status: done
 severity: high
 surfaces: [web]
 created: 2026-09-09
@@ -104,3 +104,28 @@ by £3,078 a month overstates surplus and overstates how long a cash buffer last
 2026-09-09 — Found while testing modules on production. Also confirmed here that
 **W-0011 is genuinely fixed**: a free-tier account saved a simple monthly total
 (`PUT /api/user/profile/expenditure` -> 200) with no premium gate.
+
+## Outcome — done, 2026-09-10
+
+Root cause, not the one guessed above: `ExpenditureForm.vue` stored
+`props.initialData.monthly_expenditure` unparsed (the API serialises the decimal
+as `"900.00"`), so on the simple-entry path `totalMonthlyWithCommitments` was
+`"900.00" + 245` — a string — and `formatCurrency` rendered £900. The detailed
+path sums numeric category totals, which is why it was right.
+
+- `ExpenditureForm.vue` `initialData` load: `parseFloat(...)`; `totalMonthlyExpenditure` /
+  `spouseTotalMonthlyExpenditure` coerce with `Number()`.
+- Rule 20: the user's total row in view mode now renders the server's
+  `active_monthly_total` / `active_annual_total` (`UserProfileService::expenditurePresentation`,
+  the figure `/m` `Expenditure.vue` shows) via a new `serverTotals` prop that
+  `ExpenditureOverview.vue` passes from `profile.expenditure.presentation`; the live
+  local sum is used only while editing.
+- Test: `ExpenditureSimpleEntry.spec.js` — "adds the financial commitments to a
+  string-typed simple monthly figure" (red before, green after) and "shows the server
+  presentation total while viewing and the live sum while editing".
+- Runway and affordability read the backend breakdown (`ResolvesExpenditure`), never the
+  web total, so they were never wrong; re-checked, no change.
+- Verified locally (David, detailed: £4,133 == server 4,132.87). The simple path is
+  verified on csjones as john when this branch lands there.
+- Not done: separate-expenditure household on the spouse column still uses the local sum
+  (the server presentation is per user); it is numeric now, so it adds correctly.

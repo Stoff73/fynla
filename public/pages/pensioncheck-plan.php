@@ -227,7 +227,7 @@ try {
   <script src="/pages/js/site.js?v=3" defer></script>
   <script src="/pages/js/pensioncheck-plan.js?v=2" defer></script>
   <!-- Cookie consent — persisted via localStorage; the SPA register step reuses it. -->
-  <script src="/pages/js/cookie-consent.js?v=1" defer></script>
+  <script src="/pages/js/cookie-consent.js?v=2" defer></script>
 
 </body>
 </html>

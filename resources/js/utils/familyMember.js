@@ -67,11 +67,29 @@ export function familyMemberManagementNotice(member) {
     return 'Managed by your spouse';
   }
 
+  if (member?.relationship === 'spouse' && member?.invitation_pending) {
+    return 'Invitation sent. They will appear as linked once they accept, and nothing is shared until then.';
+  }
+
   if (member?.relationship === 'spouse') {
     return 'Their account is not linked, so nothing is shared between you yet. Add them again with their email address to link the accounts.';
   }
 
   return '';
+}
+
+/**
+ * What to tell the user the moment a spouse invitation goes out. The address
+ * is the one they just typed — the server keeps no record of it and confirms
+ * nothing about whether it is registered (W-0348, W-0349, W-0472). One home
+ * for the profile page and the onboarding step (W-0543).
+ *
+ * @param {string} email
+ * @returns {string}
+ */
+export function spouseInvitationSentMessage(email) {
+  return `We have emailed an invitation to ${email}. They will appear as linked once they accept. `
+    + 'We do not keep a record of the address, so check it now if you are unsure.';
 }
 
 /**

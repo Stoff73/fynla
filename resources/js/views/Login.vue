@@ -97,6 +97,8 @@
               id="email"
               v-model="form.email"
               type="email"
+              name="email"
+              autocomplete="email"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.email }"
@@ -115,6 +117,8 @@
               id="password"
               v-model="form.password"
               type="password"
+              name="password"
+              autocomplete="current-password"
               required
               class="input-field"
               :class="{ 'border-raspberry-600': errors.password }"

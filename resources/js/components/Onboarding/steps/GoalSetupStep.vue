@@ -149,6 +149,7 @@ import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import goalsService from '@/services/goalsService';
 import { formatCurrency } from '@/utils/currency';
+import { apiErrorMessage } from '@/utils/apiErrors';
 
 export default {
   name: 'GoalSetupStep',
@@ -284,7 +285,7 @@ export default {
 
         emit('next');
       } catch (err) {
-        error.value = err.message || 'Failed to save goal. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to save goal. Please try again.');
       } finally {
         loading.value = false;
       }

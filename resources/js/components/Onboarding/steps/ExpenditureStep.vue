@@ -85,6 +85,7 @@ import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import ExpenditureForm from '../../UserProfile/ExpenditureForm.vue';
 
 import logger from '@/utils/logger';
+import { apiErrorMessage } from '@/utils/apiErrors';
 export default {
   name: 'ExpenditureStep',
 
@@ -169,7 +170,7 @@ export default {
 
         emit('next');
       } catch (err) {
-        error.value = err.message || 'Failed to save expenditure information. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to save expenditure information. Please try again.');
       } finally {
         loading.value = false;
       }
@@ -208,7 +209,7 @@ export default {
         // Emit next to let the wizard advance
         emit('next');
       } catch (err) {
-        error.value = err.message || 'Failed to skip step. Please try again.';
+        error.value = apiErrorMessage(err, 'Failed to skip step. Please try again.');
       } finally {
         loading.value = false;
       }

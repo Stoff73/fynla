@@ -2,10 +2,10 @@
 id: W-0546
 title: The cookie-decline warning still claims registration will be unavailable — it is not, on csjones or production
 mission: new-user-run-2026-09-07
-branch: null
-owner: null
+branch: fix/board-w0550-w0543-w0544-w0542-w0545-w0546-w0547
+owner: build-lead
 reviewers: [compliance-lead, design-lead]
-status: queued
+status: done
 severity: medium
 surfaces: [web, m]
 created: 2026-09-09
@@ -49,3 +49,23 @@ normal practice here. This item rests on observed behaviour, not on the boxes.
 - [ ] Same copy on the SPA banner and the vanilla server-rendered banner — both
       exist and currently mirror each other; keep them from one source.
 - [ ] Checked on `/m`.
+
+## Outcome — done, 2026-09-10
+
+Confirmed live: both banners still said registration would be unavailable; nothing gates
+registration on the cookie (no server check; the register view records the wall's removal
+under W-0050).
+
+- `constants/cookieCopy.js` is the one home: title "Without optional cookies", text
+  "Declining switches off Google Analytics and our affiliate tracking, and nothing else.
+  Registration, signing in and every feature work as normal." `CookieBanner.vue` renders
+  it. The vanilla `public/pages/js/cookie-consent.js` cannot import a module, so it
+  carries the same sentence and `constants/__tests__/cookieCopy.spec.js` pins the two
+  together (fails on any drift). Script tag bumped to `?v=2` on the four server-rendered
+  pages so the CDN serves the new copy.
+- Browser-verified locally on both: the SPA banner on /register and the vanilla banner on
+  `/`, after Decline. A registration completed in the declined state (verification modal
+  reached), consistent with the copy.
+- `/m`: no banner of its own; its landing iframes `/`, which is the vanilla banner.
+- Not done: the `compliance-lead` ruling on the wording. The wording states only what
+  declining does; it still needs their sign-off per W-0050, which I cannot give myself.
