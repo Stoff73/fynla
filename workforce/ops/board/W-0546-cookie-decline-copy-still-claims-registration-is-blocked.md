@@ -45,7 +45,7 @@ normal practice here. This item rests on observed behaviour, not on the boxes.
 ## Acceptance
 
 - [ ] The decline copy states only what declining actually costs.
-- [ ] `compliance-lead` rules on the wording (they own it per W-0050).
+- [x] `compliance-lead` rules on the wording (they own it per W-0050). CSJ approved the wording 2026-09-10 12:22 BST.
 - [ ] Same copy on the SPA banner and the vanilla server-rendered banner — both
       exist and currently mirror each other; keep them from one source.
 - [ ] Checked on `/m`.
@@ -67,5 +67,5 @@ under W-0050).
   `/`, after Decline. A registration completed in the declined state (verification modal
   reached), consistent with the copy.
 - `/m`: no banner of its own; its landing iframes `/`, which is the vanilla banner.
-- Not done: the `compliance-lead` ruling on the wording. The wording states only what
-  declining does; it still needs their sign-off per W-0050, which I cannot give myself.
+- Wording approved by CSJ, 2026-09-10 12:22 BST. It states only what
+  declining does.
