@@ -285,6 +285,18 @@ final class SubscriptionModel {
                 message: "Subscription management is unavailable. Please try again."
             )
         case (.free, _):
+            // CSJ, 2026-09-07: nothing is sold in the app. When the server policy
+            // switches purchases off, a Free account still gets its Free screen —
+            // with the route to upgrade on the web — rather than the "products
+            // unavailable" error that an empty App Store catalogue produces.
+            guard isPurchaseEnabled else {
+                state = .free(
+                    products: [],
+                    selectedProductID: "",
+                    isPending: pendingProductID != nil
+                )
+                return
+            }
             let sorted = products.sorted { lhs, rhs in
                 productRank(lhs.id) < productRank(rhs.id)
             }

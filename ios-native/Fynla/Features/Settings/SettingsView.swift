@@ -8,6 +8,7 @@ struct SettingsView: View {
     let dataExportModel: DataExportModel
     let accountDeletionModel: AccountDeletionModel
     let pushCoordinator: PushRegistrationCoordinator
+    var onOpenWebUpgrade: (@MainActor () async throws -> Void)? = nil
     @State private var browserItem: SafariSheetItem?
 
     var body: some View {
@@ -66,7 +67,8 @@ struct SettingsView: View {
             NavigationLink {
                 SubscriptionView(
                     model: subscriptionModel,
-                    appleManager: appleManager
+                    appleManager: appleManager,
+                    onOpenWebUpgrade: onOpenWebUpgrade
                 )
             } label: {
                 HStack(alignment: .firstTextBaseline) {
