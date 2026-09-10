@@ -932,12 +932,19 @@ export default {
   },
 
   async mounted() {
-    await Promise.all([
-      this.loadLetter(),
-      this.loadProfileData(),
-      this.checkMaritalStatus(),
-      this.loadWillData(),
-    ]);
+    // Ask only for what the plan serves: the letter endpoints sit behind the
+    // `letter_to_spouse` capability (CheckSubscription) and the will behind
+    // EnsureFullEstateAccess — each answers 403 to a Free account, which used
+    // to fire on every mount.
+    const full = this.$store.getters['auth/hasFullCapability'];
+    const loads = [this.checkMaritalStatus()];
+    if (full('letter_to_spouse')) {
+      loads.push(this.loadLetter(), this.loadProfileData());
+    }
+    if (full('estate')) {
+      loads.push(this.loadWillData());
+    }
+    await Promise.all(loads);
   },
 
   beforeUnmount() {

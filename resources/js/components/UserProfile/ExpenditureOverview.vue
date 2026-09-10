@@ -70,8 +70,10 @@ export default {
 
     const fetchSpouseData = async () => {
       // Fetch spouse data for all users (including preview mode)
-      // Preview users are real database users and use the same code paths
-      if (!user.value?.live_spouse_id) return;
+      // Preview users are real database users and use the same code paths.
+      // The spouse profile is served only when the link is reciprocal and
+      // consented (403 otherwise), so ask only when the server says it is.
+      if (!user.value?.live_spouse_id || !user.value?.spouse_financially_shared) return;
 
       try {
         // Fetch spouse user data via API

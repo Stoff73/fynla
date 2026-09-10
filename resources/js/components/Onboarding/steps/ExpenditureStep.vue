@@ -115,7 +115,8 @@ export default {
     });
 
     const fetchSpouseData = async () => {
-      if (!user.value?.live_spouse_id) return;
+      // Served only for a reciprocal, consented link (403 otherwise).
+      if (!user.value?.live_spouse_id || !user.value?.spouse_financially_shared) return;
 
       try {
         const response = await store.dispatch('auth/fetchUserById', user.value.live_spouse_id);

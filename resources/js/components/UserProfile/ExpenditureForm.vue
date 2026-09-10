@@ -2187,9 +2187,10 @@ export default {
         const response = await api.get('/user/financial-commitments');
         financialCommitments.value = response.data.data;
 
-        // Always fetch spouse commitments if married - the backend will determine spouse from auth user
-        // Don't rely on user.value?.spouse_id as it may not be loaded yet at mount time
-        if (props.isMarried) {
+        // Fetch spouse commitments when married AND the link is reciprocal and
+        // consented — the endpoint answers 404 otherwise (W-0350/W-0530).
+        // The backend determines the spouse from the auth user.
+        if (props.isMarried && user.value?.spouse_financially_shared) {
           try {
             const spouseResponse = await api.get('/user/spouse/financial-commitments');
             spouseFinancialCommitments.value = spouseResponse.data.data;
