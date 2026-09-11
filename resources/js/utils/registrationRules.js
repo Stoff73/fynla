@@ -23,7 +23,7 @@ export function validateRegistration(form) {
   const text = (v) => (typeof v === 'string' ? v.trim() : '');
 
   if (text(form.first_name) === '') add('first_name', 'The first name field is required.');
-  if (text(form.last_name) === '') add('last_name', 'The last name field is required.');
+  if (text(form.last_name) === '') add('last_name', 'Last name is required.');
 
   const email = text(form.email);
   if (email === '') add('email', 'The email field is required.');

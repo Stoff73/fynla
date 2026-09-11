@@ -12,7 +12,7 @@ export const ENTITY_LABELS = {
   property: 'properties',
   investment: 'investment accounts',
   pension_account: 'pensions',
-  savings_account: 'savings accounts',
+  savings_account: 'bank accounts',
   goal: 'goals',
   life_event: 'life events',
 };

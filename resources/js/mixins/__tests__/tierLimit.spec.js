@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { atTierCap, countCapFor } from '../tierLimitMixin';
+import { atTierCap, countCapFor, tierCapBlocks, tierLabelFor } from '../tierLimitMixin';
 
 /**
  * The one home for "is this user at the plan's cap" — the Net Worth pages
@@ -21,5 +21,29 @@ describe('tier caps', () => {
     expect(atTierCap(free, 'goal', 99)).toBe(false);
     expect(atTierCap({ tier: 'premium', count_caps: { property: null } }, 'property', 40)).toBe(false);
     expect(atTierCap(null, 'property', 40)).toBe(false);
+  });
+});
+
+describe('tierCapBlocks — the one at-cap gate', () => {
+  const storeWith = (subscriptionData, preview = false) => ({
+    state: { auth: { subscriptionData } },
+    getters: { 'preview/isPreviewMode': preview },
+  });
+  const free = { tier: 'free', count_caps: { property: 1 } };
+
+  it('blocks at the cap, and not below it', () => {
+    expect(tierCapBlocks(storeWith(free), 'property', 1)).toBe(true);
+    expect(tierCapBlocks(storeWith(free), 'property', 0)).toBe(false);
+  });
+
+  it('never blocks a preview persona or an uncapped entity', () => {
+    expect(tierCapBlocks(storeWith(free, true), 'property', 5)).toBe(false);
+    expect(tierCapBlocks(storeWith(free), 'goal', 5)).toBe(false);
+    expect(tierCapBlocks(storeWith(null), 'property', 5)).toBe(false);
+  });
+
+  it('labels the plan, falling back to Free (the only tier with caps)', () => {
+    expect(tierLabelFor({ tier: 'premium' })).toBe('Premium');
+    expect(tierLabelFor(null)).toBe('Free');
   });
 });
