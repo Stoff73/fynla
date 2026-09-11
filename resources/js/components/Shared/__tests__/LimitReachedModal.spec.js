@@ -18,7 +18,7 @@ const mountWith = (props, subscriptionData = { tier: 'free', count_caps: { savin
 describe('LimitReachedModal', () => {
   it('reads label, cap and tier from the entity key', () => {
     const text = mountWith({ entityKey: 'savings_account' }).text();
-    expect(text).toContain('Your Free plan includes up to 2 savings accounts.');
+    expect(text).toContain('Your Free plan includes up to 2 bank accounts.');
   });
 
   it('prefers a server-reported cap and falls back to Free with no payload', () => {
