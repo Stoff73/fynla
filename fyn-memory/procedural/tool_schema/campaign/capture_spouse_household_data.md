@@ -51,7 +51,7 @@ effective_from: 2026-06-02
             },
             "spouse_pension_input_annual": {
                 "type": "number",
-                "description": "Spouse gross annual pension contribution in pounds."
+                "description": "Spouse gross annual pension contribution in pounds. A monthly figure (\"she contributes 500 per month\") must be converted to annual (x12 = 6000). Always set it when the user states what the spouse pays in."
             },
             "spouse_existing_pension_balance": {
                 "type": "number",
