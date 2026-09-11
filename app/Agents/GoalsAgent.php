@@ -197,10 +197,7 @@ class GoalsAgent extends BaseAgent
             }
 
             // Check for no emergency fund
-            $byModule = $analysisData['by_module'] ?? [];
-            $savingsGoals = $byModule['savings']['goals'] ?? [];
-            $hasEmergencyFund = in_array('emergency_fund', (array) ($analysisData['goal_types'] ?? []), true)
-                || collect($savingsGoals)->contains(fn ($g) => ($g['goal_type'] ?? '') === 'emergency_fund');
+            $hasEmergencyFund = in_array('emergency_fund', (array) ($analysisData['goal_types'] ?? []), true);
 
             if (! $hasEmergencyFund) {
                 $recommendations[] = [

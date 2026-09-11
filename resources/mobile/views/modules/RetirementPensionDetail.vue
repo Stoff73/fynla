@@ -147,6 +147,7 @@
 
 <script>
 import { store } from '../../store.js';
+import { formatCurrency } from '../../utils/currency.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
@@ -156,11 +157,6 @@ import { buildContextualConversationRequest } from '../../fyn/contextualConversa
 // rather than copied (Rule 20). Pure JavaScript with no Vue or store dependency,
 // so it crosses the bundle boundary the way ownership.js already does.
 import { formatSchemeStatus } from '../../../js/components/Retirement/dbPensionFields.js';
-
-function formatCurrency(value) {
-  if (value == null || value === '' || isNaN(Number(value))) return '—';
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
-}
 
 const TYPE_LABELS = {
   dc: 'Defined Contribution Pension',

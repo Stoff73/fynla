@@ -12,6 +12,7 @@ use App\Services\Mobile\NextActionsService;
 use Database\Seeders\TierConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\Fyn\FynStreamHarness;
+use Tests\Support\Fyn\Sse;
 
 /**
  * A dashboard recommendation that asks for information opens Fyn in a
@@ -55,22 +56,6 @@ function recommendationConversation(User $user, string $recommendationId = 'savi
 }
 
 /** @return list<array<string, mixed>> */
-function streamedFrames(string $content): array
-{
-    $frames = [];
-    foreach (explode("\n\n", $content) as $chunk) {
-        $chunk = trim($chunk);
-        if (str_starts_with($chunk, 'data: ')) {
-            $decoded = json_decode(substr($chunk, 6), true);
-            if (is_array($decoded)) {
-                $frames[] = $decoded;
-            }
-        }
-    }
-
-    return $frames;
-}
-
 it('asks whether there is anything else once a recommendation-driven capture writes', function (): void {
     $user = User::factory()->create(['onboarding_completed' => true, 'is_preview_user' => false]);
     $conversationId = recommendationConversation($user);
@@ -93,7 +78,7 @@ it('asks whether there is anything else once a recommendation-driven capture wri
 
     expect(SavingsAccount::where('user_id', $user->id)->where('account_name', "Oliver's Savings")->exists())->toBeTrue();
 
-    $frames = streamedFrames($content);
+    $frames = Sse::frames($content);
     $types = array_column($frames, 'type');
     $askedAt = array_search('quick_replies', $types, true);
     $doneAt = array_search('done', array_reverse($types, true), true);
@@ -120,7 +105,7 @@ it('does not ask when the capture turn wrote nothing', function (): void {
         'message' => 'I want to add a savings account for Oliver.',
     ])->assertOk()->streamedContent();
 
-    expect(array_column(streamedFrames($content), 'type'))->not->toContain('quick_replies')
+    expect(array_column(Sse::frames($content), 'type'))->not->toContain('quick_replies')
         ->and(AiConversation::findOrFail($conversationId)->metadata)->not->toHaveKey('recommendation_follow_up');
 });
 
@@ -134,7 +119,7 @@ it('ticks the recommendation off and returns to the dashboard on "No thanks"', f
         'message' => 'No thanks',
     ])->assertOk()->streamedContent();
 
-    $frames = streamedFrames($content);
+    $frames = Sse::frames($content);
     $navigation = collect($frames)->firstWhere('type', 'navigation');
 
     expect($navigation)->not->toBeNull()
@@ -158,7 +143,7 @@ it('carries on capturing on "Yes" without ticking anything off', function (): vo
         'message' => 'Yes',
     ])->assertOk()->streamedContent();
 
-    $frames = streamedFrames($content);
+    $frames = Sse::frames($content);
 
     expect(collect($frames)->firstWhere('type', 'content')['text'])->toBe('What would you like to add?')
         ->and(array_column($frames, 'type'))->not->toContain('navigation')
@@ -188,5 +173,5 @@ it('leaves an ordinary conversation untouched', function (): void {
         'message' => 'Add my individually owned Halifax easy access savings account named Rainy Day, with a £5,000 balance and 4.5% interest.',
     ])->assertOk()->streamedContent();
 
-    expect(array_column(streamedFrames($content), 'type'))->not->toContain('quick_replies');
+    expect(array_column(Sse::frames($content), 'type'))->not->toContain('quick_replies');
 });

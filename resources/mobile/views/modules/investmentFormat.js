@@ -1,9 +1,6 @@
 // Shared formatting helpers for the mobile Investment views.
 
-export function formatCurrency(value) {
-  if (value == null || value === '' || Number.isNaN(Number(value))) return '—';
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
-}
+export { formatCurrency } from '../../utils/currency.js';
 
 // Human-readable account-type label. Acronyms spelled out per CLAUDE.md Rule #9
 // (only ISA stays abbreviated; never "S&S", "GIA", etc.).

@@ -331,7 +331,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '../UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 import propertyService from '@/services/propertyService';
@@ -344,7 +343,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     OccupationAutocomplete,
   },
 
@@ -525,7 +523,7 @@ export default {
         if (stepData && Object.keys(stepData).length > 0) {
           formData.value = { ...formData.value, ...stepData };
         }
-      } catch (err) {
+      } catch {
         // No existing data, use pre-populated values from user table
       }
 

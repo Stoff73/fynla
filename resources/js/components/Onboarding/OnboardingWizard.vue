@@ -386,15 +386,13 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch, defineAsyncComponent, shallowRef, markRaw } from 'vue';
+import { ref, computed, onMounted, watch, shallowRef, markRaw } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
-import { LIFE_STAGES, STAGE_ORDER } from '@/constants/lifeStageConfig';
+import { LIFE_STAGES } from '@/constants/lifeStageConfig';
 import savingsService from '@/services/savingsService';
-import propertyService from '@/services/propertyService';
 import protectionService from '@/services/protectionService';
 import retirementService from '@/services/retirementService';
-import investmentService from '@/services/investmentService';
 import goalsService from '@/services/goalsService';
 import netWorthService from '@/services/netWorthService';
 import estateService from '@/services/estateService';
@@ -1325,7 +1323,7 @@ export default {
       return componentMap[currentStep.value.name] || null;
     });
 
-    const handleFocusAreaSelected = async (area) => {
+    const handleFocusAreaSelected = async () => {
       if (isQuickMode.value) {
         store.commit('onboarding/SET_STEPS', quickSteps);
         store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);

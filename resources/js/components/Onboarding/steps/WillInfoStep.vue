@@ -99,9 +99,7 @@
 <script>
 import { ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { withBase } from '@/utils/basePath';
 import { apiErrorMessage } from '@/utils/apiErrors';
@@ -111,14 +109,12 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
-    const router = useRouter();
 
     const WHY_FIELD_DATA = {
       has_will: { whyWeAsk: 'Knowing whether you have a will helps us assess your estate planning position and identify if intestacy rules would apply.' },
@@ -210,7 +206,7 @@ export default {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     };

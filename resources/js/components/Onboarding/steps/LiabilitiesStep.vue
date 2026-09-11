@@ -85,7 +85,6 @@
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { ref, onMounted } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
 import estateService from '@/services/estateService';
@@ -97,7 +96,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     LiabilityForm,
   },
 
@@ -158,7 +156,7 @@ export default {
         try {
           await estateService.deleteLiability(id);
           await loadLiabilities();
-        } catch (err) {
+        } catch {
           error.value = 'Failed to delete liability';
         }
       }
