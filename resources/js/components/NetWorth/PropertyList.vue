@@ -75,9 +75,7 @@
     <Teleport to="body">
       <LimitReachedModal
         :show="showLimitModal"
-        entity-label="properties"
-        :cap="tierCountCap('property') || 0"
-        :tier-label="tierLabel"
+        entity-key="property"
         @close="showLimitModal = false"
       />
     </Teleport>
@@ -226,10 +224,7 @@ export default {
     },
 
     addProperty() {
-      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('property', this.properties.length)) {
-        this.showLimitModal = true;
-        return;
-      }
+      if (this.guardTierCap('property', this.properties.length)) return;
       this.editingProperty = null;
       this.showPropertyForm = true;
     },

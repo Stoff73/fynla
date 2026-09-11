@@ -1,46 +1,43 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-09 session 1 — dev RELEASED to fynla.org twice (main 867fcf82b == dev 366a9f4ea): Fyn wiring Batches B–G closed, /m scaffold retired, legacy plan catalogue deleted.
-Handover: `handover/September/09/handover-2026-09-09-session-1.md`*
+*Last updated: 2026-09-11 session 1 (end of the 2026-09-10 session) — dev RELEASED to
+fynla.org three times on 2026-09-10 (main ac967bdac == dev d73b2a832): Fyn first-message
+guard + native billing on the web; recommendation ids per record + the nine new-user-run
+board items + onboarding journeys; capped "+ Add" refused before the form.
+Handover: `handover/September/11/handover-2026-09-11-session-1.md`*
 
 ## The board position
 
-Computed from the 327 files, not from a register. `tasks.md` in the repo root is the
+Computed from the board files, not from a register. `tasks.md` in the repo root is the
 live checklist and is **generated** — regenerate it, never hand-edit the counts.
 
 | | |
 |---|---|
-| items | 328 |
-| **resolved** | **322** |
+| items | 338 |
+| **resolved** | **332** — W-0541–W-0550 closed 2026-09-10 (W-0548 already resolved, W-0549 folded) |
 | **outstanding** | **6** — all `deferred-ios` |
 | critical | **0** |
 | high | **0** |
 | medium / low in scope | **0** |
 
-Every non-iOS item is closed. The rule is unchanged — **a citation is not a verification** —
-and **verify the instrument before trusting the measurement**: four separate scans on
-1 September reported defects that did not exist.
+Every non-iOS item is closed. The rule is unchanged — **a citation is not a verification**
+— and **verify the instrument before trusting the measurement**: CSJ's 2026-09-10 order to
+re-check the nine items before fixing found one already resolved and one overstated.
 
-## Next session starts here — iOS (CSJ, 2026-09-09, session 2)
+## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-11)
 
-- [ ] **BLOCKED ON CSJ — what TestFlight build 9 shows on the phone.** Headline rows; an
-      information-request row opens Fyn with "I can help you enter the information for …";
-      the capture ends with Yes / No thanks; "No thanks" closes the cover and replaces the
-      row. Backend proven on /m and web (fynla.org main `3edf8c39a`); native decode is
-      `DashboardModels.swift:191`, routing `AppRootView.swift` `onFynCapture`.
-- [ ] **BLOCKED ON CSJ — merge #773 after the device check.** Open, MERGEABLE, 49 behind
-      dev with no `ios-native/` overlap. Settings → Plan and billing shows "Upgrade on the
-      web" (Free) / "Manage billing on the web" (web-billed Premium). Then rebase,
-      `ios-native/scripts/verify-project.sh`, merge `--admin`. Native-only, no csjones step.
-- [ ] **Full `FynlaTests` on a simulator** — none could be opened on 2026-09-09 (Xcode
-      access not granted; never `simctl boot`). The nine fixture-reading tests cannot run on
-      a physical device (absolute Mac paths) — not a signal.
+- [ ] **BLOCKED ON CSJ — how the phone gets tested.** Build 10 (Production configuration,
+      "Fynla" record, VALID 2026-09-10 08:49 BST) carries #773 and all of build 9. On-screen
+      checks owed: headline rows; an information-request row opens Fyn with "I can help you
+      enter the information for …"; Yes / No thanks; "No thanks" closes the cover and
+      replaces the row; Settings → Plan and billing reads "Upgrade on the web" (Free).
+      `FynlaTests` cannot run on the device — fixture tests load by absolute Mac path
+      through `try!` (`FynlaTests/AuthClientTests.swift:271`), the runner crashes and
+      restarts. Either bundle the fixtures as test resources (harness change) or write a UI
+      test for the two screens; simulators wedge the Mac. CSJ decides.
 - [ ] **The remaining `deferred-ios` items** — W-0090, W-0243, W-0311, W-0416 need Swift;
-      W-0044 and W-0496 have the Swift landed and need an on-screen check. Fresh branch off
-      dev. Parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md`.
-- [ ] **Decide the shared recommendation id** — three "earns no interest" rows share
-      `savings_zero_rate_account`, so marking one done completes all three; changing the id
-      touches `recommendation_tracking` rows and the points dedup key.
+      W-0044 and W-0496 have the Swift landed and need the on-screen check. Fresh branch
+      off dev. Parity ledger: `codex/plans/ios/2026-07-20-native-m-parity-ledger.md`.
 - [ ] **iOS harness debt**: the shared UI-test typing helper cannot clear the email keyboard
       off the password field on an iPhone 11; the 6 red `Local StoreKit configuration`
       tests are a real signal (no IAP products in App Store Connect).
@@ -53,6 +50,8 @@ and **verify the instrument before trusting the measurement**: four separate sca
 - The 34 remaining sweep findings — decide, do not chase.
 - Tax-compliance review — W-0367, W-0514, W-0508, W-0338, W-0470, W-0518, W-0498;
   design-lead / quality-lead on W-0497; chief-of-staff on W-0506.
+- The savings web form captures no account name (institution + product only); the
+  display-name fallback covers the recommendation copy, the form gap is a product call.
 
 ## Settled by CSJ — do not re-raise
 
@@ -60,6 +59,12 @@ and **verify the instrument before trusting the measurement**: four separate sca
   standard drafting. Defaults unchanged, no prompt needed.
 - **W-0155** — consent is a single accept button. There is no withdrawal journey.
   `declineCookies()` is the banner's Decline path, not dead code.
+- **W-0546 (2026-09-10)** — the decline copy is "Declining switches off Google Analytics and
+  our affiliate tracking, and nothing else. Registration, signing in and every feature
+  work as normal." Approved by CSJ; one home `resources/js/constants/cookieCopy.js`.
+- **W-0544 (2026-09-10)** — a user is told a plan cap is reached BEFORE filling a form.
+- **Recommendation ids (2026-09-10)** — a per-record rule gets one id per record
+  (`_a{account}` etc.); single-instance ids unchanged. Never re-add a shared id.
 - **W-0524** — agricultural relief is a property-type design decision, deferred.
 - **One PR, not split.** **No parallel agents, of any kind, for any purpose.**
 - **The board loop is web and `/m` ONLY.** Every iOS item defers, marked `deferred-ios`.
@@ -71,11 +76,21 @@ and **verify the instrument before trusting the measurement**: four separate sca
   `adequacy_score` contract stays; the `/m` Fyn panel over the focus cards is not an issue.
 - **(2026-09-09) Closed for handover purposes:** the production `.env` keys
   `COMPANIES_HOUSE_API_KEY` / `GETADDRESS_API_KEY`, and the unconfigured Apple
-  verification bridge on production. Deferred by CSJ; only matter if the Companies House /
-  postcode lookups are used on production or native in-app purchase is ever sold.
+  verification bridge on production.
 
 ## Known issues
 
+- **`users.life_stage` is overloaded by design** — it also holds the journey or focus area
+  last started (`JourneyStateService`, `OnboardingService`). The client keeps only real
+  stages (`lifeStage.js` `setCurrentStage`); do not "fix" the backend column.
+- **The auto-mode permission classifier** refuses some routine deploy/SSH commands
+  (compound prod deploys, `git checkout` on csjones, reading codes over SSH). `rsync` of
+  `public/build/`, `git switch` on csjones and the `ssh-fynla` MCP pass. Any command
+  handed to CSJ must use absolute paths — one run from `~` put prod into maintenance mode.
+- **The formatter hook strips a just-added `use` import before its usage lands** — add
+  import and first use in ONE edit, then check it survived.
+- **`OnboardingView` mounts no `AppLayout`** — nothing the layout loads exists in the
+  wizard unless the step asks (`auth/fetchSubscriptionData` is the pattern).
 - **`public/build/` and `public/m-build/` locally hold whichever build ran last** (csjones
   or prod base path). `./dev.sh` on 8000/5173 serves the web SPA through Vite; `/m` serves
   the built `public/m-build` — run `npm run build:mobile` before a `/m` check.
@@ -83,42 +98,52 @@ and **verify the instrument before trusting the measurement**: four separate sca
 - **A preview persona's `/m` token is rotated by the app's refresh flow** — mint a fresh
   one (`POST /api/preview/login/{persona}`) per browser session.
 - The iOS `test-and-build` CI job is **not a release gate and must never be re-run
-  unasked** (CSJ 2026-09-07).
+  unasked** (CSJ 2026-09-07). dev's own Quality Gate is red on Unit/Feature
+  (`AccountDeletionService`, `AuditTierCollapse` QueryExceptions) — pre-existing, not
+  investigated.
 - **Before any release, check what prod actually runs** (bundle hash, `migrate:status`,
-  vendor mtime). Prod deploys must now rsync `fyn-memory/` and `resources/js/data/` too,
-  and `rm` any deleted classes by hand (rsync never deletes).
+  vendor mtime). Prod deploys rsync `app config database routes resources/views public/pages
+  public/build` (+ `fyn-memory/` and `resources/js/data/` when they change) and `rm` any
+  deleted classes by hand. **Never rsync `bootstrap/`.**
 - **Universal links on SiteGround are served from the site-root `.well-known/`**, not
   `public/.well-known/` — `deploy/DEPLOY.md` step 8.
-- **fynla.org's 8 paying customers are on `premium`** since the 2026-09-08 collapse; the
-  legacy slugs and the plan catalogue no longer exist anywhere.
+- **fynla.org's 8 paying customers are on `premium`** since the 2026-09-08 collapse.
 - **Never run a targeted suite while the full suite is running** — same MySQL database.
 - **Pest refuses a file and its parent directory in one invocation**; pass the directory.
-- **Pint re-adds an import for a `{@see}` docblock class reference**, which
-  `StoreBoundary` then rejects. Write the reference as plain text in backticks.
 - **`./vendor/bin/pint app/` times out** at 2 minutes — format only changed files.
   **`pest --filter=""` matches nothing and exits 0**, which looks like a pass.
+- **Test accounts from 2026-09-10:** `slaterjoneschris+fynla0910@gmail.com` on fynla.org
+  (real Free account); csjones john has two 0% current accounts, £1,800 joint expenditure
+  and life stage "university"; local David and `journey-0910@example.com` carry test rows.
 
 ## Deploy state
 
-- **fynla.org = main `3edf8c39a`** (tree identical to dev `745ebe74f`), three releases on
-  2026-09-09 (PR #792 ~10:25, PR #796 ~11:00, PR #798 13:57 BST). Release 3 carried no
-  migrations. Backups on the server: `~/release-backups/2026-09-09/`, `2026-09-09b/`
-  (DB tables) and `2026-09-09c/` (bundle manifests). Notes: memory
-  `project_release_2026_09_09`. **Never rsync `bootstrap/`** (deploy guide step 6).
-- **csjones = dev `745ebe74f`**, both bundles built from it.
-- **TestFlight "Fynla" 1.0 (9)** on the `org.fynla.app.dev` record, Production
-  configuration reading fynla.org, VALID 2026-09-09 14:05 BST. The `org.fynla.app` record is
-  "Fynla (legacy)" — never upload there unasked. #773 still awaits CSJ's phone check.
-- **Fyn wiring artifact** (https://claude.ai/code/artifact/7375932e-a8e0-4920-9142-5a2db33b2d88):
-  every finding closed or settled by CSJ; source `September/September8Updates/fyn-wiring-artifact.html`.
-- **Dashboard recommendation routing** (2026-09-09 session 2): one home
-  `app/Services/Mobile/RecommendationRouting.php`; plan and outcome in
-  `September/September9Updates/ios-dashboard-jobs-plan.md`.
+- **fynla.org = main `ac967bdac`** (tree identical to dev `d73b2a832`), three releases on
+  2026-09-10 (PR #800 ~08:45, PR #805 ~12:10, PR #807 ~12:40 BST). No migrations in any.
+  Bundle `app-DguFb_dl.js`. Backups on the server: `~/release-backups/2026-09-10/`,
+  `2026-09-10b/`, `2026-09-10c/` (bundle manifests). Notes: memory
+  `project_release_2026_09_10`.
+- **csjones = dev `d73b2a832`**, web bundle built from it (`/m` bundle unchanged since
+  2026-09-09).
+- **TestFlight "Fynla" 1.0 (10)** on the `org.fynla.app.dev` record, Production
+  configuration reading fynla.org, VALID 2026-09-10 08:49 BST; native tree unchanged since.
+  The `org.fynla.app` record is "Fynla (legacy)" — never upload there unasked.
+- **Dashboard recommendation routing**: one home `app/Services/Mobile/RecommendationRouting.php`
+  (keys on `rule_key` since 2026-09-10); ids composed in
+  `RecommendationsAggregatorService::composeId` / `disambiguate`.
 
 ## Tech debt deferred
 
 Full report: `docs/tech-debt-report.md`.
 
+- **(2026-09-10)** Two homes for the plan-cap entity wording (`utils/apiErrors.js:12`
+  `ENTITY_LABELS` vs the literals on six `LimitReachedModal` consumers); the at-cap gate is
+  written per surface (`AssetsStep.vue:655`, `PropertyList.vue:228`) though the arithmetic
+  is shared; `utils/registrationRules.js` mirrors `RegisterRequest` by hand with no parity
+  pin; the vanilla cookie banner is a hand copy pinned only for the decline sentence; 14
+  pre-existing ESLint dead-code hits in the onboarding steps and wizard;
+  `PersonalInfoStep.vue:7` redundant `:hide-nav="true"`; `lifeStage.js:150` unused catch
+  binding; `ExpenditureForm.vue` ≈2,550 and `SavingsActionDefinitionService.php` ≈3,780 lines.
 - **(2026-09-09 pm)** Two Yes/No vocabularies inside `AdviceFyn` (`:229` follow-up, `:340`
   deferred answer); the web path map exists twice (`resources/js/utils/semanticDestinations.js:10`,
   `GamifiedDashboard.vue:365`) where the server could emit a `web` path; two /m
@@ -130,8 +155,8 @@ Full report: `docs/tech-debt-report.md`.
   (five raw-path rollback blocks behind `coordination.composed_module_plans`; retire the flag
   and they go). `PriorityRanker::MODULE_WEIGHTS` carries both `tax_optimisation` and `tax`.
   `StrategyPriority` has no `Critical` case (adapters carry `extra['seeded_priority']`).
-  `CoordinatingAgent` ~6,800 lines; `SavingsActionDefinitionService` ~3,850. `/m` views each
-  carry a `formatCurrency` copy; `0.00005` and the flat `0.0400` benchmark block are unnamed.
+  `CoordinatingAgent` ~6,800 lines. `/m` views each carry a `formatCurrency` copy;
+  `0.00005` and the flat `0.0400` benchmark block are unnamed.
 - **(2026-09-07)** `SubscriptionManagementView.swift` writes the web-handoff button + error
   block twice; `TierCollapsePreflight.php` re-derives "plans that confer premium" instead
   of one `TierConfigurationStore::plansConferringPremium()`; `WillFactory.php` repeats the

@@ -121,9 +121,7 @@
 
     <LimitReachedModal
       :show="showLimitModal"
-      entity-label="life events"
-      :cap="tierCountCap('life_event') || 0"
-      :tier-label="tierLabel"
+      entity-key="life_event"
       @close="showLimitModal = false"
     />
 
@@ -328,10 +326,7 @@ export default {
       if (this.loading) {
         await this.fetchLifeEvents();
       }
-      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('life_event', this.lifeEvents?.length || 0)) {
-        this.showLimitModal = true;
-        return;
-      }
+      if (this.guardTierCap('life_event', this.lifeEvents?.length || 0)) return;
       this.editingEvent = null;
       this.showFormModal = true;
     },

@@ -31,21 +31,38 @@ export function atTierCap(tierData, entityKey, currentCount) {
   return cap !== null && currentCount >= cap;
 }
 
+/**
+ * Whether "+ Add" must open the limit modal instead of the form: at the cap and
+ * not a preview persona (their writes are intercepted separately).
+ */
+export function tierCapBlocks(store, entityKey, currentCount) {
+  if (store.getters['preview/isPreviewMode']) return false;
+  return atTierCap(store.state.auth?.subscriptionData || null, entityKey, currentCount);
+}
+
+/** The plan a count cap belongs to. Only Free carries caps, so that is the honest fallback. */
+export function tierLabelFor(tierData) {
+  return TIER_LABELS[tierData?.tier] || TIER_LABELS.free;
+}
+
 export const tierLimitMixin = {
   computed: {
     tierData() {
       return this.$store.state.auth?.subscriptionData || null;
     },
     tierLabel() {
-      return TIER_LABELS[this.tierData?.tier] || 'your current';
+      return tierLabelFor(this.tierData);
     },
   },
   methods: {
     tierCountCap(entityKey) {
       return countCapFor(this.tierData, entityKey);
     },
-    isAtTierCap(entityKey, currentCount) {
-      return atTierCap(this.tierData, entityKey, currentCount);
+    /** The one at-cap gate: opens LimitReachedModal and returns true when the add is blocked. */
+    guardTierCap(entityKey, currentCount) {
+      if (!tierCapBlocks(this.$store, entityKey, currentCount)) return false;
+      this.showLimitModal = true;
+      return true;
     },
   },
 };

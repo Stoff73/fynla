@@ -470,9 +470,7 @@
 
     <LimitReachedModal
       :show="showLimitModal"
-      entity-label="pensions"
-      :cap="tierCountCap('pension_account') || 0"
-      :tier-label="tierLabel"
+      entity-key="pension_account"
       @close="showLimitModal = false"
     />
 
@@ -844,10 +842,7 @@ export default {
 
     openCreatePensionForm(initialType = null) {
       const pensionCount = this.dcPensions.length + this.dbPensions.length;
-      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('pension_account', pensionCount)) {
-        this.showLimitModal = true;
-        return;
-      }
+      if (this.guardTierCap('pension_account', pensionCount)) return;
       this.editingPension = null;
       this.initialPensionType = initialType;
       this.showPensionForm = true;
