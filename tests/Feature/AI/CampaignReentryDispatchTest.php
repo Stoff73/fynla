@@ -13,6 +13,7 @@ use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fyn\ScriptedAnthropicClient;
+use Tests\Support\Fyn\Sse;
 
 uses(RefreshDatabase::class);
 
@@ -68,16 +69,6 @@ function grantCampaignDispatchConsent(User $user): void
 /**
  * Parse raw SSE bytes into a flat array of decoded event arrays.
  */
-function parseCampaignDispatchSse(string $raw): array
-{
-    return collect(explode("\n\n", $raw))
-        ->filter(fn ($chunk) => str_starts_with(trim($chunk), 'data:'))
-        ->map(fn ($chunk) => json_decode(preg_replace('/^data:\s*/', '', trim($chunk)), true))
-        ->filter()
-        ->values()
-        ->all();
-}
-
 /**
  * Stub CoordinatingAgent so the AdviceFyn path completes with a named sentinel.
  * Mirrors the pattern used in ConsentRuntimeCheckTest::bindAdviceFynStubGenerator.
@@ -116,7 +107,7 @@ it('routes a completed user with no active_campaign to the advice path', functio
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", ['message' => 'hello']);
 
     $response->assertOk();
-    $events = parseCampaignDispatchSse($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
     $types = array_column($events, 'type');
 
     // FynLoop::run emits thinking before the reasoner — advice path only.
@@ -151,7 +142,7 @@ it('routes a completed user with active_campaign and a non-null step to the dire
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", ['message' => 'hello']);
 
     $response->assertOk();
-    $events = parseCampaignDispatchSse($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
     $types = array_column($events, 'type');
 
     // 'thinking' is emitted only by FynLoop::run (advice path); the director
@@ -185,7 +176,7 @@ it('routes to advice when active_campaign is set but onboarding_fyn_step is null
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", ['message' => 'hello']);
 
     $response->assertOk();
-    $events = parseCampaignDispatchSse($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
     $types = array_column($events, 'type');
 
     expect($types)->toContain('thinking');
@@ -213,7 +204,7 @@ it('routes to advice when fyn_flow_enabled is false even if active_campaign and 
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", ['message' => 'hello']);
 
     $response->assertOk();
-    $events = parseCampaignDispatchSse($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
     $types = array_column($events, 'type');
 
     expect($types)->toContain('thinking');
@@ -245,7 +236,7 @@ it('routes a re-entry user\'s queued turn through the director (streamQueuedMess
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages/{$queued->id}/stream");
 
     $response->assertOk();
-    $events = parseCampaignDispatchSse($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
     $types = array_column($events, 'type');
 
     // Director path does not emit 'thinking'; advice path does.
@@ -274,7 +265,7 @@ it('routes a re-entry user\'s action press through the director (action seam)', 
         ->postJson("/api/ai-chat/conversations/{$conv->id}/action", ['action' => 'continue']);
 
     $response->assertOk();
-    $events = parseCampaignDispatchSse($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
 
     // The no-op yields exactly "I'm not sure what to do with that right now."
     // Director reaching handleAction with 'continue' on a non-terminal state

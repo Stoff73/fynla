@@ -156,6 +156,15 @@ final class AdviceFyn
      * surfaces at the dispatch boundary (defence-in-depth behind this strip)
      * without duplicating the denylist — single source of truth.
      */
+    /**
+     * The one Yes/No vocabulary for a bubble answer Fyn asked for (the
+     * recommendation follow-up and the deferred-question offer). Rule 20: both
+     * branches read these; never add a third regex.
+     */
+    private const DECLINE_PATTERN = '/^(?:no|nope|not now|no,? than[kx]s?(?: you)?|no thank you|nothing else|that(?:[\x{2019}\x{0027}]s|\s+is) (?:all|everything|it)|all done|done|i[\x{2019}\x{0027}]?m done)\b/u';
+
+    private const AFFIRM_PATTERN = '/^(?:yes|yes\b.*|yep|yeah|okay|ok|sure|go ahead|please|please do)$/u';
+
     public const WRITE_TOOLS = [
         'create_savings_account', 'create_investment_account', 'create_holding',
         'create_pension', 'create_property', 'create_mortgage',
@@ -258,7 +267,7 @@ final class AdviceFyn
             $reply = mb_strtolower(trim($message));
             unset($metadata['recommendation_follow_up']);
 
-            if (preg_match('/^(?:no|nope|not now|no,? than[kx]s?(?: you)?|nothing else|that(?:[\x{2019}\x{0027}]s|\s+is) (?:all|everything|it)|all done|done|i[\x{2019}\x{0027}]?m done)\b/u', $reply) === 1) {
+            if (self::isDecline($reply)) {
                 $conversation->update(['metadata' => $metadata]);
                 app(RecommendationCompletionService::class)->complete(
                     $user,
@@ -279,7 +288,7 @@ final class AdviceFyn
                 return;
             }
 
-            if (preg_match('/^(?:yes|yes\b.*|yep|yeah|okay|ok|sure|go ahead|please)$/u', $reply) === 1) {
+            if (self::isAffirm($reply)) {
                 $conversation->update(['metadata' => $metadata]);
 
                 $ack = 'What would you like to add?';
@@ -358,7 +367,7 @@ final class AdviceFyn
             if ($expired) {
                 unset($metadata['pending_deferred_answer']);
                 $conversation->update(['metadata' => $metadata]);
-            } elseif (preg_match('/^(?:no|not now|no,? than[kx]s?|no thank you)\b/u', $reply) === 1) {
+            } elseif (self::isDecline($reply)) {
                 unset($metadata['pending_deferred_answer']);
                 $conversation->update(['metadata' => $metadata]);
 
@@ -371,7 +380,7 @@ final class AdviceFyn
                 yield ['type' => 'done'];
 
                 return;
-            } elseif (preg_match('/^(?:yes|yes\b.*|okay|ok|sure|go ahead|please do)$/u', $reply) === 1) {
+            } elseif (self::isAffirm($reply)) {
                 unset($metadata['pending_deferred_answer']);
                 $conversation->update(['metadata' => $metadata]);
 
@@ -770,5 +779,17 @@ final class AdviceFyn
         ));
 
         return array_values(array_diff($names, self::WRITE_TOOLS));
+    }
+
+    /** Did the user decline what Fyn just offered? Reply already lower-cased and trimmed. */
+    private static function isDecline(string $reply): bool
+    {
+        return preg_match(self::DECLINE_PATTERN, $reply) === 1;
+    }
+
+    /** Did the user accept what Fyn just offered? */
+    private static function isAffirm(string $reply): bool
+    {
+        return preg_match(self::AFFIRM_PATTERN, $reply) === 1;
     }
 }

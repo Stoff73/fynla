@@ -99,16 +99,12 @@
 
 <script>
 import { store } from '../../store.js';
+import { formatCurrency } from '../../utils/currency.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
 import { buildContextualConversationRequest } from '../../fyn/contextualConversation.js';
 import { summariseUpcoming } from '../../utils/lifeEvents.js';
-
-function formatCurrency(value) {
-  if (value == null || value === '' || isNaN(Number(value))) return '—';
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
-}
 
 export default {
   name: 'MobileGoals',

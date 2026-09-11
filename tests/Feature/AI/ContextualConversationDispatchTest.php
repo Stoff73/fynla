@@ -14,6 +14,7 @@ use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fyn\ScriptedAnthropicClient;
+use Tests\Support\Fyn\Sse;
 
 uses(RefreshDatabase::class);
 
@@ -28,16 +29,6 @@ afterEach(fn () => Mockery::close());
 function grantContextualDispatchConsent(User $user): void
 {
     app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
-}
-
-function contextualDispatchEvents(string $raw): array
-{
-    return collect(explode("\n\n", $raw))
-        ->filter(fn ($chunk) => str_starts_with(trim($chunk), 'data:'))
-        ->map(fn ($chunk) => json_decode(preg_replace('/^data:\s*/', '', trim($chunk)), true))
-        ->filter()
-        ->values()
-        ->all();
 }
 
 function stubContextualAdvicePath(string $sentinel): void
@@ -94,7 +85,7 @@ it('routes a surface-action message to advice while global onboarding is active'
         ])
         ->assertOk();
 
-    $events = contextualDispatchEvents($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
     expect(array_column($events, 'type'))->toContain('thinking')
         ->and(array_column(
             array_filter($events, fn ($event) => ($event['type'] ?? '') === 'content'),
@@ -113,7 +104,7 @@ it('routes a queued surface-action message to advice while global onboarding is 
         ->postJson("/api/ai-chat/conversations/{$conversation->id}/messages/{$queued->id}/stream")
         ->assertOk();
 
-    $events = contextualDispatchEvents($response->streamedContent());
+    $events = Sse::frames($response->streamedContent());
     expect(array_column($events, 'type'))->toContain('thinking')
         ->and(array_column(
             array_filter($events, fn ($event) => ($event['type'] ?? '') === 'content'),
@@ -134,7 +125,7 @@ it('keeps onboarding actions out of a surface-action conversation', function ():
 
     $text = implode(' ', array_column(
         array_filter(
-            contextualDispatchEvents($response->streamedContent()),
+            Sse::frames($response->streamedContent()),
             fn ($event) => ($event['type'] ?? '') === 'content',
         ),
         'text',

@@ -77,7 +77,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { apiErrorMessage } from '@/utils/apiErrors';
@@ -87,7 +86,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
     CountrySelector,
   },
 
@@ -271,7 +269,7 @@ export default {
             calculateYearsResident();
           }
         }
-      } catch (err) {
+      } catch {
         // No existing data, start fresh
       }
     });

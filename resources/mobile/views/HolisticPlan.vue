@@ -67,15 +67,11 @@
 
 <script>
 import { store } from '../store.js';
+import { formatCurrency } from '../utils/currency.js';
 import { apiGet } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
 import { upgradeMixin } from '../mixins/upgrade.js';
-
-function formatCurrency(value) {
-  if (value == null || value === '' || isNaN(Number(value))) return '—';
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
-}
 
 // Spell out embedded acronyms (Rule #9 — only ISA may stay abbreviated).
 const ACRONYM_EXPANSIONS = {

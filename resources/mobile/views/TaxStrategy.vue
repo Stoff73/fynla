@@ -138,14 +138,10 @@
 
 <script>
 import { store } from '../store.js';
+import { formatCurrency } from '../utils/currency.js';
 import { apiGet, apiPost } from '../api.js';
 import { handleAuthExpiry } from '../authExpiry.js';
 import MobileChrome from '../components/MobileChrome.vue';
-
-function formatCurrency(value) {
-  if (value == null || value === '' || isNaN(Number(value))) return '—';
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
-}
 
 // Maps a recommendation type to the mobile module screen that helps act on it.
 // Mirrors the desktop StrategyRecommendationList NEXT_STEPS, repointed at the

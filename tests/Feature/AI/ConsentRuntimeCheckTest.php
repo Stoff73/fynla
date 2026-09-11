@@ -10,9 +10,9 @@ use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fyn\ScriptedAnthropicClient;
+use Tests\Support\Fyn\Sse;
 
 uses(RefreshDatabase::class);
 
@@ -51,18 +51,6 @@ function bindAdviceFynStubGenerator(callable $generatorFactory): void
         $mock->shouldReceive('chatWithPromptOverride')
             ->andReturnUsing($generatorFactory);
     });
-}
-
-/**
- * Parse a `data: ...\n\n` SSE byte stream into a Collection of decoded events.
- */
-function parseSseEvents(string $raw): Collection
-{
-    return collect(explode("\n\n", $raw))
-        ->filter(fn ($c) => str_starts_with(trim($c), 'data:'))
-        ->map(fn ($c) => json_decode(preg_replace('/^data:\s*/', '', trim($c)), true))
-        ->filter()
-        ->values();
 }
 
 // ─── sendMessage 403 guard ──────────────────────────────────────────────
@@ -126,7 +114,7 @@ it('allows sendMessage to stream when ai_chat consent is granted', function (): 
         ]);
 
     $response->assertOk();
-    $events = parseSseEvents($response->streamedContent());
+    $events = collect(Sse::frames($response->streamedContent()));
 
     expect($events->pluck('type')->all())->toBe(['thinking', 'content', 'done']);
     expect($events->pluck('type')->filter(fn ($t) => $t === 'consent_required'))->toBeEmpty();
@@ -163,7 +151,7 @@ it('allows startOnboarding to stream when ai_chat consent is granted', function 
         ->postJson('/api/ai-chat/onboarding/start');
 
     $response->assertOk();
-    $events = parseSseEvents($response->streamedContent());
+    $events = collect(Sse::frames($response->streamedContent()));
 
     // The first event is the conversation_created envelope. The director
     // then emits the path_choice turn — we don't pin its exact shape here,
@@ -212,7 +200,7 @@ it('emits consent_required SSE and closes the stream when consent is withdrawn m
         ]);
 
     $response->assertOk();
-    $events = parseSseEvents($response->streamedContent());
+    $events = collect(Sse::frames($response->streamedContent()));
 
     $types = $events->pluck('type')->all();
 
@@ -263,7 +251,7 @@ it('queries hasConsent at most once across a fast SSE stream (W1-L perf cache)',
         ]);
 
     $response->assertOk();
-    $events = parseSseEvents($response->streamedContent());
+    $events = collect(Sse::frames($response->streamedContent()));
     expect($events->count())->toBe(27); // thinking + 25 chunks + done
 
     // 1 call only: the entry-point gate at sendMessage line 149.

@@ -149,7 +149,7 @@ const actions = {
         commit('setDataCompletedSteps', progressData.data_completed_steps || []);
         commit('setStepCompleteness', progressData.step_completeness || {});
       }
-    } catch (error) {
+    } catch {
       // Non-blocking refresh
     }
   },

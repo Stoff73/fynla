@@ -4,7 +4,6 @@
     description="Tell us about yourself to help us tailor your financial plan"
     :can-go-back="false"
     :can-skip="false"
-    :hide-nav="true"
     :loading="loading"
     :error="error"
     @next="handleNext"
@@ -211,10 +210,9 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '../UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import {
   HEALTH_STATUS_OPTIONS,
@@ -229,7 +227,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip', 'sidebar-update'],
@@ -373,7 +370,7 @@ export default {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      } catch (e) {
+      } catch {
         return '';
       }
     };
@@ -432,7 +429,7 @@ export default {
           }
           formData.value = { ...formData.value, ...stepData };
         }
-      } catch (err) {
+      } catch {
         // No existing step data, use pre-populated values from user table
       }
 

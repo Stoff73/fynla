@@ -70,7 +70,6 @@
 import { ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { apiErrorMessage } from '@/utils/apiErrors';
 
@@ -79,7 +78,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip', 'sidebar-update'],
