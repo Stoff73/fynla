@@ -3771,6 +3771,21 @@ PROMPT;
 
             return;
         }
+
+        // The model made NO tool call this turn while the previous turn was a
+        // gate-blocked attempt awaiting exactly this reply (live prod
+        // conversation 843, 2026-09-11: "My name" drew the canned refusal).
+        // Re-run that attempt with the merged user words as evidence — the
+        // gate adopts the owner from them as it would on a re-call — so the
+        // save never depends on the model re-issuing its own call.
+        if ($toolCallsSeen === 0 && $recordsCreated === []) {
+            foreach ($this->retryPreviousBlockedAttempt($user, $conversation, $assistantBaselineId, $delegatedMessage) as $rescueEvent) {
+                if (self::isRecordRowEvent((string) ($rescueEvent['type'] ?? ''))) {
+                    $recordsCreated[] = self::recordRowFromEvent($rescueEvent);
+                }
+                yield $rescueEvent;
+            }
+        }
         // The unified onboarding focus is set and cleared inside
         // FynLoop::stream (on the same agent instance it streams on), so no
         // focus-clear is needed here — FynLoop's own finally covers the
@@ -5748,81 +5763,165 @@ PROMPT;
         ]);
 
         foreach ($missing as $input) {
-            yield [
-                'type' => 'tool_use',
+            yield from $this->executeGapFillInput($user, $conversation, $tool, $input);
+        }
+    }
+
+    /**
+     * Execute one deterministic capture write and surface its outcome as the
+     * same events the model's own tool call would have produced. Shared by the
+     * extractor gap-fill and the previous-attempt rescue so the two cannot
+     * drift (Rule 20). $evidenceOverride hands the gate the user's verbatim
+     * words when they are not this turn's message alone.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private function executeGapFillInput(
+        User $user,
+        AiConversation $conversation,
+        string $tool,
+        array $input,
+        ?string $evidenceOverride = null
+    ): \Generator {
+        yield [
+            'type' => 'tool_use',
+            'tool' => $tool,
+            'status' => 'running',
+        ];
+
+        // A workplace-pension gap-fill needs the salary the percentages
+        // apply to; the message rarely restates it, the profile has it.
+        if ($tool === 'create_pension'
+            && ! isset($input['annual_salary'])
+            && (float) ($user->annual_employment_income ?? 0) > 0) {
+            $input['annual_salary'] = (float) $user->annual_employment_income;
+        }
+
+        try {
+            // The bare four-argument call is the gap-fill's original shape; the
+            // evidence override is added only when the rescue supplies one.
+            $result = $evidenceOverride === null
+                ? $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id)
+                : $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id, evidenceOverride: $evidenceOverride);
+        } catch (\Throwable $e) {
+            Log::error('[OnboardingChatDirector] Gap-fill tool execution failed', [
+                'user_id' => $user->id,
                 'tool' => $tool,
-                'status' => 'running',
-            ];
-
-            // A workplace-pension gap-fill needs the salary the percentages
-            // apply to; the message rarely restates it, the profile has it.
-            if ($tool === 'create_pension'
-                && ! isset($input['annual_salary'])
-                && (float) ($user->annual_employment_income ?? 0) > 0) {
-                $input['annual_salary'] = (float) $user->annual_employment_income;
-            }
-
-            try {
-                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id);
-            } catch (\Throwable $e) {
-                Log::error('[OnboardingChatDirector] Gap-fill tool execution failed', [
-                    'user_id' => $user->id,
-                    'tool' => $tool,
-                    'input' => $input,
-                    'error' => $e->getMessage(),
-                ]);
-
-                yield [
-                    'type' => 'tool_use',
-                    'tool' => $tool,
-                    'status' => 'complete',
-                ];
-
-                continue;
-            }
-
-            if (! empty($result['error']) || ! empty($result['blocked'])) {
-                // Handler refused. Don't propagate a bad fill_form to the
-                // frontend — just close out the tool_use status so the UI
-                // doesn't think it's still running.
-                yield [
-                    'type' => 'tool_use',
-                    'tool' => $tool,
-                    'status' => 'complete',
-                ];
-
-                continue;
-            }
-
-            if (($result['action'] ?? null) === 'fill_form') {
-                yield [
-                    'type' => 'fill_form',
-                    'entity_type' => $result['entity_type'] ?? '',
-                    'route' => $result['route'] ?? '',
-                    'fields' => $result['fields'] ?? [],
-                    'mode' => $result['mode'] ?? 'create',
-                    'entity_id' => $result['entity_id'] ?? null,
-                ];
-            }
-
-            // Onboarding executeTool writes persist directly (no fill_form):
-            // surface the landed record so the caller counts it as a capture
-            // (the zero-output guard and the advance gate both key on it) and
-            // the frontend renders the record card.
-            if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
-                yield [
-                    'type' => 'entity_created',
-                    'entity_type' => (string) ($result['entity_type'] ?? ''),
-                    'entity_id' => $result['entity_id'],
-                    'name' => (string) ($input['scheme_name'] ?? $input['account_name'] ?? $input['name'] ?? ''),
-                ];
-            }
+                'input' => $input,
+                'error' => $e->getMessage(),
+            ]);
 
             yield [
                 'type' => 'tool_use',
                 'tool' => $tool,
                 'status' => 'complete',
             ];
+
+            return;
+        }
+
+        if (! empty($result['error']) || ! empty($result['blocked'])) {
+            // Handler refused. Don't propagate a bad fill_form to the
+            // frontend — just close out the tool_use status so the UI
+            // doesn't think it's still running.
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'complete',
+            ];
+
+            return;
+        }
+
+        if (($result['action'] ?? null) === 'fill_form') {
+            yield [
+                'type' => 'fill_form',
+                'entity_type' => $result['entity_type'] ?? '',
+                'route' => $result['route'] ?? '',
+                'fields' => $result['fields'] ?? [],
+                'mode' => $result['mode'] ?? 'create',
+                'entity_id' => $result['entity_id'] ?? null,
+            ];
+        }
+
+        // Onboarding executeTool writes persist directly (no fill_form):
+        // surface the landed record so the caller counts it as a capture
+        // (the zero-output guard and the advance gate both key on it) and
+        // the frontend renders the record card.
+        if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
+            yield [
+                'type' => 'entity_created',
+                'entity_type' => (string) ($result['entity_type'] ?? ''),
+                'entity_id' => $result['entity_id'],
+                'name' => (string) ($input['scheme_name'] ?? $input['account_name'] ?? $input['name'] ?? ''),
+            ];
+        }
+
+        yield [
+            'type' => 'tool_use',
+            'tool' => $tool,
+            'status' => 'complete',
+        ];
+    }
+
+    /**
+     * The model's own gate-blocked create from the PREVIOUS turn, re-run with
+     * the user's new words as the gate's evidence.
+     *
+     * Every earlier ownership fix (2026-07-23/24) relied on the model
+     * re-issuing its blocked call so CaptureAccuracyGate could adopt the
+     * owner from the reply. Live prod conversation 843 (2026-09-11): "My name"
+     * drew the canned refusal and NO tool call, so the gate never ran, the
+     * account was never saved and the walk fell to "Sorry, I didn't catch
+     * that". This is the one mechanism that does not need the model: the
+     * previous assistant row carries the full call (`tool_calls`) and its
+     * result (`tool_results`); re-executing it through the same executeTool
+     * runs the same gate, which repairs ownership from the merged user words
+     * exactly as on a re-call. Yields nothing when there is no such attempt
+     * or the gate still blocks — the model's own reply then stands.
+     */
+    private function retryPreviousBlockedAttempt(
+        User $user,
+        AiConversation $conversation,
+        int $assistantBaselineId,
+        string $evidence
+    ): \Generator {
+        $previous = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('id', '<=', $assistantBaselineId)
+            ->latest('id')
+            ->first(['id', 'metadata', 'tool_calls', 'tool_results']);
+        if ($previous === null) {
+            return;
+        }
+
+        $metadata = is_array($previous->metadata) ? $previous->metadata : [];
+        if (($metadata['turn_intent'] ?? null) !== FynTurnIntent::CaptureClarification->value
+            && ($metadata['capture_write_failed'] ?? false) !== true) {
+            return;
+        }
+
+        $asArray = static fn ($value): array => is_array($value) ? $value : (is_string($value) ? (array) json_decode($value, true) : []);
+        $results = collect($asArray($previous->tool_results))->keyBy('sequence');
+
+        foreach ($asArray($previous->tool_calls) as $call) {
+            $tool = (string) ($call['tool'] ?? '');
+            $input = (array) ($call['input'] ?? []);
+            $raw = (array) (($results[$call['sequence'] ?? -1]['raw'] ?? []));
+            if (($raw['error_type'] ?? null) !== 'clarification_required'
+                || $input === []
+                || ! str_starts_with($tool, 'create_')) {
+                continue;
+            }
+
+            Log::info('[OnboardingChatDirector] Re-running the previous gate-blocked attempt with the new reply as evidence', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'tool' => $tool,
+                'previous_message_id' => $previous->id,
+            ]);
+
+            yield from $this->executeGapFillInput($user, $conversation, $tool, $input, $evidence);
         }
     }
 
