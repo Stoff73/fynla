@@ -1903,3 +1903,22 @@ it('binds the latest clarification answer across multiple accumulated turns', fu
     expect($result['allowed'])->toBeTrue()
         ->and($result['repaired']['ownership_type'] ?? null)->toBe('individual');
 });
+
+it('repairs ownership from the bare live replies "My name" and "Individual" (prod conversation 842, 2026-09-11)', function (): void {
+    // The model re-issued create_savings_account without ownership_type after
+    // each answer, so the user was asked three times. The gate's repair channel
+    // is the one place that can adopt the user's own words — and neither reply
+    // was in OwnershipPhrasings.
+    foreach (['My name', 'Individual', 'my name only', 'me only', 'myself', 'sole'] as $reply) {
+        $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+            'institution' => 'Lloyds',
+            'account_name' => 'Lloyds current account',
+            'account_type' => 'current_account',
+            'interest_rate' => 0.5,
+            'current_balance' => 250,
+        ], "Lloyds current account, 250 balance, 0.5% interest\n{$reply}");
+
+        expect($result['allowed'])->toBeTrue("reply '{$reply}' was not accepted")
+            ->and($result['repaired']['ownership_type'] ?? null)->toBe('individual', "reply '{$reply}' did not repair to individual");
+    }
+});
