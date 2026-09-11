@@ -263,3 +263,34 @@ describe('all 10 campaign states are reachable from getState()', function () {
         }
     });
 });
+
+describe('STATE_CAMPAIGN_INTRO names only the assets the funnel selected', function () {
+    it('lists bank and savings accounts, not pensions or investments, for a bank+savings funnel', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Chris',
+            'marital_status' => 'single',
+            'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank', 'savings']],
+        ]);
+
+        $prompt = OnboardingStateMachine::buildCampaignIntroPrompt('', $user, null);
+
+        expect($prompt)->toContain('your bank and savings accounts')
+            ->and($prompt)->not->toContain('pension')
+            ->and($prompt)->not->toContain('investment')
+            ->and($prompt)->toEndWith('is that okay?');
+    });
+
+    it('lists every chosen group in funnel order and keeps the generic wording when nothing was chosen', function () {
+        $all = User::factory()->create([
+            'first_name' => 'Chris',
+            'marital_status' => 'single',
+            'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['pension', 'isa', 'investments']],
+        ]);
+        $none = User::factory()->create(['first_name' => 'Chris', 'marital_status' => 'single', 'funnel_answers' => null]);
+
+        expect(OnboardingStateMachine::buildCampaignIntroPrompt('', $all, null))
+            ->toContain('your pensions, ISAs and investments');
+        expect(OnboardingStateMachine::buildCampaignIntroPrompt('', $none, null))
+            ->toContain('your pensions, accounts and investments');
+    });
+});
