@@ -475,9 +475,8 @@
          pages show, fed from the 403 the server sent (W-0544). -->
     <LimitReachedModal
       :show="!!tierLimit"
-      :entity-label="tierLimit?.entityLabel || 'items'"
-      :cap="tierLimit?.cap || 0"
-      :tier-label="currentTierLabel"
+      :entity-key="tierLimit?.entityKey || ''"
+      :cap="tierLimit?.cap"
       @close="tierLimit = null"
     />
 
@@ -522,8 +521,8 @@ import DBPensionForm from '@/components/Retirement/DBPensionForm.vue';
 import StatePensionForm from '@/components/Retirement/StatePensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
-import { apiErrorMessage, tierLimitFrom, ENTITY_LABELS } from '@/utils/apiErrors';
-import { TIER_LABELS, atTierCap, countCapFor } from '@/mixins/tierLimitMixin';
+import { apiErrorMessage, tierLimitFrom } from '@/utils/apiErrors';
+import { tierCapBlocks } from '@/mixins/tierLimitMixin';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import propertyService from '@/services/propertyService';
 import investmentService from '@/services/investmentService';
@@ -652,11 +651,9 @@ export default {
     // (auth/fetchSubscriptionData, requested on mount) and a capped "+ Add"
     // opens the limit modal instead of the form. Preview personas are exempt,
     // as on those pages.
-    const tierData = computed(() => store.state.auth?.subscriptionData || null);
     const capBlocks = (entityKey, currentCount) => {
-      if (store.getters['preview/isPreviewMode']) return false;
-      if (!atTierCap(tierData.value, entityKey, currentCount)) return false;
-      tierLimit.value = { entityKey, entityLabel: ENTITY_LABELS[entityKey] || entityKey, cap: countCapFor(tierData.value, entityKey) };
+      if (!tierCapBlocks(store, entityKey, currentCount)) return false;
+      tierLimit.value = { entityKey };
       return true;
     };
     const revealPropertyForm = () => {
@@ -677,10 +674,6 @@ export default {
     };
     // The tier limit a save just hit (tierLimitFrom), or null — drives LimitReachedModal.
     const tierLimit = ref(null);
-    // The plan the cap belongs to — the user's current one, as tierLimitMixin
-    // labels it. The subscription payload is not always loaded mid-onboarding;
-    // only the Free tier carries count caps, so that is the honest fallback.
-    const currentTierLabel = computed(() => TIER_LABELS[store.state.auth?.subscriptionData?.tier] || TIER_LABELS.free);
     const showTierLimit = (err) => {
       const limit = tierLimitFrom(err);
       if (!limit) return false;
@@ -1314,7 +1307,6 @@ export default {
       loading,
       error,
       tierLimit,
-      currentTierLabel,
       revealPropertyForm,
       revealInvestmentForm,
       revealSavingsForm,

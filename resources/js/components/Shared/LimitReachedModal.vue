@@ -12,7 +12,7 @@
         </h3>
 
         <p class="mt-3 text-sm text-neutral-500">
-          Your {{ tierLabel }} plan includes up to {{ cap }} {{ entityLabel }}.
+          Your {{ tierLabel }} plan includes up to {{ capShown }} {{ entityLabel }}.
           Upgrade your plan to add more.
         </p>
 
@@ -39,29 +39,33 @@
 
 <script>
 import { subscriptionOptionsLocation } from '@/utils/subscriptionNavigation';
+import { ENTITY_LABELS } from '@/utils/apiErrors';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 
+/**
+ * The one home for the plan-cap wording: pass the entity_key
+ * (TierConfigurationSeeder count_caps) and the modal reads the label, the cap
+ * and the tier itself from the subscription payload.
+ */
 export default {
   name: 'LimitReachedModal',
+
+  mixins: [tierLimitMixin],
 
   props: {
     show: {
       type: Boolean,
       required: true,
     },
-    /** Plural entity noun shown in the body, e.g. "cash accounts". */
-    entityLabel: {
+    /** entity_key the cap applies to, e.g. "savings_account". */
+    entityKey: {
       type: String,
-      required: true,
+      default: '',
     },
-    /** The user's count cap for this entity. */
+    /** Override for the cap when the server reported it (a 403 mid-save); else read from the payload. */
     cap: {
       type: Number,
-      required: true,
-    },
-    /** Display label for the user's tier, e.g. "Free". */
-    tierLabel: {
-      type: String,
-      default: 'your current',
+      default: null,
     },
   },
 
@@ -69,6 +73,12 @@ export default {
 
   computed: {
     subscriptionOptionsLocation,
+    entityLabel() {
+      return ENTITY_LABELS[this.entityKey] || this.entityKey.replace(/_/g, ' ') || 'items';
+    },
+    capShown() {
+      return this.cap ?? this.tierCountCap(this.entityKey) ?? 0;
+    },
   },
 };
 </script>

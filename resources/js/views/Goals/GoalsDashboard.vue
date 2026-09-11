@@ -114,9 +114,7 @@
 
     <LimitReachedModal
       :show="showLimitModal"
-      entity-label="goals"
-      :cap="tierCountCap('goal') || 0"
-      :tier-label="tierLabel"
+      entity-key="goal"
       @close="showLimitModal = false"
     />
 
@@ -315,10 +313,7 @@ export default {
     },
 
     openCreateModal() {
-      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('goal', this.goals?.length || 0)) {
-        this.showLimitModal = true;
-        return;
-      }
+      if (this.guardTierCap('goal', this.goals?.length || 0)) return;
       this.editingGoal = null;
       this.showGoalModal = true;
     },

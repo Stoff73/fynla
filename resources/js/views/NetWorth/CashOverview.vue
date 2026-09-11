@@ -318,9 +318,7 @@
     <Teleport to="body">
       <LimitReachedModal
         :show="showLimitModal"
-        entity-label="cash accounts"
-        :cap="tierCountCap('savings_account') || 0"
-        :tier-label="tierLabel"
+        entity-key="savings_account"
         @close="showLimitModal = false"
       />
     </Teleport>
@@ -627,10 +625,7 @@ export default {
       // single `savings_account` cap. At cap, show the upgrade modal instead of
       // an add form that would fail server-side. Preview users bypass (their
       // writes are intercepted separately).
-      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('savings_account', this.accounts.length)) {
-        this.showLimitModal = true;
-        return;
-      }
+      if (this.guardTierCap('savings_account', this.accounts.length)) return;
       this.editingAccount = null;
       this.defaultAccountType = accountType;
       this.showAccountModal = true;

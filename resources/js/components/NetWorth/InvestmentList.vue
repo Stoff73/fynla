@@ -233,9 +233,7 @@
     <Teleport to="body">
       <LimitReachedModal
         :show="showLimitModal"
-        entity-label="investment accounts"
-        :cap="tierCountCap('investment') || 0"
-        :tier-label="tierLabel"
+        entity-key="investment"
         @close="showLimitModal = false"
       />
     </Teleport>
@@ -499,10 +497,7 @@ export default {
     },
 
     openAddAccountModal() {
-      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('investment', this.accounts.length)) {
-        this.showLimitModal = true;
-        return;
-      }
+      if (this.guardTierCap('investment', this.accounts.length)) return;
       this.editingAccount = null;
       this.showAccountForm = true;
     },
