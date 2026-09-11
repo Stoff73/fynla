@@ -147,6 +147,7 @@
 
 <script>
 import { store } from '../../store.js';
+import { formatCurrency } from '../../utils/currency.js';
 import { apiGet } from '../../api.js';
 import { handleAuthExpiry } from '../../authExpiry.js';
 import MobileChrome from '../../components/MobileChrome.vue';
@@ -158,11 +159,6 @@ import { upgradeMixin } from '../../mixins/upgrade.js';
 // savings-account screens already do.
 import { calculateTotalUserShare, calculateUserShare, isSharedRecord, userSharePercent } from '../../../js/utils/ownership.js';
 import { RUNWAY_UNAVAILABLE_HINT, runwayLabel } from '../../../js/utils/emergencyRunway.js';
-
-function formatCurrency(value) {
-  if (value == null || value === '' || isNaN(Number(value))) return '—';
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(value));
-}
 
 export default {
   name: 'MobileSavings',
