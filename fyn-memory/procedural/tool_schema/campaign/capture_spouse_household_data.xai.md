@@ -81,10 +81,13 @@ effective_from: 2026-06-02
                     "number",
                     "null"
                 ],
-                "description": "Spouse gross annual pension contribution."
+                "description": "Spouse gross annual pension contribution in pounds. A monthly figure (\"she contributes 500 per month\") must be converted to annual (x12 = 6000). Always set it when the user states what the spouse pays in."
             },
             "spouse_existing_pension_balance": {
-                "type": "number",
+                "type": [
+                    "number",
+                    "null"
+                ],
                 "description": "Current total value of the pension pot(s) the spouse already holds, in pounds — set when the user states a pot value (e.g. \"an Aviva pension with 75,680 in it\"). Distinct from spouse_pension_input_annual (what they pay in each year)."
             }
         },

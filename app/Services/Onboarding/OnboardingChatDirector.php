@@ -2852,6 +2852,12 @@ final class OnboardingChatDirector
             return;
         }
 
+        // The spouse step's pot and contributions are backfilled from the
+        // user's own words when the model dropped them (one home:
+        // SpouseHouseholdPhrasings), through the same handler the model's
+        // call went through.
+        $captureDetails = $this->backfillSpouseHouseholdFromWords($user, $conversation, $currentStateId, $message, $captureDetails);
+
         $this->recordProgress($user, $currentStateId, $captureDetails);
 
         // INV-2.2.6 — same flush as the free-text path above. The grouped
@@ -3181,6 +3187,59 @@ final class OnboardingChatDirector
      *
      * @return array{field: string, band: string, entered: float}|null
      */
+    /**
+     * Fill spouse_existing_pension_balance / spouse_pension_input_annual from
+     * the user's words when the model's capture_spouse_household_data call
+     * left them out (live prod 2026-09-11, conversation 845 then 848: the same
+     * sentence lost the pot on one run and the £500-a-month contributions on
+     * the next). Writes through the same handler, so the row and the details
+     * the challenge and progress read stay one record.
+     *
+     * @param  array<string, mixed>  $captureDetails
+     * @return array<string, mixed>
+     */
+    private function backfillSpouseHouseholdFromWords(User $user, AiConversation $conversation, string $stateId, string $message, array $captureDetails): array
+    {
+        if ($stateId !== OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD) {
+            return $captureDetails;
+        }
+
+        $fill = [];
+        if (! isset($captureDetails['spouse_existing_pension_balance'])) {
+            $pot = SpouseHouseholdPhrasings::pensionPotValue($message);
+            if ($pot !== null) {
+                $fill['spouse_existing_pension_balance'] = $pot;
+            }
+        }
+        if (! isset($captureDetails['spouse_pension_input_annual'])) {
+            $annual = SpouseHouseholdPhrasings::pensionContributionAnnual($message);
+            if ($annual !== null) {
+                $fill['spouse_pension_input_annual'] = $annual;
+            }
+        }
+        if ($fill === []) {
+            return $captureDetails;
+        }
+
+        $result = $this->coordinatingAgent->executeTool('capture_spouse_household_data', $fill, $user, $conversation->id);
+        if (($result['onboarding_capture'] ?? false) !== true) {
+            Log::warning('[OnboardingChatDirector] Spouse household backfill refused', [
+                'user_id' => $user->id,
+                'fill' => $fill,
+                'result' => $result['message'] ?? ($result['error_type'] ?? 'unknown'),
+            ]);
+
+            return $captureDetails;
+        }
+
+        Log::info('[OnboardingChatDirector] Spouse household backfilled from the user\'s words', [
+            'user_id' => $user->id,
+            'fill' => $fill,
+        ]);
+
+        return array_merge($captureDetails, $fill);
+    }
+
     private function detectIncomeFunnelMismatch(User $user, string $stateId, array $captureDetails): ?array
     {
         $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
