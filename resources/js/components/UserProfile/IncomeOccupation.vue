@@ -473,6 +473,29 @@
         <IncomeDefinitionsPanel :definitions="incomeDefinitions" />
       </div>
     </div>
+
+    <!-- What the SaveTax spouse step captured: shown where the verify step
+         sends the user, so nothing they told Fyn about their spouse reads as
+         ignored. Income rows come from the linked spouse account when one is
+         shared, else from the campaign's household inputs. -->
+    <div v-if="spouseSummary" class="card">
+      <div class="card-header">
+        <h3 class="card-title">Your spouse's income</h3>
+      </div>
+      <div class="card-body space-y-2">
+        <div v-for="row in spouseIncomeRows" :key="row.key" class="flex items-baseline justify-between text-body-sm">
+          <span class="text-neutral-600">{{ row.label }}<span v-if="row.detail" class="ml-2 text-neutral-400">{{ row.detail }}</span></span>
+          <span class="text-horizon-500 text-right">{{ formatCurrency(row.amount) }}</span>
+        </div>
+        <template v-if="spouseCapturedRows.length">
+          <p class="pt-2 text-body-sm font-medium text-horizon-500">What you told Fyn about your spouse</p>
+          <div v-for="row in spouseCapturedRows" :key="row.key" class="flex items-baseline justify-between text-body-sm">
+            <span class="text-neutral-600">{{ row.label }}<span v-if="row.detail" class="ml-2 text-neutral-400">{{ row.detail }}</span></span>
+            <span class="text-horizon-500 text-right">{{ formatCurrency(row.amount) }}</span>
+          </div>
+        </template>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -506,6 +529,20 @@ export default {
     let messageTimeout = null;
 
     const incomeOccupation = computed(() => store.getters['userProfile/incomeOccupation']);
+    const spouseSummary = computed(() => store.getters['userProfile/profile']?.income_summary?.spouse || null);
+    const spouseIncomeRows = computed(() => {
+      const income = spouseSummary.value || {};
+      if (Array.isArray(income.sources)) return income.sources.filter((r) => Number(r.amount) > 0);
+      return [];
+    });
+    const spouseCapturedRows = computed(() => {
+      const h = (spouseSummary.value || {}).household || {};
+      return [
+        { key: 'isa_balance', label: 'ISA balance', amount: h.isa_balance, detail: '' },
+        { key: 'pension_balance', label: 'Pension pot', amount: h.pension_balance, detail: '' },
+        { key: 'pension_input_annual', label: 'Pension contributions', amount: h.pension_input_annual, detail: 'a year' },
+      ].filter((r) => r.amount != null && Number(r.amount) > 0);
+    });
     const detailedTaxBreakdown = computed(() => incomeOccupation.value?.detailed_tax_breakdown || null);
     const rentalBreakdown = computed(() => incomeOccupation.value?.rental_breakdown || null);
 
@@ -778,6 +815,9 @@ export default {
     });
 
     return {
+      spouseSummary,
+      spouseIncomeRows,
+      spouseCapturedRows,
       form,
       isEditing,
       submitting,

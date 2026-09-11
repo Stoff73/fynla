@@ -3191,12 +3191,24 @@ final class OnboardingChatDirector
             return null;
         }
 
+        // The SaveTax campaign asks the spouse's income on
+        // campaign_spouse_household (capture_spouse_household_data, key
+        // spouse_annual_income), not on base_spouse — so the cross-check the
+        // funnel band exists for never ran there (live prod 2026-09-11: a
+        // "6500" typo against the £50,271–£100,000 band went unchallenged and
+        // the whole tax plan was built on it).
+        $incomeKey = 'annual_income';
         if ($stateId === OnboardingStateMachine::STATE_BASE_WORK) {
             $field = 'self';
             $band = (string) ($funnel['income'] ?? '');
             $issuedContext = $funnel['income_context'] ?? null;
         } elseif ($stateId === OnboardingStateMachine::STATE_BASE_SPOUSE) {
             $field = 'spouse';
+            $band = (string) ($funnel['spouseIncome'] ?? '');
+            $issuedContext = $funnel['spouse_income_context'] ?? null;
+        } elseif ($stateId === OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD) {
+            $field = 'spouse';
+            $incomeKey = 'spouse_annual_income';
             $band = (string) ($funnel['spouseIncome'] ?? '');
             $issuedContext = $funnel['spouse_income_context'] ?? null;
         } else {
@@ -3210,7 +3222,7 @@ final class OnboardingChatDirector
         // $captureDetails is the handler's `details` array (assigned from
         // $event['details'] in handleGroupedExtractTurn), so annual_income is a
         // direct key here — NOT nested under another 'details'.
-        $enteredRaw = $captureDetails['annual_income'] ?? null;
+        $enteredRaw = $captureDetails[$incomeKey] ?? null;
         if ($enteredRaw === null) {
             // Spouse income is optional; user-income absence is handled by the
             // income-required retry, not here.

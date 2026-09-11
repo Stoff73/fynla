@@ -110,3 +110,34 @@ it('re-asks the income question when the user taps Change', function () {
         ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_WORK) // held for re-ask
         ->and(strtolower($content))->toContain('income');
 });
+
+it('challenges and holds campaign_spouse_household when the spouse income contradicts the funnel band', function () {
+    $user = User::factory()->create([
+        'marital_status' => 'married',
+        'funnel_answers' => ['campaign' => 'savetax', 'income' => '50271_100000', 'spouseIncome' => '50271_100000'],
+        'onboarding_completed' => false,
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_selection' => 'savetax',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
+    ]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    $director = app(OnboardingChatDirector::class);
+
+    $m = new ReflectionMethod($director, 'maybeChallengeIncome');
+    $m->setAccessible(true);
+    $events = drain($m->invoke(
+        $director, $user, $conversation,
+        OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
+        ['spouse_annual_income' => 6500.0, 'spouse_isa_balance' => 6700.0, 'spouse_pension_input_annual' => 6000.0]
+    ));
+
+    $qr = collect($events)->firstWhere('type', 'quick_replies');
+    expect($qr)->not->toBeNull()
+        ->and($qr['prompt_text'])->toContain("your spouse's income")
+        ->and($qr['prompt_text'])->toContain('£6,500')
+        ->and(collect($qr['bubbles'])->pluck('id')->all())->toBe(['continue', 'change']);
+
+    $user->refresh();
+    expect($user->onboarding_fyn_context['pending_income_challenge']['field'])->toBe('spouse')
+        ->and($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
+});

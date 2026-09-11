@@ -34,3 +34,23 @@ it('returns null spouse income when neither a linked spouse nor household income
 
     expect($profile['income_summary']['spouse'])->toBeNull();
 });
+
+it('carries the ISA balance, pension pot and yearly pension contributions the spouse step captured', function () {
+    $user = User::factory()->create(['marital_status' => 'married']);
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $user->id,
+        'household_calculation_mode' => 'dual_earner',
+        'spouse_annual_income' => 6500,
+        'spouse_isa_balance' => 6700,
+        'spouse_pension_input_annual' => 6000,
+        'spouse_existing_pension_balance' => 75680,
+    ]);
+
+    $profile = app(UserProfileService::class)->getCompleteProfile($user->fresh());
+
+    expect($profile['income_summary']['spouse']['household'])->toBe([
+        'isa_balance' => 6700.0,
+        'pension_balance' => 75680.0,
+        'pension_input_annual' => 6000.0,
+    ]);
+});
