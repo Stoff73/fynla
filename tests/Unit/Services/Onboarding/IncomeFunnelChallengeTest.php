@@ -123,3 +123,21 @@ it('builds a challenge sentence naming the band and the entered figure', functio
         ->and($text)->toContain('£50,000')
         ->and($text)->toContain('tax-saving');
 });
+
+it('flags a campaign spouse income that falls outside the spouse funnel band (live prod typo 6500 vs £50,271–£100,000)', function () {
+    $user = User::factory()->create([
+        'funnel_answers' => ['campaign' => 'savetax', 'income' => '50271_100000', 'spouseIncome' => '50271_100000'],
+    ]);
+    $result = invokeDetect($user, OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD, [
+        'spouse_annual_income' => 6500.0,
+        'spouse_isa_balance' => 6700.0,
+    ]);
+    expect($result)->toMatchArray(['field' => 'spouse', 'band' => '50271_100000', 'entered' => 6500.0]);
+});
+
+it('does not flag a campaign spouse income inside the spouse funnel band', function () {
+    $user = User::factory()->create([
+        'funnel_answers' => ['campaign' => 'savetax', 'spouseIncome' => '50271_100000'],
+    ]);
+    expect(invokeDetect($user, OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD, ['spouse_annual_income' => 65000.0]))->toBeNull();
+});

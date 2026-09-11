@@ -52,6 +52,10 @@ effective_from: 2026-06-02
             "spouse_pension_input_annual": {
                 "type": "number",
                 "description": "Spouse gross annual pension contribution in pounds."
+            },
+            "spouse_existing_pension_balance": {
+                "type": "number",
+                "description": "Current total value of the pension pot(s) the spouse already holds, in pounds — set when the user states a pot value (e.g. \"an Aviva pension with 75,680 in it\"). Distinct from spouse_pension_input_annual (what they pay in each year)."
             }
         },
         "required": [],
