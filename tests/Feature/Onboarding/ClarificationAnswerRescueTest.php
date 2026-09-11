@@ -109,3 +109,53 @@ it('does nothing when the previous turn was not a gate-blocked attempt', functio
 
     expect(SavingsAccount::where('user_id', $user->id)->exists())->toBeFalse();
 });
+
+it('still rescues after a refusal and a "didn\'t catch that" retry sit between the blocked attempt and the reply (prod 843 rows)', function (): void {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Chris',
+        'onboarding_fyn_path' => 'campaign',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
+        'onboarding_fyn_selection' => 'savetax',
+        'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank', 'savings']],
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ])->fresh();
+
+    // The rows prod conversation 843 held when the user typed again.
+    $conversation->messages()->create(['role' => 'user', 'content' => 'Lloyds current account, 250 balance, 0.5% interest']);
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'Is this in your name only, or do you share it with someone else?',
+        'metadata' => ['turn_intent' => 'capture_clarification', 'onboarding_step' => 'campaign_bank_accounts', 'capture_write_failed' => true],
+        'tool_calls' => [['sequence' => 0, 'tool' => 'create_savings_account', 'input' => ['institution' => 'Lloyds', 'account_name' => 'Lloyds current account', 'account_type' => 'current_account', 'interest_rate' => 0.5, 'current_balance' => 250]]],
+        'tool_results' => [['sequence' => 0, 'is_error' => true, 'raw' => ['error' => true, 'error_type' => 'clarification_required']]],
+    ]);
+    $conversation->messages()->create(['role' => 'user', 'content' => 'My name']);
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'I can only help with financial planning questions. How can I assist with your finances?',
+        'metadata' => ['turn_intent' => 'capture_ack', 'capture_write_landed' => false],
+    ]);
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => "Sorry, I didn't catch that. Could you try again?",
+        'metadata' => ['turn_intent' => 'capture_clarification', 'onboarding_step' => 'campaign_bank_accounts', 'is_retry' => true],
+    ]);
+
+    FynStreamHarness::fake()
+        ->textTurn('I can only help with financial planning questions. How can I assist with your finances?')
+        ->bind();
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation->fresh(), 'Individual'), false);
+
+    $account = SavingsAccount::where('user_id', $user->id)->first();
+    expect($account)->not->toBeNull()
+        ->and($account->ownership_type)->toBe('individual')
+        ->and((float) $account->current_balance)->toBe(250.0);
+});

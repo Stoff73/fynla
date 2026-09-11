@@ -5886,22 +5886,38 @@ PROMPT;
         int $assistantBaselineId,
         string $evidence
     ): \Generator {
-        $previous = $conversation->messages()
+        // Walk back over the rows a failed answer leaves behind — the model's
+        // non-answer (capture_ack) and the director's own retry ("Sorry, I
+        // didn't catch that", capture_clarification without a call) — to the
+        // last row that actually carried the blocked call. Any other stamped
+        // turn (a fresh step prompt, a verify turn) means no attempt is pending.
+        $asArray = static fn ($value): array => is_array($value) ? $value : (is_string($value) ? (array) json_decode($value, true) : []);
+        $previous = null;
+        $candidates = $conversation->messages()
             ->where('role', 'assistant')
             ->where('id', '<=', $assistantBaselineId)
             ->latest('id')
-            ->first(['id', 'metadata', 'tool_calls', 'tool_results']);
+            ->limit(6)
+            ->get(['id', 'metadata', 'tool_calls', 'tool_results']);
+        foreach ($candidates as $candidate) {
+            $metadata = is_array($candidate->metadata) ? $candidate->metadata : [];
+            $intent = $metadata['turn_intent'] ?? null;
+            $blocked = ($metadata['capture_write_failed'] ?? false) === true
+                || ($intent === FynTurnIntent::CaptureClarification->value && $asArray($candidate->tool_calls) !== []);
+            if ($blocked) {
+                $previous = $candidate;
+                break;
+            }
+            $transparent = ($metadata['is_retry'] ?? false) === true
+                || in_array($intent, [FynTurnIntent::CaptureClarification->value, FynTurnIntent::CaptureAck->value], true);
+            if (! $transparent) {
+                return;
+            }
+        }
         if ($previous === null) {
             return;
         }
 
-        $metadata = is_array($previous->metadata) ? $previous->metadata : [];
-        if (($metadata['turn_intent'] ?? null) !== FynTurnIntent::CaptureClarification->value
-            && ($metadata['capture_write_failed'] ?? false) !== true) {
-            return;
-        }
-
-        $asArray = static fn ($value): array => is_array($value) ? $value : (is_string($value) ? (array) json_decode($value, true) : []);
         $results = collect($asArray($previous->tool_results))->keyBy('sequence');
 
         foreach ($asArray($previous->tool_calls) as $call) {
