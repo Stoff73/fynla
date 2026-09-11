@@ -1879,7 +1879,26 @@ final class OnboardingStateMachine
                 : ", including your spouse's where it makes sense,";
         }
 
-        return "Thanks {$firstName} for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your pensions, accounts and investments{$spousePhrase} is that okay?";
+        // Name only the asset groups the user ticked on the funnel's final screen
+        // (CSJ 2026-09-11: Fyn must ask only about what was chosen). The generic
+        // wording stays for a funnel that recorded no assets.
+        $groups = [];
+        foreach ((array) ($user->funnel_answers['assets'] ?? []) as $asset) {
+            $label = match ($asset) {
+                'bank', 'savings' => 'bank and savings accounts',
+                'isa' => 'ISAs',
+                'investments' => 'investments',
+                'pension' => 'pensions',
+                'property' => 'property',
+                default => null,
+            };
+            if ($label !== null && ! in_array($label, $groups, true)) {
+                $groups[] = $label;
+            }
+        }
+        $subjects = $groups === [] ? 'pensions, accounts and investments' : self::joinWithAnd($groups);
+
+        return "Thanks {$firstName} for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your {$subjects}{$spousePhrase} is that okay?";
     }
 
     /**

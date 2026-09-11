@@ -18,7 +18,7 @@ namespace App\Services\Onboarding;
 final class OwnershipPhrasings
 {
     /** Alternation fragment for explicit INDIVIDUAL ownership phrases. */
-    public const INDIVIDUAL = '(?:owned\s+)?individually|individual\s+ownership|solely|mine\s+alone|(?:just|only)\s+(?:me|mine|by\s+me)|owned\s+by\s+me|(?:on\s+)?my\s+own|in\s+my\s+name';
+    public const INDIVIDUAL = '(?:owned\s+)?individual(?:ly)?|individual\s+ownership|sole(?:ly)?(?!\s+trader)|mine\s+alone|(?:just|only)\s+(?:me|mine|by\s+me)|me\s+only|myself|owned\s+by\s+me|(?:on\s+)?my\s+own|(?:in\s+)?my\s+name(?:\s+only)?';
 
     /** Alternation fragment for explicit JOINT ownership phrases. */
     public const JOINT = 'joint(?:ly)?(?:\s+owned)?|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner|wife|husband)|in\s+both\s+our\s+names|both\s+of\s+us|50\s*\/\s*50';
