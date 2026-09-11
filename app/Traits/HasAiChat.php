@@ -1743,6 +1743,22 @@ trait HasAiChat
         $messages = [];
 
         foreach ($dbMessages as $msg) {
+            // Never feed the model our own dead-end copy. The director's retry
+            // rows ("Sorry, I didn't catch that", is_retry) and a persisted
+            // canned prompt-injection refusal are not conversation the model
+            // should continue: once a few sit in the history, grok pattern-
+            // matches and refuses even a full entity sentence (live prod
+            // conversation 843, 2026-09-11). They stay in the transcript the
+            // user sees; they leave the model-facing history here, the ONE
+            // place it is built.
+            if ($msg->role === 'assistant') {
+                $metadata = is_array($msg->metadata) ? $msg->metadata : [];
+                if (($metadata['is_retry'] ?? false) === true
+                    || str_contains((string) $msg->content, FynSystemPrompt::CANNED_REFUSAL)) {
+                    continue;
+                }
+            }
+
             $messages[] = [
                 'role' => $msg->role,
                 'content' => $msg->content,

@@ -18,6 +18,14 @@ namespace App\Services\AI\Fyn;
 final class FynSystemPrompt
 {
     /**
+     * The verbatim security-rule-6 refusal the prompt tells the model to emit
+     * on a genuine attack. Referenced wherever code has to recognise that the
+     * model misfired it (the history builder drops it, the director strips it
+     * from a capture turn) so the wording has one home.
+     */
+    public const CANNED_REFUSAL = 'I can only help with financial planning questions';
+
+    /**
      * Every kind of record a write intent can name, as one canonical phrase.
      *
      * Rule 20 — ONE list. It was duplicated here and in AdvicePromptBuilder,

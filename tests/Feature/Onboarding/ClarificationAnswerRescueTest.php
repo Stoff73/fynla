@@ -110,7 +110,7 @@ it('does nothing when the previous turn was not a gate-blocked attempt', functio
     expect(SavingsAccount::where('user_id', $user->id)->exists())->toBeFalse();
 });
 
-it('still rescues after a refusal and a "didn\'t catch that" retry sit between the blocked attempt and the reply (prod 843 rows)', function (): void {
+it('still rescues after a refusal, a "didn\'t catch that" retry and a resume greeting sit between the blocked attempt and the reply (prod 843 rows)', function (): void {
     $user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
@@ -146,6 +146,12 @@ it('still rescues after a refusal and a "didn\'t catch that" retry sit between t
         'role' => 'assistant',
         'content' => "Sorry, I didn't catch that. Could you try again?",
         'metadata' => ['turn_intent' => 'capture_clarification', 'onboarding_step' => 'campaign_bank_accounts', 'is_retry' => true],
+    ]);
+    // …and the user came back later: the resume greeting sits on top too.
+    $conversation->messages()->create([
+        'role' => 'assistant',
+        'content' => 'Welcome back, Chris. Last time we were capturing your bank and savings accounts. Would you like to continue from where we left off, or is there something else I can help with?',
+        'metadata' => ['turn_intent' => 'resume_greeting', 'is_resume_greeting' => true, 'onboarding_step' => 'campaign_bank_accounts'],
     ]);
 
     FynStreamHarness::fake()

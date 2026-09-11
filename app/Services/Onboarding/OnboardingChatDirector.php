@@ -5909,7 +5909,12 @@ PROMPT;
                 break;
             }
             $transparent = ($metadata['is_retry'] ?? false) === true
-                || in_array($intent, [FynTurnIntent::CaptureClarification->value, FynTurnIntent::CaptureAck->value], true);
+                || ($metadata['is_resume_greeting'] ?? false) === true
+                || in_array($intent, [
+                    FynTurnIntent::CaptureClarification->value,
+                    FynTurnIntent::CaptureAck->value,
+                    FynTurnIntent::ResumeGreeting->value,
+                ], true);
             if (! $transparent) {
                 return;
             }
