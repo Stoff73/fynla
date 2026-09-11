@@ -457,12 +457,34 @@ class UserProfileService
      *
      * @return array{employment: float, self_employment: float, dividend: float, interest: float, other: float, total: float}|null
      */
+    /**
+     * The non-income figures the SaveTax spouse step captured into
+     * tax_strategy_household_inputs — null when no row or nothing set.
+     *
+     * @return array{isa_balance: ?float, pension_balance: ?float, pension_input_annual: ?float}|null
+     */
+    private function spouseHouseholdCaptured(User $user): ?array
+    {
+        $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
+        if ($row === null) {
+            return null;
+        }
+        $figure = static fn ($value): ?float => $value === null ? null : (float) $value;
+        $captured = [
+            'isa_balance' => $figure($row->spouse_isa_balance ?? $row->spouse_existing_isa_balance),
+            'pension_balance' => $figure($row->spouse_existing_pension_balance),
+            'pension_input_annual' => $figure($row->spouse_pension_input_annual),
+        ];
+
+        return array_filter($captured, static fn (?float $v): bool => $v !== null) === [] ? null : $captured;
+    }
+
     private function spouseIncomeSources(User $user): ?array
     {
         // W-0350/W-0530 — reciprocal AND consented; this returns the other account's
         // income sources.
         if ($spouse = $user->financiallySharedSpouse()) {
-            return $this->incomeSources($spouse, 'spouse');
+            return $this->incomeSources($spouse, 'spouse') + ['household' => $this->spouseHouseholdCaptured($user)];
         }
 
         $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)
@@ -472,6 +494,11 @@ class UserProfileService
         }
 
         return [
+            // Everything else the SaveTax spouse step captured, so the spouse
+            // verify screen shows what Fyn was told (live prod 2026-09-11: the
+            // ISA balance and pension figures were recorded but nowhere on the
+            // page the user was sent to check, so they read as ignored).
+            'household' => $this->spouseHouseholdCaptured($user),
             'employment' => $spouseIncome,
             'self_employment' => 0.0,
             'dividend' => 0.0,

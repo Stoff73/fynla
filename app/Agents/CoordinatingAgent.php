@@ -5576,6 +5576,9 @@ class CoordinatingAgent extends BaseAgent
             'spouse_unrealised_gains',
             'spouse_annual_dividends',
             'spouse_pension_input_annual',
+            // The pot the spouse already holds (live prod 2026-09-11: "an Aviva
+            // pension with 75680 in it" had nowhere to land and was dropped).
+            'spouse_existing_pension_balance',
         ];
         if (array_diff(array_keys($input), $allowedFields) !== []) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'One or more spouse household fields are not supported.'];
@@ -5592,7 +5595,7 @@ class CoordinatingAgent extends BaseAgent
         ];
         foreach ([
             'spouse_annual_income', 'spouse_isa_balance', 'spouse_unrealised_gains',
-            'spouse_annual_dividends', 'spouse_pension_input_annual',
+            'spouse_annual_dividends', 'spouse_pension_input_annual', 'spouse_existing_pension_balance',
         ] as $field) {
             $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:'.ValidationLimits::MIN_CURRENCY_VALUE, 'max:'.ValidationLimits::MAX_CURRENCY_VALUE];
         }
