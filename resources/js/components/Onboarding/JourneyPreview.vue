@@ -107,7 +107,7 @@ export default {
         const params = this.selections.map(j => `journeys[]=${encodeURIComponent(j)}`).join('&');
         const response = await api.get(`/journeys/preview?${params}`);
         this.previewData = response.data?.data || response.data;
-      } catch (error) {
+      } catch {
         // Silently fail — preview is optional enhancement
         this.previewData = null;
       } finally {

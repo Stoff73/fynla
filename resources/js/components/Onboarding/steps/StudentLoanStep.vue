@@ -127,7 +127,6 @@
 <script>
 import { ref, computed } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
-import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { formatCurrency } from '@/utils/currency';
 
@@ -137,7 +136,6 @@ export default {
 
   components: {
     OnboardingStep,
-    UsefulResources,
   },
 
   props: {
