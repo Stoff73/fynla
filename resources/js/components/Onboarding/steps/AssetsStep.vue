@@ -726,7 +726,7 @@ export default {
       { id: 'retirement', name: 'Retirement' },
       { id: 'properties', name: 'Properties' },
       { id: 'investments', name: 'Investments' },
-      { id: 'cash', name: 'Cash' },
+      { id: 'cash', name: 'Bank Accounts' },
     ];
 
     const assetTabs = computed(() => {
@@ -1101,7 +1101,7 @@ export default {
       // All tabs viewed — check if any tabs have no data entered
       const incompleteTabs = [];
       const tabOrder = allowedTabs.value || ['retirement', 'properties', 'investments', 'cash'];
-      const tabLabels = { retirement: 'Retirement', properties: 'Properties', investments: 'Investments', cash: 'Cash' };
+      const tabLabels = { retirement: 'Retirement', properties: 'Properties', investments: 'Investments', cash: 'Bank Accounts' };
 
       for (const tab of tabOrder) {
         if (tab === 'retirement' && pensions.value.dc.length === 0 && pensions.value.db.length === 0 && !pensions.value.state) {
