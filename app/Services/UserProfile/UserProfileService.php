@@ -461,7 +461,7 @@ class UserProfileService
      * The non-income figures the SaveTax spouse step captured into
      * tax_strategy_household_inputs — null when no row or nothing set.
      *
-     * @return array{isa_balance: ?float, pension_balance: ?float, pension_input_annual: ?float}|null
+     * @return array{isa_balance: ?float, pension_balance: ?float, pension_input_annual: ?float, isa_provider: ?string, pension_provider: ?string}|null
      */
     private function spouseHouseholdCaptured(User $user): ?array
     {
@@ -475,8 +475,14 @@ class UserProfileService
             'pension_balance' => $figure($row->spouse_existing_pension_balance),
             'pension_input_annual' => $figure($row->spouse_pension_input_annual),
         ];
+        if (array_filter($captured, static fn (?float $v): bool => $v !== null) === []) {
+            return null;
+        }
 
-        return array_filter($captured, static fn (?float $v): bool => $v !== null) === [] ? null : $captured;
+        return $captured + [
+            'isa_provider' => $row->spouse_isa_provider ?: null,
+            'pension_provider' => $row->spouse_pension_provider ?: null,
+        ];
     }
 
     private function spouseIncomeSources(User $user): ?array

@@ -57,6 +57,53 @@ final class SpouseHouseholdPhrasings
         return null;
     }
 
+    /** Words that look like a provider but are not one. */
+    private const NOT_A_PROVIDER = ['the', 'a', 'an', 'her', 'his', 'their', 'my', 'our', 'no', 'one', 'it', 'its', 'she', 'he', 'they', 'and', 'with', 'in', 'of', 'workplace', 'personal', 'private', 'state', 'company', 'employer', 'stakeholder', 'sipp', 'cash', 'stocks', 'shares', 'lifetime', 'junior'];
+
+    /** Provider holding the spouse's ISA ("an ISA with Halifax", "Halifax ISA"), or null. */
+    public static function isaProvider(string $text): ?string
+    {
+        // "ISA" arrives as "isa", and as the phone's autocorrections "USA" /
+        // "it's" (live prod 2026-09-11) — the provider is what follows "with".
+        foreach ([
+            '/\b(?i:isa|usa|it\x{2019}s|it\x{0027}s)\b[^.;]{0,20}?\bwith\s+([A-Z][\w&\x{0027}-]*(?:\s+[A-Z][\w&\x{0027}-]*)?)/u',
+            '/\b([A-Z][\w&\x{0027}-]*(?:\s+[A-Z][\w&\x{0027}-]*)?)\s+(?:cash\s+|stocks\s+(?:and|&)\s+shares\s+)?(?i:isa)\b/u',
+        ] as $pattern) {
+            if (preg_match($pattern, $text, $m) === 1 && self::plausibleProvider($m[1])) {
+                return trim($m[1]);
+            }
+        }
+
+        return null;
+    }
+
+    /** The spouse's pension provider or scheme ("an Aviva pension", "pension with Aviva"), or null. */
+    public static function pensionProvider(string $text): ?string
+    {
+        foreach ([
+            '/\b([A-Z][\w&\x{0027}-]*(?:\s+[A-Z][\w&\x{0027}-]*)?)\s+(?i:pension)\b/u',
+            '/\b(?i:pension)\b[^.;]{0,20}?\bwith\s+([A-Z][\w&\x{0027}-]*(?:\s+[A-Z][\w&\x{0027}-]*)?)/u',
+        ] as $pattern) {
+            if (preg_match($pattern, $text, $m) === 1 && self::plausibleProvider($m[1])) {
+                return trim($m[1]);
+            }
+        }
+
+        return null;
+    }
+
+    private static function plausibleProvider(string $candidate): bool
+    {
+        $words = preg_split('/\s+/', trim($candidate)) ?: [];
+        foreach ($words as $word) {
+            if (in_array(mb_strtolower($word), self::NOT_A_PROVIDER, true)) {
+                return false;
+            }
+        }
+
+        return $candidate !== '' && preg_match('/\d/', $candidate) !== 1;
+    }
+
     private static function amount(string $raw, string $thousands): float
     {
         $value = (float) str_replace(',', '', $raw);

@@ -3217,6 +3217,18 @@ final class OnboardingChatDirector
                 $fill['spouse_pension_input_annual'] = $annual;
             }
         }
+        if (empty($captureDetails['spouse_isa_provider'])) {
+            $isaProvider = SpouseHouseholdPhrasings::isaProvider($message);
+            if ($isaProvider !== null) {
+                $fill['spouse_isa_provider'] = $isaProvider;
+            }
+        }
+        if (empty($captureDetails['spouse_pension_provider'])) {
+            $pensionProvider = SpouseHouseholdPhrasings::pensionProvider($message);
+            if ($pensionProvider !== null) {
+                $fill['spouse_pension_provider'] = $pensionProvider;
+            }
+        }
         if ($fill === []) {
             return $captureDetails;
         }

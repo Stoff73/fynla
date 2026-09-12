@@ -44,6 +44,8 @@ it('carries the ISA balance, pension pot and yearly pension contributions the sp
         'spouse_isa_balance' => 6700,
         'spouse_pension_input_annual' => 6000,
         'spouse_existing_pension_balance' => 75680,
+        'spouse_isa_provider' => 'Halifax',
+        'spouse_pension_provider' => 'Aviva',
     ]);
 
     $profile = app(UserProfileService::class)->getCompleteProfile($user->fresh());
@@ -52,5 +54,7 @@ it('carries the ISA balance, pension pot and yearly pension contributions the sp
         'isa_balance' => 6700.0,
         'pension_balance' => 75680.0,
         'pension_input_annual' => 6000.0,
+        'isa_provider' => 'Halifax',
+        'pension_provider' => 'Aviva',
     ]);
 });

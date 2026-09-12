@@ -39,6 +39,8 @@ class TaxStrategyHouseholdInput extends Model
         'spouse_existing_investment_balance',
         'spouse_existing_dividend_holdings_value',
         'spouse_existing_pension_balance',
+        'spouse_isa_provider',
+        'spouse_pension_provider',
     ];
 
     protected $casts = [
