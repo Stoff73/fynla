@@ -27,3 +27,14 @@ it('never guesses: no amount or no cadence yields nothing', function (): void {
         ->and(SpouseHouseholdPhrasings::pensionContributionAnnual('she contributes 500'))->toBeNull()
         ->and(SpouseHouseholdPhrasings::pensionContributionAnnual('65000 a year salary, no pension'))->toBeNull();
 });
+
+it('reads the ISA and pension provider names from the live sentences, autocorrections included', function (): void {
+    $live = "6500, one it's with 6700 no contributions and a Aviva pension with 75680 in it and she contributes 500 per month. The USA is with Halifax";
+    expect(SpouseHouseholdPhrasings::isaProvider($live))->toBe('Halifax')
+        ->and(SpouseHouseholdPhrasings::pensionProvider($live))->toBe('Aviva')
+        ->and(SpouseHouseholdPhrasings::isaProvider('65000, an ISA with Halifax with 6700 in it, and an Aviva pension with 75680 in it'))->toBe('Halifax')
+        ->and(SpouseHouseholdPhrasings::pensionProvider('her pension with Scottish Widows is 40k'))->toBe('Scottish Widows')
+        ->and(SpouseHouseholdPhrasings::isaProvider('Halifax cash ISA 6700'))->toBe('Halifax')
+        ->and(SpouseHouseholdPhrasings::isaProvider('no isa, no pension'))->toBeNull()
+        ->and(SpouseHouseholdPhrasings::pensionProvider('a workplace pension with 20k in it'))->toBeNull();
+});

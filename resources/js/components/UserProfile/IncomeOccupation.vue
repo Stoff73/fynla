@@ -538,9 +538,9 @@ export default {
     const spouseCapturedRows = computed(() => {
       const h = (spouseSummary.value || {}).household || {};
       return [
-        { key: 'isa_balance', label: 'ISA balance', amount: h.isa_balance, detail: '' },
-        { key: 'pension_balance', label: 'Pension pot', amount: h.pension_balance, detail: '' },
-        { key: 'pension_input_annual', label: 'Pension contributions', amount: h.pension_input_annual, detail: 'a year' },
+        { key: 'isa_balance', label: 'ISA balance', amount: h.isa_balance, detail: h.isa_provider ? `with ${h.isa_provider}` : '' },
+        { key: 'pension_balance', label: 'Pension pot', amount: h.pension_balance, detail: h.pension_provider ? `with ${h.pension_provider}` : '' },
+        { key: 'pension_input_annual', label: 'Pension contributions', amount: h.pension_input_annual, detail: h.pension_provider ? `a year, ${h.pension_provider}` : 'a year' },
       ].filter((r) => r.amount != null && Number(r.amount) > 0);
     });
     const detailedTaxBreakdown = computed(() => incomeOccupation.value?.detailed_tax_breakdown || null);
