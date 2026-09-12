@@ -36,7 +36,9 @@ it('backfills the pot and the yearly contributions the model dropped, through th
         ->and((float) $row->spouse_pension_input_annual)->toBe(6000.0)
         ->and((float) $row->spouse_annual_income)->toBe(65000.0)
         ->and($details['spouse_existing_pension_balance'])->toBe(75680.0)
-        ->and($details['spouse_pension_input_annual'])->toBe(6000.0);
+        ->and($details['spouse_pension_input_annual'])->toBe(6000.0)
+        ->and($row->spouse_isa_provider)->toBe('Halifax')
+        ->and($row->spouse_pension_provider)->toBe('Aviva');
 });
 
 it('leaves the details alone on other states and when the model already captured both', function (): void {
