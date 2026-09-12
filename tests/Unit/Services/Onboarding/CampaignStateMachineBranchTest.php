@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AiConversation;
+use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -292,5 +293,43 @@ describe('STATE_CAMPAIGN_INTRO names only the assets the funnel selected', funct
             ->toContain('your pensions, ISAs and investments');
         expect(OnboardingStateMachine::buildCampaignIntroPrompt('', $none, null))
             ->toContain('your pensions, accounts and investments');
+    });
+});
+
+describe('post-plan spouse invitation (CSJ 2026-09-12)', function () {
+    it('is offered after the synthesis to a married user with no live link and no pending invitation', function () {
+        $user = User::factory()->create(['marital_status' => 'married', 'onboarding_fyn_selection' => 'savetax']);
+
+        expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE);
+    });
+
+    it('is skipped for single users, linked spouses and pending invitations', function () {
+        $single = User::factory()->create(['marital_status' => 'single', 'onboarding_fyn_selection' => 'savetax']);
+        expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $single))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL);
+
+        $spouse = User::factory()->create();
+        $linked = User::factory()->create(['marital_status' => 'married', 'spouse_id' => $spouse->id, 'onboarding_fyn_selection' => 'savetax']);
+        $spouse->update(['spouse_id' => $linked->id]);
+        expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $linked->fresh()))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL);
+
+        $invited = User::factory()->create(['marital_status' => 'married', 'onboarding_fyn_selection' => 'pensioncheck']);
+        $other = User::factory()->create();
+        SpousePermission::create(['user_id' => $invited->id, 'spouse_id' => $other->id, 'status' => 'pending', 'requested_at' => now()]);
+        expect(OnboardingStateMachine::nextFromCampaignSynthesis('', $invited))->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_TERMINAL);
+    });
+
+    it('routes Yes to the details turn and Not now to the terminal, and names the spouse when known', function () {
+        $user = User::factory()->create(['first_name' => 'Chris', 'marital_status' => 'married', 'onboarding_fyn_selection' => 'savetax']);
+        $conversation = AiConversation::factory()->create(['user_id' => $user->id, 'onboarding_parked_facts' => ['spouse' => ['first_name' => 'Angela']]]);
+
+        expect(OnboardingStateMachine::nextFromCampaignSpouseInvite('Yes, invite them', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS)
+            ->and(OnboardingStateMachine::nextFromCampaignSpouseInvite('Not now', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL)
+            ->and(OnboardingStateMachine::nextFromCampaignSpouseInviteDetails('', $user))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL)
+            ->and(OnboardingStateMachine::buildCampaignSpouseInvitePrompt('', $user, $conversation))->toContain('the figures you gave me for Angela')
+            ->and(OnboardingStateMachine::buildCampaignSpouseInvitePrompt('', $user, null))->toContain('the figures you gave me for your spouse')
+            ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE)['bubbles'])->toBe([
+                ['id' => 'yes_invite', 'label' => 'Yes, invite them'],
+                ['id' => 'not_now', 'label' => 'Not now'],
+            ]);
     });
 });
