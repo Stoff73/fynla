@@ -9,6 +9,7 @@ use App\Models\AiConversation;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\PrerequisiteGateService;
@@ -152,6 +153,10 @@ final class OnboardingStateMachine
     public const STATE_CAMPAIGN_ADVICE_SPOUSE = 'campaign_advice_spouse';
 
     public const STATE_CAMPAIGN_SYNTHESIS = 'campaign_synthesis';
+
+    public const STATE_CAMPAIGN_SPOUSE_INVITE = 'campaign_spouse_invite';
+
+    public const STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS = 'campaign_spouse_invite_details';
 
     // PensionCheck campaign states — all defined in Task C3.
     // The STATE_CAMPAIGN2_STATE_PENSION and STATE_CAMPAIGN2_RETIREMENT_GOALS constants
@@ -669,6 +674,18 @@ final class OnboardingStateMachine
                 // on the user's campaign selection. NEVER a closure: advice turns
                 // auto-advance and a self-edge recurses unbounded (PR #504 incident).
                 'next' => self::class.'::nextFromCampaignSynthesis',
+            ],
+            // ── Spouse invitation (CSJ 2026-09-12) ─────────────────────────
+            // After the plan, offer to invite the spouse whose figures the plan
+            // used by proxy. Skipped unless married / civil partnership with no
+            // live spouse link and no invitation already pending.
+            self::STATE_CAMPAIGN_SPOUSE_INVITE => [
+                'prompt_text' => self::class.'::buildCampaignSpouseInvitePrompt',
+                'next' => self::class.'::nextFromCampaignSpouseInvite',
+                'skip_if' => [self::class, 'skipSpouseInviteIfLinked'],
+            ],
+            self::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS => [
+                'next' => self::class.'::nextFromCampaignSpouseInviteDetails',
             ],
             // ── Pensioncheck per-section advice turns ──────────────────────
             self::STATE_CAMPAIGN2_ADVICE_STATE_PENSION => [
@@ -2114,9 +2131,84 @@ final class OnboardingStateMachine
      */
     public static function nextFromCampaignSynthesis(string $answer, User $user): string
     {
+        // The spouse invitation sits between the plan and the terminal; its
+        // skip rule sends everyone else straight on.
+        return self::applySkipRules(self::STATE_CAMPAIGN_SPOUSE_INVITE, $user)
+            ?? self::campaignFinalTerminalFor($user);
+    }
+
+    /** The campaign's closing state for this user's selection. */
+    public static function campaignFinalTerminalFor(User $user): string
+    {
         return $user->onboarding_fyn_selection === 'pensioncheck'
             ? self::STATE_CAMPAIGN2_TERMINAL
             : self::STATE_CAMPAIGN_TERMINAL;
+    }
+
+    /**
+     * Skip the invitation unless the user is married / in a civil partnership,
+     * has no live spouse link, and has not already sent an invitation.
+     */
+    public static function skipSpouseInviteIfLinked(User $user): bool
+    {
+        if (! in_array((string) $user->marital_status, ['married', 'civil_partnership'], true)) {
+            return true;
+        }
+        if ($user->liveSpouseId() !== null) {
+            return true;
+        }
+
+        return SpousePermission::where('user_id', $user->id)->where('status', 'pending')->exists();
+    }
+
+    /**
+     * "Shall I send them an invitation?" — names the spouse when a first name
+     * is known (linked account, or parked from "my wife Angela"), else "your
+     * spouse". Copy approved by CSJ 2026-09-12.
+     */
+    public static function buildCampaignSpouseInvitePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        $name = self::knownSpouseFirstName($user, $conversation);
+        $whom = $name ?? 'your spouse';
+
+        return "One more thing. Your plan uses the figures you gave me for {$whom}. "
+            .'If they have their own Fynla account and you link up, I can use their real allowances and tax position, '
+            .'and the joint plan gets more accurate. **Shall I send them an invitation?**';
+    }
+
+    /** The spouse's first name when known: the linked account, else a parked fact. */
+    public static function knownSpouseFirstName(User $user, ?AiConversation $conversation = null): ?string
+    {
+        if ($user->spouse_id !== null && $user->spouse !== null) {
+            $candidate = trim((string) $user->spouse->first_name);
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+        if ($conversation !== null) {
+            $parked = (array) ($conversation->onboarding_parked_facts ?? []);
+            $candidate = trim((string) (($parked['spouse']['first_name'] ?? '')));
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    public static function nextFromCampaignSpouseInvite(string $answer, User $user): string
+    {
+        // applySkipRules evaluates `next` with an empty answer; matchBubble's
+        // substring fallback would read '' as the first bubble, so an empty
+        // answer is never a yes.
+        return trim($answer) !== '' && self::matchBubble(self::STATE_CAMPAIGN_SPOUSE_INVITE, $answer) === 'yes_invite'
+            ? self::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS
+            : self::campaignFinalTerminalFor($user);
+    }
+
+    public static function nextFromCampaignSpouseInviteDetails(string $answer, User $user): string
+    {
+        return self::campaignFinalTerminalFor($user);
     }
 
     /**

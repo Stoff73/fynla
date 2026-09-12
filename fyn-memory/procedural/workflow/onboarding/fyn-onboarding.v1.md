@@ -327,7 +327,23 @@ campaign_synthesis:
   turn_type: advice
   advice_section: synthesis
   capture_field: null
-  next: campaign_terminal
+  next: { branch: nextFromCampaignSynthesis }
+
+campaign_spouse_invite:
+  turn_type: bubbles
+  prompt_text: { builder: buildCampaignSpouseInvitePrompt }
+  bubbles:
+    - { id: yes_invite, label: 'Yes, invite them' }
+    - { id: not_now, label: 'Not now' }
+  capture_field: null
+  next: { branch: nextFromCampaignSpouseInvite }
+
+campaign_spouse_invite_details:
+  turn_type: free_text
+  prompt_text: "What's their first name and email address?"
+  capture_field: null
+  value_parser: parseSpouseInviteDetails
+  next: { branch: nextFromCampaignSpouseInviteDetails }
 
 campaign2_advice_state_pension:
   turn_type: advice

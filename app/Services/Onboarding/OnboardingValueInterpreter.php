@@ -379,4 +379,43 @@ final class OnboardingValueInterpreter
 
         return trim($input);
     }
+
+    /**
+     * "Angela, angela@example.com" → ['first_name' => 'Angela', 'email' => 'angela@example.com'].
+     * Both parts are required; the name is the first capitalised word that is
+     * not the email, else the first plain word of two or more letters that is
+     * not a filler. Returns null when either is missing (the turn re-asks).
+     *
+     * @return array{first_name: string, email: string}|null
+     */
+    public static function parseSpouseInviteDetails(?string $input): ?array
+    {
+        $text = trim((string) $input);
+        if ($text === '' || preg_match('/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/', $text, $m) !== 1) {
+            return null;
+        }
+        $email = mb_strtolower($m[0]);
+        $rest = trim(str_replace($m[0], ' ', $text));
+        $filler = ['her', 'his', 'their', 'name', 'names', 'is', 'and', 'email', 'address', 'it', 'its', "it's", 'the', 'my', 'wife', 'husband', 'partner', 'spouse', 'she', 'he', 'they', 'called', 'first', 'called'];
+        $words = preg_split('/[\s,;:]+/', $rest) ?: [];
+        $plain = null;
+        foreach ($words as $word) {
+            $clean = trim($word, " .!?\"'()");
+            if ($clean === '' || preg_match('/^\p{L}[\p{L}\-\x{2019}\x{0027}]*$/u', $clean) !== 1 || mb_strlen($clean) < 2) {
+                continue;
+            }
+            if (in_array(mb_strtolower($clean), $filler, true)) {
+                continue;
+            }
+            if (preg_match('/^\p{Lu}/u', $clean) === 1) {
+                return ['first_name' => $clean, 'email' => $email];
+            }
+            $plain ??= $clean;
+        }
+        if ($plain === null) {
+            return null;
+        }
+
+        return ['first_name' => mb_convert_case($plain, MB_CASE_TITLE, 'UTF-8'), 'email' => $email];
+    }
 }
