@@ -7,6 +7,7 @@ namespace App\Services\Onboarding;
 use App\Agents\CoordinatingAgent;
 use App\Constants\QuerySchemas;
 use App\Enums\FynTurnIntent;
+use App\Exceptions\SpouseCollisionException;
 use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
@@ -121,6 +122,7 @@ final class OnboardingChatDirector
         private readonly ProceduralVersionHolder $proceduralVersions,
         private readonly QueryClassifier $queryClassifier,
         private readonly WriteIntentClassifier $writeIntentClassifier,
+        private readonly SpouseLinkingService $spouseLinking,
     ) {}
 
     /**
@@ -2047,6 +2049,7 @@ final class OnboardingChatDirector
             'parseRetirementDate' => "Sorry, I didn't catch that as a date. A year alone is fine — something like '2020'.",
             'parseIncomeAmount' => "Sorry, I didn't catch that as an amount. Try something like '£75,000' or '75k'.",
             'parseExpenditureAmount' => "Sorry, I didn't catch that as an amount. Try something like '£2,500' or '2.5k'.",
+            'parseSpouseInviteDetails' => 'I need their first name and an email address — something like "Angela, angela@example.com".',
             default => "Sorry, I didn't catch that. Could you try again?",
         };
     }
@@ -2094,6 +2097,73 @@ final class OnboardingChatDirector
     }
 
     /**
+     * Send the post-plan spouse invitation and remember the outcome for the
+     * terminal turn to voice. One linking path for the whole app
+     * (SpouseLinkingService::linkOrCreateSpouse — Family settings, base_spouse
+     * and this turn all land there).
+     *
+     * @param  array{first_name: string, email: string}  $details
+     */
+    private function sendSpouseInvitation(User $user, array $details): void
+    {
+        try {
+            $result = $this->spouseLinking->linkOrCreateSpouse($user, [
+                'first_name' => $details['first_name'],
+                'email' => $details['email'],
+            ]);
+            // Three honest outcomes: a brand-new account was set up and its
+            // sign-in details emailed; an existing account was invited and
+            // must accept; or the two were already linked.
+            $status = match (true) {
+                ($result['already_linked'] ?? false) === true => 'already_linked',
+                ($result['created_new_user'] ?? false) === true => 'created',
+                default => 'sent',
+            };
+            $this->rememberSpouseInviteOutcome($user, ['status' => $status, 'first_name' => $details['first_name'], 'email' => $details['email']]);
+        } catch (SpouseCollisionException $e) {
+            $this->rememberSpouseInviteOutcome($user, ['status' => 'collision']);
+        } catch (\Throwable $e) {
+            Log::error('[OnboardingChatDirector] Spouse invitation failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            $this->rememberSpouseInviteOutcome($user, ['status' => 'failed']);
+        }
+    }
+
+    /** @param  array<string, mixed>  $outcome */
+    private function rememberSpouseInviteOutcome(User $user, array $outcome): void
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['spouse_invite'] = $outcome;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+    }
+
+    /** The one sentence the terminal turn adds for the invitation outcome, then forgets it. */
+    private function takeSpouseInviteOutcomeText(User $user): ?string
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $outcome = $context['spouse_invite'] ?? null;
+        if (! is_array($outcome)) {
+            return null;
+        }
+        unset($context['spouse_invite']);
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        $name = trim((string) ($outcome['first_name'] ?? ''));
+        $whom = $name !== '' ? $name : 'your spouse';
+
+        return match ($outcome['status'] ?? '') {
+            'sent' => "Done. I've sent an invitation to {$outcome['email']}. When {$whom} accepts, your plans link up and I'll use their real figures.",
+            'created' => "Done. I've set up a Fynla account for {$whom} and emailed {$outcome['email']} with their sign-in details. Once they sign in, your plans are linked and I'll use their real figures.",
+            'already_linked' => "You're already linked with {$whom}, so I'll use their real figures from here.",
+            'declined' => 'No problem. You can invite them any time from Family in Settings.',
+            'collision' => "That email's already registered with another Fynla household, so I haven't sent an invitation. You can try a different address from Family in Settings.",
+            'failed' => "I couldn't send the invitation just now. You can try again from Family in Settings.",
+            default => null,
+        };
+    }
+
+    /**
      * Write the captured value to the right place:
      * - capture_field set → update users.$column directly
      * - base_spouse state → create FamilyMember row (free text parsed by director)
@@ -2110,6 +2180,23 @@ final class OnboardingChatDirector
         // Specialised handlers first
         if ($stateId === OnboardingStateMachine::STATE_BASE_SPOUSE) {
             $this->createSpouseFamilyMember($user, (string) $capturedValue);
+
+            return;
+        }
+
+        // Spouse invitation after the plan (CSJ 2026-09-12): "Not now" is
+        // remembered so the terminal turn can say so; the details turn sends
+        // the invitation through the one linking service Family settings uses.
+        if ($stateId === OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE) {
+            if ($capturedValue === 'not_now') {
+                $this->rememberSpouseInviteOutcome($user, ['status' => 'declined']);
+            }
+
+            return;
+        }
+
+        if ($stateId === OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS && is_array($capturedValue)) {
+            $this->sendSpouseInvitation($user, $capturedValue);
 
             return;
         }
@@ -5596,6 +5683,20 @@ PROMPT;
         // bubble (both surfaces open a fresh bubble per quick_replies frame),
         // ahead of the celebration so the route bubble stays the latest
         // (tappable) turn.
+        // The spouse-invitation outcome, when this campaign just offered one
+        // (CSJ 2026-09-12) — its own bubble, ahead of the app note.
+        $inviteOutcome = $this->takeSpouseInviteOutcomeText($user);
+        if ($inviteOutcome !== null) {
+            yield [
+                'type' => 'quick_replies',
+                'prompt_text' => $inviteOutcome,
+                'bubbles' => [],
+            ];
+            $this->saveMessage($conversation, 'assistant', $inviteOutcome, [
+                'metadata' => ['onboarding_step' => $stateId, 'turn_intent' => FynTurnIntent::TerminalNote->value],
+            ]);
+        }
+
         $appNote = "By the way — the Fynla experience is even better in the app. Everything you've just set up will be there the moment you sign in.";
 
         yield [

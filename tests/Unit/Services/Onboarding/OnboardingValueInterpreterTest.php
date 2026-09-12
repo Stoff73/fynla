@@ -248,3 +248,18 @@ describe('OnboardingValueInterpreter::parseEmploymentFromText', function () {
         expect(OnboardingValueInterpreter::parseEmploymentFromText('something else'))->toBeNull();
     });
 });
+
+describe('parseSpouseInviteDetails', function () {
+    it('reads a first name and an email in either order, and title-cases a lowercase name', function () {
+        expect(OnboardingValueInterpreter::parseSpouseInviteDetails('Angela, angela@example.com'))->toBe(['first_name' => 'Angela', 'email' => 'angela@example.com'])
+            ->and(OnboardingValueInterpreter::parseSpouseInviteDetails('angela@example.com Angela'))->toBe(['first_name' => 'Angela', 'email' => 'angela@example.com'])
+            ->and(OnboardingValueInterpreter::parseSpouseInviteDetails('Her name is Angela and her email is Angela.Smith@Example.com'))->toBe(['first_name' => 'Angela', 'email' => 'angela.smith@example.com'])
+            ->and(OnboardingValueInterpreter::parseSpouseInviteDetails('angela angela@example.com'))->toBe(['first_name' => 'Angela', 'email' => 'angela@example.com']);
+    });
+
+    it('needs both parts', function () {
+        expect(OnboardingValueInterpreter::parseSpouseInviteDetails('angela@example.com'))->toBeNull()
+            ->and(OnboardingValueInterpreter::parseSpouseInviteDetails('Angela'))->toBeNull()
+            ->and(OnboardingValueInterpreter::parseSpouseInviteDetails(''))->toBeNull();
+    });
+});

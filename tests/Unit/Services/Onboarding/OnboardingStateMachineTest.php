@@ -59,6 +59,8 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_PENSIONS,
             OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE,
             OnboardingStateMachine::STATE_CAMPAIGN_SYNTHESIS,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_INVITE_DETAILS,
             // Pensioncheck per-section advice turns (Task C5)
             OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_STATE_PENSION,
             OnboardingStateMachine::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS,
