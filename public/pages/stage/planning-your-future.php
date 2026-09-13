@@ -62,6 +62,8 @@
   </style>
   <link rel="stylesheet" href="/pages/css/global.css?v=2"                      />
   <link rel="stylesheet" href="/pages/css/stage-planning-your-future.css?v=1"  />
+  <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body>
 
