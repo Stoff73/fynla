@@ -76,6 +76,8 @@
 
   <link rel="stylesheet" href="/pages/css/global.css?v=3" />
   <link rel="stylesheet" href="/pages/css/learn-tax-iht-thresholds.css?v=1" />
+  <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body>
 

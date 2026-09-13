@@ -24,6 +24,8 @@
     @foreach ($entryCss as $href)
         <link rel="stylesheet" href="{{ $href }}">
     @endforeach
+    <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+    <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body>
     <div id="m-app"></div>
