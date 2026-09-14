@@ -55,7 +55,7 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-45 | Dead end + Duplicate | Tax Strategy next-step routes missing on web; key drift on `/m` and iOS; two list sources | which list is canonical | pending |
 | MB-46 | Does not make sense (Rule 2) | "£40,000 of unused tax allowances" hardcoded in the corpus prompt | none (compute from tax config) | — |
 | MB-47 | Broken | web pages under the chat not refetched after a Fyn write (extends MB-27) | none (refetch) | fixed 2026-09-14, branch `mb-47-fyn-navigation-refresh` |
-| MB-48 | Broken | spouse verify page shows nothing for a non-working spouse | none (return household figures without income) | — |
+| MB-48 | Broken | spouse verify page shows nothing for a non-working spouse | none (return household figures without income) | fixed 2026-09-14, branch `mb-48-spouse-verify-household` |
 | MB-49 | Does not make sense | natural "X, not Y" correction produced no write; 6.5-minute edit turn | accept as model behaviour, or add a deterministic correction parser | pending |
 | MB-50 | Does not make sense | `/m` expenditure verify shows a derived total, never the entered figure | none (show the entered figure) | — |
 | MB-51 | Does not make sense (copy) | "details page" labels, "workplace pension we covered" for the self-employed, neutral DOB wording for Pension Check, "bank and savings" for savings-only | none (fix the strings and key lookup) | — |
@@ -448,7 +448,7 @@ Decision needed: no — refetch the page data on Fyn navigation and after a land
 
 ### MB-48 — The spouse verify page shows nothing for a non-working spouse
 Map: docs/app-map/02b-campaigns.md § 2.5
-Status: Broken (web and `/m` by code)
+Status: Fixed 2026-09-14, branch `mb-48-spouse-verify-household`. `UserProfileService::spouseIncomeSources()` now reads the household row before deciding: null only when there is neither income nor captured figures; a zero-income spouse gets `total 0`, `sources []` and the `household` block. Both renderers already handled an empty list. Pest: `SpouseIncomeSummaryTest` (4, new case red before the fix) and `CaptureSpouseNonWorkingAssetsTest` (3). Live, user 90: web `/valuable-info?section=income` shows "Your spouse's income / What you told Fyn about your spouse / ISA balance £5,000" (`screenshots/mb-fixes/mb48-web-spouse-verify-non-working.png`); `/m` `/m/app/income?section=spouse` shows "Your spouse's total annual income £0 / No spouse income recorded yet / ISA balance £5,000" (`mb48-m-spouse-verify-non-working.png`).
 Evidence: `UserProfileService::spouseIncomeSources()` `:488-501` returns null when `tax_strategy_household_inputs.spouse_annual_income` is not above zero, before it reads `spouseHouseholdCaptured()`; for the `single_earner_couple` path the only captured figures are `spouse_existing_*` (`CoordinatingAgent.php:5648-5688`). This run the spouse section navigated to `/valuable-info?section=income` and `main.innerText` contained no "spouse" text while `tax_strategy_household_inputs` row 1 held `spouse_existing_isa_balance = 5000` (tinker; screenshot `web-fyn-10-spouse-verify-page.png`). `resources/mobile/views/Income.vue:74-86` reads the same payload, so `/m` has the same gap (not driven this run).
 What is wrong: the verify step for the non-working-spouse section sends the person to a page that cannot show what they said.
 Suspected impact: every married Save Tax user whose spouse has no income verifies blind; the 2026-09-11 fix for dual earners did not cover this path.
