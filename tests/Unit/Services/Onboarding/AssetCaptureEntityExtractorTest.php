@@ -602,3 +602,37 @@ describe('extractOccupationalPensionAnswer', function () {
             ->toHaveCount(1);
     });
 });
+
+// ─── MB-58: the occupational backstop must not degrade the record ──────────
+
+describe('extractOccupationalPensionAnswer — provider and pot (MB-58)', function () {
+    it('keeps a multi-word provider whole and reads the pot value', function () {
+        $out = $this->extractor->extractOccupationalPensionAnswer(
+            'I pay 5%, my employer pays 4%, not salary sacrifice. The pot is £48,000 with Scottish Widows'
+        );
+
+        expect($out)->toHaveCount(1);
+        expect($out[0]['provider'])->toBe('Scottish Widows');
+        expect($out[0]['scheme_name'])->toBe('Scottish Widows Workplace Pension');
+        expect($out[0]['employer_contribution_percent'])->toBe(4.0);
+        expect($out[0]['salary_sacrifice'])->toBeFalse();
+        expect($out[0]['current_fund_value'])->toBe(48000.0);
+    });
+
+    it('keeps an ampersand provider whole and stops at the end of the name', function () {
+        $out = $this->extractor->extractOccupationalPensionAnswer(
+            'I contribute 6% and my employer matches it, with Legal & General. It is worth about 22k now.'
+        );
+
+        expect($out[0]['provider'])->toBe('Legal & General');
+        expect($out[0]['current_fund_value'])->toBe(22000.0);
+    });
+
+    it('does not read a contribution amount as the pot', function () {
+        $out = $this->extractor->extractOccupationalPensionAnswer(
+            'I put in 5% which is about £200 a month, and my employer adds 3%.'
+        );
+
+        expect($out[0])->not->toHaveKey('current_fund_value');
+    });
+});
