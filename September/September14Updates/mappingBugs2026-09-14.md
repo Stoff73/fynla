@@ -25,9 +25,9 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-15 | Dead end | in-app notifications written, never read | build an inbox, or move to email/push | pending |
 | MB-16 | Dead | `Registered` listener never fires | none | — |
 | MB-17 | Duplicate drift | `/m` lacks two lifecycle switches | none (add them) | — |
-| MB-18 | Broken | `/m` login has no two-factor step | none (add it) | — |
-| MB-19 | Dead end | `/m` login has no restore branch | none (add it) | — |
-| MB-20 | Broken | web restore modal never shows the MFA field | none (fix) | — |
+| MB-18 | Broken | `/m` login has no two-factor step | none (add it) | fixed 2026-09-14, branch `mb-18-20-m-login-mfa-restore` |
+| MB-19 | Dead end | `/m` login has no restore branch | none (add it) | fixed 2026-09-14, branch `mb-18-20-m-login-mfa-restore` |
+| MB-20 | Broken | web restore modal never shows the MFA field | none (fix) | fixed 2026-09-14, branch `mb-18-20-m-login-mfa-restore` |
 | MB-21 | Broken | wrong MFA or recovery code bounces the user with no message | 422 for wrong codes, or allowlist the endpoints | pending |
 | MB-22 | Broken (layout) | privacy toggle under the open Fyn panel at 1440 px | none (fix) | — |
 | MB-23 | Broken | paused onboarding user's next message hits the director with no step; web shows nothing | route by step not conversation source, or new conversation on pause | pending |
@@ -208,7 +208,7 @@ Decision needed: no — add the two switches to `/m`.
 
 ### MB-18 — A two-factor user cannot sign in on `/m`
 Map: docs/app-map/01-auth-registration-sessions.md § 2.2
-Status: Broken
+Status: Fixed 2026-09-14, branch `mb-18-20-m-login-mfa-restore`. `resources/mobile/views/Login.vue` gains an authenticator step (the same six boxes as the emailed code, posting `POST /api/auth/mfa/verify`) with a recovery-code alternative (`POST /api/auth/mfa/recovery`). The server consumes the challenge token on the first attempt whatever the outcome (`MFAController::validateChallengeToken`), so a wrong code returns the user to sign-in with "Invalid verification code. Please sign in again to get a new code." rather than a dead retry (MB-21's 401-vs-422 question is unchanged). Vitest `resources/mobile/views/__tests__/Login.spec.js` (+5, red before). Live `/m` (rebuilt bundle), user 85: wrong code → back to sign-in with the message; correct authenticator code → dashboard as Map (`screenshots/mb-fixes/mb18-m-login-authenticator-step.png`); recovery code (regenerated through `MFAService::regenerateRecoveryCodes`) → dashboard (`mb18-m-login-recovery-code-step.png`).
 Evidence: `resources/mobile/views/Login.vue:116-129` handles a login response only when it carries a token or `requires_verification`; the `requires_mfa` response (`AuthController.php:323-336`) falls to the final branch and shows the server message as an error. Driven this run with user 85 (MFA enabled): "MFA verification required." rendered under the password field, no code step, screenshot `docs/app-map/screenshots/auth/m-login-mfa-user.png`. iOS has the branch (`AuthModels.swift:42-73`, `MultiFactorView.swift`); web has `MFAVerifyModal.vue`.
 What is wrong: the mobile web login was written for the emailed-code path only.
 Suspected impact: every customer who enables two-factor on the website is locked out of `/m`, which is where phones are routed.
@@ -216,7 +216,7 @@ Decision needed: no — add the MFA and recovery-code step to the `/m` login (Ru
 
 ### MB-19 — A deleted, restorable account has no way back on `/m`
 Map: docs/app-map/01-auth-registration-sessions.md § 2.2
-Status: Dead end (by code read; not driven because the test account was restored through the API first)
+Status: Fixed 2026-09-14, branch `mb-18-20-m-login-mfa-restore`. The `/m` login gains a restore step on `account_deleted_restorable` ("Welcome back, {name} — this account was deleted on {date}"), posts `POST /api/auth/restore` with the restoration token, asks for the authenticator or recovery code when that call answers 422 `requires_mfa` (the MB-20 shape), and on success stores the token and opens the dashboard, carrying the campaign from `redirect_to` as `?from=`. Vitest `Login.spec.js` (in the +5). Live `/m`, user 85 deleted through `AccountDeletionService::deleteAccount()`: restore step shown (`mb19-m-login-restore-step.png`), Restore → code field (`mb19-m-login-restore-mfa-field.png`) → authenticator code → dashboard; `users.deleted_at` back to null.
 Evidence: `AuthController.php:234-257` answers a correct password on a restorable account with `account_deleted_restorable` and a `restoration_token`; `resources/mobile/views/Login.vue:116-129` has no branch for it and shows "We could not sign you in. Please try again." (`:126`). Web mounts `RestoreAccountModal.vue`; iOS has `RestoreAccountFlow.swift`.
 What is wrong: as MB-18, for the restoration branch.
 Suspected impact: a phone user who deleted their account is told sign-in failed, with no hint that restoration exists.
@@ -224,7 +224,7 @@ Decision needed: no.
 
 ### MB-20 — The web restore modal never asks a two-factor user for their code
 Map: docs/app-map/01-auth-registration-sessions.md § 2.7
-Status: Broken
+Status: Fixed 2026-09-14, branch `mb-18-20-m-login-mfa-restore`. `RestoreAccountModal.vue` now treats a 422 `requires_mfa` from `restore` the way it treats the one from `restore/check`: shows the code field, keeps the token, no error. Vitest `resources/js/components/__tests__/Account/RestoreAccountModal.spec.js` (+2, red before). Live web, user 85 deleted again: modal → Restore → code field with no error (`mb20-web-restore-modal-mfa-field.png`) → authenticator code → `/dashboard?openPricing=1`; `users.deleted_at` back to null.
 Evidence: `resources/js/components/Account/RestoreAccountModal.vue:207-235`: on the login path the modal already holds a `restorationToken`, skips the `restoreCheck` branch that sets `mfaRequired` (`:213-224`), posts `restore` without a code, and the catch shows the server message. `RestoreAccountController.php:38-46` answers 422 `requires_mfa: true`. Driven this run: the modal showed "Authenticator or recovery code required." with no input (screenshot `web-login-restore-account-modal.png`, console 422 at 11:20:27). The same request with `mfa_code` made directly restored the account (HTTP 200).
 What is wrong: the `requires_mfa` answer from `restore` is not handled, only the one from `restore/check`.
 Suspected impact: any two-factor user who deletes their account cannot restore it from the sign-in page.
