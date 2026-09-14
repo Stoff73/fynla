@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-14 session 1 — application mapping programme started: `app-map` skill, overview + sections 17 (emails) and 01 (auth) mapped, MB-08 orphan-route dossier, 22 mapping bugs raised (none fixed), commit e50bff154 on dev. Handover: `handover/September/14/handover-2026-09-14-session-1.md`*
+*Last updated: 2026-09-14 session 2 — application mapping programme: overview, 17 (emails), 01 (auth) and 02a (onboarding) mapped; 36 mapping bugs raised (none fixed, none decided); section 02b campaigns next. Commit ce88f3d63 on dev. Handover: `handover/September/14/handover-2026-09-14-session-2.md`*
 
 ## The board position
 
@@ -25,14 +25,20 @@ re-check the nine items before fixing found one already resolved and one oversta
 Evidence-only maps in `docs/app-map/` via the `app-map` skill; index at `docs/app-map/INDEX.md`;
 bugs raised (never fixed inside a run) in `September/September14Updates/mappingBugs2026-09-14.md`.
 
-- [x] Overview baseline, section 17 emails and push, section 01 auth and registration.
-- [ ] **BLOCKED ON CSJ — mapping-bug decisions** (register at the top of the bugs file):
-      MB-14/MB-15 (alerts never delivered; in-app notifications never read), MB-21 (wrong MFA
-      code bounces the user), MB-08 (household routes, persona list), MB-06 (seven lifecycle
-      emails), MB-01 + MB-09 (dead-code sweep vs allowlist; the 56 Vue public pages are dead,
-      PHP is canonical), MB-10 (mock-up routes), MB-11 (artisan pruning).
-- [ ] Section 02 onboarding and Save Tax next, then 03 onwards in index order.
-- [ ] Fix approved MBs one per PR; MB-18 (two-factor users cannot sign in on `/m`) first.
+- [x] Overview baseline, 17 emails and push, 01 auth and registration, 02a onboarding (Fyn flow,
+      legacy wizard, journeys, life stage). Section 02 split: 02b campaigns not started.
+- [ ] **BLOCKED ON CSJ — mapping-bug decisions** (register at the top of the bugs file). Live
+      user-facing first: MB-23 (paused user's next message gets no reply; dispatch by step or new
+      conversation), MB-25 (paused journey/focus walk can never resume). Dead code: MB-30/31/29
+      (seven callerless routes, empty Journeys page, journey wizard mode renders nothing, dead
+      step branches) with MB-01 + MB-09. MB-32 (`life_stage` overloaded), MB-34 (46 hardcoded
+      tax figures in wizard copy). Still pending from session 1: MB-14/15, MB-21, MB-08, MB-06,
+      MB-10, MB-11.
+- [ ] Section 02b Save Tax and Pension Check campaigns next (`/app-map campaign`), then 03 onwards.
+- [ ] Fix approved MBs one per PR, verified web and `/m`. No decision needed: MB-18 (`/m` MFA
+      login), MB-24 (`/m` "Something else" says "This step cannot be skipped"), MB-26, MB-27,
+      MB-28, MB-33, MB-35, plus MB-19/20/22. Unskip
+      `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with the MB-23 fix.
 
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
