@@ -1045,14 +1045,18 @@ export default {
 
             // If the user is mid-onboarding from a previous tab/session,
             // resume the director flow instead of starting a blank chat.
+            // A user who never took the first turn starts it here too
+            // (MB-26; the server decides via onboarding_fyn_needs_start, the
+            // same flag the /m dashboard reads).
             const user = this.$store.getters['auth/user'];
             const isMidOnboarding = !!(
                 user
                 && user.onboarding_completed === false
                 && user.onboarding_fyn_step
             );
+            const needsStart = user?.onboarding_fyn_needs_start === true;
 
-            if (isMidOnboarding) {
+            if (isMidOnboarding || needsStart) {
                 // startOnboardingConversation detects in_progress via the
                 // /status endpoint and loads the existing conversation.
                 await this.$store.dispatch('aiChat/startOnboardingConversation');

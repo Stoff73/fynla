@@ -56,12 +56,11 @@ export default {
     },
     // A newly registered user has no step until the first /onboarding/start
     // request assigns one. That is distinct from "Something else", which also
-    // nulls the step but is deliberately parked and exposed as paused by the
-    // user resource. Only the fresh state should auto-start on the dashboard.
+    // nulls the step but is deliberately parked. The server decides
+    // (UserResource onboarding_fyn_needs_start, MB-26) so web and /m cannot
+    // disagree about who gets started.
     onboardingNeedsStart() {
-      return store.user?.onboarding_completed === false
-        && store.user?.onboarding_fyn_step === null
-        && store.user?.onboarding_fyn_paused !== true;
+      return store.user?.onboarding_fyn_needs_start === true;
     },
   },
   methods: {
