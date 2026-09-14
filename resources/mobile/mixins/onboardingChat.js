@@ -543,8 +543,11 @@ export default {
         cursor.got = true;
         if (ev.prompt_text) cursor.reply.text = ev.prompt_text;
         cursor.reply.bubbles = Array.isArray(ev.bubbles) ? ev.bubbles.slice() : [];
-        if (ev.skip_link?.label && !cursor.reply.bubbles.some((bubble) => bubble.id === 'skip')) {
-          cursor.reply.bubbles.push({ id: 'skip', label: ev.skip_link.label });
+        // The synthesised skip link is a director action; flag it on the bubble
+        // itself, because the corpus reuses the id `skip` for the front door's
+        // "Something else" (path_choice), which is an ordinary answer (MB-24).
+        if (ev.skip_link?.label && !cursor.reply.bubbles.some((bubble) => bubble.action)) {
+          cursor.reply.bubbles.push({ id: 'skip', label: ev.skip_link.label, action: true });
         }
         // Resume re-engagement bubbles (Continue / Something else) are director
         // actions, not onboarding answers — flag them so chooseBubble routes
@@ -572,7 +575,7 @@ export default {
       // Resume re-engagement bubbles (Continue / Something else) are director
       // actions — route to the action endpoint and consume the bubbles so they
       // can't be re-tapped. Regular onboarding bubbles send their label.
-      if (message && (message.actionBubbles || bubble.id === 'skip')) {
+      if (message && (message.actionBubbles || bubble.action)) {
         message.bubbles = [];
         this.runFynAction(bubble.id);
         return;
