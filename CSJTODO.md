@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-14 session 2 — application mapping programme: overview, 17 (emails), 01 (auth) and 02a (onboarding) mapped; 36 mapping bugs raised (none fixed, none decided); section 02b campaigns next. Commit ce88f3d63 on dev. Handover: `handover/September/14/handover-2026-09-14-session-2.md`*
+*Last updated: 2026-09-14 session 3 — application mapping programme: overview, 17 (emails), 01 (auth), 02a (onboarding) and 02b (campaigns) mapped; 55 mapping bugs raised (none fixed, none decided). CSJ's focus for the next session: fix the mapping bugs; mapping paused at section 03. Commit 86ef97b41 on dev. Handover: `handover/September/14/handover-2026-09-14-session-3.md`*
 
 ## The board position
 
@@ -26,19 +26,24 @@ Evidence-only maps in `docs/app-map/` via the `app-map` skill; index at `docs/ap
 bugs raised (never fixed inside a run) in `September/September14Updates/mappingBugs2026-09-14.md`.
 
 - [x] Overview baseline, 17 emails and push, 01 auth and registration, 02a onboarding (Fyn flow,
-      legacy wizard, journeys, life stage). Section 02 split: 02b campaigns not started.
+      legacy wizard, journeys, life stage), 02b Save Tax and Pension Check campaigns (funnels,
+      hand-off, both walks, re-entry, Tax Strategy page; driven live on web and `/m`).
 - [ ] **BLOCKED ON CSJ — mapping-bug decisions** (register at the top of the bugs file). Live
-      user-facing first: MB-23 (paused user's next message gets no reply; dispatch by step or new
-      conversation), MB-25 (paused journey/focus walk can never resume). Dead code: MB-30/31/29
-      (seven callerless routes, empty Journeys page, journey wizard mode renders nothing, dead
-      step branches) with MB-01 + MB-09. MB-32 (`life_stage` overloaded), MB-34 (46 hardcoded
-      tax figures in wizard copy). Still pending from session 1: MB-14/15, MB-21, MB-08, MB-06,
-      MB-10, MB-11.
-- [ ] Section 02b Save Tax and Pension Check campaigns next (`/app-map campaign`), then 03 onwards.
-- [ ] Fix approved MBs one per PR, verified web and `/m`. No decision needed: MB-18 (`/m` MFA
-      login), MB-24 (`/m` "Something else" says "This step cannot be skipped"), MB-26, MB-27,
-      MB-28, MB-33, MB-35, plus MB-19/20/22. Unskip
-      `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with the MB-23 fix.
+      user-facing first: MB-23 (paused user's next message gets no reply), MB-44 (Save Tax has no
+      way back after "No thanks"), MB-37 (web savings verify page shows no accounts — which page),
+      MB-45 (Tax Strategy: which list is canonical), MB-25 (paused walk can never resume), MB-38
+      (Pension Check hardcoded bands, no cross-check), MB-54 (Save Tax drops the pension pot),
+      MB-53 (re-entry re-asks pensions), MB-49 (natural correction produced no write). Dead code
+      and copies: MB-01 + MB-09 + MB-29/30/31, MB-39, MB-41, MB-42, MB-43, MB-08, MB-10, MB-11,
+      MB-06. Data and copy: MB-32, MB-34, MB-40, MB-14/15, MB-21.
+- [ ] **Fix the MBs that need no decision** (CSJ's focus, 2026-09-14), one per branch and PR to
+      dev, verified web and `/m`, functional first: MB-47 (web pages not refetched after a Fyn
+      write, with MB-27), MB-48 (spouse verify page empty for a non-working spouse), MB-24
+      (`/m` "Something else" says "This step cannot be skipped"), MB-18/19/20 (`/m` MFA login
+      and restore, web restore MFA field), MB-50 (`/m` expenditure verify shows a derived
+      total), MB-26, MB-28, MB-33, MB-35, MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55.
+      Unskip `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
+- [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
