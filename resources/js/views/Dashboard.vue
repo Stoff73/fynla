@@ -1374,7 +1374,13 @@ export default {
     // Handle openFyn=journey from the "Quick start with Fyn" CTA.
     // Directly dispatches the Fyn onboarding flow and opens the chat
     // panel — the backend director streams turn 1 via SSE.
-    if (this.$route.query.openFyn === 'journey') {
+    //
+    // MB-26 — a signed-in user who never took Fyn's first turn (registered
+    // then closed the tab, or registered on /m) gets the same start without
+    // the query, exactly as the /m dashboard does. The server decides who
+    // qualifies (UserResource onboarding_fyn_needs_start).
+    const needsStart = this.$store.getters['auth/user']?.onboarding_fyn_needs_start === true;
+    if (this.$route.query.openFyn === 'journey' || needsStart) {
       // Blur dashboard background on desktop until user interacts with chat.
       if (window.innerWidth >= 1024) {
         this.journeyBlurActive = true;

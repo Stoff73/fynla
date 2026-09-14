@@ -284,7 +284,7 @@ export default {
 
     currentStepNeeds() {
       const needsMap = {
-        'Your profile': ['Your date of birth', 'Employment status and occupation', 'Whether you have a spouse or dependents'],
+        'Your profile': ['Your date of birth', 'Employment status and occupation', 'Whether you have a spouse or dependants'],
         'Income': ['Your annual salary or self-employment income', 'Any additional income sources (rental, dividends)'],
         'Spending': ['Monthly household bills estimate', 'Regular commitments (subscriptions, memberships)'],
         'Protection': ['Details of any life insurance policies', 'Critical illness or income protection cover'],

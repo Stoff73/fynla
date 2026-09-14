@@ -284,13 +284,14 @@ import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 
 import logger from '@/utils/logger';
 import { calculateUserShare, coOwnerName, isSharedRecord, userSharePercent } from '@/utils/ownership';
 export default {
   name: 'InvestmentList',
 
-  mixins: [currencyMixin, tierLimitMixin],
+  mixins: [currencyMixin, tierLimitMixin, fynScreenRefreshMixin],
 
   components: {
     InvestmentProjections,
@@ -551,6 +552,10 @@ export default {
     async handleDocumentSaved() {
       this.showUploadModal = false;
       await this.loadData();
+    },
+
+    fynScreenRefresh() {
+      this.loadData();
     },
 
     async loadData() {

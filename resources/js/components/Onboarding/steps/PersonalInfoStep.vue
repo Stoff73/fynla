@@ -103,6 +103,7 @@
           <option value="">Select marital status</option>
           <option value="single">Single</option>
           <option value="married">Married</option>
+          <option value="civil_partnership">Civil partnership</option>
           <option value="divorced">Divorced</option>
           <option value="widowed">Widowed</option>
         </select>

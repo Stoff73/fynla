@@ -495,16 +495,20 @@ class UserProfileService
 
         $spouseIncome = (float) (TaxStrategyHouseholdInput::where('user_id', $user->id)
             ->value('spouse_annual_income') ?? 0);
-        if ($spouseIncome <= 0) {
+        // Everything else the SaveTax spouse step captured, so the spouse
+        // verify screen shows what Fyn was told (live prod 2026-09-11: the
+        // ISA balance and pension figures were recorded but nowhere on the
+        // page the user was sent to check, so they read as ignored). A
+        // non-working spouse (single_earner_couple) has no income at all and
+        // ONLY these figures — MB-48: returning null on zero income sent that
+        // user to a blank verify page.
+        $household = $this->spouseHouseholdCaptured($user);
+        if ($spouseIncome <= 0 && $household === null) {
             return null;
         }
 
         return [
-            // Everything else the SaveTax spouse step captured, so the spouse
-            // verify screen shows what Fyn was told (live prod 2026-09-11: the
-            // ISA balance and pension figures were recorded but nowhere on the
-            // page the user was sent to check, so they read as ignored).
-            'household' => $this->spouseHouseholdCaptured($user),
+            'household' => $household,
             'employment' => $spouseIncome,
             'self_employment' => 0.0,
             'dividend' => 0.0,
@@ -513,7 +517,7 @@ class UserProfileService
             'total' => $spouseIncome,
             'employer' => null,
             'occupation' => null,
-            'sources' => [[
+            'sources' => $spouseIncome > 0 ? [[
                 'key' => 'employment',
                 'label' => 'Employment',
                 'amount' => $spouseIncome,
@@ -522,7 +526,7 @@ class UserProfileService
                 'ownership_label' => 'Your spouse',
                 'detail' => null,
                 'tax_position' => 'Estimated earned income',
-            ]],
+            ]] : [],
             'tax_position' => [
                 'total_income' => $spouseIncome,
                 'adjusted_net_income' => null,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Onboarding\SaveStepProgressRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Traits\TierLimitResponse;
 use App\Services\Onboarding\OnboardingService;
@@ -70,12 +71,8 @@ class OnboardingController extends Controller
     /**
      * Save progress for a step
      */
-    public function saveStepProgress(Request $request): JsonResponse
+    public function saveStepProgress(SaveStepProgressRequest $request): JsonResponse
     {
-        $request->validate([
-            'step_name' => 'required|string',
-            'data' => 'required|array',
-        ]);
 
         try {
             \Log::info('Saving step progress', [

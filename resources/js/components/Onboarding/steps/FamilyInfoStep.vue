@@ -1,7 +1,7 @@
 <template>
   <OnboardingStep
-    title="Family & Dependents"
-    description="Add details about your family members and dependents"
+    title="Family & Dependants"
+    description="Add details about your family members and dependants"
     :can-go-back="true"
     :can-skip="true"
     :loading="loading"
