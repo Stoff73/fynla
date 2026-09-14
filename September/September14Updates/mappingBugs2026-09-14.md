@@ -57,7 +57,7 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-47 | Broken | web pages under the chat not refetched after a Fyn write (extends MB-27) | none (refetch) | fixed 2026-09-14, branch `mb-47-fyn-navigation-refresh` |
 | MB-48 | Broken | spouse verify page shows nothing for a non-working spouse | none (return household figures without income) | fixed 2026-09-14, branch `mb-48-spouse-verify-household` |
 | MB-49 | Does not make sense | natural "X, not Y" correction produced no write; 6.5-minute edit turn | accept as model behaviour, or add a deterministic correction parser | pending |
-| MB-50 | Does not make sense | `/m` expenditure verify shows a derived total, never the entered figure | none (show the entered figure) | — |
+| MB-50 | Does not make sense | `/m` expenditure verify shows a derived total, never the entered figure | none (show the entered figure) | fixed 2026-09-14, branch `mb-50-m-expenditure-entered-figure` |
 | MB-51 | Does not make sense (copy) | "details page" labels, "workplace pension we covered" for the self-employed, neutral DOB wording for Pension Check, "bank and savings" for savings-only | none (fix the strings and key lookup) | — |
 | MB-52 | Duplicate drift | `/m` collapses multi-paragraph advice into one paragraph | none (render breaks on `/m`) | — |
 | MB-53 | Does not make sense | Pension Check re-entry re-asks the pensions section | add data-presence skips, or accept the repeat | pending |
@@ -464,7 +464,7 @@ Decision needed: yes — accept as model behaviour, or add a deterministic parse
 
 ### MB-50 — The `/m` expenditure verify screen shows a derived total, not the figure the user gave
 Map: docs/app-map/02b-campaigns.md § 2.5
-Status: Does not make sense (`/m`)
+Status: Fixed 2026-09-14, branch `mb-50-m-expenditure-entered-figure`. `/m` only: the screen read `active_monthly_total` alone; the server presentation already carried `manual_monthly_total` and `commitments_monthly_total` (web shows all three). The hero is now labelled "Total monthly expenditure" and the summary card lists "Monthly spending you entered" and "Financial commitments (auto-calculated)". Vitest `resources/mobile/views/__tests__/Expenditure.spec.js` (+2, first red before). Live `/m` (rebuilt bundle), user 91: £2,400 entered, £667 commitments, £3,067 total (`screenshots/mb-fixes/mb50-m-expenditure-entered-figure.png`).
 Evidence: this run, user 91 said "Around £2,400 a month"; `/m/app/expenditure?section=expenditure` showed "Monthly expenditure £3,067, £36,800 a year, Only a monthly summary has been entered" and `main.innerText` did not contain "2,400" (screenshot `m-fyn-06-expenditure-verify-screen.png`). £3,067 is £2,400 plus the £666.67 monthly SIPP contribution the walk had recorded as a financial commitment.
 What is wrong: the person is asked whether £3,067 "looks right" without ever seeing their £2,400 on the screen.
 Suspected impact: a user who said £2,400 is likely to tap "No, change something" and start an edit turn for a figure that is already correct.
