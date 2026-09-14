@@ -1,10 +1,10 @@
 # Mapping bugs — 2026-09-14
 
-Raised by the `app-map` runs of 2026-09-14: the overview, sections 17 and 01 (commit `28194e804` on `dev`, MB-01 to MB-22) and section 02a onboarding (commit `e4ddc4e3f`, MB-23 to MB-36, `docs/app-map/02-onboarding.md`). Every entry is evidence from its run. Nothing here has been fixed; fixing is a separate task. Append, never renumber.
+Raised by the `app-map` runs of 2026-09-14: the overview, sections 17 and 01 (commit `28194e804` on `dev`, MB-01 to MB-22), section 02a onboarding (commit `e4ddc4e3f`, MB-23 to MB-36, `docs/app-map/02-onboarding.md`) and section 02b campaigns (commit `6b365dddc`, MB-37 to MB-55, `docs/app-map/02b-campaigns.md`). Every entry is evidence from its run. Nothing here has been fixed; fixing is a separate task. Append, never renumber.
 
 Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `.claude/skills/app-map/SKILL.md` step 4).
 
-## Decisions register (updated 2026-09-14 14:10)
+## Decisions register (updated 2026-09-14 16:10)
 
 | Id | Status | Area | Decision needed | Decided |
 |---|---|---|---|---|
@@ -44,6 +44,25 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-34 | Does not make sense | 46 hardcoded tax figures in wizard learning copy (Rule 2) | source from tax config, or accept as editorial copy | pending |
 | MB-35 | Does not make sense | wizard copy and options: American "Dependents", marital status omits civil partnership | none (fix) | — |
 | MB-36 | Does not make sense (adjacent: Savings) | `/m` savings screen says expenditure is missing while computing a target from it | none (Savings module fix) | — |
+| MB-37 | Broken | web savings verify page shows no accounts | which page the savings verify should open | pending |
+| MB-38 | Does not make sense + Duplicate | Pension Check hardcodes income bands in three places; no income context or cross-check | extend to Pension Check, or accept the drift | pending |
+| MB-39 | Does not make sense | four non-campaign pages framed and routed as campaigns | retire them, or build the campaigns | pending |
+| MB-40 | Does not make sense | Save Tax headline counts saving lines the page hides | show every line, or exclude them from the total | pending |
+| MB-41 | Dead (route side) | public tax-allowances endpoint serves mock-ups only; mislabelled threshold | delete, or wire the live page to it | pending |
+| MB-42 | Dead (route side) | tax-strategy calculate endpoint has no caller | delete, or restore the sliders | pending |
+| MB-43 | Dead | charitable-giving state remnants | delete the remnants, or restore a giving section | pending |
+| MB-44 | Dead end | declining the Save Tax consent gate has no way back; Actions tile can never show | allow Save Tax re-entry, or drop the tile and comment | pending |
+| MB-45 | Dead end + Duplicate | Tax Strategy next-step routes missing on web; key drift on `/m` and iOS; two list sources | which list is canonical | pending |
+| MB-46 | Does not make sense (Rule 2) | "£40,000 of unused tax allowances" hardcoded in the corpus prompt | none (compute from tax config) | — |
+| MB-47 | Broken | web pages under the chat not refetched after a Fyn write (extends MB-27) | none (refetch) | — |
+| MB-48 | Broken | spouse verify page shows nothing for a non-working spouse | none (return household figures without income) | — |
+| MB-49 | Does not make sense | natural "X, not Y" correction produced no write; 6.5-minute edit turn | accept as model behaviour, or add a deterministic correction parser | pending |
+| MB-50 | Does not make sense | `/m` expenditure verify shows a derived total, never the entered figure | none (show the entered figure) | — |
+| MB-51 | Does not make sense (copy) | "details page" labels, "workplace pension we covered" for the self-employed, neutral DOB wording for Pension Check, "bank and savings" for savings-only | none (fix the strings and key lookup) | — |
+| MB-52 | Duplicate drift | `/m` collapses multi-paragraph advice into one paragraph | none (render breaks on `/m`) | — |
+| MB-53 | Does not make sense | Pension Check re-entry re-asks the pensions section | add data-presence skips, or accept the repeat | pending |
+| MB-54 | Does not make sense | Save Tax workplace-pension capture drops the pot value and provider | add the pot loop to Save Tax, or extend the prompt | pending |
+| MB-55 | Does not make sense | Save Tax sign-in link drops the campaign; Pension Check's keeps it | none (align with Pension Check, subject to MB-44) | — |
 
 ### MB-01 — 153 web SPA files are unreachable from the app entry points
 Map: docs/app-map/00-overview.md § 3 and Appendix A
@@ -335,3 +354,155 @@ Evidence: `/m/app/savings` for user 87 (monthly expenditure £1,800 saved by Fyn
 What is wrong: two parts of one screen read expenditure from different sources. Belongs to the Savings module map (section 06); recorded here because it was seen in this run.
 Suspected impact: contradictory guidance on the savings screen.
 Decision needed: no — for the Savings map to trace.
+
+### MB-37 — The web savings verify page shows none of the accounts just captured
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Broken (web)
+Evidence: Save Tax walk this run, user 90: after the savings section the chat navigated to `/savings` (`OnboardingStateMachine::campaignVerifyConfig()` `:239`), the page's Cash Overview tab rendered "Account Overview" and a "Connect to Open Banking — Coming Soon" placeholder, and `main.innerText` contained neither "Nationwide", "Marcus", "15,000" nor "30,000" while `savings_accounts` rows 237 and 238 held both accounts (tinker). Screenshot `docs/app-map/screenshots/02b-campaigns/web-fyn-06-savings-verify-page.png`. The `/m` savings screen was not driven this run; `resources/mobile/views/Savings.vue` was not read.
+What is wrong: the verify step asks "does it look right?" on a page that shows nothing the user entered. The completeness widget on the same page says "Your savings accounts" is complete, so the person has no way to check the balances or rates Fyn recorded.
+Suspected impact: every Save Tax user who ticked bank or savings verifies blind on web; a mis-heard balance (the interest figure drives the ISA advice, § 2.6) goes unnoticed.
+Decision needed: yes — should the savings verify open `/net-worth/cash` (the Bank Accounts page in the side nav) instead, or should `/savings` list the accounts?
+
+### MB-38 — Pension Check hardcodes the income bands in three places and skips the income cross-check
+Map: docs/app-map/02b-campaigns.md § 2.1, § 2.3, § 2.8
+Status: Does not make sense (Rule 2) plus Duplicate
+Evidence: `public/pages/pensioncheck.php:167-201` ("Up to £50,270", "£50,271 to £100,000", "£100,001 to £125,140", "Above £125,140" as literals) against `public/pages/savetax.php:3-16` which reads `FunnelIncomeBand::pageLabels()`; `public/pages/js/pensioncheck-plan.js:70-75` (`INC_LABEL`); `OnboardingStateMachine::buildPensioncheckFunnelRecapPrompt()` `:2555-2575` (literal `'earning up to £50,270'` and so on) against the savetax recap's `saveTaxIncomeRecapLabel()` `:1476-1497`. `AuthController::stampFunnelIncomeContext()` `:167-171` returns early unless the campaign is `savetax`; `OnboardingChatDirector::detectIncomeFunnelMismatch()` `:3344-3351` returns null for any other campaign. User 91's `pending_registrations.funnel_answers` this run carried no `income_context` (tinker).
+What is wrong: the Save Tax path was rebuilt to source every band label from the tax configuration and to challenge an income that contradicts the funnel band; the Pension Check path copied the old literals and never got the challenge. A tax-year rollover moves the Save Tax labels and leaves the Pension Check ones stale.
+Suspected impact: wrong band labels after the next threshold change on the Pension Check page, recap and social-proof copy; a typo'd income on the Pension Check walk builds the whole retirement picture unchallenged (the same failure the Save Tax challenge was added for on 2026-09-11).
+Decision needed: yes — extend the band labels, the context stamp and the mismatch challenge to Pension Check, or accept the drift.
+
+### MB-39 — Four "campaign" pages are framed into `/m` as campaigns but lead to plain onboarding
+Map: docs/app-map/02b-campaigns.md § 2.1
+Status: Does not make sense (and Dead end for the phone redirect)
+Evidence: `app/Http/Middleware/RedirectPhoneToMobile.php:43-45` lists `biggerpension`, `paymortgage`, `managedebt`, `wealth` alongside `savetax` and `pensioncheck`; `resources/js/router/index.js:264-286` serves them from `CampaignPage.vue`, whose calls to action are `/register?from=fyn` (`CampaignPage.vue:39, 193`); `fyn` is not a key of `campaign_map` or `journey_map` (`config/onboarding.php:57-86`), so `AiChatController::startOnboarding()` `:750-753` falls through to `STATE_PATH_CHOICE`. No funnel page, estimate service or state exists for any of the four (`git ls-files` this run).
+What is wrong: the phone redirect and the router treat these as campaign entry points, but nothing downstream knows them. A phone visitor on `/biggerpension` is framed into `/m` "as a campaign" and then gets the generic path choice.
+Suspected impact: advert traffic to those paths gets the ordinary onboarding, not a campaign walk; the allowlist and the pages suggest a product that does not exist.
+Decision needed: yes — retire the four pages and prefixes, or build them as campaigns.
+
+### MB-40 — The Save Tax plan headline counts savings lines the page never shows
+Map: docs/app-map/02b-campaigns.md § 2.2
+Status: Does not make sense
+Evidence: `SaveTaxEstimateService::estimate()` `:87-160` produces lines keyed `pension`/`tax_trap_60`, `isa`, `psa`, `dividend`, `cgt`, `spouse_pa`, `spouse_psa`, `spouse_starting_rate`, `marriage_allowance` and sums them into `savings_total`; `public/pages/js/savetax-plan-v4.js:41-45` attaches a "Could save £X/yr" callout only for `pension_aa`, `psa`, `dividend`, `cgt`, `marriage_allowance`, `spouse_pa`, `personal_allowance`. This run (band `50271_100000`, spouse with no income, savings + pension + ISA + investments): headline "up to £12,527"; visible callouts £200 + £5,028 + £179 + £720 = £6,127; the `isa` (£4,000), `spouse_psa` (£400) and `spouse_starting_rate` (£2,000) lines were in the total and absent from the page (`window.SAVETAX_ESTIMATE` read this run; screenshot `web-plan-01-full.png`).
+What is wrong: the person cannot reconcile the headline with the cards. The ISA line is excluded on purpose (`:39-40` comment) but still counted.
+Suspected impact: the largest single line (ISA, 10% of income at the marginal rate) is invisible; the headline reads as inflated.
+Decision needed: yes — show every counted line, or exclude the hidden lines from the headline.
+
+### MB-41 — The public tax-allowances endpoint serves only mock-ups and mislabels a threshold
+Map: docs/app-map/02b-campaigns.md § 2.2
+Status: Dead (route side, for the live pages)
+Evidence: `GET /api/public/tax-allowances` (`routes/api.php:244-245`, `TaxAllowancesController.php`) is fetched by `public/pages/js/savetax-plan.js:116` (loaded only by the v3 mock-up, `savetax-plan-v3.php:367`), `savetax-plan-v2.js` (v2 mock-up) and `resources/js/views/Public/SaveTaxCampaignPage.vue` (shadowed, MB-09); the live `savetax-plan.php:203-205` injects `SaveTaxEstimateService` output and loads `savetax-plan-v4.js`, which never calls the endpoint. `TaxAllowancesController.php:90-94` publishes `thresholds.hicbc_threshold` from `income_tax.personal_allowance_taper_threshold` (the £100,000 Personal Allowance taper, not the High Income Child Benefit Charge threshold) and no client reads `thresholds` (grep of `public/pages/js`, `resources/js`, `resources/mobile`).
+What is wrong: a public, rate-limited endpoint kept alive by design mock-ups, carrying a wrongly named figure nobody reads.
+Suspected impact: none for users; maintenance and a misleading name.
+Decision needed: yes — delete with MB-08 and MB-10, or make the live plan page use it.
+
+### MB-42 — The Tax Strategy recalculation endpoint has no caller on any client
+Map: docs/app-map/02b-campaigns.md § 2.9
+Status: Dead (route side)
+Evidence: `POST /api/tax-strategy/calculate` (`routes/api.php:383`, `TaxStrategyController::calculate()` `:113-119`, `TaxStrategyCalculateRequest`, `TaxStrategyOverridesDTO`); `resources/js/store/modules/taxStrategy.js:42-54` defines `recalculate` but no component dispatches `taxStrategy/recalculate` (grep of `resources/js`); `resources/mobile/views/TaxStrategy.vue` and `ios-native/Fynla/Features/TaxStrategy/TaxStrategyClient.swift` call only `GET /api/tax-strategy` and mark-done. `TaxStrategyDashboard.vue:14-22` renders no slider or toggle. The BS-26 scenario docblock (`tests/Browser/scenarios/BS-26-savetax-single-employed.php`) still says "sliders trigger live recalc". Not in the MB-08 dossier.
+What is wrong: the in-memory override path (pension percentage, salary sacrifice, ISA deposit, Marriage Allowance claim, asset shift) is built, tested (`CalculateEndpointTest`, 5 tests passed this run) and unreachable.
+Suspected impact: none for users; tests pass against code nobody can reach.
+Decision needed: yes — delete the endpoint, request, DTO and store action, or restore the what-if sliders that were designed for it.
+
+### MB-43 — The charitable-giving campaign state exists only as remnants
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Dead (state); the tool stays reachable
+Evidence: `OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING` `:127` has no entry in `inCodeStates()` (`:446-722`) and no block in `fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md` (grep this run); no section in `campaignSections()` `:207-238` enters it; `campaignVerifyConfig()` `:245` comments "null = inline confirm — used for charitable giving" for a state that is never entered. Remnants: `OnboardingChatDirector.php:5795` (ack), `ActivityFeedService.php:49`, `GateRoutes.php:155`, `SECTION_STRATEGY_TYPES['giving']` (`OnboardingChatDirector.php:1223`) which `campaignSectionAdvice()` never maps. The tool `capture_charitable_giving` remains in `AdviceFyn::WRITE_TOOLS` (`:185`) and is therefore offered through the advice-to-capture handoff (`OnboardingPromptBuilder.php:177-179`), and its handler and test (`CaptureCharitableGivingTest`) are live.
+What is wrong: a section was removed from the walk (the code comments call this #586) but its state constant, ack, gate route, feed label and advice map were left behind.
+Suspected impact: none at run time; the gift-aid strategy can only ever be voiced by the synthesis if a donation figure arrives some other way.
+Decision needed: yes — delete the remnants, or put a giving section back in the walk.
+
+### MB-44 — Declining the Save Tax consent gate ends the campaign for good, and the promised way back never shows
+Map: docs/app-map/02b-campaigns.md § 2.5, § 2.9
+Status: Dead end
+Evidence: `OnboardingStateMachine::nextFromCampaignIntro()` `:1932-1938` routes "No thanks" to `STATE_DONE`; the comment says "They can revisit the campaign via the Tax Strategy tile on /actions". That tile (`resources/js/views/Actions/ActionsDashboard.vue:4-12`) renders only when `auth.user.onboarding_fyn_selection === 'savetax'` (`:155-158`), and both `emitDoneTurn` (02a § 2.7) and `emitTerminalNavigationTurn()` (`OnboardingChatDirector.php:5760-5764`) null that column. `config/onboarding.php:84` sets `reentry => false` for savetax, so `startOnboarding()` answers 409 to a completed user (`:680-685`). Verified this run: user 90 completed the walk; `/actions` showed no "Your tax strategy" tile (`main.innerText` had no such heading) and `onboarding_fyn_selection` was null (tinker).
+What is wrong: the tile condition can only be true mid-walk, when the user is not on `/actions`; after "No thanks" or completion there is no route back into the Save Tax walk.
+Suspected impact: a Save Tax registrant who declines the gate gets a completed, empty dashboard and can never run the campaign; the Pension Check re-entry exists but the Save Tax one does not.
+Decision needed: yes — allow Save Tax re-entry (a `reentry` entry state), or drop the tile and the comment.
+
+### MB-45 — Tax Strategy next-step buttons point at routes that do not exist, and the three clients disagree on the list
+Map: docs/app-map/02b-campaigns.md § 2.9
+Status: Dead end (web routes); Duplicate (list source and key map)
+Evidence: `StrategyRecommendationList.vue:101-120` maps `pa_taper_rescue`, `additional_rate_avoidance`, `pension_aa_carry_forward`, `salary_sacrifice_ni`, `non_earner_spouse_pension`, `junior_pension`, `tapered_annual_allowance` to `/pension` and `bed_and_isa`, `dividend_allowance_harvest`, `cross_spouse_dividends` to `/investments`; `resources/js/router/index.js` defines neither (`/pension/:type/:id` at `:818` and `/investment` → `/net-worth/investments` at `:890` only). Navigating to `/pension` and `/investments` this run ended on `/dashboard`. `resources/mobile/views/TaxStrategy.vue:149-157` and `TaxStrategyView.swift:473-478` key the dividend step as `dividend_allowance` while the strategy emits `dividend_allowance_harvest` (`DividendAllowanceHarvestStrategy.php:55`), so `/m` and iOS never show a next step for it. The web list renders the calculator's `recommendations` (`taxStrategy.js:87`, `StrategyRecommendationList.vue:139`) while `/m` (`TaxStrategy.vue:174`) and iOS (`TaxStrategyModels.swift:19`) render `composed_plan.items`. This run the two lists differed in order and in the presence of `gia_to_spouse` (API payload read by curl).
+What is wrong: two next-step maps and two list sources for one page, one of them pointing at dead routes.
+Suspected impact: "Open a pension" and "Open investments" on web drop the user on the dashboard; the dividend action has no next step on phone; the three clients can show different actions for the same user.
+Decision needed: yes — which list is canonical (the composed plan, which Fyn voices, or the raw calculator list), then one next-step map.
+
+### MB-46 — The non-working-spouse prompt hardcodes "around £40,000 of unused tax allowances"
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Does not make sense (Rule 2)
+Evidence: `fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md`, block `campaign_spouse_non_working_assets`, `prompt_text` "…they have around £40,000 of unused tax allowances we can put to work…"; rendered verbatim on web this run (screenshot `web-fyn-10-spouse-verify-page.png` shows the preceding turn; chat transcript row for step `campaign_spouse_non_working_assets`).
+What is wrong: a pound figure in Fyn's mouth that no service computed. The spouse advice that follows (`buildSpouseAdvice()` `:1367-1405`) does compute the allowances from `TaxConfigService`.
+Suspected impact: the figure drifts from the configured allowances at the next tax year.
+Decision needed: no — build the figure from the tax configuration like the spouse advice does.
+
+### MB-47 — Web pages under the chat do not refetch after a Fyn write, so the verify screens show stale figures
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Broken (web)
+Evidence: this run, user 90. (a) After the verify edit landed (`investment_accounts.id 123` `current_value` 25000 → 27000 at 15:17:22, audit rows 82-83, read-back "current value now £27,000"), `/net-worth/investments` under the chat still read £25,000 (`main.innerText` had "25,000" and not "27,000"). (b) The expenditure verify opened `/valuable-info?section=expenditure` showing "Monthly Expenditure £0, Annual £0" while `users.monthly_expenditure` and `expenditure_profiles.total_monthly_expenditure` were 3200 (tinker; screenshot `web-fyn-11-expenditure-verify-page.png`) — the MB-27 case reproduced. `/m` refetches on `store.screenRefreshTick` (`resources/mobile/views/Income.vue:90-92`); the web store has no equivalent for these pages.
+What is wrong: the verify loop's whole point is to show what was just written; on web the page shows the pre-write store.
+Suspected impact: a user confirms a page that does not show their figure, or "corrects" a value that was already right.
+Decision needed: no — refetch the page data on Fyn navigation and after a landed edit (extends MB-27).
+
+### MB-48 — The spouse verify page shows nothing for a non-working spouse
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Broken (web and `/m` by code)
+Evidence: `UserProfileService::spouseIncomeSources()` `:488-501` returns null when `tax_strategy_household_inputs.spouse_annual_income` is not above zero, before it reads `spouseHouseholdCaptured()`; for the `single_earner_couple` path the only captured figures are `spouse_existing_*` (`CoordinatingAgent.php:5648-5688`). This run the spouse section navigated to `/valuable-info?section=income` and `main.innerText` contained no "spouse" text while `tax_strategy_household_inputs` row 1 held `spouse_existing_isa_balance = 5000` (tinker; screenshot `web-fyn-10-spouse-verify-page.png`). `resources/mobile/views/Income.vue:74-86` reads the same payload, so `/m` has the same gap (not driven this run).
+What is wrong: the verify step for the non-working-spouse section sends the person to a page that cannot show what they said.
+Suspected impact: every married Save Tax user whose spouse has no income verifies blind; the 2026-09-11 fix for dual earners did not cover this path.
+Decision needed: no — return the household figures whether or not the spouse has income.
+
+### MB-49 — A natural correction on the verify-edit turn produced no write and a failure message
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Does not make sense
+Evidence: this run, `campaign_verify_edit` on investments: "The Vanguard account is actually worth £27,000, not £25,000" → no tool dispatched (audit row 81 is only the episode; `ai_messages` 599 `verify_edit_failed: true`) → "I wasn't able to apply that change. Tell me the exact value you want to replace and I will try again." The rephrase "Change the current value from £25,000 to £27,000" dispatched `update_record` (audit 82-83) and landed. Both turns ran with the xAI provider (`AI_PROVIDER=xai`, `grok-4.3`); the second took 6 minutes 36 seconds end to end (`ai_messages` 600 at 15:14:03, 601 at 15:20:39).
+What is wrong: the honesty gate (`handleCampaignVerifyEdit()` `:4290-4322`) is right to refuse a false success, but the ordinary phrasing of a correction did not reach the tool.
+Suspected impact: users who correct a figure the way people speak are told to try again; the edit turn is slow enough to read as broken.
+Decision needed: yes — accept as model behaviour, or add a deterministic parser for "X, not Y" corrections before the model turn.
+
+### MB-50 — The `/m` expenditure verify screen shows a derived total, not the figure the user gave
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Does not make sense (`/m`)
+Evidence: this run, user 91 said "Around £2,400 a month"; `/m/app/expenditure?section=expenditure` showed "Monthly expenditure £3,067, £36,800 a year, Only a monthly summary has been entered" and `main.innerText` did not contain "2,400" (screenshot `m-fyn-06-expenditure-verify-screen.png`). £3,067 is £2,400 plus the £666.67 monthly SIPP contribution the walk had recorded as a financial commitment.
+What is wrong: the person is asked whether £3,067 "looks right" without ever seeing their £2,400 on the screen.
+Suspected impact: a user who said £2,400 is likely to tap "No, change something" and start an edit turn for a figure that is already correct.
+Decision needed: no — show the entered summary figure on the verify screen alongside the commitments.
+
+### MB-51 — Campaign prompt copy that does not fit the path it fires on
+Map: docs/app-map/02b-campaigns.md § 2.5, § 2.7
+Status: Does not make sense (copy)
+Evidence: (a) `OnboardingStateMachine::sectionLabel()` has no label for `state_pension` or `retirement_goals`, so the verify announce reads "I've saved your details. Next I'll take you to your details page" (seen twice on `/m` this run). (b) The `campaign_pension_contribs` prompt "Beyond the workplace pension we covered…" fired for user 91 (self-employed) after `campaign_occupational_scheme` was skipped by `skipIfOccupationalScheme()`. (c) `buildCampaignDobPrompt()` `:1794-1801` frames the date-of-birth question around pensions only when `funnel_answers.assets` contains `pension`; Pension Check stores `pensions`, so every Pension Check user gets the neutral wording (seen this run). (d) `buildCampaignIntroPrompt()` `:1879-1893` says "bank and savings accounts" for a user who ticked only savings.
+What is wrong: the copy assumes the Save Tax funnel's keys and the employed path.
+Suspected impact: cosmetic, but on the walk that is the product's first impression.
+Decision needed: no — fix the four strings and the key lookup.
+
+### MB-52 — `/m` renders multi-paragraph advice turns as one run-on paragraph
+Map: docs/app-map/02b-campaigns.md § 2.6
+Status: Duplicate drift (Rule 20)
+Evidence: `OnboardingChatDirector::buildRetirementSectionAdvice()` `:1355-1364` joins items and the actions-list line with `"\n\n"`; on web the savings advice this run rendered as two paragraphs (snapshot: separate `paragraph` nodes 1745 and 1746); on `/m` the retirement-goals advice rendered as one paragraph "…Lump Sum entitlement.You may want to consider: Consider Adjusting Retirement Age…I've added this to your actions list…" (snapshot `m-after-goals-continue.yml`, node f23e754). The `/m` renderer is `resources/mobile/utils/fynText.js` (not read this run).
+What is wrong: two renderers for one Fyn text contract, and one of them loses paragraph breaks.
+Suspected impact: two-item advice on phone reads as one sentence with no space after the full stop.
+Decision needed: no — render paragraph breaks on `/m` (or emit one bubble per item from the one director).
+
+### MB-53 — The Pension Check re-entry walk re-asks pension questions already answered
+Map: docs/app-map/02b-campaigns.md § 2.8
+Status: Does not make sense
+Evidence: `campaignSections('pensioncheck')` `:224-231` has data-presence skips for income, state pension, retirement goals and expenditure only; the pensions section always enters at `campaign_dob` and `applySkipRules` reaches `campaign_pension_contribs`, which has no skip. This run, user 91 re-entered with `campaign2_existing_recap` listing the Vanguard SIPP (£180,000 pot, £8,000 a year already on file), tapped "Yes, that's right", and was asked "do you make any personal pension or Self-Invested Personal Pension contributions?" again (`onboarding_fyn_step = campaign_pension_contribs`, tinker).
+What is wrong: the recap says "here's what I already have" and the next turn asks for it again.
+Suspected impact: re-entrants repeat the pensions section; a second answer can create a duplicate SIPP unless the model chooses `update_record`.
+Decision needed: yes — add data-presence skips to the pensions states, or accept the repeat as a deliberate refresh.
+
+### MB-54 — The Save Tax workplace-pension capture drops the pot value and the provider
+Map: docs/app-map/02b-campaigns.md § 2.5
+Status: Does not make sense
+Evidence: this run, user 90 said "I pay 5% of my salary into my Aviva workplace pension, the pot is about £40,000, my employer pays 3%, and it is salary sacrifice"; `dc_pensions` row 71 was written with `scheme_name = "Workplace Pension"`, `provider = "Workplace Pension"`, `current_fund_value = 0.00`, `employee_contribution_percent = 5`, `employer_contribution_percent = 3` (tinker; audit rows 88-89 `create_pension`). The pensioncheck walk has a pot-value loop (`campaign2_pension_pots`, `:519-545`); the savetax walk goes `campaign_occupational_scheme` → `campaign_pension_contribs` (`nextFromCampaignOccupationalScheme()` `:2098-2103`) with no pot state.
+What is wrong: the state's prompt asks for percentages and sacrifice only; a stated pot value and provider name have nowhere to go, and the retirement page then shows a £0 pension.
+Suspected impact: the salary-sacrifice and carry-forward strategies compute against a £0 pot; the retirement projection ignores the real pot.
+Decision needed: yes — add the pot-value loop to the Save Tax pensions section, or extend the occupational prompt.
+
+### MB-55 — The two plan pages build different sign-in links for an existing account
+Map: docs/app-map/02b-campaigns.md § 2.3
+Status: Does not make sense
+Evidence: `public/pages/js/savetax-plan-v4.js:183` links `/login?from=savetax`; `resources/js/views/Login.vue:246-248` honours only `?redirect=` and ignores `from`, so the person lands on the dashboard with no campaign. `public/pages/js/pensioncheck-plan.js:463-469` links `/login?redirect=/dashboard?openFyn=journey&from=pensioncheck`, which does open Fyn with the campaign (verified as the rendered `href` this run).
+What is wrong: the same "already registered" case behaves differently on the two campaigns; the Save Tax one loses the campaign, and Save Tax has no re-entry anyway (MB-44).
+Suspected impact: an existing user who came through a Save Tax advert signs in to an ordinary dashboard.
+Decision needed: no — build the Save Tax link the way the Pension Check one is built (subject to MB-44).
