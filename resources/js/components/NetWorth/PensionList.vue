@@ -499,12 +499,13 @@ import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'PensionList',
 
-  mixins: [currencyMixin, tierLimitMixin],
+  mixins: [currencyMixin, tierLimitMixin, fynScreenRefreshMixin],
 
   components: {
     PensionDetailInline,
@@ -762,6 +763,10 @@ export default {
   },
 
   methods: {
+    fynScreenRefresh() {
+      this.fetchRetirementData();
+    },
+
     ...mapActions('retirement', [
       'fetchRetirementData',
       'fetchProjections',

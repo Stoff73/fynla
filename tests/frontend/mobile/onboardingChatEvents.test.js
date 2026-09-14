@@ -83,28 +83,20 @@ describe('/m Fyn stream event parity', () => {
     expect(isActive()).toBe(false);
   });
 
-  it('starts a fresh incomplete user while leaving a deliberately paused user parked', () => {
+  it('starts only when the server says so (onboarding_fyn_needs_start, MB-26)', () => {
     const shouldStart = () => onboardingChat.computed.onboardingNeedsStart.call({});
 
-    store.user = {
-      onboarding_completed: false,
-      onboarding_fyn_step: null,
-      onboarding_fyn_paused: false,
-    };
+    store.user = { onboarding_completed: false, onboarding_fyn_step: null, onboarding_fyn_paused: false, onboarding_fyn_needs_start: true };
     expect(shouldStart()).toBe(true);
 
-    store.user = {
-      onboarding_completed: false,
-      onboarding_fyn_step: null,
-      onboarding_fyn_paused: true,
-    };
+    // The client no longer derives the answer from the three raw fields.
+    store.user = { onboarding_completed: false, onboarding_fyn_step: null, onboarding_fyn_paused: false, onboarding_fyn_needs_start: false };
     expect(shouldStart()).toBe(false);
 
-    store.user = {
-      onboarding_completed: true,
-      onboarding_fyn_step: null,
-      onboarding_fyn_paused: false,
-    };
+    store.user = { onboarding_completed: false, onboarding_fyn_step: null, onboarding_fyn_paused: true };
+    expect(shouldStart()).toBe(false);
+
+    store.user = null;
     expect(shouldStart()).toBe(false);
   });
 
