@@ -40,7 +40,7 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-30 | Dead | seven onboarding and journey routes have no caller; `/planning/journeys` can never show a journey | delete, or wire the journeys feature | pending |
 | MB-31 | Broken + Dead | wizard journey mode renders eight unregistered components as blank steps; reachable only from dead code | delete journey mode with MB-01, or restore the components | pending |
 | MB-32 | Does not make sense | `users.life_stage` is written with three vocabularies and overrides every wizard route; `onboarding_fyn_path` gets a fourth value | one column per meaning, or one vocabulary | pending |
-| MB-33 | Does not make sense | `POST /api/onboarding/step` writes user columns with no field validation | add a Form Request | — |
+| MB-33 | Does not make sense | `POST /api/onboarding/step` writes user columns with no field validation | add a Form Request | fixed 2026-09-14, branch `mb-33-wizard-step-form-request` |
 | MB-34 | Does not make sense | 46 hardcoded tax figures in wizard learning copy (Rule 2) | source from tax config, or accept as editorial copy | pending |
 | MB-35 | Does not make sense | wizard copy and options: American "Dependents", marital status omits civil partnership | none (fix) | — |
 | MB-36 | Does not make sense (adjacent: Savings) | `/m` savings screen says expenditure is missing while computing a target from it | none (Savings module fix) | — |
@@ -328,7 +328,7 @@ Decision needed: yes — one column per meaning (or one vocabulary), and the wiz
 
 ### MB-33 — The wizard step endpoint writes user columns with no field validation
 Map: docs/app-map/02-onboarding.md § 2.8
-Status: Does not make sense (data integrity)
+Status: Fixed 2026-09-14, branch `mb-33-wizard-step-form-request`. `SaveStepProgressRequest` replaces the inline `validate()`: for the `personal_info` and `income` steps it applies the profile endpoints' own rules (`UpdatePersonalInfoRequest`, `UpdateIncomeOccupationRequest`) under the `data.` prefix, filtered to the columns each step writes (`OnboardingService::PERSONAL_INFO_FIELDS` / `INCOME_FIELDS`, declared beside the methods that assign them); every other step keeps its array contract. Empty strings and nulls are stripped first, as the profile requests do. Pest `SaveStepProgressValidationTest` (+4: two rejections with the columns untouched, two acceptances including a civil partnership); `FreemiumCapsTest` and `BalanceHistorySnapshotCoverageTest` still green. A first draft reused the rules unfiltered and 500ed live on the wizard's `email` field (the uniqueness rule read `data.email` as a column) — reproduced in the test before the filter went in. Live web, user 96 through the wizard's Personal Information step: married, female, SW1A 1AA written; the wizard advanced to the family step (`screenshots/mb-fixes/mb33-web-wizard-personal-step-saved.png`).
 Evidence: `app/Http/Controllers/Api/OnboardingController.php:75-78` validates only `step_name` (string) and `data` (array); `OnboardingService::processPersonalInfo` (`:200-230`) and `processIncomeInfo` (`:388-406`) assign the array's values straight to `users.*` (date of birth, gender, marital status, incomes, retirement age). The live request this run (user 86, `POST /api/onboarding/step`, 200) wrote gender, city and postcode.
 What is wrong: the only validation is in the Vue form; the API boundary accepts any shape.
 Suspected impact: malformed values can reach columns that every calculation reads.
