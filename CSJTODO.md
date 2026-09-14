@@ -1,10 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-12 session 1 — nine releases on 2026-09-11/12 (main e6d4f4a18 == dev
-a5dd5c340): tier-cap gate; SaveTax ownership loop closed without depending on the model; model
-history no longer fed its own dead-end rows; spouse step income cross-check, pension pot,
-provider names, spouse figures on the verify page; post-plan spouse invitation; tech-debt batch.
-36 prod test accounts purged (686 kept). Handover: `handover/September/12/handover-2026-09-12-session-1.md`*
+*Last updated: 2026-09-14 session 1 — application mapping programme started: `app-map` skill, overview + sections 17 (emails) and 01 (auth) mapped, MB-08 orphan-route dossier, 22 mapping bugs raised (none fixed), commit e50bff154 on dev. Handover: `handover/September/14/handover-2026-09-14-session-1.md`*
 
 ## The board position
 
@@ -23,6 +19,20 @@ live checklist and is **generated** — regenerate it, never hand-edit the count
 Every non-iOS item is closed. The rule is unchanged — **a citation is not a verification**
 — and **verify the instrument before trusting the measurement**: CSJ's 2026-09-10 order to
 re-check the nine items before fixing found one already resolved and one overstated.
+
+## Application mapping programme (CSJ, 2026-09-14) — in progress
+
+Evidence-only maps in `docs/app-map/` via the `app-map` skill; index at `docs/app-map/INDEX.md`;
+bugs raised (never fixed inside a run) in `September/September14Updates/mappingBugs2026-09-14.md`.
+
+- [x] Overview baseline, section 17 emails and push, section 01 auth and registration.
+- [ ] **BLOCKED ON CSJ — mapping-bug decisions** (register at the top of the bugs file):
+      MB-14/MB-15 (alerts never delivered; in-app notifications never read), MB-21 (wrong MFA
+      code bounces the user), MB-08 (household routes, persona list), MB-06 (seven lifecycle
+      emails), MB-01 + MB-09 (dead-code sweep vs allowlist; the 56 Vue public pages are dead,
+      PHP is canonical), MB-10 (mock-up routes), MB-11 (artisan pruning).
+- [ ] Section 02 onboarding and Save Tax next, then 03 onwards in index order.
+- [ ] Fix approved MBs one per PR; MB-18 (two-factor users cannot sign in on `/m`) first.
 
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
@@ -45,7 +55,8 @@ re-check the nine items before fixing found one already resolved and one oversta
 ## Parked, non-iOS — need CSJ, do not start unasked
 
 - W-0540 dead-component clusters and the Rule 15 lint scope (carried since 5 September;
-  `GiftingStrategy.vue`, `TrustPlanningStrategy.vue`, `IHTPlanning.vue` are unreachable).
+  now measured as MB-01 (153 files) + MB-09 (56 guard-blocked Vue public pages) in the
+  mapping bugs file — one decision covers all three).
 - The unstyled homepage pension-check block parked in PR #770's description.
 - The 34 remaining sweep findings — decide, do not chase.
 - Tax-compliance review — W-0367, W-0514, W-0508, W-0338, W-0470, W-0518, W-0498;
