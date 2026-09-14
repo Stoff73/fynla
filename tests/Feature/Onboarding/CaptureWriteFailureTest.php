@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
+use App\Models\DCPension;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -1100,4 +1101,128 @@ it('suppresses the gap-fill when the model attempt failed validation pending cla
 
     $advance = collect($received)->first(fn (array $e) => ($e['type'] ?? '') === 'onboarding_advance');
     expect($advance)->toBeNull();
+});
+
+it('does not gap-fill a second pension when the model\'s own pension write landed (MB-58)', function () {
+    // Live 2026-09-14, user 92: the model created "Bramble Ltd workplace
+    // pension" (Scottish Widows, £48,000) and the deterministic backstop then
+    // created "Scottish Workplace Pension" (provider "Scottish", £0) from the
+    // same sentence, because the landed write was never counted and the
+    // one-word provider regex could not match the persisted row.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'annual_employment_income' => 62000,
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+        'onboarding_fyn_selection' => 'pensioncheck',
+    ]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('chatWithPromptOverride')
+        ->once()
+        ->andReturnUsing(function () use ($user) {
+            return (function () use ($user) {
+                $row = DCPension::factory()->create([
+                    'user_id' => $user->id,
+                    'scheme_name' => 'Bramble Ltd workplace pension',
+                    'provider' => 'Scottish Widows',
+                    'current_fund_value' => 48000,
+                ]);
+                yield ['type' => 'tool_use', 'tool' => 'create_pension', 'status' => 'running'];
+                yield ['type' => 'entity_created', 'entity_type' => 'dc_pension', 'entity_id' => $row->id, 'name' => $row->scheme_name];
+                yield ['type' => 'capture_write_result', 'tool' => 'create_pension', 'landed' => true, 'message' => null];
+                yield ['type' => 'tool_success', 'tool' => 'create_pension', 'summary' => 'added'];
+                yield ['type' => 'content', 'text' => 'Recorded — workplace pension with Scottish Widows.'];
+                yield ['type' => 'done', 'message_id' => 99];
+            })();
+        });
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
+    $mock->shouldReceive('setConfirmedCaptureFacts')->zeroOrMoreTimes();
+    $mock->shouldReceive('setVerifyEditScope')->zeroOrMoreTimes();
+    $mock->shouldReceive('executeTool')->never();
+    test()->instance(CoordinatingAgent::class, $mock);
+
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage(
+        $user,
+        $conversation,
+        'I pay 5%, my employer pays 4%, not salary sacrifice. The pot is £48,000 with Scottish Widows'
+    ) as $event) {
+        // drain
+    }
+
+    expect(DCPension::where('user_id', $user->id)->count())->toBe(1);
+});
+
+it('advances the pot loop on a don\'t-know reply instead of re-asking (MB-56)', function () {
+    // Live 2026-09-14, conversation 201: "Not sure, skip it" drew the model's
+    // "Recorded — pension capture skipped." with no tool call, then the
+    // zero-output guard re-asked "Sorry, I didn't catch that." — the state
+    // machine's own skip vocabulary was never reached.
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS,
+        'onboarding_fyn_selection' => 'pensioncheck',
+    ]);
+    DCPension::factory()->create(['user_id' => $user->id, 'scheme_name' => 'Aviva Workplace Pension', 'current_fund_value' => 0]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    mockDelegatedStream([
+        ['type' => 'content', 'text' => 'Recorded — pension capture skipped.'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    $received = [];
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, 'Not sure, skip it') as $event) {
+        $received[] = $event;
+    }
+
+    $texts = collect($received)->filter(fn (array $e) => ($e['type'] ?? null) === 'content')->pluck('text')->implode(' | ');
+    expect($texts)->not->toContain("didn't catch that");
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
+});
+
+it('leaves the pot loop when the user states the pot is empty (MB-56)', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'first_name' => 'Test',
+        'onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS,
+        'onboarding_fyn_selection' => 'pensioncheck',
+    ]);
+    $pension = DCPension::factory()->create(['user_id' => $user->id, 'scheme_name' => 'Aviva Workplace Pension', 'current_fund_value' => 0]);
+    $conversation = AiConversation::create([
+        'user_id' => $user->id,
+        'status' => 'active',
+        'model_used' => 'director',
+        'title' => 'Onboarding',
+    ]);
+
+    mockDelegatedStream([
+        ['type' => 'tool_use', 'tool' => 'update_record', 'status' => 'running'],
+        ['type' => 'entity_updated', 'entity_type' => 'dc_pension', 'entity_id' => $pension->id, 'name' => 'Aviva Workplace Pension'],
+        ['type' => 'capture_write_result', 'tool' => 'update_record', 'landed' => true, 'message' => null],
+        ['type' => 'tool_success', 'tool' => 'update_record', 'summary' => 'updated'],
+        ['type' => 'content', 'text' => 'Recorded — Aviva Workplace Pension value updated to £0.'],
+        ['type' => 'done', 'message_id' => 99],
+    ]);
+
+    foreach (app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, '£0, it is empty') as $event) {
+        // drain
+    }
+
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS);
 });

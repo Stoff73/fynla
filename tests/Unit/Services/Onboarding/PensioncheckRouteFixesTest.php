@@ -150,3 +150,30 @@ it('I5: nextFromPensionPots advances to pension_contribs when all DC pensions ha
     expect(SM::nextFromPensionPots('£45,000', $user))
         ->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
 });
+
+// ── MB-56: a stated £0 pot and a plain skip both leave the loop ──────────────
+
+it('MB-56: nextFromPensionPots advances when the user states the pot is empty', function (): void {
+    $user = routeFixUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 0]);
+
+    expect(SM::nextFromPensionPots('£0, that one is a duplicate of the Bramble Ltd pension', $user))
+        ->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    expect(SM::nextFromPensionPots('Nothing in it yet', $user))
+        ->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+});
+
+it('MB-56: nextFromPensionPots advances on a plain skip', function (): void {
+    $user = routeFixUser();
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 0]);
+
+    expect(SM::nextFromPensionPots('Not sure, skip it', $user))
+        ->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+});
+
+it('MB-56: isDontKnowAnswer is the one vocabulary for a reply that gives no figure', function (): void {
+    expect(SM::isDontKnowAnswer('Not sure, skip it'))->toBeTrue()
+        ->and(SM::isDontKnowAnswer("I don't know"))->toBeTrue()
+        ->and(SM::isDontKnowAnswer('about £45,000'))->toBeFalse()
+        ->and(SM::isDontKnowAnswer('No, nothing like that'))->toBeFalse();
+});
