@@ -16,6 +16,7 @@
 | Any module — before starting, and before dispatching an agent | `vault-context` |
 | Verifying `/m` | `verify-m` |
 | Shipping feature → dev → main | `release` |
+| Mapping a section, module or flow of the app | `app-map` |
 | Emails, HTML pages, charts, iOS simulator, PRDs, tech debt | `email-template`, `html-template`, `ui-graph`, `ios-simulator`, `prd-writer`, `tech-debt-session` |
 
 Directory conventions live in the nested `CLAUDE.md` files (`app/Http/`, `app/Services/`, `database/`, `tests/`, `resources/js/`, `ios-native/`) and load when you work there.
