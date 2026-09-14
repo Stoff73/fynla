@@ -6,6 +6,7 @@ use App\Agents\CoordinatingAgent;
 use App\Models\ExpenditureProfile;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\Onboarding\OnboardingPromptBuilder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -322,4 +323,50 @@ it('switches income source atomically when status and replacement income are sup
         ->and($fresh->employment_status)->toBe('self_employed')
         ->and((float) $fresh->annual_self_employment_income)->toBe(40000.0)
         ->and($fresh->annual_employment_income)->toBeNull();
+});
+
+/**
+ * MB-57. On an onboarding walk step update_profile exists for retracting a
+ * personal fact; it must never carry a bare figure onto the income row. Live
+ * 2026-09-14: "£500" answered to the pension-pot question became
+ * users.annual_employment_income = 500 (conversation 201, message 731).
+ */
+it('mechanically rejects an income figure via update_profile on an onboarding walk step', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'annual_employment_income' => 62000,
+    ]);
+    $agent = app(CoordinatingAgent::class);
+    $agent->setUnifiedOnboardingFocus('pensioncheck', OnboardingPromptBuilder::WALK_PROFILE_SCOPE);
+
+    $result = $agent->executeTool('update_profile', [
+        'section' => 'income_occupation',
+        'fields' => ['annual_employment_income' => 500],
+    ], $user);
+
+    expect($result['error_type'] ?? null)->toBe('onboarding_profile_scope_violation')
+        ->and((float) $user->fresh()->annual_employment_income)->toBe(62000.0);
+});
+
+it('still allows a personal-fact retraction on an onboarding walk step', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'marital_status' => 'single',
+        'occupation' => 'Nurse',
+    ]);
+    $agent = app(CoordinatingAgent::class);
+    $agent->setUnifiedOnboardingFocus('savetax', OnboardingPromptBuilder::WALK_PROFILE_SCOPE);
+
+    expect($agent->executeTool('update_profile', [
+        'section' => 'personal',
+        'fields' => ['marital_status' => 'married'],
+    ], $user)['updated'] ?? null)->toBeTrue();
+    expect($agent->executeTool('update_profile', [
+        'section' => 'income_occupation',
+        'fields' => ['occupation' => 'Midwife'],
+    ], $user)['updated'] ?? null)->toBeTrue();
+
+    $user->refresh();
+    expect($user->marital_status)->toBe('married')
+        ->and($user->occupation)->toBe('Midwife');
 });

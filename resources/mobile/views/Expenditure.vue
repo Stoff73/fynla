@@ -7,7 +7,7 @@
 
     <template v-else>
       <div class="m-card m-hero">
-        <p class="m-sub m-label">Monthly expenditure</p>
+        <p class="m-sub m-label">Total monthly expenditure</p>
         <p class="m-metric">{{ fmt(monthly) }}</p>
         <p class="m-hero-sub">{{ fmt(annual) }} a year</p>
       </div>
@@ -15,6 +15,18 @@
       <div class="m-card exp-mode">
         <p class="m-section-label" style="margin-top:0">{{ presentation.entry_mode_label || 'Expenditure summary' }}</p>
         <p class="m-sub">{{ presentation.total_basis }}</p>
+        <!-- MB-50: the verify step asks "does it look right?" about this screen,
+             so the figure the user actually gave must be on it, next to the
+             commitments the total adds — the same three lines the web summary
+             shows (Monthly Expenditure / Financial Commitments / Total). -->
+        <div v-if="presentation.has_recorded_expenditure" class="exp-row">
+          <span class="exp-row__label">Monthly spending you entered</span>
+          <span class="exp-row__amt">{{ fmt(presentation.manual_monthly_total) }}</span>
+        </div>
+        <div v-if="Number(presentation.commitments_monthly_total) > 0" class="exp-row">
+          <span class="exp-row__label">Financial commitments (auto-calculated)</span>
+          <span class="exp-row__amt">{{ fmt(presentation.commitments_monthly_total) }}</span>
+        </div>
         <p v-if="!presentation.detail_available && presentation.summary_only_reason" class="exp-mode__reason">{{ presentation.summary_only_reason }}</p>
       </div>
 

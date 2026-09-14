@@ -58,3 +58,28 @@ it('carries the ISA balance, pension pot and yearly pension contributions the sp
         'pension_provider' => 'Aviva',
     ]);
 });
+
+/**
+ * MB-48. A single_earner_couple walk captures only the spouse's standalone
+ * assets — no income — and then sends the user to the spouse verify page.
+ * Returning null because the income is zero left that page blank while the
+ * household row held the ISA balance the user had just given.
+ */
+it('surfaces the household figures for a non-working spouse with no income', function () {
+    $user = User::factory()->create(['marital_status' => 'married']);
+    TaxStrategyHouseholdInput::create([
+        'user_id' => $user->id,
+        'household_calculation_mode' => 'single_earner_couple',
+        'spouse_annual_income' => 0,
+        'spouse_existing_isa_balance' => 5000,
+        'spouse_existing_pension_balance' => 0,
+        'spouse_pension_input_annual' => 0,
+    ]);
+
+    $spouse = app(UserProfileService::class)->getCompleteProfile($user->fresh())['income_summary']['spouse'];
+
+    expect($spouse)->not->toBeNull()
+        ->and($spouse['total'])->toBe(0.0)
+        ->and($spouse['sources'])->toBe([])
+        ->and($spouse['household']['isa_balance'])->toBe(5000.0);
+});

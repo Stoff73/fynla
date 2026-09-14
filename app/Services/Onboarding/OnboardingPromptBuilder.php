@@ -100,6 +100,21 @@ final class OnboardingPromptBuilder
      *
      * @return list<string>
      */
+    /**
+     * What update_profile may touch on an onboarding walk step. The retraction
+     * rule appends the tool to every focus for personal facts (DOB, marital
+     * status, employment, names); the income figures are captured by their own
+     * steps and tools. Enforced at dispatch (MB-57, live 2026-09-14: "£500"
+     * answered to the pension-pot question became annual_employment_income).
+     * A null field list means any field in that section.
+     *
+     * @var array<string, list<string>|null>
+     */
+    public const WALK_PROFILE_SCOPE = [
+        'personal' => null,
+        'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry'],
+    ];
+
     public static function toolsForFocus(string $focus): array
     {
         // Phase 12 — update_profile and update_record are appended to every

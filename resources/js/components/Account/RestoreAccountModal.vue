@@ -207,8 +207,8 @@ export default {
     async onRestore() {
       this.loading = true;
       this.error = null;
+      let token = this.pendingRestorationToken || this.restorationToken;
       try {
-        let token = this.pendingRestorationToken || this.restorationToken;
         if (this.requiresPasswordVerification && !this.pendingRestorationToken) {
           const res = this.registrationHandoff
             ? await authService.restoreCheckHandoff(this.registrationHandoff, this.passwordInput)
@@ -228,6 +228,18 @@ export default {
         this.loading = false;
         this.$emit('restored', result);
       } catch (e) {
+        // MB-20: on the sign-in path the modal arrives with a restoration
+        // token, so the check step that sets mfaRequired never runs — the
+        // restore call itself is the first to say a two-factor code is
+        // needed (422 requires_mfa). Ask for it instead of failing.
+        if (e.response?.status === 422 && e.response?.data?.requires_mfa) {
+          this.pendingRestorationToken = token;
+          this.mfaRequired = true;
+          this.error = null;
+          this.loading = false;
+          this.$nextTick(this.focusInitialControl);
+          return;
+        }
         logger.error('RestoreAccountModal restore failed', e);
         this.error = e.response?.data?.message || 'Could not restore your account. Please try again.';
         this.loading = false;
