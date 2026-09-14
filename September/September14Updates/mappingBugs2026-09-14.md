@@ -42,7 +42,7 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-32 | Does not make sense | `users.life_stage` is written with three vocabularies and overrides every wizard route; `onboarding_fyn_path` gets a fourth value | one column per meaning, or one vocabulary | pending |
 | MB-33 | Does not make sense | `POST /api/onboarding/step` writes user columns with no field validation | add a Form Request | fixed 2026-09-14, branch `mb-33-wizard-step-form-request` |
 | MB-34 | Does not make sense | 46 hardcoded tax figures in wizard learning copy (Rule 2) | source from tax config, or accept as editorial copy | pending |
-| MB-35 | Does not make sense | wizard copy and options: American "Dependents", marital status omits civil partnership | none (fix) | — |
+| MB-35 | Does not make sense | wizard copy and options: American "Dependents", marital status omits civil partnership | none (fix) | fixed 2026-09-14, branch `mb-35-wizard-copy-civil-partnership` |
 | MB-36 | Does not make sense (adjacent: Savings) | `/m` savings screen says expenditure is missing while computing a target from it | none (Savings module fix) | — |
 | MB-37 | Broken | web savings verify page shows no accounts | which page the savings verify should open | pending |
 | MB-38 | Does not make sense + Duplicate | Pension Check hardcodes income bands in three places; no income context or cross-check | extend to Pension Check, or accept the drift | pending |
@@ -344,7 +344,7 @@ Decision needed: yes — source the figures from `taxConfig.js`, or accept the c
 
 ### MB-35 — Wizard copy and options: American spelling and a missing marital status
 Map: docs/app-map/02-onboarding.md § 2.8
-Status: Does not make sense
+Status: Fixed 2026-09-14, branch `mb-35-wizard-copy-civil-partnership`. "Family & Dependants" (title and description) and "Whether you have a spouse or dependants" on the focus-area screen; the Personal Information step offers "Civil partnership" (`civil_partnership`, the column's enum value, which the endpoint accepts — MB-33). Vitest `resources/js/components/__tests__/Onboarding/WizardCopy.spec.js` (+2). Live web, user 96 in the wizard: the marital list shows Single / Married / Civil partnership / Divorced / Widowed, choosing it and continuing writes `civil_partnership` and lands on "Family & Dependants" (`screenshots/mb-fixes/mb35-web-wizard-civil-partnership.png`, `mb35-web-wizard-family-dependants.png`).
 Evidence: `resources/js/components/Onboarding/steps/FamilyInfoStep.vue:3` titles the step "Family & Dependents" (seen live); the Personal Information step's Marital Status select offers Single, Married, Divorced, Widowed (snapshot this run) while the column is an enum including `civil_partnership` and the Fyn flow accepts it (`capture_personal_details.md`).
 What is wrong: British spelling rule; a legal status the rest of the app supports cannot be chosen in the wizard.
 Suspected impact: civil partners onboarding through the wizard.
