@@ -27,8 +27,8 @@
         <p class="ml-foot">New to Fynla? <a :href="registerUrl" class="ml-link">Create an account</a></p>
       </form>
 
-      <!-- Step 2: verification code -->
-      <form v-else class="ml-form" @submit.prevent="submitCode">
+      <!-- Step 2: emailed verification code -->
+      <form v-else-if="step === 'verify'" class="ml-form" @submit.prevent="submitCode">
         <h1 class="ml-card__title">Enter verification code</h1>
 
         <!-- Verification message -->
@@ -66,6 +66,71 @@
         </div>
         <p class="ml-foot">Didn't receive the email? Check your spam folder.</p>
       </form>
+
+      <!-- Step 2 (two-factor account): authenticator or recovery code (MB-18) -->
+      <form v-else-if="step === 'mfa'" class="ml-form" @submit.prevent="submitMfa">
+        <template v-if="!useRecovery">
+          <h1 class="ml-card__title">Enter your authenticator code</h1>
+          <p class="ml-card__sub">Open your authenticator app and enter the 6-digit code for Fynla.</p>
+
+          <div class="ml-code" role="group" aria-label="Authenticator code">
+            <input
+              v-for="(d, i) in 6"
+              :key="i"
+              ref="codeInputs"
+              v-model="digits[i]"
+              type="text"
+              inputmode="numeric"
+              maxlength="1"
+              class="ml-code__box"
+              :aria-label="`Digit ${i + 1}`"
+              @input="onDigit(i, $event)"
+              @keydown.delete="onDelete(i, $event)"
+              @paste="onPaste($event)"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <h1 class="ml-card__title">Enter a recovery code</h1>
+          <p class="ml-card__sub">Use one of the recovery codes you saved when you set up two-factor authentication. Each code works once.</p>
+          <label class="ml-field">
+            <span class="ml-field__label">Recovery code</span>
+            <input v-model="recoveryCode" type="text" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" class="ml-field__input" placeholder="XXXX-XXXX-XXXX" />
+          </label>
+        </template>
+
+        <p v-if="error" class="ml-error">{{ error }}</p>
+
+        <button type="submit" class="ml-btn" :disabled="loading || !mfaReady">{{ loading ? 'Verifying…' : 'Verify and continue' }}</button>
+
+        <div class="ml-verify-actions">
+          <button type="button" class="ml-link ml-link--btn" @click="toggleRecovery">{{ useRecovery ? 'Use my authenticator app instead' : 'Lost access to your authenticator? Use a recovery code' }}</button>
+          <button type="button" class="ml-link ml-link--btn" @click="backToCredentials">Use a different account</button>
+        </div>
+      </form>
+
+      <!-- Step 2 (deleted account): restore (MB-19) -->
+      <form v-else class="ml-form" @submit.prevent="submitRestore">
+        <h1 class="ml-card__title">Welcome back, {{ restore.firstName || 'there' }}</h1>
+        <p class="ml-card__sub">
+          <template v-if="restore.deletedDate">This account was deleted on <strong>{{ restore.deletedDate }}</strong>. </template>
+          <template v-else>This account was deleted recently. </template>
+          You can restore it and carry on where you left off.
+        </p>
+
+        <label v-if="restore.mfaRequired" class="ml-field">
+          <span class="ml-field__label">Enter your authenticator or recovery code</span>
+          <input v-model="restore.mfaCode" type="text" inputmode="text" autocomplete="one-time-code" class="ml-field__input" />
+        </label>
+
+        <p v-if="error" class="ml-error">{{ error }}</p>
+
+        <button type="submit" class="ml-btn" :disabled="loading || (restore.mfaRequired && !restore.mfaCode.trim())">{{ loading ? 'Restoring…' : 'Restore my account' }}</button>
+
+        <div class="ml-verify-actions">
+          <button type="button" class="ml-link ml-link--btn" @click="backToCredentials">Use a different account</button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -84,6 +149,14 @@ export default {
       digits: ['', '', '', '', '', ''],
       challengeToken: null,
       maskedEmail: '',
+      // Two-factor challenge (single-use on the server: a wrong code needs a
+      // fresh sign-in, see submitMfa).
+      mfaToken: null,
+      useRecovery: false,
+      recoveryCode: '',
+      // Deleted-but-restorable account (POST /api/auth/login answers
+      // account_deleted_restorable with a restoration token).
+      restore: { token: null, firstName: '', deletedDate: '', mfaRequired: false, mfaCode: '' },
       loading: false,
       resending: false,
       error: '',
@@ -92,6 +165,9 @@ export default {
   computed: {
     code() {
       return this.digits.join('').trim();
+    },
+    mfaReady() {
+      return this.useRecovery ? this.recoveryCode.trim().length > 0 : this.code.length === 6;
     },
     registerUrl() {
       return (import.meta.env.VITE_ROUTER_BASE || '/') + 'register';
@@ -117,6 +193,24 @@ export default {
         const d = res.data || {};
         if (d.data && (d.data.access_token || d.data.token)) {
           this.enterApp(d.data);           // preview / no-verification users
+        } else if (d.account_deleted_restorable) {
+          // MB-19 — the same branch web (RestoreAccountModal) and native have.
+          this.restore = {
+            token: d.restoration_token || null,
+            firstName: d.first_name || '',
+            deletedDate: d.deleted_at ? new Date(d.deleted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '',
+            mfaRequired: false,
+            mfaCode: '',
+          };
+          this.step = 'restore';
+        } else if (d.requires_mfa) {
+          // MB-18 — two-factor account: authenticator code, or a recovery code.
+          this.mfaToken = d.data?.mfa_token || null;
+          this.maskedEmail = d.data?.email || this.maskEmail(this.email);
+          this.useRecovery = false;
+          this.recoveryCode = '';
+          this.step = 'mfa';
+          this.$nextTick(() => { const f = this.$refs.codeInputs; if (f && f[0]) f[0].focus(); });
         } else if (d.requires_verification) {
           this.challengeToken = d.data?.challenge_token || null;
           this.maskedEmail = d.data?.email || this.maskEmail(this.email);
@@ -156,6 +250,69 @@ export default {
         this.loading = false;
       }
     },
+    async submitMfa() {
+      if (this.loading || !this.mfaReady) return;
+      this.loading = true;
+      this.error = '';
+      try {
+        const res = this.useRecovery
+          ? await apiPost('/api/auth/mfa/recovery', { recovery_code: this.recoveryCode.trim(), mfa_token: this.mfaToken })
+          : await apiPost('/api/auth/mfa/verify', { code: this.code, mfa_token: this.mfaToken });
+        const d = res.data || {};
+        if (d.data && (d.data.access_token || d.data.token)) {
+          this.enterApp(d.data);
+          return;
+        }
+        // The challenge token is consumed by the first attempt whether or
+        // not the code was right (MFAController::validateChallengeToken), so
+        // a wrong code cannot simply be retried: sign in again for a new one.
+        const message = d.message || 'That code was not valid.';
+        this.backToCredentials();
+        this.error = `${message} Please sign in again to get a new code.`;
+      } catch {
+        this.error = 'Network error. Please try again.';
+      } finally {
+        this.loading = false;
+      }
+    },
+    toggleRecovery() {
+      this.useRecovery = !this.useRecovery;
+      this.error = '';
+      this.digits = ['', '', '', '', '', ''];
+      this.recoveryCode = '';
+    },
+    async submitRestore() {
+      if (this.loading || !this.restore.token) return;
+      if (this.restore.mfaRequired && !this.restore.mfaCode.trim()) return;
+      this.loading = true;
+      this.error = '';
+      try {
+        const body = { restoration_token: this.restore.token };
+        if (this.restore.mfaRequired) body.mfa_code = this.restore.mfaCode.trim();
+        const res = await apiPost('/api/auth/restore', body);
+        const d = res.data || {};
+        if (res.ok && d.token) {
+          store.setToken(d.token);
+          store.user = d.user || null;
+          // redirect_to is a web path; carry only the campaign it names so the
+          // /m dashboard re-enters the walk the same way (?from=<campaign>).
+          const from = (String(d.redirect_to || '').match(/[?&]from=([^&]+)/) || [])[1];
+          this.$router.push(from ? { path: '/dashboard', query: { from } } : '/dashboard');
+          return;
+        }
+        if (res.status === 422 && d.requires_mfa) {
+          // A two-factor account: the restore call is the first to say a
+          // code is needed (the same gap web had, MB-20).
+          this.restore.mfaRequired = true;
+          return;
+        }
+        this.error = d.message || 'We could not restore your account. Please try again.';
+      } catch {
+        this.error = 'Network error. Please try again.';
+      } finally {
+        this.loading = false;
+      }
+    },
     async resend() {
       if (this.resending) return;
       this.resending = true;
@@ -168,6 +325,10 @@ export default {
     backToCredentials() {
       this.step = 'credentials';
       this.digits = ['', '', '', '', '', ''];
+      this.mfaToken = null;
+      this.useRecovery = false;
+      this.recoveryCode = '';
+      this.restore = { token: null, firstName: '', deletedDate: '', mfaRequired: false, mfaCode: '' };
       this.error = '';
     },
     onDigit(i, e) {

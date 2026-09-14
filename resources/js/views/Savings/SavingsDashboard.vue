@@ -141,10 +141,12 @@ import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInli
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import { fynScreenRefreshMixin } from '@/mixins/fynScreenRefreshMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'SavingsDashboard',
+  mixins: [fynScreenRefreshMixin],
 
   components: {
     AppLayout,
@@ -198,6 +200,10 @@ export default {
   methods: {
     ...mapActions('savings', ['fetchSavingsData']),
     ...mapActions('netWorth', ['setDetailView']),
+
+    fynScreenRefresh() {
+      this.loadSavingsData();
+    },
 
     async loadSavingsData() {
       try {
