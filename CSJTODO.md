@@ -36,13 +36,19 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
       MB-53 (re-entry re-asks pensions), MB-49 (natural correction produced no write). Dead code
       and copies: MB-01 + MB-09 + MB-29/30/31, MB-39, MB-41, MB-42, MB-43, MB-08, MB-10, MB-11,
       MB-06. Data and copy: MB-32, MB-34, MB-40, MB-14/15, MB-21.
-- [ ] **Fix the MBs that need no decision** (CSJ's focus, 2026-09-14), one per branch and PR to
-      dev, verified web and `/m`, functional first: MB-47 (web pages not refetched after a Fyn
-      write, with MB-27), MB-48 (spouse verify page empty for a non-working spouse), MB-24
-      (`/m` "Something else" says "This step cannot be skipped"), MB-18/19/20 (`/m` MFA login
-      and restore, web restore MFA field), MB-50 (`/m` expenditure verify shows a derived
-      total), MB-26, MB-28, MB-33, MB-35, MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55.
-      Unskip `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
+- [ ] **NEXT — merge today's eleven PRs to dev in order, rebasing each onto dev after the one
+      before (every branch edits the bugs register on adjacent lines; keep both sides), csjones gate
+      per the admin-merge memory (four PRs change `resources/mobile/`: #831, #834, #835, #836 need
+      `build:mobile`), then `/release` dev → main (CSJ types it). Order: #829 → #832 (stacked on
+      #829) → #830 → #831 → #834 → #835 → #836 → #837 → #838 → #839 → #833 (the `bugsFixed.md`
+      ledger — after merging, flip its rows from "Fixed, PR open" to "Fixed" with SHAs and make sure
+      it is on dev, main and in the local root). Handover session 4 has the detail.
+- [x] Fixed 2026-09-14, PRs open: MB-27+47 (#829), MB-48 (#830), MB-24 (#831), MB-56/57/58 (#832),
+      MB-18/19/20 (#834), MB-50 (#835), MB-26 (#836), MB-28 (#837), MB-33 (#838), MB-35 (#839).
+      MB-54's cause corrected (deterministic backstop after a model refusal; decision still open).
+- [ ] **Remaining no-decision MBs** after the release, one per branch, test red first, live on web
+      and `/m`: MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55 (subject to MB-44). Unskip
+      `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
 - [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
 
 ## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
@@ -159,7 +165,8 @@ bugs raised (never fixed inside a run) in `September/September14Updates/mappingB
   08:44 BST 2026-09-12 with a full dump first. Web bundle `app-C-Usr4DG.js`, `/m` bundle
   `main-B8hm8ebQ.js`, corpus validated. Backups: `~/release-backups/2026-09-11/`…`h/`,
   `2026-09-12a/`, `b/`. Notes: memory `project_release_2026_09_11`.
-- **csjones = dev `a5dd5c340`**, both bundles from `1b22f6112`.
+- **csjones = dev `a5dd5c340`**, both bundles from `1b22f6112`. Eleven fix PRs (#829–#839) are open
+  against dev and unmerged as of 2026-09-14 21:13 BST; nothing from them is on csjones or prod.
 - **TestFlight "Fynla" 1.0 (10)** on the `org.fynla.app.dev` record, Production
   configuration reading fynla.org, VALID 2026-09-10 08:49 BST; native tree unchanged since.
   The `org.fynla.app` record is "Fynla (legacy)" — never upload there unasked.
