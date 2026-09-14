@@ -8,7 +8,8 @@ Issues found while mapping are raised, not fixed, in `<Month>/<Month><D>Updates/
 |---|---|---|---|---|---|---|---|
 | 00 | Overview (baseline) | `00-overview.md` | overview | `28194e804` | 2026-09-14 | `map-overview-whole-app-flow`, `map-overview-module-graph`, `map-overview-cross-module-dependencies` | MB-01 to MB-13 (`September/September14Updates/mappingBugs2026-09-14.md`) |
 | 01 | Auth, registration, sessions | `01-auth-registration-sessions.md` | mapped | `28194e804` | 2026-09-14 | `map-auth-registration-flow`, `map-auth-login-flow`, `map-auth-recovery-and-lifecycle`, `map-auth-native-session-lifecycle` | MB-18 to MB-22 |
-| 02 | Onboarding and SaveTax campaign | | not started | | | | |
+| 02a | Onboarding (Fyn flow, legacy wizard, journeys, life stage) | `02-onboarding.md` | mapped | `e4ddc4e3f` | 2026-09-14 | `map-onboarding-request-flow`, `map-onboarding-fyn-base-walk`, `map-onboarding-start-resume-pause`, `map-onboarding-wizard-modes` | MB-23 to MB-36 |
+| 02b | Save Tax and Pension Check campaigns (funnels, campaign states, section advice, synthesis, spouse invite, Tax Strategy terminal, re-entry) | | not started | | | | |
 | 03 | Dashboard | | not started | | | | |
 | 04 | User profile and household (spouse linking) | | not started | | | | |
 | 05 | Protection | | not started | | | | |

@@ -1,10 +1,10 @@
 # Mapping bugs — 2026-09-14
 
-Raised by the `app-map` overview run (`docs/app-map/00-overview.md`, commit `28194e804` on `dev`). Every entry is evidence from this run. Nothing here has been fixed; fixing is a separate task.
+Raised by the `app-map` runs of 2026-09-14: the overview, sections 17 and 01 (commit `28194e804` on `dev`, MB-01 to MB-22) and section 02a onboarding (commit `e4ddc4e3f`, MB-23 to MB-36, `docs/app-map/02-onboarding.md`). Every entry is evidence from its run. Nothing here has been fixed; fixing is a separate task. Append, never renumber.
 
 Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `.claude/skills/app-map/SKILL.md` step 4).
 
-## Decisions register (updated 2026-09-14 11:55)
+## Decisions register (updated 2026-09-14 14:10)
 
 | Id | Status | Area | Decision needed | Decided |
 |---|---|---|---|---|
@@ -30,6 +30,20 @@ Status vocabulary: Broken, Dead, Duplicate, Dead end, Does not make sense (see `
 | MB-20 | Broken | web restore modal never shows the MFA field | none (fix) | — |
 | MB-21 | Broken | wrong MFA or recovery code bounces the user with no message | 422 for wrong codes, or allowlist the endpoints | pending |
 | MB-22 | Broken (layout) | privacy toggle under the open Fyn panel at 1440 px | none (fix) | — |
+| MB-23 | Broken | paused onboarding user's next message hits the director with no step; web shows nothing | route by step not conversation source, or new conversation on pause | pending |
+| MB-24 | Broken | `/m` "Something else" at the front door answers "This step cannot be skipped." | none (fix the bubble id routing) | — |
+| MB-25 | Dead end | paused journey/focus onboarding has no way back in on any surface | should paused users be offered Continue, and where | pending |
+| MB-26 | Dead end | web never offers onboarding to a returning user who registered but never started; `/m` does | none (align web with `/m`) | — |
+| MB-27 | Broken | web expenditure verify screen shows £0 from a stale store while the database holds the figure | none (refetch on Fyn navigation) | — |
+| MB-28 | Does not make sense | web profile-review pause strands the user on Settings for the rest of the walk | none (fix the return route check) | — |
+| MB-29 | Dead (latent Broken) | wizard step endpoint's property branch references an unimported class; five step branches have no caller | delete the dead branches, or keep for a future API | pending |
+| MB-30 | Dead | seven onboarding and journey routes have no caller; `/planning/journeys` can never show a journey | delete, or wire the journeys feature | pending |
+| MB-31 | Broken + Dead | wizard journey mode renders eight unregistered components as blank steps; reachable only from dead code | delete journey mode with MB-01, or restore the components | pending |
+| MB-32 | Does not make sense | `users.life_stage` is written with three vocabularies and overrides every wizard route; `onboarding_fyn_path` gets a fourth value | one column per meaning, or one vocabulary | pending |
+| MB-33 | Does not make sense | `POST /api/onboarding/step` writes user columns with no field validation | add a Form Request | — |
+| MB-34 | Does not make sense | 46 hardcoded tax figures in wizard learning copy (Rule 2) | source from tax config, or accept as editorial copy | pending |
+| MB-35 | Does not make sense | wizard copy and options: American "Dependents", marital status omits civil partnership | none (fix) | — |
+| MB-36 | Does not make sense (adjacent: Savings) | `/m` savings screen says expenditure is missing while computing a target from it | none (Savings module fix) | — |
 
 ### MB-01 — 153 web SPA files are unreachable from the app entry points
 Map: docs/app-map/00-overview.md § 3 and Appendix A
@@ -209,3 +223,115 @@ Evidence: at 1440 × 1000 with the Fyn side panel open, Playwright could not cli
 What is wrong: the settings content does not leave room for the open panel at this width, so the right-hand toggles sit underneath it.
 Suspected impact: a user with the panel open cannot change the consent until they close the panel; other right-aligned controls on settings pages may share the issue (not checked).
 Decision needed: no.
+
+### MB-23 — A paused onboarding user's next message reaches the director with no step, and gets nothing
+Map: docs/app-map/02-onboarding.md § 2.6, § 3
+Status: Broken
+Evidence: `app/Services/AI/ContextualConversation/ConversationModeResolver.php:23-25` returns true for any conversation whose `metadata.source` is `fyn_onboarding` before it reads the step; `app/Services/Onboarding/OnboardingChatDirector.php:191-198` then yields the content "Onboarding state lost. Please reload and try again." with no `done`. Live on web this run: user 86, conversation 187, rows 492-494 (user "Something else", assistant "No problem. What would you like help with?", user "What is an ISA?"), no assistant row after, nothing rendered — `docs/app-map/screenshots/02-onboarding/web-fyn-something-else-then-question-no-reply.png`. Feature probe: the resolver returned true for a step-null, not-completed user on a `fyn_onboarding` conversation. Contract test skipped at `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php`.
+What is wrong: the pause paths (`handleSomethingElseAction` at `OnboardingChatDirector.php:779-805`, the front-door free-text exit at `:457-476`, `emitFreeChatTurn` at `:6536-6558`) null the step and promise the next message goes to advice Fyn. The dispatch resolver keys on the conversation's source first, so every later message in that conversation goes back to the director, which has no state and errors. The web store drops an error `content` that arrives without `done`, so the user sees no reply at all. The tests that cover the exits (`PathChoiceHasAWayOutTest`, `CampaignReentryExitTest`) assert the step is nulled and stop; none sends the following message.
+Suspected impact: every user who taps "Something else" or types free text at the front door, on web and `/m` (the `/m` symptom is the same backend; I COULD NOT VERIFY the `/m` rendering because MB-24 blocks the tap there).
+Decision needed: yes — route by the user's step (the canonical three-part predicate) rather than the conversation source, or start a new conversation on pause.
+
+### MB-24 — On `/m`, "Something else" at the front door answers "This step cannot be skipped."
+Map: docs/app-map/02-onboarding.md § 2.6
+Status: Broken
+Evidence: `resources/mobile/mixins/onboardingChat.js:575` routes any bubble with id `skip` to the action endpoint; the path_choice bubble for "Something else" has id `skip` (`fyn-memory/procedural/workflow/onboarding/fyn-onboarding.v1.md`, `path_choice.bubbles`); `OnboardingChatDirector::handleSkipAction` (`:822-830`) allows only `base_spouse` and yields "This step cannot be skipped." Live this run: user 88 on `/m/app/dashboard` — `docs/app-map/screenshots/02-onboarding/m-fyn-something-else-then-question.png`; no user row was persisted for the tap (the action endpoint does not persist).
+What is wrong: the spouse step's skip link and the front-door "Something else" bubble share the id `skip`; `/m` treats both as the skip action. Web sends the label as a message and works (`AiChatPanel.vue:1228-1243`).
+Suspected impact: `/m` users cannot leave the front door with the bubble (typing free text still works — verified: a typed question was answered inline and the front door re-asked).
+Decision needed: no — give the path_choice bubble a distinct id, or make the `/m` rule check `metadata.skip_link` rather than the id.
+
+### MB-25 — Paused journey/focus onboarding has no way back in
+Map: docs/app-map/02-onboarding.md § 2.6
+Status: Dead end
+Evidence: `AiChatController::startOnboarding` resumes a parked step only when `onboarding_fyn_path === 'campaign'` (`app/Http/Controllers/Api/AiChatController.php:648-658`); for other paths a bare `/start` with step null creates a fresh conversation at `path_choice` (`:809-811`). Web opens the chat in onboarding only when the step is non-null (`resources/js/components/Shared/AiChatPanel.vue:1049-1053`); the dashboard fires `/start` only from the registration query (`resources/js/views/Dashboard.vue:1377`). `/m` excludes paused users from auto-start (`resources/mobile/mixins/onboardingChat.js:61-65`). `handleSomethingElseAction` stores `paused_at_step` "so the next /start resumes" (`OnboardingChatDirector.php:772-777`).
+What is wrong: the pause is designed as "without losing it", but only the campaign path can be resumed, and neither web nor `/m` ever calls `/start` again for a paused user. The parked step is written and never read.
+Suspected impact: any non-campaign user who pauses is stuck on advice Fyn; their captured facts remain, but the guided walk is gone unless they know to visit `/dashboard?openFyn=journey`, which restarts at the front door.
+Decision needed: yes — offer "Continue setting up" to paused users (where, and on which surfaces), or drop the parked-step promise.
+
+### MB-26 — Web never offers onboarding to a returning user who registered but did not start; `/m` does
+Map: docs/app-map/02-onboarding.md § 2.1, § 1 Surfaces
+Status: Dead end (web)
+Evidence: web `AiChatPanel.vue:1046-1061` starts onboarding on open only when `onboarding_fyn_step` is set; user 86 (completed false, step null) logged in on web, opened Fyn and got the advice greeting "Hi, I'm Fyn — Ask me anything about your finances" — `docs/app-map/screenshots/02-onboarding/web-returning-not-started-user-gets-advice-chat.png` (screenshot retaken with user 89, same state: the web called `GET /api/ai-chat/resumption`, `GET /api/ai-chat/conversations` and `POST /api/ai-chat/conversations` (201), never `/onboarding/start`; user 89 still `onboarding_fyn_step = null` afterwards). `/m` auto-starts for the same state (`onboardingChat.js:61-65`, `resources/mobile/views/Dashboard.vue:986-988`) — verified with user 87, `m-dashboard-onboarding-autostart.png`.
+What is wrong: the two surfaces disagree about a not-started user. On web the only trigger is the registration redirect query; a user who closed the tab after registering, or who registered on `/m` and later signs in on web, is never onboarded on web.
+Suspected impact: web users who leave before the first Fyn turn.
+Decision needed: no — mirror `/m`: start when completed is false and the step is null and not paused.
+
+### MB-27 — The web expenditure verify screen shows £0 while the database holds the figure Fyn just saved
+Map: docs/app-map/02-onboarding.md § 2.5
+Status: Broken (web)
+Evidence: after "About £2,500 a month", Fyn said "Recorded monthly spending of £2,500." and navigated to `/valuable-info?section=expenditure`, which showed "Monthly Expenditure: £0 / Annual Expenditure: £0 / Total Monthly Expenditure £0" — `docs/app-map/screenshots/02-onboarding/web-fyn-expenditure-verify-navigate.png`; the database at that moment had `users.monthly_expenditure = 2500.00` and `expenditure_profiles.total_monthly_expenditure = 2500.00` (user 86, checked 13:38). A full reload showed £2,500 and £30,000. The store's `navigation` handler only sets a pending route (`resources/js/store/modules/aiChat.js:579-599`); the expenditure form reads `props.initialData.monthly_expenditure` from the already-loaded profile (`resources/js/components/UserProfile/ExpenditureForm.vue:2248`). The income and protection screens refetched and showed the right figures.
+What is wrong: the verify step asks the user to confirm a screen that shows stale data. On `/m` the same screen showed £1,800 correctly (`m-expenditure-verify-pills.png`).
+Suspected impact: web journey and campaign users on the expenditure verify; a user may answer "No, change something" against a wrong £0.
+Decision needed: no — refetch the profile when a Fyn navigation lands on a profile-backed screen.
+
+### MB-28 — The web profile-review pause leaves the user on Settings for the rest of the walk
+Map: docs/app-map/02-onboarding.md § 2.4
+Status: Does not make sense (web)
+Evidence: entering `profile_review_family` pushes `/profile` (`resources/js/layouts/AppLayout.vue:330-334`); `/profile` redirects to `/settings/personal` (`resources/js/router/index.js:680-690`); on "Looks correct" the return push runs only if `this.$route.path === '/profile'` (`AppLayout.vue:341`), which is never true. Live this run the URL stayed `/settings/personal` through employment, income and expenditure until the verify navigation moved it — `web-fyn-profile-review-pause.png` and the following snapshots.
+What is wrong: the return leg of the pause never fires; the user finishes several onboarding steps on the Settings page.
+Suspected impact: navigational; every web onboarding that reaches the family review.
+Decision needed: no — compare against the redirect target or the stored pre-pause route.
+
+### MB-29 — The wizard step endpoint's property branch references a class that does not exist; five step branches have no caller
+Map: docs/app-map/02-onboarding.md § 2.8
+Status: Dead (latent Broken)
+Evidence: `app/Services/Onboarding/OnboardingService.php:565` calls `app(PropertyNormaliser::class)` with no `use` import (imports at `:7-31`), so it resolves to `App\Services\Onboarding\PropertyNormaliser`; `class_exists` is false for that name and true for `App\Services\Stores\Normalisers\PropertyNormaliser` (checked in tinker this run). No client posts `step_name = assets` with `properties`: `AssetsStep.vue` saves through `propertyService`, `savingsService`, `investmentService`, `retirementService` (`resources/js/components/Onboarding/steps/AssetsStep.vue:1093-1129`); likewise `liabilities` (`LiabilitiesStep.vue` uses `estateService`), `protection_policies` (`protectionService`), `family_info` (`familyMembersService`), and `quick_assets` (quick mode is unreachable, MB-30). The `saveStepData` callers are `personal_info`, `income`, `expenditure`, `domicile_info`, `will_info`, `trust_info`, `goals` only.
+What is wrong: five of the ten `processStepData` branches (`OnboardingService.php:152-195`) are dead, and the first request to reach the property branch would throw a container resolution error.
+Suspected impact: none today; a maintenance trap.
+Decision needed: yes — delete the dead branches (with MB-01), or keep the endpoint as a general API and fix the import.
+
+### MB-30 — Seven onboarding and journey routes have no caller, and the Journeys page can never show a journey
+Map: docs/app-map/02-onboarding.md § 2.8, § 2.9
+Status: Dead
+Evidence: no dispatch of `onboarding/setFocusArea`, `onboarding/restartOnboarding` or `onboarding/completeQuickOnboarding` outside the quick-mode branch (grep of `resources/js` excluding the store), and quick mode is unreachable because `FocusAreaSelection.vue` emits only `stage-selected` (`:481`), never `focus-selected` or `selected`, so `handleFocusAreaSelected` (`OnboardingWizard.vue:1326-1334`) never runs. No dispatch of `journeys/fetchSelections`, `journeys/saveSelections`, `journeys/fetchDashboardPrompts`, `journeys/dismissPrompt`, and no caller of `journeyService.getPreview` (the only consumer, `JourneyPreview.vue`, is in MB-01). Routes: `POST /api/onboarding/focus-area`, `POST /api/onboarding/restart`, `POST /api/onboarding/complete-quick`, `GET|POST /api/journeys/selections`, `GET /api/journeys/preview`, `GET /api/journeys/dashboard-prompts`, `POST /api/journeys/dismiss-prompt` (`routes/api.php:278,286,287,292-296`). `DashboardPromptService` is therefore dead. `/planning/journeys` renders `JourneyCard` only from `journey_selections`, which nothing writes — live this run: "No Journeys Selected" for a user who had just completed a journey (`web-planning-journeys.png`). Not in the MB-08 dossier.
+What is wrong: a journeys feature (selection, preview, dashboard prompts) exists on the server with no client; the side-nav "Journeys" page is a permanent empty state.
+Suspected impact: no user effect beyond a dead page; maintenance weight.
+Decision needed: yes — delete the routes, services and the Journeys page, or build the client that was meant to call them.
+
+### MB-31 — The wizard's journey mode renders eight unregistered components as blank steps, and is reachable only from dead code
+Map: docs/app-map/02-onboarding.md § 2.8
+Status: Broken + Dead
+Evidence: `OnboardingWizard.vue:1273-1282,1289,1320` return the component names `SimplePersonalInfoStep`, `SimpleIncomeStep`, `SimpleExpenditureStep`, `SimpleSavingsAccountStep`, `SimplePropertyMortgageStep`, `BudgetingSteps`, `QuickAssetsStep`, `JourneyCompletionStep`; none exists in `resources/js` and none is registered in the component's `components` list (`:485-504`). Live this run at `/onboarding/journey/budgeting` with no life stage: header "Setting up: Budgeting", four step labels, "25% complete", no form — `web-wizard-journey-budgeting-no-life-stage.png`. The route is linked only from `ProfileCompletionCards.vue:95-143` and `AreasToCompleteCard.vue:75` (both MB-01 dead) and from `DashboardPromptService` (MB-30 dead).
+What is wrong: journey mode cannot render its steps, and nothing live sends a user to it.
+Suspected impact: none today unless the URL is typed.
+Decision needed: yes — remove journey mode and its routes with MB-01/MB-30, or restore the components.
+
+### MB-32 — `users.life_stage` carries three vocabularies and overrides every wizard route
+Map: docs/app-map/02-onboarding.md § 2.8, § 2.10
+Status: Does not make sense
+Evidence: `LifeStageService::setStage` writes a stage id (`app/Services/LifeStage/LifeStageService.php:41-43`, values `university` to `retirement`); `JourneyStateService::startJourney` writes a journey id (`app/Services/Onboarding/JourneyStateService.php:73-76`, values `budgeting` to `goals`); `OnboardingService::setFocusArea` writes a focus area (`OnboardingService.php:86-88`). The wizard enters life-stage mode whenever the stored value is a known stage (`OnboardingWizard.vue:550-555`; `lifeStage.js:104-109` drops unknown values). Live this run: with `life_stage = mid_career`, `/onboarding/full`, `/onboarding/estate` and `/onboarding/journey/budgeting` all rendered the nine-step mid-career wizard (`web-wizard-full-mode.png`, `web-wizard-module-estate.png`, `web-wizard-journey-budgeting.png`); after clearing the column on the test account, `/onboarding/estate` rendered its two module steps (`web-wizard-module-estate-no-life-stage.png`). Also: the path_choice bubble id is written to `onboarding_fyn_path` (`fyn-onboarding.v1.md`, `capture_field: onboarding_fyn_path`), so "Something else" stores `skip` alongside `journey`, `focus`, `campaign` (user 86 row read at 13:33: `path='skip'`).
+What is wrong: one column means three things depending on which code wrote it last, and a stored stage silently changes what every wizard URL shows.
+Suspected impact: any user who picked a stage on the welcome screen and later follows a module link.
+Decision needed: yes — one column per meaning (or one vocabulary), and the wizard should honour its route's mode.
+
+### MB-33 — The wizard step endpoint writes user columns with no field validation
+Map: docs/app-map/02-onboarding.md § 2.8
+Status: Does not make sense (data integrity)
+Evidence: `app/Http/Controllers/Api/OnboardingController.php:75-78` validates only `step_name` (string) and `data` (array); `OnboardingService::processPersonalInfo` (`:200-230`) and `processIncomeInfo` (`:388-406`) assign the array's values straight to `users.*` (date of birth, gender, marital status, incomes, retirement age). The live request this run (user 86, `POST /api/onboarding/step`, 200) wrote gender, city and postcode.
+What is wrong: the only validation is in the Vue form; the API boundary accepts any shape.
+Suspected impact: malformed values can reach columns that every calculation reads.
+Decision needed: no — a Form Request per step, or reuse the profile endpoints' rules.
+
+### MB-34 — Forty-six hardcoded tax and money figures in the wizard's learning copy
+Map: docs/app-map/02-onboarding.md § 2.8
+Status: Does not make sense (Rule 2)
+Evidence: `grep -c '£[0-9]' resources/js/constants/lifeStageConfig.js` = 46; examples `:119` "£20,000 … annual ISA allowance", `:238` "£60,000 … pension allowance", `:244` "£12,570 Personal Allowance", `:406` "a married couple can pass up to £1 million … combined nil-rate bands" (shown live on the Family step, `web-wizard-module-estate.png`). The labels interpolate `TAX_YEAR` but the values are literals.
+What is wrong: tax values in user-facing strings are hardcoded rather than read from tax configuration.
+Suspected impact: wrong figures after the next tax year change.
+Decision needed: yes — source the figures from `taxConfig.js`, or accept the copy as editorial and date-stamp it.
+
+### MB-35 — Wizard copy and options: American spelling and a missing marital status
+Map: docs/app-map/02-onboarding.md § 2.8
+Status: Does not make sense
+Evidence: `resources/js/components/Onboarding/steps/FamilyInfoStep.vue:3` titles the step "Family & Dependents" (seen live); the Personal Information step's Marital Status select offers Single, Married, Divorced, Widowed (snapshot this run) while the column is an enum including `civil_partnership` and the Fyn flow accepts it (`capture_personal_details.md`).
+What is wrong: British spelling rule; a legal status the rest of the app supports cannot be chosen in the wizard.
+Suspected impact: civil partners onboarding through the wizard.
+Decision needed: no.
+
+### MB-36 — The `/m` savings screen says expenditure is missing while computing a target from it (adjacent: Savings)
+Map: docs/app-map/02-onboarding.md § 4 (observed during the `/m` verify step)
+Status: Does not make sense
+Evidence: `/m/app/savings` for user 87 (monthly expenditure £1,800 saved by Fyn) showed "Emergency fund — Target (6 months) £10,800 — 2.8 months from cash savings" and, below it, "Emergency Fund Cannot Be Assessed — We cannot assess your emergency fund without expenditure data" and "Provide Your Income Details" for a retired user — `docs/app-map/screenshots/02-onboarding/m-savings-verify-pills.png`.
+What is wrong: two parts of one screen read expenditure from different sources. Belongs to the Savings module map (section 06); recorded here because it was seen in this run.
+Suspected impact: contradictory guidance on the savings screen.
+Decision needed: no — for the Savings map to trace.
