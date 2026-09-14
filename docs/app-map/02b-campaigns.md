@@ -291,7 +291,7 @@ The recap this run: "Working full-time", "Earning £50,271–£100,000", "You ha
 | `campaign_verify_edit` | delegated (update-only tools) | first phrasing failed the honesty gate (MB-49); "Change the current value from £25,000 to £27,000" → `update_record` landed → read-back "current value now £27,000" → the navigate prompt re-emitted; page still showed £25,000 (MB-47); "Yes" | `investment_accounts.current_value = 27000` |
 | `campaign_advice_investments` | advice | nothing voiced | |
 | `campaign_dob` | grouped_extract | pension-framed wording (pension ticked); "19/02/82" → the short-year confirm "Your date of birth is 19th February 1982 — is that correct?" (`maybeConfirmShortDob()` `OnboardingChatDirector.php:3501-3557`); Yes | `users.date_of_birth` |
-| `campaign_occupational_scheme` | delegated, `capture_focus = occupational` | 5% employee, 3% employer, salary sacrifice, £40,000 pot, Aviva → `create_pension` wrote 5%/3% and the sacrifice flag; pot and provider lost (MB-54) | `dc_pensions` 71 |
+| `campaign_occupational_scheme` | delegated, `capture_focus = occupational` | 5% employee, 3% employer, salary sacrifice, £40,000 pot, Aviva → the model refused (`ai_messages` 610, no tool call); the deterministic backstop wrote 5%/3% with no pot and no provider (MB-54, cause corrected 2026-09-14); the sacrifice flag landed on the next turn's blocked-attempt retry | `dc_pensions` 71 |
 | `campaign_pension_contribs` | delegated, `record_context = pensions` | "No" → "Recorded — no personal pension or SIPP. Recorded — salary sacrifice confirmed." — the blocked `capture_salary_sacrifice` from the previous turn was retried here (`retryPreviousBlockedAttempt()` `:6067`) and stamped `users.employment_income_basis = gross` | `dc_pensions.salary_sacrifice`, `users.employment_income_basis` |
 | verify (pensions) | navigation | opened `/net-worth/retirement` listing the workplace pension at 5%; "Yes" | |
 | `campaign_advice_pensions` | advice | nothing voiced | |
@@ -480,7 +480,7 @@ Tests written in this run: none. The contracts this run broke (MB-37, MB-47, MB-
 | MB-51 | Does not make sense (copy) | `sectionLabel()`, corpus `campaign_pension_contribs`, `buildCampaignDobPrompt()`, `buildCampaignIntroPrompt()` | copy that does not fit the path | § 2.5, § 2.8 |
 | MB-52 | Duplicate drift | `/m` Fyn text renderer | multi-paragraph advice collapsed | § 2.6, § 2.8 |
 | MB-53 | Does not make sense | `campaignSections('pensioncheck')` | re-entry re-asks the pensions section | § 2.8 |
-| MB-54 | Does not make sense | `campaign_occupational_scheme` on the Save Tax path | pot value and provider dropped | § 2.5 |
+| MB-54 | Does not make sense | `campaign_occupational_scheme` on the Save Tax path | pot value and provider dropped by the deterministic backstop after a model refusal (cause corrected 2026-09-14) | § 2.5 |
 | MB-55 | Does not make sense | `savetax-plan-v4.js:183` vs `pensioncheck-plan.js:463-469` | the Save Tax sign-in link drops the campaign | § 2.3 |
 
 Reproduced from earlier runs: MB-27 (web expenditure verify shows £0) — this run, § 2.5. Confirmed unchanged: MB-09 (the Vue `/savetax` copy), MB-10 (the mock-up routes).

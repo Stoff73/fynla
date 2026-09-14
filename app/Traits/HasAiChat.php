@@ -125,9 +125,62 @@ trait HasAiChat
      */
     private ?array $verifyEditScope = null;
 
-    public function setUnifiedOnboardingFocus(?string $focus): void
+    /**
+     * What update_profile may touch on the current onboarding walk step —
+     * OnboardingPromptBuilder::WALK_PROFILE_SCOPE, set with the focus and
+     * cleared with it. Null outside a walk step (advice, inline capture,
+     * verify-edit, which has its own scope).
+     *
+     * @var array<string, list<string>|null>|null
+     */
+    private ?array $onboardingProfileScope = null;
+
+    /** @param array<string, list<string>|null>|null $profileScope */
+    public function setUnifiedOnboardingFocus(?string $focus, ?array $profileScope = null): void
     {
         $this->unifiedOnboardingFocus = $focus;
+        $this->onboardingProfileScope = $profileScope;
+    }
+
+    /**
+     * MB-57 — mechanical boundary for update_profile on a walk step, the
+     * sibling of verifyEditScopeError. The prompt says the tool is for
+     * retracting a personal fact; this makes that enforceable so a bare
+     * figure answered to a pension or account question cannot land on the
+     * income row.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function onboardingProfileScopeError(string $toolName, array $input): ?array
+    {
+        if ($this->onboardingProfileScope === null || $toolName !== 'update_profile') {
+            return null;
+        }
+
+        $section = (string) ($input['section'] ?? '');
+        if (! array_key_exists($section, $this->onboardingProfileScope)) {
+            return [
+                'error' => true,
+                'error_type' => 'onboarding_profile_scope_violation',
+                'message' => 'That profile section is not captured on this step. Record the figure against the pension or account being asked about instead.',
+            ];
+        }
+
+        $allowedFields = $this->onboardingProfileScope[$section];
+        if ($allowedFields === null) {
+            return null;
+        }
+
+        $fields = is_array($input['fields'] ?? null) ? array_keys($input['fields']) : [];
+        if ($fields === [] || array_diff($fields, $allowedFields) !== []) {
+            return [
+                'error' => true,
+                'error_type' => 'onboarding_profile_scope_violation',
+                'message' => 'Income figures are not captured on this step. Record the figure against the pension or account being asked about instead.',
+            ];
+        }
+
+        return null;
     }
 
     /**
