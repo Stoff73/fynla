@@ -724,8 +724,11 @@ const actions = {
                             case 'form_received':
                                 // A form submission carries no typed text — rewrite the
                                 // placeholder user bubble with the server's plain-English
-                                // summary of what was captured.
+                                // summary of what was captured. Clear any earlier refusal's
+                                // errors too, so a successful retry locks the form cleanly
+                                // instead of re-rendering it open with stale errors.
                                 commit('SET_TEMP_USER_CONTENT', { id: tempId, content: event.text || '' });
+                                commit('SET_CAPTURE_FORM_ERRORS', null);
                                 break;
 
                             case 'capture_form':

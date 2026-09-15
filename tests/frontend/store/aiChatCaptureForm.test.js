@@ -72,8 +72,21 @@ describe('capture form in the chat store', () => {
 
     await aiChat.actions.sendMessage(ctx, { form: { name: 'property', answers: {} } });
 
+    expect(ctx.state.messages[0].metadata.errors).not.toBeNull();
     expect(ctx.state.messages[0].metadata.errors.buy_to_let.message).toContain('property limit');
     expect(ctx.state.error).toBeNull();
+  });
+
+  it('clears a prior refusal\'s errors once form_received confirms a successful retry', async () => {
+    aiChatService.sendMessageStream.mockResolvedValue(streamReader([
+      { type: 'form_received', text: 'Home worth £750,000, no mortgage, individual.' },
+      { type: 'done', message_id: 12 },
+    ]));
+    const ctx = makeCtx({ messages: [{ id: 'cf_1', role: 'capture_form', content: '', metadata: { capture_form: schema, errors: { buy_to_let: { message: 'You have reached your plan\'s property limit.', fields: {} } } } }] });
+
+    await aiChat.actions.sendMessage(ctx, { form: { name: 'property', answers: { main_residence: { current_value: 750000 } } } });
+
+    expect(ctx.state.messages[0].metadata.errors).toBeNull();
   });
 
   it('re-renders a persisted form on history load as text plus a form row', async () => {

@@ -1268,9 +1268,12 @@ export default {
         },
 
         // A form is open only while it is the newest form and nothing has been
-        // answered after it; a refresh mid-step re-renders it open.
+        // answered after it; a refresh mid-step re-renders it open. A refused
+        // submission also reopens it — the errors mean nothing was saved, so
+        // the user corrects the same form in place rather than a locked one.
         isCaptureFormOpen(idx) {
             if (idx !== this.latestCaptureFormIndex) return false;
+            if (this.messages[idx].metadata?.errors) return true;
             return !this.messages.slice(idx + 1).some((m) => m.role === 'user');
         },
 
