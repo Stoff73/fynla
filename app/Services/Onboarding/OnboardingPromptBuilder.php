@@ -138,6 +138,7 @@ final class OnboardingPromptBuilder
                 'create_savings_account',
                 'create_investment_account',
                 'create_holding',
+                'create_property',
                 'capture_spouse_work_status',
                 'capture_spouse_household_data',
                 'capture_spouse_non_working_assets',
