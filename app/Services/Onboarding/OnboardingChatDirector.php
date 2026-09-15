@@ -192,14 +192,25 @@ final class OnboardingChatDirector
         // by state handlers for gap-filling follow-ups and pause-state
         // confirmations. Extraction is best-effort — swallow any failure
         // rather than blocking the turn.
-        try {
-            $this->factExtractor->extractAndPark($conversation, $message);
-        } catch (\Throwable $e) {
-            Log::warning('[OnboardingChatDirector] Fact extractor failed', [
-                'user_id' => $user->id,
-                'conversation_id' => $conversation->id,
-                'error' => $e->getMessage(),
-            ]);
+        //
+        // A form turn's $message is CaptureForms::summarise() — a machine-
+        // composed sentence such as "Home worth £750,000, mortgage
+        // £325,000, …" — not free text from the user. The extractor has no
+        // way to tell a house value from an income figure, so it parks the
+        // first £ amount as employment.annual_income on every submission.
+        // The structured answers already went straight to Property via
+        // handleFormTurn with no model call; there is nothing left for the
+        // extractor to usefully find here, so skip it entirely for forms.
+        if ($form === null) {
+            try {
+                $this->factExtractor->extractAndPark($conversation, $message);
+            } catch (\Throwable $e) {
+                Log::warning('[OnboardingChatDirector] Fact extractor failed', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $currentStateId = $user->onboarding_fyn_step;

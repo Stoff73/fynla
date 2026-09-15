@@ -199,6 +199,25 @@ it('never invokes the model for a form answer', function (): void {
     expect(AiMessage::where('conversation_id', $conversation->id)->where('role', 'assistant')->whereNotNull('tool_calls')->exists())->toBeFalse();
 });
 
+it('does not run the fact extractor on a form turn, so a house value is never parked as income', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+
+    // CaptureForms::summarise() reads "Home worth £750,000, mortgage
+    // £325,000, …" — exactly the shape OnboardingFactExtractor::
+    // extractEmployment mistakes for a volunteered income sentence. The
+    // form path must skip the extractor entirely (it is a structured
+    // write via CoordinatingAgent, not free text needing extraction).
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, CaptureForms::summarise(propertyAnswers()), null, true, propertyAnswers()
+    ), false);
+
+    $parked = $conversation->fresh()->onboarding_parked_facts ?? [];
+    expect($parked['employment']['annual_income'] ?? null)->toBeNull()
+        ->and($parked)->toBe([]);
+});
+
 it('tells the user a stale form is no longer open and re-emits the current step', function (): void {
     $user = formStepUser(OnboardingStateMachine::STATE_CAMPAIGN_DOB);
     $conversation = formConversation($user);
