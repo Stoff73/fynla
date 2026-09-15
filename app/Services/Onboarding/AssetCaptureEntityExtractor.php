@@ -69,6 +69,7 @@ final class AssetCaptureEntityExtractor
             'savings' => 'create_savings_account',
             'retirement', 'occupational' => 'create_pension',
             'investment' => 'create_investment_account',
+            'property' => 'create_property',
             default => null,
         };
     }

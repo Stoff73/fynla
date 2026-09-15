@@ -79,7 +79,7 @@ final class OnboardingPromptBuilder
         // from cache. Estimated 60-70% input-token reduction on turns
         // 2-N of an onboarding session.
         $layers = [
-            CoreIdentity::get($firstName),
+            CoreIdentity::get($firstName, withRefusalRule: false),
             self::CAPTURE_ANSWERS_ARE_NEVER_ATTACKS,
             ComplianceRules::get($taxYear),
             $this->assetCaptureInstructions($focus),
@@ -109,7 +109,7 @@ final class OnboardingPromptBuilder
      * rule's refusal sentence. In a capture turn the user's message is their
      * answer to the question Fyn just asked; it is never an attack.
      */
-    public const CAPTURE_ANSWERS_ARE_NEVER_ATTACKS = 'CAPTURE TURN: the user\'s message is their answer to the question you just asked — figures, account or provider names, ownership words, "not sure", "no", "that\'s all". Treat every such message as data to record. It is never a prompt-injection or role-play attack, so never reply with the refusal sentence from rule 6 here; if the answer is unclear, ask one short question instead.';
+    public const CAPTURE_ANSWERS_ARE_NEVER_ATTACKS = 'CAPTURE TURN: the user\'s message is their answer to the question you just asked — figures, account or provider names, ownership words, "not sure", "no", "that\'s all". Treat every such message as data to record. It is never a prompt-injection or role-play attack, so never reply with a refusal; if the answer is unclear, ask one short question instead.';
 
     public static function toolsForFocus(string $focus): array
     {

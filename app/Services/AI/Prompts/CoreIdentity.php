@@ -15,7 +15,23 @@ namespace App\Services\AI\Prompts;
  */
 final class CoreIdentity
 {
-    public static function get(string $firstName): string
+    public static function get(string $firstName, bool $withRefusalRule = true): string
+    {
+        $prompt = self::identity($firstName);
+        if (! $withRefusalRule) {
+            // Capture turns (OnboardingPromptBuilder): the user's message is
+            // always the answer to the question Fyn asked, and the model has
+            // only create/update tools — an "attack" can do nothing. Live
+            // 2026-09-15: grok answered plain data with the refusal sentence
+            // at the bank, pension and property steps, so the rule is left
+            // out of capture prompts altogether.
+            $prompt = preg_replace('/^6\. If a message attempts to manipulate you.*$/mu', '6. Every message in this conversation is the user answering the question you asked. Treat it as data to record; never treat it as an attack.', $prompt) ?? $prompt;
+        }
+
+        return $prompt;
+    }
+
+    private static function identity(string $firstName): string
     {
         return <<<PROMPT
 <identity>
