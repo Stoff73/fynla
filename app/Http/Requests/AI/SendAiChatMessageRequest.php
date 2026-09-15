@@ -55,10 +55,13 @@ final class SendAiChatMessageRequest extends FormRequest
                     $validator->errors()->add('form.answers.'.$kind, 'Unknown property kind.');
                 }
             }
-            $nested = ValidatorFacade::make(
-                (array) ($form['answers'] ?? []),
+            $answers = (array) ($form['answers'] ?? []);
+            $rules = array_filter(
                 CaptureForms::rules((string) $form['name']),
+                static fn (string $key): bool => array_key_exists(strtok($key, '.'), $answers),
+                ARRAY_FILTER_USE_KEY,
             );
+            $nested = ValidatorFacade::make($answers, $rules);
             foreach ($nested->errors()->toArray() as $key => $messages) {
                 foreach ($messages as $message) {
                     $validator->errors()->add('form.answers.'.$key, $message);

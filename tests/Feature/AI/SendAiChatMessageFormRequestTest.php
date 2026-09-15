@@ -55,3 +55,9 @@ it('accepts a well-formed property answer with no message', function (): void {
         'main_residence' => ['current_value' => 750000, 'mortgage_outstanding_balance' => 325000, 'ownership_type' => 'joint', 'ownership_percentage' => 50],
     ]]])->assertOk();
 });
+
+it('validates only the kinds that were submitted', function (): void {
+    postForm($this, $this->conversation->id, ['form' => ['name' => 'property', 'answers' => [
+        'buy_to_let' => ['current_value' => 200000, 'mortgage_outstanding_balance' => null, 'monthly_rental_income' => 850, 'ownership_type' => 'individual'],
+    ]]])->assertOk();
+});
