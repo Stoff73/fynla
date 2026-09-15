@@ -332,6 +332,15 @@
               @click="chooseBubble(b, m)"
             >{{ b.label }}</button>
           </div>
+          <FynCaptureForm
+            v-if="m.form && m.form.schema"
+            :schema="m.form.schema"
+            :errors="m.form.errors"
+            :disabled="sending"
+            :locked="m.form.locked"
+            :values="m.form.answers"
+            @submit="submitCaptureForm"
+          />
         </div>
       </div>
 
@@ -361,6 +370,7 @@ import { store } from '../store.js';
 // (deliberately no '@' coupling to web code, for iOS-safety), so the /m bundle keeps
 // its own copy. Keep the two in sync if the celebration changes.
 import GamificationCelebration from '@m/components/GamificationCelebration.vue';
+import FynCaptureForm from '../components/FynCaptureForm.vue';
 // Shared Fyn onboarding-chat client (SSE event router, bubbles, send/stream,
 // cross-screen resume). Used by both the dashboard's first-run chat and the
 // docked Fyn bar (MobileChrome) so the campaign verify flow can hand the chat
@@ -411,7 +421,7 @@ const NAV_ICON = {
 
 export default {
   name: 'MobileDashboard',
-  components: { GamificationCelebration },
+  components: { GamificationCelebration, FynCaptureForm },
   mixins: [onboardingChat],
   data() {
     return {

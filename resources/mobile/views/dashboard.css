@@ -1891,6 +1891,31 @@
 .md-fyn__bubble:hover { background: var(--raspberry-500); color: var(--white); }
 .md-fyn__bubble:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.md-fyn__form { padding: 8px 0; }
+.md-fyn__form-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+.md-fyn__form-kind {
+  background: var(--white);
+  border: 2px solid var(--raspberry-500);
+  color: var(--raspberry-500);
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  cursor: pointer;
+}
+.md-fyn__form-kind--open { background: var(--raspberry-50); }
+.md-fyn__form-kind:disabled { opacity: 0.5; cursor: not-allowed; }
+.md-fyn__form-section { margin-top: 12px; border: 1px solid var(--horizon-200); border-radius: var(--radius-md); padding: 12px; background: var(--white); }
+.md-fyn__form-field { margin-top: 10px; }
+.md-fyn__form-label { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--neutral-500); margin-bottom: 4px; }
+.md-fyn__form-money { display: flex; align-items: center; gap: 8px; }
+.md-fyn__form-choices { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.875rem; }
+.md-fyn__form-choices label { display: flex; align-items: center; gap: 4px; }
+.md-fyn__form-hint { font-size: 0.75rem; color: var(--neutral-500); margin-top: 4px; }
+.md-fyn__form-error { font-size: 0.75rem; color: var(--raspberry-600); margin-top: 4px; }
+.md-fyn__form-actions { margin-top: 12px; }
+
 /* Onboarding verify actions — on-page Continue/Edit pills (same style as the
    chat quick-replies) sitting just above the docked Fyn bar, replacing the
    old "tap the chat to continue" nudge banner. */
