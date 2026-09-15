@@ -2268,7 +2268,21 @@ final class OnboardingStateMachine
         // value and the Retirement actions ask for it later. Advance rather
         // than loop the capture walk forever.
         if (self::saysValueUnknown($answer)) {
-            return self::afterPensionPots($user);
+            // Remember which pension was declined so the loop never asks it
+            // twice; any OTHER pension still missing a value is asked next.
+            $asked = app(PensionStore::class)->firstDcPensionMissingPotValue($user);
+            if ($asked !== null) {
+                $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                $declined = PensionStore::declinedPotValueIds($user);
+                $declined[] = (int) $asked->id;
+                $context['pension_value_declined'] = array_values(array_unique($declined));
+                $user->onboarding_fyn_context = $context;
+                $user->save();
+            }
+
+            return app(PensionStore::class)->hasDcPensionsMissingPotValue($user)
+                ? self::STATE_CAMPAIGN2_PENSION_POTS
+                : self::afterPensionPots($user);
         }
 
         return self::STATE_CAMPAIGN2_PENSION_POTS;

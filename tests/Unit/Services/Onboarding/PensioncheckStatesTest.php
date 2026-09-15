@@ -889,3 +889,37 @@ it('buildWorkPrompt for a fresh savetax user is byte-identical to its existing o
     // Pension-flavoured phrase must NOT appear in the savetax path.
     expect($text)->not->toContain('pension position');
 });
+
+it('never asks for a declined pension value twice — the second pass only asks about pensions added since', function (): void {
+    // csjones live 2026-09-15 (user 395): "not sure" at the workplace value,
+    // "No" to a personal pension, and the workplace value was asked again.
+    $user = pensioncheckUser(['onboarding_fyn_selection' => 'savetax']);
+    $workplace = DCPension::factory()->create(['user_id' => $user->id, 'scheme_name' => 'Workplace Pension', 'current_fund_value' => 0]);
+
+    expect(SM::nextFromPensionPots('not sure', $user))->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+    $user = $user->fresh();
+    expect($user->onboarding_fyn_context['pension_value_declined'] ?? [])->toBe([$workplace->id]);
+
+    // "No" personal pension: the loop has nothing new to ask → the section closes.
+    expect(SM::nextFromCampaignPensionContribs('No', $user))->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    $user = $user->fresh();
+    expect(SM::skipIfNoPensionPotToFill($user))->toBeTrue()
+        ->and(SM::nextFromPensionPots('', $user))->toBe('campaign_verify_announce');
+
+    // Same walk, but a SIPP was added at the contributions step: only the
+    // SIPP is asked, the declined workplace value is not, and "don't know"
+    // on the SIPP closes the section.
+    $user2 = pensioncheckUser(['onboarding_fyn_selection' => 'savetax']);
+    $wp2 = DCPension::factory()->create(['user_id' => $user2->id, 'scheme_name' => 'Workplace Pension', 'current_fund_value' => 0]);
+    SM::nextFromPensionPots('not sure', $user2);
+    $user2 = $user2->fresh();
+    $sipp = DCPension::factory()->create(['user_id' => $user2->id, 'scheme_name' => 'Vanguard SIPP', 'current_fund_value' => 0]);
+    expect(SM::nextFromCampaignPensionContribs('with Vanguard, I pay £200 a month', $user2))->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS);
+    $user2 = $user2->fresh();
+    expect(SM::skipIfNoPensionPotToFill($user2))->toBeFalse()
+        ->and(SM::buildPensionPotsPrompt('', $user2))->toContain('Vanguard SIPP')
+        ->and(SM::buildPensionPotsPrompt('', $user2))->not->toContain('Workplace')
+        ->and(SM::buildPensionPotsPrompt('', $user2))->not->toContain('pension pension');
+    expect(SM::nextFromPensionPots("don't know", $user2))->toBe('campaign_verify_announce');
+    expect($user2->fresh()->onboarding_fyn_context['pension_value_declined'] ?? [])->toBe([$wp2->id, $sipp->id]);
+});

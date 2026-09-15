@@ -30,6 +30,7 @@ use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Recalc\PensionDerivedColumnCalculator;
 use App\Services\Stores\Snapshots\SnapshotPolicies;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -156,11 +157,36 @@ class PensionStore
      */
     public function firstDcPensionMissingPotValue(User $user): ?DCPension
     {
-        return DCPension::query()
-            ->where('user_id', $user->id)
-            ->where('current_fund_value', '<=', 0)
+        return $this->dcPensionsMissingPotValueQuery($user)
             ->orderBy('id')
             ->first();
+    }
+
+    /**
+     * Ids of the pensions whose value the user said they did not know during
+     * onboarding. Still "missing" for the Retirement actions (the value is
+     * asked for there), but never asked again in the onboarding loop.
+     *
+     * @return list<int>
+     */
+    public static function declinedPotValueIds(User $user): array
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+
+        return array_values(array_map('intval', (array) ($context['pension_value_declined'] ?? [])));
+    }
+
+    private function dcPensionsMissingPotValueQuery(User $user): Builder
+    {
+        $query = DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('current_fund_value', '<=', 0);
+        $declined = self::declinedPotValueIds($user);
+        if ($declined !== []) {
+            $query->whereNotIn('id', $declined);
+        }
+
+        return $query;
     }
 
     /**
@@ -170,10 +196,7 @@ class PensionStore
      */
     public function hasDcPensionsMissingPotValue(User $user): bool
     {
-        return DCPension::query()
-            ->where('user_id', $user->id)
-            ->where('current_fund_value', '<=', 0)
-            ->exists();
+        return $this->dcPensionsMissingPotValueQuery($user)->exists();
     }
 
     /**
