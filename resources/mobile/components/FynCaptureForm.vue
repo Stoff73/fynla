@@ -14,7 +14,7 @@
     </div>
 
     <div v-for="kind in openKinds" :key="kind.key" class="md-fyn__form-section">
-      <p class="md-fyn__form-label">{{ kind.label }}</p>
+      <p class="md-fyn__form-kind-title">{{ kind.label }}</p>
       <p v-if="errors?.[kind.key]?.message" class="md-fyn__form-error">{{ errors[kind.key].message }}</p>
 
       <div v-for="fieldKey in visibleFields(kind)" :key="fieldKey" class="md-fyn__form-field">

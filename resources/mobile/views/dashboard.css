@@ -1338,7 +1338,12 @@
   flex-direction: column;
   gap: 0.625rem;
 }
-.md-fyn__msg p {
+/* :not() exclusion, not a `<div>`/`<span>` swap — the capture form's kind
+   heading and field hint are the only two <p> elements inside a Fyn message
+   that are not the message bubble itself (FynCaptureForm.vue renders inside
+   a .md-fyn__msg--fyn wrapper), so excluding them here is the smaller change
+   and keeps every other tag/behaviour in the form untouched. */
+.md-fyn__msg p:not(.md-fyn__form-kind-title):not(.md-fyn__form-hint) {
   margin: 0;
   font-size: 0.9375rem;
   line-height: 1.5;
@@ -1349,7 +1354,7 @@
   align-self: flex-start;
   max-width: 88%;
 }
-.md-fyn__msg--fyn p {
+.md-fyn__msg--fyn p:not(.md-fyn__form-kind-title):not(.md-fyn__form-hint) {
   background: var(--white);
   color: var(--horizon-600);
   border: 1px solid var(--horizon-100);
@@ -1909,10 +1914,17 @@
 .md-fyn__form-section { margin-top: 12px; border: 1px solid var(--horizon-200); border-radius: var(--radius-md); padding: 12px; background: var(--white); }
 .md-fyn__form-field { margin-top: 10px; }
 .md-fyn__form-label { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--neutral-500); margin-bottom: 4px; }
+/* The kind heading ("Home", "Buy to let") above a section's fields — a <p>,
+   not the field <label>, so it would otherwise match the .md-fyn__msg p /
+   .md-fyn__msg--fyn p bubble rules above and render as a bordered, padded
+   box. Excluded there; styled plainly here. */
+.md-fyn__form-kind-title { margin: 0 0 4px; font-size: 0.8125rem; font-weight: 600; color: var(--horizon-500); }
 .md-fyn__form-money { display: flex; align-items: center; gap: 8px; }
 .md-fyn__form-choices { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.875rem; }
 .md-fyn__form-choices label { display: flex; align-items: center; gap: 4px; }
-.md-fyn__form-hint { font-size: 0.75rem; color: var(--neutral-500); margin-top: 4px; }
+/* Also excluded from the bubble rules above — full margin reset (not just
+   margin-top) since it no longer inherits the bubble rule's `margin: 0`. */
+.md-fyn__form-hint { margin: 4px 0 0; font-size: 0.75rem; color: var(--neutral-500); }
 .md-fyn__form-error { font-size: 0.75rem; color: var(--raspberry-600); margin-top: 4px; }
 .md-fyn__form-actions { margin-top: 12px; }
 
