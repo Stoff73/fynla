@@ -855,7 +855,7 @@ it('saves both kinds from a form answer with no model call and advances to verif
 
     $userRow = AiMessage::where('conversation_id', $conversation->id)->where('role', 'user')->latest('id')->first();
     expect($userRow->content)->toContain('Home worth £750,000')
-        ->and($userRow->metadata['form'])->toBe(propertyAnswers());
+        ->and($userRow->metadata['form'])->toEqual(propertyAnswers()); // MySQL JSON reorders keys
 });
 
 it('saves one kind alone', function (): void {
