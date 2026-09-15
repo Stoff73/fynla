@@ -591,6 +591,34 @@ describe('extractOccupationalPensionAnswer', function () {
         expect($out[0]['scheme_name'])->toBe('Aviva Workplace Pension');
     });
 
+    it('reads a bare number as the employee percentage — the live 2026-09-15 answer "5 and employer matches"', function () {
+        // fynla.org 10:13 BST, user 703, message 1623: the prompt asks "what
+        // percentage of your salary do you contribute", the user answered
+        // "5 and employer matches", the model refused and this backstop
+        // returned nothing, so Fyn said "Sorry, I didn't catch that".
+        $out = $this->extractor->extractOccupationalPensionAnswer('5 and employer matches');
+
+        expect($out)->toHaveCount(1);
+        expect($out[0]['employee_contribution_percent'])->toBe(5.0);
+        expect($out[0]['employer_contribution_percent'])->toBe(5.0);
+        expect($out[0]['salary_sacrifice'])->toBeFalse();
+    });
+
+    it('reads the other bare shapes a percentage question invites', function (string $answer, float $employee, ?float $employer) {
+        $out = $this->extractor->extractOccupationalPensionAnswer($answer);
+
+        expect($out)->toHaveCount(1);
+        expect($out[0]['employee_contribution_percent'])->toBe($employee);
+        expect($out[0]['employer_contribution_percent'] ?? null)->toBe($employer);
+    })->with([
+        'percent sign' => ['5%', 5.0, null],
+        'percent word' => ['5 percent', 5.0, null],
+        'sign and matched' => ['5% and matched', 5.0, 5.0],
+        'bare then employer adds' => ['5 percent, employer adds 3%', 5.0, 3.0],
+        'employer first' => ['employer adds 3% and I put in 5%', 5.0, 3.0],
+        'decimal' => ['4.5, employer matches', 4.5, 4.5],
+    ]);
+
     it('returns nothing for a no-pension declaration or an answer without a percentage', function () {
         expect($this->extractor->extractOccupationalPensionAnswer("I don't have a workplace pension."))->toBe([]);
         expect($this->extractor->extractOccupationalPensionAnswer('It is with Aviva.'))->toBe([]);
