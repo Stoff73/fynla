@@ -176,7 +176,19 @@ final class SharedOwnership
             return true;
         }
 
-        return trim((string) ($data['joint_owner_name'] ?? '')) !== '';
+        return self::counterpartyName($data['joint_owner_name'] ?? null) !== null;
+    }
+
+    /**
+     * A co-owner name the caller actually gave. The xAI catalogue fills every
+     * optional string with "0" when the model has nothing to say (prod row
+     * 1498, 2026-09-15), so a bare zero is "not given", never a name.
+     */
+    public static function counterpartyName(mixed $value): ?string
+    {
+        $name = trim((string) ($value ?? ''));
+
+        return $name === '' || $name === '0' ? null : $name;
     }
 
     /**

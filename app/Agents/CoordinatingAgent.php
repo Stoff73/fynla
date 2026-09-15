@@ -69,6 +69,7 @@ use App\Services\Expenditure\HouseholdExpenditureWriter;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\CaptureAccuracyGate;
 use App\Services\Onboarding\HouseholdProvisioner;
+use App\Services\Onboarding\SpouseJointRecords;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\Payment\SubscriptionStatusService;
 use App\Services\PrerequisiteGateService;
@@ -1139,6 +1140,11 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
+        // The model's "0" for a co-owner it does not know is not a name.
+        if (array_key_exists('joint_owner_name', $input)) {
+            $input['joint_owner_name'] = SharedOwnership::counterpartyName($input['joint_owner_name']);
+        }
+
         try {
             $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
@@ -1212,6 +1218,16 @@ class CoordinatingAgent extends BaseAgent
             // result without an `error` key; `failed` otherwise. Replaces the
             // [AI-AUDIT] file log entirely.
             $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $result);
+
+            // A joint record saved mid-onboarding with no named co-owner is the
+            // spouse's — remembered now, filled in when the spouse is known.
+            if (! $user->onboarding_completed
+                && (($result['created'] ?? false) === true || ($result['success'] ?? false) === true)
+                && isset($result['entity_id'], $result['entity_type'])
+                && SharedOwnership::isShared($input['ownership_type'] ?? null)
+                && ! SharedOwnership::namesCounterparty($input)) {
+                app(SpouseJointRecords::class)->remember($user, (string) $result['entity_type'], (int) $result['entity_id']);
+            }
 
             return $result;
         } catch (ValidationException $e) {
