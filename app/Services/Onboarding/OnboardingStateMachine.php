@@ -2103,9 +2103,11 @@ final class OnboardingStateMachine
      */
     public static function nextFromCampaignOccupationalScheme(string $answer, User $user): string
     {
-        return $user->onboarding_fyn_selection === 'pensioncheck'
-            ? self::STATE_CAMPAIGN2_PENSION_POTS
-            : self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+        // Every pension captured is asked for its current value, if known
+        // (CSJ 2026-09-15; MB-54). The pot loop skips itself when nothing is
+        // missing, so a Save Tax user with no workplace pension goes straight
+        // on to the personal-pension question as before.
+        return self::STATE_CAMPAIGN2_PENSION_POTS;
     }
 
     /**
@@ -2115,9 +2117,20 @@ final class OnboardingStateMachine
      */
     public static function nextFromCampaignPensionContribs(string $answer, User $user): string
     {
-        return $user->onboarding_fyn_selection === 'pensioncheck'
-            ? self::STATE_CAMPAIGN2_PENSION_DB
-            : self::enterCampaignVerify($user, 'pensions');
+        if ($user->onboarding_fyn_selection === 'pensioncheck') {
+            return self::STATE_CAMPAIGN2_PENSION_DB;
+        }
+
+        // Save Tax: a personal pension just described gets the same value
+        // question as the workplace one; the flag tells nextFromPensionPots to
+        // close the section afterwards instead of asking about contributions
+        // again. The loop skips itself when every pension already has a value.
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        $context['pension_contribs_done'] = true;
+        $user->onboarding_fyn_context = $context;
+        $user->save();
+
+        return self::STATE_CAMPAIGN2_PENSION_POTS;
     }
 
     /**
@@ -2228,9 +2241,12 @@ final class OnboardingStateMachine
         }
 
         $schemeName = trim((string) ($pension->scheme_name ?? ''));
-        $namedScheme = $schemeName !== '' ? $schemeName : 'your pension';
+        // "Workplace Pension" already says pension — never "pension pension".
+        $namedScheme = $schemeName !== ''
+            ? (preg_match('/\bpensions?$/iu', $schemeName) === 1 ? $schemeName : $schemeName.' pension')
+            : 'pension';
 
-        return "**What's the current value of your {$namedScheme} pension?** A rough figure from your latest annual statement or provider app is fine — for example £45,000 or 45k.";
+        return "**What's the current value of your {$namedScheme}?** A rough figure from your latest annual statement or provider app is fine — for example £45,000 or 45k. If you don't know, just say so.";
     }
 
     /**
@@ -2242,22 +2258,73 @@ final class OnboardingStateMachine
         $missing = app(PensionStore::class)->hasDcPensionsMissingPotValue($user);
 
         if (! $missing) {
-            return self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+            return self::afterPensionPots($user);
         }
 
         // advance_on_answered_question fires when the user says they don't know
         // the value — the delegated handler bypasses the stall check but still
         // calls getNextStateId, which arrives here with the original message.
-        // A "don't know"/"not sure"/"skip" reply signals the user cannot provide
-        // the value; advance rather than loop the capture walk forever.
-        $lower = mb_strtolower(trim($answer));
-        foreach (['not sure', "don't know", 'do not know', 'unsure', 'skip', 'no idea'] as $token) {
-            if (str_contains($lower, $token)) {
-                return self::STATE_CAMPAIGN_PENSION_CONTRIBS;
+        // Not knowing is fine (CSJ 2026-09-15): the pension keeps its unfilled
+        // value and the Retirement actions ask for it later. Advance rather
+        // than loop the capture walk forever.
+        if (self::saysValueUnknown($answer)) {
+            // Remember which pension was declined so the loop never asks it
+            // twice; any OTHER pension still missing a value is asked next.
+            $asked = app(PensionStore::class)->firstDcPensionMissingPotValue($user);
+            if ($asked !== null) {
+                $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+                $declined = PensionStore::declinedPotValueIds($user);
+                $declined[] = (int) $asked->id;
+                $context['pension_value_declined'] = array_values(array_unique($declined));
+                $user->onboarding_fyn_context = $context;
+                $user->save();
             }
+
+            return app(PensionStore::class)->hasDcPensionsMissingPotValue($user)
+                ? self::STATE_CAMPAIGN2_PENSION_POTS
+                : self::afterPensionPots($user);
         }
 
         return self::STATE_CAMPAIGN2_PENSION_POTS;
+    }
+
+    /**
+     * Every way of saying "I don't know the value" at the pot question.
+     */
+    public static function saysValueUnknown(string $answer): bool
+    {
+        $lower = mb_strtolower(trim($answer));
+        foreach ([
+            'not sure', "don't know", 'dont know', 'do not know', 'unsure', 'skip', 'no idea', 'not known', 'unknown',
+            "don't have", 'dont have', 'do not have', "haven't got", 'havent got', "can't remember", 'cant remember',
+            'not to hand', 'no clue', 'not certain', 'uncertain', 'later', 'pass', 'next', 'move on', 'no figure',
+        ] as $token) {
+            if (str_contains($lower, $token)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Where the pot loop goes once every value is filled or declined: the
+     * personal-pension question first time round; after it, the section's
+     * verify gate (Save Tax) — Pension Check continues to contributions as
+     * before and reaches Defined Benefit from there.
+     */
+    private static function afterPensionPots(User $user): string
+    {
+        $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+        if ($user->onboarding_fyn_selection !== 'pensioncheck' && ($context['pension_contribs_done'] ?? false) === true) {
+            unset($context['pension_contribs_done']);
+            $user->onboarding_fyn_context = $context === [] ? null : $context;
+            $user->save();
+
+            return self::enterCampaignVerify($user, 'pensions');
+        }
+
+        return self::STATE_CAMPAIGN_PENSION_CONTRIBS;
     }
 
     /**

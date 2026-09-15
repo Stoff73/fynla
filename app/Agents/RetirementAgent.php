@@ -84,6 +84,10 @@ class RetirementAgent extends BaseAgent
                     return $this->response(true, 'Readiness check incomplete', [
                         'can_proceed' => false,
                         'readiness_checks' => $readiness,
+                        // Data-completeness actions ("add the value of your X
+                        // pension") do not need the analysis, so the module page
+                        // shows them even while the readiness gate is closed.
+                        'recommendations' => $this->actionDefinitionService->dataCompletenessActions($gateUser),
                         // A blocking readiness check stops the ANALYSIS. It does not
                         // stop the pensions from existing, and a card reading this
                         // response must still be able to say what the household holds
