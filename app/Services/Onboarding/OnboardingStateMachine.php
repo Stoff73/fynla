@@ -467,9 +467,14 @@ final class OnboardingStateMachine
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
                 // Only ask about ISAs if the user ticked "ISA" on the funnel.
                 'skip_if' => [self::class, 'skipIfNoIsa'],
+                'capture_focus' => 'savings',
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
+                // The ONE deterministic gap-fill when the model refuses or
+                // makes no call (CSJ 2026-09-15: the pension step had one,
+                // the bank, ISA and investment steps did not).
+                'capture_focus' => 'savings',
                 // Existing savings rows (with ids) enter the prompt so a
                 // message referencing an account already on file updates it by
                 // entity_id instead of guessing entity_id 0 (live 2026-07-23:
@@ -484,6 +489,7 @@ final class OnboardingStateMachine
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
+                'capture_focus' => 'investment',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
             ],
             // ── Pensions section (entry: DOB — only now is it relevant) ────

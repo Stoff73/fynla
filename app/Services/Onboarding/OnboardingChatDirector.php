@@ -3734,6 +3734,7 @@ PROMPT;
             $ackShown = false;
             $contentBuffer = '';
             $visibleResponse = '';
+            $rawModelText = '';
             $flushed = false;
             $recordsCreated = [];
             $modelRequestedClarification = false;
@@ -3816,6 +3817,7 @@ PROMPT;
 
                 if ($type === 'content') {
                     $contentBuffer .= (string) ($event['text'] ?? '');
+                    $rawModelText .= (string) ($event['text'] ?? '');
 
                     continue;
                 }
@@ -3956,6 +3958,36 @@ PROMPT;
                 }
                 yield $rescueEvent;
             }
+        }
+
+        // The model refused (its canned "I can only help with financial
+        // planning questions") or said nothing, made no call, and there was
+        // no earlier blocked attempt to rescue. Live 2026-09-15, every time:
+        // the same sentence re-sent landed. So re-run the turn ONCE here —
+        // the history builder already drops the refusal row, the user
+        // message is already saved — before falling back to "Sorry, I
+        // didn't catch that". Never more than once: a second refusal stands.
+        $refusedOrSilent = trim($rawModelText) === ''
+            || str_contains($rawModelText, FynSystemPrompt::CANNED_REFUSAL);
+        if ($toolCallsSeen === 0
+            && $recordsCreated === []
+            && $refusedOrSilent
+            && ! $userAskedQuestion
+            && ($state['refusal_retried'] ?? false) !== true) {
+            Log::info('[OnboardingChatDirector] Capture turn refused or silent — re-running once', [
+                'user_id' => $user->id,
+                'state' => $currentStateId,
+            ]);
+            yield from $this->handleAssetCaptureTurn(
+                $user,
+                $conversation,
+                $message,
+                $currentRoute,
+                $currentStateId,
+                $state + ['refusal_retried' => true],
+            );
+
+            return;
         }
         // The unified onboarding focus is set and cleared inside
         // FynLoop::stream (on the same agent instance it streams on), so no

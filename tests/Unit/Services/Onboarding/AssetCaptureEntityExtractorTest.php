@@ -630,3 +630,14 @@ describe('extractOccupationalPensionAnswer', function () {
             ->toHaveCount(1);
     });
 });
+
+// CSJ 2026-09-15: bare figures the way people type in chat.
+it('reads a bare figure after "with", "of", "balance", "worth"', function (string $text, float $expected): void {
+    $out = $this->extractor->extractForFocus('savings', $text);
+    expect($out)->toHaveCount(1)
+        ->and((float) $out[0]['current_balance'])->toBe($expected);
+})->with([
+    ['joint Halifax savings acc with 4567', 4567.0],
+    ['Nationwide cash ISA balance 12000, mine', 12000.0],
+    ['Lloyds current account with 345, mine', 345.0],
+]);
