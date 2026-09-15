@@ -681,7 +681,8 @@ it('emits the property form to a client that can render forms and persists the s
         ->and(collect($events)->last()['type'])->toBe('done');
 
     $saved = AiMessage::where('conversation_id', $conversation->id)->where('role', 'assistant')->latest('id')->first();
-    expect($saved->metadata['capture_form'])->toBe(CaptureForms::schema('property'))
+    // toEqual, not toBe: MySQL's JSON column reorders object keys on round-trip.
+    expect($saved->metadata['capture_form'])->toEqual(CaptureForms::schema('property'))
         ->and($saved->metadata['onboarding_step'])->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY)
         ->and($saved->metadata['turn_intent'])->toBe('step_prompt');
 });
