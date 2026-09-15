@@ -26,7 +26,7 @@ function makeCtx(overrides = {}) {
 describe('capture form in the chat store', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders a capture_form event as a form row and never trips the empty-response banner', async () => {
+  it('renders a capture_form event as a prompt-text row followed by a form row, and never trips the empty-response banner', async () => {
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
       { type: 'capture_form', prompt_text: 'Now your property.', form: schema },
       { type: 'done', message_id: 9 },
@@ -35,9 +35,17 @@ describe('capture form in the chat store', () => {
 
     await aiChat.actions.sendMessage(ctx, 'Continue');
 
-    const row = ctx.state.messages.find((m) => m.role === 'capture_form');
+    const rowIndex = ctx.state.messages.findIndex((m) => m.role === 'capture_form');
+    const row = ctx.state.messages[rowIndex];
     expect(row).toBeTruthy();
-    expect(row.content).toBe('Now your property.');
+    // The prompt text renders as its own assistant row immediately before
+    // the form row — the live bug was this row missing entirely, so the
+    // form rendered with no "Now your property…" line above it.
+    const textRow = ctx.state.messages[rowIndex - 1];
+    expect(textRow).toBeTruthy();
+    expect(textRow.role).toBe('assistant');
+    expect(textRow.content).toBe('Now your property.');
+    expect(row.content).toBe('');
     expect(row.metadata.capture_form).toEqual(schema);
     expect(ctx.state.error).toBeNull();
   });

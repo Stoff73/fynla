@@ -34,16 +34,51 @@ function entityWriteMessage(event) {
 /**
  * One message shape for a Fyn structured capture-form turn (property, etc.),
  * used by all four stream paths. `form` is the schema object the renderer
- * (AiChatPanel) builds the actual form fields from.
+ * (AiChatPanel) builds the actual form fields from. The row itself carries
+ * no prompt text — pushCaptureFormTurn() below renders that as its own
+ * assistant row first, matching the shape loadConversation's normalisation
+ * already produces for a persisted turn.
  */
 function captureFormMessage(event) {
     return {
         id: 'cf_' + Date.now(),
         role: 'capture_form',
-        content: event.prompt_text || '',
+        content: '',
         metadata: { capture_form: event.form || null, errors: null },
         created_at: new Date().toISOString(),
     };
+}
+
+/**
+ * Render a `capture_form` SSE event: flush any streaming text so far, then
+ * (if the event carries prompt text) push it as its own assistant row ahead
+ * of the form, then push the form row. One home for all four stream paths
+ * (sendMessage, streamNextQueued, postAction, startOnboardingConversation) —
+ * each used to duplicate the flush and skip the prompt-text row entirely, so
+ * the live form rendered with no "Now your property…" line above it even
+ * though history (loadConversation's normalisation) rendered it correctly.
+ */
+function pushCaptureFormTurn(commit, state, event) {
+    if (state.streamingText) {
+        commit('ADD_MESSAGE', {
+            id: 'cf_text_' + Date.now(),
+            role: 'assistant',
+            content: state.streamingText,
+            created_at: new Date().toISOString(),
+        });
+        commit('SET_STREAMING_TEXT', '');
+    }
+
+    if (event.prompt_text) {
+        commit('ADD_MESSAGE', {
+            id: 'cf_text_' + Date.now(),
+            role: 'assistant',
+            content: event.prompt_text,
+            created_at: new Date().toISOString(),
+        });
+    }
+
+    commit('ADD_MESSAGE', captureFormMessage(event));
 }
 
 const state = {
@@ -732,19 +767,10 @@ const actions = {
                                 break;
 
                             case 'capture_form':
-                                // Fyn's structured capture form (e.g. property). Flush any
-                                // streaming text first so the prompt appears before the form,
-                                // same as quick_replies above.
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'cf_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', captureFormMessage(event));
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
                                 break;
 
                             case 'capture_form_errors':
@@ -1098,16 +1124,10 @@ const actions = {
                                 // turn resumes after the fact) — nothing to rewrite.
                                 break;
                             case 'capture_form':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'cf_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', captureFormMessage(event));
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
                                 break;
                             case 'capture_form_errors':
                                 commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
@@ -1358,16 +1378,10 @@ const actions = {
                                 break;
 
                             case 'capture_form':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'cf_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', captureFormMessage(event));
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
                                 break;
 
                             case 'capture_form_errors':
@@ -1667,16 +1681,10 @@ const actions = {
                                 break;
 
                             case 'capture_form':
-                                if (state.streamingText) {
-                                    commit('ADD_MESSAGE', {
-                                        id: 'cf_text_' + Date.now(),
-                                        role: 'assistant',
-                                        content: state.streamingText,
-                                        created_at: new Date().toISOString(),
-                                    });
-                                    commit('SET_STREAMING_TEXT', '');
-                                }
-                                commit('ADD_MESSAGE', captureFormMessage(event));
+                                // Fyn's structured capture form (e.g. property) — one
+                                // helper for the flush + prompt-text row + form row,
+                                // shared by all four stream paths.
+                                pushCaptureFormTurn(commit, state, event);
                                 break;
 
                             case 'capture_form_errors':
