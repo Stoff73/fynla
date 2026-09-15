@@ -3764,7 +3764,19 @@ PROMPT;
             yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => $errors];
             $lines = [];
             foreach ($errors as $kind => $error) {
-                $lines[] = CaptureForms::kindLabel($form['name'], $kind).': '.rtrim($error['message'], '.').'.';
+                // A guard's own refusal (RecaptureGuard's "...or a separate
+                // one?") already ends in terminal punctuation — gluing on
+                // another full stop produced "?." live. A period-ending
+                // reason still gets normalised to exactly one trailing
+                // period; a '?' or '!' ending is left exactly as written.
+                $reason = rtrim($error['message']);
+                if (str_ends_with($reason, '?') || str_ends_with($reason, '!')) {
+                    $fullStop = '';
+                } else {
+                    $reason = rtrim($reason, '.');
+                    $fullStop = '.';
+                }
+                $lines[] = CaptureForms::kindLabel($form['name'], $kind).': '.$reason.$fullStop;
             }
             $text = ($recordsCreated !== [] ? rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. ' : '')
                 ."I couldn't save ".implode(' ', $lines);

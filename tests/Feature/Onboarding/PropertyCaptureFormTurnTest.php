@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\Property;
@@ -229,6 +230,36 @@ it('tells the user a stale form is no longer open and re-emits the current step'
         ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('no longer open')
         ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('date of birth')
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_DOB);
+});
+
+it('does not glue a full stop onto a refusal reason that already ends in punctuation', function (): void {
+    // Live walk (2026-09-15): a RecaptureGuard refusal ends in "...or a
+    // separate one?" — handleFormTurn's rtrim(...,'.') does nothing to a
+    // '?' ending, so the unconditional trailing '.' produced "?." in chat.
+    $user = formStepUser();
+    $conversation = formConversation($user);
+
+    $mock = Mockery::mock(CoordinatingAgent::class);
+    $mock->shouldReceive('executeTool')
+        ->once()
+        ->andReturn([
+            'error' => true,
+            'message' => 'You already have a property recorded as "Main residence", with different details. '
+                ."Is this the same property you'd like to update, or a separate one?",
+        ]);
+    test()->instance(CoordinatingAgent::class, $mock);
+
+    $form = ['name' => 'property', 'answers' => [
+        'main_residence' => ['current_value' => 750000, 'mortgage_outstanding_balance' => 325000, 'ownership_type' => 'individual'],
+    ]];
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, CaptureForms::summarise($form), null, true, $form
+    ), false);
+
+    $text = collect($events)->where('type', 'content')->pluck('text')->implode(' ');
+    expect($text)->toContain('or a separate one?')
+        ->not->toContain('?.');
 });
 
 it('never advances on a form answer with no recognised kind', function (): void {
