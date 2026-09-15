@@ -642,7 +642,7 @@ final class AssetCaptureEntityExtractor
         // Savings-specific signal: an ISA, saver, easy access, fixed term,
         // notice, cash deposit, or a provider + balance pattern.
         $hasSavingsSignal = preg_match(
-            '/\b(isa|individual[\s-]savings[\s-]account|saver|easy[\s-]access|fixed[\s-]term|notice[\s-]account|bond|premium[\s-]bonds?|cash[\s-]deposit|deposit[\s-]account|savings?[\s-]account)\b/u',
+            '/\b(isa|individual[\s-]savings[\s-]account|saver|easy[\s-]access|fixed[\s-]term|notice[\s-]account|bond|premium[\s-]bonds?|cash[\s-]deposit|deposit[\s-]account|savings?[\s-](?:account|accs?)|current[\s-](?:account|accs?)|bank[\s-](?:account|accs?)|joint[\s-](?:account|accs?))\b/u',
             $lower
         ) === 1;
 

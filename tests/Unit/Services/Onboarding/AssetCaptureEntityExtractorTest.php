@@ -640,4 +640,6 @@ it('reads a bare figure after "with", "of", "balance", "worth"', function (strin
     ['joint Halifax savings acc with 4567', 4567.0],
     ['Nationwide cash ISA balance 12000, mine', 12000.0],
     ['Lloyds current account with 345, mine', 345.0],
+    ['Lloyds current acc with 345, mine', 345.0],
+    ['Monzo bank acc with 900', 900.0],
 ]);
