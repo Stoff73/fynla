@@ -57,8 +57,14 @@ describe('capture form in the chat store', () => {
     expect(userRow.content).toBe('Home worth £750,000, no mortgage, individual.');
   });
 
-  it('attaches capture_form_errors to the latest form row', async () => {
+  it('attaches capture_form_errors to the latest form row and never trips the empty-response banner', async () => {
+    // The director always yields form_received before the errors on a
+    // refused submission (OnboardingChatDirector.php:3690 then :3697/:3740)
+    // — neither event pushes a new message, so this is the sequence that
+    // previously fell through to the "Fyn couldn't generate a response"
+    // banner despite the form errors rendering correctly underneath it.
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
+      { type: 'form_received', text: 'A buy-to-let worth £300,000.' },
       { type: 'capture_form_errors', form: 'property', errors: { buy_to_let: { message: 'You have reached your plan\'s property limit.', fields: {} } } },
       { type: 'done', message_id: 11 },
     ]));
@@ -67,6 +73,7 @@ describe('capture form in the chat store', () => {
     await aiChat.actions.sendMessage(ctx, { form: { name: 'property', answers: {} } });
 
     expect(ctx.state.messages[0].metadata.errors.buy_to_let.message).toContain('property limit');
+    expect(ctx.state.error).toBeNull();
   });
 
   it('re-renders a persisted form on history load as text plus a form row', async () => {

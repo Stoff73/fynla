@@ -558,6 +558,11 @@ const actions = {
         // (see api.js handleAuthExpiry) — skip the error banner and the
         // empty-response fallback below so they don't flash behind the redirect.
         let authExpired = false;
+        // A refused form submission (capture_form_errors) rewrites the existing
+        // form row in place rather than pushing a new message, so it would
+        // otherwise be invisible to the empty-response check below — the
+        // errors ARE Fyn's reply, so mark the turn as having produced one.
+        let formErrorsReceived = false;
 
         commit('SET_STREAMING', true);
         commit('SET_STREAMING_TEXT', '');
@@ -741,8 +746,12 @@ const actions = {
 
                             case 'capture_form_errors':
                                 // A rejected form submission — re-attach the errors to the
-                                // same form row rather than adding a new one.
+                                // same form row rather than adding a new one. Mark the turn
+                                // as replied so the empty-response guard in the finally
+                                // block below doesn't overwrite the errors with the
+                                // generic "Fyn couldn't generate a response" banner.
                                 commit('SET_CAPTURE_FORM_ERRORS', event.errors || {});
+                                formErrorsReceived = true;
                                 break;
 
                             case 'onboarding_advance':
@@ -959,8 +968,11 @@ const actions = {
             // produce no message. Without these guards the violet token-
             // limit notice and the raspberry empty-response banner both
             // render, with the banner overwriting the legitimate notice
-            // (BS-13 RED until session 89).
-            const producedNewMessages = state.messages.length > preStreamMessageCount;
+            // (BS-13 RED until session 89). A refused form submission is the
+            // same shape — capture_form_errors mutates the existing form row
+            // rather than pushing a new one, so formErrorsReceived stands in
+            // for a produced message.
+            const producedNewMessages = state.messages.length > preStreamMessageCount || formErrorsReceived;
             if (
                 !authExpired
                 && state.streaming
