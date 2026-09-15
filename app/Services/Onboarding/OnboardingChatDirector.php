@@ -3973,6 +3973,7 @@ PROMPT;
             && $recordsCreated === []
             && $refusedOrSilent
             && ! $userAskedQuestion
+            && ! self::isCompletionDeclaration($message)
             && ($state['refusal_retried'] ?? false) !== true) {
             Log::info('[OnboardingChatDirector] Capture turn refused or silent — re-running once', [
                 'user_id' => $user->id,
@@ -4128,7 +4129,7 @@ PROMPT;
             // savings." closes the section (live 2026-07-23, msg 19859:
             // grok refused it, the strip emptied the turn, and the guard
             // re-asked "Sorry, I didn't catch that").
-            && preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) !== 1
+            && ! self::isCompletionDeclaration($message)
             // …and so does "I don't know" on a step that advances on an
             // answered question (the pot-value loop; CSJ 2026-09-15: not
             // knowing the value is fine). The retry would ask again forever.
@@ -6416,6 +6417,16 @@ PROMPT;
      * Substantive = any figure/percentage/currency, OR a clear yes/no answer,
      * OR meaningful prose before the first interrogative clause.
      */
+    /**
+     * "No", "none", "that's all", "done" — a declaration that legitimately
+     * writes nothing and completes the step (live 2026-07-23); the zero-output
+     * guard lets it through and the refusal re-run leaves it alone.
+     */
+    private static function isCompletionDeclaration(string $message): bool
+    {
+        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1;
+    }
+
     private function messageHasSubstantiveAnswer(string $message): bool
     {
         $trimmed = trim($message);

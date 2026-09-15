@@ -52,11 +52,11 @@ function captureFailureUser(): array
     return [$user, $conversation];
 }
 
-function mockDelegatedStream(array $events): void
+function mockDelegatedStream(array $events, int $times = 1): void
 {
     $mock = Mockery::mock(CoordinatingAgent::class);
     $mock->shouldReceive('chatWithPromptOverride')
-        ->once()
+        ->times($times)
         ->andReturnUsing(function (User $user, AiConversation $conversation) use ($events) {
             $content = '';
             foreach ($events as $event) {
@@ -261,7 +261,7 @@ it('never advances a zero-output turn — the refused pension answer re-asks ins
     mockDelegatedStream([
         ['type' => 'content', 'text' => 'I can only help with financial planning questions. How can I assist with your finances?'],
         ['type' => 'done', 'message_id' => 99],
-    ]);
+    ], 2); // a refused turn is re-run once (CSJ 2026-09-15); the second refusal is what this test is about
 
     $received = [];
     foreach (app(OnboardingChatDirector::class)->handleUserMessage(
@@ -462,7 +462,7 @@ it('combines an unresolved ISA answer with its requested missing facts after res
 
     $mock = Mockery::mock(CoordinatingAgent::class);
     $mock->shouldReceive('chatWithPromptOverride')
-        ->once()
+        ->twice() // a silent turn is re-run once (CSJ 2026-09-15)
         ->withArgs(fn (
             User $streamUser,
             AiConversation $streamConversation,
