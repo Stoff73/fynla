@@ -528,7 +528,7 @@ use Illuminate\Validation\Validator;
 - [ ] **Step 4: Run the test**
 
 Run: `./vendor/bin/pest tests/Feature/AI/SendAiChatMessageFormRequestTest.php`
-Expected: the four 422 cases pass. The last case will still fail until Task 6 (the controller reads `message` and passes null into the director) — leave it red; it goes green in Task 6.
+Expected: all five pass. (Ruling 3, 2026-09-15: the nested validator must be built from `CaptureForms::rules()` filtered to the kinds present in `form.answers` — `array_filter(..., fn ($key) => array_key_exists(strtok($key, '.'), $answers), ARRAY_FILTER_USE_KEY)` — otherwise the absent kind's `present` mortgage rule 422s every single-kind submission. The fifth case passes once that filter is in place; it never depended on Task 6.)
 
 - [ ] **Step 5: Commit**
 
