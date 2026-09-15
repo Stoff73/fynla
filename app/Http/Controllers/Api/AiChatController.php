@@ -36,6 +36,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AiChatController extends Controller
 {
+    /** Record-card events never shown mid-onboarding — see writeClientEvent(). */
+    private const ONBOARDING_HIDDEN_RECORD_EVENTS = ['entity_created', 'entity_updated', 'entity_deleted', 'capture_complete'];
+
     use SanitizedErrorResponse;
 
     public function __construct(
@@ -316,12 +319,7 @@ class AiChatController extends Controller
                         return;
                     }
 
-                    echo 'data: '.json_encode($event)."\n\n";
-
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
+                    $this->writeClientEvent($event, $inOnboarding);
                 }
 
                 $frame = self::levelUpFrame(
@@ -476,12 +474,7 @@ class AiChatController extends Controller
                         return;
                     }
 
-                    echo 'data: '.json_encode($event)."\n\n";
-
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
+                    $this->writeClientEvent($event, $inOnboarding);
                 }
 
                 $frame = self::levelUpFrame(
@@ -853,12 +846,7 @@ class AiChatController extends Controller
 
             try {
                 foreach ($this->onboardingDirector->emitFirstTurn($user, $conversation, $startStateId) as $event) {
-                    echo 'data: '.json_encode($event)."\n\n";
-
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
+                    $this->writeClientEvent($event, true);
                 }
             } catch (\Exception $e) {
                 Log::error('[AiChatController] Onboarding start error', [
@@ -950,12 +938,7 @@ class AiChatController extends Controller
                     })();
 
                 foreach ($generator as $event) {
-                    echo 'data: '.json_encode($event)."\n\n";
-
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
+                    $this->writeClientEvent($event, true);
                 }
 
                 $frame = self::levelUpFrame(
@@ -1031,5 +1014,31 @@ class AiChatController extends Controller
                 ],
             ], 410);
         }
+    }
+
+    /**
+     * Stream an event a client may render: everything the director yields
+     * except the record cards while the user is still in onboarding. The
+     * canonical sequence after a save is the state machine's ONE gate
+     * question, then on "No" the navigation to the page where the record is
+     * seen (CSJ 2026-06-17, re-stated 2026-09-15 when /m showed "Updated
+     * Income — View Income" beside the Yes/No bubbles). The director still
+     * yields these events for its own accounting; this is the one place they
+     * are withheld, for every surface. Advice Fyn keeps its cards.
+     *
+     * @param  array<string, mixed>  $event
+     */
+    private function writeClientEvent(array $event, bool $inOnboarding): void
+    {
+        if ($inOnboarding && in_array($event['type'] ?? null, self::ONBOARDING_HIDDEN_RECORD_EVENTS, true)) {
+            return;
+        }
+
+        echo 'data: '.json_encode($event)."\n\n";
+
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+        flush();
     }
 }
