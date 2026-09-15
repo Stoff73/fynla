@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\Onboarding\CaptureForms;
+use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
     expect(CaptureForms::names())->toBe(['property'])
@@ -65,4 +66,14 @@ it('produces validation rules per kind and field', function (): void {
         ->and($rules['buy_to_let.ownership_type'])->toBe(['required_with:buy_to_let', 'in:individual,joint,tenants_in_common'])
         ->and($rules['buy_to_let.ownership_percentage'])->toBe(['nullable', 'numeric', 'min:0.01', 'max:99.99'])
         ->and($rules)->not->toHaveKey('main_residence.monthly_rental_income');
+});
+
+it('the property step is a form turn owned by the corpus', function (): void {
+    OnboardingStateMachine::flushTransitionTableCache();
+    $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY);
+
+    expect($state['turn_type'])->toBe('form')
+        ->and($state['form'])->toBe('property')
+        ->and($state['capture_focus'])->toBe('property')
+        ->and($state['prompt_text'])->toBe('Now your property. **Tell me about your home and any buy to let — fill in the boxes below and tap Save.**');
 });
