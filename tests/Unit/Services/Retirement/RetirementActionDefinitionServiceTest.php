@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\RetirementAgent;
 use App\Models\DCPension;
 use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
@@ -32,6 +33,43 @@ beforeEach(function () {
         'target_retirement_income' => 30000,
         'current_annual_salary' => 55000,
     ]);
+});
+
+describe('dataCompletenessActions', function () {
+    it('asks for a missing pension value even when the user has no retirement profile yet', function () {
+        $user = User::factory()->create(['is_preview_user' => false]);
+        $pension = DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Workplace Pension',
+            'scheme_type' => 'workplace',
+            'pension_type' => 'occupational',
+            'current_fund_value' => 0,
+        ]);
+
+        $actions = $this->service->dataCompletenessActions($user);
+
+        expect($actions)->toHaveCount(1)
+            ->and($actions[0]['title'])->toBe('Add the current value of your Workplace Pension')
+            ->and($actions[0]['account_id'])->toBe($pension->id)
+            ->and($this->service->dataCompletenessActions(User::factory()->create()))->toBe([]);
+    });
+
+    it('is carried on the analysis response when the readiness gate is closed', function () {
+        $user = User::factory()->create(['is_preview_user' => false]);
+        DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => 'Workplace Pension',
+            'scheme_type' => 'workplace',
+            'pension_type' => 'occupational',
+            'current_fund_value' => 0,
+        ]);
+
+        $analysis = app(RetirementAgent::class)->analyze($user->id);
+
+        expect($analysis['data']['can_proceed'] ?? null)->toBeFalse()
+            ->and(collect($analysis['data']['recommendations'] ?? [])->pluck('title')->all())
+            ->toBe(['Add the current value of your Workplace Pension']);
+    });
 });
 
 describe('evaluateAgentActions', function () {

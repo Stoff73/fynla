@@ -452,6 +452,32 @@ class RetirementActionDefinitionService
     }
 
     /**
+     * The actions that only ask for data and so belong on the module page even
+     * before the readiness gate lets the analysis run (a user fresh from
+     * onboarding has no retirement profile yet — CSJ 2026-09-15: the missing
+     * pension value must still be asked for in the module's actions).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function dataCompletenessActions(User $user): array
+    {
+        $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
+        $results = [];
+        $priority = 1;
+        foreach (RetirementActionDefinition::getEnabledBySource('agent') as $definition) {
+            if (($definition->trigger_config['condition'] ?? '') !== 'dc_pension_value_missing') {
+                continue;
+            }
+            foreach ($this->evaluatePensionValueMissing($definition, $dcPensions, $priority) as $rec) {
+                $results[] = $rec;
+                $priority++;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
      * Pension value missing: one action per DC pension whose current value was
      * never entered (current_fund_value is NOT NULL DEFAULT 0, so 0 is "not
      * entered"). Fyn asks for the value at onboarding; not knowing it there is
