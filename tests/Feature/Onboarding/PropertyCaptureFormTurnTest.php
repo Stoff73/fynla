@@ -94,3 +94,106 @@ it('sends a typed sentence at the form step down the existing capture path', fun
 
     expect(Property::where('user_id', $user->id)->where('property_type', 'buy_to_let')->exists())->toBeTrue();
 });
+
+function propertyAnswers(array $overrides = []): array
+{
+    return ['name' => 'property', 'answers' => array_replace_recursive([
+        'main_residence' => ['current_value' => 750000, 'mortgage_outstanding_balance' => 325000, 'ownership_type' => 'joint', 'ownership_percentage' => 50],
+        'buy_to_let' => ['current_value' => 450000, 'mortgage_outstanding_balance' => null, 'monthly_rental_income' => 1000, 'ownership_type' => 'individual'],
+    ], $overrides)];
+}
+
+it('saves both kinds from a form answer with no model call and advances to verify', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind(); // no turns queued: any model call fails the test
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, CaptureForms::summarise(propertyAnswers()), null, true, propertyAnswers()
+    ), false);
+
+    $home = Property::where('user_id', $user->id)->where('property_type', 'main_residence')->first();
+    $btl = Property::where('user_id', $user->id)->where('property_type', 'buy_to_let')->first();
+    expect($home)->not->toBeNull()
+        ->and((float) $home->current_value)->toBe(750000.0)
+        ->and((float) $home->outstanding_mortgage)->toBe(325000.0)
+        ->and($home->ownership_type)->toBe('joint')
+        ->and((float) $home->ownership_percentage)->toBe(50.0)
+        ->and($home->tenure_type)->toBe('freehold')
+        ->and($btl)->not->toBeNull()
+        ->and((float) $btl->current_value)->toBe(450000.0)
+        ->and((float) $btl->outstanding_mortgage)->toBe(0.0)
+        ->and((float) $btl->monthly_rental_income)->toBe(1000.0)
+        ->and($btl->ownership_type)->toBe('individual')
+        ->and(collect($events)->where('type', 'entity_created'))->toHaveCount(2)
+        ->and(collect($events)->first()['type'])->toBe('form_received')
+        ->and(collect($events)->first()['text'])->toBe(CaptureForms::summarise(propertyAnswers()))
+        ->and(collect($events)->firstWhere('type', 'capture_complete'))->not->toBeNull()
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors'))->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+
+    // ->toEqual, not ->toBe, for metadata['form'] — the same MySQL native
+    // JSON column key-reordering fact documented above for capture_form.
+    $userRow = AiMessage::where('conversation_id', $conversation->id)->where('role', 'user')->latest('id')->first();
+    expect($userRow->content)->toContain('Home worth £750,000')
+        ->and($userRow->metadata['form'])->toEqual(propertyAnswers());
+});
+
+it('saves one kind alone', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+    $form = ['name' => 'property', 'answers' => ['buy_to_let' => ['current_value' => 200000, 'mortgage_outstanding_balance' => 50000, 'monthly_rental_income' => 850, 'ownership_type' => 'tenants_in_common', 'ownership_percentage' => 60]]];
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise($form), null, true, $form), false);
+
+    $btl = Property::where('user_id', $user->id)->first();
+    expect(Property::where('user_id', $user->id)->count())->toBe(1)
+        ->and($btl->ownership_type)->toBe('tenants_in_common')
+        ->and((float) $btl->ownership_percentage)->toBe(60.0)
+        ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce');
+});
+
+it('reports a refused kind on the form, keeps the landed one, and stays on the step', function (): void {
+    // Free holds two properties; a third is refused by the tier cap.
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+    Property::create(['user_id' => $user->id, 'property_type' => 'secondary_residence', 'current_value' => 100000, 'ownership_type' => 'individual', 'ownership_percentage' => 100, 'address_line_1' => 'Second home', 'city' => 'Unknown', 'postcode' => 'N/A']);
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, CaptureForms::summarise(propertyAnswers()), null, true, propertyAnswers()
+    ), false);
+
+    $errors = collect($events)->firstWhere('type', 'capture_form_errors');
+    expect(Property::where('user_id', $user->id)->where('property_type', 'main_residence')->exists())->toBeTrue()
+        ->and(Property::where('user_id', $user->id)->where('property_type', 'buy_to_let')->exists())->toBeFalse()
+        ->and($errors)->not->toBeNull()
+        ->and($errors['errors'])->toHaveKey('buy_to_let')
+        ->and($errors['errors']['buy_to_let']['message'])->toContain('property limit')
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('Buy to let')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY);
+});
+
+it('never invokes the model for a form answer', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise(propertyAnswers()), null, true, propertyAnswers()), false);
+
+    expect(AiMessage::where('conversation_id', $conversation->id)->where('role', 'assistant')->whereNotNull('tool_calls')->exists())->toBeFalse();
+});
+
+it('tells the user a stale form is no longer open and re-emits the current step', function (): void {
+    $user = formStepUser(OnboardingStateMachine::STATE_CAMPAIGN_DOB);
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, 'Home worth £1', null, true, propertyAnswers()), false);
+
+    expect(Property::where('user_id', $user->id)->exists())->toBeFalse()
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('no longer open')
+        ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('date of birth')
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_DOB);
+});

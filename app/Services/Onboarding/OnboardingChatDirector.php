@@ -173,14 +173,15 @@ final class OnboardingChatDirector
         AiConversation $conversation,
         string $message,
         ?string $currentRoute = null,
-        bool $persistUserMessage = true
+        bool $persistUserMessage = true,
+        ?array $form = null
     ): \Generator {
         // Persist the user message immediately so the conversation history
         // reflects the real interaction even if the rest of this generator
         // fails. Skipped when re-streaming an already-persisted queued turn
         // (FR-M7 concurrent-turn queue) so we don't duplicate the user row.
         if ($persistUserMessage) {
-            $this->saveMessage($conversation, 'user', $message);
+            $this->saveMessage($conversation, 'user', $message, $form !== null ? ['metadata' => ['form' => $form]] : []);
         }
 
         // Phase 11 — OnboardingFactExtractor runs speculatively on every
@@ -213,6 +214,23 @@ final class OnboardingChatDirector
         $state = OnboardingStateMachine::getState($currentStateId);
         if ($state === null) {
             yield $this->errorEvent('Unknown onboarding step. Please reload.');
+
+            return;
+        }
+
+        if ($form !== null) {
+            if (($state['turn_type'] ?? '') !== 'form' || ($state['form'] ?? null) !== ($form['name'] ?? null)) {
+                // A form submitted after the step moved on (a second tab, a
+                // late tap). Nothing is written; the walk carries on.
+                $line = "That form is no longer open — let's carry on from where we are.";
+                yield ['type' => 'content', 'text' => $line];
+                $this->saveMessage($conversation, 'assistant', $line, ['metadata' => ['onboarding_step' => $currentStateId, 'turn_intent' => FynTurnIntent::CaptureClarification->value]]);
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state, includeTransitionHeader: false);
+
+                return;
+            }
+
+            yield from $this->handleFormTurn($user, $conversation, $message, $currentStateId, $state, $form);
 
             return;
         }
@@ -3647,6 +3665,88 @@ PROMPT;
         return $prompt;
     }
 
+    /**
+     * A structured capture-form answer (CaptureForms). Every filled kind is
+     * one create call through the same handler, gate, tier cap, spouse
+     * memory and audit trail as a typed capture — with the user's answers
+     * handed to the gate as confirmed facts. No model, no extractor.
+     *
+     * @param  array{name: string, answers: array<string, array<string, mixed>>}  $form
+     */
+    private function handleFormTurn(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        string $currentStateId,
+        array $state,
+        array $form
+    ): \Generator {
+        $recordsCreated = [];
+        $errors = [];
+
+        // The clients post the form with no typed text and show a placeholder
+        // user row; this is the transcript line (composed once, in
+        // CaptureForms) they replace it with.
+        yield ['type' => 'form_received', 'text' => $message];
+
+        foreach (CaptureForms::toolInputs($form) as $kind => $input) {
+            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'running'];
+            $facts = ['ownership_type' => $input['ownership_type']];
+            if (isset($input['ownership_percentage'])) {
+                $facts['ownership_percentage'] = $input['ownership_percentage'];
+            }
+            try {
+                $result = $this->coordinatingAgent->executeTool('create_property', $input, $user, $conversation->id, confirmedFacts: $facts);
+            } catch (\Throwable $e) {
+                Log::error('[OnboardingChatDirector] Form capture write failed', ['user_id' => $user->id, 'kind' => $kind, 'error' => $e->getMessage()]);
+                $result = ['error' => true, 'message' => 'Unable to save the record. Please try again.'];
+            }
+            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'complete'];
+
+            if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
+                $row = ['type' => 'entity_created', 'entity_type' => 'property', 'entity_id' => $result['entity_id'], 'name' => CaptureForms::kindLabel($form['name'], $kind)];
+                $recordsCreated[] = self::recordRowFromEvent($row);
+                yield $row;
+
+                continue;
+            }
+
+            $errors[$kind] = [
+                'message' => (string) ($result['message'] ?? 'The write failed.'),
+                'fields' => is_array($result['errors'] ?? null)
+                    ? array_map(static fn ($m): string => is_array($m) ? (string) ($m[0] ?? '') : (string) $m, $result['errors'])
+                    : [],
+            ];
+        }
+
+        if ($errors !== []) {
+            yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => $errors];
+            $lines = [];
+            foreach ($errors as $kind => $error) {
+                $lines[] = CaptureForms::kindLabel($form['name'], $kind).': '.rtrim($error['message'], '.').'.';
+            }
+            $text = ($recordsCreated !== [] ? rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. ' : '')
+                ."I couldn't save ".implode(' ', $lines);
+            yield ['type' => 'content', 'text' => $text];
+            $saved = $this->saveMessage($conversation, 'assistant', $text, ['metadata' => [
+                'onboarding_step' => $currentStateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ]]);
+            $this->recordProgress($user, $currentStateId, ['selection' => 'savetax', 'raw_message' => mb_substr($message, 0, 500)]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        yield [
+            'type' => 'capture_complete',
+            'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
+            'records_created' => $recordsCreated,
+        ];
+        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, 'savetax');
+    }
+
     // ─── Asset capture delegation ─────────────────────────────────────────
 
     /**
@@ -4235,6 +4335,15 @@ PROMPT;
             ];
         }
 
+        yield from $this->advanceAfterCapture($user, $conversation, $currentStateId, $message, $selection);
+    }
+
+    /**
+     * Record the answer, move to the next state and emit its turn — the one
+     * advance every capture path takes (typed, backstop, form).
+     */
+    private function advanceAfterCapture(User $user, AiConversation $conversation, string $currentStateId, string $message, string $selection): \Generator
+    {
         // Record the step in onboarding_progress (best-effort — tool calls
         // that actually created records already persisted their own rows).
         // Records under the actual state ID so campaign delegated states
