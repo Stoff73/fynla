@@ -25,6 +25,7 @@ use App\Services\Eval\EvalTraceCollector;
 use App\Services\Gamification\LevelService;
 use App\Services\Gamification\LevelUpCollector;
 use App\Services\GDPR\ConsentService;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -222,8 +223,13 @@ class AiChatController extends Controller
             $conversation->update(['status' => 'active']);
         }
 
-        $message = $request->input('message');
+        $form = $request->input('form');
+        $form = is_array($form) ? $form : null;
+        // A form answer arrives with no typed text; the transcript line is
+        // composed in ONE place (CaptureForms) so every surface reads the same.
+        $message = $form !== null ? CaptureForms::summarise($form) : (string) $request->input('message');
         $currentRoute = $request->input('current_route');
+        $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
 
         // CoALA Phase 5 item 6 (FR-M7) — concurrent-turn queue. A per-conversation
         // lock marks the in-flight turn. If one is already streaming, this turn is
@@ -242,7 +248,7 @@ class AiChatController extends Controller
                 ], 429);
             }
 
-            $queued = $this->queue->enqueue($conversation, $message);
+            $queued = $this->queue->enqueue($conversation, $message, $form !== null ? ['form' => $form] : []);
 
             return response()->json([
                 'status' => 'queued',
@@ -270,10 +276,10 @@ class AiChatController extends Controller
         //   and is shared by streamQueuedMessage and action.
         $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock) {
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $form) {
             try {
                 $generator = $inOnboarding
-                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute)
+                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, true, $form)
                     : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute);
 
                 // W1-L (REVIEW §4 High #23). The S0.9 contract requires the
@@ -439,14 +445,17 @@ class AiChatController extends Controller
         $queued->update(['status' => AiMessageStatus::Processing]);
 
         $message = $queued->content;
+        $queuedMetadata = is_array($queued->metadata) ? $queued->metadata : [];
+        $form = is_array($queuedMetadata['form'] ?? null) ? $queuedMetadata['form'] : null;
+        $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
         $currentRoute = $request->input('current_route');
         $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued) {
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued, $form) {
             try {
                 // persistUserMessage:false — the queued row IS the user turn.
                 $generator = $inOnboarding
-                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, false)
+                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, false, $form)
                     : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute, false);
 
                 $consentRecheckInterval = (float) config('ai_chat.consent_recheck_interval_seconds', 2.0);
@@ -830,6 +839,8 @@ class AiChatController extends Controller
             ]);
         }
 
+        $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
+
         return new StreamedResponse(function () use ($user, $conversation, $startStateId) {
             // Emit the conversation id first so the frontend can route
             // subsequent /messages calls to this specific conversation.
@@ -1040,5 +1051,11 @@ class AiChatController extends Controller
             ob_flush();
         }
         flush();
+    }
+
+    /** The web and /m bundles send `X-Fynla-Forms: 1`; native does not yet. */
+    private function clientSupportsForms(Request $request): bool
+    {
+        return trim((string) $request->header('X-Fynla-Forms')) === '1';
     }
 }
