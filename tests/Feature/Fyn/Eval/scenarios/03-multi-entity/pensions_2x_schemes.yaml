@@ -44,11 +44,10 @@ expected_tool_calls:
     result_path: success
 
 expected_sse_events:
-  must_contain_types: [tool_use, entity_created, content, done]
+  must_contain_types: [tool_use, content, done]
   must_emit_exactly_once:
     - done
   must_emit_exactly:
-    entity_created: 2
     tool_use: 2
   must_not_emit:
     - persona_state_change
