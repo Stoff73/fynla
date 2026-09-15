@@ -81,7 +81,7 @@ The user message is saved with `message` as its content (the transcript reads na
 When the current state is a `form` turn and the request carries `form` for that schema:
 
 1. For each filled kind, build the `create_property` input in the store's canonical field names: `property_type`, `current_value`, `has_mortgage`, `mortgage_outstanding_balance`, `monthly_rental_income`, `ownership_type`, `ownership_percentage`. Unstated optional fields are omitted, never sent as null (PropertyNormaliser trap, fixed in #857).
-2. Run each through `CoordinatingAgent::executeTool('create_property', …)` — the same handler, gate, tier cap, spouse memory and audit trail as every Fyn write. The gate's text evidence is the composed `message`, which names each kind and its ownership, so its checks hold.
+2. Run each through `CoordinatingAgent::executeTool('create_property', …)` — the same handler, gate, tier cap, spouse memory and audit trail as every Fyn write. The form answers are handed to the accuracy gate as **confirmed facts** (`CaptureAccuracyGate::inspect`'s `$confirmedFacts`, its channel for deterministic sources such as extractor parses and scripted answers), so ownership and share are satisfied by the user's structured answer and never by reading the composed sentence.
 3. If every call landed: emit the `entity_created` rows, `capture_complete`, then advance exactly as the typed path does (`enterCampaignVerify` → the verify page).
 4. If any call failed: emit a `capture_form_errors` event `{form, errors: {kind: {field: message}}}`; records that did land stay saved and are reported; the step stays parked and the form stays open with the values intact. A tier-cap refusal shows the plan-limit message on that kind's box.
 
