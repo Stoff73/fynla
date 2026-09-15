@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Enums\AiMessageStatus;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\Property;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\GDPR\ConsentService;
+use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -138,4 +141,35 @@ it('carries the forms flag through the action endpoint continue press — the li
         ->assertOk()->streamedContent();
     expect($without)->not->toContain('"type":"capture_form"')
         ->and($without)->toContain('Now your property');
+});
+
+it('queues a form posted while another turn holds the conversation lock, and streaming the queued turn passes the form to the director', function (): void {
+    // Mirrors the frontend's real path: AiChatController::sendMessage enqueues
+    // via ConcurrentTurnQueue when a per-conversation lock is already held by
+    // an in-flight turn, storing the raw form payload in metadata.form. Later,
+    // once the in-flight turn finishes, the frontend calls streamQueuedMessage
+    // on that queued row, which reads metadata.form back out and passes it to
+    // the director exactly like a live form submission — no model call, the
+    // property is created and the walk advances.
+    $user = formStepHttpUser();
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding']);
+    Sanctum::actingAs($user);
+    FynStreamHarness::fake()->bind();
+
+    $form = ['name' => 'property', 'answers' => [
+        'main_residence' => ['current_value' => 750000, 'mortgage_outstanding_balance' => 325000, 'ownership_type' => 'joint', 'ownership_percentage' => 50],
+    ]];
+    $message = CaptureForms::summarise($form);
+
+    $queued = app(ConcurrentTurnQueue::class)->enqueue($conversation, $message, ['form' => $form]);
+
+    expect($queued->status)->toBe(AiMessageStatus::Queued)
+        ->and($queued->metadata['form'] ?? null)->toEqual($form);
+
+    $body = $this->withHeader('X-Fynla-Forms', '1')
+        ->postJson("/api/ai-chat/conversations/{$conversation->id}/messages/{$queued->id}/stream")
+        ->assertOk()->streamedContent();
+
+    expect(Property::where('user_id', $user->id)->where('property_type', 'main_residence')->exists())->toBeTrue()
+        ->and($body)->toContain('"type":"onboarding_advance"');
 });
