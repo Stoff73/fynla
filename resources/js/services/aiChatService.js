@@ -1,6 +1,11 @@
 import api, { apiBaseURL, handleAuthExpiry } from './api';
 import { getToken } from './tokenStorage';
 
+// Declares this client renders Fyn's structured capture forms (the /m
+// bundle sends the same header; native does not yet, and gets the typed
+// prompt for a form turn instead).
+const FORMS_HEADER = { 'X-Fynla-Forms': '1' };
+
 /**
  * These four SSE endpoints use raw fetch() (axios doesn't support streaming)
  * and so bypass the axios response interceptor in api.js entirely — a 401/419
@@ -81,8 +86,15 @@ const aiChatService = {
      * Send a message and return a ReadableStream reader for SSE.
      * Uses fetch() instead of axios because axios doesn't support streaming.
      */
-    async sendMessageStream(conversationId, message, currentRoute = null, { signal } = {}) {
+    async sendMessageStream(conversationId, message, currentRoute = null, { signal, form = null } = {}) {
         const token = await getToken();
+
+        const body = { current_route: currentRoute };
+        if (form) {
+            body.form = form;
+        } else {
+            body.message = message;
+        }
 
         const response = await fetch(`${apiBaseURL}/api/ai-chat/conversations/${conversationId}/messages`, {
             method: 'POST',
@@ -90,11 +102,9 @@ const aiChatService = {
                 'Content-Type': 'application/json',
                 'Accept': 'text/event-stream',
                 'Authorization': `Bearer ${token}`,
+                ...FORMS_HEADER,
             },
-            body: JSON.stringify({
-                message,
-                current_route: currentRoute,
-            }),
+            body: JSON.stringify(body),
             credentials: 'same-origin',
             signal,
         });
@@ -155,6 +165,7 @@ const aiChatService = {
                 'Content-Type': 'application/json',
                 'Accept': 'text/event-stream',
                 'Authorization': `Bearer ${token}`,
+                ...FORMS_HEADER,
             },
             body: JSON.stringify({ current_route: currentRoute }),
             credentials: 'same-origin',
@@ -245,6 +256,7 @@ const aiChatService = {
                 'Content-Type': 'application/json',
                 'Accept': 'text/event-stream',
                 'Authorization': `Bearer ${token}`,
+                ...FORMS_HEADER,
             },
             body,
             credentials: 'same-origin',
@@ -298,6 +310,7 @@ const aiChatService = {
                 'Content-Type': 'application/json',
                 'Accept': 'text/event-stream',
                 'Authorization': `Bearer ${token}`,
+                ...FORMS_HEADER,
             },
             body: JSON.stringify({ action }),
             credentials: 'same-origin',
