@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Support\SharedOwnership;
+
 final class CaptureAccuracyGate
 {
     private const OWNERSHIP_TOOLS = [
@@ -157,6 +159,23 @@ final class CaptureAccuracyGate
                 // Same repair channel as ownership_type — the share is in
                 // the user's own words, the model dropped the argument.
                 $repaired['ownership_percentage'] = $evidencedShare;
+            } elseif ($argumentOwnership === 'joint'
+                && $tool !== 'create_property'
+                && $evidencedShare === null
+                && ! is_numeric($factShare)
+                && ! $this->mentionsShare($text)) {
+                // Joint on anything but property is 50/50 — a bank account
+                // cannot be anything else, and the same default holds for
+                // investments and liabilities (CSJ 2026-09-15, live fynla.org
+                // user 700: "I need the ownership share" after "joint savings
+                // account with Halifax"). The default is the one rule in
+                // SharedOwnership, so a model-supplied share that nobody
+                // stated is set to it rather than asked about. Property keeps
+                // the question; tenants in common is property-only.
+                if (! $shareSatisfied
+                    && abs((float) ($arguments['ownership_percentage'] ?? -1) - SharedOwnership::DEFAULT_PERCENTAGE) > 0.001) {
+                    $repaired['ownership_percentage'] = SharedOwnership::DEFAULT_PERCENTAGE;
+                }
             } elseif (! $shareSatisfied) {
                 $missing[] = 'ownership_percentage';
                 $reasons[] = 'I need the ownership share';
@@ -389,6 +408,16 @@ final class CaptureAccuracyGate
         }
 
         return $latest['category'];
+    }
+
+    /**
+     * Did the user say anything about a share at all? A conflicting or negated
+     * share ("I own 60% … I own 50%", "not half") is still a statement, so the
+     * 50/50 default must not paper over it — the gate asks as before.
+     */
+    private function mentionsShare(string $text): bool
+    {
+        return preg_match('/\d{1,3}(?:\.\d+)?\s*%|\b(?:half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)\b/u', $text) === 1;
     }
 
     private function ownershipShareFromText(string $text): ?float
