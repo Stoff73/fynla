@@ -50,6 +50,41 @@ describe('capture form in the chat store', () => {
     expect(ctx.state.error).toBeNull();
   });
 
+  it('gives the flushed streaming-text row and the prompt-text row distinct ids when both precede a form', async () => {
+    // A content delta before capture_form flushes state.streamingText as its
+    // own row (an acknowledgement), then prompt_text pushes a second text
+    // row, then the form row — three rows committed in the same tick. All
+    // three built their id from `Date.now()` with different prefixes, but
+    // the flush and prompt rows previously shared the same 'cf_text_' prefix,
+    // so same-millisecond commits collided and AiChatPanel's `v-for` (keyed
+    // on msg.id) rendered duplicate keys.
+    aiChatService.sendMessageStream.mockResolvedValue(streamReader([
+      { type: 'content', text: 'Got it, thanks.' },
+      { type: 'capture_form', prompt_text: 'Now your property.', form: schema },
+      { type: 'done', message_id: 13 },
+    ]));
+    const ctx = makeCtx();
+
+    await aiChat.actions.sendMessage(ctx, 'Continue');
+
+    const roles = ctx.state.messages.map((m) => m.role);
+    const formIndex = roles.indexOf('capture_form');
+    expect(formIndex).toBeGreaterThan(0);
+
+    const flushRow = ctx.state.messages[formIndex - 2];
+    const promptRow = ctx.state.messages[formIndex - 1];
+    const formRow = ctx.state.messages[formIndex];
+
+    expect(flushRow.role).toBe('assistant');
+    expect(flushRow.content).toBe('Got it, thanks.');
+    expect(promptRow.role).toBe('assistant');
+    expect(promptRow.content).toBe('Now your property.');
+    expect(formRow.role).toBe('capture_form');
+
+    const ids = [flushRow.id, promptRow.id, formRow.id];
+    expect(new Set(ids).size).toBe(3);
+  });
+
   it('posts a form answer with the forms header and no message, then replaces the placeholder user row', async () => {
     aiChatService.sendMessageStream.mockResolvedValue(streamReader([
       { type: 'form_received', text: 'Home worth £750,000, no mortgage, individual.' },

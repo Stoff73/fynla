@@ -71,7 +71,7 @@ function pushCaptureFormTurn(commit, state, event) {
 
     if (event.prompt_text) {
         commit('ADD_MESSAGE', {
-            id: 'cf_text_' + Date.now(),
+            id: 'cf_prompt_' + Date.now(),
             role: 'assistant',
             content: event.prompt_text,
             created_at: new Date().toISOString(),
