@@ -117,3 +117,25 @@ it('saves a posted form answer and records the plain-words line as the user mess
         ->and(AiMessage::where('conversation_id', $conversation->id)->where('role', 'user')->latest('id')->value('content'))->toBe('Home worth £750,000, mortgage £325,000, joint, my share 50%.')
         ->and($body)->toContain('"type":"onboarding_advance"');
 });
+
+it('carries the forms flag through the action endpoint continue press — the live resume path', function (): void {
+    // A resumed user at campaign_property (the bare `resume` event from
+    // /start) reaches the form via a Continue tap, which posts here — NOT
+    // through /start. campaign_property carries no reprompt_text in the
+    // shipped corpus, so prompt_text is identical on a second `continue`.
+    $user = formStepHttpUser();
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding']);
+    Sanctum::actingAs($user);
+    FynStreamHarness::fake()->bind();
+
+    $withForms = $this->withHeader('X-Fynla-Forms', '1')
+        ->postJson("/api/ai-chat/conversations/{$conversation->id}/action", ['action' => 'continue'])
+        ->assertOk()->streamedContent();
+    expect($withForms)->toContain('"type":"capture_form"');
+
+    $this->flushHeaders();
+    $without = $this->postJson("/api/ai-chat/conversations/{$conversation->id}/action", ['action' => 'continue'])
+        ->assertOk()->streamedContent();
+    expect($without)->not->toContain('"type":"capture_form"')
+        ->and($without)->toContain('Now your property');
+});

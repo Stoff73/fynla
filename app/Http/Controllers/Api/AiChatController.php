@@ -932,6 +932,7 @@ class AiChatController extends Controller
         $action = $request->input('action');
 
         $inOnboarding = $this->conversationModes->routesToOnboarding($conversation, $user);
+        $this->onboardingDirector->setClientSupportsForms($this->clientSupportsForms($request));
 
         return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
             try {
