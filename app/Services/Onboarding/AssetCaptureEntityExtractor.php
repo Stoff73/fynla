@@ -642,7 +642,7 @@ final class AssetCaptureEntityExtractor
         // Savings-specific signal: an ISA, saver, easy access, fixed term,
         // notice, cash deposit, or a provider + balance pattern.
         $hasSavingsSignal = preg_match(
-            '/\b(isa|individual[\s-]savings[\s-]account|saver|easy[\s-]access|fixed[\s-]term|notice[\s-]account|bond|premium[\s-]bonds?|cash[\s-]deposit|deposit[\s-]account|savings?[\s-]account)\b/u',
+            '/\b(isa|individual[\s-]savings[\s-]account|saver|easy[\s-]access|fixed[\s-]term|notice[\s-]account|bond|premium[\s-]bonds?|cash[\s-]deposit|deposit[\s-]account|savings?[\s-](?:account|accs?)|current[\s-](?:account|accs?)|bank[\s-](?:account|accs?)|joint[\s-](?:account|accs?))\b/u',
             $lower
         ) === 1;
 
@@ -1299,6 +1299,15 @@ final class AssetCaptureEntityExtractor
 
         if (preg_match('/\b(\d+(?:\.\d+)?)\s*(k|m|K|M|million|thousand)\b/u', $chunk, $m) === 1) {
             return $this->scaleAmount((float) $m[1], $m[2]);
+        }
+
+        // A bare figure the way people type in chat — "Halifax savings acc
+        // with 4567", "balance 12000", "worth 15000" (live 2026-09-15). Three
+        // to nine digits, not a percentage, not a year in a date, and not the
+        // digits of a provider name ("Trading 212"), which never carry the
+        // amount words in front.
+        if (preg_match('/\b(?:with|of|balance(?:\s+of)?|worth|at|holding|about|around|roughly|approx(?:imately)?|is|has)\s+(\d{3,9})\b(?!\s*%|\s*percent|\s*(?:st|nd|rd|th)\b|\s+(?:january|february|march|april|may|june|july|august|september|october|november|december))/iu', $chunk, $m) === 1) {
+            return (float) $m[1];
         }
 
         return null;
