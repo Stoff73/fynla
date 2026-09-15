@@ -178,7 +178,10 @@ describe('state-machine walkthrough — path_choice → done', function () {
             ->and($this->user->onboarding_fyn_context['verify_section'])->toBe('expenditure')
             ->and((float) $this->user->monthly_expenditure)->toBe(10000.0)
             ->and($this->user->expenditure_entry_mode)->toBe('simple')
-            ->and($expenditureStream)->toContain('"type":"capture_complete"');
+            // The record card never reaches a client mid-onboarding (CSJ
+            // 2026-09-15): the ack and the announce are the whole turn.
+            ->and($expenditureStream)->toContain("I've noted your monthly spending")
+            ->and($expenditureStream)->not->toContain('"type":"capture_complete"');
 
         // Step 8a — Okay → navigate; "Yes, that's right" → asset_capture.
         sendOnboardingMessage($this, $this->user, $conversation->id, 'Okay');
