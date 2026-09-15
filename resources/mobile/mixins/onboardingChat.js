@@ -552,6 +552,11 @@ export default {
         // in for the form until the server confirms what it actually saved.
         const placeholder = [...this.messages].reverse().find((m) => m.role === 'user' && m.formPlaceholder);
         if (placeholder) { placeholder.text = ev.text || placeholder.text; delete placeholder.formPlaceholder; }
+        // A successful retry after a refusal must not keep the stale
+        // errors from the prior attempt — the lock send() already set
+        // stands untouched because no capture_form_errors event follows.
+        const acceptedForm = [...this.messages].reverse().find((m) => m.form);
+        if (acceptedForm) acceptedForm.form = { ...acceptedForm.form, errors: null };
         return;
       }
       if (ev.type === 'capture_form') {
@@ -568,8 +573,11 @@ export default {
         return;
       }
       if (ev.type === 'capture_form_errors') {
+        // A refusal reopens the form so the user can correct it in place —
+        // send() locked it before the request went out, on the assumption
+        // it would be accepted.
         const latest = [...this.messages].reverse().find((m) => m.form);
-        if (latest) latest.form = { ...latest.form, errors: ev.errors || {} };
+        if (latest) latest.form = { ...latest.form, errors: ev.errors || {}, locked: false };
         return;
       }
       if (ev.type === 'quick_replies') {

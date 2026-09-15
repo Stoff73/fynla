@@ -346,4 +346,46 @@ describe('capture forms', () => {
     expect(formRow.form.answers).toEqual({ main_residence: { current_value: 750000 } });
     expect(formRow.form.locked).toBe(true);
   });
+
+  // Ruling 13: send() locks every form on the optimistic assumption it will
+  // be accepted. A refusal must reopen it with the values intact (spec §4
+  // item 4 — "the step stays parked and the form stays open").
+  it('reopens a refused form with its errors attached', async () => {
+    const { apiStream } = await import('../../api.js');
+    apiStream.mockImplementation(async (path, body, token, onDelta, onEvent) => {
+      onEvent({ type: 'form_received', text: 'A buy-to-let worth £300,000.' });
+      onEvent({ type: 'capture_form_errors', form: 'property', errors: { buy_to_let: { message: "You have reached your plan's property limit.", fields: {} } } });
+      onEvent({ type: 'done' });
+      return { ok: true, status: 200, text: '' };
+    });
+    const w = mount(Host);
+    w.vm.conversationId = 7;
+    const formRow = { role: 'fyn', text: 'Now your property.', bubbles: [], form: { schema, errors: null, answers: null, locked: false } };
+    w.vm.messages = [formRow];
+    const form = { name: 'property', answers: { buy_to_let: { current_value: 300000 } } };
+
+    await w.vm.send(null, form);
+
+    expect(formRow.form.locked).toBe(false);
+    expect(formRow.form.errors.buy_to_let.message).toContain('property limit');
+  });
+
+  it('locks a successfully accepted form and clears any earlier refusal errors', async () => {
+    const { apiStream } = await import('../../api.js');
+    apiStream.mockImplementation(async (path, body, token, onDelta, onEvent) => {
+      onEvent({ type: 'form_received', text: 'Home worth £750,000, no mortgage, individual.' });
+      onEvent({ type: 'done' });
+      return { ok: true, status: 200, text: '' };
+    });
+    const w = mount(Host);
+    w.vm.conversationId = 7;
+    const formRow = { role: 'fyn', text: 'Now your property.', bubbles: [], form: { schema, errors: { main_residence: { message: 'Too many', fields: {} } }, answers: null, locked: false } };
+    w.vm.messages = [formRow];
+    const form = { name: 'property', answers: { main_residence: { current_value: 750000 } } };
+
+    await w.vm.send(null, form);
+
+    expect(formRow.form.locked).toBe(true);
+    expect(formRow.form.errors).toBeNull();
+  });
 });
