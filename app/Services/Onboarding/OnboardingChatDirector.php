@@ -126,6 +126,19 @@ final class OnboardingChatDirector
     ) {}
 
     /**
+     * Whether the client behind this request renders capture forms
+     * (`X-Fynla-Forms: 1`, sent by the web and /m bundles). Native does not
+     * yet, and keeps the typed prompt for a form turn. Set per request by
+     * AiChatController; never read from headers here.
+     */
+    private bool $clientSupportsForms = false;
+
+    public function setClientSupportsForms(bool $supports): void
+    {
+        $this->clientSupportsForms = $supports;
+    }
+
+    /**
      * Backend-initiated turn 1 — emits the path_choice bubbles with no
      * preceding user message. Called from AiChatController::startOnboarding
      * after a fresh AiConversation row has been created and the user's
@@ -379,7 +392,10 @@ final class OnboardingChatDirector
         // state.next, which gives campaign users the linear walk through
         // OCCUPATIONAL → ISA → BANK → INVESTMENT → PENSION → SPOUSE_WORK
         // while keeping STATE_ASSET_CAPTURE → STATE_ADD_MORE unchanged.
-        if (($state['turn_type'] ?? '') === 'delegated') {
+        // A form turn answered with typed text takes the same delegated
+        // capture path as before the form existed (the extractor and the
+        // gate are the fallback, untouched).
+        if (in_array($state['turn_type'] ?? '', ['delegated', 'form'], true)) {
             yield from $this->handleAssetCaptureTurn($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
@@ -946,7 +962,7 @@ final class OnboardingChatDirector
      * that the frontend renders as a raspberry-500 inline link calling
      * POST /api/ai-chat/conversations/{id}/action {action:'skip'}.
      */
-    private function emitTurnForState(
+    public function emitTurnForState(
         User $user,
         AiConversation $conversation,
         string $stateId,
@@ -998,6 +1014,27 @@ final class OnboardingChatDirector
             str_starts_with($stateId, 'campaign_verify_') => FynTurnIntent::VerifyPrompt,
             default => FynTurnIntent::StepPrompt,
         };
+
+        if ($turnType === 'form' && $this->clientSupportsForms) {
+            $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
+            if ($schema !== null) {
+                yield [
+                    'type' => 'capture_form',
+                    'prompt_text' => $promptText,
+                    'form' => $schema,
+                ];
+                $assistantMessage = $this->saveMessage($conversation, 'assistant', $promptText, [
+                    'metadata' => [
+                        'capture_form' => $schema,
+                        'onboarding_step' => $stateId,
+                        'turn_intent' => $turnIntent->value,
+                    ],
+                ]);
+                yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+
+                return;
+            }
+        }
 
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
