@@ -2320,6 +2320,7 @@ final class OnboardingChatDirector
             'is_dependent' => false,
             'notes' => 'Added via Fyn onboarding. Raw: '.mb_substr($rawText, 0, 200),
         ]);
+        app(SpouseJointRecords::class)->apply($user);
     }
 
     /**

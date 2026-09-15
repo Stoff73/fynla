@@ -217,6 +217,7 @@ final class SpouseLinkingService
         // "already linked" over the top of it (W-0051).
         if ($spouseUser->spouse_id === $currentUser->id) {
             $familyMember = $this->upsertFamilyMemberRow($currentUser, $spouseUser->id, $data);
+            app(SpouseJointRecords::class)->apply($currentUser);
 
             return [
                 'family_member' => $familyMember,
@@ -270,7 +271,10 @@ final class SpouseLinkingService
             // `linked_user_id` — the card is the caller's to keep, the link to
             // the account is the invitee's to grant. No reciprocal row is
             // written on the invitee's side; that would be their row.
-            return $this->upsertFamilyMemberRow($currentUser, null, $data);
+            $row = $this->upsertFamilyMemberRow($currentUser, null, $data);
+            app(SpouseJointRecords::class)->apply($currentUser);
+
+            return $row;
         });
 
         $emailSent = $this->sendInvitationNotification($spouseUser, $currentUser);
@@ -356,6 +360,8 @@ final class SpouseLinkingService
             // accepter gets their own card for their partner.
             $this->attachLinkToExistingSpouseRow($lockedRequester, $lockedAccepter->id);
             $this->createReciprocalFamilyMember($lockedAccepter, $lockedRequester);
+            app(SpouseJointRecords::class)->apply($lockedRequester);
+            app(SpouseJointRecords::class)->apply($lockedAccepter);
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($lockedRequester->id, $lockedAccepter->id);
         });
@@ -429,7 +435,10 @@ final class SpouseLinkingService
             // The caller's own household card, carrying NO `linked_user_id`.
             // They keep the details they entered about their partner; what they
             // do not get is an account belonging to somebody else.
-            return $this->upsertFamilyMemberRow($currentUser, null, $data);
+            $row = $this->upsertFamilyMemberRow($currentUser, null, $data);
+            app(SpouseJointRecords::class)->apply($currentUser);
+
+            return $row;
         });
 
         $emailSent = $this->sendRegistrationInvitation($spouseEmail, $currentUser);

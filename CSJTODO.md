@@ -1,10 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-09-11 session 1 (end of the 2026-09-10 session) — dev RELEASED to
-fynla.org three times on 2026-09-10 (main ac967bdac == dev d73b2a832): Fyn first-message
-guard + native billing on the web; recommendation ids per record + the nine new-user-run
-board items + onboarding journeys; capped "+ Add" refused before the form.
-Handover: `handover/September/11/handover-2026-09-11-session-1.md`*
+*Last updated: 2026-09-14 session 3 — application mapping programme: overview, 17 (emails), 01 (auth), 02a (onboarding) and 02b (campaigns) mapped; 55 mapping bugs raised (none fixed, none decided). CSJ's focus for the next session: fix the mapping bugs; mapping paused at section 03. Commit 86ef97b41 on dev. Handover: `handover/September/14/handover-2026-09-14-session-3.md`*
 
 ## The board position
 
@@ -24,7 +20,38 @@ Every non-iOS item is closed. The rule is unchanged — **a citation is not a ve
 — and **verify the instrument before trusting the measurement**: CSJ's 2026-09-10 order to
 re-check the nine items before fixing found one already resolved and one overstated.
 
-## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-11)
+## Application mapping programme (CSJ, 2026-09-14) — in progress
+
+Evidence-only maps in `docs/app-map/` via the `app-map` skill; index at `docs/app-map/INDEX.md`;
+bugs raised (never fixed inside a run) in `September/September14Updates/mappingBugs2026-09-14.md`.
+
+- [x] Overview baseline, 17 emails and push, 01 auth and registration, 02a onboarding (Fyn flow,
+      legacy wizard, journeys, life stage), 02b Save Tax and Pension Check campaigns (funnels,
+      hand-off, both walks, re-entry, Tax Strategy page; driven live on web and `/m`).
+- [ ] **BLOCKED ON CSJ — mapping-bug decisions** (register at the top of the bugs file). Live
+      user-facing first: MB-23 (paused user's next message gets no reply), MB-44 (Save Tax has no
+      way back after "No thanks"), MB-37 (web savings verify page shows no accounts — which page),
+      MB-45 (Tax Strategy: which list is canonical), MB-25 (paused walk can never resume), MB-38
+      (Pension Check hardcoded bands, no cross-check), MB-54 (Save Tax drops the pension pot),
+      MB-53 (re-entry re-asks pensions), MB-49 (natural correction produced no write). Dead code
+      and copies: MB-01 + MB-09 + MB-29/30/31, MB-39, MB-41, MB-42, MB-43, MB-08, MB-10, MB-11,
+      MB-06. Data and copy: MB-32, MB-34, MB-40, MB-14/15, MB-21.
+- [ ] **NEXT — merge today's eleven PRs to dev in order, rebasing each onto dev after the one
+      before (every branch edits the bugs register on adjacent lines; keep both sides), csjones gate
+      per the admin-merge memory (four PRs change `resources/mobile/`: #831, #834, #835, #836 need
+      `build:mobile`), then `/release` dev → main (CSJ types it). Order: #829 → #832 (stacked on
+      #829) → #830 → #831 → #834 → #835 → #836 → #837 → #838 → #839 → #833 (the `bugsFixed.md`
+      ledger — after merging, flip its rows from "Fixed, PR open" to "Fixed" with SHAs and make sure
+      it is on dev, main and in the local root). Handover session 4 has the detail.
+- [x] Fixed 2026-09-14, PRs open: MB-27+47 (#829), MB-48 (#830), MB-24 (#831), MB-56/57/58 (#832),
+      MB-18/19/20 (#834), MB-50 (#835), MB-26 (#836), MB-28 (#837), MB-33 (#838), MB-35 (#839).
+      MB-54's cause corrected (deterministic backstop after a model refusal; decision still open).
+- [ ] **Remaining no-decision MBs** after the release, one per branch, test red first, live on web
+      and `/m`: MB-17, MB-22, MB-16, MB-46, MB-51, MB-52, MB-55 (subject to MB-44). Unskip
+      `tests/Feature/Onboarding/PausedUserMessageRoutesToAdviceTest.php` with MB-23.
+- [ ] Mapping paused at section 03 (dashboard) until CSJ restarts it; index rows are ready.
+
+## Next session starts here — iOS (CSJ, 2026-09-09; still open 2026-09-12)
 
 - [ ] **BLOCKED ON CSJ — how the phone gets tested.** Build 10 (Production configuration,
       "Fynla" record, VALID 2026-09-10 08:49 BST) carries #773 and all of build 9. On-screen
@@ -45,13 +72,16 @@ re-check the nine items before fixing found one already resolved and one oversta
 ## Parked, non-iOS — need CSJ, do not start unasked
 
 - W-0540 dead-component clusters and the Rule 15 lint scope (carried since 5 September;
-  `GiftingStrategy.vue`, `TrustPlanningStrategy.vue`, `IHTPlanning.vue` are unreachable).
+  now measured as MB-01 (153 files) + MB-09 (56 guard-blocked Vue public pages) in the
+  mapping bugs file — one decision covers all three).
 - The unstyled homepage pension-check block parked in PR #770's description.
 - The 34 remaining sweep findings — decide, do not chase.
 - Tax-compliance review — W-0367, W-0514, W-0508, W-0338, W-0470, W-0518, W-0498;
   design-lead / quality-lead on W-0497; chief-of-staff on W-0506.
 - The savings web form captures no account name (institution + product only); the
   display-name fallback covers the recommendation copy, the form gap is a product call.
+- **One page per module for dashboard routes** — `GamifiedDashboard.webRouteFor` (`/net-worth/cash`)
+  vs `semanticDestinations.overviewPaths` / `GateRoutes::MAP` (`/savings`). Product call (PR #818).
 
 ## Settled by CSJ — do not re-raise
 
@@ -74,6 +104,11 @@ re-check the nine items before fixing found one already resolved and one oversta
   ("No thanks"); the young family Junior ISAs stay; the ten phantom triggers alias real
   rules; months of runway replace the emergency-fund grade; the protection
   `adequacy_score` contract stays; the `/m` Fyn panel over the focus cards is not an issue.
+- **(2026-09-11/12)** The savings_account cap is "bank accounts" (the page is "Bank Accounts"
+  everywhere; the Cash page cards are account types; "Cash Management" is the nav section).
+  Spouse figures from the SaveTax step show provider names like every record. The post-plan
+  spouse invitation copy is approved verbatim (PR #826); pensioncheck gets the same state.
+  The ownership loop was NOT a regression — the July fixes relied on the model re-calling.
 - **(2026-09-09) Closed for handover purposes:** the production `.env` keys
   `COMPANIES_HOUSE_API_KEY` / `GETADDRESS_API_KEY`, and the unconfigured Apple
   verification bridge on production.
@@ -112,19 +147,26 @@ re-check the nine items before fixing found one already resolved and one oversta
 - **Pest refuses a file and its parent directory in one invocation**; pass the directory.
 - **`./vendor/bin/pint app/` times out** at 2 minutes — format only changed files.
   **`pest --filter=""` matches nothing and exits 0**, which looks like a pass.
-- **Test accounts from 2026-09-10:** `slaterjoneschris+fynla0910@gmail.com` on fynla.org
-  (real Free account); csjones john has two 0% current accounts, £1,800 joint expenditure
-  and life stage "university"; local David and `journey-0910@example.com` carry test rows.
+- **Test accounts:** fynla.org `slaterjoneschris+fynla0910@gmail.com` (real Free account, one
+  property added and removed 2026-09-11); csjones john (two 0% current accounts, £1,800 joint
+  expenditure, life stage "university") and `savetax-0911a…f` / `savetax-0912a/b@example.com`
+  (0912b holds a pending spouse invitation); local David and `journey-0910@example.com`.
+- **Playwright's main tab can stop delivering input** while scripts still run — drive a second
+  browser context from `browser_run_code_unsafe` (re-find it each call); never `browser_close`.
+- **Prod deploys with a migration** rsync `database/migrations/` first; corpus changes rsync
+  `fyn-memory/procedural/` and run `fyn:procedural:validate` on prod.
+- **Adding a corpus workflow state:** constants + `inCodeStates()` + corpus in the same ORDER;
+  guard `nextFrom…('')` (skip rules pass an empty answer; `matchBubble('')` hits the first bubble).
 
 ## Deploy state
 
-- **fynla.org = main `ac967bdac`** (tree identical to dev `d73b2a832`), three releases on
-  2026-09-10 (PR #800 ~08:45, PR #805 ~12:10, PR #807 ~12:40 BST). No migrations in any.
-  Bundle `app-DguFb_dl.js`. Backups on the server: `~/release-backups/2026-09-10/`,
-  `2026-09-10b/`, `2026-09-10c/` (bundle manifests). Notes: memory
-  `project_release_2026_09_10`.
-- **csjones = dev `d73b2a832`**, web bundle built from it (`/m` bundle unchanged since
-  2026-09-09).
+- **fynla.org = main `e6d4f4a18`** (tree identical to dev `a5dd5c340`), nine releases on
+  2026-09-11/12 (#809–#827). One migration (`2026_09_12_090000_add_provider_names…`), ran on prod
+  08:44 BST 2026-09-12 with a full dump first. Web bundle `app-C-Usr4DG.js`, `/m` bundle
+  `main-B8hm8ebQ.js`, corpus validated. Backups: `~/release-backups/2026-09-11/`…`h/`,
+  `2026-09-12a/`, `b/`. Notes: memory `project_release_2026_09_11`.
+- **csjones = dev `a5dd5c340`**, both bundles from `1b22f6112`. Eleven fix PRs (#829–#839) are open
+  against dev and unmerged as of 2026-09-14 21:13 BST; nothing from them is on csjones or prod.
 - **TestFlight "Fynla" 1.0 (10)** on the `org.fynla.app.dev` record, Production
   configuration reading fynla.org, VALID 2026-09-10 08:49 BST; native tree unchanged since.
   The `org.fynla.app` record is "Fynla (legacy)" — never upload there unasked.
@@ -136,26 +178,26 @@ re-check the nine items before fixing found one already resolved and one oversta
 
 Full report: `docs/tech-debt-report.md`.
 
-- **(2026-09-10)** Two homes for the plan-cap entity wording (`utils/apiErrors.js:12`
-  `ENTITY_LABELS` vs the literals on six `LimitReachedModal` consumers); the at-cap gate is
-  written per surface (`AssetsStep.vue:655`, `PropertyList.vue:228`) though the arithmetic
-  is shared; `utils/registrationRules.js` mirrors `RegisterRequest` by hand with no parity
-  pin; the vanilla cookie banner is a hand copy pinned only for the decline sentence; 14
-  pre-existing ESLint dead-code hits in the onboarding steps and wizard;
-  `PersonalInfoStep.vue:7` redundant `:hide-nav="true"`; `lifeStage.js:150` unused catch
-  binding; `ExpenditureForm.vue` ≈2,550 and `SavingsActionDefinitionService.php` ≈3,780 lines.
-- **(2026-09-09 pm)** Two Yes/No vocabularies inside `AdviceFyn` (`:229` follow-up, `:340`
-  deferred answer); the web path map exists twice (`resources/js/utils/semanticDestinations.js:10`,
-  `GamifiedDashboard.vue:365`) where the server could emit a `web` path; two /m
-  contextual-open methods (`Dashboard.vue:781`, `MobileChrome.vue:344`);
+- **(2026-09-11/12)** The spouse "What you told Fyn" row mapping is written once per surface
+  (`resources/mobile/views/Income.vue:79`, `IncomeOccupation.vue:538`); five homes for the
+  `capture_spouse_household_data` field list (handler allowlist + rules, model fillable, both
+  schema mds); two canned-refusal recognisers (`HasAiChat.php:1757`, director `:4491`); the
+  invite outcome copy lives in PHP (`OnboardingChatDirector.php:2141`); two stop-word lists
+  (`SpouseHouseholdPhrasings:61`, `OnboardingFactExtractor:38`); the same email regex twice;
+  `OnboardingChatDirector` 7,668 and `CoordinatingAgent` 6,827 lines; `IncomeOccupation.vue` 854.
+- **(2026-09-10, still open)** the vanilla cookie banner is a hand copy pinned only for the
+  decline sentence; `ExpenditureForm.vue` ≈2,550 and `SavingsActionDefinitionService.php`
+  ≈3,780 lines.
+- **(2026-09-09 pm, still open)** the web path map exists twice (`semanticDestinations.js:10`,
+  `GamifiedDashboard.vue:365`) — product call; two /m contextual-open methods
+  (`Dashboard.vue:781`, `MobileChrome.vue:344`) — share `createContextualConversation` already;
   `ContextualConversationService::recommendationFor` runs a full aggregation per tap;
   `HolisticPlanningController::markRecommendationDone` is a second completion path;
-  four SSE-frame parsers across `tests/Feature/AI`; `ActionsOverviewCard.vue` imported nowhere.
+  `ActionsOverviewCard.vue` imported nowhere.
 - **(2026-09-09)** `RecommendationsAggregatorService::aggregateRecommendations` is 175 lines
   (five raw-path rollback blocks behind `coordination.composed_module_plans`; retire the flag
   and they go). `PriorityRanker::MODULE_WEIGHTS` carries both `tax_optimisation` and `tax`.
   `StrategyPriority` has no `Critical` case (adapters carry `extra['seeded_priority']`).
-  `CoordinatingAgent` ~6,800 lines. `/m` views each carry a `formatCurrency` copy;
   `0.00005` and the flat `0.0400` benchmark block are unnamed.
 - **(2026-09-07)** `SubscriptionManagementView.swift` writes the web-handoff button + error
   block twice; `TierCollapsePreflight.php` re-derives "plans that confer premium" instead

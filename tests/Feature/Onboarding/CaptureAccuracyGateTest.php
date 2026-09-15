@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Onboarding\CaptureAccuracyGate;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use App\Support\SharedOwnership;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -220,7 +221,11 @@ it('does not treat a possessive as explicit ownership confirmation', function ()
         ->and($result['missing'])->toContain('ownership_type');
 });
 
-it('requires the explicit share before a joint write', function (): void {
+it('saves a joint bank account with no stated share at the 50/50 default instead of asking', function (): void {
+    // CSJ 2026-09-15 (live fynla.org, user 700, conversation 866): a joint bank
+    // account cannot be anything but 50/50, and joint on anything except
+    // property defaults to 50/50 — the one rule in SharedOwnership. Asking for
+    // the share read as re-asking ownership.
     $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
         'account_name' => 'Joint Savings',
         'account_type' => 'easy_access',
@@ -228,9 +233,52 @@ it('requires the explicit share before a joint write', function (): void {
         'ownership_type' => 'joint',
     ], 'Our joint savings are £20,000');
 
+    expect($result['allowed'])->toBeTrue()
+        ->and((float) ($result['repaired']['ownership_percentage'] ?? 0))->toBe(SharedOwnership::DEFAULT_PERCENTAGE);
+});
+
+it('accepts the model default share on a joint bank account the user described without a share — the live Halifax message', function (): void {
+    // fynla.org 2026-09-15 07:28 BST, message 1575: the model sent joint at 50
+    // with no co-owner, the user had said "joint savings account with Halifax",
+    // and the gate answered "I need the ownership share".
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'institution' => 'Halifax',
+        'account_name' => 'Halifax Joint Savings',
+        'account_type' => 'savings_account',
+        'current_balance' => 2345,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+        'joint_owner_id' => 0,
+        'joint_owner_name' => '0',
+    ], 'Lloyds current account owned by me with a balance of 350, joint savings account with Halifax with a balance of 2345');
+
+    expect($result['allowed'])->toBeTrue();
+});
+
+it('corrects an invented share on a joint investment account to the 50/50 default rather than asking', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_investment_account', [
+        'provider' => 'Vanguard',
+        'account_type' => 'gia',
+        'current_value' => 40000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 70,
+    ], 'We have a joint Vanguard general investment account worth £40,000');
+
+    expect($result['allowed'])->toBeTrue()
+        ->and((float) ($result['repaired']['ownership_percentage'] ?? 0))->toBe(SharedOwnership::DEFAULT_PERCENTAGE);
+});
+
+it('still asks for the share of a jointly owned property', function (): void {
+    // Property is the one asset type whose joint share genuinely varies.
+    $result = app(CaptureAccuracyGate::class)->inspect('create_property', [
+        'address' => '12 Acacia Avenue',
+        'property_type' => 'main_residence',
+        'current_value' => 450000,
+        'ownership_type' => 'joint',
+    ], 'Our home at 12 Acacia Avenue is worth £450,000 and we own it jointly');
+
     expect($result['allowed'])->toBeFalse()
-        ->and($result['missing'])->toContain('ownership_percentage')
-        ->and($result['missing'])->not->toContain('joint_owner_id');
+        ->and($result['missing'])->toContain('ownership_percentage');
 });
 
 it('allows a joint write with no linked co-owner when the share is evidenced — the live mid-campaign message', function (): void {
@@ -1392,23 +1440,24 @@ it('clears unresolved capture evidence when onboarding is restarted', function (
     $user->update(['spouse_id' => $spouse->id]);
     $spouse->update(['spouse_id' => $user->id]);
     $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    // A joint PROPERTY: the one asset type whose share the gate still asks
+    // for (a joint bank account now defaults to 50/50 — CSJ 2026-09-15).
     AiMessage::create([
         'conversation_id' => $conversation->id,
         'role' => 'user',
-        'content' => 'My Restart Saver has £20,000 and is jointly owned with my spouse.',
+        'content' => 'Our home at 12 Restart Road is worth £400,000 and is jointly owned with my spouse.',
     ]);
     $arguments = [
-        'account_name' => 'Restart Saver',
-        'institution' => 'Restart Bank',
-        'account_type' => 'easy_access',
-        'current_balance' => 20000,
+        'property_type' => 'main_residence',
+        'address_line_1' => '12 Restart Road',
+        'current_value' => 400000,
         'ownership_type' => 'joint',
         'joint_owner_id' => $spouse->id,
         'ownership_percentage' => 50,
     ];
 
     $firstAttempt = app(CoordinatingAgent::class)->executeTool(
-        'create_savings_account',
+        'create_property',
         $arguments,
         $user,
         $conversation->id,
@@ -1427,7 +1476,7 @@ it('clears unresolved capture evidence when onboarding is restarted', function (
     ]);
 
     $afterRestart = app(CoordinatingAgent::class)->executeTool(
-        'create_savings_account',
+        'create_property',
         $arguments,
         $user,
         $conversation->id,
@@ -1438,7 +1487,7 @@ it('clears unresolved capture evidence when onboarding is restarted', function (
     // history, so ownership_type has to be re-confirmed from scratch.
     expect($afterRestart['clarification_required'] ?? false)->toBeTrue()
         ->and($afterRestart['missing'] ?? [])->toContain('ownership_type')
-        ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(0);
+        ->and(Property::where('user_id', $user->id)->count())->toBe(0);
 });
 
 it('does not apply a plural clarification when the named account was not part of a group', function (): void {
@@ -1524,9 +1573,11 @@ it('does not reuse ownership evidence for a different account using the same too
         'ownership_percentage' => 60,
     ], $user, $conversation->id);
 
-    expect($result['clarification_required'] ?? false)->toBeTrue()
-        ->and($result['missing'] ?? [])->toContain('ownership_percentage')
-        ->and(SavingsAccount::where('user_id', $user->id)->count())->toBe(0);
+    // The first account's 60% must not be borrowed: the second account was
+    // described with no share, so it lands at the 50/50 default, not at 60.
+    expect($result['success'] ?? false)->toBeTrue()
+        ->and((float) SavingsAccount::where('user_id', $user->id)->where('account_name', 'Second Saver')->sole()->ownership_percentage)
+        ->toBe(SharedOwnership::DEFAULT_PERCENTAGE);
 });
 
 it('propagates authorised joint ownership to an auto-created mortgage', function (): void {
