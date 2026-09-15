@@ -207,19 +207,90 @@ final class AssetCaptureEntityExtractor
     private function attachOwnership(string $focus, array $entities, string $message): array
     {
         if ($entities === [] || ! in_array($focus, ['savings', 'investment', 'property', 'liability'], true)) {
-            return $entities;
+            return array_map(static function (array $entity): array {
+                unset($entity['_evidence']);
+
+                return $entity;
+            }, $entities);
         }
 
-        $ownership = $this->extractOwnershipType($message);
-        if ($ownership === null) {
-            return $entities;
-        }
+        // Ownership is read from each entity's own words when it carries
+        // them (`_evidence`), from the whole message only when there is one
+        // entity, and from a group clause ("both in my name", "all joint
+        // 50/50") for the rest. One ownership for the whole message put
+        // "individual" on a home the user said was with their wife (live
+        // 2026-09-15). Never guessed: an entity without evidence carries no
+        // ownership and the gate asks.
+        $single = count($entities) === 1;
+        $group = $this->groupOwnershipClause($message);
+        $messageOwnership = $this->extractOwnershipType($message);
+        $messageShare = $this->extractOwnershipShare($message);
 
-        return array_map(static function (array $entity) use ($ownership): array {
-            $entity['ownership_type'] ??= $ownership;
+        return array_map(function (array $entity) use ($single, $group, $messageOwnership, $messageShare): array {
+            $evidence = is_string($entity['_evidence'] ?? null) ? $entity['_evidence'] : null;
+            unset($entity['_evidence']);
+
+            $ownership = $evidence !== null ? $this->extractOwnershipType($evidence) : null;
+            $share = $evidence !== null ? $this->extractOwnershipShare($evidence) : null;
+            if ($ownership === null) {
+                $ownership = match (true) {
+                    $single => $messageOwnership,
+                    $group !== null => $this->extractOwnershipType($group),
+                    default => null,
+                };
+                $share ??= match (true) {
+                    $single => $messageShare,
+                    $group !== null => $this->extractOwnershipShare($group),
+                    default => null,
+                };
+            } elseif ($share === null && $group !== null) {
+                $share = $this->extractOwnershipShare($group);
+            }
+
+            if ($ownership !== null) {
+                $entity['ownership_type'] ??= $ownership;
+            }
+            if ($share !== null && ($entity['ownership_type'] ?? null) === 'joint') {
+                $entity['ownership_percentage'] ??= $share;
+            }
 
             return $entity;
         }, $entities);
+    }
+
+    /**
+     * The clause that states one ownership for every entity in the message
+     * ("both jointly owned with my wife 50/50", "all in my name"), or null.
+     */
+    private function groupOwnershipClause(string $message): ?string
+    {
+        $lower = mb_strtolower($message);
+        if (preg_match('/\b(?:both|all|each)\b[^.!?\n]{0,60}/u', $lower, $m) === 1
+            && $this->extractOwnershipType($m[0]) !== null) {
+            return $m[0];
+        }
+
+        return null;
+    }
+
+    /**
+     * The user's own share, when their words state one: an equal split
+     * reads as 50, "my share is 60%" as 60. Composed from OwnershipPhrasings
+     * — the ONE share vocabulary the gate reads too (Rule 20).
+     */
+    public function extractOwnershipShare(string $text): ?float
+    {
+        $lower = mb_strtolower($text);
+        if (preg_match('/\b'.OwnershipPhrasings::MY_SHARE_PERCENT.'/u', $lower, $m) === 1) {
+            $value = (float) (($m[1] ?? '') !== '' ? $m[1] : ($m[2] ?? 0));
+
+            return $value > 0 && $value < 100 ? $value : null;
+        }
+        if (preg_match('/\b(?:'.OwnershipPhrasings::EQUAL_SPLIT.')\b/u', $lower) === 1) {
+            return 50.0;
+        }
+
+        return null;
     }
 
     /**
@@ -236,15 +307,22 @@ final class AssetCaptureEntityExtractor
         // Vocabulary composed from OwnershipPhrasings — the ONE source (Rule
         // 20); a private copy here diverged from the gate's and re-asked for
         // ownership the user had stated (live 2026-07-23).
-        if (preg_match('/\b(?:'.OwnershipPhrasings::INDIVIDUAL.')\b/u', $lower) === 1) {
-            return 'individual';
+        // Latest statement wins, the same resolution the gate applies:
+        // "my wife and I own it together" carries an individual-looking
+        // "I own it" inside a joint sentence, and the closing word decides.
+        $latest = null;
+        $latestOffset = -1;
+        foreach (['individual' => OwnershipPhrasings::INDIVIDUAL, 'joint' => OwnershipPhrasings::JOINT] as $category => $vocabulary) {
+            preg_match_all('/\b(?:'.$vocabulary.')\b/u', $lower, $matches, PREG_OFFSET_CAPTURE);
+            foreach ($matches[0] ?? [] as $match) {
+                if ($match[1] > $latestOffset) {
+                    $latestOffset = $match[1];
+                    $latest = $category;
+                }
+            }
         }
 
-        if (preg_match('/\b(?:'.OwnershipPhrasings::JOINT.')\b/u', $lower) === 1) {
-            return 'joint';
-        }
-
-        return null;
+        return $latest;
     }
 
     /**
@@ -968,17 +1046,35 @@ final class AssetCaptureEntityExtractor
     // ─── Properties ─────────────────────────────────────────────────
 
     /**
+     * One entity per property the user names. A connector chunk that names
+     * no property ("worth 750000 with a mortgage of 325000", "joint with my
+     * wife 50/50") continues the property before it — the live 2026-09-15
+     * sentence lost its home's value and mortgage to exactly that split.
+     * Each entity carries its own words as `_evidence` so ownership is read
+     * per property, never once for the whole message (attachOwnership).
+     *
      * @return list<array<string, mixed>>
      */
     public function extractProperties(string $message): array
     {
         $chunks = $this->splitOnConnectors($message);
-        $properties = [];
+        $descriptions = [];
 
         foreach ($chunks as $chunk) {
-            $property = $this->extractOneProperty($chunk);
+            $opensProperty = PropertyPhrasings::typeOf(mb_strtolower($chunk)) !== null;
+            if ($opensProperty || $descriptions === []) {
+                $descriptions[] = $chunk;
+
+                continue;
+            }
+            $descriptions[count($descriptions) - 1] .= ', '.$chunk;
+        }
+
+        $properties = [];
+        foreach ($descriptions as $description) {
+            $property = $this->extractOneProperty($description);
             if ($property !== null) {
-                $properties[] = $property;
+                $properties[] = $property + ['_evidence' => $description];
             }
         }
 
@@ -992,42 +1088,71 @@ final class AssetCaptureEntityExtractor
     {
         $lower = mb_strtolower($chunk);
 
-        // Type detection — most specific first so "buy-to-let property" does
-        // not match the bare "property" branch and downgrade to main_residence.
-        $group = match (true) {
-            preg_match('/\bbuy[\s-]?to[\s-]?let\b|\brental\s+property\b|\binvestment\s+property\b|\bbtl\b/u', $lower) === 1 => 'buy_to_let',
-            preg_match('/\bsecond\s+home\b|\bsecondary\s+residence\b|\bholiday\s+home\b/u', $lower) === 1 => 'secondary_residence',
-            preg_match('/\bmain\s+residence\b|\bprimary\s+residence\b|\bprincipal\s+residence\b/u', $lower) === 1 => 'main_residence',
-            preg_match('/\bproperty\b|\bhouse\b|\bflat\b|\bapartment\b|\bbungalow\b|\bmaisonette\b|\bhome\b|\bcottage\b|\bterrace\b|\bsemi\b|\bdetached\b|\bmy\s+place\b/u', $lower) === 1 => 'main_residence',
-            default => null,
-        };
-
+        $group = PropertyPhrasings::typeOf($lower);
         if ($group === null) {
             return null;
         }
 
         $input = ['property_type' => $group];
-        // "200000 left on the mortgage", "mortgage of 200k", "mortgage balance 200,000"
-        // (live 2026-09-15: "Our home is worth 450000 with 200000 left on the mortgage").
-        $mortgagePattern = '/(£?\\s*[\\d,]+(?:\\.\\d+)?\\s*(?:k|m)?)\\s+(?:left|outstanding|remaining|owing)\\s+on\\s+(?:the\\s+|our\\s+|my\\s+)?mortgage|\\bmortgage\\s+(?:of|is|at|balance(?:\\s+of)?|outstanding(?:\\s+of)?|left(?:\\s+of)?)\\s+(£?\\s*[\\d,]+(?:\\.\\d+)?\\s*(?:k|m)?)/iu';
-        if (preg_match($mortgagePattern, $chunk, $mm) === 1) {
-            $raw = trim(($mm[1] ?? '') !== '' ? $mm[1] : ($mm[2] ?? ''));
-            $mortgage = $this->extractAmount('£'.ltrim($raw, '£ '));
-            if ($mortgage !== null) {
-                $input['has_mortgage'] = true;
-                $input['mortgage_outstanding_balance'] = $mortgage;
+        $money = '£?\s*\d(?:[\d,]*\d)?(?:\.\d+)?\s*(?:k|m)?';
+
+        // Rent first — "rental income of 1000 per month" must never be read
+        // as the value or the mortgage. Normalised to a monthly figure.
+        $rentPatterns = [
+            '/\b(?:rent(?:al)?(?:\s+income)?|rents?\s+(?:for|at|of)|tenants?\s+pay(?:s|ing)?(?:\s+me)?|lets?\s+(?:it\s+|out\s+)?(?:for|at)|let\s+(?:for|at)|income\s+from\s+(?:it|the\s+(?:tenant|rent)))\s*(?:of\s+|is\s+|at\s+|about\s+|around\s+|roughly\s+)?('.$money.')\s*(?:a|per|each|\/|every)?\s*(month|pcm|pm|monthly|year|annum|yr|pa|annually|week|pw|weekly)?\b/iu',
+            '/('.$money.')\s*(?:a|per|each|\/|every)\s*(month|pcm|pm|year|annum|yr|pa|week|pw)\s+(?:in\s+)?rent(?:al\s+income)?\b/iu',
+        ];
+        foreach ($rentPatterns as $pattern) {
+            if (preg_match($pattern, $chunk, $rm) === 1) {
+                $rent = $this->extractAmount('£'.ltrim($rm[1], '£ '));
+                if ($rent !== null) {
+                    $period = mb_strtolower($rm[2] ?? 'month');
+                    $input['monthly_rental_income'] = round(match (true) {
+                        in_array($period, ['year', 'annum', 'yr', 'pa', 'annually'], true) => $rent / 12,
+                        in_array($period, ['week', 'pw', 'weekly'], true) => $rent * 52 / 12,
+                        default => $rent,
+                    }, 2);
+                }
+                $chunk = preg_replace($pattern, ' ', $chunk, 1) ?? $chunk;
+                break;
             }
-        } elseif (preg_match('/\\b(?:no|without)\\s+mortgage\\b|\\bmortgage[\\s-]free\\b|\\bowned\\s+outright\\b|\\boutright\\b/iu', $lower) === 1) {
+        }
+
+        // Mortgage: "200000 left on the mortgage", "mortgage of 200k",
+        // "mortgage balance 200,000", "a 150000 mortgage", "owe 90k on it",
+        // "£140,000 outstanding on the mortgage", "remaining mortgage 100000".
+        $mortgagePatterns = [
+            '/('.$money.')\s+(?:left|outstanding|remaining|owing|still\s+owed?|to\s+pay)\s+(?:on\s+)?(?:it|(?:the|our|my)\s+(?:mortgage|house|home|flat|property))?/iu',
+            '/\b(?:still\s+)?owe\s+(?:about\s+|around\s+|roughly\s+)?('.$money.')(?:\s+on\s+(?:it|(?:the|our|my)\s+(?:mortgage|house|home|flat|property)))?/iu',
+            '/\b(?:outstanding|remaining)\s+mortgage\s+(?:of\s+|is\s+|at\s+|balance\s+(?:of\s+|is\s+)?)?('.$money.')/iu',
+            '/\bmortgage\s+(?:of|is|at|balance(?:\s+of|\s+is)?|outstanding(?:\s+of|\s+is)?|left(?:\s+of)?|remaining(?:\s+of)?|about|around|roughly|approx(?:imately)?)\s+('.$money.')/iu',
+            '/\bmortgage\s+('.$money.')/iu',
+            '/(?:\ban?\s+|\bwith\s+(?:an?\s+)?)?('.$money.')\s+(?:repayment\s+|interest[\s-]only\s+)?mortgage\b/iu',
+        ];
+        $mortgageRead = false;
+        foreach ($mortgagePatterns as $pattern) {
+            if (preg_match($pattern, $chunk, $mm) === 1) {
+                $mortgage = $this->extractAmount('£'.ltrim(trim($mm[1]), '£ '));
+                if ($mortgage !== null) {
+                    $input['has_mortgage'] = true;
+                    $input['mortgage_outstanding_balance'] = $mortgage;
+                    $mortgageRead = true;
+                }
+                $chunk = preg_replace($pattern, ' ', $chunk, 1) ?? $chunk;
+                break;
+            }
+        }
+        if (! $mortgageRead && preg_match('/\b(?:no|without|zero)\s+mortgage\b|\bmortgage[\s-]free\b|\bunencumbered\b|\bowned?\s+(?:it\s+)?outright\b|\boutright\b|\bpaid\s+(?:it\s+)?off\b|\bfully\s+paid\b|\bno\s+(?:debt|loan)\s+on\s+it\b/iu', $lower) === 1) {
             $input['has_mortgage'] = false;
         }
-        // Read the value from the chunk without the mortgage figure.
-        $chunk = preg_replace($mortgagePattern, ' ', $chunk) ?? $chunk;
 
         // UK postcode format — case-insensitive, optional space.
         if (preg_match('/\b([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b/iu', $chunk, $m) === 1) {
             $input['postcode'] = strtoupper(preg_replace('/\s+/u', '', $m[1]) ?? $m[1]);
+            $chunk = str_replace($m[1], ' ', $chunk);
         }
 
+        // The value is whatever money is left once rent and mortgage are gone.
         $amount = $this->extractAmount($chunk);
         if ($amount !== null) {
             $input['current_value'] = $amount;
@@ -1280,6 +1405,9 @@ final class AssetCaptureEntityExtractor
         // optional further group of three, ad infinitum) is a thousand
         // separator and MUST NOT split the message.
         $normalised = preg_replace('/,(?=\d{3}\b)/u', '<COMMA>', $normalised) ?? $normalised;
+        // "my wife and I own it together" — the "and" joins two people, not
+        // two entities; splitting there turned a joint home individual.
+        $normalised = preg_replace('/\s+and\s+(?=(?:i|me)\b)/iu', ' <AND_PERSON> ', $normalised) ?? $normalised;
 
         $pattern = '/\s*(?:,\s*and\s+|\s+and\s+|\s*,\s*|\s*;\s*|\s*\band\s+also\s+|\s+plus\s+|\s+also\s+|\n|\*\s+)\s*/iu';
         $parts = preg_split($pattern, $normalised);
@@ -1289,8 +1417,8 @@ final class AssetCaptureEntityExtractor
 
         return array_values(array_filter(array_map(
             fn (string $p): string => trim(str_replace(
-                ['Legal_and_General', 'SS_ISA', 'Stocks_and_Shares', '<COMMA>'],
-                ['Legal & General', 'S&S ISA', 'Stocks & Shares', ','],
+                ['Legal_and_General', 'SS_ISA', 'Stocks_and_Shares', '<COMMA>', '<AND_PERSON>'],
+                ['Legal & General', 'S&S ISA', 'Stocks & Shares', ',', 'and'],
                 $p
             )),
             $parts
@@ -1304,7 +1432,7 @@ final class AssetCaptureEntityExtractor
      */
     private function extractAmount(string $chunk): ?float
     {
-        if (preg_match('/£\s*([\d,]+(?:\.\d+)?)\s*(k|m|K|M|\bmillion\b|\bthousand\b)?/u', $chunk, $m) === 1) {
+        if (preg_match('/£\s*(\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(k|m|K|M|\bmillion\b|\bthousand\b)?/u', $chunk, $m) === 1) {
             return $this->scaleAmount((float) str_replace(',', '', $m[1]), $m[2] ?? '');
         }
 
@@ -1322,7 +1450,7 @@ final class AssetCaptureEntityExtractor
         // to nine digits, not a percentage, not a year in a date, and not the
         // digits of a provider name ("Trading 212"), which never carry the
         // amount words in front.
-        if (preg_match('/\b(?:with|of|balance(?:\s+of)?|worth|at|holding|about|around|roughly|approx(?:imately)?|is|has)\s+(\d{3,9})\b(?!\s*%|\s*percent|\s*(?:st|nd|rd|th)\b|\s+(?:january|february|march|april|may|june|july|august|september|october|november|december))/iu', $chunk, $m) === 1) {
+        if (preg_match('/\b(?:with|of|balance(?:\s+of)?|worth|valued?(?:\s+at)?|at|holding|about|around|roughly|approx(?:imately)?|is|has)\s+(\d{3,9})\b(?!\s*%|\s*percent|\s*(?:st|nd|rd|th)\b|\s+(?:january|february|march|april|may|june|july|august|september|october|november|december))/iu', $chunk, $m) === 1) {
             return (float) $m[1];
         }
 

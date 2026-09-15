@@ -53,7 +53,7 @@ it('seeds the approved Free and Premium commercial matrix exactly', function () 
             'savings_account' => 2,
             'investment' => 2,
             'pension_account' => 2,
-            'property' => 1,
+            'property' => 2, // CSJ 2026-09-15: a home and a buy to let
             'mortgage' => 10,
             'goal' => 2,
             'life_event' => 1,

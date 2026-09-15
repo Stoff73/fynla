@@ -50,8 +50,13 @@ class PropertyNormaliser
         if (array_key_exists('joint_ownership_type', $data)) {
             $data['joint_ownership_type'] = $this->canonicalJointOwnershipType($data['joint_ownership_type']);
         }
-        if (array_key_exists('tenure_type', $data)) {
-            $data['tenure_type'] = $this->canonicalTenureType($data['tenure_type']);
+        // A key present with null is the same trap as a stray null: the model
+        // sends every unstated schema field as null (live 2026-09-15, "Column
+        // 'tenure_type' cannot be null"). Omit it and the default applies.
+        $tenure = $this->canonicalTenureType($data['tenure_type'] ?? null);
+        unset($data['tenure_type']);
+        if ($tenure !== null) {
+            $data['tenure_type'] = $tenure;
         }
 
         // ownership_percentage — one rule, one home (App\Support\SharedOwnership).
@@ -148,8 +153,8 @@ class PropertyNormaliser
         if (array_key_exists('joint_ownership_type', $toolParams)) {
             $canonical['joint_ownership_type'] = $this->canonicalJointOwnershipType($toolParams['joint_ownership_type']);
         }
-        if (array_key_exists('tenure_type', $toolParams)) {
-            $canonical['tenure_type'] = $this->canonicalTenureType($toolParams['tenure_type']);
+        if (($tenure = $this->canonicalTenureType($toolParams['tenure_type'] ?? null)) !== null) {
+            $canonical['tenure_type'] = $tenure;
         }
 
         // W-0500 — `joint_owner_is_spouse`, and ONLY the value that cannot reduce a
@@ -257,8 +262,8 @@ class PropertyNormaliser
             $canonical['property_type'] = $this->canonicalPropertyType($extraction['property_type']);
         }
         $canonical['ownership_type'] = $this->canonicalOwnershipType($extraction['ownership_type'] ?? null);
-        if (array_key_exists('tenure_type', $extraction)) {
-            $canonical['tenure_type'] = $this->canonicalTenureType($extraction['tenure_type']);
+        if (($tenure = $this->canonicalTenureType($extraction['tenure_type'] ?? null)) !== null) {
+            $canonical['tenure_type'] = $tenure;
         }
 
         // Uploads default to individual ownership at 100% unless specified.
