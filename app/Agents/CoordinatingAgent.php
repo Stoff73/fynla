@@ -1055,6 +1055,20 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        // The xAI catalogue fills every optional field it has nothing for with
+        // a zero — joint_owner_id 0, joint_owner_name "0", trust_id 0 (prod
+        // 2026-09-15, user 702: an individual Lloyds account carrying
+        // joint_owner_id 0 read as "the ownership details conflict"). A zero
+        // is "not given"; strip it once, before any guard reads the input.
+        foreach (['joint_owner_id', 'trust_id'] as $idField) {
+            if (array_key_exists($idField, $input) && (int) $input[$idField] === 0) {
+                $input[$idField] = null;
+            }
+        }
+        if (array_key_exists('joint_owner_name', $input)) {
+            $input['joint_owner_name'] = SharedOwnership::counterpartyName($input['joint_owner_name']);
+        }
+
         $jointOwnerError = $this->captureJointOwnerError($toolName, $input, $user);
         if ($jointOwnerError !== null) {
             $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $jointOwnerError);
@@ -1138,11 +1152,6 @@ class CoordinatingAgent extends BaseAgent
 
                 return $pointerResult;
             }
-        }
-
-        // The model's "0" for a co-owner it does not know is not a name.
-        if (array_key_exists('joint_owner_name', $input)) {
-            $input['joint_owner_name'] = SharedOwnership::counterpartyName($input['joint_owner_name']);
         }
 
         try {

@@ -771,7 +771,7 @@ final class CaptureAccuracyGate
 
     private function mentionsEntityNoun(string $segment): bool
     {
-        return preg_match('/\b(?:accounts?|isas?|savers?|propert(?:y|ies)|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
+        return preg_match('/\b(?:accs?|accounts?|isas?|savers?|propert(?:y|ies)|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
     }
 
     private function isSharedEntityEvidence(string $segment, string $tool): bool
@@ -864,7 +864,7 @@ final class CaptureAccuracyGate
     private function segmentsForTurn(string $turn): array
     {
         $segments = preg_split(
-            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)|\s+(?:and|but|while|whereas)\s+(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b))/u',
+            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)|\s+(?:and|but|while|whereas)\s+(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b|an?\s+(?:joint(?:ly)?|shared|individual|sole|separate|second|third|further|new)\b|an?\s+(?:[a-z&\x{0027}]+\s+){1,4}(?:accs?|accounts?|isas?|savers?|pensions?|propert(?:y|ies)|loans?|mortgages?)\b))/u',
             $turn,
         ) ?: [];
 
@@ -877,8 +877,8 @@ final class CaptureAccuracyGate
     private function entityGroupNouns(string $tool): string
     {
         return match ($tool) {
-            'create_savings_account' => 'accounts?|isas?|savings?|savers?',
-            'create_investment_account' => 'accounts?|isas?|investments?|portfolios?',
+            'create_savings_account' => 'accs?|accounts?|isas?|savings?|savers?',
+            'create_investment_account' => 'accs?|accounts?|isas?|investments?|portfolios?',
             'create_property' => 'properties|property',
             'create_liability' => 'liabilities|liability|loans?|debts?',
             default => '(?!)',
