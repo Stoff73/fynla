@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
-use App\Models\Estate\Liability;
 use App\Models\FamilyMember;
-use App\Models\Investment\InvestmentAccount;
-use App\Models\Mortgage;
-use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\LiabilityStore;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PropertyStore;
+use App\Services\Stores\SavingsStore;
 use App\Support\SharedOwnership;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * The onboarding memory for "this joint record is shared with my spouse".
@@ -29,13 +29,18 @@ final class SpouseJointRecords
 {
     public const CONTEXT_KEY = 'spouse_joint_records';
 
-    /** @var array<string, class-string<Model>> */
-    private const MODELS = [
-        'savings_account' => SavingsAccount::class,
-        'investment_account' => InvestmentAccount::class,
-        'property' => Property::class,
-        'mortgage' => Mortgage::class,
-        'liability' => Liability::class,
+    /**
+     * The canonical store for each record type — every read and write of a
+     * record goes through its store (the store-boundary architecture tests).
+     *
+     * @var array<string, class-string>
+     */
+    private const STORES = [
+        'savings_account' => SavingsStore::class,
+        'investment_account' => InvestmentAccountStore::class,
+        'property' => PropertyStore::class,
+        'mortgage' => MortgageStore::class,
+        'liability' => LiabilityStore::class,
     ];
 
     /**
@@ -44,7 +49,7 @@ final class SpouseJointRecords
      */
     public function remember(User $user, string $entityType, int $entityId): void
     {
-        if (! isset(self::MODELS[$entityType]) || ! $this->householdHasSpouse($user)) {
+        if (! isset(self::STORES[$entityType]) || ! $this->householdHasSpouse($user)) {
             return;
         }
 
@@ -83,21 +88,23 @@ final class SpouseJointRecords
 
         $remaining = [];
         foreach ($entries as $entry) {
-            $model = self::MODELS[$entry['type'] ?? ''] ?? null;
-            $record = $model !== null ? $model::query()->find($entry['id'] ?? 0) : null;
+            $storeClass = self::STORES[$entry['type'] ?? ''] ?? null;
+            $store = $storeClass !== null ? app($storeClass) : null;
+            $record = $store !== null ? $store->find((int) ($entry['id'] ?? 0), $user) : null;
             if ($record === null) {
                 continue; // deleted since — nothing to fill
             }
+            $changes = [];
             if ($record->joint_owner_id === null && $spouseId !== null) {
-                $record->joint_owner_id = $spouseId;
+                $changes['joint_owner_id'] = $spouseId;
             }
             if ($spouseName !== null
                 && (SharedOwnership::counterpartyName($record->joint_owner_name) === null
                     || SharedOwnership::isRelationshipPlaceholder($record->joint_owner_name))) {
-                $record->joint_owner_name = $spouseName;
+                $changes['joint_owner_name'] = $spouseName;
             }
-            if ($record->isDirty()) {
-                $record->save();
+            if ($changes !== []) {
+                $record = $store->update((int) $record->id, $changes, $user, IngestSource::FYN_AI);
             }
             if ($record->joint_owner_id === null) {
                 $remaining[] = $entry;

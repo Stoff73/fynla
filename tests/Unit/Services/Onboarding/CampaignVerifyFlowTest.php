@@ -330,13 +330,19 @@ it('routes each section CAPTURE-end straight into navigate/confirm (no extra gat
     foreach ([
         OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
         OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
-        OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
         OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
     ] as $stateId) {
         $next = $states[$stateId]['next'];
         $resolved = is_callable($next) ? $next('', $user) : $next;
         expect($resolved)->toBe('campaign_verify_announce', "state {$stateId} should enter the announce gate");
     }
+
+    // The pensions capture-end passes through the pot-value loop first (CSJ
+    // 2026-09-15: every pension is asked for its value); with nothing
+    // missing the loop enters the same announce gate — still no extra gate.
+    $next = $states[OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS]['next'];
+    expect(is_callable($next) ? $next('', $user) : $next)->toBe(OnboardingStateMachine::STATE_CAMPAIGN2_PENSION_POTS)
+        ->and(OnboardingStateMachine::nextFromPensionPots('', $user->fresh()))->toBe('campaign_verify_announce');
 
     // Advice now fires AFTER the confirm and continues to the next section —
     // never back into the verify flow.

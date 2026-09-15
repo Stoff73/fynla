@@ -4096,7 +4096,11 @@ PROMPT;
             // savings." closes the section (live 2026-07-23, msg 19859:
             // grok refused it, the strip emptied the turn, and the guard
             // re-asked "Sorry, I didn't catch that").
-            && preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) !== 1) {
+            && preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) !== 1
+            // …and so does "I don't know" on a step that advances on an
+            // answered question (the pot-value loop; CSJ 2026-09-15: not
+            // knowing the value is fine). The retry would ask again forever.
+            && ! $advanceOnAnsweredQuestion) {
             yield from $this->emitRetry($conversation, $state, $currentStateId, $user, $message);
 
             return;
@@ -6389,6 +6393,11 @@ PROMPT;
 
         // A number, percentage, or currency amount is always an answer.
         if (preg_match('/\d/', $trimmed) === 1) {
+            return true;
+        }
+
+        // One vocabulary for "I don't know" — shared with nextFromPensionPots.
+        if (OnboardingStateMachine::saysValueUnknown($trimmed)) {
             return true;
         }
 

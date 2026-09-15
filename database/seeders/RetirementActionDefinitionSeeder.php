@@ -115,6 +115,24 @@ class RetirementActionDefinitionSeeder extends Seeder
             ],
 
             [
+                'key' => 'pension_value_unknown',
+                'source' => 'agent',
+                'title_template' => 'Add the current value of your {scheme_name}',
+                'description_template' => 'You told Fyn about your {scheme_name} but not what it is worth today. A rough figure from your latest annual statement or provider app lets your retirement projection use the real pot.',
+                'action_template' => 'Add the current value from your latest statement.',
+                'category' => 'Pension_value',
+                'priority' => 'medium',
+                'scope' => 'account',
+                'what_if_impact_type' => 'contribution',
+                'trigger_config' => [
+                    'condition' => 'dc_pension_value_missing',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 15,
+                'notes' => 'Triggers for each DC pension whose current_fund_value is not entered (0). CSJ 2026-09-15: a value not known at onboarding is fine — it is asked for here.',
+            ],
+
+            [
                 'key' => 'start_contributions',
                 'source' => 'agent',
                 'title_template' => 'Start Pension Contributions',

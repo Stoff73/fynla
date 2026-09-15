@@ -181,7 +181,7 @@ campaign_occupational_scheme:
 
 campaign_pension_contribs:
   turn_type: delegated
-  prompt_text: 'Beyond the workplace pension we covered, **do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?**'
+  prompt_text: "**Do you have a personal pension or a Self-Invested Personal Pension (SIPP)?** If you do, tell me who it's with and whether you pay into it — and roughly how much a year (gross) if you do. If you have one but don't pay in, just say so."
   capture_field: null
   next: { branch: nextFromCampaignPensionContribs }
   advance_on_answered_question: true
