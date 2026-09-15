@@ -52,7 +52,7 @@ class TierConfigurationSeeder extends Seeder
                     'savings_account' => 2,
                     'investment' => 2,
                     'pension_account' => 2,
-                    'property' => 1,
+                    'property' => 2,
                     'mortgage' => 10,
                     'goal' => 2,
                     'life_event' => 1,

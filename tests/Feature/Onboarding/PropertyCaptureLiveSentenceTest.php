@@ -95,9 +95,10 @@ it('lands the home as joint at the stated share on the next reply', function ():
         ->and($shown)->not->toContain('worth saving');
 });
 
-it('tells a Free user the plan\'s property limit on the second property instead of saying nothing', function (): void {
-    // Free allows one property (TierConfigurationSeeder). The buy to let took
-    // the slot on the first turn; the home must be refused out loud, once.
+it('lets a Free user hold a home and a buy to let — the plan allows two properties', function (): void {
+    // CSJ 2026-09-15: Free holds two properties (TierConfigurationSeeder +
+    // the 2026_09_15_170000 migration). The buy to let took one slot on the
+    // first turn; the home lands on the share reply.
     $user = propertyStepUser();
     $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])->fresh();
 
@@ -106,12 +107,10 @@ it('tells a Free user the plan\'s property limit on the second property instead 
 
     $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation->fresh(), '50%'), false);
     $shown = collect($events)->where('type', 'content')->pluck('text')->implode(' ');
-    $attempts = collect($events)->where('type', 'tool_use')->where('status', 'running')->count();
 
-    expect(Property::where('user_id', $user->id)->count())->toBe(1)
-        ->and($shown)->toContain('property limit')
-        ->and($shown)->not->toContain('worth saving')
-        ->and($attempts)->toBeLessThanOrEqual(2, 'attempts: '.$attempts);
+    expect(Property::where('user_id', $user->id)->count())->toBe(2, 'shown: '.$shown)
+        ->and($shown)->not->toContain('property limit')
+        ->and($shown)->not->toContain('worth saving');
 });
 
 it('lands the home when the model answers the share reply with every unstated field as null and an invented co-owner', function (): void {
