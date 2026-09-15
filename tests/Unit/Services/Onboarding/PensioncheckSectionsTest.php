@@ -23,7 +23,7 @@ use App\Services\Onboarding\OnboardingStateMachine as SM;
 
 it('sectionOrderFor savetax is byte-identical to the original CAMPAIGN_SECTION_ORDER', function (): void {
     expect(SM::sectionOrderFor('savetax'))->toBe([
-        'income', 'savings', 'investments', 'pensions', 'spouse', 'expenditure',
+        'income', 'savings', 'investments', 'property', 'pensions', 'spouse', 'expenditure',
     ]);
 });
 
@@ -34,11 +34,13 @@ it('sectionOrderFor savetax matches the deprecated CAMPAIGN_SECTION_ORDER alias'
 it('campaignSections savetax entries are byte-identical to today\'s section map', function (): void {
     $sections = SM::campaignSections('savetax');
 
-    expect(array_keys($sections))->toBe(['income', 'savings', 'investments', 'pensions', 'spouse', 'expenditure'])
+    expect(array_keys($sections))->toBe(['income', 'savings', 'investments', 'property', 'pensions', 'spouse', 'expenditure'])
         ->and($sections['income']['entry'])->toBe(SM::STATE_BASE_EMPLOYMENT)
         ->and($sections['income']['skip'])->toBeNull()
         ->and($sections['savings']['entry'])->toBe(SM::STATE_CAMPAIGN_ISA_HOLDINGS)
         ->and($sections['investments']['entry'])->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        ->and($sections['property']['entry'])->toBe(SM::STATE_CAMPAIGN_PROPERTY)
+        ->and($sections['property']['skip'])->toBe([SM::class, 'skipSectionIfNoProperty'])
         ->and($sections['pensions']['entry'])->toBe(SM::STATE_CAMPAIGN_DOB)
         ->and($sections['pensions']['skip'])->toBeNull()
         ->and($sections['spouse']['entry'])->toBe(SM::STATE_CAMPAIGN_SPOUSE_WORK)

@@ -120,6 +120,8 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_INVESTMENT_ACCOUNTS = 'campaign_investment_accounts';
 
+    public const STATE_CAMPAIGN_PROPERTY = 'campaign_property';
+
     public const STATE_CAMPAIGN_PENSION_CONTRIBS = 'campaign_pension_contribs';
 
     public const STATE_CAMPAIGN_PENSION_HISTORY = 'campaign_pension_history';
@@ -206,7 +208,7 @@ final class OnboardingStateMachine
      * retirement-gap modelling.
      */
     public const CAMPAIGN_SECTION_ORDERS = [
-        'savetax' => ['income', 'savings', 'investments', 'pensions', 'spouse', 'expenditure'],
+        'savetax' => ['income', 'savings', 'investments', 'property', 'pensions', 'spouse', 'expenditure'],
         'pensioncheck' => ['income', 'pensions', 'state_pension', 'retirement_goals', 'spouse', 'expenditure'],
     ];
 
@@ -245,6 +247,9 @@ final class OnboardingStateMachine
             'income' => ['entry' => self::STATE_BASE_EMPLOYMENT, 'skip' => null],
             'savings' => ['entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS, 'skip' => [self::class, 'skipSectionIfNoCash']],
             'investments' => ['entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS, 'skip' => [self::class, 'skipSectionIfNoInvestments']],
+            // The funnel offers "Property"; the walk asked nothing about it
+            // until CSJ 2026-09-15.
+            'property' => ['entry' => self::STATE_CAMPAIGN_PROPERTY, 'skip' => [self::class, 'skipSectionIfNoProperty']],
             'pensions' => ['entry' => self::STATE_CAMPAIGN_DOB, 'skip' => null],
             'spouse' => ['entry' => self::STATE_CAMPAIGN_SPOUSE_WORK, 'skip' => [self::class, 'skipIfNotMarried']],
             'expenditure' => ['entry' => self::STATE_BASE_EXPENDITURE, 'skip' => null],
@@ -283,6 +288,7 @@ final class OnboardingStateMachine
             'income' => ['route' => '/income', 'entry' => self::STATE_BASE_EMPLOYMENT],
             'savings' => ['route' => '/savings', 'entry' => self::STATE_CAMPAIGN_ISA_HOLDINGS],
             'investments' => ['route' => '/investment', 'entry' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS],
+            'property' => ['route' => '/net-worth/property', 'entry' => self::STATE_CAMPAIGN_PROPERTY],
             'pensions' => ['route' => '/retirement', 'entry' => self::STATE_CAMPAIGN_DOB],
             'spouse' => ['route' => '/income', 'entry' => self::STATE_CAMPAIGN_SPOUSE_WORK],
             'expenditure' => ['route' => '/expenditure', 'entry' => self::STATE_BASE_EXPENDITURE],
@@ -467,9 +473,14 @@ final class OnboardingStateMachine
             self::STATE_CAMPAIGN_ISA_HOLDINGS => [
                 // Only ask about ISAs if the user ticked "ISA" on the funnel.
                 'skip_if' => [self::class, 'skipIfNoIsa'],
+                'capture_focus' => 'savings',
             ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
+                // The ONE deterministic gap-fill when the model refuses or
+                // makes no call (CSJ 2026-09-15: the pension step had one,
+                // the bank, ISA and investment steps did not).
+                'capture_focus' => 'savings',
                 // Existing savings rows (with ids) enter the prompt so a
                 // message referencing an account already on file updates it by
                 // entity_id instead of guessing entity_id 0 (live 2026-07-23:
@@ -484,7 +495,14 @@ final class OnboardingStateMachine
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
+                'capture_focus' => 'investment',
                 'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
+            ],
+            // ── Property section (CSJ 2026-09-15) ─────────────────────────
+            self::STATE_CAMPAIGN_PROPERTY => [
+                'capture_focus' => 'property',
+                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'property'),
+                'skip_if' => [self::class, 'skipSectionIfNoProperty'],
             ],
             // ── Pensions section (entry: DOB — only now is it relevant) ────
             self::STATE_CAMPAIGN_DOB => [
@@ -648,6 +666,7 @@ final class OnboardingStateMachine
             // (verify_navigate "yes" → this advice → next section). Each relays
             // its tax-engine recommendation, then continues to the next section.
             self::STATE_CAMPAIGN_ADVICE_INCOME => [
+                'skip_if' => [self::class, 'skipAdviceDuringOnboarding'],
                 // SaveTax users pass the consent gate before the first asset
                 // section (F6 re-wire, CSJ 2026-09-09); PensionCheck walks straight on.
                 'next' => fn (string $answer, User $user): string => ($user->onboarding_fyn_selection ?? 'savetax') === 'savetax'
@@ -655,15 +674,19 @@ final class OnboardingStateMachine
                     : self::nextCampaignSection('income', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_SAVINGS => [
+                'skip_if' => [self::class, 'skipAdviceDuringOnboarding'],
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('savings', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_INVESTMENTS => [
+                'skip_if' => [self::class, 'skipAdviceDuringOnboarding'],
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('investments', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_PENSIONS => [
+                'skip_if' => [self::class, 'skipAdviceDuringOnboarding'],
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('pensions', $user),
             ],
             self::STATE_CAMPAIGN_ADVICE_SPOUSE => [
+                'skip_if' => [self::class, 'skipAdviceDuringOnboarding'],
                 // Last section's advice → nextCampaignSection('spouse') returns
                 // STATE_CAMPAIGN_TERMINAL once the sections are exhausted. This
                 // MUST NOT point back at itself.
@@ -689,9 +712,11 @@ final class OnboardingStateMachine
             ],
             // ── Pensioncheck per-section advice turns ──────────────────────
             self::STATE_CAMPAIGN2_ADVICE_STATE_PENSION => [
+                'skip_if' => [self::class, 'skipAdviceDuringOnboarding'],
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('state_pension', $user),
             ],
             self::STATE_CAMPAIGN2_ADVICE_RETIREMENT_GOALS => [
+                'skip_if' => [self::class, 'skipAdviceDuringOnboarding'],
                 'next' => fn (string $answer, User $user): string => self::nextCampaignSection('retirement_goals', $user),
             ],
             // ── SaveTax verify sub-flow (generic; section in context) ──────
@@ -1675,6 +1700,21 @@ final class OnboardingStateMachine
     public static function skipSectionIfNoCash(User $user): bool
     {
         return ! self::funnelHasAnyAsset($user, ['savings', 'bank', 'isa']);
+    }
+
+    public static function skipSectionIfNoProperty(User $user): bool
+    {
+        return ! self::funnelHasAnyAsset($user, ['property']);
+    }
+
+    /**
+     * Onboarding takes information and gives no advice (CSJ 2026-09-15: the
+     * dividend-allowance advice mid-walk was the trigger). Every advice state
+     * is skipped on entry; the plan is delivered at the end of the walk.
+     */
+    public static function skipAdviceDuringOnboarding(User $user): bool
+    {
+        return true;
     }
 
     // ─── Pensioncheck data-presence skip predicates (Task C2) ────────────────

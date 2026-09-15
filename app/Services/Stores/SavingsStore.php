@@ -137,7 +137,19 @@ class SavingsStore
      */
     public function countForUser(User $user): int
     {
-        return SavingsAccount::where('user_id', $user->id)->count();
+        // The bank-accounts allowance. ISAs never count here — every ISA,
+        // cash ISAs included, counts toward the investments allowance
+        // (CSJ 2026-09-15).
+        return SavingsAccount::where('user_id', $user->id)->where('is_isa', false)->count();
+    }
+
+    /**
+     * Cash ISAs held in this table — counted by InvestmentAccountStore toward
+     * the investments allowance alongside the investment ISAs.
+     */
+    public function isaCountForUser(User $user): int
+    {
+        return SavingsAccount::where('user_id', $user->id)->where('is_isa', true)->count();
     }
 
     // ---------- Writes ----------
@@ -147,12 +159,16 @@ class SavingsStore
         $this->validateCanonical($data);
         $this->validateOwnershipLinks($data, $user);
 
-        $count = $this->countForUser($user);
-        if (! $this->tierGate->canCreate($user, self::ENTITY_KEY, $count)) {
+        // A cash ISA is capped with the investments, a bank account with the
+        // bank accounts (CSJ 2026-09-15) — one rule for the form and Fyn.
+        $isIsa = (bool) ($data['is_isa'] ?? false);
+        $entityKey = $isIsa ? InvestmentAccountStore::ENTITY_KEY : self::ENTITY_KEY;
+        $count = $isIsa ? app(InvestmentAccountStore::class)->countForUser($user) : $this->countForUser($user);
+        if (! $this->tierGate->canCreate($user, $entityKey, $count)) {
             throw new TierLimitExceededException(
-                self::ENTITY_KEY,
+                $entityKey,
                 $count,
-                $this->tierGate->hardLimit($user, self::ENTITY_KEY)
+                $this->tierGate->hardLimit($user, $entityKey)
             );
         }
 

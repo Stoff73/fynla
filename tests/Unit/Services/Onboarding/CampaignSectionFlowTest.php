@@ -288,6 +288,6 @@ it('never lets a campaign advice state auto-advance back into itself', function 
 
 it('section order matches the single source-of-truth array', function () {
     expect(SM::CAMPAIGN_SECTION_ORDER)->toBe([
-        'income', 'savings', 'investments', 'pensions', 'spouse', 'expenditure',
+        'income', 'savings', 'investments', 'property', 'pensions', 'spouse', 'expenditure',
     ]);
 });

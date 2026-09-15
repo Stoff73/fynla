@@ -2153,3 +2153,40 @@ it('still asks when the answer names neither', function (): void {
     expect($result['allowed'])->toBeFalse()
         ->and($result['missing'])->toContain('ownership_type');
 });
+
+it('opens a new clause before "and a Trading 212 acc" — a provider name with digits', function (): void {
+    // csjones 2026-09-15 (user 396): the GIA was joint, the Trading 212
+    // account "mine", and the gate asked who owns the Trading 212 account.
+    $text = 'GIA with Hargreaves Lansdown worth 15000, cost 12000, dividends 300 a year, joint with my wife and a Trading 212 acc with 5000, mine';
+    $gate = app(CaptureAccuracyGate::class);
+
+    expect($gate->inspect('create_investment_account', [
+        'provider' => 'Trading 212',
+        'account_name' => 'Trading 212 Account',
+        'account_type' => 'gia',
+        'current_value' => 5000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $text))->toBe(['allowed' => true])
+        ->and($gate->inspect('create_investment_account', [
+            'provider' => 'Hargreaves Lansdown',
+            'account_name' => 'Hargreaves Lansdown General Investment Account',
+            'account_type' => 'gia',
+            'current_value' => 15000,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50,
+        ], $text)['allowed'])->toBeTrue();
+});
+
+it('reads "our home … joint with my wife 50/50" as property ownership evidence — live 2026-09-15', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_property', [
+        'property_type' => 'main_residence',
+        'current_value' => 450000,
+        'has_mortgage' => true,
+        'mortgage_outstanding_balance' => 200000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ], 'Our home is worth 450000 with 200000 left on the mortgage, joint with my wife 50/50');
+
+    expect($result['allowed'])->toBeTrue();
+});

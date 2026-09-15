@@ -99,6 +99,8 @@ final class InvestmentAccountNormaliser
             'contribution_frequency' => $data['contribution_frequency'] ?? null,
             'isa_type' => $data['isa_type'] ?? null,
             'isa_subscription_current_year' => $data['isa_subscription_current_year'] ?? null,
+            // Offered dividend income lives on the account it came from (CSJ 2026-09-15).
+            'annual_dividend_income' => $data['annual_dividend_income'] ?? null,
             'ownership_type' => $data['ownership_type'] ?? $data['ownership'] ?? 'individual',
             'ownership_percentage' => $data['ownership_percentage'] ?? null,
             'joint_owner_id' => $data['joint_owner_id'] ?? null,

@@ -758,7 +758,7 @@ final class CaptureAccuracyGate
     {
         // "joint account", "shared", "individual", "sole name" — an ownership
         // answer on its own, with at most a generic noun, names no new entity.
-        if (preg_match('/^\s*(?:it[\x{2019}\x{0027}]?s\s+|that[\x{2019}\x{0027}]?s\s+)?(?:an?\s+)?(?:'.OwnershipPhrasings::JOINT.'|'.OwnershipPhrasings::INDIVIDUAL.')(?:\s+(?:accs?|accounts?|isa|savers?|savings|one|name))?\s*[.!]?\s*$/u', $segment) === 1) {
+        if (preg_match('/^\s*(?:it[\x{2019}\x{0027}]?s\s+|that[\x{2019}\x{0027}]?s\s+)?(?:an?\s+)?(?:'.OwnershipPhrasings::JOINT.'|'.OwnershipPhrasings::INDIVIDUAL.')(?:\s+(?:accs?|accounts?|isa|savers?|savings|one|name))?(?:\s+with\s+(?:my\s+)?(?:spouse|partner|wife|husband|other\s+half|[a-z]+))?(?:\s+(?:50\s*\/\s*50|fifty[\s\/-]*fifty|half\s+each|\d{1,3}\s*%(?:\s+each)?))?\s*[.!]?\s*$/u', $segment) === 1) {
             return true;
         }
         $joined = preg_split('/\s+and\s+/u', trim($segment));
@@ -798,7 +798,7 @@ final class CaptureAccuracyGate
 
     private function mentionsEntityNoun(string $segment): bool
     {
-        return preg_match('/\b(?:accs?|accounts?|isas?|savers?|propert(?:y|ies)|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
+        return preg_match('/\b(?:accs?|accounts?|isas?|savers?|propert(?:y|ies)|homes?|houses?|flats?|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
     }
 
     private function isSharedEntityEvidence(string $segment, string $tool): bool
@@ -891,7 +891,7 @@ final class CaptureAccuracyGate
     private function segmentsForTurn(string $turn): array
     {
         $segments = preg_split(
-            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)(?!(?:(?:actually|correction|rather|instead)[,:]?\s+)?my\s+(?:wife|husband|partner|spouse|other\s+half)\b)|\s+(?:and|but|while|whereas)\s+(?!my\s+(?:wife|husband|partner|spouse|other\s+half)\b)(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b|an?\s+(?:joint(?:ly)?|shared|individual|sole|separate|second|third|further|new)\b|an?\s+(?:[a-z&\x{0027}]+\s+){1,4}(?:accs?|accounts?|isas?|savers?|pensions?|propert(?:y|ies)|loans?|mortgages?)\b))/u',
+            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)(?!(?:(?:actually|correction|rather|instead)[,:]?\s+)?my\s+(?:wife|husband|partner|spouse|other\s+half)\b)|\s+(?:and|but|while|whereas)\s+(?!my\s+(?:wife|husband|partner|spouse|other\s+half)\b)(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b|an?\s+(?:joint(?:ly)?|shared|individual|sole|separate|second|third|further|new)\b|an?\s+(?:[a-z0-9&\x{0027}]+\s+){1,4}(?:accs?|accounts?|isas?|savers?|pensions?|propert(?:y|ies)|loans?|mortgages?)\b))/u',
             $turn,
         ) ?: [];
 
@@ -906,7 +906,7 @@ final class CaptureAccuracyGate
         return match ($tool) {
             'create_savings_account' => 'accs?|accounts?|isas?|savings?|savers?',
             'create_investment_account' => 'accs?|accounts?|isas?|investments?|portfolios?',
-            'create_property' => 'properties|property',
+            'create_property' => 'properties|property|homes?|houses?|flats?|apartments?|bungalows?|cottages?',
             'create_liability' => 'liabilities|liability|loans?|debts?',
             default => '(?!)',
         };

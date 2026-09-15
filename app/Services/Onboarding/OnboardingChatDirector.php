@@ -3734,6 +3734,7 @@ PROMPT;
             $ackShown = false;
             $contentBuffer = '';
             $visibleResponse = '';
+            $rawModelText = '';
             $flushed = false;
             $recordsCreated = [];
             $modelRequestedClarification = false;
@@ -3816,6 +3817,7 @@ PROMPT;
 
                 if ($type === 'content') {
                     $contentBuffer .= (string) ($event['text'] ?? '');
+                    $rawModelText .= (string) ($event['text'] ?? '');
 
                     continue;
                 }
@@ -3957,6 +3959,37 @@ PROMPT;
                 yield $rescueEvent;
             }
         }
+
+        // The model refused (its canned "I can only help with financial
+        // planning questions") or said nothing, made no call, and there was
+        // no earlier blocked attempt to rescue. Live 2026-09-15, every time:
+        // the same sentence re-sent landed. So re-run the turn ONCE here —
+        // the history builder already drops the refusal row, the user
+        // message is already saved — before falling back to "Sorry, I
+        // didn't catch that". Never more than once: a second refusal stands.
+        $refusedOrSilent = trim($rawModelText) === ''
+            || str_contains($rawModelText, FynSystemPrompt::CANNED_REFUSAL);
+        if ($toolCallsSeen === 0
+            && $recordsCreated === []
+            && $refusedOrSilent
+            && ! $userAskedQuestion
+            && ! self::isCompletionDeclaration($message)
+            && ($state['refusal_retried'] ?? false) !== true) {
+            Log::info('[OnboardingChatDirector] Capture turn refused or silent — re-running once', [
+                'user_id' => $user->id,
+                'state' => $currentStateId,
+            ]);
+            yield from $this->handleAssetCaptureTurn(
+                $user,
+                $conversation,
+                $message,
+                $currentRoute,
+                $currentStateId,
+                $state + ['refusal_retried' => true],
+            );
+
+            return;
+        }
         // The unified onboarding focus is set and cleared inside
         // FynLoop::stream (on the same agent instance it streams on), so no
         // focus-clear is needed here — FynLoop's own finally covers the
@@ -4096,7 +4129,7 @@ PROMPT;
             // savings." closes the section (live 2026-07-23, msg 19859:
             // grok refused it, the strip emptied the turn, and the guard
             // re-asked "Sorry, I didn't catch that").
-            && preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) !== 1
+            && ! self::isCompletionDeclaration($message)
             // …and so does "I don't know" on a step that advances on an
             // answered question (the pot-value loop; CSJ 2026-09-15: not
             // knowing the value is fine). The retry would ask again forever.
@@ -6384,6 +6417,16 @@ PROMPT;
      * Substantive = any figure/percentage/currency, OR a clear yes/no answer,
      * OR meaningful prose before the first interrogative clause.
      */
+    /**
+     * "No", "none", "that's all", "done" — a declaration that legitimately
+     * writes nothing and completes the step (live 2026-07-23); the zero-output
+     * guard lets it through and the refusal re-run leaves it alone.
+     */
+    private static function isCompletionDeclaration(string $message): bool
+    {
+        return preg_match('/^\s*(?:no|none|nothing|neither|that(?:[\x{2019}\x{0027}]s|\s+is)\s+(?:all|it|everything)|all\s+done|done|no\s+more)\b/iu', $message) === 1;
+    }
+
     private function messageHasSubstantiveAnswer(string $message): bool
     {
         $trimmed = trim($message);
