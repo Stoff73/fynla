@@ -277,3 +277,41 @@ describe('parking column integration', function () {
             ->and($user->familyMembers()->count())->toBe(0);
     });
 });
+
+// CSJ 2026-09-15 (prod, user 706): "75000 and my wife has a workplace pension"
+// parked the spouse's first name as "Has" and the invitation step asked about
+// "Has". Every ordinary sentence about a spouse must park no name at all;
+// every way of actually naming them must still park it.
+it('never takes the word after "my wife" as a name when it is not one', function (string $text): void {
+    expect(app(OnboardingFactExtractor::class)->extract($text)['spouse']['first_name'] ?? null)->toBeNull();
+})->with([
+    '75000 and my wife has a workplace pension, 5% both her and her employer, not sure of the value. Nothing else',
+    'my husband works at Tesco',
+    'my wife is a teacher',
+    'my wife earns 30000',
+    "my wife doesn't work",
+    'my partner also has an ISA',
+    'my husband currently pays 5%',
+    'my wife gets about 20k',
+    'my spouse will retire at 60',
+    'my wife and I own the house',
+    'husband only works part time',
+    'my wife has no pension',
+    'wife not working at the moment',
+    'my wife retired last year',
+    'my husband contributes 3%',
+    'married to someone who works in the NHS',
+]);
+
+it('still parks a first name every way a user gives one', function (string $text, string $expected): void {
+    expect(app(OnboardingFactExtractor::class)->extract($text)['spouse']['first_name'] ?? null)->toBe($expected);
+})->with([
+    ['my wife Angela has a pension', 'Angela'],
+    ['wife, Angela, 45', 'Angela'],
+    ['my husband is called Dave', 'Dave'],
+    ['my partner named Priya works part time', 'Priya'],
+    ['her name is Angela', 'Angela'],
+    ["his name's Dave and he earns 40k", 'Dave'],
+    ['married to angela', 'Angela'],
+    ['my wife Emily, two kids', 'Emily'],
+]);
