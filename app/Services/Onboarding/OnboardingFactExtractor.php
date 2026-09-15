@@ -49,6 +49,28 @@ final class OnboardingFactExtractor
         'daughter', 'daughters', 'kid', 'kids', 'baby', 'babies', 'twin', 'twins',
         // Self-referential / generic
         'name', 'spouse', 'wife', 'husband', 'partner', 'family',
+        // Verbs, auxiliaries and adverbs that follow "my wife …" in ordinary
+        // sentences (prod 2026-09-15: "my wife has a workplace pension" parked
+        // the spouse's name as "Has" and the invitation asked about "Has").
+        'has', 'had', 'have', 'having', 'is', 'was', 'are', 'were', 'isn', 'wasn', 'does', 'did', 'doesn', 'didn',
+        'will', 'would', 'can', 'could', 'may', 'might', 'should', 'shall', 'must', 'won',
+        'works', 'worked', 'working', 'earns', 'earned', 'earning', 'gets', 'got', 'pays', 'paid', 'puts', 'owns',
+        'holds', 'makes', 'made', 'runs', 'lives', 'stays', 'retired', 'retires', 'contributes', 'receives',
+        'also', 'still', 'currently', 'already', 'recently', 'only', 'just', 'now', 'then', 'too', 'both', 'each',
+        'and', 'who', 'but', 'with', 'without', 'from', 'for', 'not', 'never', 'always', 'usually',
+        'doesnt', 'isnt', 'wasnt', 'didnt', 'hasnt', 'cant', 'wont',
+    ];
+
+    /**
+     * A first name is never followed by one of these — "my wife Angela has a
+     * pension" is fine, "my wife has a pension" is not a name at all.
+     */
+    private const SPOUSE_NAME_NEXT_WORD_REJECT = [
+        // "my wife has A pension": the candidate is a verb (caught above) and
+        // what follows a verb — an article, possessive or quantifier — never
+        // follows a name. A verb after the candidate is fine ("Angela has").
+        'a', 'an', 'the', 'my', 'her', 'his', 'our', 'their', 'no', 'some', 'any', 'nothing', 'none',
+        'about', 'around', 'roughly', 'nearly', 'over', 'under', 'part', 'full', 'at', 'in', 'on', 'of', 'to',
     ];
 
     /**
@@ -208,9 +230,19 @@ final class OnboardingFactExtractor
         // it falls in SPOUSE_NAME_STOP_WORDS (pronouns, relation nouns, etc.)
         // so phrases like "wife sister angela" or "married to her" do not
         // produce a false-positive spouse first_name.
-        if (preg_match('/\b(?:married\s+to|wife|husband|spouse|partner)\s+([a-zA-Z]{3,21})\b/i', $message, $m) === 1) {
+        // Also "wife, Angela", "husband is called Dave", "partner named Priya",
+        // "her name is Angela" / "his name's Dave".
+        $matched = preg_match(
+            '/\b(?:married\s+to|wife|husband|spouse|partner)[,:]?\s+(?:(?:is\s+|who\s+is\s+)?(?:called|named)\s+)?([a-zA-Z]{3,21})\b(?:\s+([a-zA-Z\x{2019}\x{0027}]+))?/iu',
+            $message,
+            $m
+        ) === 1
+            || preg_match('/\b(?:her|his|their)\s+name(?:[\x{2019}\x{0027}]s|\s+is)\s+([a-zA-Z]{3,21})\b(?:\s+([a-zA-Z\x{2019}\x{0027}]+))?/iu', $message, $m) === 1;
+        if ($matched) {
             $candidate = $m[1];
-            if (! in_array(strtolower($candidate), self::SPOUSE_NAME_STOP_WORDS, true)) {
+            $nextWord = strtolower(str_replace(["\u{2019}", "'"], '', (string) ($m[2] ?? '')));
+            if (! in_array(strtolower($candidate), self::SPOUSE_NAME_STOP_WORDS, true)
+                && ! in_array($nextWord, self::SPOUSE_NAME_NEXT_WORD_REJECT, true)) {
                 $spouse['first_name'] = ucfirst(strtolower($candidate));
             }
         }
