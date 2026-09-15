@@ -22,4 +22,10 @@ final class OwnershipPhrasings
 
     /** Alternation fragment for explicit JOINT ownership phrases. */
     public const JOINT = 'joint(?:ly)?(?:\s+owned)?|we\s+own|owned\s+with|with\s+my\s+(?:spouse|partner|wife|husband)|in\s+both\s+our\s+names|both\s+of\s+us|50\s*\/\s*50|shared|we\s+share|co-?own(?:ed|er|ers)?|(?:it[\x{2019}\x{0027}]?s\s+|that[\x{2019}\x{0027}]?s\s+|all\s+)?ours|our\s+(?:joint\s+)?(?:account|savings|isa|names?)|(?:in\s+)?both\s+(?:of\s+)?our\s+names|us\s+both|the\s+(?:two|both)\s+of\s+us|(?:me|i)\s+and\s+my\s+(?:wife|husband|partner|spouse|other\s+half)|my\s+(?:wife|husband|partner|spouse|other\s+half)\s+and\s+(?:me|i)|with\s+my\s+(?:other\s+half|civil\s+partner)|with\s+(?:the\s+)?(?:wife|husband|missus|hubby)|half\s+(?:each|and\s+half)|split\s+(?:equally|down\s+the\s+middle|50)|(?:owned\s+)?together|between\s+(?:us|the\s+two\s+of\s+us)';
+
+    /** An equal split stated in words — the share is 50 without a number. */
+    public const EQUAL_SPLIT = '50\s*\/\s*50|fifty[\s\/-]*fifty|half\s+(?:each|and\s+half)|split\s+(?:equally|evenly|down\s+the\s+middle)|equal(?:ly)?\s+split|equal\s+shares?|in\s+equal\s+shares';
+
+    /** The user's own percentage share: "my share is 60%", "I own 60%", "60% is mine". */
+    public const MY_SHARE_PERCENT = '(?:(?:i\s+own|my\s+share\s+(?:(?:is|at|of)\s+)?)(\d{1,3}(?:\.\d+)?)\s*%|(\d{1,3}(?:\.\d+)?)\s*%\s+(?:is\s+)?(?:owned\s+)?(?:by\s+)?(?:me|mine)\b)';
 }

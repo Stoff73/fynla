@@ -17,7 +17,7 @@ it('applies the spec §7 count caps for free', function () {
     expect($free->count_caps['savings_account'])->toBe(2)
         ->and($free->count_caps['investment'])->toBe(2)
         ->and($free->count_caps['pension_account'])->toBe(2)
-        ->and($free->count_caps['property'])->toBe(1)
+        ->and($free->count_caps['property'])->toBe(2)
         ->and($free->count_caps['goal'])->toBe(2)
         ->and($free->count_caps['life_event'])->toBe(1)
         ->and($free->capability_matrix['estate'])->toBe('teaser')

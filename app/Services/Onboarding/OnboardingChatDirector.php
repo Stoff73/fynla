@@ -1648,7 +1648,13 @@ final class OnboardingChatDirector
             );
         }
 
-        if ($this->writeIntentClassifier->classify($message) !== null) {
+        // At a delegated capture state the message IS the record the step
+        // asked for; offering to "save it to your plan" there asks the user
+        // a question whose answer is always yes (live prod conversation 874,
+        // 2026-09-15: two properties drew the offer instead of a save). The
+        // offer is for a parser step where a record is volunteered aside.
+        if (($state['capture_focus'] ?? null) === null
+            && $this->writeIntentClassifier->classify($message) !== null) {
             return $this->handleInformationInterruption(
                 $user, $conversation, $currentStateId, $state, $message, $currentRoute
             );
@@ -3760,6 +3766,30 @@ PROMPT;
             // status events don't carry the input payload.
             $llmEmittedFills = [];
 
+            // A deterministic write the gate refused is a pending failure like
+            // the model's own (same keys as the capture_write_result branch
+            // below), and the attempt is kept so the next reply can re-run it.
+            /** @var list<array{tool: string, input: array<string, mixed>, raw: array<string, mixed>}> $gapFillBlockedAttempts */
+            $gapFillBlockedAttempts = [];
+            $noteGapFillFailure = function (array $event) use (&$pendingWriteFailures, &$sawFailedWrite, &$failedWriteTools, &$gapFillBlockedAttempts): void {
+                $result = (array) ($event['result'] ?? []);
+                if (ToolResults::isDuplicateSkip($result)) {
+                    return;
+                }
+                $sawFailedWrite = true;
+                $tool = trim((string) ($event['tool'] ?? ''));
+                $pendingWriteFailures['gapfill:'.$tool.':'.count($pendingWriteFailures)] = [
+                    'message' => is_string($event['message'] ?? null) ? (string) $event['message'] : '',
+                    'tier_limit' => (($result['error_type'] ?? '') === 'tier_limit_reached'),
+                ];
+                if ($tool !== '' && ! in_array($tool, $failedWriteTools, true)) {
+                    $failedWriteTools[] = $tool;
+                }
+                if (($result['error_type'] ?? null) === 'clarification_required' && (array) ($event['input'] ?? []) !== []) {
+                    $gapFillBlockedAttempts[] = ['tool' => $tool, 'input' => (array) $event['input'], 'raw' => $result];
+                }
+            };
+
             $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$toolWritesLanded, &$sawFailedWrite, &$pendingWriteFailures, &$llmEmittedFills, &$flushed, &$modelRequestedClarification, &$visibleResponse, $selection, $userAskedQuestion) {
                 $flushed = true;
                 // Anti-parrot (live 19708→19712): the model narrates/echoes
@@ -3905,6 +3935,11 @@ PROMPT;
                         if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                             $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
                         }
+                        if (($gapFillEvent['type'] ?? '') === 'capture_write_result') {
+                            $noteGapFillFailure($gapFillEvent);
+
+                            continue;
+                        }
                         yield $gapFillEvent;
                     }
 
@@ -3926,6 +3961,11 @@ PROMPT;
                 foreach ($this->emitGapFillToolCalls($user, $conversation, $captureFocus, $delegatedMessage, $llmEmittedFills, $failedWriteTools) as $gapFillEvent) {
                     if (self::isRecordRowEvent((string) ($gapFillEvent['type'] ?? ''))) {
                         $recordsCreated[] = self::recordRowFromEvent($gapFillEvent);
+                    }
+                    if (($gapFillEvent['type'] ?? '') === 'capture_write_result') {
+                        $noteGapFillFailure($gapFillEvent);
+
+                        continue;
                     }
                     yield $gapFillEvent;
                 }
@@ -3951,10 +3991,15 @@ PROMPT;
         // Re-run that attempt with the merged user words as evidence — the
         // gate adopts the owner from them as it would on a re-call — so the
         // save never depends on the model re-issuing its own call.
-        if ($toolCallsSeen === 0 && $recordsCreated === []) {
+        if ($toolCallsSeen === 0 && $recordsCreated === [] && $pendingWriteFailures === []) {
             foreach ($this->retryPreviousBlockedAttempt($user, $conversation, $assistantBaselineId, $delegatedMessage) as $rescueEvent) {
                 if (self::isRecordRowEvent((string) ($rescueEvent['type'] ?? ''))) {
                     $recordsCreated[] = self::recordRowFromEvent($rescueEvent);
+                }
+                if (($rescueEvent['type'] ?? '') === 'capture_write_result') {
+                    $noteGapFillFailure($rescueEvent);
+
+                    continue;
                 }
                 yield $rescueEvent;
             }
@@ -3971,6 +4016,7 @@ PROMPT;
             || str_contains($rawModelText, FynSystemPrompt::CANNED_REFUSAL);
         if ($toolCallsSeen === 0
             && $recordsCreated === []
+            && $pendingWriteFailures === []
             && $refusedOrSilent
             && ! $userAskedQuestion
             && ! self::isCompletionDeclaration($message)
@@ -4025,6 +4071,10 @@ PROMPT;
             $failureText = $this->captureFailureText(array_values($pendingWriteFailures))
                 ?? "I couldn't record anything new there. If a figure has changed, "
                     .'tell me the specific amount and I will update it.';
+            if ($recordsCreated !== []) {
+                // One landed, one refused: say what was saved before asking.
+                $failureText = rtrim($this->buildCaptureCompleteSummary($recordsCreated), '. ').'. '.$failureText;
+            }
             yield ['type' => 'content', 'text' => $failureText];
             $visibleResponse = $failureText;
             $ackShown = true;
@@ -4040,6 +4090,7 @@ PROMPT;
                 $assistantBaselineId,
                 $visibleResponse,
                 $currentStateId,
+                $gapFillBlockedAttempts,
             );
             $this->recordProgress(
                 $user,
@@ -6043,9 +6094,23 @@ PROMPT;
         }
 
         if (! empty($result['error']) || ! empty($result['blocked'])) {
-            // Handler refused. Don't propagate a bad fill_form to the
-            // frontend — just close out the tool_use status so the UI
-            // doesn't think it's still running.
+            // Handler refused. Surface it the way the model's own blocked
+            // call is surfaced (capture_write_result) so the caller shows the
+            // gate's question and parks the step instead of advancing on the
+            // records that did land (live 2026-09-15: the home's "I need the
+            // ownership share" vanished and the walk moved on without it).
+            // No fill_form reaches the frontend; the tool_use is closed out.
+            yield [
+                'type' => 'capture_write_result',
+                'tool' => $tool,
+                'tool_call_id' => '',
+                'retry_of_tool_call_id' => '',
+                'landed' => false,
+                'message' => (string) ($result['message'] ?? 'The write failed.'),
+                'result' => $result,
+                'input' => $input,
+                'gap_fill' => true,
+            ];
             yield [
                 'type' => 'tool_use',
                 'tool' => $tool,
@@ -6739,11 +6804,18 @@ PROMPT;
         return $message;
     }
 
+    /**
+     * @param  list<array{tool: string, input: array<string, mixed>, raw: array<string, mixed>}>  $blockedAttempts
+     *                                                                                                              Gate-refused deterministic writes, stored in the same tool_calls /
+     *                                                                                                              tool_results shape the model's own calls use, so
+     *                                                                                                              retryPreviousBlockedAttempt can re-run them with the next reply.
+     */
     private function persistFailedCaptureResponse(
         AiConversation $conversation,
         int $assistantBaselineId,
         string $content,
         string $stateId,
+        array $blockedAttempts = [],
     ): AiMessage {
         $message = $conversation->messages()
             ->where('role', 'assistant')
@@ -6761,6 +6833,19 @@ PROMPT;
                 'turn_intent' => FynTurnIntent::CaptureClarification->value,
             ]),
         ];
+        $existingCalls = $message?->tool_calls;
+        if ($blockedAttempts !== [] && (! is_array($existingCalls) || $existingCalls === [])) {
+            $attributes['tool_calls'] = array_values(array_map(
+                static fn (array $attempt, int $sequence): array => ['sequence' => $sequence, 'tool' => $attempt['tool'], 'input' => $attempt['input']],
+                $blockedAttempts,
+                array_keys($blockedAttempts),
+            ));
+            $attributes['tool_results'] = array_values(array_map(
+                static fn (array $attempt, int $sequence): array => ['sequence' => $sequence, 'is_error' => true, 'raw' => $attempt['raw']],
+                $blockedAttempts,
+                array_keys($blockedAttempts),
+            ));
+        }
 
         if ($message !== null) {
             $message->update($attributes);

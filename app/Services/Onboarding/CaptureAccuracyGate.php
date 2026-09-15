@@ -142,6 +142,19 @@ final class CaptureAccuracyGate
         }
 
         if (in_array($argumentOwnership, ['joint', 'tenants_in_common'], true)) {
+            // A co-owner name is the user's to give: it must appear in their
+            // words as a name (a capitalised word), or be a relationship ("my
+            // wife"). Anything else is the model's invention (live 2026-09-15:
+            // joint_owner_name "Worth" lifted from "worth 750000") — drop it;
+            // the spouse memory names the co-owner downstream.
+            $coOwnerName = SharedOwnership::counterpartyName($arguments['joint_owner_name'] ?? null);
+            if ($coOwnerName !== null && ! SharedOwnership::isRelationshipPlaceholder($coOwnerName)) {
+                $namedByUser = preg_match('/(?<!\p{L})'.preg_quote($coOwnerName, '/').'(?!\p{L})/iu', $latestUserText, $nameMatch) === 1
+                    && preg_match('/^\p{Lu}/u', $nameMatch[0]) === 1;
+                if (! $namedByUser) {
+                    $repaired['joint_owner_name'] = null;
+                }
+            }
             // No joint_owner_id requirement: a joint record with an unlinked
             // co-owner is first-class app-wide (StoreSavingsAccountRequest),
             // and mid-campaign the spouse User does not exist yet. The
@@ -466,7 +479,7 @@ final class CaptureAccuracyGate
             '/(?:^|[.!?\n]\s*)(?:half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)(?:\s*[.!?\n]|$)/u',
             // "50/50", "half each", "split equally", "fifty fifty" anywhere in
             // the clause — an equal split needs no ownership word before it.
-            '/\\b(?:50\\s*\\/\\s*50|fifty[\\s\\/-]*fifty|half\\s+(?:each|and\\s+half)|split\\s+(?:equally|evenly|down\\s+the\\s+middle)|equal(?:ly)?\\s+split|equal\\s+shares?)\\b/u',
+            '/\\b(?:'.OwnershipPhrasings::EQUAL_SPLIT.')\\b/u',
         ];
         foreach ($equalPatterns as $pattern) {
             preg_match_all($pattern, $text, $matches, PREG_OFFSET_CAPTURE);
@@ -586,6 +599,15 @@ final class CaptureAccuracyGate
             foreach ($weakNeedles as $needle) {
                 array_push($weakMatches, ...$this->matchingSegmentIndexes($segments, $needle));
             }
+            // A property is named by its kind, not a provider: "my home",
+            // "a buy to let", "the holiday flat". The segment whose nouns
+            // type as this call's property_type is its evidence (live
+            // 2026-09-15: two properties in one sentence had no needle at
+            // all, so the whole sentence was every property's evidence and
+            // the two ownerships cancelled to nothing).
+            if ($tool === 'create_property' && is_string($arguments['property_type'] ?? null)) {
+                array_push($weakMatches, ...$this->segmentsTypedAs($segments, $arguments['property_type']));
+            }
             $weakMatches = $this->latestTurnMatches(
                 array_values(array_unique($weakMatches)),
                 $segmentTurns,
@@ -667,6 +689,14 @@ final class CaptureAccuracyGate
                     $tool,
                 )) {
                 $matchedIndexes[] = $index;
+            } elseif ($sameTurn
+                && $index > $targetIndex
+                && $this->isPlainGroupOwnership($segment)
+                && $this->groupClauseCoversTurn($segment, $turns[$targetTurn], $tool)) {
+                // "...and a rental property worth 200000, both jointly owned
+                // with my wife 50/50" — a closing clause with no noun that
+                // names one ownership for every entity in the sentence.
+                $matchedIndexes[] = $index;
             }
         }
 
@@ -746,6 +776,18 @@ final class CaptureAccuracyGate
      * @param  list<string>  $segments
      * @return list<int>
      */
+    /**
+     * @param  list<string>  $segments
+     * @return list<int>
+     */
+    private function segmentsTypedAs(array $segments, string $propertyType): array
+    {
+        return array_values(array_keys(array_filter(
+            $segments,
+            static fn (string $segment): bool => PropertyPhrasings::typeOf($segment) === $propertyType
+        )));
+    }
+
     private function matchingSegmentIndexes(array $segments, string $needle): array
     {
         return array_values(array_keys(array_filter(
@@ -798,7 +840,32 @@ final class CaptureAccuracyGate
 
     private function mentionsEntityNoun(string $segment): bool
     {
-        return preg_match('/\b(?:accs?|accounts?|isas?|savers?|propert(?:y|ies)|homes?|houses?|flats?|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
+        return preg_match('/\b(?:accs?|accounts?|isas?|savers?|'.PropertyPhrasings::NOUNS.'|mortgages?|loans?|liabilit(?:y|ies)|pensions?)\b/u', $segment) === 1;
+    }
+
+    private function isPlainGroupOwnership(string $segment): bool
+    {
+        return preg_match('/^\s*(?:both|all|each)\b/u', $segment) === 1
+            && ! $this->mentionsEntityNoun($segment)
+            && ($this->ownershipFromText($segment) !== null
+                || $this->ownershipShareFromText($segment) !== null);
+    }
+
+    /**
+     * "both" covers a turn that names exactly two entities of the tool's
+     * kind; "all" / "each" cover two or more.
+     */
+    private function groupClauseCoversTurn(string $clause, string $turn, string $tool): bool
+    {
+        $nouns = $this->entityGroupNouns($tool);
+        $entitySegments = array_values(array_filter(
+            $this->segmentsForTurn($turn),
+            fn (string $segment): bool => preg_match('/\b(?:'.$nouns.')\b/u', $segment) === 1
+                && ! $this->isPlainGroupOwnership($segment),
+        ));
+        $count = count($entitySegments);
+
+        return preg_match('/^\s*both\b/u', $clause) === 1 ? $count === 2 : $count >= 2;
     }
 
     private function isSharedEntityEvidence(string $segment, string $tool): bool
@@ -891,7 +958,7 @@ final class CaptureAccuracyGate
     private function segmentsForTurn(string $turn): array
     {
         $segments = preg_split(
-            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)(?!(?:(?:actually|correction|rather|instead)[,:]?\s+)?my\s+(?:wife|husband|partner|spouse|other\s+half)\b)|\s+(?:and|but|while|whereas)\s+(?!my\s+(?:wife|husband|partner|spouse|other\s+half)\b)(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b|an?\s+(?:joint(?:ly)?|shared|individual|sole|separate|second|third|further|new)\b|an?\s+(?:[a-z0-9&\x{0027}]+\s+){1,4}(?:accs?|accounts?|isas?|savers?|pensions?|propert(?:y|ies)|loans?|mortgages?)\b))/u',
+            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)(?!(?:(?:actually|correction|rather|instead)[,:]?\s+)?my\s+(?:wife|husband|partner|spouse|other\s+half)\b)|\s+(?:and|but|while|whereas)\s+(?!my\s+(?:wife|husband|partner|spouse|other\s+half)\b)(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b|an?\s+(?:joint(?:ly)?|shared|individual|sole|separate|second|third|further|new)\b|an?\s+(?:[a-z0-9&\x{0027}]+\s+){1,4}(?:accs?|accounts?|isas?|savers?|pensions?|propert(?:y|ies)|loans?|mortgages?)\b|'.PropertyPhrasings::DECLARATION.'\b))|,\s+(?='.PropertyPhrasings::DECLARATION.'\b)|,\s+(?=(?:both|all|each)\b)/u',
             $turn,
         ) ?: [];
 
@@ -906,7 +973,7 @@ final class CaptureAccuracyGate
         return match ($tool) {
             'create_savings_account' => 'accs?|accounts?|isas?|savings?|savers?',
             'create_investment_account' => 'accs?|accounts?|isas?|investments?|portfolios?',
-            'create_property' => 'properties|property|homes?|houses?|flats?|apartments?|bungalows?|cottages?',
+            'create_property' => PropertyPhrasings::NOUNS,
             'create_liability' => 'liabilities|liability|loans?|debts?',
             default => '(?!)',
         };
