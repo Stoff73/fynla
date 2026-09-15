@@ -133,3 +133,36 @@ it('treats the model placeholder "0" as no co-owner name in the one shared rule'
         ->and(SharedOwnership::counterpartyName('Jane'))->toBe('Jane')
         ->and(SharedOwnership::namesCounterparty(['joint_owner_name' => '0']))->toBeFalse();
 });
+
+it('treats "my wife" as who the co-owner is, not a name — remembered and replaced by the real name', function (): void {
+    // csjones 2026-09-15, user 395: the model wrote joint_owner_name "wife"
+    // from "owned 50/50 with my wife", which counted as a named co-owner.
+    $this->seed(TierConfigurationSeeder::class);
+    $user = onboardingCoupleUser();
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'content' => 'joint savings account with Halifax with a balance of 2345, owned 50/50 with my wife',
+    ]);
+    app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+        'institution' => 'Halifax',
+        'account_name' => 'Halifax Joint Savings',
+        'account_type' => 'savings_account',
+        'current_balance' => 2345,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+        'joint_owner_name' => 'wife',
+    ], $user, $conversation->id);
+
+    expect($user->fresh()->onboarding_fyn_context[SpouseJointRecords::CONTEXT_KEY] ?? [])->toHaveCount(1);
+
+    app(SpouseLinkingService::class)->linkOrCreateSpouse($user->fresh(), [
+        'first_name' => 'Jane',
+        'email' => 'jane-'.$user->id.'@example.com',
+    ]);
+
+    expect(SavingsAccount::where('user_id', $user->id)->sole()->joint_owner_name)->toBe('Jane')
+        ->and(SharedOwnership::isRelationshipPlaceholder('My Husband'))->toBeTrue()
+        ->and(SharedOwnership::isRelationshipPlaceholder('Jane'))->toBeFalse();
+});

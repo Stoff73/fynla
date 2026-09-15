@@ -192,6 +192,23 @@ final class SharedOwnership
     }
 
     /**
+     * "My wife", "husband", "spouse", "partner" — the model echoing the
+     * user's relationship word into the name field. It is who the co-owner
+     * is, not what they are called; the onboarding spouse memory fills the
+     * real name in later (SpouseJointRecords).
+     */
+    public static function isRelationshipPlaceholder(mixed $value): bool
+    {
+        $name = self::counterpartyName($value);
+        if ($name === null) {
+            return false;
+        }
+        $normalised = preg_replace('/^(?:my|our)\s+/u', '', mb_strtolower($name)) ?? '';
+
+        return in_array($normalised, ['spouse', 'wife', 'husband', 'partner', 'civil partner', 'other half'], true);
+    }
+
+    /**
      * The share the OTHER party holds, given the primary owner's share.
      */
     public static function jointOwnerPercentage(float $primaryOwnerPercentage): float

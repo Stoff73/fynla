@@ -91,7 +91,9 @@ final class SpouseJointRecords
             if ($record->joint_owner_id === null && $spouseId !== null) {
                 $record->joint_owner_id = $spouseId;
             }
-            if (SharedOwnership::counterpartyName($record->joint_owner_name) === null && $spouseName !== null) {
+            if ($spouseName !== null
+                && (SharedOwnership::counterpartyName($record->joint_owner_name) === null
+                    || SharedOwnership::isRelationshipPlaceholder($record->joint_owner_name))) {
                 $record->joint_owner_name = $spouseName;
             }
             if ($record->isDirty()) {

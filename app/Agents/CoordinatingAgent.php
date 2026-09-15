@@ -1225,7 +1225,9 @@ class CoordinatingAgent extends BaseAgent
                 && (($result['created'] ?? false) === true || ($result['success'] ?? false) === true)
                 && isset($result['entity_id'], $result['entity_type'])
                 && SharedOwnership::isShared($input['ownership_type'] ?? null)
-                && ! SharedOwnership::namesCounterparty($input)) {
+                && ($input['joint_owner_id'] ?? null) === null
+                && (SharedOwnership::counterpartyName($input['joint_owner_name'] ?? null) === null
+                    || SharedOwnership::isRelationshipPlaceholder($input['joint_owner_name'] ?? null))) {
                 app(SpouseJointRecords::class)->remember($user, (string) $result['entity_type'], (int) $result['entity_id']);
             }
 
