@@ -1339,11 +1339,12 @@
   gap: 0.625rem;
 }
 /* :not() exclusion, not a `<div>`/`<span>` swap — the capture form's kind
-   heading and field hint are the only two <p> elements inside a Fyn message
-   that are not the message bubble itself (FynCaptureForm.vue renders inside
-   a .md-fyn__msg--fyn wrapper), so excluding them here is the smaller change
-   and keeps every other tag/behaviour in the form untouched. */
-.md-fyn__msg p:not(.md-fyn__form-kind-title):not(.md-fyn__form-hint) {
+   heading, field hint and field/kind error line are the only <p> elements
+   inside a Fyn message that are not the message bubble itself
+   (FynCaptureForm.vue renders inside a .md-fyn__msg--fyn wrapper), so
+   excluding them here is the smaller change and keeps every other
+   tag/behaviour in the form untouched. */
+.md-fyn__msg p:not(.md-fyn__form-kind-title):not(.md-fyn__form-hint):not(.md-fyn__form-error) {
   margin: 0;
   font-size: 0.9375rem;
   line-height: 1.5;
@@ -1354,7 +1355,7 @@
   align-self: flex-start;
   max-width: 88%;
 }
-.md-fyn__msg--fyn p:not(.md-fyn__form-kind-title):not(.md-fyn__form-hint) {
+.md-fyn__msg--fyn p:not(.md-fyn__form-kind-title):not(.md-fyn__form-hint):not(.md-fyn__form-error) {
   background: var(--white);
   color: var(--horizon-600);
   border: 1px solid var(--horizon-100);
@@ -1925,7 +1926,10 @@
 /* Also excluded from the bubble rules above — full margin reset (not just
    margin-top) since it no longer inherits the bubble rule's `margin: 0`. */
 .md-fyn__form-hint { margin: 4px 0 0; font-size: 0.75rem; color: var(--neutral-500); }
-.md-fyn__form-error { font-size: 0.75rem; color: var(--raspberry-600); margin-top: 4px; }
+/* Same exclusion as .md-fyn__form-hint above — a kind/field error line, not
+   the message bubble, so it must not inherit the bubble's border, padding
+   or background from the rules at the top of this file. */
+.md-fyn__form-error { margin: 4px 0 0; font-size: 0.75rem; color: var(--raspberry-600); }
 .md-fyn__form-actions { margin-top: 12px; }
 
 /* Onboarding verify actions — on-page Continue/Edit pills (same style as the

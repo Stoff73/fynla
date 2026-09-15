@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { readFileSync } from 'node:fs';
 import FynCaptureForm from '../FynCaptureForm.vue';
 
 const schema = {
@@ -76,5 +77,26 @@ describe('FynCaptureForm', () => {
     expect(locked.find('button[type="submit"]').exists()).toBe(false);
     expect(locked.find('input[name="main_residence.current_value"]').element.value).toBe('750000');
     expect(locked.find('input[name="main_residence.current_value"]').attributes('disabled')).toBeDefined();
+  });
+
+  it('keeps the kind/field error line styled as plain text in the /m chat stylesheet, not the message bubble', () => {
+    // FynCaptureForm renders inside a .md-fyn__msg--fyn wrapper on /m, and
+    // every <p> there is boxed as a chat bubble by the rules at the top of
+    // dashboard.css. .md-fyn__form-error (lines 18 and 81 of this component)
+    // is a validation line, not a bubble, so it must be excluded from those
+    // rules the same way .md-fyn__form-kind-title and .md-fyn__form-hint
+    // already are, and its own rule must carry no border/padding/background.
+    const css = readFileSync('resources/mobile/views/dashboard.css', 'utf8');
+
+    const bubbleRule = css.match(/\.md-fyn__msg p:[^{]*\{/)?.[0] || '';
+    const fynBubbleRule = css.match(/\.md-fyn__msg--fyn p:[^{]*\{/)?.[0] || '';
+    expect(bubbleRule).toContain(':not(.md-fyn__form-error)');
+    expect(fynBubbleRule).toContain(':not(.md-fyn__form-error)');
+
+    const errorRule = css.match(/(?:^|\n)\.md-fyn__form-error\s*\{([^}]*)\}/)?.[1] || '';
+    expect(errorRule).not.toContain('border');
+    expect(errorRule).not.toContain('padding');
+    expect(errorRule).not.toContain('background');
+    expect(errorRule).toContain('color: var(--raspberry-600)');
   });
 });
