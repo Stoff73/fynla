@@ -1973,3 +1973,56 @@ it('repairs ownership from the bare live replies "My name" and "Individual" (pro
             ->and($result['repaired']['ownership_type'] ?? null)->toBe('individual', "reply '{$reply}' did not repair to individual");
     }
 });
+
+it('reads each account\'s own clause when two accounts share one sentence joined by "and" — the live 2026-09-15 message', function (): void {
+    // fynla.org 09:50 BST, user 702, message 1600: both creates were refused
+    // with "Is this in your name only…" because the whole sentence was the
+    // evidence for each account and it carried both "owned by me" and "joint".
+    $text = 'Lloyds current acc with 345 owned by me and a joint Halifax savings acc with 2345';
+    $gate = app(CaptureAccuracyGate::class);
+
+    $lloyds = $gate->inspect('create_savings_account', [
+        'institution' => 'Lloyds',
+        'account_name' => 'Lloyds Current Account',
+        'account_type' => 'current_account',
+        'current_balance' => 345,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $text);
+    $halifax = $gate->inspect('create_savings_account', [
+        'institution' => 'Halifax',
+        'account_name' => 'Halifax Savings Account',
+        'account_type' => 'savings_account',
+        'current_balance' => 2345,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ], $text);
+
+    expect($lloyds)->toBe(['allowed' => true])
+        ->and($halifax['allowed'])->toBeTrue();
+});
+
+it('lets the executor strip the model\'s zero ids before the guards read them', function (): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::create(['conversation_id' => $conversation->id, 'role' => 'user', 'content' => 'Lloyds current account with 345 owned by me']);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_savings_account', [
+        'institution' => 'Lloyds',
+        'account_name' => 'Lloyds Current Account',
+        'account_type' => 'current_account',
+        'current_balance' => 345,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+        'joint_owner_id' => 0,
+        'joint_owner_name' => '0',
+        'trust_id' => 0,
+    ], $user, $conversation->id);
+
+    expect($result['created'] ?? false)->toBeTrue();
+    $account = SavingsAccount::where('user_id', $user->id)->sole();
+    expect($account->joint_owner_id)->toBeNull()
+        ->and($account->joint_owner_name)->toBeNull()
+        ->and($account->trust_id)->toBeNull();
+});
