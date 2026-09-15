@@ -197,3 +197,19 @@ it('tells the user a stale form is no longer open and re-emits the current step'
         ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('date of birth')
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_DOB);
 });
+
+it('never advances on a form answer with no recognised kind', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage(
+        $user, $conversation, '', null, true, ['name' => 'property', 'answers' => ['castle' => ['current_value' => 1]]]
+    ), false);
+
+    expect(Property::where('user_id', $user->id)->exists())->toBeFalse()
+        ->and(collect($events)->firstWhere('type', 'capture_form_errors')['errors'])->toHaveKey('_form')
+        ->and(collect($events)->firstWhere('type', 'capture_complete'))->toBeNull()
+        ->and(collect($events)->firstWhere('type', 'onboarding_advance'))->toBeNull()
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY);
+});

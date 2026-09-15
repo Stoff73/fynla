@@ -3689,7 +3689,24 @@ PROMPT;
         // CaptureForms) they replace it with.
         yield ['type' => 'form_received', 'text' => $message];
 
-        foreach (CaptureForms::toolInputs($form) as $kind => $input) {
+        $inputs = CaptureForms::toolInputs($form);
+
+        if ($inputs === []) {
+            // Nothing recognisable was filled in. Never advance on an empty form.
+            $line = 'Fill in at least one property before saving.';
+            yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => ['_form' => ['message' => $line, 'fields' => []]]];
+            yield ['type' => 'content', 'text' => $line];
+            $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
+                'onboarding_step' => $currentStateId,
+                'capture_write_failed' => true,
+                'turn_intent' => FynTurnIntent::CaptureClarification->value,
+            ]]);
+            yield ['type' => 'done', 'message_id' => $saved->id];
+
+            return;
+        }
+
+        foreach ($inputs as $kind => $input) {
             yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'running'];
             $facts = ['ownership_type' => $input['ownership_type']];
             if (isset($input['ownership_percentage'])) {
