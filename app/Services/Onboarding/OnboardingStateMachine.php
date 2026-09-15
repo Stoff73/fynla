@@ -2241,9 +2241,12 @@ final class OnboardingStateMachine
         }
 
         $schemeName = trim((string) ($pension->scheme_name ?? ''));
-        $namedScheme = $schemeName !== '' ? $schemeName : 'your pension';
+        // "Workplace Pension" already says pension — never "pension pension".
+        $namedScheme = $schemeName !== ''
+            ? (preg_match('/\bpensions?$/iu', $schemeName) === 1 ? $schemeName : $schemeName.' pension')
+            : 'pension';
 
-        return "**What's the current value of your {$namedScheme} pension?** A rough figure from your latest annual statement or provider app is fine — for example £45,000 or 45k.";
+        return "**What's the current value of your {$namedScheme}?** A rough figure from your latest annual statement or provider app is fine — for example £45,000 or 45k. If you don't know, just say so.";
     }
 
     /**
