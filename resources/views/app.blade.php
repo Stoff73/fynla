@@ -97,6 +97,9 @@
         <script defer data-domain="{{ config('analytics.plausible_domain') }}" src="https://plausible.io/js/script.js"></script>
     @endif
 
+    <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+    <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
+
     <!-- Meta Pixel Code (production only) -->
     @if(app()->environment('production'))
     <script>

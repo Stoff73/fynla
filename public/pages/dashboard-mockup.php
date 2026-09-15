@@ -115,6 +115,8 @@
     /* View switching */
     [data-view].is-hidden { display: none; }
   </style>
+  <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body>
 

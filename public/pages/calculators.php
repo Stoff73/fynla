@@ -55,6 +55,8 @@
   <!-- Blocking CSS — same-server, negligible render penalty, prevents FOUC -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/calculators.css?v=1" />
+  <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body class="calc-page-body">
 

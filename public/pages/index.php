@@ -80,6 +80,8 @@ try {
   <!-- All styles live in /pages/css/global.css and /pages/css/index.css.
        No inline style block. -->
 
+  <!-- Ahrefs Analytics (cookieless; used for Ahrefs site verification) -->
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="ODJ9ebQTiepeexm3yKHSKA" async></script>
 </head>
 <body>
 
