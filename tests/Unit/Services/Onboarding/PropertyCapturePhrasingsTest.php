@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
 use App\Services\Onboarding\CaptureAccuracyGate;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
 
 /**
  * Property capture phrasings — the deterministic backstop and the accuracy
@@ -213,5 +214,43 @@ describe('CaptureAccuracyGate on a multi-property message', function (): void {
 
         expect($home['allowed'])->toBeTrue($home['reason'] ?? '')
             ->and($btl['allowed'])->toBeTrue($btl['reason'] ?? '');
+    });
+
+    it('drops a co-owner name the user never said and keeps one they did', function (): void {
+        $gate = app(CaptureAccuracyGate::class);
+        $text = 'My home which I own with my wife, worth 750000 with a mortgage of 325000';
+
+        $invented = $gate->inspect('create_property', [
+            'property_type' => 'main_residence', 'current_value' => 750000, 'ownership_type' => 'joint',
+            'ownership_percentage' => 50, 'joint_owner_name' => 'Worth',
+        ], $text."\n50%");
+        $stated = $gate->inspect('create_property', [
+            'property_type' => 'main_residence', 'current_value' => 750000, 'ownership_type' => 'joint',
+            'ownership_percentage' => 50, 'joint_owner_name' => 'Sarah',
+        ], 'My home worth 750000 which my wife Sarah and I own jointly 50/50');
+        $relationship = $gate->inspect('create_property', [
+            'property_type' => 'main_residence', 'current_value' => 750000, 'ownership_type' => 'joint',
+            'ownership_percentage' => 50, 'joint_owner_name' => 'my wife',
+        ], $text."\n50%");
+
+        expect($invented['allowed'])->toBeTrue($invented['reason'] ?? '')
+            ->and($invented['repaired'] ?? [])->toHaveKey('joint_owner_name')
+            ->and($invented['repaired']['joint_owner_name'])->toBeNull()
+            ->and($stated['allowed'])->toBeTrue($stated['reason'] ?? '')
+            ->and($stated['repaired'] ?? [])->not->toHaveKey('joint_owner_name')
+            ->and($relationship['allowed'])->toBeTrue($relationship['reason'] ?? '')
+            ->and($relationship['repaired'] ?? [])->not->toHaveKey('joint_owner_name');
+    });
+});
+
+describe('PropertyNormaliser::fromFyn', function (): void {
+    it('omits a null tenure type so the NOT NULL default applies', function (): void {
+        $canonical = app(PropertyNormaliser::class)->fromFyn([
+            'property_type' => 'main_residence', 'current_value' => 750000, 'ownership_type' => 'joint',
+            'ownership_percentage' => 50, 'tenure_type' => null, 'city' => null, 'postcode' => null,
+        ]);
+
+        expect($canonical)->not->toHaveKey('tenure_type')
+            ->and(app(PropertyNormaliser::class)->fromFyn(['property_type' => 'buy_to_let', 'tenure_type' => 'leasehold'])['tenure_type'] ?? null)->toBe('leasehold');
     });
 });

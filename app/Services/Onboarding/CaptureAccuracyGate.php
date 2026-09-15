@@ -142,6 +142,19 @@ final class CaptureAccuracyGate
         }
 
         if (in_array($argumentOwnership, ['joint', 'tenants_in_common'], true)) {
+            // A co-owner name is the user's to give: it must appear in their
+            // words as a name (a capitalised word), or be a relationship ("my
+            // wife"). Anything else is the model's invention (live 2026-09-15:
+            // joint_owner_name "Worth" lifted from "worth 750000") — drop it;
+            // the spouse memory names the co-owner downstream.
+            $coOwnerName = SharedOwnership::counterpartyName($arguments['joint_owner_name'] ?? null);
+            if ($coOwnerName !== null && ! SharedOwnership::isRelationshipPlaceholder($coOwnerName)) {
+                $namedByUser = preg_match('/(?<!\p{L})'.preg_quote($coOwnerName, '/').'(?!\p{L})/iu', $latestUserText, $nameMatch) === 1
+                    && preg_match('/^\p{Lu}/u', $nameMatch[0]) === 1;
+                if (! $namedByUser) {
+                    $repaired['joint_owner_name'] = null;
+                }
+            }
             // No joint_owner_id requirement: a joint record with an unlinked
             // co-owner is first-class app-wide (StoreSavingsAccountRequest),
             // and mid-campaign the spouse User does not exist yet. The

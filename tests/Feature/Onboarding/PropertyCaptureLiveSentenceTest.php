@@ -113,3 +113,32 @@ it('tells a Free user the plan\'s property limit on the second property instead 
         ->and($shown)->not->toContain('worth saving')
         ->and($attempts)->toBeLessThanOrEqual(2, 'attempts: '.$attempts);
 });
+
+it('lands the home when the model answers the share reply with every unstated field as null and an invented co-owner', function (): void {
+    // The live csjones "50%" turn (user 396, 2026-09-15 16:15): the model called
+    // create_property with tenure_type null and joint_owner_name "Worth". The
+    // write must land with the default tenure and no invented name.
+    $user = propertyStepUser(premium: true);
+    $conversation = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'director', 'title' => 'Onboarding'])->fresh();
+
+    FynStreamHarness::fake()
+        ->textTurn(CANNED)->textTurn(CANNED)
+        ->toolTurn('create_property', [
+            'city' => null, 'county' => null, 'postcode' => null, 'trust_id' => null, 'tenure_type' => null,
+            'has_mortgage' => true, 'current_value' => 750000, 'mortgage_type' => null, 'property_type' => 'main_residence',
+            'address_line_1' => null, 'joint_owner_id' => null, 'ownership_type' => 'joint', 'joint_owner_name' => 'Worth',
+            'ownership_percentage' => 50, 'monthly_rental_income' => null, 'mortgage_outstanding_balance' => 325000,
+        ], 'toolu_home')
+        ->bind();
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, LIVE_PROPERTY_SENTENCE), false);
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation->fresh(), '50%'), false);
+    $shown = collect($events)->where('type', 'content')->pluck('text')->implode(' ');
+
+    $home = Property::where('user_id', $user->id)->where('property_type', 'main_residence')->first();
+    expect($home)->not->toBeNull('home not saved; shown: '.$shown)
+        ->and($home->tenure_type)->toBe('freehold')
+        ->and($home->joint_owner_name)->toBeNull()
+        ->and((float) $home->ownership_percentage)->toBe(50.0)
+        ->and(Property::where('user_id', $user->id)->count())->toBe(2)
+        ->and($shown)->not->toContain('try again');
+});
