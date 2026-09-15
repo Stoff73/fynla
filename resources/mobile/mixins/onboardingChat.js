@@ -134,7 +134,7 @@ export default {
         }];
       }
 
-      const loaded = await this.loadConversationTranscript();
+      const loaded = await this.loadTranscript(conversationId);
       if (!loaded && !this.messages.length) return null;
 
       return conversationId;
@@ -144,14 +144,14 @@ export default {
       this.resetConversationState();
       this.conversationId = conversationId;
       this.fynStarted = true;
-      const loaded = await this.loadConversationTranscript();
+      const loaded = await this.loadTranscript(conversationId);
 
       return loaded ? conversationId : null;
     },
 
     async retryTranscript() {
       if (!this.conversationId) return false;
-      return this.loadConversationTranscript();
+      return this.loadTranscript(this.conversationId);
     },
 
     // First turn of the onboarding chat (dashboard entry). Onboarding-incomplete
@@ -238,7 +238,7 @@ export default {
         );
         if (this.handleAuthExpiry(result)) return;
         if (this.conversationId) {
-          await this.loadConversationTranscript();
+          await this.loadTranscript(this.conversationId);
         } else if (!this.messages.length) {
           this.messages.push({ role: 'fyn', text: `Hi ${this.firstName}. What would you like to look at?` });
         }
@@ -256,9 +256,9 @@ export default {
     // chat shows everything said so far. Bubbles live in each assistant message's
     // metadata; only the latest turn keeps them tappable (earlier turns are
     // already answered).
-    async loadConversationTranscript() {
+    async loadTranscript(conversationId) {
       await loadMobileSubscriptionStatus();
-      const res = await apiGet(`/api/ai-chat/conversations/${this.conversationId}`, store.token);
+      const res = await apiGet(`/api/ai-chat/conversations/${conversationId}`, store.token);
       if (this.handleAuthExpiry(res)) return false;
       if (!res?.ok) {
         this.transcriptFallbackDestination = res?.status === 410

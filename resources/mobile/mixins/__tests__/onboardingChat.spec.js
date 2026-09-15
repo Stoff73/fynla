@@ -324,8 +324,7 @@ describe('capture forms', () => {
       { role: 'assistant', content: 'Now your property.', metadata: { capture_form: schema } },
     ] } } });
     const w = mount(Host);
-    w.vm.conversationId = 7;
-    await w.vm.loadConversationTranscript();
+    await w.vm.loadTranscript(7);
     expect(w.vm.messages.at(-1).form.schema).toEqual(schema);
     expect(w.vm.messages.at(-1).form.locked).toBe(false);
   });
@@ -342,8 +341,7 @@ describe('capture forms', () => {
       { role: 'user', content: 'Home worth £750,000, no mortgage, individual.', metadata: { form: { answers: { main_residence: { current_value: 750000 } } } } },
     ] } } });
     const w = mount(Host);
-    w.vm.conversationId = 7;
-    await w.vm.loadConversationTranscript();
+    await w.vm.loadTranscript(7);
     const formRow = w.vm.messages.find((m) => m.form);
     expect(formRow.form.answers).toEqual({ main_residence: { current_value: 750000 } });
     expect(formRow.form.locked).toBe(true);
