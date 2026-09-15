@@ -275,3 +275,77 @@ describe('onboardingChat mixin — View link navigation', () => {
     expect(store.screenRefreshTick).toBe(before + 1);
   });
 });
+
+describe('capture forms', () => {
+  const schema = { name: 'property', submit_label: 'Save', kinds: [{ key: 'main_residence', label: 'Home', fields: ['current_value'] }], fields: { current_value: { type: 'money', label: 'Value', required: true } } };
+
+  it('renders a capture_form event as a form on the Fyn row and marks the reply as received', () => {
+    const w = mount(Host);
+    const cursor = { reply: { role: 'fyn', text: '', bubbles: [] }, got: false };
+    w.vm.messages = [cursor.reply];
+    w.vm.handleFynEvent(cursor, { type: 'capture_form', prompt_text: 'Now your property.', form: schema });
+    expect(cursor.got).toBe(true);
+    expect(cursor.reply.text).toBe('Now your property.');
+    expect(cursor.reply.form.schema).toEqual(schema);
+    expect(cursor.reply.form.locked).toBe(false);
+  });
+
+  it('posts a form answer with the forms header and no message, and replaces the placeholder user row', async () => {
+    const { apiStream } = await import('../../api.js');
+    apiStream.mockImplementation(async (path, body, token, onDelta, onEvent) => {
+      onEvent({ type: 'form_received', text: 'Home worth £750,000, no mortgage, individual.' });
+      onEvent({ type: 'done' });
+      return { ok: true, status: 200, text: '' };
+    });
+    const w = mount(Host);
+    w.vm.conversationId = 7;
+    const form = { name: 'property', answers: { main_residence: { current_value: 750000 } } };
+
+    await w.vm.submitCaptureForm(form);
+
+    const body = apiStream.mock.calls.at(-1)[1];
+    expect(body.form).toEqual(form);
+    expect(body.message).toBeUndefined();
+    const user = w.vm.messages.find((m) => m.role === 'user');
+    expect(user.text).toBe('Home worth £750,000, no mortgage, individual.');
+  });
+
+  it('locks every earlier form and attaches errors to the latest', () => {
+    const w = mount(Host);
+    const row = { role: 'fyn', text: 'x', bubbles: [], form: { schema, errors: null, answers: null, locked: false } };
+    w.vm.messages = [row];
+    w.vm.handleFynEvent({ reply: row, got: true }, { type: 'capture_form_errors', form: 'property', errors: { main_residence: { message: 'Too many', fields: {} } } });
+    expect(row.form.errors.main_residence.message).toBe('Too many');
+  });
+
+  it('re-renders a persisted form from history as a locked-or-open form row', async () => {
+    const { apiGet } = await import('../../api.js');
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: { data: { messages: [
+      { role: 'assistant', content: 'Now your property.', metadata: { capture_form: schema } },
+    ] } } });
+    const w = mount(Host);
+    w.vm.conversationId = 7;
+    await w.vm.loadConversationTranscript();
+    expect(w.vm.messages.at(-1).form.schema).toEqual(schema);
+    expect(w.vm.messages.at(-1).form.locked).toBe(false);
+  });
+
+  // Ruling 9: the persisted schema lives on the assistant row, but the
+  // answers the user actually submitted are on the NEXT row (a user turn
+  // carrying metadata.form.answers) — mirroring the web panel's lookup.
+  // Once a later row exists, the form turn is no longer the last message, so
+  // it locks too.
+  it('finds a locked form\'s answers on the following persisted user row', async () => {
+    const { apiGet } = await import('../../api.js');
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: { data: { messages: [
+      { role: 'assistant', content: 'Now your property.', metadata: { capture_form: schema } },
+      { role: 'user', content: 'Home worth £750,000, no mortgage, individual.', metadata: { form: { answers: { main_residence: { current_value: 750000 } } } } },
+    ] } } });
+    const w = mount(Host);
+    w.vm.conversationId = 7;
+    await w.vm.loadConversationTranscript();
+    const formRow = w.vm.messages.find((m) => m.form);
+    expect(formRow.form.answers).toEqual({ main_residence: { current_value: 750000 } });
+    expect(formRow.form.locked).toBe(true);
+  });
+});
