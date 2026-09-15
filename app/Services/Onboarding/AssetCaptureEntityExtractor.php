@@ -69,6 +69,7 @@ final class AssetCaptureEntityExtractor
             'savings' => 'create_savings_account',
             'retirement', 'occupational' => 'create_pension',
             'investment' => 'create_investment_account',
+            'property' => 'create_property',
             default => null,
         };
     }
@@ -997,7 +998,7 @@ final class AssetCaptureEntityExtractor
             preg_match('/\bbuy[\s-]?to[\s-]?let\b|\brental\s+property\b|\binvestment\s+property\b|\bbtl\b/u', $lower) === 1 => 'buy_to_let',
             preg_match('/\bsecond\s+home\b|\bsecondary\s+residence\b|\bholiday\s+home\b/u', $lower) === 1 => 'secondary_residence',
             preg_match('/\bmain\s+residence\b|\bprimary\s+residence\b|\bprincipal\s+residence\b/u', $lower) === 1 => 'main_residence',
-            preg_match('/\bproperty\b|\bhouse\b|\bflat\b|\bapartment\b|\bbungalow\b|\bmaisonette\b/u', $lower) === 1 => 'main_residence',
+            preg_match('/\bproperty\b|\bhouse\b|\bflat\b|\bapartment\b|\bbungalow\b|\bmaisonette\b|\bhome\b|\bcottage\b|\bterrace\b|\bsemi\b|\bdetached\b|\bmy\s+place\b/u', $lower) === 1 => 'main_residence',
             default => null,
         };
 
@@ -1006,6 +1007,21 @@ final class AssetCaptureEntityExtractor
         }
 
         $input = ['property_type' => $group];
+        // "200000 left on the mortgage", "mortgage of 200k", "mortgage balance 200,000"
+        // (live 2026-09-15: "Our home is worth 450000 with 200000 left on the mortgage").
+        $mortgagePattern = '/(£?\\s*[\\d,]+(?:\\.\\d+)?\\s*(?:k|m)?)\\s+(?:left|outstanding|remaining|owing)\\s+on\\s+(?:the\\s+|our\\s+|my\\s+)?mortgage|\\bmortgage\\s+(?:of|is|at|balance(?:\\s+of)?|outstanding(?:\\s+of)?|left(?:\\s+of)?)\\s+(£?\\s*[\\d,]+(?:\\.\\d+)?\\s*(?:k|m)?)/iu';
+        if (preg_match($mortgagePattern, $chunk, $mm) === 1) {
+            $raw = trim(($mm[1] ?? '') !== '' ? $mm[1] : ($mm[2] ?? ''));
+            $mortgage = $this->extractAmount('£'.ltrim($raw, '£ '));
+            if ($mortgage !== null) {
+                $input['has_mortgage'] = true;
+                $input['mortgage_outstanding_balance'] = $mortgage;
+            }
+        } elseif (preg_match('/\\b(?:no|without)\\s+mortgage\\b|\\bmortgage[\\s-]free\\b|\\bowned\\s+outright\\b|\\boutright\\b/iu', $lower) === 1) {
+            $input['has_mortgage'] = false;
+        }
+        // Read the value from the chunk without the mortgage figure.
+        $chunk = preg_replace($mortgagePattern, ' ', $chunk) ?? $chunk;
 
         // UK postcode format — case-insensitive, optional space.
         if (preg_match('/\b([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b/iu', $chunk, $m) === 1) {

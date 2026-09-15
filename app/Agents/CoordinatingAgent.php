@@ -3145,7 +3145,9 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $account->id,
             'name' => $account->account_name,
             'persisted_fields' => array_keys($canonical),
-            'message' => "I've added your \"{$account->account_name}\" {$typeLabel}.".$this->tierCapNote($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user)),
+            'message' => "I've added your \"{$account->account_name}\" {$typeLabel}.".($account->is_isa
+                ? $this->tierCapNote($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user))
+                : $this->tierCapNote($user, SavingsStore::ENTITY_KEY, app(SavingsStore::class)->countForUser($user))),
         ];
     }
 
@@ -3217,6 +3219,12 @@ class CoordinatingAgent extends BaseAgent
             'provider' => ! empty($input['provider']) ? $input['provider'] : $input['account_name'],
             'account_type' => $dbAccountType,
             'current_value' => (float) $input['current_value'],
+            // Offered dividend income lives on the account it came from
+            // (CSJ 2026-09-15); the user-level total below still feeds the
+            // tax engine.
+            'annual_dividend_income' => isset($input['annual_dividend_income']) && is_numeric($input['annual_dividend_income'])
+                ? (float) $input['annual_dividend_income']
+                : null,
             'ownership_type' => $ownershipType,
             // One shared rule (App\Support\SharedOwnership). The literal 100
             // that used to sit here was only ever corrected because the
@@ -3321,7 +3329,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $account->id,
             'name' => $account->account_name,
             'persisted_fields' => array_keys(array_diff_key($canonical, ['user_id' => null])),
-            'message' => "I've added your \"{$account->account_name}\" investment account.".$this->tierCapNote($user, InvestmentAccountStore::ENTITY_KEY, InvestmentAccount::where('user_id', $user->id)->count()),
+            'message' => "I've added your \"{$account->account_name}\" investment account.".$this->tierCapNote($user, InvestmentAccountStore::ENTITY_KEY, app(InvestmentAccountStore::class)->countForUser($user)),
         ];
     }
 

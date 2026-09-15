@@ -2177,3 +2177,16 @@ it('opens a new clause before "and a Trading 212 acc" — a provider name with d
             'ownership_percentage' => 50,
         ], $text)['allowed'])->toBeTrue();
 });
+
+it('reads "our home … joint with my wife 50/50" as property ownership evidence — live 2026-09-15', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_property', [
+        'property_type' => 'main_residence',
+        'current_value' => 450000,
+        'has_mortgage' => true,
+        'mortgage_outstanding_balance' => 200000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ], 'Our home is worth 450000 with 200000 left on the mortgage, joint with my wife 50/50');
+
+    expect($result['allowed'])->toBeTrue();
+});

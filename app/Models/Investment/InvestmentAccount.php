@@ -50,6 +50,7 @@ class InvestmentAccount extends Model
         'account_number',
         'platform',
         'current_value',
+        'annual_dividend_income',
         'contributions_ytd',
         'monthly_contribution_amount',
         'contribution_frequency',

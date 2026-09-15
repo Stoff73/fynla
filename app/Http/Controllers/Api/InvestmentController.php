@@ -149,7 +149,7 @@ class InvestmentController extends Controller
                 // Free-tier cap surfacing (/m freemium 5.1). account_count mirrors the
                 // gate's primary-owner-only count (InvestmentAccountStore:192), NOT the
                 // joint-aware list above, so "X of Y used" matches what canCreate enforces.
-                'account_count' => InvestmentAccount::where('user_id', $user->id)->count(),
+                'account_count' => $this->investmentAccountStore->countForUser($user),
                 'account_limit' => $this->tierGate->hardLimit($user, InvestmentAccountStore::ENTITY_KEY),
                 'goals' => $goals,
                 'risk_profile' => $riskProfile,

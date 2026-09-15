@@ -260,9 +260,20 @@ class InvestmentAccountStore
         );
     }
 
+    /**
+     * The investments allowance: investment accounts plus every cash ISA held
+     * in savings — ISAs count here, never toward the bank accounts (CSJ
+     * 2026-09-15). The gate, the handlers and the controllers all read this.
+     */
+    public function countForUser(User $user): int
+    {
+        return InvestmentAccount::where('user_id', $user->id)->count()
+            + app(SavingsStore::class)->isaCountForUser($user);
+    }
+
     private function enforceTierCap(User $user): void
     {
-        $count = InvestmentAccount::where('user_id', $user->id)->count();
+        $count = $this->countForUser($user);
 
         if (! $this->tierGate->canCreate($user, self::ENTITY_KEY, $count)) {
             throw new TierLimitExceededException(
@@ -324,6 +335,7 @@ class InvestmentAccountStore
             'ownership_type' => $req.'in:individual,joint,trust',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
             'current_value' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
+            'annual_dividend_income' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
             'provider' => 'sometimes|nullable|string|max:255',
             'country' => 'sometimes|nullable|string|max:255',
             'isa_type' => 'sometimes|nullable|in:stocks_and_shares,lifetime,innovative_finance',

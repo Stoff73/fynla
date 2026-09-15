@@ -161,7 +161,13 @@ campaign_bank_accounts:
 
 campaign_investment_accounts:
   turn_type: delegated
-  prompt_text: 'Any investment accounts — General Investment Accounts or share trading platforms? For each one, tell me the current value, purchase cost, annual dividend income, and whether you own it individually or jointly. If jointly, include the other owner and your percentage share.'
+  prompt_text: 'Any investment accounts — General Investment Accounts or share trading platforms? **For each one, tell me who it is with, the current value, and whether you own it individually or jointly. If jointly, who owns it with you and your share.**'
+  capture_field: null
+  next: { branch: enterCampaignVerify }
+
+campaign_property:
+  turn_type: delegated
+  prompt_text: "Now your property. **For each one: is it your home, a second home or a buy-to-let; roughly what it's worth; whether there's a mortgage and how much is left on it; and whether you own it individually or jointly? If jointly, who owns it with you and your share.**"
   capture_field: null
   next: { branch: enterCampaignVerify }
 
