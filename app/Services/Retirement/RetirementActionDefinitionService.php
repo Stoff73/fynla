@@ -182,6 +182,7 @@ class RetirementActionDefinitionService
         return match ($condition) {
             'employee_contribution_percent_below' => $this->evaluateEmployerMatch($definition, $dcPensions, $config, $priority),
             'zero_contribution_with_fund_value' => $this->evaluateZeroContribution($definition, $dcPensions, $priority),
+            'dc_pension_value_missing' => $this->evaluatePensionValueMissing($definition, $dcPensions, $priority),
             'income_gap_positive_and_additional_contribution_required' => $this->evaluateContributionIncrease($definition, $analysisData, $profile, $dcPensions, $priority),
             'higher_rate_taxpayer_below_allowance' => $this->evaluateTaxRelief($definition, $profile, $dcPensions, $config, $priority),
             'annual_allowance_has_excess' => $this->evaluateAnnualAllowance($definition, $analysisData, $priority),
@@ -445,6 +446,56 @@ class RetirementActionDefinitionService
             ];
 
             $results[] = $rec;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Pension value missing: one action per DC pension whose current value was
+     * never entered (current_fund_value is NOT NULL DEFAULT 0, so 0 is "not
+     * entered"). Fyn asks for the value at onboarding; not knowing it there is
+     * fine (CSJ 2026-09-15) — this is where it is asked for afterwards.
+     */
+    private function evaluatePensionValueMissing(
+        RetirementActionDefinition $definition,
+        $dcPensions,
+        int $priority
+    ): array {
+        $results = [];
+
+        foreach ($dcPensions as $pension) {
+            $fundValue = (float) ($pension->current_fund_value ?? 0);
+            $pensionName = trim(($pension->provider ? $pension->provider.' ' : '').($pension->scheme_name ?? $pension->pension_type ?? 'Pension'));
+            $trace = [[
+                'question' => 'Has a current value been entered for this pension?',
+                'data_field' => 'current_fund_value',
+                'data_value' => '£'.number_format($fundValue, 0),
+                'threshold' => 'Greater than £0',
+                'passed' => $fundValue <= 0,
+                'explanation' => $fundValue > 0
+                    ? $pensionName.' has a value of £'.number_format($fundValue, 0).'.'
+                    : $pensionName.' has no value entered, so the retirement projection cannot count it.',
+            ]];
+
+            if ($fundValue > 0) {
+                continue;
+            }
+
+            $vars = ['scheme_name' => $pension->scheme_name ?: 'pension'];
+
+            $results[] = [
+                'priority' => $priority,
+                'category' => $definition->category,
+                'title' => $definition->renderTitle($vars),
+                'description' => $definition->renderDescription($vars),
+                'action' => $definition->renderAction($vars) ?? 'Add the current value from your latest statement.',
+                'impact' => ucfirst($definition->priority),
+                'scope' => 'account',
+                'account_id' => $pension->id,
+                'account_name' => $pension->scheme_name,
+                'decision_trace' => $trace,
+            ];
         }
 
         return $results;

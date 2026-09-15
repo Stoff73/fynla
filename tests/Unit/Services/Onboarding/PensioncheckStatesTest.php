@@ -91,11 +91,34 @@ it('campaign2_existing_recap has the correct bubble labels', function (): void {
 
 // campaign_occupational_scheme.next: savetax → pension_contribs; pensioncheck → pension_pots
 
-it('nextFromCampaignOccupationalScheme routes savetax to campaign_pension_contribs', function (): void {
-    $user = User::factory()->create(['onboarding_fyn_selection' => 'savetax']);
+it('nextFromCampaignOccupationalScheme routes savetax to the pot-value loop too — every pension is asked for its value', function (): void {
+    // CSJ 2026-09-15 (MB-54): the loop skips itself when nothing is missing.
+    $user = pensioncheckUser(['onboarding_fyn_selection' => 'savetax']);
     expect(SM::nextFromCampaignOccupationalScheme('3% matched', $user))
-        ->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS);
+        ->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS);
 });
+
+it('nextFromCampaignPensionContribs sends a savetax user back through the pot loop and remembers the section is done', function (): void {
+    $user = pensioncheckUser(['onboarding_fyn_selection' => 'savetax']);
+    expect(SM::nextFromCampaignPensionContribs('with Vanguard, £200 a month', $user))
+        ->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS)
+        ->and($user->fresh()->onboarding_fyn_context['pension_contribs_done'] ?? false)->toBeTrue();
+});
+
+it('nextFromPensionPots closes the savetax pensions section once contributions were asked', function (): void {
+    $user = pensioncheckUser(['onboarding_fyn_selection' => 'savetax', 'onboarding_fyn_context' => ['pension_contribs_done' => true]]);
+    DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 45000]);
+    expect(SM::nextFromPensionPots('done', $user))->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('pensions')
+        ->and($user->fresh()->onboarding_fyn_context['pension_contribs_done'] ?? null)->toBeNull();
+});
+
+it('nextFromPensionPots lets a savetax user who does not know the value move on, keeping the value unfilled', function (string $answer): void {
+    $user = pensioncheckUser(['onboarding_fyn_selection' => 'savetax']);
+    $pension = DCPension::factory()->create(['user_id' => $user->id, 'current_fund_value' => 0]);
+    expect(SM::nextFromPensionPots($answer, $user))->toBe(SM::STATE_CAMPAIGN_PENSION_CONTRIBS)
+        ->and((float) $pension->fresh()->current_fund_value)->toBe(0.0);
+})->with(["I don't know", 'not sure', 'no idea', 'not known', "can't remember", "haven't got it to hand", 'skip', 'unknown', 'move on']);
 
 it('nextFromCampaignOccupationalScheme routes pensioncheck to campaign2_pension_pots', function (): void {
     $user = pensioncheckUser();
@@ -112,12 +135,14 @@ it('nextFromCampaignPensionContribs routes pensioncheck to campaign2_pension_db'
         ->toBe(SM::STATE_CAMPAIGN2_PENSION_DB);
 });
 
-it('nextFromCampaignPensionContribs routes savetax to the verify sub-flow (not pension_db)', function (): void {
+it('nextFromCampaignPensionContribs routes savetax through the pot loop, never to pension_db', function (): void {
     $user = User::factory()->create(['onboarding_fyn_selection' => 'savetax']);
     $next = SM::nextFromCampaignPensionContribs('no extra contributions', $user);
-    // savetax pensions section ends at the verify announce (not pension_db).
-    expect($next)->toBe('campaign_verify_announce')
-        ->and($next)->not->toBe(SM::STATE_CAMPAIGN2_PENSION_DB);
+    // savetax asks the value of any pension just added, then the pot loop
+    // closes the section at the verify announce — never pension_db.
+    expect($next)->toBe(SM::STATE_CAMPAIGN2_PENSION_POTS)
+        ->and($next)->not->toBe(SM::STATE_CAMPAIGN2_PENSION_DB)
+        ->and(SM::nextFromPensionPots('done', $user->fresh()))->toBe('campaign_verify_announce');
 });
 
 // campaign2_pension_db.next = campaign2_flexible_access (static)

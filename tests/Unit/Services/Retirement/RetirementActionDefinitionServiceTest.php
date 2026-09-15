@@ -35,6 +35,40 @@ beforeEach(function () {
 });
 
 describe('evaluateAgentActions', function () {
+    it('asks for the current value of each pension whose value was never entered — one action per pension', function () {
+        // CSJ 2026-09-15: not knowing the value at onboarding is fine; the
+        // Retirement actions ask for it afterwards.
+        $missing = DCPension::create([
+            'user_id' => $this->user->id,
+            'scheme_name' => 'Aviva Workplace Pension',
+            'scheme_type' => 'workplace',
+            'pension_type' => 'occupational',
+            'employee_contribution_percent' => 5.0,
+            'employer_contribution_percent' => 5.0,
+            'current_fund_value' => 0,
+            'annual_salary' => 55000,
+        ]);
+        DCPension::create([
+            'user_id' => $this->user->id,
+            'scheme_name' => 'Vanguard SIPP',
+            'scheme_type' => 'personal',
+            'pension_type' => 'sipp',
+            'current_fund_value' => 40000,
+        ]);
+
+        $recs = $this->service->evaluateAgentActions([
+            'profile' => $this->profile->toArray(),
+            'summary' => ['income_gap' => 0, 'target_retirement_income' => 30000, 'target_retirement_age' => 65],
+            'annual_allowance' => ['has_excess' => false, 'remaining_allowance' => 60000, 'carry_forward_available' => 0],
+        ])['recommendations'];
+
+        $valueActions = collect($recs)->where('category', 'Pension_value')->values();
+        expect($valueActions)->toHaveCount(1)
+            ->and($valueActions[0]['account_id'])->toBe($missing->id)
+            ->and($valueActions[0]['title'])->toBe('Add the current value of your Aviva Workplace Pension')
+            ->and($valueActions[0]['scope'])->toBe('account');
+    });
+
     it('produces employer match recommendation when employee contribution below threshold', function () {
         DCPension::create([
             'user_id' => $this->user->id,
