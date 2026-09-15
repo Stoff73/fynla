@@ -743,15 +743,33 @@ final class AssetCaptureEntityExtractor
             return [];
         }
 
-        if (preg_match('/\b(?:i\s+)?(?:contribute|pay(?:\s+in)?|put(?:\s+in)?)\s+(?:about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*%/u', $lower, $employee) !== 1) {
+        $employeePercent = null;
+        if (preg_match('/\b(?:i\s+)?(?:contribute|pay(?:\s+in)?|put(?:\s+in)?)\s+(?:about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*(?:%|percent)?/u', $lower, $employee) === 1) {
+            $employeePercent = (float) $employee[1];
+        } else {
+            // The prompt asks "what percentage of your salary do you
+            // contribute", so a bare "5", "5%" or "5 percent" IS the answer
+            // (live 2026-09-15: "5 and employer matches" returned nothing and
+            // Fyn said "Sorry, I didn't catch that"). The first number that is
+            // not the employer's is the employee's.
+            preg_match_all('/(?<![\d.])(\d{1,2}(?:\.\d+)?)\s*(?:%|percent)?(?![\d.])/u', $lower, $numbers, PREG_OFFSET_CAPTURE);
+            foreach ($numbers[1] ?? [] as [$value, $offset]) {
+                $before = substr($lower, max(0, $offset - 30), min(30, $offset));
+                if (preg_match('/\bemployer\b[^.!?,]*$/u', $before) === 1) {
+                    continue; // "employer adds 3%" — theirs, not the user's
+                }
+                $employeePercent = (float) $value;
+                break;
+            }
+        }
+        if ($employeePercent === null) {
             return [];
         }
-        $employeePercent = (float) $employee[1];
 
         $employerPercent = null;
-        if (preg_match('/\bemployer\s+(?:adds?|contributes?|pays?(?:\s+in)?|puts?(?:\s+in)?|matches\s+(?:it\s+)?with)\s+(?:another\s+|about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*%/u', $lower, $employer) === 1) {
+        if (preg_match('/\bemployer\s+(?:adds?|contributes?|pays?(?:\s+in)?|puts?(?:\s+in)?|matches\s+(?:it\s+)?with)\s+(?:another\s+|about\s+|around\s+)?(\d{1,2}(?:\.\d+)?)\s*(?:%|percent)?/u', $lower, $employer) === 1) {
             $employerPercent = (float) $employer[1];
-        } elseif (preg_match('/\bemployer\s+matches\b|\bmatched\s+by\s+my\s+employer\b/u', $lower) === 1) {
+        } elseif (preg_match('/\bemployer\s+matches\b|\bmatched\s+by\s+my\s+employer\b|(?:^|\band\s+|,\s*)(?:it[\x{2019}\x{0027}]?s\s+)?matched\b/u', $lower) === 1) {
             $employerPercent = $employeePercent;
         }
 
