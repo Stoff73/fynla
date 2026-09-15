@@ -57,6 +57,11 @@ it('emits the property form to a client that can render forms and persists the s
     expect($form)->not->toBeNull()
         ->and($form['form'])->toBe(CaptureForms::schema('property'))
         ->and($form['prompt_text'])->toContain('Now your property')
+        // The form-shaped wording lives in the corpus's form_prompt_text data
+        // key — distinct from the typed prompt_text a client without the
+        // forms capability gets (see the fallback test below). Only a form-
+        // capable client should ever see an instruction to use controls.
+        ->and($form['prompt_text'])->toContain('tap Save')
         ->and(collect($events)->where('type', 'content'))->toHaveCount(0)
         ->and(collect($events)->last()['type'])->toBe('done');
 
@@ -79,8 +84,17 @@ it('emits the typed prompt instead when the client has not declared forms — na
 
     $events = iterator_to_array($director->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY, OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY)), false);
 
+    // final-review C1 — a client without the forms capability (native today)
+    // must keep the typed instruction, not the form-shaped "fill in the
+    // boxes below and tap Save" wording. Asserting the typed wording's own
+    // words (not just the shared opening line) is what would have caught
+    // the regression: both wordings share "Now your property".
     expect(collect($events)->firstWhere('type', 'capture_form'))->toBeNull()
-        ->and(collect($events)->firstWhere('type', 'content')['text'])->toContain('Now your property');
+        ->and(collect($events)->firstWhere('type', 'content')['text'])
+        ->toContain('Now your property')
+        ->toContain('is it your home, a second home or a buy-to-let')
+        ->toContain('how much is left on it')
+        ->not->toContain('tap Save');
 });
 
 it('sends a typed sentence at the form step down the existing capture path', function (): void {

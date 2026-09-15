@@ -168,7 +168,8 @@ campaign_investment_accounts:
 campaign_property:
   turn_type: form
   form: property
-  prompt_text: "Now your property. **Tell me about your home and any buy to let — fill in the boxes below and tap Save.**"
+  prompt_text: "Now your property. **For each one: is it your home, a second home or a buy-to-let; roughly what it's worth; whether there's a mortgage and how much is left on it; and whether you own it individually or jointly? If jointly, who owns it with you and your share.**"
+  form_prompt_text: "Now your property. **Tell me about your home and any buy to let — fill in the boxes below and tap Save.**"
   capture_field: null
   next: { branch: enterCampaignVerify }
 

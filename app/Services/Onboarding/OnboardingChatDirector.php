@@ -1036,12 +1036,25 @@ final class OnboardingChatDirector
         if ($turnType === 'form' && $this->clientSupportsForms) {
             $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
             if ($schema !== null) {
+                // A form-capable client sees form-shaped wording ("fill in
+                // the boxes below and tap Save"); a client without the
+                // capability falls through below and gets `prompt_text` — the
+                // typed instruction — via the same $promptText already
+                // resolved above. `form_prompt_text` is an optional corpus
+                // DATA key; states without it (none currently) fall back to
+                // the typed wording here too.
+                $formPromptState = $effectiveState;
+                if (isset($state['form_prompt_text'])) {
+                    $formPromptState['prompt_text'] = $state['form_prompt_text'];
+                }
+                $formPromptText = OnboardingStateMachine::resolvePromptText($formPromptState, $user, '', $conversation);
+
                 yield [
                     'type' => 'capture_form',
-                    'prompt_text' => $promptText,
+                    'prompt_text' => $formPromptText,
                     'form' => $schema,
                 ];
-                $assistantMessage = $this->saveMessage($conversation, 'assistant', $promptText, [
+                $assistantMessage = $this->saveMessage($conversation, 'assistant', $formPromptText, [
                     'metadata' => [
                         'capture_form' => $schema,
                         'onboarding_step' => $stateId,
