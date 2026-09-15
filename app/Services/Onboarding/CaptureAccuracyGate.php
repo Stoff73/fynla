@@ -389,11 +389,30 @@ final class CaptureAccuracyGate
             foreach ($matches[0] ?? [] as $match) {
                 $events[] = [
                     'offset' => $match[1],
+                    'end' => $match[1] + strlen($match[0]),
                     'category' => $this->isNegatedMatch($text, $match[1]) ? null : $category,
                     'corrected' => $this->isCorrectionMatch($text, $match[1]),
                 ];
             }
         }
+
+        // "not joint" is an individual phrase that contains a negated joint
+        // word; the word inside the phrase is not a second, later signal.
+        $events = array_values(array_filter($events, static function (array $event) use ($events): bool {
+            if ($event['category'] !== null) {
+                return true;
+            }
+            foreach ($events as $other) {
+                if ($other['category'] !== null
+                    && $other['offset'] <= $event['offset']
+                    && $other['end'] >= $event['end']
+                    && ($other['offset'] !== $event['offset'] || $other['end'] !== $event['end'])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
 
         if ($events === []) {
             return null;
@@ -417,7 +436,7 @@ final class CaptureAccuracyGate
      */
     private function mentionsShare(string $text): bool
     {
-        return preg_match('/\d{1,3}(?:\.\d+)?\s*%|\b(?:half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)\b/u', $text) === 1;
+        return preg_match('/\d{1,3}(?:\.\d+)?\s*%|\b(?:(?<!other\s)half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)\b/u', $text) === 1;
     }
 
     private function ownershipShareFromText(string $text): ?float
@@ -445,6 +464,9 @@ final class CaptureAccuracyGate
         $equalPatterns = [
             '/\b(?:ownership|owned|share|split)\b.{0,20}\b(?:half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)\b/u',
             '/(?:^|[.!?\n]\s*)(?:half|equal(?:ly)?|in\s+equal\s+shares|50\s*\/\s*50)(?:\s*[.!?\n]|$)/u',
+            // "50/50", "half each", "split equally", "fifty fifty" anywhere in
+            // the clause — an equal split needs no ownership word before it.
+            '/\\b(?:50\\s*\\/\\s*50|fifty[\\s\\/-]*fifty|half\\s+(?:each|and\\s+half)|split\\s+(?:equally|evenly|down\\s+the\\s+middle)|equal(?:ly)?\\s+split|equal\\s+shares?)\\b/u',
         ];
         foreach ($equalPatterns as $pattern) {
             preg_match_all($pattern, $text, $matches, PREG_OFFSET_CAPTURE);
@@ -734,6 +756,11 @@ final class CaptureAccuracyGate
 
     private function isStandaloneEvidence(string $segment): bool
     {
+        // "joint account", "shared", "individual", "sole name" — an ownership
+        // answer on its own, with at most a generic noun, names no new entity.
+        if (preg_match('/^\s*(?:it[\x{2019}\x{0027}]?s\s+|that[\x{2019}\x{0027}]?s\s+)?(?:an?\s+)?(?:'.OwnershipPhrasings::JOINT.'|'.OwnershipPhrasings::INDIVIDUAL.')(?:\s+(?:accs?|accounts?|isa|savers?|savings|one|name))?\s*[.!]?\s*$/u', $segment) === 1) {
+            return true;
+        }
         $joined = preg_split('/\s+and\s+/u', trim($segment));
         if (is_array($joined) && count($joined) > 1) {
             return collect($joined)->every(fn (string $part): bool => $this->isStandaloneEvidence($part));
@@ -864,7 +891,7 @@ final class CaptureAccuracyGate
     private function segmentsForTurn(string $turn): array
     {
         $segments = preg_split(
-            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)|\s+(?:and|but|while|whereas)\s+(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b|an?\s+(?:joint(?:ly)?|shared|individual|sole|separate|second|third|further|new)\b|an?\s+(?:[a-z&\x{0027}]+\s+){1,4}(?:accs?|accounts?|isas?|savers?|pensions?|propert(?:y|ies)|loans?|mortgages?)\b))/u',
+            '/(?<=[.!?])\s+|\s*[;\x{2014}\x{2013}]\s*|,\s+(?=(?:actually|correction|rather|instead)\b)|,\s+(?=(?:mine\s+alone|just\s+me|only\s+me|individually|joint(?:ly)?|tenants?\s+in\s+common|held\s+in\s+trust)\b)|(?<!correction)(?<!actually)(?<!rather)(?<!instead),\s+(?=(?:(?:actually|correction|rather|instead)[,:]?\s+)?(?:my|our|the|another|a\s+second)\b)(?!(?:(?:actually|correction|rather|instead)[,:]?\s+)?my\s+(?:wife|husband|partner|spouse|other\s+half)\b)|\s+(?:and|but|while|whereas)\s+(?!my\s+(?:wife|husband|partner|spouse|other\s+half)\b)(?=(?:(?:actually|correction|rather|instead)\b|(?:my|our|the|another|a\s+second)\b|an?\s+(?:joint(?:ly)?|shared|individual|sole|separate|second|third|further|new)\b|an?\s+(?:[a-z&\x{0027}]+\s+){1,4}(?:accs?|accounts?|isas?|savers?|pensions?|propert(?:y|ies)|loans?|mortgages?)\b))/u',
             $turn,
         ) ?: [];
 

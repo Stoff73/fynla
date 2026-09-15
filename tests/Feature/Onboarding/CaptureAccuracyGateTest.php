@@ -1795,6 +1795,10 @@ it('recognises natural individual-ownership phrasings', function (string $text):
 
     expect($result)->toBe(['allowed' => true]);
 })->with([
+    // Live 2026-09-15 (user 704): a bare "mine" is the answer to "is it
+    // owned individually or jointly?".
+    'Halifax saver with 5000, mine',
+    "The Halifax saver has £5,000 and it's mine",
     'My Halifax savings account with £5,000 is owned by me',
     'The Halifax account with £5,000 is my own',
     'My £5,000 Halifax savings account is in my name',
@@ -2025,4 +2029,127 @@ it('lets the executor strip the model\'s zero ids before the guards read them', 
     expect($account->joint_owner_id)->toBeNull()
         ->and($account->joint_owner_name)->toBeNull()
         ->and($account->trust_id)->toBeNull();
+});
+
+it('reads "mine" for the first account when the second is "a joint …" in the same sentence — live 2026-09-15 user 704', function (): void {
+    $text = 'Lloyds acc with 457, mine and a joint Halifax savings acc with 4567';
+    $gate = app(CaptureAccuracyGate::class);
+
+    expect($gate->inspect('create_savings_account', [
+        'institution' => 'Lloyds',
+        'account_name' => 'Lloyds Account',
+        'account_type' => 'savings_account',
+        'current_balance' => 457,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $text))->toBe(['allowed' => true]);
+});
+
+// CSJ 2026-09-15: "ALL variants and scenarios" — every way a user answers
+// "is it owned individually or jointly?" at the bank accounts prompt.
+it('recognises every individual answer to the ownership question', function (string $text): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'institution' => 'Lloyds',
+        'account_name' => 'Lloyds Account',
+        'account_type' => 'current_account',
+        'current_balance' => 457,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $text);
+
+    expect($result)->toBe(['allowed' => true]);
+})->with([
+    'Lloyds acc with 457, mine',
+    "Lloyds account with 457, it's mine",
+    "Lloyds account with 457, that's mine",
+    'Lloyds account with 457, all mine',
+    'Lloyds account with 457, mine only',
+    'Lloyds account with 457, just mine',
+    'Lloyds account with 457, just me',
+    'Lloyds account with 457, only me',
+    'Lloyds account with 457, me only',
+    'Lloyds account with 457, myself',
+    'Lloyds account with 457, by myself',
+    'Lloyds account with 457, owned by me',
+    'Lloyds account with 457, in my name',
+    'Lloyds account with 457, my name',
+    'Lloyds account with 457, my name only',
+    'Lloyds account with 457, just in my name',
+    'Lloyds account with 457, single name',
+    'Lloyds account with 457, one name',
+    'Lloyds account with 457, sole name',
+    'Lloyds account with 457, sole owner',
+    'Lloyds account with 457, solely',
+    'Lloyds account with 457, sole',
+    'Lloyds account with 457, my own',
+    'Lloyds account with 457, on my own',
+    'Lloyds account with 457, individual',
+    'Lloyds account with 457, individually',
+    'Lloyds account with 457, owned individually',
+    'Lloyds account with 457, personal',
+    'Lloyds account with 457, my personal account',
+    'Lloyds account with 457, I own it',
+    "Lloyds account with 457, I'm the only owner",
+    'Lloyds account with 457, not joint',
+    'Lloyds account with 457, not shared',
+    'Lloyds account with 457, no one else',
+    'Lloyds account with 457, nobody else',
+]);
+
+it('recognises every joint answer to the ownership question and saves at the household default', function (string $text): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'institution' => 'Halifax',
+        'account_name' => 'Halifax Savings Account',
+        'account_type' => 'savings_account',
+        'current_balance' => 4567,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ], $text);
+
+    expect($result['allowed'])->toBeTrue();
+})->with([
+    'Halifax savings with 4567, joint',
+    'Halifax savings with 4567, jointly',
+    'Halifax savings with 4567, joint account',
+    'Halifax savings with 4567, jointly owned',
+    'Halifax savings with 4567, shared',
+    'Halifax savings with 4567, we share it',
+    'Halifax savings with 4567, we own it',
+    'Halifax savings with 4567, co-owned',
+    'Halifax savings with 4567, ours',
+    "Halifax savings with 4567, it's ours",
+    'Halifax savings with 4567, our joint account',
+    'Halifax savings with 4567, in both our names',
+    'Halifax savings with 4567, both our names',
+    'Halifax savings with 4567, both of us',
+    'Halifax savings with 4567, us both',
+    'Halifax savings with 4567, the two of us',
+    'Halifax savings with 4567, with my wife',
+    'Halifax savings with 4567, with my husband',
+    'Halifax savings with 4567, with my partner',
+    'Halifax savings with 4567, with my spouse',
+    'Halifax savings with 4567, with my other half',
+    'Halifax savings with 4567, with the wife',
+    'Halifax savings with 4567, me and my wife',
+    'Halifax savings with 4567, my husband and I',
+    'Halifax savings with 4567, owned with my wife',
+    'Halifax savings with 4567, 50/50',
+    'Halifax savings with 4567, half each',
+    'Halifax savings with 4567, split equally',
+    'Halifax savings with 4567, together',
+    'Halifax savings with 4567, between us',
+]);
+
+it('still asks when the answer names neither', function (): void {
+    $result = app(CaptureAccuracyGate::class)->inspect('create_savings_account', [
+        'institution' => 'Lloyds',
+        'account_name' => 'Lloyds Account',
+        'account_type' => 'current_account',
+        'current_balance' => 457,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], 'Lloyds account with 457 at 3%');
+
+    expect($result['allowed'])->toBeFalse()
+        ->and($result['missing'])->toContain('ownership_type');
 });
