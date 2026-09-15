@@ -923,3 +923,35 @@ it('never asks for a declined pension value twice — the second pass only asks 
     expect(SM::nextFromPensionPots("don't know", $user2))->toBe('campaign_verify_announce');
     expect($user2->fresh()->onboarding_fyn_context['pension_value_declined'] ?? [])->toBe([$wp2->id, $sipp->id]);
 });
+
+// ── Save Tax property section + no advice during onboarding (CSJ 2026-09-15) ──
+
+it('walks the property section after investments when the funnel ticked property, and skips it otherwise', function (): void {
+    $with = pensioncheckUser(['onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank', 'property']]]);
+    $without = pensioncheckUser(['onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank']]]);
+
+    expect(SM::sectionOrderFor('savetax'))->toContain('property')
+        ->and(array_search('property', SM::sectionOrderFor('savetax'), true))->toBe(array_search('investments', SM::sectionOrderFor('savetax'), true) + 1)
+        ->and(SM::skipSectionIfNoProperty($with))->toBeFalse()
+        ->and(SM::skipSectionIfNoProperty($without))->toBeTrue()
+        ->and(SM::campaignVerifyConfig('savetax')['property']['route'])->toBe('/net-worth/property')
+        ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['capture_focus'] ?? null)->toBe('property')
+        ->and(SM::getState(SM::STATE_CAMPAIGN_PROPERTY)['prompt_text'] ?? '')->toContain('buy-to-let');
+    // The capture-end enters the verify announce for the property page.
+    expect(SM::getNextStateId(SM::STATE_CAMPAIGN_PROPERTY, 'my home is worth 450000, joint with my wife', $with))->toBe('campaign_verify_announce')
+        ->and($with->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('property');
+});
+
+it('gives no advice during onboarding — every advice state is skipped straight to the next section', function (): void {
+    $user = pensioncheckUser(['onboarding_fyn_selection' => 'savetax', 'funnel_answers' => ['campaign' => 'savetax', 'assets' => ['bank', 'investments', 'property']]]);
+    expect(SM::applySkipRules(SM::STATE_CAMPAIGN_ADVICE_SAVINGS, $user))->toBe(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)
+        ->and(SM::applySkipRules(SM::STATE_CAMPAIGN_ADVICE_INVESTMENTS, $user))->toBe(SM::STATE_CAMPAIGN_PROPERTY)
+        ->and(SM::applySkipRules(SM::STATE_CAMPAIGN_ADVICE_PENSIONS, $user))->not->toBe(SM::STATE_CAMPAIGN_ADVICE_PENSIONS);
+    $pc = pensioncheckUser();
+    expect(SM::applySkipRules(SM::STATE_CAMPAIGN2_ADVICE_STATE_PENSION, $pc))->not->toBe(SM::STATE_CAMPAIGN2_ADVICE_STATE_PENSION);
+});
+
+it('the investments prompt no longer asks for purchase cost or dividends', function (): void {
+    $prompt = (string) (SM::getState(SM::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS)['prompt_text'] ?? '');
+    expect($prompt)->not->toContain('purchase cost')->not->toContain('dividend')->toContain('current value');
+});

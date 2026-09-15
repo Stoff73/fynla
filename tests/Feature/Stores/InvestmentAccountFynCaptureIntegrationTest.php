@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\AuditLog;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
@@ -104,4 +106,26 @@ it('rejects ISA with non-individual ownership', function () {
     expect($result['error'] ?? false)->toBeTrue();
     expect($result['error_type'] ?? null)->toBe('validation_failed');
     expect($result['message'] ?? '')->toContain('ISAs can only be individually owned');
+});
+
+it('stores offered dividend income on the account it came from (CSJ 2026-09-15)', function (): void {
+    $this->seed(TierConfigurationSeeder::class);
+    $user = User::factory()->create(['is_preview_user' => false, 'onboarding_completed' => false]);
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+    AiMessage::create(['conversation_id' => $conversation->id, 'role' => 'user', 'content' => 'GIA with Hargreaves Lansdown worth 15000, dividends 300 a year, mine']);
+
+    $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
+        'provider' => 'Hargreaves Lansdown',
+        'account_name' => 'Hargreaves Lansdown GIA',
+        'account_type' => 'gia',
+        'current_value' => 15000,
+        'annual_dividend_income' => 300,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ], $user, $conversation->id);
+
+    expect($result['created'] ?? false)->toBeTrue();
+    $account = InvestmentAccount::where('user_id', $user->id)->sole();
+    expect((float) $account->annual_dividend_income)->toBe(300.0)
+        ->and((float) $user->fresh()->annual_dividend_income)->toBe(300.0);
 });

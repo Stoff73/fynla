@@ -31,6 +31,7 @@ class InvestmentAccountResource extends JsonResource
             'provider' => $this->provider,
             'platform' => $this->platform,
             'current_value' => $this->current_value,
+            'annual_dividend_income' => $this->annual_dividend_income,
             'contributions_ytd' => $this->contributions_ytd,
             'monthly_contribution_amount' => $this->monthly_contribution_amount,
             'contribution_frequency' => $this->contribution_frequency,

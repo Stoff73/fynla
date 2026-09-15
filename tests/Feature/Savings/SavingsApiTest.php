@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Models\ExpenditureProfile;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\SavingsStore;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
@@ -167,6 +170,53 @@ describe('Savings API', function () {
                 'user_id' => $user->id,
                 'country' => 'Ireland',
             ]);
+        });
+
+        it('counts ISAs toward the investments allowance, never the bank accounts (CSJ 2026-09-15)', function () {
+            $freeUser = User::factory()->create(['tier' => 'free']);
+            Sanctum::actingAs($freeUser);
+            // Two bank accounts fill the bank allowance…
+            SavingsAccount::factory(2)->create(['user_id' => $freeUser->id, 'is_isa' => false]);
+            // …but a cash ISA is capped with the investments, so it still saves.
+            $this->postJson('/api/savings/accounts', [
+                'account_type' => 'cash_isa',
+                'is_isa' => true,
+                'isa_type' => 'cash',
+                'institution' => 'Nationwide',
+                'current_balance' => 12000,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'country' => 'United Kingdom',
+            ])->assertCreated();
+            // A third bank account is still refused.
+            $this->postJson('/api/savings/accounts', [
+                'account_type' => 'easy_access',
+                'institution' => 'Third Bank',
+                'current_balance' => 1000,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'country' => 'United Kingdom',
+            ])->assertStatus(403)->assertJson(['entity_key' => 'savings_account']);
+        });
+
+        it('refuses a cash ISA once the investments allowance is used up', function () {
+            $freeUser = User::factory()->create(['tier' => 'free']);
+            Sanctum::actingAs($freeUser);
+            // One cash ISA + one investment account = the Free investments allowance of 2.
+            SavingsAccount::factory()->create(['user_id' => $freeUser->id, 'is_isa' => true, 'account_type' => 'cash_isa']);
+            InvestmentAccount::factory()->create(['user_id' => $freeUser->id]);
+            $this->postJson('/api/savings/accounts', [
+                'account_type' => 'cash_isa',
+                'is_isa' => true,
+                'isa_type' => 'cash',
+                'institution' => 'Barclays',
+                'current_balance' => 5000,
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'country' => 'United Kingdom',
+            ])->assertStatus(403)->assertJson(['entity_key' => 'investment', 'hard_limit' => 2]);
+            expect(app(InvestmentAccountStore::class)->countForUser($freeUser))->toBe(2)
+                ->and(app(SavingsStore::class)->countForUser($freeUser))->toBe(0);
         });
 
         it('returns 403 with structured payload when a free-tier user exceeds the savings cap', function () {

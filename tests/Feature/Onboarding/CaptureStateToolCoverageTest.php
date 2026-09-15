@@ -63,6 +63,7 @@ const DELEGATED_STATE_TOOLS = [
     'campaign_isa_holdings' => ['savetax', 'create_savings_account'],
     'campaign_bank_accounts' => ['savetax', 'create_savings_account'],
     'campaign_investment_accounts' => ['savetax', 'create_investment_account'],
+    'campaign_property' => ['savetax', 'create_property'],
     'campaign_occupational_scheme' => ['savetax', 'capture_salary_sacrifice'],
     'campaign_pension_contribs' => ['savetax', 'create_pension'],
     'campaign2_pension_pots' => ['pensioncheck', 'update_record'],
