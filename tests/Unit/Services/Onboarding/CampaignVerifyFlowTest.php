@@ -419,6 +419,8 @@ it('the Save Tax income and spouse ends skip the details page; everything else a
     $savetax = User::factory()->create(['onboarding_fyn_path' => 'campaign', 'onboarding_fyn_selection' => 'savetax', 'onboarding_fyn_context' => []]);
     expect(OnboardingStateMachine::enterCampaignVerify($savetax, 'income'))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_INCOME)
         ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'spouse'))->toBe(OnboardingStateMachine::STATE_CAMPAIGN_ADVICE_SPOUSE)
+        // Expenditure has no advice turn: it goes straight to the next section (CSJ 2026-09-16 15:47).
+        ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'expenditure'))->not->toBe('campaign_verify_announce')
         ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'savings'))->toBe('campaign_verify_announce')
         ->and(OnboardingStateMachine::enterCampaignVerify($savetax, 'property'))->toBe('campaign_verify_announce');
 
