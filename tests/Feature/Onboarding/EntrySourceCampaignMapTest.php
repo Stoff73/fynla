@@ -124,3 +124,28 @@ it('does not interfere with existing journey_map behaviour', function () {
     expect($user->onboarding_fyn_selection)->toBe('protection');
     expect($user->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
 });
+
+// csjones 2026-09-16: a retired pension check arrival opened at base_work and was
+// asked for an employer and job title.
+it('lands a retired funnel arrival at the retirement-date step, not the work step', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false,
+        'onboarding_completed' => false,
+        'onboarding_fyn_step' => null,
+        'onboarding_fyn_path' => null,
+        'onboarding_fyn_selection' => null,
+        'employment_status' => 'retired',
+        'retirement_date' => null,
+        'first_name' => 'Pat',
+        'funnel_answers' => ['campaign' => 'pensioncheck', 'employment' => 'retired', 'income' => 'upto_50270', 'pensions' => ['personal_sipp'], 'age' => '60_plus', 'spouse' => 'yes'],
+    ]);
+    grantAiChatConsentForCampaignMapTest($user);
+    $token = $user->createToken('test')->plainTextToken;
+
+    $response = $this->withToken($token)->postJson('/api/ai-chat/onboarding/start', ['from' => 'pensioncheck']);
+    $response->assertOk();
+
+    expect($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE)
+        ->and($response->streamedContent())->toContain('When did you retire?')
+        ->and($response->streamedContent())->toContain('Pat');
+});

@@ -795,6 +795,15 @@ class AiChatController extends Controller
                 unset($pausedContext['paused_at_step']);
                 $user->onboarding_fyn_context = $pausedContext === [] ? null : $pausedContext;
             }
+            // The map's income-first entry assumes earned income. A retired or
+            // not-working funnel arrival takes the same branch the employment
+            // step would have (retirement date, or straight past income) —
+            // csjones 2026-09-16: a retired pension check user was asked for an
+            // employer and job title.
+            if ($stepId === OnboardingStateMachine::STATE_BASE_WORK && ! empty($user->employment_status)
+                && ! in_array($user->employment_status, [...OnboardingStateMachine::WORKPLACE_PENSION_STATUSES, 'self_employed'], true)) {
+                $stepId = OnboardingStateMachine::nextFromEmployment('', $user);
+            }
             $user->onboarding_fyn_step = $stepId;
             $startStateId = $stepId;
             // Re-entry: stamp active_campaign so legacy untyped conversations

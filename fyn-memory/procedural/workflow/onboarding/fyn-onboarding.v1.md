@@ -142,7 +142,7 @@ base_employment_more:
 
 base_retirement_date:
   turn_type: free_text
-  prompt_text: 'When did you retire? A year is fine — something like "2020".'
+  prompt_text: { builder: buildRetirementDatePrompt }
   capture_field: retirement_date
   value_parser: parseRetirementDate
   next: { branch: nextFromRetirementDate }
