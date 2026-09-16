@@ -1174,6 +1174,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_spouse_details' => $this->handleCaptureSpouseDetails($input, $user),
                 'capture_dependants' => $this->handleCaptureDependants($input, $user),
                 'capture_work_details' => $this->handleCaptureWorkDetails($input, $user),
+                'capture_monthly_expenditure' => $this->handleCaptureMonthlyExpenditure($input, $user),
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
@@ -2076,6 +2077,39 @@ class CoordinatingAgent extends BaseAgent
                 'count' => count($created),
                 'dependants' => $created,
             ],
+        ];
+    }
+
+    /**
+     * capture_monthly_expenditure — the single monthly total (simple entry):
+     * users.monthly_expenditure, the entry mode, and the profile mirror, in
+     * one transaction. The typed onboarding step and the one-box form both
+     * write through here (one write path, CSJ 2026-09-16).
+     */
+    public function handleCaptureMonthlyExpenditure(array $input, User $user): array
+    {
+        $raw = $input['monthly_total'] ?? null;
+        if (! is_numeric($raw) || (float) $raw < 0 || (float) $raw > 999999) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'Monthly spending must be a figure of zero or more.'];
+        }
+        $monthlyTotal = round((float) $raw, 2);
+
+        DB::transaction(function () use ($user, $monthlyTotal): void {
+            $user->monthly_expenditure = $monthlyTotal;
+            $user->expenditure_entry_mode = 'simple';
+            $user->save();
+            if ($monthlyTotal > 0) {
+                ExpenditureProfile::updateOrCreate(['user_id' => $user->id], ['total_monthly_expenditure' => $monthlyTotal]);
+            } else {
+                ExpenditureProfile::where('user_id', $user->id)->update(['total_monthly_expenditure' => 0]);
+            }
+        });
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'expenditure',
+            'summary' => 'Monthly spending saved',
+            'details' => ['monthly_total' => $monthlyTotal],
         ];
     }
 
@@ -5375,6 +5409,15 @@ class CoordinatingAgent extends BaseAgent
         // finally fire. Measured the day it shipped: 13 of 13 spouse-holding users on
         // dev had never declared, so this is the branch that runs for all of them.
         $spouse = $user->liveSpouse();
+
+        // The expenditure form asks the household question up front when a
+        // spouse is on file; the answer travels with the figures.
+        $declaredMode = (string) ($input['expenditure_sharing_mode'] ?? '');
+        if (in_array($declaredMode, [SharedExpenditure::MODE_JOINT, SharedExpenditure::MODE_SEPARATE], true)) {
+            $user->expenditure_sharing_mode = $declaredMode;
+            $user->expenditure_sharing_mode_declared_at = now();
+            $user->save();
+        }
 
         if ($spouse !== null && $user->expenditure_sharing_mode_declared_at === null) {
             return [

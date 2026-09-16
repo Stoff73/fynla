@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Models\User;
 use Carbon\Carbon;
 
 /**
@@ -52,6 +53,15 @@ final class CaptureForms
     /** The personal pension or SIPP alone — the pension form for users with no workplace scheme step. */
     public const PENSION_PERSONAL = 'pension_personal';
 
+    /** Monthly spending as one figure (everyone), through capture_monthly_expenditure. */
+    public const EXPENDITURE = 'expenditure';
+
+    /** Monthly spending by category (Premium), through set_expenditure; a variant of EXPENDITURE. */
+    public const EXPENDITURE_DETAILED = 'expenditure_detailed';
+
+    /** The category form asking first whether the figures are the household's (a spouse is on file). */
+    public const EXPENDITURE_DETAILED_HOUSEHOLD = 'expenditure_detailed_household';
+
     /** The pseudo-kind that holds a schema's lead fields (asked above the kind boxes). */
     public const LEAD = '_lead';
 
@@ -62,7 +72,7 @@ final class CaptureForms
     /** @return list<string> */
     public static function names(): array
     {
-        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL];
+        return [self::PROPERTY, self::ISA, self::SAVINGS, self::INVESTMENT, self::PENSION, self::SPOUSE_HOUSEHOLD, self::SPOUSE_ASSETS, self::PERSONAL, self::SPOUSE_DETAILS, self::DEPENDANTS, self::WORK, self::DOB, self::PENSION_PERSONAL, self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD];
     }
 
     /** @return array<string, mixed>|null */
@@ -82,6 +92,9 @@ final class CaptureForms
             self::WORK => self::work(),
             self::DOB => self::dob(),
             self::PENSION_PERSONAL => self::pensionPersonal(),
+            self::EXPENDITURE => self::expenditure(),
+            self::EXPENDITURE_DETAILED => self::expenditureDetailed(false),
+            self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureDetailed(true),
             default => null,
         };
     }
@@ -237,6 +250,7 @@ final class CaptureForms
                 self::PERSONAL, self::DOB => self::personalSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 self::SPOUSE_DETAILS => self::spouseDetailsSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 self::DEPENDANTS => self::dependantSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
+                self::EXPENDITURE, self::EXPENDITURE_DETAILED, self::EXPENDITURE_DETAILED_HOUSEHOLD => self::expenditureSentence($schema, self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 self::WORK => self::workSentence(self::spouseInputs($schema, (array) ($form['answers'] ?? []))),
                 default => self::spouseSentence($schema, (array) ($form['answers'] ?? [])),
             };
@@ -1056,5 +1070,129 @@ final class CaptureForms
         $pension['kinds'] = array_values(array_filter($pension['kinds'], static fn (array $kind): bool => $kind['key'] === 'personal'));
 
         return $pension;
+    }
+
+    /**
+     * The expenditure form a user gets: one box for everyone; the category
+     * form on Premium, with the household question first when a spouse is on
+     * file and has not answered it.
+     *
+     * @return array<string, mixed>
+     */
+    public static function expenditureVariantFor(User $user, bool $detailedAllowed): array
+    {
+        if (! $detailedAllowed) {
+            return self::expenditure();
+        }
+        $askHousehold = $user->liveSpouse() !== null && $user->expenditure_sharing_mode_declared_at === null;
+
+        return $askHousehold ? self::expenditureDetailed(true) : self::expenditureDetailed(false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, mixed>  $input
+     */
+    private static function expenditureSentence(array $schema, array $input): string
+    {
+        if ($schema['name'] === self::EXPENDITURE) {
+            return isset($input['monthly_total']) ? 'About '.self::pounds($input['monthly_total']).' goes out each month.' : '';
+        }
+        $parts = [];
+        $total = 0.0;
+        foreach ($schema['fields'] as $key => $field) {
+            if ($field['type'] === 'money' && isset($input[$key])) {
+                $parts[] = lcfirst($field['label']).' '.self::pounds($input[$key]);
+                $total += $input[$key];
+            }
+        }
+        if ($parts === []) {
+            return '';
+        }
+        $household = match ($input['expenditure_sharing_mode'] ?? null) {
+            'joint' => ' These are our household figures.',
+            'separate' => ' These are just my own figures.',
+            default => '',
+        };
+
+        return 'My monthly spending: '.implode(', ', $parts).' — about '.self::pounds($total).' a month in total.'.$household;
+    }
+
+    /** @return array<string, mixed> */
+    private static function expenditure(): array
+    {
+        return [
+            'name' => self::EXPENDITURE,
+            'submit_label' => 'Save',
+            'tool' => 'capture_monthly_expenditure',
+            'entity_type' => 'expenditure',
+            'lead_fields' => ['monthly_total'],
+            'kinds' => [],
+            'fields' => [
+                'monthly_total' => ['type' => 'money', 'label' => 'What goes out each month', 'required' => true,
+                    'hint' => 'Rent or mortgage, bills, food, transport, the lot. A ballpark figure is fine'],
+            ],
+        ];
+    }
+
+    /**
+     * Category entry (Premium): the web expenditure page's groups as the kind
+     * boxes, every category optional, ONE write through set_expenditure.
+     *
+     * @return array<string, mixed>
+     */
+    private static function expenditureDetailed(bool $askHousehold): array
+    {
+        $money = static fn (string $label, ?string $hint = null): array => array_filter(['type' => 'money', 'label' => $label, 'required' => false, 'hint' => $hint]);
+
+        $schema = [
+            'name' => $askHousehold ? self::EXPENDITURE_DETAILED_HOUSEHOLD : self::EXPENDITURE_DETAILED,
+            'base' => self::EXPENDITURE,
+            'submit_label' => 'Save',
+            'tool' => 'set_expenditure',
+            'entity_type' => 'expenditure',
+            'lead_fields' => $askHousehold ? ['expenditure_sharing_mode'] : [],
+            'kinds_prompt' => 'Choose the areas you spend on and fill in what you can. Monthly figures, rough is fine.',
+            'kinds' => [
+                ['key' => 'essential', 'label' => 'Essential living', 'fields' => ['rent', 'utilities', 'food_groceries', 'transport_fuel', 'healthcare_medical', 'insurance']],
+                ['key' => 'communication', 'label' => 'Communication and technology', 'fields' => ['mobile_phones', 'internet_tv', 'subscriptions']],
+                ['key' => 'lifestyle', 'label' => 'Personal and lifestyle', 'fields' => ['clothing_personal_care', 'entertainment_dining', 'holidays_travel', 'pets']],
+                ['key' => 'children', 'label' => 'Children and dependants', 'fields' => ['childcare', 'school_fees', 'school_lunches', 'school_extras', 'university_fees', 'children_activities']],
+                ['key' => 'other', 'label' => 'Other', 'fields' => ['gifts_charity', 'charitable_donations', 'other_expenditure']],
+            ],
+            'fields' => [
+                'expenditure_sharing_mode' => ['type' => 'choice', 'label' => 'Are these figures for the whole household, or just you?', 'required' => true, 'options' => [
+                    ['value' => 'joint', 'label' => 'The whole household'],
+                    ['value' => 'separate', 'label' => 'Just me'],
+                ]],
+                'rent' => $money('Rent', 'Monthly rent if not a homeowner'),
+                'utilities' => $money('Utilities', 'Gas, electricity, water, council tax'),
+                'food_groceries' => $money('Food and groceries'),
+                'transport_fuel' => $money('Transport and fuel', 'Petrol, public transport, parking'),
+                'healthcare_medical' => $money('Healthcare and medical', 'Prescriptions, dental, optician'),
+                'insurance' => $money('Insurance (not property)', 'Car, private medical, mobile phone'),
+                'mobile_phones' => $money('Mobile phones'),
+                'internet_tv' => $money('Internet and TV', 'Broadband, TV licence'),
+                'subscriptions' => $money('Subscriptions', 'Streaming, gym memberships'),
+                'clothing_personal_care' => $money('Clothing and personal care', 'Clothes, toiletries, haircuts'),
+                'entertainment_dining' => $money('Entertainment and dining', 'Restaurants, cinema, activities'),
+                'holidays_travel' => $money('Holidays and travel', 'Monthly average for the year'),
+                'pets' => $money('Pets', 'Food, vet bills, insurance'),
+                'childcare' => $money('Childcare', 'Nursery, childminder, after school'),
+                'school_fees' => $money('School fees', 'Private education fees'),
+                'school_lunches' => $money('School lunches'),
+                'school_extras' => $money('School extras', 'Uniforms, trips, equipment'),
+                'university_fees' => $money('University fees', 'Includes accommodation and books'),
+                'children_activities' => $money("Children's activities", 'Sports, music lessons, clubs'),
+                'gifts_charity' => $money('Gifts and presents', 'Birthday and Christmas gifts'),
+                'charitable_donations' => $money('Charitable donations'),
+                'other_expenditure' => $money('Other spending', 'Any other monthly expenses'),
+            ],
+        ];
+        if (! $askHousehold) {
+            unset($schema['fields']['expenditure_sharing_mode']);
+        }
+
+        return $schema;
     }
 }

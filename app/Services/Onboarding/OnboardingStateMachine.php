@@ -2166,10 +2166,9 @@ final class OnboardingStateMachine
         // earner modes route to campaign2_spouse_pensions. The savetax household-
         // tax states (campaign_spouse_household, campaign_spouse_non_working_assets,
         // campaign_advice_spouse) must never run for a pensioncheck user.
-        if ($user->onboarding_fyn_selection === 'pensioncheck') {
-            return self::STATE_CAMPAIGN2_SPOUSE_PENSIONS;
-        }
-
+        // CSJ 2026-09-16: the pension check takes the same spouse forms as
+        // Save Tax — the household holding row, never a pension on the user's
+        // own account (I4's separate spouse-pensions step is retired).
         return match ($user->household_calculation_mode) {
             'dual_earner' => self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             'single_earner_couple' => self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,

@@ -72,24 +72,25 @@ it('C1: nextFromCampaignDob for savetax without pension in funnel skips pensions
 
 // ── I4: nextFromSpouseWork — pensioncheck routes to spouse pensions, not household ─
 
-it('I4: nextFromSpouseWork routes married pensioncheck dual_earner to campaign2_spouse_pensions', function (): void {
+// CSJ 2026-09-16: the pension check takes the same spouse forms as Save Tax (the household holding row).
+it('I4: nextFromSpouseWork routes married pensioncheck dual_earner to the spouse household form', function (): void {
     $user = routeFixUser([
         'marital_status' => 'married',
         'household_calculation_mode' => 'dual_earner',
     ]);
 
     expect(SM::nextFromSpouseWork('Yes, they work', $user))
-        ->toBe(SM::STATE_CAMPAIGN2_SPOUSE_PENSIONS);
+        ->toBe(SM::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD);
 });
 
-it('I4: nextFromSpouseWork routes married pensioncheck single_earner_couple to campaign2_spouse_pensions', function (): void {
+it('I4: nextFromSpouseWork routes married pensioncheck single_earner_couple to the spouse assets form', function (): void {
     $user = routeFixUser([
         'marital_status' => 'married',
         'household_calculation_mode' => 'single_earner_couple',
     ]);
 
     expect(SM::nextFromSpouseWork("No, they don't currently work", $user))
-        ->toBe(SM::STATE_CAMPAIGN2_SPOUSE_PENSIONS);
+        ->toBe(SM::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS);
 });
 
 it('I4: nextFromSpouseWork savetax dual_earner still routes to campaign_spouse_household (regression)', function (): void {
