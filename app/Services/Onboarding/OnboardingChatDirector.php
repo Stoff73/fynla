@@ -3718,7 +3718,7 @@ PROMPT;
 
         if ($inputs === []) {
             // Nothing recognisable was filled in. Never advance on an empty form.
-            $line = 'Fill in at least one property before saving.';
+            $line = 'Fill in at least one before saving.';
             yield ['type' => 'capture_form_errors', 'form' => $form['name'], 'errors' => ['_form' => ['message' => $line, 'fields' => []]]];
             yield ['type' => 'content', 'text' => $line];
             $saved = $this->saveMessage($conversation, 'assistant', $line, ['metadata' => [
@@ -3732,21 +3732,28 @@ PROMPT;
         }
 
         foreach ($inputs as $kind => $input) {
-            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'running'];
-            $facts = ['ownership_type' => $input['ownership_type']];
+            // The create tool is per kind (CaptureForms): a cash ISA is a
+            // savings row, a stocks and shares ISA an investment row.
+            $definition = CaptureForms::kind($form['name'], $kind);
+            $tool = (string) $definition['tool'];
+            yield ['type' => 'tool_use', 'tool' => $tool, 'status' => 'running'];
+            $facts = [];
+            if (isset($input['ownership_type'])) {
+                $facts['ownership_type'] = $input['ownership_type'];
+            }
             if (isset($input['ownership_percentage'])) {
                 $facts['ownership_percentage'] = $input['ownership_percentage'];
             }
             try {
-                $result = $this->coordinatingAgent->executeTool('create_property', $input, $user, $conversation->id, confirmedFacts: $facts);
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user, $conversation->id, confirmedFacts: $facts);
             } catch (\Throwable $e) {
                 Log::error('[OnboardingChatDirector] Form capture write failed', ['user_id' => $user->id, 'kind' => $kind, 'error' => $e->getMessage()]);
                 $result = ['error' => true, 'message' => 'Unable to save the record. Please try again.'];
             }
-            yield ['type' => 'tool_use', 'tool' => 'create_property', 'status' => 'complete'];
+            yield ['type' => 'tool_use', 'tool' => $tool, 'status' => 'complete'];
 
             if (($result['success'] ?? false) === true && isset($result['entity_id'])) {
-                $row = ['type' => 'entity_created', 'entity_type' => 'property', 'entity_id' => $result['entity_id'], 'name' => CaptureForms::kindLabel($form['name'], $kind)];
+                $row = ['type' => 'entity_created', 'entity_type' => (string) $definition['entity_type'], 'entity_id' => $result['entity_id'], 'name' => $definition['label']];
                 $recordsCreated[] = self::recordRowFromEvent($row);
                 yield $row;
 

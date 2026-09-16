@@ -77,4 +77,46 @@ describe('FynCaptureForm', () => {
     expect(locked.find('input[name="main_residence.current_value"]').element.value).toBe('750000');
     expect(locked.find('input[name="main_residence.current_value"]').attributes('disabled')).toBeDefined();
   });
+
+  it('requires a text field to be non-empty, emits it trimmed, and never gates Save on an optional money field', async () => {
+    const textSchema = {
+      name: 'isa', submit_label: 'Save',
+      kinds: [{ key: 'cash_isa', label: 'Cash ISA', fields: ['provider', 'current_value', 'paid_in_this_year', 'interest_rate'] }],
+      fields: {
+        provider: { type: 'text', label: 'Who is it with', required: true },
+        current_value: { type: 'money', label: 'Current balance', required: true },
+        paid_in_this_year: { type: 'money', label: 'Paid in this tax year', required: false, hint: 'Leave blank if none' },
+        interest_rate: { type: 'percent', label: 'Interest rate %', required: false, min: 0, max: 20, step: 0.01 },
+      },
+    };
+    const w = mount(FynCaptureForm, { props: { schema: textSchema } });
+    await box(w, 'Cash ISA').trigger('click');
+    expect(w.findAll('label').map((l) => l.text())).toContain('Who is it with *');
+    const provider = w.find('input[name="cash_isa.provider"]');
+    expect(provider.attributes('type')).toBe('text');
+    await w.find('input[name="cash_isa.current_value"]').setValue('12000');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await provider.setValue('   ');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined();
+    await provider.setValue('  Nationwide ');
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined();
+
+    const rate = w.find('input[name="cash_isa.interest_rate"]');
+    expect(rate.attributes('min')).toBe('0');
+    expect(rate.attributes('max')).toBe('20');
+    expect(rate.attributes('step')).toBe('0.01');
+
+    await w.find('form').trigger('submit');
+    expect(w.emitted('submit')[0][0]).toEqual({ name: 'isa', answers: { cash_isa: { provider: 'Nationwide', current_value: 12000 } } });
+  });
+
+  it('binds the ownership-share bounds to a percent field without its own', async () => {
+    const w = mount(FynCaptureForm, { props: { schema } });
+    await box(w, 'Home').trigger('click');
+    await w.find('input[type="radio"][value="joint"]').setValue(true);
+    const share = w.find('input[name="main_residence.ownership_percentage"]');
+    expect(share.attributes('min')).toBe('0.01');
+    expect(share.attributes('max')).toBe('99.99');
+    expect(share.attributes('step')).toBe('0.01');
+  });
 });
