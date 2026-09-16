@@ -6,7 +6,7 @@ use App\Services\Onboarding\CaptureForms;
 use App\Services\Onboarding\OnboardingStateMachine;
 
 it('lists the property form and returns null for an unknown form', function (): void {
-    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal'])
+    expect(CaptureForms::names())->toBe(['property', 'isa', 'savings', 'investment', 'pension', 'spouse_household', 'spouse_assets', 'personal', 'spouse_details', 'dependants', 'work', 'dob', 'pension_personal', 'expenditure', 'expenditure_detailed', 'expenditure_detailed_household'])
         ->and(CaptureForms::schema('property')['name'])->toBe('property')
         ->and(CaptureForms::schema('bank'))->toBeNull();
 });
@@ -406,4 +406,30 @@ it('the personal-only pension form is the pension form with just the SIPP kind, 
         ->and(CaptureForms::toolInputs(['name' => 'pension_personal', 'answers' => ['personal' => ['provider' => 'Vanguard', 'current_value' => 30000, 'annual_contribution' => 6000]]]))
         ->toBe(['personal' => ['pension_category' => 'dc', 'scheme_name' => 'Vanguard personal pension or SIPP', 'scheme_type' => 'personal', 'provider' => 'Vanguard', 'current_fund_value' => 30000.0, 'monthly_contribution_amount' => 500.0]])
         ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS)['form'])->toBe('pension_personal');
+});
+
+it('the expenditure forms: one box for everyone, five category groups for Premium, the household question first when a spouse is on file', function (): void {
+    $one = CaptureForms::schema('expenditure');
+    expect($one['tool'])->toBe('capture_monthly_expenditure')
+        ->and($one['lead_fields'])->toBe(['monthly_total'])
+        ->and(CaptureForms::toolInputs(['name' => 'expenditure', 'answers' => ['_lead' => ['monthly_total' => 2400]]]))->toBe(['_lead' => ['monthly_total' => 2400.0]])
+        ->and(CaptureForms::summarise(['name' => 'expenditure', 'answers' => ['_lead' => ['monthly_total' => 2400]]]))->toBe('About £2,400 goes out each month.');
+
+    $detailed = CaptureForms::schema('expenditure_detailed');
+    expect($detailed['base'])->toBe('expenditure')
+        ->and($detailed['tool'])->toBe('set_expenditure')
+        ->and(array_column($detailed['kinds'], 'label'))->toBe(['Essential living', 'Communication and technology', 'Personal and lifestyle', 'Children and dependants', 'Other'])
+        ->and($detailed['lead_fields'])->toBe([])
+        ->and(array_key_exists('expenditure_sharing_mode', $detailed['fields']))->toBeFalse()
+        ->and(CaptureForms::toolInputs(['name' => 'expenditure_detailed', 'answers' => ['essential' => ['rent' => 900, 'food_groceries' => 400], 'other' => ['other_expenditure' => 50]]]))
+        ->toBe(['_lead' => ['rent' => 900.0, 'food_groceries' => 400.0, 'other_expenditure' => 50.0]])
+        ->and(CaptureForms::summarise(['name' => 'expenditure_detailed', 'answers' => ['essential' => ['rent' => 900, 'food_groceries' => 400]]]))->toBe('My monthly spending: rent £900, food and groceries £400 — about £1,300 a month in total.');
+
+    $household = CaptureForms::schema('expenditure_detailed_household');
+    expect($household['base'])->toBe('expenditure')
+        ->and($household['lead_fields'])->toBe(['expenditure_sharing_mode'])
+        ->and(CaptureForms::rules('expenditure_detailed_household')['_lead.expenditure_sharing_mode'])->toBe(['required_with:_lead', 'in:joint,separate'])
+        ->and(CaptureForms::summarise(['name' => 'expenditure_detailed_household', 'answers' => ['_lead' => ['expenditure_sharing_mode' => 'joint'], 'essential' => ['rent' => 900]]]))->toBe('My monthly spending: rent £900 — about £900 a month in total. These are our household figures.');
+
+    expect(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_EXPENDITURE)['form'])->toBe('expenditure');
 });

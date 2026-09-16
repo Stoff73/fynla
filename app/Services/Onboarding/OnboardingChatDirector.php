@@ -16,7 +16,6 @@ use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
-use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
@@ -53,6 +52,7 @@ use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\TeaserGate;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -234,7 +234,8 @@ final class OnboardingChatDirector
         }
 
         if ($form !== null) {
-            if (($state['form'] ?? null) !== ($form['name'] ?? null)) {
+            $postedBase = CaptureForms::schema((string) ($form['name'] ?? ''))['base'] ?? ($form['name'] ?? null);
+            if (($state['form'] ?? null) !== $postedBase) {
                 // A form submitted after the step moved on (a second tab, a
                 // late tap). Nothing is written; the walk carries on.
                 $line = "That form is no longer open — let's carry on from where we are.";
@@ -1050,6 +1051,12 @@ final class OnboardingChatDirector
 
         if (($turnType === 'form' || isset($state['form'])) && $this->clientSupportsForms) {
             $schema = CaptureForms::schema((string) ($state['form'] ?? ''));
+            if ($schema !== null && $schema['name'] === CaptureForms::EXPENDITURE) {
+                // CSJ 2026-09-16: one box for everyone; category entry for
+                // Premium, asking the household question first when a spouse
+                // is on file and has not been answered.
+                $schema = CaptureForms::expenditureVariantFor($user, app(TeaserGate::class)->allows($user, 'expenditure_detailed'));
+            }
             if ($schema !== null) {
                 // A form-capable client sees the short form-shaped lead-in
                 // (the form's own boxes and Save button carry the
@@ -2447,20 +2454,8 @@ final class OnboardingChatDirector
         // profile mirror atomically so the desktop category view does not hide
         // a value that `/m` can display.
         if ($captureField === 'monthly_expenditure' && is_numeric($capturedValue) && (float) $capturedValue >= 0) {
-            $user->expenditure_entry_mode = 'simple';
-            DB::transaction(function () use ($user, $capturedValue): void {
-                $user->save();
-                $monthlyTotal = (float) $capturedValue;
-                if ($monthlyTotal > 0) {
-                    ExpenditureProfile::updateOrCreate(
-                        ['user_id' => $user->id],
-                        ['total_monthly_expenditure' => $monthlyTotal],
-                    );
-                } else {
-                    ExpenditureProfile::where('user_id', $user->id)
-                        ->update(['total_monthly_expenditure' => 0]);
-                }
-            });
+            // One write path with the one-box form (CSJ 2026-09-16).
+            $this->coordinatingAgent->handleCaptureMonthlyExpenditure(['monthly_total' => (float) $capturedValue], $user);
 
             return;
         }
@@ -3857,9 +3852,9 @@ PROMPT;
 
                 continue;
             }
-            if (($result['onboarding_capture'] ?? false) === true) {
-                // A household-row write (the spouse forms): no entity row, the
-                // capture ack below is the recap.
+            if (($result['onboarding_capture'] ?? false) === true || ($result['updated'] ?? false) === true) {
+                // A household-row or profile write (the spouse and expenditure
+                // forms): no entity row, the capture ack below is the recap.
                 $captured = true;
 
                 continue;

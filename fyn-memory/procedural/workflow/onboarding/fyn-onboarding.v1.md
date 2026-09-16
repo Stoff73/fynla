@@ -149,6 +149,8 @@ base_retirement_date:
 
 base_expenditure:
   turn_type: free_text
+  form: expenditure
+  form_prompt_text: 'Now your spending.'
   prompt_text: "And roughly how much goes out each month — rent or mortgage, bills, food, transport, the lot? A ballpark figure is fine. I'll use it to work out your savings capacity, emergency fund target, and how much income you'll need in retirement."
   capture_field: monthly_expenditure
   value_parser: parseExpenditureAmount
