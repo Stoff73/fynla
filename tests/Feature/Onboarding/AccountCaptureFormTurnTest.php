@@ -167,27 +167,61 @@ it('saves a general investment account and a joint other investment with its sha
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE);
 });
 
-it('reports the Free plan cap on the refused box, keeps the landed account and stays on the step', function (): void {
-    // Free holds two savings accounts; the third is refused by the tier cap.
+it('at the Free cap the loop question states the limit and offers only the next section', function (): void {
+    // Free holds two savings accounts. Saving the second fills the cap, so
+    // the loop question must not offer "add another" (CSJ 2026-09-16).
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
+    $conversation = accountConversation($user);
+    $events = submitForm($user, $conversation, ['name' => 'savings', 'answers' => [
+        'current_account' => ['provider' => 'Barclays', 'current_value' => 1000, 'ownership_type' => 'individual'],
+        'easy_access' => ['provider' => 'Marcus', 'current_value' => 2000, 'interest_rate' => 4, 'ownership_type' => 'individual'],
+    ]]);
+
+    $quick = collect($events)->firstWhere('type', 'quick_replies');
+    expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2)
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE)
+        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 bank and savings accounts, so I can't add another here. You can upgrade after onboarding to add more. **Would you like to continue to the next section?**")
+        ->and(array_column($quick['bubbles'], 'label'))->toBe(['Continue to the next section']);
+
+    iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user->fresh(), $conversation, 'Continue to the next section'), false);
+    expect($user->fresh()->onboarding_fyn_step)->toBe('campaign_verify_announce')
+        ->and($user->fresh()->onboarding_fyn_context['verify_section'] ?? null)->toBe('savings');
+});
+
+it('a form refused only by the Free cap moves on to the loop question instead of parking', function (): void {
     $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
     $conversation = accountConversation($user);
     submitForm($user, $conversation, ['name' => 'savings', 'answers' => [
         'current_account' => ['provider' => 'Barclays', 'current_value' => 1000, 'ownership_type' => 'individual'],
         'easy_access' => ['provider' => 'Marcus', 'current_value' => 2000, 'interest_rate' => 4, 'ownership_type' => 'individual'],
     ]]);
+    // A stale client (or "Yes, add another" before this fix) submits a third.
     $user->refresh()->forceFill(['onboarding_fyn_step' => OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS])->save();
 
-    $events = submitForm($user, $conversation, ['name' => 'savings', 'answers' => [
+    $events = submitForm($user->fresh(), $conversation, ['name' => 'savings', 'answers' => [
         'notice' => ['provider' => 'Shawbrook', 'current_value' => 3000, 'interest_rate' => 4.6, 'ownership_type' => 'individual'],
     ]]);
 
     $errors = collect($events)->firstWhere('type', 'capture_form_errors');
+    $quick = collect($events)->firstWhere('type', 'quick_replies');
     expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(2)
-        ->and($errors)->not->toBeNull()
-        ->and($errors['form'])->toBe('savings')
         ->and($errors['errors']['notice']['message'])->toContain("plan's limit")
         ->and(collect($events)->firstWhere('type', 'capture_complete'))->toBeNull()
-        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS);
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE)
+        ->and($quick['prompt_text'])->toContain("reached the Free plan's limit of 2 bank and savings accounts")
+        ->and(array_column($quick['bubbles'], 'label'))->toBe(['Continue to the next section']);
+});
+
+it('below the cap the loop question still offers another', function (): void {
+    $user = accountStepUser(OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS);
+    $conversation = accountConversation($user);
+    $events = submitForm($user, $conversation, ['name' => 'investment', 'answers' => [
+        'gia' => ['provider' => 'Vanguard', 'current_value' => 45000, 'ownership_type' => 'individual'],
+    ]]);
+
+    $quick = collect($events)->firstWhere('type', 'quick_replies');
+    expect($quick['prompt_text'])->toBe('Do you have another investment account to add?')
+        ->and(array_column($quick['bubbles'], 'label'))->toBe(['Yes, add another', "No, that's everything"]);
 });
 
 it('re-opens the form on "Yes, add another" and continues on "No" exactly where each step used to go', function (): void {

@@ -214,7 +214,9 @@ it('reports a refused kind on the form, keeps the landed one, and stays on the s
         ->and($errors['errors'])->toHaveKey('buy_to_let')
         ->and($errors['errors']['buy_to_let']['message'])->toContain('property limit')
         ->and(collect($events)->where('type', 'content')->pluck('text')->implode(' '))->toContain('Buy to let')
-        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY);
+        // CSJ 2026-09-16: a refusal that is only the cap moves on to the loop
+        // question (which states the limit) rather than parking on the form.
+        ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_PROPERTY_MORE);
 });
 
 it('never invokes the model for a form answer', function (): void {
@@ -305,12 +307,24 @@ it('advances to campaign_property_more with a quick_replies event after a succes
     expect($advance)->not->toBeNull()
         ->and($advance['to_step'])->toBe('campaign_property_more')
         ->and($quick)->not->toBeNull()
-        ->and($quick['prompt_text'])->toBe('Do you have another property to add?');
-
-    $bubbleLabels = array_column($quick['bubbles'] ?? [], 'label');
-    expect($bubbleLabels)->toContain('Yes, add another')
-        ->and($bubbleLabels)->toContain("No, that's everything")
+        // Two properties fill the Free cap (CSJ 2026-09-16): the loop question
+        // states the limit and offers only the next section.
+        ->and($quick['prompt_text'])->toBe("You've reached the Free plan's limit of 2 properties, so I can't add another here. You can upgrade after onboarding to add more. **Would you like to continue to the next section?**")
+        ->and(array_column($quick['bubbles'] ?? [], 'label'))->toBe(['Continue to the next section'])
         ->and($user->fresh()->onboarding_fyn_step)->toBe('campaign_property_more');
+});
+
+it('below the cap the property loop question offers another', function (): void {
+    $user = formStepUser();
+    $conversation = formConversation($user);
+    FynStreamHarness::fake()->bind();
+    $form = ['name' => 'property', 'answers' => ['main_residence' => ['current_value' => 750000, 'mortgage_outstanding_balance' => null, 'ownership_type' => 'individual']]];
+
+    $events = iterator_to_array(app(OnboardingChatDirector::class)->handleUserMessage($user, $conversation, CaptureForms::summarise($form), null, true, $form), false);
+
+    $quick = collect($events)->firstWhere('type', 'quick_replies');
+    expect($quick['prompt_text'])->toBe('Do you have another property to add?')
+        ->and(array_column($quick['bubbles'] ?? [], 'label'))->toBe(['Yes, add another', "No, that's everything"]);
 });
 
 it('re-opens the property form on "Yes, add another" for a client that can render forms', function (): void {
