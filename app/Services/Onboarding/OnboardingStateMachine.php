@@ -126,6 +126,12 @@ final class OnboardingStateMachine
     // add (CSJ 2026-09-16) — mirrors the base_employment_more multi-job loop.
     public const STATE_CAMPAIGN_PROPERTY_MORE = 'campaign_property_more';
 
+    public const STATE_CAMPAIGN_ISA_MORE = 'campaign_isa_more';
+
+    public const STATE_CAMPAIGN_BANK_ACCOUNTS_MORE = 'campaign_bank_accounts_more';
+
+    public const STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE = 'campaign_investment_accounts_more';
+
     public const STATE_CAMPAIGN_PENSION_CONTRIBS = 'campaign_pension_contribs';
 
     public const STATE_CAMPAIGN_PENSION_HISTORY = 'campaign_pension_history';
@@ -479,6 +485,14 @@ final class OnboardingStateMachine
                 'skip_if' => [self::class, 'skipIfNoIsa'],
                 'capture_focus' => 'savings',
             ],
+            // After an ISA form save, ask for another or move on to bank
+            // accounts (CSJ 2026-09-16) — mirrors STATE_CAMPAIGN_PROPERTY_MORE.
+            self::STATE_CAMPAIGN_ISA_MORE => [
+                'next' => self::class.'::nextFromIsaMore',
+                // A skipped capture state resolves through its static next
+                // (applySkipRules), so the loop question must skip with it.
+                'skip_if' => [self::class, 'skipIfNoIsa'],
+            ],
             self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
                 'prompt_text' => self::class.'::buildCampaignBankAccountsPrompt',
                 // The ONE deterministic gap-fill when the model refuses or
@@ -493,14 +507,21 @@ final class OnboardingStateMachine
                 // captureRecordContextAppendix.
                 'record_context' => 'savings',
                 'record_context_mode' => 'reference',
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'savings'),
+                // 'next' is corpus DATA now (static: campaign_bank_accounts_more).
                 // Only ask about bank/savings if the user ticked bank or savings.
+                'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
+            ],
+            self::STATE_CAMPAIGN_BANK_ACCOUNTS_MORE => [
+                'next' => self::class.'::nextFromBankAccountsMore',
                 'skip_if' => [self::class, 'skipIfNoBankOrSavings'],
             ],
             // ── Investments section ───────────────────────────────────────
             self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
                 'capture_focus' => 'investment',
-                'next' => fn (string $answer, User $user): string => self::enterCampaignVerify($user, 'investments'),
+                // 'next' is corpus DATA now (static: campaign_investment_accounts_more).
+            ],
+            self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS_MORE => [
+                'next' => self::class.'::nextFromInvestmentAccountsMore',
             ],
             // ── Property section (CSJ 2026-09-15) ─────────────────────────
             self::STATE_CAMPAIGN_PROPERTY => [
@@ -1316,6 +1337,32 @@ final class OnboardingStateMachine
         }
 
         return self::enterCampaignVerify($user, 'property');
+    }
+
+    /**
+     * The three account "another?" loops (CSJ 2026-09-16), same shape as
+     * nextFromPropertyMore: "yes" re-enters the capture state (a fresh form
+     * for a forms client, the typed prompt otherwise); anything else moves
+     * on exactly where the capture state used to go.
+     */
+    public static function nextFromIsaMore(string $answer, User $user): string
+    {
+        return self::saidYes($answer) ? self::STATE_CAMPAIGN_ISA_HOLDINGS : self::STATE_CAMPAIGN_BANK_ACCOUNTS;
+    }
+
+    public static function nextFromBankAccountsMore(string $answer, User $user): string
+    {
+        return self::saidYes($answer) ? self::STATE_CAMPAIGN_BANK_ACCOUNTS : self::enterCampaignVerify($user, 'savings');
+    }
+
+    public static function nextFromInvestmentAccountsMore(string $answer, User $user): string
+    {
+        return self::saidYes($answer) ? self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS : self::enterCampaignVerify($user, 'investments');
+    }
+
+    private static function saidYes(string $answer): bool
+    {
+        return str_starts_with(mb_strtolower(trim($answer)), 'yes');
     }
 
     /**

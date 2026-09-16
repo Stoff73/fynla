@@ -148,22 +148,55 @@ campaign_intro:
   next: { branch: nextFromCampaignIntro }
 
 campaign_isa_holdings:
-  turn_type: delegated
+  turn_type: form
+  form: isa
   prompt_text: "Let's look at your ISAs. **For each one, is it a Cash, Stocks & Shares, Lifetime, or Innovative Finance ISA; what's its current balance; how much have you put in this tax year; and is it owned by you individually?**"
+  form_prompt_text: 'Now your ISAs.'
   capture_field: null
-  next: campaign_bank_accounts
+  next: campaign_isa_more
+
+campaign_isa_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another ISA to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromIsaMore }
 
 campaign_bank_accounts:
-  turn_type: delegated
-  prompt_text: "Now your savings — bank accounts and savings accounts. **For each, what's the balance and interest rate, and is it owned individually or jointly? If jointly, who owns it with you and what's your percentage share?**"
+  turn_type: form
+  form: savings
+  prompt_text: { builder: buildCampaignBankAccountsPrompt }
+  form_prompt_text: 'Now your bank and savings accounts.'
   capture_field: null
-  next: { branch: enterCampaignVerify }
+  next: campaign_bank_accounts_more
+
+campaign_bank_accounts_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another account to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromBankAccountsMore }
 
 campaign_investment_accounts:
-  turn_type: delegated
+  turn_type: form
+  form: investment
   prompt_text: 'Any investment accounts — General Investment Accounts or share trading platforms? **For each one, tell me who it is with, the current value, and whether you own it individually or jointly. If jointly, who owns it with you and your share.**'
+  form_prompt_text: 'Now your investments.'
   capture_field: null
-  next: { branch: enterCampaignVerify }
+  next: campaign_investment_accounts_more
+
+campaign_investment_accounts_more:
+  turn_type: bubbles
+  prompt_text: 'Do you have another investment account to add?'
+  bubbles:
+    - { id: 'yes', label: 'Yes, add another' }
+    - { id: 'no', label: "No, that's everything" }
+  capture_field: null
+  next: { branch: nextFromInvestmentAccountsMore }
 
 campaign_property:
   turn_type: form
