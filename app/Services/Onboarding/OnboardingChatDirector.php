@@ -6365,8 +6365,9 @@ PROMPT;
 
     private function dependantsAck(User $user): string
     {
+        // A parent captured as a dependant counts too (the form offers all three).
         $count = FamilyMember::where('user_id', $user->id)
-            ->whereIn('relationship', ['child', 'other_dependent'])
+            ->whereIn('relationship', ['child', 'parent', 'other_dependent'])
             ->count();
 
         if ($count === 0) {

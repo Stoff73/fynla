@@ -185,8 +185,9 @@ it('saves one dependant from the form, asks for another, re-opens the form witho
         ->and($reopened['prompt_text'])->toBe('')
         ->and($user->fresh()->onboarding_fyn_step)->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);
 
-    submitJourneyForm($user->fresh(), $conversation, ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'parent', 'first_name' => 'June', 'date_of_birth' => '1950-02-01']]]);
-    expect(FamilyMember::where('user_id', $user->id)->whereIn('relationship', ['child', 'parent'])->count())->toBe(2);
+    $second = submitJourneyForm($user->fresh(), $conversation, ['name' => 'dependants', 'answers' => ['_lead' => ['relationship' => 'parent', 'first_name' => 'June', 'date_of_birth' => '1950-02-01']]]);
+    expect(FamilyMember::where('user_id', $user->id)->whereIn('relationship', ['child', 'parent'])->count())->toBe(2)
+        ->and(collect($second)->where('type', 'content')->pluck('text')->implode(' '))->toContain('2 dependants added');
 
     // No: on to the family review exactly where the detail step used to go.
     iterator_to_array($director->handleUserMessage($user->fresh(), $conversation, "No, that's everything", null, true), false);
