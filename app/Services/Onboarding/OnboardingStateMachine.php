@@ -454,6 +454,7 @@ final class OnboardingStateMachine
                 'next' => self::class.'::nextFromEmploymentMore',
             ],
             self::STATE_BASE_RETIREMENT_DATE => [
+                'prompt_text' => self::class.'::buildRetirementDatePrompt',
                 'next' => self::class.'::nextFromRetirementDate',
             ],
             self::STATE_BASE_EXPENDITURE => [
@@ -1696,6 +1697,26 @@ final class OnboardingStateMachine
      * Builds a personalised work prompt that matches the user's chosen
      * employment_status (self-employed users get "trade name" wording).
      */
+    /**
+     * The retirement-date question, opened once with the funnel recap for a
+     * retired campaign arrival (the recap's own income question is dropped).
+     */
+    public static function buildRetirementDatePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
+    {
+        $question = 'When did you retire? A year is fine — something like "2020".';
+        $funnel = is_array($user->funnel_answers ?? null) ? $user->funnel_answers : [];
+        if (($user->onboarding_fyn_path ?? '') !== 'campaign' || $funnel === [] || ! empty($user->retirement_date)
+            || self::stateTurnAlreadyDelivered($conversation, self::STATE_BASE_RETIREMENT_DATE)) {
+            return $question;
+        }
+        $firstName = trim((string) ($user->first_name ?? '')) !== '' ? trim((string) $user->first_name) : 'there';
+        $recap = ($user->onboarding_fyn_selection ?? '') === 'pensioncheck'
+            ? self::buildPensioncheckFunnelRecapPrompt($firstName, $funnel)
+            : self::buildFunnelRecapPrompt($firstName, $funnel);
+
+        return explode(self::BUBBLE_BREAK, $recap)[0].self::BUBBLE_BREAK.$question;
+    }
+
     public static function buildWorkFormPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         return self::workFunnelRecap($user, $conversation) ?? 'Now your work and income.';
